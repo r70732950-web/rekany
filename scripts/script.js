@@ -1,4 +1,4 @@
-// scripts/script.js
+// КОДИ ТӘВАВИ SCRIPTS/SCRIPT.JS
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
@@ -6,8 +6,9 @@ import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from
 import { getFirestore, collection, doc, onSnapshot, query, orderBy, getDocs, limit, setDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
-// იმپۆرتکردنی مۆدیوڵی ئەدمین
+// مۆدیوڵە جیاکراوەکان
 import { initializeAdmin } from './admin.js';
+import { translations } from './translations.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE",
@@ -28,233 +29,6 @@ const messaging = getMessaging(app);
 const productsCollection = collection(db, "products");
 const categoriesCollection = collection(db, "categories");
 const announcementsCollection = collection(db, "announcements");
-
-// ========== START: TRANSLATIONS OBJECT ==========
-const translations = {
-    ku_sorani: {
-        search_placeholder: "گەڕان بە ناوی کاڵا...",
-        admin_login_title: "چوونەژوورەوەی بەڕێوەبەر",
-        email_label: "ئیمەیڵ:",
-        password_label: "وشەی نهێنی:",
-        login_button: "چوونەژوورەوە",
-        cart_title: "سەبەتەی کڕین",
-        cart_empty: "سەبەتەکەت بەتاڵە",
-        total_price: "کۆی گشتی:",
-        send_whatsapp: "ناردن لە ڕێگەی واتسئاپ",
-        send_viber: "ناردن لە ڕێگەی فایبەر",
-        send_telegram: "ناردن لە ڕێگەی تێلێگرام",
-        favorites_title: "لیستی دڵخوازەکان",
-        favorites_empty: "لیستی دڵخوازەکانت بەتاڵە",
-        choose_category: "هەڵبژاردنی جۆر",
-        all_products: "هەموو کاڵاکان",
-        loading_products: "...خەریکی بارکردنی کاڵاکانە",
-        settings_title: "ڕێکخستنەکان",
-        language_label: "زمان",
-        profile_title: "پڕۆفایلی من",
-        admin_login_nav: "چوونەژوورەوەی بەڕێوەبەر",
-        logout_nav: "چوونەدەرەوە",
-        profile_name: "ناو:",
-        profile_address: "ناونیشان:",
-        profile_phone: "ژمارەی تەلەفۆن:",
-        save_button: "پاشەکەوتکردن",
-        nav_home: "سەرەکی",
-        nav_categories: "جۆرەکان",
-        nav_cart: "سەبەتە",
-        nav_profile: "پڕۆفایل",
-        nav_settings: "ڕێکخستن",
-        contact_us_title: "پەیوەندیمان پێوە بکە",
-        contact_whatsapp: "واتسئاپ",
-        contact_viber: "فایبەر",
-        contact_telegram: "تێلێگرام",
-        add_to_cart: "زیادکردن بۆ سەبەتە",
-        added_to_cart: "زیادکرا",
-        product_not_found_error: "هەڵە: کاڵاکە نەدۆزرایەوە!",
-        delete_confirm: "دڵنیایت دەتەوێت ئەم کاڵایە بسڕیتەوە؟",
-        product_deleted: "کاڵا سڕدرایەوە",
-        product_delete_error: "هەڵە لە سڕینەوەی کاڵا",
-        order_greeting: "سڵاو! من پێویستم بەم کاڵایانەی خوارەوەیە:",
-        order_item_details: "نرخ: {price} د.ع. | ژمارە: {quantity}",
-        order_total: "کۆی گشتی",
-        order_user_info: "--- زانیاری داواکار ---",
-        order_user_name: "ناو",
-        order_user_address: "ناونیشان",
-        order_user_phone: "ژمارەی تەلەفۆن",
-        order_prompt_info: "تکایە ناونیشان و زانیارییەکانت بنێرە بۆ گەیاندن.",
-        login_error: "ئیمەیڵ یان وشەی نهێنی هەڵەیە",
-        logout_success: "بە سەرکەوتوویی چوویتەدەرەوە",
-        profile_saved: "زانیارییەکانی پڕۆفایل پاشەکەوتکران",
-        all_categories_label: "هەموو",
-        install_app: "دامەزراندنی ئەپ",
-        product_added_to_cart: "کاڵاکە زیادکرا بۆ سەبەتە",
-        product_added_to_favorites: "زیادکرا بۆ لیستی دڵخوازەکان",
-        product_removed_from_favorites: "لە لیستی دڵخوازەکان سڕدرایەوە",
-        manage_categories_title: "بەڕێوەبردنی جۆرەکان",
-        manage_contact_title: "بەڕێوەبردنی زانیارییەکانی پەیوەندی",
-		manage_contact_methods_title: "بەڕێوەبردنی شێوازەکانی ناردنی داواکاری",
-        notifications_title: "ئاگەهدارییەکان",
-        no_notifications_found: "هیچ ئاگەهدارییەک نییە",
-        manage_announcements_title: "ناردنی ئاگەهداری گشتی",
-        send_new_announcement: "ناردنی ئاگەهداری نوێ",
-        announcement_title_label: "ناونیشانی ئاگەهداری:",
-        announcement_content_label: "ناوەڕۆکی پەیام:",
-        send_announcement_button: "ناردنی ئاگەهداری",
-        sent_announcements: "ئاگەهدارییە نێردراوەکان",
-        no_announcements_sent: "هیچ ئاگەهدارییەک نەنێردراوە",
-        announcement_deleted_success: "ئاگەهدارییەکە سڕدرایەوە",
-        announcement_delete_confirm: "دڵنیایت دەتەوێت ئەم ئاگەهدارییە بسڕیتەوە؟",
-        enable_notifications: "چالاککردنی ئاگەدارییەکان",
-        error_generic: "هەڵەیەک ڕوویدا!",
-    },
-    ku_badini: {
-        search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
-        admin_login_title: "چوونا ژوور یا بەرپرسى",
-        email_label: "ئیمەیل:",
-        password_label: "پەیڤا نهێنى:",
-        login_button: "چوونا ژوور",
-        cart_title: "سەلکا کرینێ",
-        cart_empty: "سەلکا تە یا ڤالایە",
-        total_price: "کۆمێ گشتی:",
-        send_whatsapp: "فرێکرن ب رێکا واتسئاپ",
-        send_viber: "فرێکرن ب رێکا ڤایبەر",
-        send_telegram: "فرێکرن ب رێکا تێلێگرام",
-        favorites_title: "لیستا حەزژێکریان",
-        favorites_empty: "لیستا حەزژێکریێن تە یا ڤالایە",
-        choose_category: "جورەکی هەلبژێرە",
-        all_products: "هەمی کاڵا",
-        loading_products: "...د بارکرنا کاڵایان دایە",
-        settings_title: "ڕێکخستن",
-        language_label: "زمان",
-        profile_title: "پروفایلێ من",
-        admin_login_nav: "چوونا ژوور یا بەرپرسى",
-        logout_nav: "چوونا دەر",
-        profile_name: "ناڤ:",
-        profile_address: "ناڤ و نیشان:",
-        profile_phone: "ژمارا تەلەفونێ:",
-        save_button: "پاشەکەفتکرن",
-        nav_home: "سەرەکی",
-        nav_categories: "جۆر",
-        nav_cart: "سەلک",
-        nav_profile: "پروفایل",
-        nav_settings: "ڕێکخستن",
-        contact_us_title: "پەیوەندیێ ب مە بکە",
-        contact_whatsapp: "واتسئاپ",
-        contact_viber: "ڤایبەر",
-        contact_telegram: "تێلێگرام",
-        add_to_cart: "زێدەکرن بۆ سەلکێ",
-        added_to_cart: "زێدەکر",
-        product_not_found_error: "خەلەتی: کاڵا نەهاتە دیتن!",
-        delete_confirm: "تو پشتڕاستی دێ ڤی کاڵای ژێبەى؟",
-        product_deleted: "کاڵا هاتە ژێبرن",
-        product_delete_error: "خەلەتی د ژێبرنا کاڵای دا",
-        order_greeting: "سلاڤ! ئەز پێدڤی ب ڤان کاڵایێن خوارێ مە:",
-        order_item_details: "بها: {price} د.ع. | ژمارە: {quantity}",
-        order_total: "کۆمێ گشتی",
-        order_user_info: "--- پێزانینێن داخازکەری ---",
-        order_user_name: "ناڤ",
-        order_user_address: "ناڤ و نیشان",
-        order_user_phone: "ژمارا تەلەفونێ",
-        order_prompt_info: "هیڤی دکەین ناڤ و نیشان و پێزانینێن خۆ فرێکە بۆ گەهاندنێ.",
-        login_error: "ئیمەیل یان پەیڤا نهێنى یا خەلەتە",
-        logout_success: "ب سەرکەفتیانە چوويه دەر",
-        profile_saved: "پێزانینێن پروفایلی هاتنە پاشەکەفتکرن",
-        all_categories_label: "هەمی",
-        install_app: "دامەزراندنا ئەپی",
-        product_added_to_cart: "کاڵا هاتە زێدەکرن بۆ سەلکێ",
-        product_added_to_favorites: "هاتە زێدەکرن بۆ لیستا حەزژێکریان",
-        product_removed_from_favorites: "ژ لیستا حەزژێکریان هاتە ژێبرن",
-        manage_categories_title: "رێکخستنا جوران",
-        manage_contact_title: "рێکخستنا پێزانینێن پەیوەندیێ",
-		manage_contact_methods_title: "رێکخستنا رێکێن فرێکرنا داخازیێ",
-        notifications_title: "ئاگەهداری",
-        no_notifications_found: "چ ئاگەهداری نینن",
-        manage_announcements_title: "رێکخستنا ئاگەهداریان",
-        send_new_announcement: "فرێکرنا ئاگەهداریەکا نوو",
-        announcement_title_label: "ناڤ و نیشانێ ئاگەهداریێ:",
-        announcement_content_label: "ناڤەرۆکا پەیامێ:",
-        send_announcement_button: "ئاگەهداریێ فرێکە",
-        sent_announcements: "ئاگەهداریێن هاتینە فرێکرن",
-        no_announcements_sent: "چ ئاگەهداری نەهاتینە فرێکرن",
-        announcement_deleted_success: "ئاگەهداری هاتە ژێبرن",
-        announcement_delete_confirm: "تو پشتڕاستی دێ ڤێ ئاگەهداریێ ژێبەی؟",
-        enable_notifications: "چالاکرنا ئاگەهداریان",
-        error_generic: "خەلەتییەک چێبوو!",
-    },
-    ar: {
-        search_placeholder: "البحث باسم المنتج...",
-        admin_login_title: "تسجيل دخول المسؤول",
-        email_label: "البريد الإلكتروني:",
-        password_label: "كلمة المرور:",
-        login_button: "تسجيل الدخول",
-        cart_title: "سلة التسوق",
-        cart_empty: "سلتك فارغة",
-        total_price: "المجموع الكلي:",
-        send_whatsapp: "إرسال عبر واتساب",
-        send_viber: "إرسال عبر فايبر",
-        send_telegram: "إرسال عبر تليجرام",
-        favorites_title: "قائمة المفضلة",
-        favorites_empty: "قائمة المفضلة فارغة",
-        choose_category: "اختر الفئة",
-        all_products: "كل المنتجات",
-        loading_products: "...جاري تحميل المنتجات",
-        settings_title: "الإعدادات",
-        language_label: "اللغة",
-        profile_title: "ملفي الشخصي",
-        admin_login_nav: "تسجيل دخول المسؤول",
-        logout_nav: "تسجيل الخروج",
-        profile_name: "الاسم:",
-        profile_address: "العنوان:",
-        profile_phone: "رقم الهاتف:",
-        save_button: "حفظ",
-        nav_home: "الرئيسية",
-        nav_categories: "الفئات",
-        nav_cart: "السلة",
-        nav_profile: "ملفي",
-        nav_settings: "الإعدادات",
-        contact_us_title: "تواصل معنا",
-        contact_whatsapp: "واتساب",
-        contact_viber: "فايبر",
-        contact_telegram: "تليجرام",
-        add_to_cart: "إضافة إلى السلة",
-        added_to_cart: "تمت الإضافة",
-        product_not_found_error: "خطأ: المنتج غير موجود!",
-        delete_confirm: "هل أنت متأكد من أنك تريد حذف هذا المنتج؟",
-        product_deleted: "تم حذف المنتج",
-        product_delete_error: "خطأ في حذف المنتج",
-        order_greeting: "مرحباً! أحتاج إلى المنتجات التالية:",
-        order_item_details: "السعر: {price} د.ع. | الكمية: {quantity}",
-        order_total: "المجموع الكلي",
-        order_user_info: "--- معلومات العميل ---",
-        order_user_name: "الاسم",
-        order_user_address: "العنوان",
-        order_user_phone: "رقم الهاتف",
-        order_prompt_info: "يرجى إرسال عنوانك وتفاصيلك للتوصيل.",
-        login_error: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
-        logout_success: "تم تسجيل الخروج بنجاح",
-        profile_saved: "تم حفظ معلومات الملف الشخصي",
-        all_categories_label: "الكل",
-        install_app: "تثبيت التطبيق",
-        product_added_to_cart: "تمت إضافة المنتج إلى السلة",
-        product_added_to_favorites: "تمت الإضافة إلى المفضلة",
-        product_removed_from_favorites: "تمت الإزالة من المفضلة",
-        manage_categories_title: "إدارة الفئات",
-        manage_contact_title: "إدارة معلومات الاتصال",
-		manage_contact_methods_title: "إدارة طرق إرسال الطلب",
-        notifications_title: "الإشعارات",
-        no_notifications_found: "لا توجد إشعارات",
-        manage_announcements_title: "إدارة الإشعارات العامة",
-        send_new_announcement: "إرسال إشعار جدید",
-        announcement_title_label: "عنوان الإشعار:",
-        announcement_content_label: "محتوى الرسالة:",
-        send_announcement_button: "إرسال الإشعار",
-        sent_announcements: "الإشعارات المرسلة",
-        no_announcements_sent: "لم يتم إرسال أي إشعارات",
-        announcement_deleted_success: "تم حذف الإشعار",
-        announcement_delete_confirm: "هل أنت متأكد من حذف هذا الإشعار؟",
-        enable_notifications: "تفعيل الإشعارات",
-        error_generic: "حدث خطأ!",
-    }
-};
-// ========== END: TRANSLATIONS OBJECT ==========
 
 let currentLanguage = localStorage.getItem('language') || 'ku_sorani';
 let deferredPrompt;
@@ -364,10 +138,6 @@ function setLanguage(lang) {
     if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPage();
 }
 
-function updateContactLinksUI() {
-    if (!contactInfo) return;
-}
-
 function showPage(pageId) {
     document.querySelectorAll('.page').forEach(page => {
         if (page.id === pageId) {
@@ -442,7 +212,7 @@ async function requestNotificationPermission() {
             console.log('Notification permission granted.');
             showNotification('مۆڵەتی ناردنی ئاگەداری درا', 'success');
             const currentToken = await getToken(messaging, {
-                vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ'
+                vapidKey: 'YOUR_VAPID_KEY_HERE' // تکایە VAPID KEY خۆت دابنێ
             });
             if (currentToken) {
                 console.log('FCM Token:', currentToken);
@@ -489,7 +259,7 @@ function toggleFavorite(productId) {
         showNotification(t('product_added_to_favorites'), 'success');
     }
     saveFavorites();
-    renderProducts();    
+    renderProducts();
     if (document.getElementById('favoritesSheet').classList.contains('show')) {
         renderFavoritesPage();
     }
@@ -557,7 +327,7 @@ function renderCategoriesSheet() {
         
         btn.onclick = () => {
             currentCategory = cat.id;
-            currentSubcategory = 'all';    
+            currentSubcategory = 'all';
             renderSubcategories(currentCategory);
             renderProducts();
             toggleSheet('categoriesSheet', false);
@@ -565,7 +335,6 @@ function renderCategoriesSheet() {
             showPage('mainPage');
             updateActiveNav('homeBtn');
         };
-
         sheetCategoriesContainer.appendChild(btn);
     });
 }
@@ -574,9 +343,7 @@ async function renderSubcategories(categoryId) {
     const subcategoriesContainer = document.getElementById('subcategoriesContainer');
     subcategoriesContainer.innerHTML = '';
 
-    if (categoryId === 'all') {
-        return;
-    }
+    if (categoryId === 'all') return;
 
     try {
         const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
@@ -616,7 +383,7 @@ async function renderSubcategories(categoryId) {
 
 function renderMainCategories() {
     const container = document.getElementById('mainCategoriesContainer');
-    if (!container) return;    
+    if (!container) return;
     container.innerHTML = '';
 
     categories.forEach(cat => {
@@ -639,7 +406,6 @@ function renderMainCategories() {
             renderSubcategories(currentCategory);
             renderProducts();
         };
-
         container.appendChild(btn);
     });
 }
@@ -648,10 +414,7 @@ function showProductDetails(productId) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
     
-    const productName = (product.name && product.name[currentLanguage]) ||    
-                      (product.name && product.name.ku_sorani) ||    
-                      product.name;
-
+    const productName = (product.name && product.name[currentLanguage]) || (product.name && product.name.ku_sorani) || product.name;
     const descriptionText = (product.description && product.description[currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
     const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
     
@@ -729,10 +492,7 @@ function createProductCardElement(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
 
-    const productName = (product.name && product.name[currentLanguage]) ||    
-                      (product.name && product.name.ku_sorani) ||    
-                      product.name;
-
+    const productName = (product.name && product.name[currentLanguage]) || (product.name && product.name.ku_sorani) || product.name;
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || 'https://placehold.co/300x300/e2e8f0/2d3748?text=No+Image');
     
     let priceHTML = `<div class="product-price-container"><div class="product-price">${product.price.toLocaleString()} د.ع.</div></div>`;
@@ -790,9 +550,9 @@ function createProductCardElement(product) {
                 }, 500);
             }
         } else if (target.closest('.edit-btn')) {
-            // Handled by onclick now
+            // Handled by onclick
         } else if (target.closest('.delete-btn')) {
-            // Handled by onclick now
+            // Handled by onclick
         } else if (target.closest('.favorite-btn')) {
             toggleFavorite(product.id);
         } else if (!target.closest('a')) {
@@ -843,9 +603,7 @@ function renderProducts() {
         const categoryMatch = (currentCategory === 'all' || product.categoryId === currentCategory);
         const subcategoryMatch = (currentSubcategory === 'all' || !product.subcategoryId || product.subcategoryId === currentSubcategory);
         
-        const productNameInCurrentLang = (product.name && product.name[currentLanguage]) ||    
-                                       (product.name && product.name.ku_sorani) ||    
-                                       product.name || '';
+        const productNameInCurrentLang = (product.name && product.name[currentLanguage]) || (product.name && product.name.ku_sorani) || product.name || '';
         const searchMatch = productNameInCurrentLang.toLowerCase().includes(currentSearch.toLowerCase());
 
         if (currentCategory !== 'all') {
@@ -853,7 +611,6 @@ function renderProducts() {
         }
         return searchMatch;
     });
-
 
     if (filteredProducts.length === 0) {
         productsContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px; color: var(--dark-gray);">هیچ کاڵایەک نەدۆزرایەوە</div>';
@@ -874,8 +631,11 @@ function addToCart(productId) {
     if (!product) return;
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
     const existingItem = cart.find(item => item.id === productId);
-    if (existingItem) { existingItem.quantity++; }    
-    else { cart.push({ id: product.id, name: product.name, price: product.price, image: mainImage, quantity: 1 }); }
+    if (existingItem) {
+        existingItem.quantity++;
+    } else {
+        cart.push({ id: product.id, name: product.name, price: product.price, image: mainImage, quantity: 1 });
+    }
     saveCart();
     showNotification(t('product_added_to_cart'));
 }
@@ -931,8 +691,12 @@ function updateQuantity(productId, change) {
     const cartItem = cart.find(item => item.id === productId);
     if (cartItem) {
         cartItem.quantity += change;
-        if (cartItem.quantity <= 0) { removeFromCart(productId); }    
-        else { saveCart(); renderCart(); }
+        if (cartItem.quantity <= 0) {
+            removeFromCart(productId);
+        } else {
+            saveCart();
+            renderCart();
+        }
     }
 }
 
@@ -958,14 +722,14 @@ function generateOrderMessage() {
         message += `${t('order_user_address')}: ${userProfile.address}\n`;
         message += `${t('order_user_phone')}: ${userProfile.phone}\n`;
     } else {
-         message += `\n${t('order_prompt_info')}\n`;
+        message += `\n${t('order_prompt_info')}\n`;
     }
     return message;
 }
 
 async function renderCartActionButtons() {
     const container = document.getElementById('cartActions');
-    container.innerHTML = '';    
+    container.innerHTML = '';
 
     const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
     const q = query(methodsCollection, orderBy("createdAt"));
@@ -980,7 +744,7 @@ async function renderCartActionButtons() {
         snapshot.forEach(doc => {
             const method = { id: doc.id, ...doc.data() };
             const btn = document.createElement('button');
-            btn.className = 'whatsapp-btn'; // Generic class name, style is applied inline
+            btn.className = 'whatsapp-btn';
             btn.style.backgroundColor = method.color;
             
             const name = method['name_' + currentLanguage] || method.name_ku_sorani;
@@ -1008,7 +772,7 @@ async function renderCartActionButtons() {
                         link = `tel:${value}`;
                         break;
                     case 'url':
-                        link = value;    
+                        link = value;
                         break;
                 }
 
@@ -1016,7 +780,6 @@ async function renderCartActionButtons() {
                     window.open(link, '_blank');
                 }
             };
-
             container.appendChild(btn);
         });
     } catch(err) {
@@ -1082,7 +845,7 @@ async function renderUserNotifications() {
 
 function updateAdminUI(isAdmin) {
     document.querySelectorAll('.product-actions').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
-    const adminCategoryManagement = document.getElementById('adminCategoryManagement');    
+    const adminCategoryManagement = document.getElementById('adminCategoryManagement');
     const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
     if (adminSocialMediaManagement) adminSocialMediaManagement.style.display = isAdmin ? 'block' : 'none';
     if (adminAnnouncementManagement) {
@@ -1118,7 +881,7 @@ function renderContactLinks() {
     const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
 
     onSnapshot(q, (snapshot) => {
-        contactLinksContainer.innerHTML = '';    
+        contactLinksContainer.innerHTML = '';
 
         if (snapshot.empty) {
             contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هیچ لینکی پەیوەندی نییە.</p>';
@@ -1235,7 +998,7 @@ function setupEventListeners() {
         updateActiveNav('profileBtn');
     };
 
-    cartBtn.onclick = () => {    
+    cartBtn.onclick = () => {
         toggleSheet('cartSheet', true);
         updateActiveNav('cartBtn');
     };
@@ -1249,9 +1012,9 @@ function setupEventListeners() {
         toggleSheet('favoritesSheet', true);
     };
     
-    settingsAdminLoginBtn.onclick = () => {    
+    settingsAdminLoginBtn.onclick = () => {
         closeAllPopups();
-        loginModal.style.display = 'block';    
+        loginModal.style.display = 'block';
     };
     
     settingsLogoutBtn.onclick = async () => {
@@ -1275,10 +1038,10 @@ function setupEventListeners() {
         }
     };
     
-    searchInput.oninput = () => {    
-        currentSearch = searchInput.value;    
+    searchInput.oninput = () => {
+        currentSearch = searchInput.value;
         clearSearchBtn.style.display = currentSearch ? 'block' : 'none';
-        renderProducts();    
+        renderProducts();
     };
     clearSearchBtn.onclick = () => {
         searchInput.value = '';
@@ -1365,7 +1128,8 @@ function init() {
     onSnapshot(contactInfoRef, (docSnap) => {
         if (docSnap.exists()) {
             contactInfo = docSnap.data();
-            updateContactLinksUI();
+            // This function is empty, but we'll call it in case it's used later
+            // updateContactLinksUI();
         } else {
             console.log("No contact info document found!");
         }
@@ -1376,8 +1140,8 @@ function init() {
     updateActiveNav('homeBtn');
     setLanguage(currentLanguage);
     renderContactLinks();
-    checkNewAnnouncements();    
-    showWelcomeMessage();    
+    checkNewAnnouncements();
+    showWelcomeMessage();
     setupGpsButton();
 }
 
