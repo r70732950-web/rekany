@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Untitled</title>
+    <link rel="stylesheet" href="./style.css">
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Maten Store - فرۆشتن و کاڵا</title>
+    <meta http-equiv="Content-Language" content="ku">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="styles/main.css">
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a365d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Maten Store">
+    <link rel="apple-touch-icon" href="images/icons/icon-512x512.png">
+    
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-store" style="color: var(--accent-color); font-size: 24px;"></i>
+                <span class="logo-bottom">فرۆشگای MATEN</span>
+            </div>
+            <div class="search-container">
+                <input type="text" id="searchInput" class="search-input" placeholder="گەڕان بە ناوی کاڵا..." data-translate-key="search_placeholder">
+                <i class="fas fa-search search-icon"></i>
+                <button id="clearSearchBtn" class="clear-search-btn" style="display: none;">&times;</button>
+            </div>
+            
+            <div class="header-actions">
+                <button id="notificationBtn" class="header-icon-btn">
+                    <i class="fas fa-bell"></i>
+                    <span id="notificationBadge" class="notification-badge" style="display: none;"></span>
+                </button>
+            </div>
+        </header>
+
+        <div id="loginModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2 style="text-align: center; margin-bottom: 18px;" data-translate-key="admin_login_title">چوونەژوورەوەی بەڕێوەبەر</h2>
+                <form id="loginForm">
+                    <div class="form-group"><label for="email" data-translate-key="email_label">ئیمەیڵ:</label><input type="email" id="email" required></div>
+                    <div class="form-group"><label for="password" data-translate-key="password_label">وشەی نهێنی:</label><input type="password" id="password" required></div>
+                    <button type="submit" data-translate-key="login_button">چوونەژوورەوە</button>
+                </form>
+            </div>
+        </div>
+        
+        <div id="welcomeModal" class="modal">
+            <div class="modal-content" style="text-align: center;">
+                <span class="close">&times;</span>
+                <i class="fas fa-store" style="font-size: 40px; color: var(--accent-color); margin-bottom: 15px;"></i>
+                <h2 style="margin-bottom: 10px;">بەخێرهاتن بۆ فرۆشگای MATEN</h2>
+                <p style="color: var(--text-light);">هیوادارین ئەزموونێکی کڕینی خۆشت هەبێت!</p>
+            </div>
+        </div>
+
+        <div id="sheet-overlay" class="sheet-overlay"></div>
+        
+        <div id="notificationsSheet" class="bottom-sheet">
+            <div class="sheet-header">
+                <span class="sheet-handle"></span>
+                <h2 class="sheet-title"><i class="fas fa-bell"></i> <span data-translate-key="notifications_title">ئاگەهدارییەکان</span></h2>
+                <span class="close" style="top: 20px;">&times;</span>
+            </div>
+            <div id="notificationsListContainer" class="sheet-content">
+            </div>
+        </div>
+
+        <div id="cartSheet" class="bottom-sheet">
+            <div class="sheet-header">
+                <span class="sheet-handle"></span>
+                <h2 class="sheet-title"><i class="fas fa-shopping-cart"></i> <span data-translate-key="cart_title">سەبەتەی کڕین</span></h2>
+                <span class="close" style="top: 20px;">&times;</span>
+            </div>
+            <div class="sheet-content">
+                <div id="cartItemsContainer"></div>
+                <div id="emptyCartMessage" class="cart-empty" style="display:none;"><i class="fas fa-shopping-basket"></i><p data-translate-key="cart_empty">سەبەتەکەت بەتاڵە</p></div>
+                <div id="cartTotal" class="cart-total" style="display:none;"><span data-translate-key="total_price">کۆی گشتی:</span> <span id="totalAmount">0</span> د.ع.</div>
+                
+                <div id="cartActions" style="display:none; margin-top: 15px;">
+                </div>
+            </div>
+        </div>
+
+        <div id="categoriesSheet" class="bottom-sheet">
+            <div class="sheet-header">
+                <span class="sheet-handle"></span>
+                <h2 class="sheet-title"><i class="fas fa-list"></i> <span data-translate-key="choose_category">هەڵبژاردنی جۆر</span></h2>
+                 <span class="close" style="top: 20px;">&times;</span>
+            </div>
+            <div id="sheetCategoriesContainer" class="sheet-content"></div>
+        </div>
+
+        <div id="profileSheet" class="bottom-sheet">
+            <div class="sheet-header">
+                <span class="sheet-handle"></span>
+                <h2 class="sheet-title"><i class="fas fa-user"></i> <span data-translate-key="profile_title">پڕۆفایلی من</span></h2>
+                <span class="close" style="top: 20px;">&times;</span>
+            </div>
+            <div class="sheet-content">
+                <form id="profileForm">
+                    <div class="form-group">
+                        <label for="profileName" data-translate-key="profile_name">ناو:</label>
+                        <input type="text" id="profileName" placeholder="ناوی سیانی بنووسە" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="profileAddress" data-translate-key="profile_address">ناونیشان:</label>
+                        <input type="text" id="profileAddress" placeholder="شار، گەڕەک، کۆڵان..." required>
+                        <button type="button" id="getLocationBtn" class="location-btn">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>وەرگرتنا ناڤ و نیشانێ من ب GPS</span>
+                        </button>
+                    </div>
+                    <div class="form-group">
+                        <label for="profilePhone" data-translate-key="profile_phone">ژمارەی تەلەفۆن:</label>
+                        <input type="tel" id="profilePhone" placeholder="07XX XXX XXXX" required>
+                    </div>
+                    <button type="submit" data-translate-key="save_button">پاشەکەوتکردن</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="favoritesSheet" class="bottom-sheet">
+            <div class="sheet-header">
+                <span class="sheet-handle"></span>
+                <h2 class="sheet-title"><i class="fas fa-heart" style="color: var(--danger-color);"></i> <span data-translate-key="favorites_title">لیستی دڵخوازەکان</span></h2>
+                <span class="close" style="top: 20px;">&times;</span>
+            </div>
+            <div class="sheet-content">
+                <div id="favoritesContainer" class="products-container" style="display: grid;"></div>
+                <div id="emptyFavoritesMessage" class="cart-empty" style="display:none;">
+                    <i class="fas fa-heart-broken"></i>
+                    <p data-translate-key="favorites_empty">لیستی دڵخوازەکانت بەتاڵە</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="productDetailSheet" class="bottom-sheet">
+            <div class="sheet-header">
+                <span class="sheet-handle"></span>
+                <h2 id="sheetProductName" class="sheet-title"></h2>
+                <span class="close" style="top: 20px;">&times;</span>
+            </div>
+            <div class="sheet-content">
+                <div id="sheetImageSlider">
+                     <div id="sheetImageContainer"></div>
+                     <button class="slider-btn prev" id="sheetPrevBtn" style="display: none;">&#10094;</button>
+                     <button class="slider-btn next" id="sheetNextBtn" style="display: none;">&#10095;</button>
+                </div>
+                <div id="sheetThumbnailContainer"></div>
+                <div id="sheetProductPrice" style="font-size: 22px; font-weight: bold; color: var(--accent-color); margin: 15px 0; text-align:center;"></div>
+                <p id="sheetProductDescription" style="color: #4a5568; margin-bottom: 20px; text-align:right; line-height: 1.7;"></p>
+                <button id="sheetAddToCartBtn" class="add-to-cart-btn" style="padding: 12px; font-size: 16px;"></button>
+            </div>
+        </div>
+
+        <main class="main-content page" id="mainPage">
+            </main>
+
+        <div class="settings-page page page-hidden" id="settingsPage">
+            </div>
+        
+        <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
+
+        <div id="productFormModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2 id="formTitle" style="text-align: center; margin-bottom: 18px;">زیادکردنی کاڵای نوێ</h2>
+                <form id="productForm">
+                    </form>
+            </div>
+        </div>
+        
+        <div class="bottom-nav">
+            <button id="homeBtn" class="bottom-nav-item">
+                <i class="fas fa-home"></i>
+                <span data-translate-key="nav_home">سەرەکی</span>
+            </button>
+            <button id="categoriesBtn" class="bottom-nav-item">
+                <i class="fas fa-tags"></i>
+                <span data-translate-key="nav_categories">جۆرەکان</span>
+            </button>
+            <button id="cartBtn" class="bottom-nav-item">
+                <span class="cart-count" id="cartCount">0</span>
+                <i class="fas fa-shopping-cart"></i>
+                <span data-translate-key="nav_cart">سەبەتە</span>
+            </button>
+            <button id="profileBtn" class="bottom-nav-item">
+                <i class="fas fa-user"></i>
+                <span data-translate-key="nav_profile">پڕۆفایل</span>
+            </button>
+             <button id="settingsBtn" class="bottom-nav-item">
+                <i class="fas fa-cog"></i>
+                <span data-translate-key="nav_settings">ڕێکخستن</span>
+            </button>
+        </div>
+    </div> 
+    
+    <div id="update-notification" class="update-notification">
+        <span>ڤێرژنەکا نوی یا بەردەستە!</span>
+        <button id="update-now-btn" class="update-now-btn">نوو بکە</button>
+    </div>
+
+    <script type="module" src="scripts/main.js"></script>
+</body>
+</html>
+    <script type="module" src="./script.js"></script>
+
+  </body>
+  
+</html>
