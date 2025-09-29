@@ -1,11 +1,13 @@
+// scripts/script.js
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-// گۆڕانکاریی ١: زیادکردنی ئیمپۆرتی پێویست
+import { getFirestore, collection, doc, onSnapshot, query, orderBy, getDocs, limit, setDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
-import { setDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
+// იმپۆرتکردنی مۆدیوڵی ئەدمین
+import { initializeAdmin } from './admin.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE",
@@ -21,262 +23,257 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
-// گۆڕانکاریی ٢: ئامادەکردنی Messaging
 const messaging = getMessaging(app);
 
 const productsCollection = collection(db, "products");
 const categoriesCollection = collection(db, "categories");
 const announcementsCollection = collection(db, "announcements");
 
-// ========== START: CODE CORRECTION ==========
+// ========== START: TRANSLATIONS OBJECT ==========
 const translations = {
-    ku_sorani: {
-        search_placeholder: "گەڕان بە ناوی کاڵا...",
-        admin_login_title: "چوونەژوورەوەی بەڕێوەبەر",
-        email_label: "ئیمەیڵ:",
-        password_label: "وشەی نهێنی:",
-        login_button: "چوونەژوورەوە",
-        cart_title: "سەبەتەی کڕین",
-        cart_empty: "سەبەتەکەت بەتاڵە",
-        total_price: "کۆی گشتی:",
-        send_whatsapp: "ناردن لە ڕێگەی واتسئاپ",
-        send_viber: "ناردن لە ڕێگەی فایبەر",
-        send_telegram: "ناردن لە ڕێگەی تێلێگرام",
-        favorites_title: "لیستی دڵخوازەکان",
-        favorites_empty: "لیستی دڵخوازەکانت بەتاڵە",
-        choose_category: "هەڵبژاردنی جۆر",
-        all_products: "هەموو کاڵاکان",
-        loading_products: "...خەریکی بارکردنی کاڵاکانە",
-        settings_title: "ڕێکخستنەکان",
-        language_label: "زمان",
-        profile_title: "پڕۆفایلی من",
-        admin_login_nav: "چوونەژوورەوەی بەڕێوەبەر",
-        logout_nav: "چوونەدەرەوە",
-        profile_name: "ناو:",
-        profile_address: "ناونیشان:",
-        profile_phone: "ژمارەی تەلەفۆن:",
-        save_button: "پاشەکەوتکردن",
-        nav_home: "سەرەکی",
-        nav_categories: "جۆرەکان",
-        nav_cart: "سەبەتە",
-        nav_profile: "پڕۆفایل",
-        nav_settings: "ڕێکخستن",
-        contact_us_title: "پەیوەندیمان پێوە بکە",
-        contact_whatsapp: "واتسئاپ",
-        contact_viber: "فایبەر",
-        contact_telegram: "تێلێگرام",
-        add_to_cart: "زیادکردن بۆ سەبەتە",
-        added_to_cart: "زیادکرا",
-        product_not_found_error: "هەڵە: کاڵاکە نەدۆزرایەوە!",
-        delete_confirm: "دڵنیایت دەتەوێت ئەم کاڵایە بسڕیتەوە؟",
-        product_deleted: "کاڵا سڕدرایەوە",
-        product_delete_error: "هەڵە لە سڕینەوەی کاڵا",
-        order_greeting: "سڵاو! من پێویستم بەم کاڵایانەی خوارەوەیە:",
-        order_item_details: "نرخ: {price} د.ع. | ژمارە: {quantity}",
-        order_total: "کۆی گشتی",
-        order_user_info: "--- زانیاری داواکار ---",
-        order_user_name: "ناو",
-        order_user_address: "ناونیشان",
-        order_user_phone: "ژمارەی تەلەفۆن",
-        order_prompt_info: "تکایە ناونیشان و زانیارییەکانت بنێرە بۆ گەیاندن.",
-        login_error: "ئیمەیڵ یان وشەی نهێنی هەڵەیە",
-        logout_success: "بە سەرکەوتوویی چوویتەدەرەوە",
-        profile_saved: "زانیارییەکانی پڕۆفایل پاشەکەوتکران",
-        all_categories_label: "هەموو",
-        install_app: "دامەزراندنی ئەپ",
-        product_added_to_cart: "کاڵاکە زیادکرا بۆ سەبەتە",
-        product_added_to_favorites: "زیادکرا بۆ لیستی دڵخوازەکان",
-        product_removed_from_favorites: "لە لیستی دڵخوازەکان سڕدرایەوە",
-        manage_categories_title: "بەڕێوەبردنی جۆرەکان",
-        manage_contact_title: "بەڕێوەبردنی زانیارییەکانی پەیوەندی",
+    ku_sorani: {
+        search_placeholder: "گەڕان بە ناوی کاڵا...",
+        admin_login_title: "چوونەژوورەوەی بەڕێوەبەر",
+        email_label: "ئیمەیڵ:",
+        password_label: "وشەی نهێنی:",
+        login_button: "چوونەژوورەوە",
+        cart_title: "سەبەتەی کڕین",
+        cart_empty: "سەبەتەکەت بەتاڵە",
+        total_price: "کۆی گشتی:",
+        send_whatsapp: "ناردن لە ڕێگەی واتسئاپ",
+        send_viber: "ناردن لە ڕێگەی فایبەر",
+        send_telegram: "ناردن لە ڕێگەی تێلێگرام",
+        favorites_title: "لیستی دڵخوازەکان",
+        favorites_empty: "لیستی دڵخوازەکانت بەتاڵە",
+        choose_category: "هەڵبژاردنی جۆر",
+        all_products: "هەموو کاڵاکان",
+        loading_products: "...خەریکی بارکردنی کاڵاکانە",
+        settings_title: "ڕێکخستنەکان",
+        language_label: "زمان",
+        profile_title: "پڕۆفایلی من",
+        admin_login_nav: "چوونەژوورەوەی بەڕێوەبەر",
+        logout_nav: "چوونەدەرەوە",
+        profile_name: "ناو:",
+        profile_address: "ناونیشان:",
+        profile_phone: "ژمارەی تەلەفۆن:",
+        save_button: "پاشەکەوتکردن",
+        nav_home: "سەرەکی",
+        nav_categories: "جۆرەکان",
+        nav_cart: "سەبەتە",
+        nav_profile: "پڕۆفایل",
+        nav_settings: "ڕێکخستن",
+        contact_us_title: "پەیوەندیمان پێوە بکە",
+        contact_whatsapp: "واتسئاپ",
+        contact_viber: "فایبەر",
+        contact_telegram: "تێلێگرام",
+        add_to_cart: "زیادکردن بۆ سەبەتە",
+        added_to_cart: "زیادکرا",
+        product_not_found_error: "هەڵە: کاڵاکە نەدۆزرایەوە!",
+        delete_confirm: "دڵنیایت دەتەوێت ئەم کاڵایە بسڕیتەوە؟",
+        product_deleted: "کاڵا سڕدرایەوە",
+        product_delete_error: "هەڵە لە سڕینەوەی کاڵا",
+        order_greeting: "سڵاو! من پێویستم بەم کاڵایانەی خوارەوەیە:",
+        order_item_details: "نرخ: {price} د.ع. | ژمارە: {quantity}",
+        order_total: "کۆی گشتی",
+        order_user_info: "--- زانیاری داواکار ---",
+        order_user_name: "ناو",
+        order_user_address: "ناونیشان",
+        order_user_phone: "ژمارەی تەلەفۆن",
+        order_prompt_info: "تکایە ناونیشان و زانیارییەکانت بنێرە بۆ گەیاندن.",
+        login_error: "ئیمەیڵ یان وشەی نهێنی هەڵەیە",
+        logout_success: "بە سەرکەوتوویی چوویتەدەرەوە",
+        profile_saved: "زانیارییەکانی پڕۆفایل پاشەکەوتکران",
+        all_categories_label: "هەموو",
+        install_app: "دامەزراندنی ئەپ",
+        product_added_to_cart: "کاڵاکە زیادکرا بۆ سەبەتە",
+        product_added_to_favorites: "زیادکرا بۆ لیستی دڵخوازەکان",
+        product_removed_from_favorites: "لە لیستی دڵخوازەکان سڕدرایەوە",
+        manage_categories_title: "بەڕێوەبردنی جۆرەکان",
+        manage_contact_title: "بەڕێوەبردنی زانیارییەکانی پەیوەندی",
 		manage_contact_methods_title: "بەڕێوەبردنی شێوازەکانی ناردنی داواکاری",
-        notifications_title: "ئاگەهدارییەکان",
-        no_notifications_found: "هیچ ئاگەهدارییەک نییە",
-        manage_announcements_title: "ناردنی ئاگەهداری گشتی",
-        send_new_announcement: "ناردنی ئاگەهداری نوێ",
-        announcement_title_label: "ناونیشانی ئاگەهداری:",
-        announcement_content_label: "ناوەڕۆکی پەیام:",
-        send_announcement_button: "ناردنی ئاگەهداری",
-        sent_announcements: "ئاگەهدارییە نێردراوەکان",
-        no_announcements_sent: "هیچ ئاگەهدارییەک نەنێردراوە",
-        announcement_deleted_success: "ئاگەهدارییەکە سڕدرایەوە",
-        announcement_delete_confirm: "دڵنیایت دەتەوێت ئەم ئاگەهدارییە بسڕیتەوە؟",
-        enable_notifications: "چالاککردنی ئاگەدارییەکان",
-        error_generic: "هەڵەیەک ڕوویدا!",
-    },
-    ku_badini: {
-        search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
-        admin_login_title: "چوونا ژوور یا بەرپرسى",
-        email_label: "ئیمەیل:",
-        password_label: "پەیڤا نهێنى:",
-        login_button: "چوونا ژوور",
-        cart_title: "سەلکا کرینێ",
-        cart_empty: "سەلکا تە یا ڤالایە",
-        total_price: "کۆمێ گشتی:",
-        send_whatsapp: "فرێکرن ب رێکا واتسئاپ",
-        send_viber: "فرێکرن ب رێکا ڤایبەر",
-        send_telegram: "فرێکرن ب رێکا تێلێگرام",
-        favorites_title: "لیستا حەزژێکریان",
-        favorites_empty: "لیستا حەزژێکریێن تە یا ڤالایە",
-        choose_category: "جورەکی هەلبژێرە",
-        all_products: "هەمی کاڵا",
-        loading_products: "...د بارکرنا کاڵایان دایە",
-        settings_title: "ڕێکخستن",
-        language_label: "زمان",
-        profile_title: "پروفایلێ من",
-        admin_login_nav: "چوونا ژوور یا بەرپرسى",
-        logout_nav: "چوونا دەر",
-        profile_name: "ناڤ:",
-        profile_address: "ناڤ و نیشان:",
-        profile_phone: "ژمارا تەلەفونێ:",
-        save_button: "پاشەکەفتکرن",
-        nav_home: "سەرەکی",
-        nav_categories: "جۆر",
-        nav_cart: "سەلک",
-        nav_profile: "پروفایل",
-        nav_settings: "ڕێکخستن",
-        contact_us_title: "پەیوەندیێ ب مە بکە",
-        contact_whatsapp: "واتسئاپ",
-        contact_viber: "ڤایبەر",
-        contact_telegram: "تێلێگرام",
-        add_to_cart: "زێدەکرن بۆ سەلکێ",
-        added_to_cart: "زێدەکر",
-        product_not_found_error: "خەلەتی: کاڵا نەهاتە دیتن!",
-        delete_confirm: "تو پشتڕاستی دێ ڤی کاڵای ژێبەى؟",
-        product_deleted: "کاڵا هاتە ژێبرن",
-        product_delete_error: "خەلەتی د ژێبرنا کاڵای دا",
-        order_greeting: "سلاڤ! ئەز پێدڤی ب ڤان کاڵایێن خوارێ مە:",
-        order_item_details: "بها: {price} د.ع. | ژمارە: {quantity}",
-        order_total: "کۆمێ گشتی",
-        order_user_info: "--- پێزانینێن داخازکەری ---",
-        order_user_name: "ناڤ",
-        order_user_address: "ناڤ و نیشان",
-        order_user_phone: "ژمارا تەلەفونێ",
-        order_prompt_info: "هیڤی دکەین ناڤ و نیشان و پێزانینێن خۆ فرێکە بۆ گەهاندنێ.",
-        login_error: "ئیمەیل یان پەیڤا نهێنى یا خەلەتە",
-        logout_success: "ب سەرکەفتیانە چوويه دەر",
-        profile_saved: "پێزانینێن پروفایلی هاتنە پاشەکەفتکرن",
-        all_categories_label: "هەمی",
-        install_app: "دامەزراندنا ئەپی",
-        product_added_to_cart: "کاڵا هاتە زێدەکرن بۆ سەلکێ",
-        product_added_to_favorites: "هاتە زێدەکرن بۆ لیستا حەزژێکریان",
-        product_removed_from_favorites: "ژ لیستا حەزژێکریان هاتە ژێبرن",
-        manage_categories_title: "رێکخستنا جوران",
-        manage_contact_title: "рێکخستنا پێزانینێن پەیوەندیێ",
+        notifications_title: "ئاگەهدارییەکان",
+        no_notifications_found: "هیچ ئاگەهدارییەک نییە",
+        manage_announcements_title: "ناردنی ئاگەهداری گشتی",
+        send_new_announcement: "ناردنی ئاگەهداری نوێ",
+        announcement_title_label: "ناونیشانی ئاگەهداری:",
+        announcement_content_label: "ناوەڕۆکی پەیام:",
+        send_announcement_button: "ناردنی ئاگەهداری",
+        sent_announcements: "ئاگەهدارییە نێردراوەکان",
+        no_announcements_sent: "هیچ ئاگەهدارییەک نەنێردراوە",
+        announcement_deleted_success: "ئاگەهدارییەکە سڕدرایەوە",
+        announcement_delete_confirm: "دڵنیایت دەتەوێت ئەم ئاگەهدارییە بسڕیتەوە؟",
+        enable_notifications: "چالاککردنی ئاگەدارییەکان",
+        error_generic: "هەڵەیەک ڕوویدا!",
+    },
+    ku_badini: {
+        search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
+        admin_login_title: "چوونا ژوور یا بەرپرسى",
+        email_label: "ئیمەیل:",
+        password_label: "پەیڤا نهێنى:",
+        login_button: "چوونا ژوور",
+        cart_title: "سەلکا کرینێ",
+        cart_empty: "سەلکا تە یا ڤالایە",
+        total_price: "کۆمێ گشتی:",
+        send_whatsapp: "فرێکرن ب رێکا واتسئاپ",
+        send_viber: "فرێکرن ب رێکا ڤایبەر",
+        send_telegram: "فرێکرن ب رێکا تێلێگرام",
+        favorites_title: "لیستا حەزژێکریان",
+        favorites_empty: "لیستا حەزژێکریێن تە یا ڤالایە",
+        choose_category: "جورەکی هەلبژێرە",
+        all_products: "هەمی کاڵا",
+        loading_products: "...د بارکرنا کاڵایان دایە",
+        settings_title: "ڕێکخستن",
+        language_label: "زمان",
+        profile_title: "پروفایلێ من",
+        admin_login_nav: "چوونا ژوور یا بەرپرسى",
+        logout_nav: "چوونا دەر",
+        profile_name: "ناڤ:",
+        profile_address: "ناڤ و نیشان:",
+        profile_phone: "ژمارا تەلەفونێ:",
+        save_button: "پاشەکەفتکرن",
+        nav_home: "سەرەکی",
+        nav_categories: "جۆر",
+        nav_cart: "سەلک",
+        nav_profile: "پروفایل",
+        nav_settings: "ڕێکخستن",
+        contact_us_title: "پەیوەندیێ ب مە بکە",
+        contact_whatsapp: "واتسئاپ",
+        contact_viber: "ڤایبەر",
+        contact_telegram: "تێلێگرام",
+        add_to_cart: "زێدەکرن بۆ سەلکێ",
+        added_to_cart: "زێدەکر",
+        product_not_found_error: "خەلەتی: کاڵا نەهاتە دیتن!",
+        delete_confirm: "تو پشتڕاستی دێ ڤی کاڵای ژێبەى؟",
+        product_deleted: "کاڵا هاتە ژێبرن",
+        product_delete_error: "خەلەتی د ژێبرنا کاڵای دا",
+        order_greeting: "سلاڤ! ئەز پێدڤی ب ڤان کاڵایێن خوارێ مە:",
+        order_item_details: "بها: {price} د.ع. | ژمارە: {quantity}",
+        order_total: "کۆمێ گشتی",
+        order_user_info: "--- پێزانینێن داخازکەری ---",
+        order_user_name: "ناڤ",
+        order_user_address: "ناڤ و نیشان",
+        order_user_phone: "ژمارا تەلەفونێ",
+        order_prompt_info: "هیڤی دکەین ناڤ و نیشان و پێزانینێن خۆ فرێکە بۆ گەهاندنێ.",
+        login_error: "ئیمەیل یان پەیڤا نهێنى یا خەلەتە",
+        logout_success: "ب سەرکەفتیانە چوويه دەر",
+        profile_saved: "پێزانینێن پروفایلی هاتنە پاشەکەفتکرن",
+        all_categories_label: "هەمی",
+        install_app: "دامەزراندنا ئەپی",
+        product_added_to_cart: "کاڵا هاتە زێدەکرن بۆ سەلکێ",
+        product_added_to_favorites: "هاتە زێدەکرن بۆ لیستا حەزژێکریان",
+        product_removed_from_favorites: "ژ لیستا حەزژێکریان هاتە ژێبرن",
+        manage_categories_title: "رێکخستنا جوران",
+        manage_contact_title: "рێکخستنا پێزانینێن پەیوەندیێ",
 		manage_contact_methods_title: "رێکخستنا رێکێن فرێکرنا داخازیێ",
-        notifications_title: "ئاگەهداری",
-        no_notifications_found: "چ ئاگەهداری نینن",
-        manage_announcements_title: "رێکخستنا ئاگەهداریان",
-        send_new_announcement: "فرێکرنا ئاگەهداریەکا نوو",
-        announcement_title_label: "ناڤ و نیشانێ ئاگەهداریێ:",
-        announcement_content_label: "ناڤەرۆکا پەیامێ:",
-        send_announcement_button: "ئاگەهداریێ فرێکە",
-        sent_announcements: "ئاگەهداریێن هاتینە فرێکرن",
-        no_announcements_sent: "چ ئاگەهداری نەهاتینە فرێکرن",
-        announcement_deleted_success: "ئاگەهداری هاتە ژێبرن",
-        announcement_delete_confirm: "تو پشتڕاستی دێ ڤێ ئاگەهداریێ ژێبەی؟",
-        enable_notifications: "چالاکرنا ئاگەهداریان",
-        error_generic: "خەلەتییەک چێبوو!",
-    },
-    ar: {
-        search_placeholder: "البحث باسم المنتج...",
-        admin_login_title: "تسجيل دخول المسؤول",
-        email_label: "البريد الإلكتروني:",
-        password_label: "كلمة المرور:",
-        login_button: "تسجيل الدخول",
-        cart_title: "سلة التسوق",
-        cart_empty: "سلتك فارغة",
-        total_price: "المجموع الكلي:",
-        send_whatsapp: "إرسال عبر واتساب",
-        send_viber: "إرسال عبر فايبر",
-        send_telegram: "إرسال عبر تليجرام",
-        favorites_title: "قائمة المفضلة",
-        favorites_empty: "قائمة المفضلة فارغة",
-        choose_category: "اختر الفئة",
-        all_products: "كل المنتجات",
-        loading_products: "...جاري تحميل المنتجات",
-        settings_title: "الإعدادات",
-        language_label: "اللغة",
-        profile_title: "ملفي الشخصي",
-        admin_login_nav: "تسجيل دخول المسؤول",
-        logout_nav: "تسجيل الخروج",
-        profile_name: "الاسم:",
-        profile_address: "العنوان:",
-        profile_phone: "رقم الهاتف:",
-        save_button: "حفظ",
-        nav_home: "الرئيسية",
-        nav_categories: "الفئات",
-        nav_cart: "السلة",
-        nav_profile: "ملفي",
-        nav_settings: "الإعدادات",
-        contact_us_title: "تواصل معنا",
-        contact_whatsapp: "واتساب",
-        contact_viber: "فايبر",
-        contact_telegram: "تليجرام",
-        add_to_cart: "إضافة إلى السلة",
-        added_to_cart: "تمت الإضافة",
-        product_not_found_error: "خطأ: المنتج غير موجود!",
-        delete_confirm: "هل أنت متأكد من أنك تريد حذف هذا المنتج؟",
-        product_deleted: "تم حذف المنتج",
-        product_delete_error: "خطأ في حذف المنتج",
-        order_greeting: "مرحباً! أحتاج إلى المنتجات التالية:",
-        order_item_details: "السعر: {price} د.ع. | الكمية: {quantity}",
-        order_total: "المجموع الكلي",
-        order_user_info: "--- معلومات العميل ---",
-        order_user_name: "الاسم",
-        order_user_address: "العنوان",
-        order_user_phone: "رقم الهاتف",
-        order_prompt_info: "يرجى إرسال عنوانك وتفاصيلك للتوصيل.",
-        login_error: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
-        logout_success: "تم تسجيل الخروج بنجاح",
-        profile_saved: "تم حفظ معلومات الملف الشخصي",
-        all_categories_label: "الكل",
-        install_app: "تثبيت التطبيق",
-        product_added_to_cart: "تمت إضافة المنتج إلى السلة",
-        product_added_to_favorites: "تمت الإضافة إلى المفضلة",
-        product_removed_from_favorites: "تمت الإزالة من المفضلة",
-        manage_categories_title: "إدارة الفئات",
-        manage_contact_title: "إدارة معلومات الاتصال",
+        notifications_title: "ئاگەهداری",
+        no_notifications_found: "چ ئاگەهداری نینن",
+        manage_announcements_title: "رێکخستنا ئاگەهداریان",
+        send_new_announcement: "فرێکرنا ئاگەهداریەکا نوو",
+        announcement_title_label: "ناڤ و نیشانێ ئاگەهداریێ:",
+        announcement_content_label: "ناڤەرۆکا پەیامێ:",
+        send_announcement_button: "ئاگەهداریێ فرێکە",
+        sent_announcements: "ئاگەهداریێن هاتینە فرێکرن",
+        no_announcements_sent: "چ ئاگەهداری نەهاتینە فرێکرن",
+        announcement_deleted_success: "ئاگەهداری هاتە ژێبرن",
+        announcement_delete_confirm: "تو پشتڕاستی دێ ڤێ ئاگەهداریێ ژێبەی؟",
+        enable_notifications: "چالاکرنا ئاگەهداریان",
+        error_generic: "خەلەتییەک چێبوو!",
+    },
+    ar: {
+        search_placeholder: "البحث باسم المنتج...",
+        admin_login_title: "تسجيل دخول المسؤول",
+        email_label: "البريد الإلكتروني:",
+        password_label: "كلمة المرور:",
+        login_button: "تسجيل الدخول",
+        cart_title: "سلة التسوق",
+        cart_empty: "سلتك فارغة",
+        total_price: "المجموع الكلي:",
+        send_whatsapp: "إرسال عبر واتساب",
+        send_viber: "إرسال عبر فايبر",
+        send_telegram: "إرسال عبر تليجرام",
+        favorites_title: "قائمة المفضلة",
+        favorites_empty: "قائمة المفضلة فارغة",
+        choose_category: "اختر الفئة",
+        all_products: "كل المنتجات",
+        loading_products: "...جاري تحميل المنتجات",
+        settings_title: "الإعدادات",
+        language_label: "اللغة",
+        profile_title: "ملفي الشخصي",
+        admin_login_nav: "تسجيل دخول المسؤول",
+        logout_nav: "تسجيل الخروج",
+        profile_name: "الاسم:",
+        profile_address: "العنوان:",
+        profile_phone: "رقم الهاتف:",
+        save_button: "حفظ",
+        nav_home: "الرئيسية",
+        nav_categories: "الفئات",
+        nav_cart: "السلة",
+        nav_profile: "ملفي",
+        nav_settings: "الإعدادات",
+        contact_us_title: "تواصل معنا",
+        contact_whatsapp: "واتساب",
+        contact_viber: "فايبر",
+        contact_telegram: "تليجرام",
+        add_to_cart: "إضافة إلى السلة",
+        added_to_cart: "تمت الإضافة",
+        product_not_found_error: "خطأ: المنتج غير موجود!",
+        delete_confirm: "هل أنت متأكد من أنك تريد حذف هذا المنتج؟",
+        product_deleted: "تم حذف المنتج",
+        product_delete_error: "خطأ في حذف المنتج",
+        order_greeting: "مرحباً! أحتاج إلى المنتجات التالية:",
+        order_item_details: "السعر: {price} د.ع. | الكمية: {quantity}",
+        order_total: "المجموع الكلي",
+        order_user_info: "--- معلومات العميل ---",
+        order_user_name: "الاسم",
+        order_user_address: "العنوان",
+        order_user_phone: "رقم الهاتف",
+        order_prompt_info: "يرجى إرسال عنوانك وتفاصيلك للتوصيل.",
+        login_error: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+        logout_success: "تم تسجيل الخروج بنجاح",
+        profile_saved: "تم حفظ معلومات الملف الشخصي",
+        all_categories_label: "الكل",
+        install_app: "تثبيت التطبيق",
+        product_added_to_cart: "تمت إضافة المنتج إلى السلة",
+        product_added_to_favorites: "تمت الإضافة إلى المفضلة",
+        product_removed_from_favorites: "تمت الإزالة من المفضلة",
+        manage_categories_title: "إدارة الفئات",
+        manage_contact_title: "إدارة معلومات الاتصال",
 		manage_contact_methods_title: "إدارة طرق إرسال الطلب",
-        notifications_title: "الإشعارات",
-        no_notifications_found: "لا توجد إشعارات",
-        manage_announcements_title: "إدارة الإشعارات العامة",
-        send_new_announcement: "إرسال إشعار جدید",
-        announcement_title_label: "عنوان الإشعار:",
-        announcement_content_label: "محتوى الرسالة:",
-        send_announcement_button: "إرسال الإشعار",
-        sent_announcements: "الإشعارات المرسلة",
-        no_announcements_sent: "لم يتم إرسال أي إشعارات",
-        announcement_deleted_success: "تم حذف الإشعار",
-        announcement_delete_confirm: "هل أنت متأكد من حذف هذا الإشعار؟",
-        enable_notifications: "تفعيل الإشعارات",
-        error_generic: "حدث خطأ!",
-    }
+        notifications_title: "الإشعارات",
+        no_notifications_found: "لا توجد إشعارات",
+        manage_announcements_title: "إدارة الإشعارات العامة",
+        send_new_announcement: "إرسال إشعار جدید",
+        announcement_title_label: "عنوان الإشعار:",
+        announcement_content_label: "محتوى الرسالة:",
+        send_announcement_button: "إرسال الإشعار",
+        sent_announcements: "الإشعارات المرسلة",
+        no_announcements_sent: "لم يتم إرسال أي إشعارات",
+        announcement_deleted_success: "تم حذف الإشعار",
+        announcement_delete_confirm: "هل أنت متأكد من حذف هذا الإشعار؟",
+        enable_notifications: "تفعيل الإشعارات",
+        error_generic: "حدث خطأ!",
+    }
 };
-// ========== END: CODE CORRECTION ==========
+// ========== END: TRANSLATIONS OBJECT ==========
 
 let currentLanguage = localStorage.getItem('language') || 'ku_sorani';
-let deferredPrompt; 
-
+let deferredPrompt;
 const CART_KEY = "maten_store_cart";
 let cart = JSON.parse(localStorage.getItem(CART_KEY)) || [];
-
 const FAVORITES_KEY = "maten_store_favorites";
 let favorites = JSON.parse(localStorage.getItem(FAVORITES_KEY)) || [];
-
 const PROFILE_KEY = "maten_store_profile";
 let userProfile = JSON.parse(localStorage.getItem(PROFILE_KEY)) || {};
 
 let isAdmin = false;
-let editingProductId = null;
 let currentCategory = 'all';
 let currentSearch = '';
 let products = [];
 let categories = [];
 let contactInfo = {};
-
-let currentSubcategory = 'all'; 
+let currentSubcategory = 'all';
 let subcategories = [];
+let adminInitialized = false;
 
 const loginModal = document.getElementById('loginModal');
 const addProductBtn = document.getElementById('addProductBtn');
@@ -319,7 +316,6 @@ const adminSocialMediaManagement = document.getElementById('adminSocialMediaMana
 const addSocialMediaForm = document.getElementById('addSocialMediaForm');
 const socialLinksListContainer = document.getElementById('socialLinksListContainer');
 const socialMediaToggle = document.getElementById('socialMediaToggle');
-
 const notificationBtn = document.getElementById('notificationBtn');
 const notificationBadge = document.getElementById('notificationBadge');
 const notificationsSheet = document.getElementById('notificationsSheet');
@@ -406,7 +402,7 @@ function formatDescription(text) {
 function closeAllPopups() {
     document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
     document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('show'));
-    sheetOverlay.classList.remove('show');
+    document.getElementById('sheet-overlay').classList.remove('show');
     document.querySelector('.contact-dropdown.open')?.classList.remove('open');
     document.body.classList.remove('overlay-active');
 }
@@ -429,16 +425,15 @@ function toggleSheet(sheetId, show) {
         }
 
         sheetElement.classList.add('show');
-        sheetOverlay.classList.add('show');
+        document.getElementById('sheet-overlay').classList.add('show');
         document.body.classList.add('overlay-active');
     } else {
         sheetElement.classList.remove('show');
-        sheetOverlay.classList.remove('show');
+        document.getElementById('sheet-overlay').classList.remove('show');
         document.body.classList.remove('overlay-active');
     }
 }
 
-// гۆڕانکاریی ٣: زیادکردنی فەنکشنە نوێیەکان
 async function requestNotificationPermission() {
     console.log('Requesting notification permission...');
     try {
@@ -446,13 +441,9 @@ async function requestNotificationPermission() {
         if (permission === 'granted') {
             console.log('Notification permission granted.');
             showNotification('مۆڵەتی ناردنی ئاگەداری درا', 'success');
-
-            // !!! گرنگ: تکایە ئەم کلیلە بە هی خۆت بگۆڕە کە لە Firebase وەریدەگریت !!!
-            // بچۆ سەر Project Settings > Cloud Messaging > Web configuration و کلیلی VAPIDـەکەت کۆپی بکە
             const currentToken = await getToken(messaging, {
                 vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ'
             });
-
             if (currentToken) {
                 console.log('FCM Token:', currentToken);
                 await saveTokenToFirestore(currentToken);
@@ -471,7 +462,6 @@ async function requestNotificationPermission() {
 async function saveTokenToFirestore(token) {
     try {
         const tokensCollection = collection(db, 'device_tokens');
-        // تۆکن وەک ناوی دۆکیومێnt بەکاردێنین بۆ ڕێگریکردن لە دووبارەبوونەوە
         await setDoc(doc(tokensCollection, token), {
             createdAt: Date.now()
         });
@@ -499,7 +489,7 @@ function toggleFavorite(productId) {
         showNotification(t('product_added_to_favorites'), 'success');
     }
     saveFavorites();
-    renderProducts(); 
+    renderProducts();    
     if (document.getElementById('favoritesSheet').classList.contains('show')) {
         renderFavoritesPage();
     }
@@ -567,7 +557,7 @@ function renderCategoriesSheet() {
         
         btn.onclick = () => {
             currentCategory = cat.id;
-            currentSubcategory = 'all'; 
+            currentSubcategory = 'all';    
             renderSubcategories(currentCategory);
             renderProducts();
             toggleSheet('categoriesSheet', false);
@@ -626,7 +616,7 @@ async function renderSubcategories(categoryId) {
 
 function renderMainCategories() {
     const container = document.getElementById('mainCategoriesContainer');
-    if (!container) return; 
+    if (!container) return;    
     container.innerHTML = '';
 
     categories.forEach(cat => {
@@ -657,12 +647,10 @@ function renderMainCategories() {
 function showProductDetails(productId) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
-	
-    // ========== START: NAME CORRECTION ==========
-    const productName = (product.name && product.name[currentLanguage]) || 
-                      (product.name && product.name.ku_sorani) || 
+    
+    const productName = (product.name && product.name[currentLanguage]) ||    
+                      (product.name && product.name.ku_sorani) ||    
                       product.name;
-    // ========== END: NAME CORRECTION ==========
 
     const descriptionText = (product.description && product.description[currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
     const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
@@ -717,7 +705,7 @@ function showProductDetails(productId) {
     nextBtn.onclick = () => updateSlider((currentIndex + 1) % images.length);
     thumbnails.forEach(thumb => thumb.onclick = () => updateSlider(parseInt(thumb.dataset.index)));
 
-    document.getElementById('sheetProductName').textContent = productName; // Corrected Name
+    document.getElementById('sheetProductName').textContent = productName;
     document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText);
     
     const priceContainer = document.getElementById('sheetProductPrice');
@@ -741,11 +729,9 @@ function createProductCardElement(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
 
-    // ========== START: NAME CORRECTION ==========
-    const productName = (product.name && product.name[currentLanguage]) || 
-                      (product.name && product.name.ku_sorani) || 
-                      product.name; // Fallback for old data
-    // ========== END: NAME CORRECTION ==========
+    const productName = (product.name && product.name[currentLanguage]) ||    
+                      (product.name && product.name.ku_sorani) ||    
+                      product.name;
 
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || 'https://placehold.co/300x300/e2e8f0/2d3748?text=No+Image');
     
@@ -780,8 +766,8 @@ function createProductCardElement(product) {
             </button>
         </div>
         <div class="product-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
-            <button class="edit-btn" aria-label="Edit product"><i class="fas fa-edit"></i></button>
-            <button class="delete-btn" aria-label="Delete product"><i class="fas fa-trash"></i></button>
+            <button class="edit-btn" onclick="window.editProduct('${product.id}')"><i class="fas fa-edit"></i></button>
+            <button class="delete-btn" onclick="window.deleteProduct('${product.id}')"><i class="fas fa-trash"></i></button>
         </div>
     `;
     
@@ -804,9 +790,9 @@ function createProductCardElement(product) {
                 }, 500);
             }
         } else if (target.closest('.edit-btn')) {
-            editProduct(product.id);
+            // Handled by onclick now
         } else if (target.closest('.delete-btn')) {
-            deleteProduct(product.id);
+            // Handled by onclick now
         } else if (target.closest('.favorite-btn')) {
             toggleFavorite(product.id);
         } else if (!target.closest('a')) {
@@ -857,8 +843,8 @@ function renderProducts() {
         const categoryMatch = (currentCategory === 'all' || product.categoryId === currentCategory);
         const subcategoryMatch = (currentSubcategory === 'all' || !product.subcategoryId || product.subcategoryId === currentSubcategory);
         
-        const productNameInCurrentLang = (product.name && product.name[currentLanguage]) || 
-                                       (product.name && product.name.ku_sorani) || 
+        const productNameInCurrentLang = (product.name && product.name[currentLanguage]) ||    
+                                       (product.name && product.name.ku_sorani) ||    
                                        product.name || '';
         const searchMatch = productNameInCurrentLang.toLowerCase().includes(currentSearch.toLowerCase());
 
@@ -888,116 +874,10 @@ function addToCart(productId) {
     if (!product) return;
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
     const existingItem = cart.find(item => item.id === productId);
-    if (existingItem) { existingItem.quantity++; } 
+    if (existingItem) { existingItem.quantity++; }    
     else { cart.push({ id: product.id, name: product.name, price: product.price, image: mainImage, quantity: 1 }); }
     saveCart();
     showNotification(t('product_added_to_cart'));
-}
-
-function createProductImageInputs(imageUrls = []) {
-    imageInputsContainer.innerHTML = '';
-    for (let i = 0; i < 4; i++) {
-        const url = imageUrls[i] || '';
-        const isRequired = i === 0 ? 'required' : '';
-        const placeholder = i === 0 ? 'لینکی وێنەی یەکەم (سەرەکی)' : `لینکی وێنەی ${['دووەم', 'سێیەم', 'چوارەم'][i-1]}`;
-        const previewSrc = url || `https://placehold.co/40x40/e2e8f0/2d3748?text=${i + 1}`;
-        const inputGroup = document.createElement('div');
-        inputGroup.className = 'image-input-group';
-        inputGroup.innerHTML = `<input type="text" class="productImageUrl" placeholder="${placeholder}" value="${url}" ${isRequired}><img src="${previewSrc}" class="image-preview-small" onerror="this.src='https://placehold.co/40x40/e2e8f0/2d3748?text=Err'">`;
-        imageInputsContainer.appendChild(inputGroup);
-    }
-}
-
-async function populateSubcategoriesDropdown(categoryId, selectedSubcategoryId = null) {
-    if (!categoryId) {
-        subcategorySelectContainer.style.display = 'none';
-        return;
-    }
-
-    productSubcategorySelect.innerHTML = '<option value="" disabled selected>...چاوەڕێ بە</option>';
-    productSubcategorySelect.disabled = true;
-    subcategorySelectContainer.style.display = 'block';
-
-    try {
-        const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
-        const querySnapshot = await getDocs(subcategoriesQuery);
-        
-        productSubcategorySelect.innerHTML = '<option value="" disabled selected>-- جۆری لاوەکی هەڵبژێرە --</option>';
-        
-        if (querySnapshot.empty) {
-             productSubcategorySelect.innerHTML = '<option value="" disabled selected>هیچ جۆرێکی لاوەکی نییە</option>';
-        } else {
-            querySnapshot.docs.forEach(doc => {
-                const subcat = { id: doc.id, ...doc.data() };
-                const option = document.createElement('option');
-                option.value = subcat.id;
-                option.textContent = subcat.name_ku_sorani || subcat.id;
-                if(subcat.id === selectedSubcategoryId) {
-                    option.selected = true;
-                }
-                productSubcategorySelect.appendChild(option);
-            });
-        }
-    } catch (error) {
-        console.error("Error fetching subcategories for form:", error);
-        productSubcategorySelect.innerHTML = '<option value="" disabled selected>هەڵەیەک ڕوویدا</option>';
-    } finally {
-        productSubcategorySelect.disabled = false;
-    }
-}
-
-async function editProduct(productId) {
-    const product = products.find(p => p.id === productId);
-    if (!product) { showNotification(t('product_not_found_error'), 'error'); return; }
-    
-    closeAllPopups();
-
-    editingProductId = productId;
-    formTitle.textContent = 'دەستکاری کردنی کاڵا';
-    productForm.reset();
-
-    // ========== START: NAME CORRECTION ==========
-    if (product.name && typeof product.name === 'object') {
-        document.getElementById('productNameKuSorani').value = product.name.ku_sorani || '';
-        document.getElementById('productNameKuBadini').value = product.name.ku_badini || '';
-        document.getElementById('productNameAr').value = product.name.ar || '';
-    } else {
-        // Fallback for old products with string names
-        document.getElementById('productNameKuSorani').value = product.name || '';
-        document.getElementById('productNameKuBadini').value = '';
-        document.getElementById('productNameAr').value = '';
-    }
-    // ========== END: NAME CORRECTION ==========
-    
-    document.getElementById('productPrice').value = product.price;
-    document.getElementById('productOriginalPrice').value = product.originalPrice || '';
-    
-    const categoryId = product.categoryId || product.category;
-    document.getElementById('productCategoryId').value = categoryId;
-    
-    await populateSubcategoriesDropdown(categoryId, product.subcategoryId);
-
-    if (product.description) {
-        document.getElementById('productDescriptionKuSorani').value = product.description.ku_sorani || '';
-        document.getElementById('productDescriptionKuBadini').value = product.description.ku_badini || '';
-        document.getElementById('productDescriptionAr').value = product.description.ar || '';
-    }
-
-    const imageUrls = product.imageUrls || (product.image ? [product.image] : []);
-    createProductImageInputs(imageUrls);
-    document.getElementById('productExternalLink').value = product.externalLink || '';
-    productForm.querySelector('button[type="submit"]').textContent = 'نوێکردنەوە';
-    productFormModal.style.display = 'block';
-}
-
-async function deleteProduct(productId) { 
-    if (!confirm(t('delete_confirm'))) return;
-    try {
-        await deleteDoc(doc(db, "products", productId));
-        showNotification(t('product_deleted'), 'success');
-    } catch (error) {
-        showNotification(t('product_delete_error'), 'error');
-    }
 }
 
 function renderCart() {
@@ -1012,7 +892,7 @@ function renderCart() {
     cartTotal.style.display = 'block';
     cartActions.style.display = 'block';
     renderCartActionButtons();
-	
+    
     let total = 0;
     cart.forEach(item => {
         const itemTotal = item.price * item.quantity;
@@ -1051,7 +931,7 @@ function updateQuantity(productId, change) {
     const cartItem = cart.find(item => item.id === productId);
     if (cartItem) {
         cartItem.quantity += change;
-        if (cartItem.quantity <= 0) { removeFromCart(productId); } 
+        if (cartItem.quantity <= 0) { removeFromCart(productId); }    
         else { saveCart(); renderCart(); }
     }
 }
@@ -1083,125 +963,66 @@ function generateOrderMessage() {
     return message;
 }
 
-function populateParentCategorySelect() {
-    const select = document.getElementById('parentCategorySelect');
-    select.innerHTML = '<option value="">-- جۆرێک هەڵبژێرە --</option>';
-    try {
-        const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
-        categoriesWithoutAll.forEach(cat => {
-            const option = document.createElement('option');
-            option.value = cat.id;
-            option.textContent = cat['name_' + currentLanguage] || cat.name; 
-            select.appendChild(option);
-        });
-    } catch (error) {
-        console.error("Error populating parent category select:", error);
-        select.innerHTML = '<option value="">-- هەڵەیەک ڕوویدا --</option>';
-    }
-}
-		
 async function renderCartActionButtons() {
-	const container = document.getElementById('cartActions');
-	container.innerHTML = ''; 
+    const container = document.getElementById('cartActions');
+    container.innerHTML = '';    
 
-	const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
-	const q = query(methodsCollection, orderBy("createdAt"));
-
-	const snapshot = await getDocs(q);
-	if (snapshot.empty) {
-		container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
-		return;
-	}
-
-	snapshot.forEach(doc => {
-		const method = { id: doc.id, ...doc.data() };
-		const btn = document.createElement('button');
-		btn.className = 'whatsapp-btn'; 
-		btn.style.backgroundColor = method.color;
-		
-		const name = method['name_' + currentLanguage] || method.name_ku_sorani;
-		btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
-
-		btn.onclick = () => {
-			const message = generateOrderMessage();
-			if (!message) return;
-
-			let link = '';
-			const encodedMessage = encodeURIComponent(message);
-			const value = method.value;
-
-			switch (method.type) {
-				case 'whatsapp':
-					link = `https://wa.me/${value}?text=${encodedMessage}`;
-					break;
-				case 'viber':
-					link = `viber://chat?number=%2B${value}&text=${encodedMessage}`;
-					break;
-				case 'telegram':
-					link = `https://t.me/${value}?text=${encodedMessage}`;
-					break;
-				case 'phone':
-					link = `tel:${value}`;
-					break;
-				case 'url':
-					link = value; 
-					break;
-			}
-
-			if (link) {
-				window.open(link, '_blank');
-			}
-		};
-
-		container.appendChild(btn);
-	});
-}
-
-async function deleteContactMethod(methodId) {
-	if (confirm('دڵنیایت دەتەوێت ئەم شێوازە بسڕیتەوە؟')) {
-		try {
-			const methodRef = doc(db, 'settings', 'contactInfo', 'contactMethods', methodId);
-			await deleteDoc(methodRef);
-			showNotification('شێوازەکە سڕدرایەوە', 'success');
-		} catch (error) {
-			console.error("Error deleting contact method: ", error);
-			showNotification('هەڵەیەک لە سڕینەوە ڕوویدا', 'error');
-		}
-	}
-}
-
-function renderContactMethodsAdmin() {
-    const container = document.getElementById('contactMethodsListContainer');
     const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
-    const q = query(methodsCollection, orderBy("createdAt", "desc"));
+    const q = query(methodsCollection, orderBy("createdAt"));
 
-    onSnapshot(q, (snapshot) => {
-        container.innerHTML = '';
+    try {
+        const snapshot = await getDocs(q);
         if (snapshot.empty) {
-            container.innerHTML = '<p style="padding: 10px; text-align: center;">هیچ شێوازێک زیاد نەکراوە.</p>';
+            container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
             return;
         }
+
         snapshot.forEach(doc => {
             const method = { id: doc.id, ...doc.data() };
+            const btn = document.createElement('button');
+            btn.className = 'whatsapp-btn'; // Generic class name, style is applied inline
+            btn.style.backgroundColor = method.color;
+            
             const name = method['name_' + currentLanguage] || method.name_ku_sorani;
-            
-            const item = document.createElement('div');
-            item.className = 'social-link-item';
-            item.innerHTML = `
-                <div class="item-info">
-                    <i class="${method.icon}" style="color: ${method.color};"></i>
-                    <div class="item-details">
-                        <span class="item-name">${name}</span>
-                        <span class="item-value">${method.value}</span>
-                    </div>
-                </div>
-                <button class="delete-btn"><i class="fas fa-trash"></i></button>
-            `;
-            
-            item.querySelector('.delete-btn').onclick = () => deleteContactMethod(method.id);
-            container.appendChild(item);
+            btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
+
+            btn.onclick = () => {
+                const message = generateOrderMessage();
+                if (!message) return;
+
+                let link = '';
+                const encodedMessage = encodeURIComponent(message);
+                const value = method.value;
+
+                switch (method.type) {
+                    case 'whatsapp':
+                        link = `https://wa.me/${value}?text=${encodedMessage}`;
+                        break;
+                    case 'viber':
+                        link = `viber://chat?number=%2B${value}&text=${encodedMessage}`;
+                        break;
+                    case 'telegram':
+                        link = `https://t.me/${value}?text=${encodedMessage}`;
+                        break;
+                    case 'phone':
+                        link = `tel:${value}`;
+                        break;
+                    case 'url':
+                        link = value;    
+                        break;
+                }
+
+                if (link) {
+                    window.open(link, '_blank');
+                }
+            };
+
+            container.appendChild(btn);
         });
-    });
+    } catch(err) {
+        console.error("Error fetching contact methods:", err);
+        container.innerHTML = "<p>هەڵەیەک ڕوویدا لە هێنانی شێوازەکانی ناردن.</p>";
+    }
 }
 
 function checkNewAnnouncements() {
@@ -1259,52 +1080,13 @@ async function renderUserNotifications() {
     notificationBadge.style.display = 'none';
 }
 
-async function deleteAnnouncement(id) {
-    if (confirm(t('announcement_delete_confirm'))) {
-        try {
-            await deleteDoc(doc(db, "announcements", id));
-            showNotification(t('announcement_deleted_success'), 'success');
-        } catch (e) {
-            showNotification(t('error_generic'), 'error');
-        }
-    }
-}
-
-function renderAdminAnnouncementsList() {
-    const container = document.getElementById('announcementsListContainer');
-    const q = query(announcementsCollection, orderBy("createdAt", "desc"));
-    
-    onSnapshot(q, (snapshot) => {
-        container.innerHTML = '';
-        if (snapshot.empty) {
-            container.innerHTML = `<p style="text-align:center; color: var(--dark-gray);">${t('no_announcements_sent')}</p>`;
-            return;
-        }
-        snapshot.forEach(doc => {
-            const announcement = { id: doc.id, ...doc.data() };
-            const title = (announcement.title && announcement.title.ku_sorani) || 'بێ ناونیشان';
-            const item = document.createElement('div');
-            item.className = 'admin-notification-item';
-            item.innerHTML = `
-                <div class="admin-notification-details">
-                    <div class="notification-title">${title}</div>
-                </div>
-                <button class="delete-btn"><i class="fas fa-trash"></i></button>
-            `;
-            item.querySelector('.delete-btn').addEventListener('click', () => deleteAnnouncement(announcement.id));
-            container.appendChild(item);
-        });
-    });
-}
-
 function updateAdminUI(isAdmin) {
     document.querySelectorAll('.product-actions').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
-    const adminCategoryManagement = document.getElementById('adminCategoryManagement'); 
+    const adminCategoryManagement = document.getElementById('adminCategoryManagement');    
     const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
     if (adminSocialMediaManagement) adminSocialMediaManagement.style.display = isAdmin ? 'block' : 'none';
     if (adminAnnouncementManagement) {
         adminAnnouncementManagement.style.display = isAdmin ? 'block' : 'none';
-        if(isAdmin) renderAdminAnnouncementsList();
     }
     
     if (isAdmin) {
@@ -1313,12 +1095,10 @@ function updateAdminUI(isAdmin) {
         addProductBtn.style.display = 'flex';
         if (adminCategoryManagement) {
             adminCategoryManagement.style.display = 'block';
-            populateParentCategorySelect();
         }
-		if (adminContactMethodsManagement) {
-			adminContactMethodsManagement.style.display = 'block';
-			renderContactMethodsAdmin(); 
-		}
+        if (adminContactMethodsManagement) {
+            adminContactMethodsManagement.style.display = 'block';
+        }
     } else {
         settingsLogoutBtn.style.display = 'none';
         settingsAdminLoginBtn.style.display = 'flex';
@@ -1327,55 +1107,9 @@ function updateAdminUI(isAdmin) {
             adminCategoryManagement.style.display = 'none';
         }
         if (adminContactMethodsManagement) {
-			adminContactMethodsManagement.style.display = 'none';
-		}
-    }
-}
-
-async function deleteSocialMediaLink(linkId) {
-    if (confirm('دڵنیایت دەتەوێت ئەم لینکە بسڕیتەوە؟')) {
-        try {
-            const linkRef = doc(db, 'settings', 'contactInfo', 'socialLinks', linkId);
-            await deleteDoc(linkRef);
-            showNotification('لینکەکە سڕدرایەوە', 'success');
-        } catch (error) {
-            console.error("Error deleting social link: ", error);
-            showNotification(t('error_generic'), 'error');
+            adminContactMethodsManagement.style.display = 'none';
         }
     }
-}
-
-function renderSocialMediaLinks() {
-    const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
-    const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
-
-    onSnapshot(q, (snapshot) => {
-        socialLinksListContainer.innerHTML = ''; 
-        if (snapshot.empty) {
-            socialLinksListContainer.innerHTML = '<p style="padding: 10px; text-align: center;">هیچ لینکێک زیاد نەکراوە.</p>';
-            return;
-        }
-        snapshot.forEach(doc => {
-            const link = { id: doc.id, ...doc.data() };
-            const name = link['name_' + currentLanguage] || link.name_ku_sorani;
-            
-            const item = document.createElement('div');
-            item.className = 'social-link-item';
-            item.innerHTML = `
-                <div class="item-info">
-                    <i class="${link.icon}"></i>
-                    <div class="item-details">
-                        <span class="item-name">${name}</span>
-                        <span class="item-value">${link.url}</span>
-                    </div>
-                </div>
-                <button class="delete-btn"><i class="fas fa-trash"></i></button>
-            `;
-            
-            item.querySelector('.delete-btn').onclick = () => deleteSocialMediaLink(link.id);
-            socialLinksListContainer.appendChild(item);
-        });
-    });
 }
 
 function renderContactLinks() {
@@ -1384,7 +1118,7 @@ function renderContactLinks() {
     const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
 
     onSnapshot(q, (snapshot) => {
-        contactLinksContainer.innerHTML = ''; 
+        contactLinksContainer.innerHTML = '';    
 
         if (snapshot.empty) {
             contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هیچ لینکی پەیوەندی نییە.</p>';
@@ -1421,35 +1155,6 @@ function showWelcomeMessage() {
         }
         localStorage.setItem('hasVisited', 'true');
     }
-}
-
-if (addSocialMediaForm) {
-    addSocialMediaForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const submitButton = e.target.querySelector('button[type="submit"]');
-        submitButton.disabled = true;
-
-        const socialData = {
-            name_ku_sorani: document.getElementById('socialNameKuSorani').value,
-            name_ku_badini: document.getElementById('socialNameKuBadini').value,
-            name_ar: document.getElementById('socialNameAr').value,
-            url: document.getElementById('socialUrl').value,
-            icon: document.getElementById('socialIcon').value,
-            createdAt: Date.now()
-        };
-
-        try {
-            const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
-            await addDoc(socialLinksCollection, socialData);
-            showNotification('لینک بە سەرکەوتوویی زیادکرا', 'success');
-            addSocialMediaForm.reset();
-        } catch (error) {
-            console.error("Error adding social media link: ", error);
-            showNotification(t('error_generic'), 'error');
-        } finally {
-            submitButton.disabled = false;
-        }
-    });
 }
 
 function setupGpsButton() {
@@ -1498,18 +1203,10 @@ function setupGpsButton() {
     function errorCallback(error) {
         let message = '';
         switch (error.code) {
-            case 1:
-                message = 'تە رێک نەدا GPS بهێتە بکارئینان';
-                break;
-            case 2:
-                message = 'جهێ تە نەهاتە دیتن';
-                break;
-            case 3:
-                message = 'وەختێ داخازیێ بدوماهی هات';
-                break;
-            default:
-                message = 'خەلەتیەکا نەدیار روودا';
-                break;
+            case 1: message = 'تە رێک نەدا GPS بهێتە بکارئینان'; break;
+            case 2: message = 'جهێ تە نەهاتە دیتن'; break;
+            case 3: message = 'وەختێ داخازیێ بدوماهی هات'; break;
+            default: message = 'خەلەتیەکا نەدیار روودا'; break;
         }
         showNotification(message, 'error');
         btnSpan.textContent = originalBtnText;
@@ -1538,7 +1235,7 @@ function setupEventListeners() {
         updateActiveNav('profileBtn');
     };
 
-    cartBtn.onclick = () => { 
+    cartBtn.onclick = () => {    
         toggleSheet('cartSheet', true);
         updateActiveNav('cartBtn');
     };
@@ -1552,21 +1249,11 @@ function setupEventListeners() {
         toggleSheet('favoritesSheet', true);
     };
     
-    settingsAdminLoginBtn.onclick = () => { 
+    settingsAdminLoginBtn.onclick = () => {    
         closeAllPopups();
-        loginModal.style.display = 'block'; 
+        loginModal.style.display = 'block';    
     };
     
-    addProductBtn.onclick = () => {
-        closeAllPopups();
-        editingProductId = null;
-        productForm.reset();
-        createProductImageInputs();
-        subcategorySelectContainer.style.display = 'none';
-        formTitle.textContent = 'زیادکردنی کاڵای نوێ';
-        productForm.querySelector('button[type="submit"]').textContent = 'پاشەکەوتکردن';
-        productFormModal.style.display = 'block';
-    };
     settingsLogoutBtn.onclick = async () => {
         await signOut(auth);
         sessionStorage.removeItem('isAdmin');
@@ -1588,83 +1275,10 @@ function setupEventListeners() {
         }
     };
     
-    productCategorySelect.addEventListener('change', (e) => {
-        populateSubcategoriesDropdown(e.target.value);
-    });
-    
-    productForm.onsubmit = async (e) => { 
-        e.preventDefault();
-        const submitButton = e.target.querySelector('button[type="submit"]');
-        submitButton.disabled = true;
-        submitButton.textContent = '...چاوەڕێ بە';
-        const imageUrls = Array.from(document.querySelectorAll('.productImageUrl')).map(input => input.value.trim()).filter(url => url !== '');
-        if (imageUrls.length === 0) {
-            showNotification('پێویستە بەلایەنی کەمەوە لینکی یەک وێنە دابنێیت', 'error');
-            submitButton.disabled = false;
-            submitButton.textContent = editingProductId ? 'نوێکردنەوە' : 'پاشەکەوتکردن';
-            return;
-        }
-        
-        // ========== START: NAME CORRECTION ==========
-        const productNameObject = {
-            ku_sorani: document.getElementById('productNameKuSorani').value,
-            ku_badini: document.getElementById('productNameKuBadini').value,
-            ar: document.getElementById('productNameAr').value
-        };
-        // ========== END: NAME CORRECTION ==========
-
-        const productDescriptionObject = {
-            ku_sorani: document.getElementById('productDescriptionKuSorani').value,
-            ku_badini: document.getElementById('productDescriptionKuBadini').value,
-            ar: document.getElementById('productDescriptionAr').value
-        };
-
-        try {
-            const productData = { 
-                name: productNameObject, 
-                price: parseInt(document.getElementById('productPrice').value), 
-                originalPrice: parseInt(document.getElementById('productOriginalPrice').value) || null, 
-                categoryId: document.getElementById('productCategoryId').value,
-                subcategoryId: document.getElementById('productSubcategoryId').value,
-                description: productDescriptionObject, 
-                imageUrls: imageUrls, 
-                createdAt: Date.now(), 
-                externalLink: document.getElementById('productExternalLink').value || null 
-            };
-            if (editingProductId) {
-                const { createdAt, ...updateData } = productData;
-                await updateDoc(doc(db, "products", editingProductId), updateData);
-                showNotification('کاڵا نوێکرایەوە', 'success');
-            } else {
-                await addDoc(productsCollection, productData);
-                showNotification('کاڵا زیادکرا', 'success');
-            }
-            closeAllPopups();
-        } catch (error) {
-            showNotification(t('error_generic'), 'error');
-            console.error("Error saving product:", error);
-        } finally {
-            submitButton.disabled = false;
-            submitButton.textContent = editingProductId ? 'نوێکردنەوە' : 'پاشەکەوتکردن';
-            editingProductId = null;
-        }
-    };
-
-    imageInputsContainer.addEventListener('input', (e) => {
-        if (e.target.classList.contains('productImageUrl')) {
-            const previewImg = e.target.nextElementSibling;
-            const url = e.target.value;
-            if (url) { previewImg.src = url; } 
-            else {
-                const index = Array.from(e.target.parentElement.parentElement.children).indexOf(e.target.parentElement);
-                previewImg.src = `https://placehold.co/40x40/e2e8f0/2d3748?text=${index + 1}`;
-            }
-        }
-    });
-    searchInput.oninput = () => { 
-        currentSearch = searchInput.value; 
+    searchInput.oninput = () => {    
+        currentSearch = searchInput.value;    
         clearSearchBtn.style.display = currentSearch ? 'block' : 'none';
-        renderProducts(); 
+        renderProducts();    
     };
     clearSearchBtn.onclick = () => {
         searchInput.value = '';
@@ -1676,13 +1290,6 @@ function setupEventListeners() {
     contactToggle.onclick = () => {
         const container = document.getElementById('dynamicContactLinksContainer');
         const chevron = contactToggle.querySelector('.contact-chevron');
-        container.classList.toggle('open');
-        chevron.classList.toggle('open');
-    };
-
-    socialMediaToggle.onclick = () => {
-        const container = adminSocialMediaManagement.querySelector('.contact-links-container');
-        const chevron = socialMediaToggle.querySelector('.contact-chevron');
         container.classList.toggle('open');
         chevron.classList.toggle('open');
     };
@@ -1718,146 +1325,10 @@ function setupEventListeners() {
       });
     }
 
-    const addCategoryForm = document.getElementById('addCategoryForm');
-    const addSubcategoryForm = document.getElementById('addSubcategoryForm');
-
-    if (addCategoryForm) {
-        addCategoryForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-            submitButton.textContent = '...پاشەکەوت دەکرێت';
-
-            const categoryData = {
-                name: document.getElementById('mainCategoryNameKuBadini').value,
-                name_ku_sorani: document.getElementById('mainCategoryNameKuSorani').value,
-                name_ku_badini: document.getElementById('mainCategoryNameKuBadini').value,
-                name_ar: document.getElementById('mainCategoryNameAr').value,
-                icon: document.getElementById('mainCategoryIcon').value,
-                order: parseInt(document.getElementById('mainCategoryOrder').value)
-            };
-
-            try {
-                await addDoc(categoriesCollection, categoryData);
-                showNotification('جۆری سەرەکی بە سەرکەوتوویی زیادکرا', 'success');
-                addCategoryForm.reset();
-            } catch (error) {
-                console.error("Error adding main category: ", error);
-                showNotification(t('error_generic'), 'error');
-            } finally {
-                submitButton.disabled = false;
-                submitButton.textContent = 'پاشەکەوتکردنی جۆری سەرەکی';
-            }
-        });
-    }
-
-    if (addSubcategoryForm) {
-        addSubcategoryForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            const parentCategoryId = document.getElementById('parentCategorySelect').value;
-
-            if (!parentCategoryId) {
-                showNotification('تکایە جۆری سەرەکی هەڵبژێرە', 'error');
-                return;
-            }
-
-            submitButton.disabled = true;
-            submitButton.textContent = '...پاشەکەوت دەکرێت';
-
-            const subcategoryData = {
-                name_ku_sorani: document.getElementById('subcategoryNameKuSorani').value,
-                name_ku_badini: document.getElementById('subcategoryNameKuBadini').value,
-                name_ar: document.getElementById('subcategoryNameAr').value,
-            };
-
-            try {
-                const subcategoriesCollectionRef = collection(db, "categories", parentCategoryId, "subcategories");
-                await addDoc(subcategoriesCollectionRef, subcategoryData);
-                showNotification('جۆری لاوەکی بە سەرکەوتوویی زیادکرا', 'success');
-                addSubcategoryForm.reset();
-            } catch (error) {
-                console.error("Error adding subcategory: ", error);
-                showNotification(t('error_generic'), 'error');
-            } finally {
-                submitButton.disabled = false;
-                submitButton.textContent = 'پاشەکەوتکردنی جۆری لاوەکی';
-            }
-        });
-    }
-
-    const addContactMethodForm = document.getElementById('addContactMethodForm');
-	if (addContactMethodForm) {
-		addContactMethodForm.addEventListener('submit', async (e) => {
-			e.preventDefault();
-			const submitButton = e.target.querySelector('button[type="submit"]');
-			submitButton.disabled = true;
-
-			const methodData = {
-				type: document.getElementById('contactMethodType').value,
-				value: document.getElementById('contactMethodValue').value,
-				name_ku_sorani: document.getElementById('contactMethodNameKuSorani').value,
-				name_ku_badini: document.getElementById('contactMethodNameKuBadini').value,
-				name_ar: document.getElementById('contactMethodNameAr').value,
-				icon: document.getElementById('contactMethodIcon').value,
-				color: document.getElementById('contactMethodColor').value,
-				createdAt: Date.now()
-			};
-
-			try {
-				const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
-				await addDoc(methodsCollection, methodData);
-				showNotification('شێوازی نوێ بە سەرکەوتوویی زیادکرا', 'success');
-				addContactMethodForm.reset();
-			} catch (error) {
-				console.error("Error adding contact method: ", error);
-				showNotification(t('error_generic'), 'error');
-			} finally {
-				submitButton.disabled = false;
-			}
-		});
-	}
-
     notificationBtn.addEventListener('click', () => {
         toggleSheet('notificationsSheet', true);
     });
 
-    if (announcementForm) {
-        announcementForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-            submitButton.textContent = '...د ناردنێ دایە';
-
-            const announcementData = {
-                title: {
-                    ku_sorani: document.getElementById('announcementTitleKuSorani').value,
-                    ku_badini: document.getElementById('announcementTitleKuBadini').value,
-                    ar: document.getElementById('announcementTitleAr').value,
-                },
-                content: {
-                    ku_sorani: document.getElementById('announcementContentKuSorani').value,
-                    ku_badini: document.getElementById('announcementContentKuBadini').value,
-                    ar: document.getElementById('announcementContentAr').value,
-                },
-                createdAt: Date.now()
-            };
-
-            try {
-                await addDoc(announcementsCollection, announcementData);
-                showNotification('ئاگەهداری ب سەرکەفتیانە هاتە ناردن', 'success');
-                announcementForm.reset();
-            } catch (error) {
-                console.error("Error sending announcement: ", error);
-                showNotification(t('error_generic'), 'error');
-            } finally {
-                submitButton.disabled = false;
-                submitButton.textContent = t('send_announcement_button');
-            }
-        });
-    }
-
-    // гۆڕانکاریی ٤: زیادکردنی event listener بۆ دوگمە نوێیەکە و وەرگرتنی ئاگەداری
     const enableNotificationsBtn = document.getElementById('enableNotificationsBtn');
     if (enableNotificationsBtn) {
         enableNotificationsBtn.addEventListener('click', requestNotificationPermission);
@@ -1900,39 +1371,25 @@ function init() {
         }
     });
 
-    onAuthStateChanged(auth, (user) => {
-        isAdmin = !!user;
-        if (user) {
-            sessionStorage.setItem('isAdmin', 'true');
-            closeAllPopups();
-        }
-        updateAdminUI(isAdmin);
-        renderProducts();
-    });
-    if (sessionStorage.getItem('isAdmin') === 'true' && !auth.currentUser) {
-        isAdmin = true;
-        updateAdminUI(true);
-    }
     updateCartCount();
     setupEventListeners();
     updateActiveNav('homeBtn');
     setLanguage(currentLanguage);
-    renderSocialMediaLinks();
     renderContactLinks();
-    checkNewAnnouncements(); 
-    showWelcomeMessage(); 
+    checkNewAnnouncements();    
+    showWelcomeMessage();    
     setupGpsButton();
 }
 
 document.addEventListener('DOMContentLoaded', init);
 
 window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  const installBtn = document.getElementById('installAppBtn');
-  if (installBtn) {
-    installBtn.style.display = 'flex';
-  }
+    e.preventDefault();
+    deferredPrompt = e;
+    const installBtn = document.getElementById('installAppBtn');
+    if (installBtn) {
+      installBtn.style.display = 'flex';
+    }
 });
 
 if ('serviceWorker' in navigator) {
@@ -1965,4 +1422,38 @@ if ('serviceWorker' in navigator) {
         console.log('New Service Worker activated. Reloading page...');
         window.location.reload();
     });
+}
+
+onAuthStateChanged(auth, (user) => {
+    isAdmin = !!user;
+    if (user && !adminInitialized) {
+        sessionStorage.setItem('isAdmin', 'true');
+        closeAllPopups();
+        
+        initializeAdmin({
+            db,
+            productsCollection,
+            categoriesCollection,
+            announcementsCollection,
+            showNotification,
+            t,
+            closeAllPopups,
+            products,
+            categories,
+            currentLanguage
+        });
+        adminInitialized = true;
+    }
+
+    if (!user) {
+        adminInitialized = false;
+    }
+
+    updateAdminUI(isAdmin);
+    renderProducts();
+});
+
+if (sessionStorage.getItem('isAdmin') === 'true' && !auth.currentUser) {
+    isAdmin = true;
+    updateAdminUI(true);
 }
