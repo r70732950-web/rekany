@@ -451,7 +451,19 @@
                 <span class="close" onclick="closeAllPopups()">&times;</span>
                 <h2 id="formTitle" style="text-align: center; margin-bottom: 18px;">زیادکردنی کاڵای نوێ</h2>
                 <form id="productForm">
-                    <div class="form-group"><label for="productName">ناوی کاڵا:</label><input type="text" id="productName" required></div>
+                    
+                    <div class="form-group">
+                        <label for="productNameKuSorani">ناوی کاڵا (سۆرانی):</label>
+                        <input type="text" id="productNameKuSorani" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productNameKuBadini">ناوی کاڵا (بادینی):</label>
+                        <input type="text" id="productNameKuBadini" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productNameAr">ناوی کاڵا (عربی):</label>
+                        <input type="text" id="productNameAr" required>
+                    </div>
                     <div class="form-group"><label for="productPrice">نرخی فرۆشتن (د.ع.):</label><input type="number" id="productPrice" required min="0" step="1"></div>
                     <div class="form-group"><label for="productOriginalPrice">نرخی ڕەسەن (د.ع.):</label><input type="number" id="productOriginalPrice" min="0" step="1" placeholder="ئەگەر داشکانی نییە، بەتاڵ بێت"></div>
                     
