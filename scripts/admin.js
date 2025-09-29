@@ -109,7 +109,7 @@ async function editProduct(productId) {
     productFormModal.style.display = 'block';
 }
 
-async function deleteProduct(productId) {    
+async function deleteProduct(productId) {   
     if (!confirm(t('delete_confirm'))) return;
     try {
         await deleteDoc(doc(db, "products", productId));
@@ -174,7 +174,7 @@ function populateParentCategorySelect() {
         categoriesWithoutAll.forEach(cat => {
             const option = document.createElement('option');
             option.value = cat.id;
-            option.textContent = cat['name_' + currentLanguage] || cat.name;    
+            option.textContent = cat['name_' + currentLanguage] || cat.name;   
             select.appendChild(option);
         });
     } catch (error) {
@@ -202,7 +202,7 @@ function renderSocialMediaLinks() {
     const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
 
     onSnapshot(q, (snapshot) => {
-        socialLinksListContainer.innerHTML = '';    
+        socialLinksListContainer.innerHTML = '';   
         if (snapshot.empty) {
             socialLinksListContainer.innerHTML = '<p style="padding: 10px; text-align: center;">هیچ لینکێک زیاد نەکراوە.</p>';
             return;
@@ -287,7 +287,7 @@ function setupAdminEventListeners() {
         productFormModal.style.display = 'block';
     };
 
-    productForm.onsubmit = async (e) => {    
+    productForm.onsubmit = async (e) => {   
         e.preventDefault();
         const submitButton = e.target.querySelector('button[type="submit"]');
         submitButton.disabled = true;
@@ -313,16 +313,16 @@ function setupAdminEventListeners() {
         };
 
         try {
-            const productData = {    
-                name: productNameObject,    
-                price: parseInt(document.getElementById('productPrice').value),    
-                originalPrice: parseInt(document.getElementById('productOriginalPrice').value) || null,    
+            const productData = {   
+                name: productNameObject,   
+                price: parseInt(document.getElementById('productPrice').value),   
+                originalPrice: parseInt(document.getElementById('productOriginalPrice').value) || null,   
                 categoryId: document.getElementById('productCategoryId').value,
                 subcategoryId: document.getElementById('productSubcategoryId').value,
-                description: productDescriptionObject,    
-                imageUrls: imageUrls,    
-                createdAt: Date.now(),    
-                externalLink: document.getElementById('productExternalLink').value || null    
+                description: productDescriptionObject,   
+                imageUrls: imageUrls,   
+                createdAt: Date.now(),   
+                externalLink: document.getElementById('productExternalLink').value || null   
             };
             if (window.editingProductId) {
                 const { createdAt, ...updateData } = productData;
@@ -348,7 +348,7 @@ function setupAdminEventListeners() {
         if (e.target.classList.contains('productImageUrl')) {
             const previewImg = e.target.nextElementSibling;
             const url = e.target.value;
-            if (url) { previewImg.src = url; }    
+            if (url) { previewImg.src = url; }   
             else {
                 const index = Array.from(e.target.parentElement.parentElement.children).indexOf(e.target.parentElement);
                 previewImg.src = `https://placehold.co/40x40/e2e8f0/2d3748?text=${index + 1}`;
