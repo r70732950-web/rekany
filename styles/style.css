@@ -216,7 +216,7 @@ body.overlay-active {
 
 .products-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+    grid-template-columns: 1fr; /* وا دەکات کاڵاکان لە یەک ستووندا پیشان بدرێن */
     gap: 12px;
 }
 
@@ -226,12 +226,39 @@ body.overlay-active {
     overflow: hidden; 
     position: relative; 
     border: 1px solid var(--section-border); 
-    display: flex; 
-    flex-direction: column; 
+    display: flex; /* وا دەکات وێنە و زانیارییەکان بکەونە تەنیشت یەک */
+    flex-direction: row; /* ئاراستەی دانانەکە دەکات بە ئاسۆیی */
     cursor: pointer; 
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
     transition: transform 0.2s, box-shadow 0.2s;
 }
+
+.product-image-container {
+    width: 130px; /* دەتوانیت ئەم پانییە بگۆڕیت */
+    flex-shrink: 0; /* ڕێگری دەکات لە بچووکبوونەوەی وێنەکە */
+    aspect-ratio: 1/1;
+    position: relative;
+}
+
+.product-info {
+    padding: 12px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    text-align: right; /* نووسینەکان دەبات بۆ لای ڕاست */
+    align-items: flex-start; /* هەموو بەشەکان (ناو، نرخ، دوگمە) لە لای ڕاستەوە ڕیز دەکات */
+}
+
+.product-price-container { 
+    display: flex; 
+    flex-direction: row;
+    align-items: center; 
+    justify-content: flex-start; /* نرخەکە دەبات بۆ لای ڕاست */
+    gap: 8px; 
+    margin-top: 4px;
+    margin-bottom: 8px;
+}
+
 .product-card:hover { 
     transform: translateY(-5px); 
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
@@ -247,7 +274,6 @@ body.overlay-active {
     transform: translateY(0);
 }
 
-.product-image-container { width: 100%; aspect-ratio: 1/1; position: relative; }
 .product-image { 
     width: 100%; 
     height: 100%; 
@@ -256,27 +282,9 @@ body.overlay-active {
     background-color: #f8f9fa;
 }
 
-.product-info {
-    padding: 12px;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    text-align: center;
-}
-
 .product-name { 
     font-weight: bold; 
     font-size: 14px; 
-}
-
-.product-price-container { 
-    display: flex; 
-    flex-direction: row;
-    align-items: center; 
-    justify-content: center;
-    gap: 8px; 
-    margin-top: 4px;
-    margin-bottom: 8px;
 }
 
 .product-description { display: none; }
