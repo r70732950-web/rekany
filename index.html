@@ -1,15 +1,4 @@
 <!DOCTYPE html>
-<html lang="en">
-
-  <head>
-    <meta charset="UTF-8">
-    <title>Untitled</title>
-    <link rel="stylesheet" href="./style.css">
-
-  </head>
-    
-  <body>
-  <!DOCTYPE html>
 <html lang="ku" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -18,7 +7,7 @@
     <meta http-equiv="Content-Language" content="ku">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="./styles/main.css">
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a365d">
@@ -26,7 +15,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Maten Store">
     <link rel="apple-touch-icon" href="images/icons/icon-512x512.png">
-    
 </head>
 <body>
     <div class="app-container">
@@ -40,7 +28,6 @@
                 <i class="fas fa-search search-icon"></i>
                 <button id="clearSearchBtn" class="clear-search-btn" style="display: none;">&times;</button>
             </div>
-            
             <div class="header-actions">
                 <button id="notificationBtn" class="header-icon-btn">
                     <i class="fas fa-bell"></i>
@@ -78,8 +65,7 @@
                 <h2 class="sheet-title"><i class="fas fa-bell"></i> <span data-translate-key="notifications_title">ئاگەهدارییەکان</span></h2>
                 <span class="close" style="top: 20px;">&times;</span>
             </div>
-            <div id="notificationsListContainer" class="sheet-content">
-            </div>
+            <div id="notificationsListContainer" class="sheet-content"></div>
         </div>
 
         <div id="cartSheet" class="bottom-sheet">
@@ -92,9 +78,7 @@
                 <div id="cartItemsContainer"></div>
                 <div id="emptyCartMessage" class="cart-empty" style="display:none;"><i class="fas fa-shopping-basket"></i><p data-translate-key="cart_empty">سەبەتەکەت بەتاڵە</p></div>
                 <div id="cartTotal" class="cart-total" style="display:none;"><span data-translate-key="total_price">کۆی گشتی:</span> <span id="totalAmount">0</span> د.ع.</div>
-                
-                <div id="cartActions" style="display:none; margin-top: 15px;">
-                </div>
+                <div id="cartActions" style="display:none; margin-top: 15px;"></div>
             </div>
         </div>
 
@@ -102,7 +86,7 @@
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 class="sheet-title"><i class="fas fa-list"></i> <span data-translate-key="choose_category">هەڵبژاردنی جۆر</span></h2>
-                 <span class="close" style="top: 20px;">&times;</span>
+                <span class="close" style="top: 20px;">&times;</span>
             </div>
             <div id="sheetCategoriesContainer" class="sheet-content"></div>
         </div>
@@ -171,10 +155,10 @@
         </div>
 
         <main class="main-content page" id="mainPage">
-            </main>
+        </main>
 
         <div class="settings-page page page-hidden" id="settingsPage">
-            </div>
+        </div>
         
         <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
 
@@ -183,7 +167,7 @@
                 <span class="close">&times;</span>
                 <h2 id="formTitle" style="text-align: center; margin-bottom: 18px;">زیادکردنی کاڵای نوێ</h2>
                 <form id="productForm">
-                    </form>
+                </form>
             </div>
         </div>
         
@@ -205,7 +189,7 @@
                 <i class="fas fa-user"></i>
                 <span data-translate-key="nav_profile">پڕۆفایل</span>
             </button>
-             <button id="settingsBtn" class="bottom-nav-item">
+              <button id="settingsBtn" class="bottom-nav-item">
                 <i class="fas fa-cog"></i>
                 <span data-translate-key="nav_settings">ڕێکخستن</span>
             </button>
@@ -217,11 +201,6 @@
         <button id="update-now-btn" class="update-now-btn">نوو بکە</button>
     </div>
 
-    <script type="module" src="scripts/main.js"></script>
+    <script type="module" src="./scripts/main.js"></script>
 </body>
-</html>
-    <script type="module" src="./script.js"></script>
-
-  </body>
-  
 </html>
