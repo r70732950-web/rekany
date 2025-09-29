@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebas
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+// گۆڕانکاریی ١: زیادکردنی ئیمپۆرتی پێویست
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 import { setDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
@@ -20,12 +21,14 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
+// گۆڕانکاریی ٢: ئامادەکردنی Messaging
 const messaging = getMessaging(app);
 
 const productsCollection = collection(db, "products");
 const categoriesCollection = collection(db, "categories");
 const announcementsCollection = collection(db, "announcements");
 
+// ========== START: CODE CORRECTION ==========
 const translations = {
     ku_sorani: {
         search_placeholder: "گەڕان بە ناوی کاڵا...",
@@ -250,6 +253,7 @@ const translations = {
         error_generic: "حدث خطأ!",
     }
 };
+// ========== END: CODE CORRECTION ==========
 
 let currentLanguage = localStorage.getItem('language') || 'ku_sorani';
 let deferredPrompt; 
@@ -434,6 +438,7 @@ function toggleSheet(sheetId, show) {
     }
 }
 
+// гۆڕанکاریی ٣: زیادکردنی فەنکشنە نوێیەکان
 async function requestNotificationPermission() {
     console.log('Requesting notification permission...');
     try {
@@ -441,6 +446,9 @@ async function requestNotificationPermission() {
         if (permission === 'granted') {
             console.log('Notification permission granted.');
             showNotification('مۆڵەتی ناردنی ئاگەداری درا', 'success');
+
+            // !!! گرنگ: تکایە ئەم کلیلە بە هی خۆت بگۆڕە کە لە Firebase وەریدەگریت !!!
+            // بچۆ سەر Project Settings > Cloud Messaging > Web configuration و کلیلی VAPIDـەکەت کۆپی بکە
             const currentToken = await getToken(messaging, {
                 vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ'
             });
@@ -463,6 +471,7 @@ async function requestNotificationPermission() {
 async function saveTokenToFirestore(token) {
     try {
         const tokensCollection = collection(db, 'device_tokens');
+        // تۆکن وەک ناوی دۆکیومێنت بەکاردێنین بۆ ڕێگریکردن لە دووبارەبوونەوە
         await setDoc(doc(tokensCollection, token), {
             createdAt: Date.now()
         });
@@ -836,6 +845,7 @@ function renderProducts() {
         const categoryMatch = (currentCategory === 'all' || product.categoryId === currentCategory);
         const subcategoryMatch = (currentSubcategory === 'all' || !product.subcategoryId || product.subcategoryId === currentSubcategory);
         
+        // --- гۆڕانکاری لێرە: دڵنیابە ناوی وەرگێڕدراو بۆ گەڕان بەکاردێت ---
         const productNameInCurrentLang = product['name_' + currentLanguage] || product.name_ku_sorani || product.name || '';
         const searchMatch = productNameInCurrentLang.toLowerCase().includes(currentSearch.toLowerCase());
 
@@ -984,6 +994,7 @@ function renderCart() {
         const cartItem = document.createElement('div');
         cartItem.className = 'cart-item';
         
+        // --- гۆڕانکاری لێرە: بۆ وەرگێڕانی ناوی کاڵا لە سەبەتەکەدا ---
         const itemNameInCurrentLang = (item.name && item.name[currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
 
         cartItem.innerHTML = `
@@ -1030,6 +1041,7 @@ function generateOrderMessage() {
     if (cart.length === 0) return "";
     let message = t('order_greeting') + "\n\n";
     cart.forEach(item => {
+        // --- гۆڕانکاری لێرە: بۆ وەرگێڕانی ناوی کاڵا لە نامەی داواکارییەکەدا ---
         const itemNameInCurrentLang = (item.name && item.name[currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
         const itemDetails = t('order_item_details', { price: item.price.toLocaleString(), quantity: item.quantity });
         message += `- ${itemNameInCurrentLang} | ${itemDetails}\n`;
@@ -1063,7 +1075,7 @@ function populateParentCategorySelect() {
         select.innerHTML = '<option value="">-- هەڵەیەک ڕوویدا --</option>';
     }
 }
-
+		
 async function renderCartActionButtons() {
 	const container = document.getElementById('cartActions');
 	container.innerHTML = ''; 
@@ -1482,12 +1494,6 @@ function setupGpsButton() {
 }
 
 function setupEventListeners() {
-    // ===== CHARASARKIRIN L VÊRÊ HATÎYE KIRIN =====
-    document.querySelectorAll('.close').forEach(btn => {
-        btn.addEventListener('click', closeAllPopups);
-    });
-    // ===============================================
-
     homeBtn.onclick = () => {
         showPage('mainPage');
         updateActiveNav('homeBtn');
@@ -1547,8 +1553,7 @@ function setupEventListeners() {
     };
 
     sheetOverlay.onclick = () => closeAllPopups();
-    // The inline onclicks were removed, so the one below is no longer needed.
-    // document.querySelectorAll('.close').forEach(btn => btn.onclick = closeAllPopups);
+    document.querySelectorAll('.close').forEach(btn => btn.onclick = closeAllPopups);
     window.onclick = (e) => { if (e.target.classList.contains('modal')) closeAllPopups(); };
     loginForm.onsubmit = async (e) => {
         e.preventDefault();
@@ -1820,6 +1825,7 @@ function setupEventListeners() {
         });
     }
 
+    // гۆڕانکاریی ٤: زیادکردنی event listener بۆ دوگمە نوێیەکە و وەرگرتنی ئاگەداری
     const enableNotificationsBtn = document.getElementById('enableNotificationsBtn');
     if (enableNotificationsBtn) {
         enableNotificationsBtn.addEventListener('click', requestNotificationPermission);
