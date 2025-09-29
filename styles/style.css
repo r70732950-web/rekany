@@ -214,9 +214,11 @@ body.overlay-active {
     text-overflow: ellipsis;
 }
 
+/* === START: PRODUCT GRID STYLES === */
 .products-container {
     display: grid;
-    grid-template-columns: 1fr; /* وا دەکات کاڵاکان لە یەک ستووندا پیشان بدرێن */
+    /* This will create a responsive grid with 2 or more columns */
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 12px;
 }
 
@@ -226,16 +228,16 @@ body.overlay-active {
     overflow: hidden; 
     position: relative; 
     border: 1px solid var(--section-border); 
-    display: flex; /* وا دەکات وێنە و زانیارییەکان بکەونە تەنیشت یەک */
-    flex-direction: row; /* ئاراستەی دانانەکە دەکات بە ئاسۆیی */
+    display: flex;
+    /* Change direction to column for a classic card view */
+    flex-direction: column; 
     cursor: pointer; 
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .product-image-container {
-    width: 130px; /* دەتوانیت ئەم پانییە بگۆڕیت */
-    flex-shrink: 0; /* ڕێگری دەکات لە بچووکبوونەوەی وێنەکە */
+    width: 100%; /* Image container takes full width of the card */
     aspect-ratio: 1/1;
     position: relative;
 }
@@ -245,19 +247,20 @@ body.overlay-active {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    text-align: right; /* نووسینەکان دەبات بۆ لای ڕاست */
-    align-items: flex-start; /* هەموو بەشەکان (ناو، نرخ، دوگمە) لە لای ڕاستەوە ڕیز دەکات */
+    text-align: center; /* Center align the text */
+    align-items: center; /* Center align the items */
 }
 
 .product-price-container { 
     display: flex; 
     flex-direction: row;
     align-items: center; 
-    justify-content: flex-start; /* نرخەکە دەبات بۆ لای ڕاست */
+    justify-content: center; /* Center the price */
     gap: 8px; 
     margin-top: 4px;
     margin-bottom: 8px;
 }
+/* === END: PRODUCT GRID STYLES === */
 
 .product-card:hover { 
     transform: translateY(-5px); 
