@@ -438,7 +438,7 @@ function toggleSheet(sheetId, show) {
     }
 }
 
-// гۆڕанکاریی ٣: زیادکردنی فەنکشنە نوێیەکان
+// гۆڕانکاریی ٣: زیادکردنی فەنکشنە نوێیەکان
 async function requestNotificationPermission() {
     console.log('Requesting notification permission...');
     try {
@@ -471,7 +471,7 @@ async function requestNotificationPermission() {
 async function saveTokenToFirestore(token) {
     try {
         const tokensCollection = collection(db, 'device_tokens');
-        // تۆکن وەک ناوی دۆکیومێنت بەکاردێنین بۆ ڕێگریکردن لە دووبارەبوونەوە
+        // تۆکن وەک ناوی دۆکیومێnt بەکاردێنین بۆ ڕێگریکردن لە دووبارەبوونەوە
         await setDoc(doc(tokensCollection, token), {
             createdAt: Date.now()
         });
@@ -657,6 +657,12 @@ function renderMainCategories() {
 function showProductDetails(productId) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
+	
+    // ========== START: NAME CORRECTION ==========
+    const productName = (product.name && product.name[currentLanguage]) || 
+                      (product.name && product.name.ku_sorani) || 
+                      product.name;
+    // ========== END: NAME CORRECTION ==========
 
     const descriptionText = (product.description && product.description[currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
     const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
@@ -670,13 +676,13 @@ function showProductDetails(productId) {
         imageUrls.forEach((url, index) => {
             const img = document.createElement('img');
             img.src = url;
-            img.alt = product.name;
+            img.alt = productName;
             if (index === 0) img.classList.add('active');
             imageContainer.appendChild(img);
             
             const thumb = document.createElement('img');
             thumb.src = url;
-            thumb.alt = `Thumbnail of ${product.name}`;
+            thumb.alt = `Thumbnail of ${productName}`;
             thumb.className = 'thumbnail';
             if (index === 0) thumb.classList.add('active');
             thumb.dataset.index = index;
@@ -711,7 +717,7 @@ function showProductDetails(productId) {
     nextBtn.onclick = () => updateSlider((currentIndex + 1) % images.length);
     thumbnails.forEach(thumb => thumb.onclick = () => updateSlider(parseInt(thumb.dataset.index)));
 
-    document.getElementById('sheetProductName').textContent = product.name;
+    document.getElementById('sheetProductName').textContent = productName; // Corrected Name
     document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText);
     
     const priceContainer = document.getElementById('sheetProductPrice');
@@ -735,6 +741,12 @@ function createProductCardElement(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
 
+    // ========== START: NAME CORRECTION ==========
+    const productName = (product.name && product.name[currentLanguage]) || 
+                      (product.name && product.name.ku_sorani) || 
+                      product.name; // Fallback for old data
+    // ========== END: NAME CORRECTION ==========
+
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || 'https://placehold.co/300x300/e2e8f0/2d3748?text=No+Image');
     
     let priceHTML = `<div class="product-price-container"><div class="product-price">${product.price.toLocaleString()} د.ع.</div></div>`;
@@ -753,14 +765,14 @@ function createProductCardElement(product) {
 
     productCard.innerHTML = `
         <div class="product-image-container">
-            <img src="${mainImage}" alt="${product.name}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
+            <img src="${mainImage}" alt="${productName}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
             ${discountBadgeHTML}
             <button class="${favoriteBtnClass}" aria-label="Add to favorites">
                 <i class="${heartIconClass} fa-heart"></i>
             </button>
         </div>
         <div class="product-info">
-            <div class="product-name">${product.name}</div>
+            <div class="product-name">${productName}</div>
             ${priceHTML}
             <button class="add-to-cart-btn-card">
                 <i class="fas fa-cart-plus"></i>
@@ -845,8 +857,9 @@ function renderProducts() {
         const categoryMatch = (currentCategory === 'all' || product.categoryId === currentCategory);
         const subcategoryMatch = (currentSubcategory === 'all' || !product.subcategoryId || product.subcategoryId === currentSubcategory);
         
-        // --- гۆڕانکاری لێرە: دڵنیابە ناوی وەرگێڕدراو بۆ گەڕان بەکاردێت ---
-        const productNameInCurrentLang = product['name_' + currentLanguage] || product.name_ku_sorani || product.name || '';
+        const productNameInCurrentLang = (product.name && product.name[currentLanguage]) || 
+                                       (product.name && product.name.ku_sorani) || 
+                                       product.name || '';
         const searchMatch = productNameInCurrentLang.toLowerCase().includes(currentSearch.toLowerCase());
 
         if (currentCategory !== 'all') {
@@ -942,7 +955,20 @@ async function editProduct(productId) {
     editingProductId = productId;
     formTitle.textContent = 'دەستکاری کردنی کاڵا';
     productForm.reset();
-    document.getElementById('productName').value = product.name;
+
+    // ========== START: NAME CORRECTION ==========
+    if (product.name && typeof product.name === 'object') {
+        document.getElementById('productNameKuSorani').value = product.name.ku_sorani || '';
+        document.getElementById('productNameKuBadini').value = product.name.ku_badini || '';
+        document.getElementById('productNameAr').value = product.name.ar || '';
+    } else {
+        // Fallback for old products with string names
+        document.getElementById('productNameKuSorani').value = product.name || '';
+        document.getElementById('productNameKuBadini').value = '';
+        document.getElementById('productNameAr').value = '';
+    }
+    // ========== END: NAME CORRECTION ==========
+    
     document.getElementById('productPrice').value = product.price;
     document.getElementById('productOriginalPrice').value = product.originalPrice || '';
     
@@ -994,7 +1020,6 @@ function renderCart() {
         const cartItem = document.createElement('div');
         cartItem.className = 'cart-item';
         
-        // --- гۆڕانکاری لێرە: بۆ وەرگێڕانی ناوی کاڵا لە سەبەتەکەدا ---
         const itemNameInCurrentLang = (item.name && item.name[currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
 
         cartItem.innerHTML = `
@@ -1041,7 +1066,6 @@ function generateOrderMessage() {
     if (cart.length === 0) return "";
     let message = t('order_greeting') + "\n\n";
     cart.forEach(item => {
-        // --- гۆڕانکاری لێرە: بۆ وەرگێڕانی ناوی کاڵا لە نامەی داواکارییەکەدا ---
         const itemNameInCurrentLang = (item.name && item.name[currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
         const itemDetails = t('order_item_details', { price: item.price.toLocaleString(), quantity: item.quantity });
         message += `- ${itemNameInCurrentLang} | ${itemDetails}\n`;
@@ -1581,6 +1605,14 @@ function setupEventListeners() {
             return;
         }
         
+        // ========== START: NAME CORRECTION ==========
+        const productNameObject = {
+            ku_sorani: document.getElementById('productNameKuSorani').value,
+            ku_badini: document.getElementById('productNameKuBadini').value,
+            ar: document.getElementById('productNameAr').value
+        };
+        // ========== END: NAME CORRECTION ==========
+
         const productDescriptionObject = {
             ku_sorani: document.getElementById('productDescriptionKuSorani').value,
             ku_badini: document.getElementById('productDescriptionKuBadini').value,
@@ -1589,7 +1621,7 @@ function setupEventListeners() {
 
         try {
             const productData = { 
-                name: document.getElementById('productName').value, 
+                name: productNameObject, 
                 price: parseInt(document.getElementById('productPrice').value), 
                 originalPrice: parseInt(document.getElementById('productOriginalPrice').value) || null, 
                 categoryId: document.getElementById('productCategoryId').value,
