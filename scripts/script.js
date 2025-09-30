@@ -2,10 +2,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebas
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-// گۆڕانکاریی ١: زیادکردنی ئیمپۆرتی پێویست
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 import { setDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-
 
 const firebaseConfig = {
     apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE",
@@ -21,14 +19,12 @@ const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
-// گۆڕانکاریی ٢: ئامادەکردنی Messaging
 const messaging = getMessaging(app);
 
 const productsCollection = collection(db, "products");
 const categoriesCollection = collection(db, "categories");
 const announcementsCollection = collection(db, "announcements");
 
-// ========== START: CODE CORRECTION ==========
 const translations = {
     ku_sorani: {
         search_placeholder: "گەڕان بە ناوی کاڵا...",
@@ -89,7 +85,7 @@ const translations = {
         product_removed_from_favorites: "لە لیستی دڵخوازەکان سڕدرایەوە",
         manage_categories_title: "بەڕێوەبردنی جۆرەکان",
         manage_contact_title: "بەڕێوەبردنی زانیارییەکانی پەیوەندی",
-        manage_contact_methods_title: "بەڕێوەبردنی شێوازەکانی ناردنی داواکاری",
+		manage_contact_methods_title: "بەڕێوەبردنی شێوازەکانی ناردنی داواکاری",
         notifications_title: "ئاگەهدارییەکان",
         no_notifications_found: "هیچ ئاگەهدارییەک نییە",
         manage_announcements_title: "ناردنی ئاگەهداری گشتی",
@@ -163,7 +159,7 @@ const translations = {
         product_removed_from_favorites: "ژ لیستا حەزژێکریان هاتە ژێبرن",
         manage_categories_title: "رێکخستنا جوران",
         manage_contact_title: "рێکخستنا پێزانینێن پەیوەندیێ",
-        manage_contact_methods_title: "رێکخستنا رێکێن فرێکرنا داخازیێ",
+		manage_contact_methods_title: "رێکخستنا رێکێن فرێکرنا داخازیێ",
         notifications_title: "ئاگەهداری",
         no_notifications_found: "چ ئاگەهداری نینن",
         manage_announcements_title: "رێکخستنا ئاگەهداریان",
@@ -237,7 +233,7 @@ const translations = {
         product_removed_from_favorites: "تمت الإزالة من المفضلة",
         manage_categories_title: "إدارة الفئات",
         manage_contact_title: "إدارة معلومات الاتصال",
-        manage_contact_methods_title: "إدارة طرق إرسال الطلب",
+		manage_contact_methods_title: "إدارة طرق إرسال الطلب",
         notifications_title: "الإشعارات",
         no_notifications_found: "لا توجد إشعارات",
         manage_announcements_title: "إدارة الإشعارات العامة",
@@ -253,7 +249,6 @@ const translations = {
         error_generic: "حدث خطأ!",
     }
 };
-// ========== END: CODE CORRECTION ==========
 
 let currentLanguage = localStorage.getItem('language') || 'ku_sorani';
 let deferredPrompt; 
@@ -278,6 +273,7 @@ let contactInfo = {};
 let currentSubcategory = 'all'; 
 let subcategories = [];
 
+// === START: Element Selectors ===
 const loginModal = document.getElementById('loginModal');
 const addProductBtn = document.getElementById('addProductBtn');
 const productFormModal = document.getElementById('productFormModal');
@@ -291,7 +287,6 @@ const formTitle = document.getElementById('formTitle');
 const imageInputsContainer = document.getElementById('imageInputsContainer');
 const loader = document.getElementById('loader');
 const cartBtn = document.getElementById('cartBtn');
-const cartCount = document.getElementById('cartCount');
 const cartItemsContainer = document.getElementById('cartItemsContainer');
 const emptyCartMessage = document.getElementById('emptyCartMessage');
 const cartTotal = document.getElementById('cartTotal');
@@ -319,13 +314,60 @@ const adminSocialMediaManagement = document.getElementById('adminSocialMediaMana
 const addSocialMediaForm = document.getElementById('addSocialMediaForm');
 const socialLinksListContainer = document.getElementById('socialLinksListContainer');
 const socialMediaToggle = document.getElementById('socialMediaToggle');
-
 const notificationBtn = document.getElementById('notificationBtn');
 const notificationBadge = document.getElementById('notificationBadge');
 const notificationsSheet = document.getElementById('notificationsSheet');
 const notificationsListContainer = document.getElementById('notificationsListContainer');
 const adminAnnouncementManagement = document.getElementById('adminAnnouncementManagement');
 const announcementForm = document.getElementById('announcementForm');
+// === END: Element Selectors ===
+
+
+// === START: Back Button & History Management ===
+
+function showPage(pageId, updateHistory = false) {
+    document.querySelectorAll('.page').forEach(page => {
+        page.classList.toggle('page-hidden', page.id !== pageId);
+    });
+
+    if (updateHistory) {
+        // Create a URL hash for the page
+        const urlHash = `#${pageId}`;
+        // Push state to history
+        history.pushState({ pageId: pageId }, '', urlHash);
+    }
+
+    // Update the active button in the bottom nav
+    const activeBtnId = pageId === 'mainPage' ? 'homeBtn' : 'settingsBtn';
+    updateActiveNav(activeBtnId);
+}
+
+function navigateTo(pageId) {
+    showPage(pageId, true);
+}
+
+window.addEventListener('popstate', (event) => {
+    if (event.state && event.state.pageId) {
+        showPage(event.state.pageId, false); // false because we are responding to a history change, not creating one
+    } else {
+        // This handles going back to the very first state (before any navigation)
+        showPage('mainPage', false);
+    }
+});
+
+// Initial page load handling
+function handleInitialPageLoad() {
+    const hash = window.location.hash;
+    if (hash === '#settingsPage') {
+        showPage('settingsPage', false);
+    } else {
+        showPage('mainPage', false);
+        // Ensure the base URL doesn't have a hash if it's the main page
+        history.replaceState({ pageId: 'mainPage' }, '', window.location.pathname);
+    }
+}
+// === END: Back Button & History Management ===
+
 
 function t(key, replacements = {}) {
     let translation = translations[currentLanguage][key] || translations['ku_sorani'][key] || key;
@@ -370,16 +412,6 @@ function setLanguage(lang) {
 
 function updateContactLinksUI() {
     if (!contactInfo) return;
-}
-
-function showPage(pageId) {
-    document.querySelectorAll('.page').forEach(page => {
-        if (page.id === pageId) {
-            page.classList.remove('page-hidden');
-        } else {
-            page.classList.add('page-hidden');
-        }
-    });
 }
 
 function updateActiveNav(activeBtnId) {
@@ -438,7 +470,6 @@ function toggleSheet(sheetId, show) {
     }
 }
 
-// گۆڕانکاریی ٣: زیادکردنی فەنکشنە نوێیەکان
 async function requestNotificationPermission() {
     console.log('Requesting notification permission...');
     try {
@@ -446,9 +477,6 @@ async function requestNotificationPermission() {
         if (permission === 'granted') {
             console.log('Notification permission granted.');
             showNotification('مۆڵەتی ناردنی ئاگەداری درا', 'success');
-
-            // !!! گرنگ: تکایە ئەم کلیلە بە هی خۆت بگۆڕە کە لە Firebase وەریدەگریت !!!
-            // بچۆ سەر Project Settings > Cloud Messaging > Web configuration و کلیلی VAPIDـەکەت کۆپی بکە
             const currentToken = await getToken(messaging, {
                 vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ'
             });
@@ -471,7 +499,6 @@ async function requestNotificationPermission() {
 async function saveTokenToFirestore(token) {
     try {
         const tokensCollection = collection(db, 'device_tokens');
-        // تۆکن وەک ناوی دۆکیومێnt بەکاردێنین بۆ ڕێگریکردن لە دووبارەبوونەوە
         await setDoc(doc(tokensCollection, token), {
             createdAt: Date.now()
         });
@@ -572,8 +599,7 @@ function renderCategoriesSheet() {
             renderProducts();
             toggleSheet('categoriesSheet', false);
             renderMainCategories();
-            showPage('mainPage');
-            updateActiveNav('homeBtn');
+            navigateTo('mainPage');
         };
 
         sheetCategoriesContainer.appendChild(btn);
@@ -845,7 +871,6 @@ function renderProducts() {
         const categoryMatch = (currentCategory === 'all' || product.categoryId === currentCategory);
         const subcategoryMatch = (currentSubcategory === 'all' || !product.subcategoryId || product.subcategoryId === currentSubcategory);
         
-        // --- گۆڕانکاری لێرە: دڵنیابە ناوی وەرگێڕدراو بۆ گەڕان بەکاردێت ---
         const productNameInCurrentLang = product['name_' + currentLanguage] || product.name_ku_sorani || product.name || '';
         const searchMatch = productNameInCurrentLang.toLowerCase().includes(currentSearch.toLowerCase());
 
@@ -994,7 +1019,6 @@ function renderCart() {
         const cartItem = document.createElement('div');
         cartItem.className = 'cart-item';
         
-        // --- گۆڕانکاری لێرە: بۆ وەرگێڕانی ناوی کاڵا لە سەبەتەکەدا ---
         const itemNameInCurrentLang = (item.name && item.name[currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
 
         cartItem.innerHTML = `
@@ -1041,7 +1065,6 @@ function generateOrderMessage() {
     if (cart.length === 0) return "";
     let message = t('order_greeting') + "\n\n";
     cart.forEach(item => {
-        // --- گۆڕانکاری لێرە: بۆ وەرگێڕانی ناوی کاڵا لە نامەی داواکارییەکەدا ---
         const itemNameInCurrentLang = (item.name && item.name[currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
         const itemDetails = t('order_item_details', { price: item.price.toLocaleString(), quantity: item.quantity });
         message += `- ${itemNameInCurrentLang} | ${itemDetails}\n`;
@@ -1399,35 +1422,6 @@ function showWelcomeMessage() {
     }
 }
 
-if (addSocialMediaForm) {
-    addSocialMediaForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const submitButton = e.target.querySelector('button[type="submit"]');
-        submitButton.disabled = true;
-
-        const socialData = {
-            name_ku_sorani: document.getElementById('socialNameKuSorani').value,
-            name_ku_badini: document.getElementById('socialNameKuBadini').value,
-            name_ar: document.getElementById('socialNameAr').value,
-            url: document.getElementById('socialUrl').value,
-            icon: document.getElementById('socialIcon').value,
-            createdAt: Date.now()
-        };
-
-        try {
-            const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
-            await addDoc(socialLinksCollection, socialData);
-            showNotification('لینک بە سەرکەوتوویی زیادکرا', 'success');
-            addSocialMediaForm.reset();
-        } catch (error) {
-            console.error("Error adding social media link: ", error);
-            showNotification(t('error_generic'), 'error');
-        } finally {
-            submitButton.disabled = false;
-        }
-    });
-}
-
 function setupGpsButton() {
     const getLocationBtn = document.getElementById('getLocationBtn');
     const profileAddressInput = document.getElementById('profileAddress');
@@ -1495,8 +1489,7 @@ function setupGpsButton() {
 
 function setupEventListeners() {
     homeBtn.onclick = () => {
-        showPage('mainPage');
-        updateActiveNav('homeBtn');
+        navigateTo('mainPage');
         currentCategory = 'all';
         currentSubcategory = 'all';
         renderSubcategories('all');
@@ -1505,8 +1498,7 @@ function setupEventListeners() {
     };
 
     settingsBtn.onclick = () => {
-        showPage('settingsPage');
-        updateActiveNav('settingsBtn');
+        navigateTo('settingsPage');
     };
 
     profileBtn.onclick = () => {
@@ -1543,6 +1535,7 @@ function setupEventListeners() {
         productForm.querySelector('button[type="submit"]').textContent = 'پاشەکەوتکردن';
         productFormModal.style.display = 'block';
     };
+
     settingsLogoutBtn.onclick = async () => {
         await signOut(auth);
         sessionStorage.removeItem('isAdmin');
@@ -1555,6 +1548,7 @@ function setupEventListeners() {
     sheetOverlay.onclick = () => closeAllPopups();
     document.querySelectorAll('.close').forEach(btn => btn.onclick = closeAllPopups);
     window.onclick = (e) => { if (e.target.classList.contains('modal')) closeAllPopups(); };
+    
     loginForm.onsubmit = async (e) => {
         e.preventDefault();
         try {
@@ -1648,12 +1642,14 @@ function setupEventListeners() {
         chevron.classList.toggle('open');
     };
 
-    socialMediaToggle.onclick = () => {
-        const container = adminSocialMediaManagement.querySelector('.contact-links-container');
-        const chevron = socialMediaToggle.querySelector('.contact-chevron');
-        container.classList.toggle('open');
-        chevron.classList.toggle('open');
-    };
+    if(socialMediaToggle) {
+        socialMediaToggle.onclick = () => {
+            const container = adminSocialMediaManagement.querySelector('.contact-links-container');
+            const chevron = socialMediaToggle.querySelector('.contact-chevron');
+            container.classList.toggle('open');
+            chevron.classList.toggle('open');
+        };
+    }
 
     profileForm.onsubmit = (e) => {
         e.preventDefault();
@@ -1825,7 +1821,6 @@ function setupEventListeners() {
         });
     }
 
-    // گۆڕانکاریی ٤: زیادکردنی event listener بۆ دوگمە نوێیەکە و وەرگرتنی ئاگەداری
     const enableNotificationsBtn = document.getElementById('enableNotificationsBtn');
     if (enableNotificationsBtn) {
         enableNotificationsBtn.addEventListener('click', requestNotificationPermission);
@@ -1883,13 +1878,13 @@ function init() {
     }
     updateCartCount();
     setupEventListeners();
-    updateActiveNav('homeBtn');
     setLanguage(currentLanguage);
     renderSocialMediaLinks();
     renderContactLinks();
     checkNewAnnouncements(); 
     showWelcomeMessage(); 
     setupGpsButton();
+    handleInitialPageLoad(); // Add this line to handle initial load and back/forward navigation
 }
 
 document.addEventListener('DOMContentLoaded', init);
