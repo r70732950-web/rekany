@@ -323,50 +323,97 @@ const announcementForm = document.getElementById('announcementForm');
 // === END: Element Selectors ===
 
 
-// === START: Back Button & History Management ===
+// === START: History & Navigation Management ===
 
-function showPage(pageId, updateHistory = false) {
+// This function only handles the visual switching of pages
+function showPage(pageId) {
     document.querySelectorAll('.page').forEach(page => {
         page.classList.toggle('page-hidden', page.id !== pageId);
     });
-
-    if (updateHistory) {
-        // Create a URL hash for the page
-        const urlHash = `#${pageId}`;
-        // Push state to history
-        history.pushState({ pageId: pageId }, '', urlHash);
-    }
-
-    // Update the active button in the bottom nav
     const activeBtnId = pageId === 'mainPage' ? 'homeBtn' : 'settingsBtn';
     updateActiveNav(activeBtnId);
 }
 
-function navigateTo(pageId) {
-    showPage(pageId, true);
+// This function only handles the visual closing of popups
+function closeAllPopupsUI() {
+    document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
+    document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('show'));
+    sheetOverlay.classList.remove('show');
+    document.body.classList.remove('overlay-active');
 }
 
+// This function opens popups and manages history
+function openPopup(id, type = 'sheet') {
+    const element = document.getElementById(id);
+    if (!element) return;
+
+    // First, visually open the popup
+    closeAllPopupsUI(); // Close any existing popups
+    if (type === 'sheet') {
+        element.classList.add('show');
+        sheetOverlay.classList.add('show');
+    } else { // modal
+        element.style.display = 'block';
+    }
+    document.body.classList.add('overlay-active');
+    
+    // Then, push a state to the browser history
+    history.pushState({ type: type, id: id }, '', `#${id}`);
+}
+
+// The main function to handle back button presses
 window.addEventListener('popstate', (event) => {
-    if (event.state && event.state.pageId) {
-        showPage(event.state.pageId, false); // false because we are responding to a history change, not creating one
+    // When the back button is pressed, this event fires with the state we are going TO.
+    const state = event.state;
+    
+    // First, close any popups that might be visually open
+    closeAllPopupsUI();
+
+    if (state) {
+        if (state.type === 'page') {
+            showPage(state.id);
+        } else if (state.type === 'sheet' || state.type === 'modal') {
+            // Re-open the popup that corresponds to this history state
+            openPopup(state.id, state.type);
+        }
     } else {
-        // This handles going back to the very first state (before any navigation)
-        showPage('mainPage', false);
+        // If state is null, it's the very first page in the history
+        showPage('mainPage');
     }
 });
 
-// Initial page load handling
+// Function to handle initial page load based on URL hash
 function handleInitialPageLoad() {
-    const hash = window.location.hash;
-    if (hash === '#settingsPage') {
-        showPage('settingsPage', false);
+    const hash = window.location.hash.substring(1);
+    const element = document.getElementById(hash);
+    
+    // Determine the base page
+    if (hash === 'settingsPage') {
+        showPage('settingsPage');
+        history.replaceState({ type: 'page', id: 'settingsPage' }, '', '#settingsPage');
     } else {
-        showPage('mainPage', false);
-        // Ensure the base URL doesn't have a hash if it's the main page
-        history.replaceState({ pageId: 'mainPage' }, '', window.location.pathname);
+        showPage('mainPage');
+        history.replaceState({ type: 'page', id: 'mainPage' }, '', window.location.pathname);
+    }
+
+    // If there's a hash for a sheet or modal, open it
+    if (element) {
+        const isSheet = element.classList.contains('bottom-sheet');
+        const isModal = element.classList.contains('modal');
+        if (isSheet || isModal) {
+            openPopup(hash, isSheet ? 'sheet' : 'modal');
+        }
     }
 }
-// === END: Back Button & History Management ===
+
+// Overwrite the original close function to use history.back()
+function closeCurrentPopup() {
+    // history.state will be null if there's no state, so we check
+    if (history.state && (history.state.type === 'sheet' || history.state.type === 'modal')) {
+        history.back();
+    }
+}
+// === END: History & Navigation Management ===
 
 
 function t(key, replacements = {}) {
@@ -435,40 +482,6 @@ function formatDescription(text) {
     return textWithLinks.replace(/\n/g, '<br>');
 }
 
-function closeAllPopups() {
-    document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
-    document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('show'));
-    sheetOverlay.classList.remove('show');
-    document.querySelector('.contact-dropdown.open')?.classList.remove('open');
-    document.body.classList.remove('overlay-active');
-}
-
-function toggleSheet(sheetId, show) {
-    const sheetElement = document.getElementById(sheetId);
-    if (!sheetElement) return;
-
-    if (show) {
-        closeAllPopups();
-
-        if (sheetId === 'cartSheet') renderCart();
-        if (sheetId === 'favoritesSheet') renderFavoritesPage();
-        if (sheetId === 'categoriesSheet') renderCategoriesSheet();
-        if (sheetId === 'notificationsSheet') renderUserNotifications();
-        if (sheetId === 'profileSheet') {
-            document.getElementById('profileName').value = userProfile.name || '';
-            document.getElementById('profileAddress').value = userProfile.address || '';
-            document.getElementById('profilePhone').value = userProfile.phone || '';
-        }
-
-        sheetElement.classList.add('show');
-        sheetOverlay.classList.add('show');
-        document.body.classList.add('overlay-active');
-    } else {
-        sheetElement.classList.remove('show');
-        sheetOverlay.classList.remove('show');
-        document.body.classList.remove('overlay-active');
-    }
-}
 
 async function requestNotificationPermission() {
     console.log('Requesting notification permission...');
@@ -597,9 +610,7 @@ function renderCategoriesSheet() {
             currentSubcategory = 'all'; 
             renderSubcategories(currentCategory);
             renderProducts();
-            toggleSheet('categoriesSheet', false);
-            renderMainCategories();
-            navigateTo('mainPage');
+            history.back(); // Go back from the category sheet view
         };
 
         sheetCategoriesContainer.appendChild(btn);
@@ -684,6 +695,7 @@ function showProductDetails(productId) {
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
+    // Render logic...
     const descriptionText = (product.description && product.description[currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
     const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
     
@@ -751,10 +763,10 @@ function showProductDetails(productId) {
     addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
     addToCartButton.onclick = () => {
         addToCart(product.id);
-        closeAllPopups();
+        history.back();
     };
 
-    toggleSheet('productDetailSheet', true);
+    openPopup('productDetailSheet');
 }
 
 function createProductCardElement(product) {
@@ -962,8 +974,6 @@ async function editProduct(productId) {
     const product = products.find(p => p.id === productId);
     if (!product) { showNotification(t('product_not_found_error'), 'error'); return; }
     
-    closeAllPopups();
-
     editingProductId = productId;
     formTitle.textContent = 'دەستکاری کردنی کاڵا';
     productForm.reset();
@@ -986,7 +996,7 @@ async function editProduct(productId) {
     createProductImageInputs(imageUrls);
     document.getElementById('productExternalLink').value = product.externalLink || '';
     productForm.querySelector('button[type="submit"]').textContent = 'نوێکردنەوە';
-    productFormModal.style.display = 'block';
+    openPopup('productFormModal', 'modal');
 }
 
 async function deleteProduct(productId) { 
@@ -1416,7 +1426,7 @@ function showWelcomeMessage() {
     if (!localStorage.getItem('hasVisited')) {
         const welcomeModal = document.getElementById('welcomeModal');
         if (welcomeModal) {
-            welcomeModal.style.display = 'block';
+            openPopup('welcomeModal', 'modal');
         }
         localStorage.setItem('hasVisited', 'true');
     }
@@ -1489,7 +1499,8 @@ function setupGpsButton() {
 
 function setupEventListeners() {
     homeBtn.onclick = () => {
-        navigateTo('mainPage');
+        history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname);
+        showPage('mainPage');
         currentCategory = 'all';
         currentSubcategory = 'all';
         renderSubcategories('all');
@@ -1498,42 +1509,44 @@ function setupEventListeners() {
     };
 
     settingsBtn.onclick = () => {
-        navigateTo('settingsPage');
+        history.pushState({ type: 'page', id: 'settingsPage' }, '', '#settingsPage');
+        showPage('settingsPage');
     };
 
     profileBtn.onclick = () => {
-        toggleSheet('profileSheet', true);
+        openPopup('profileSheet');
         updateActiveNav('profileBtn');
     };
 
     cartBtn.onclick = () => { 
-        toggleSheet('cartSheet', true);
+        renderCart();
+        openPopup('cartSheet');
         updateActiveNav('cartBtn');
     };
     
     categoriesBtn.onclick = () => {
-        toggleSheet('categoriesSheet', true);
+        renderCategoriesSheet();
+        openPopup('categoriesSheet');
         updateActiveNav('categoriesBtn');
     };
     
     settingsFavoritesBtn.onclick = () => {
-        toggleSheet('favoritesSheet', true);
+        renderFavoritesPage();
+        openPopup('favoritesSheet');
     };
     
     settingsAdminLoginBtn.onclick = () => { 
-        closeAllPopups();
-        loginModal.style.display = 'block'; 
+        openPopup('loginModal', 'modal');
     };
     
     addProductBtn.onclick = () => {
-        closeAllPopups();
         editingProductId = null;
         productForm.reset();
         createProductImageInputs();
         subcategorySelectContainer.style.display = 'none';
         formTitle.textContent = 'زیادکردنی کاڵای نوێ';
         productForm.querySelector('button[type="submit"]').textContent = 'پاشەکەوتکردن';
-        productFormModal.style.display = 'block';
+        openPopup('productFormModal', 'modal');
     };
 
     settingsLogoutBtn.onclick = async () => {
@@ -1545,9 +1558,9 @@ function setupEventListeners() {
         showNotification(t('logout_success'), 'success');
     };
 
-    sheetOverlay.onclick = () => closeAllPopups();
-    document.querySelectorAll('.close').forEach(btn => btn.onclick = closeAllPopups);
-    window.onclick = (e) => { if (e.target.classList.contains('modal')) closeAllPopups(); };
+    sheetOverlay.onclick = () => closeCurrentPopup();
+    document.querySelectorAll('.close').forEach(btn => btn.onclick = closeCurrentPopup);
+    window.onclick = (e) => { if (e.target.classList.contains('modal')) closeCurrentPopup(); };
     
     loginForm.onsubmit = async (e) => {
         e.preventDefault();
@@ -1601,7 +1614,7 @@ function setupEventListeners() {
                 await addDoc(productsCollection, productData);
                 showNotification('کاڵا زیادکرا', 'success');
             }
-            closeAllPopups();
+            closeCurrentPopup();
         } catch (error) {
             showNotification(t('error_generic'), 'error');
             console.error("Error saving product:", error);
@@ -1660,7 +1673,7 @@ function setupEventListeners() {
         };
         localStorage.setItem(PROFILE_KEY, JSON.stringify(userProfile));
         showNotification(t('profile_saved'), 'success');
-        closeAllPopups();
+        closeCurrentPopup();
     };
     
     document.querySelectorAll('.lang-btn').forEach(btn => {
@@ -1783,7 +1796,8 @@ function setupEventListeners() {
     }
 
     notificationBtn.addEventListener('click', () => {
-        toggleSheet('notificationsSheet', true);
+        renderUserNotifications();
+        openPopup('notificationsSheet');
     });
 
     if (announcementForm) {
@@ -1867,7 +1881,7 @@ function init() {
         isAdmin = !!user;
         if (user) {
             sessionStorage.setItem('isAdmin', 'true');
-            closeAllPopups();
+            closeCurrentPopup();
         }
         updateAdminUI(isAdmin);
         renderProducts();
@@ -1884,7 +1898,7 @@ function init() {
     checkNewAnnouncements(); 
     showWelcomeMessage(); 
     setupGpsButton();
-    handleInitialPageLoad(); // Add this line to handle initial load and back/forward navigation
+    handleInitialPageLoad();
 }
 
 document.addEventListener('DOMContentLoaded', init);
