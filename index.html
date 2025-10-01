@@ -22,12 +22,13 @@
                  url('https://www.nrttv.com/css/fonts/NRT-Reg.woff') format('woff');
             font-weight: normal;
             font-display: swap;
-        }@font-face {
-        font-family: 'NRT';
-        src: url('https://www.nrttv.com/css/fonts/NRT-Bold.woff2') format('woff2'),
-             url('https://www.nrttv.com/css/fonts/NRT-Bold.woff') format('woff');
-        font-weight: bold;
-        font-display: swap;
+        }
+        @font-face {
+            font-family: 'NRT';
+            src: url('https://www.nrttv.com/css/fonts/NRT-Bold.woff2') format('woff2'),
+                 url('https://www.nrttv.com/css/fonts/NRT-Bold.woff') format('woff');
+            font-weight: bold;
+            font-display: swap;
         }
         
         :root {
@@ -231,7 +232,6 @@
             text-overflow: ellipsis;
         }
         
-        /* ========= START: YOUR PREFERRED PRODUCT CARD STYLE ========= */
         .products-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
@@ -345,7 +345,6 @@
         }
         .favorite-btn:hover { transform: scale(1.1); }
         .favorite-btn.favorited { color: var(--danger-color); }
-        /* ========= END: YOUR PREFERRED PRODUCT CARD STYLE ========= */
 
         .add-to-cart-btn { 
             width: 100%;
@@ -789,8 +788,7 @@
                 <h2 class="sheet-title"><i class="fas fa-bell"></i> <span data-translate-key="notifications_title">ئاگەهدارییەکان</span></h2>
                 <span class="close" style="top: 20px;">&times;</span>
             </div>
-            <div id="notificationsListContainer" class="sheet-content">
-                        </div>
+            <div id="notificationsListContainer" class="sheet-content"></div>
         </div>
 
         <div id="cartSheet" class="bottom-sheet">
@@ -804,8 +802,7 @@
                 <div id="emptyCartMessage" class="cart-empty" style="display:none;"><i class="fas fa-shopping-basket"></i><p data-translate-key="cart_empty">سەبەتەکەت بەتاڵە</p></div>
                 <div id="cartTotal" class="cart-total" style="display:none;"><span data-translate-key="total_price">کۆی گشتی:</span> <span id="totalAmount">0</span> د.ع.</div>
                 
-                <div id="cartActions" style="display:none; margin-top: 15px;">
-                                </div>
+                <div id="cartActions" style="display:none; margin-top: 15px;"></div>
             </div>
         </div>
 
@@ -886,16 +883,17 @@
 				<span class="sheet-handle"></span>
 				<h2 class="sheet-title">
 					<i class="fas fa-file-contract"></i> 
-					<span data-translate-key="terms_policies_title">مەرج و سیاسەت</span>
+					<span data-translate-key="terms_policies_title">مەرج و ڕێساکان</span>
 				</h2>
 				<span class="close" style="top: 20px;">&times;</span>
 			</div>
 			<div class="sheet-content">
 				<div id="termsContentContainer" style="line-height: 1.8; color: var(--text-light);">
-					<p data-translate-key="loading_policies">...د بارکرنا سیاسەتان دایە</p>
+					<p data-translate-key="loading_policies">...خەریکی بارکردنی ڕێساکانە</p>
 				</div>
 			</div>
 		</div>
+		
         <main class="main-content page" id="mainPage">
             <div class="section">
                 <div id="mainCategoriesContainer" class="main-categories-container"></div>
@@ -935,15 +933,15 @@
                 </div>
             </div>
             
-				<div class="settings-group">
-					<div class="settings-item" id="termsAndPoliciesBtn">
-						<div>
-							<i class="fas fa-file-contract" style="margin-left: 10px; color: var(--primary-color)"></i>
-							<span data-translate-key="terms_policies_title">مەرج و سیاسەت</span>
-						</div>
-						<i class="fas fa-chevron-left"></i>
-					</div>
-				</div>
+            <div class="settings-group">
+                <div class="settings-item" id="termsAndPoliciesBtn">
+                    <div>
+                        <i class="fas fa-file-contract" style="margin-left: 10px; color: var(--primary-color)"></i>
+                        <span data-translate-key="terms_policies_title">مەرج و ڕێساکان</span>
+                    </div>
+                    <i class="fas fa-chevron-left"></i>
+                </div>
+            </div>
             
             <div class="settings-group">
                 <div class="settings-item" id="installAppBtn" style="display: none; cursor: pointer;">
@@ -970,8 +968,7 @@
                     </div>
                     <i class="fas fa-chevron-down contact-chevron"></i>
                 </div>
-                <div class="contact-links-container" id="dynamicContactLinksContainer">
-                                </div>
+                <div class="contact-links-container" id="dynamicContactLinksContainer"></div>
             </div>
             
             <div class="settings-group">
@@ -991,34 +988,35 @@
                 </div>
             </div>
 
-				<div class="settings-group" id="adminPoliciesManagement" style="display: none;">
-					<h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
-						<i class="fas fa-edit"></i> <span data-translate-key="manage_policies_title">رێکخستنا مەرج و سیاسەتان</span>
-					</h3>
-					<div style="padding: 15px;">
-						<form id="policiesForm">
-							<div class="form-group">
-								<label for="policiesContentKuSorani">ناوەڕۆک (سۆرانی):</label>
-								<textarea id="policiesContentKuSorani" rows="8" placeholder="مەرج و ڕێساکان لێرە بنووسە..."></textarea>
-							</div>
-							<div class="form-group">
-								<label for="policiesContentKuBadini">ناڤەرۆک (بادینی):</label>
-								<textarea id="policiesContentKuBadini" rows="8" placeholder="مەرج و سیاسەتان ل ڤێرێ بنڤیسە..."></textarea>
-							</div>
-							<div class="form-group">
-								<label for="policiesContentAr">المحتوى (عربي):</label>
-								<textarea id="policiesContentAr" rows="8" placeholder="اكتب الشروط والسياسات هنا..."></textarea>
-							</div>
-							<button type="submit" data-translate-key="save_button">پاشەکەوتکردن</button>
-						</form>
-					</div>
-				</div>
+            <div class="settings-group" id="adminPoliciesManagement" style="display: none;">
+                <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
+                    <i class="fas fa-edit"></i> <span data-translate-key="manage_policies_title">بەڕێوەبردنی مەرج و ڕێساکان</span>
+                </h3>
+                <div style="padding: 15px;">
+                    <form id="policiesForm">
+                        <div class="form-group">
+                            <label for="policiesContentKuSorani">ناوەڕۆک (سۆرانی):</label>
+                            <textarea id="policiesContentKuSorani" rows="8" placeholder="مەرج و ڕێساکان لێرە بنووسە..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="policiesContentKuBadini">ناڤەرۆک (بادینی):</label>
+                            <textarea id="policiesContentKuBadini" rows="8" placeholder="مەرج و سیاسەتان ل ڤێرێ بنڤیسە..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="policiesContentAr">المحتوى (عربي):</label>
+                            <textarea id="policiesContentAr" rows="8" placeholder="اكتب الشروط والسياسات هنا..."></textarea>
+                        </div>
+                        <button type="submit" data-translate-key="save_button">پاشەکەوتکردن</button>
+                    </form>
+                </div>
+            </div>
+
             <div class="settings-group" id="adminCategoryManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;"><i class="fas fa-sitemap"></i> <span data-translate-key="manage_categories_title">بەڕێوەبردنی جۆرەکان</span></h3>
                 
                 <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
                     <form id="addCategoryForm">
-                        <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی جۆری سەرەki</h4>
+                        <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی جۆری سەرەکی</h4>
                         <div class="form-group">
                             <label>ناوی جۆر (سۆرانی):</label>
                             <input type="text" id="mainCategoryNameKuSorani" required>
@@ -1121,8 +1119,7 @@
                     <hr style="margin: 20px 0;">
 
                     <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">شێوازە زیادکراوەکان</h4>
-                    <div id="contactMethodsListContainer">
-                                        </div>
+                    <div id="contactMethodsListContainer"></div>
                 </div>
             </div>
 
@@ -1155,7 +1152,7 @@
                                 <input type="url" id="socialUrl" placeholder="https://www.facebook.com/..." required>
                             </div>
                             <div class="form-group">
-                                <label>کڵاسی ئایکۆن (بۆ نموونە: fab fa-facebook):</label>
+                                <label>کڵاسی ئایکۆنی Font Awesome (بۆ نموونە: fab fa-facebook):</label>
                                 <input type="text" id="socialIcon" placeholder="fab fa-instagram" required>
                                 <small style="color: #777;">تکایە کڵاسەکانی Font Awesome بەکاربهێنە.</small>
                             </div>
@@ -1165,8 +1162,7 @@
                         <hr style="margin: 20px 0;">
 
                         <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">لینکە زیادکراوەکان</h4>
-                        <div id="socialLinksListContainer">
-                                                </div>
+                        <div id="socialLinksListContainer"></div>
                     </div>
                 </div>
             </div>
@@ -1207,8 +1203,7 @@
                     </form>
                     <hr style="margin: 25px 0;">
                     <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);" data-translate-key="sent_announcements">ئاگەهدارییە نێردراوەکان</h4>
-                    <div id="announcementsListContainer">
-                                        </div>
+                    <div id="announcementsListContainer"></div>
                 </div>
             </div>
         </div>
@@ -1285,8 +1280,8 @@
     </div> 
     
     <div id="update-notification" class="update-notification">
-        <span>ڤێرژنەکا نوی یا بەردەستە!</span>
-        <button id="update-now-btn" class="update-now-btn">نوو بکە</button>
+        <span>ڤێرژنێکی نوێ بەردەستە!</span>
+        <button id="update-now-btn" class="update-now-btn">نوێی بکەرەوە</button>
     </div>
 
     <script type="module" src="app.js"></script>
