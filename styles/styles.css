@@ -754,3 +754,38 @@ body, .bottom-nav-item, .product-card {
     -ms-user-select: none;
     user-select: none;
 }
+/* --- راستڤەکرن: بچووککرن و کورتکرنا کارتا کاڵایان --- */
+
+.products-container {
+    /* قەبارێ کارتان بچووکتر دکەین دا پتر کارت د rêzê da جهـ ببن */
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px; /* بۆشاییێ دناڤبەرا واندا کێمتر دکەین */
+}
+
+.product-card {
+    /* لابردنا وێ بۆشایییا زێدە یا ل بن کارتێ کو کارت درێژ دکر */
+    padding-bottom: 0;
+    border-radius: 12px; /* کەمەک کێمتر خڕ دکەین */
+}
+
+.product-info {
+    /* کێمکرنا بۆشاییێن نافخۆیی */
+    padding: 10px;
+    padding-left: 45px; /* بۆشاییەکێ ددەینە لایێ چەپێ دا نڤیسین نەچیتە بن دوگمەیێ */
+}
+
+.product-name {
+    font-size: 13px; /* نڤیسین بچووکتر دکەین */
+}
+
+.product-price {
+    font-size: 14px; /* نڤیسینا نرخی ژی بچووکتر دکەین */
+}
+
+.add-to-cart-btn-card {
+    width: 34px;   /* پانییا دوگمەیێ */
+    height: 34px;  /* درێژییا دوگمەیێ */
+    bottom: 8px;   /* جهێ وێ ژ بنî */
+    left: 8px;     /* جهێ وێ ژ لایێ چەپێ (راستێ دەرکەڤیت) */
+    font-size: 16px;
+}
