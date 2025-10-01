@@ -232,9 +232,11 @@
             text-overflow: ellipsis;
         }
         
+        /* === KODA ÇAKKIRÎ JI BO KARTÊN BERHEMAN (LI GOR WÊNEYÊ TE) === */
+        
         .products-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+            display: flex;
+            flex-direction: column;
             gap: 12px;
         }
         
@@ -245,10 +247,11 @@
             position: relative; 
             border: 1px solid var(--section-border); 
             display: flex; 
-            flex-direction: column; 
+            flex-direction: row;
             cursor: pointer; 
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
             transition: transform 0.2s, box-shadow 0.2s;
+            height: 140px;
         }
         .product-card:hover { 
             transform: translateY(-5px); 
@@ -265,7 +268,13 @@
             transform: translateY(0);
         }
 
-        .product-image-container { width: 100%; aspect-ratio: 1/1; position: relative; }
+        .product-image-container { 
+            width: 130px;
+            height: 100%;
+            flex-shrink: 0;
+            position: relative; 
+            border-left: 1px solid var(--section-border);
+        }
         .product-image { 
             width: 100%; 
             height: 100%; 
@@ -279,27 +288,27 @@
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            text-align: center;
+            text-align: right;
+            justify-content: space-between;
         }
 
         .product-name { 
             font-weight: bold; 
-            font-size: 14px; 
+            font-size: 15px; 
         }
         
         .product-price-container { 
             display: flex; 
             flex-direction: row;
             align-items: center; 
-            justify-content: center;
+            justify-content: flex-start;
             gap: 8px; 
             margin-top: 4px;
-            margin-bottom: 8px;
         }
         
         .product-description { display: none; }
         
-        .product-price { color: var(--accent-light); font-weight: 700; font-size: 15px; }
+        .product-price { color: var(--accent-color); font-weight: 700; font-size: 16px; }
         .original-price { color: var(--dark-gray); text-decoration: line-through; font-size: 13px; }
         .discount-badge { position: absolute; top: 8px; right: 8px; background-color: var(--danger-color); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; }
         
@@ -316,9 +325,10 @@
         .delete-btn { background-color: var(--danger-color); }
 
         .add-to-cart-btn-card { 
-            width: 100%;
-            padding: 8px;
-            margin-top: auto;
+            width: auto;
+            padding: 8px 12px;
+            margin-top: 8px;
+            align-self: flex-start;
             background-color: var(--accent-color); 
             color: white; 
             border: none; 
@@ -345,6 +355,8 @@
         }
         .favorite-btn:hover { transform: scale(1.1); }
         .favorite-btn.favorited { color: var(--danger-color); }
+        
+        /* === DAWÎHATINA KODA ÇAKKIRÎ === */
 
         .add-to-cart-btn { 
             width: 100%;
@@ -832,7 +844,7 @@
                         <input type="text" id="profileAddress" placeholder="شار، گەڕەک، کۆڵان..." required>
                         <button type="button" id="getLocationBtn" class="location-btn">
                             <i class="fas fa-map-marker-alt"></i>
-                            <span>وەرگرتنا ناڤ و نیشانێ من ب GPS</span>
+                            <span>وەرگرتنی ناونیشانم بە GPS</span>
                         </button>
                     </div>
                     <div class="form-group">
