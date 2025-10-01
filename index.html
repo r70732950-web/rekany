@@ -232,12 +232,12 @@
             text-overflow: ellipsis;
         }
         
-        /* === KODA ÇAKKIRÎ JI BO KARTÊN BERHEMAN (LI GOR WÊNEYÊ TE) === */
+        /* === ستایلی کارتی کاڵاکان بەپێی ڤیدیۆکە === */
         
         .products-container {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); 
+            gap: 8px; 
         }
         
         .product-card { 
@@ -247,11 +247,10 @@
             position: relative; 
             border: 1px solid var(--section-border); 
             display: flex; 
-            flex-direction: row;
+            flex-direction: column;
             cursor: pointer; 
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
             transition: transform 0.2s, box-shadow 0.2s;
-            height: 140px;
         }
         .product-card:hover { 
             transform: translateY(-5px); 
@@ -269,11 +268,9 @@
         }
 
         .product-image-container { 
-            width: 130px;
-            height: 100%;
-            flex-shrink: 0;
+            width: 100%; 
+            aspect-ratio: 1/1; 
             position: relative; 
-            border-left: 1px solid var(--section-border);
         }
         .product-image { 
             width: 100%; 
@@ -288,27 +285,27 @@
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            text-align: right;
-            justify-content: space-between;
+            text-align: center;
         }
 
         .product-name { 
             font-weight: bold; 
-            font-size: 15px; 
+            font-size: 14px; 
         }
         
         .product-price-container { 
             display: flex; 
             flex-direction: row;
             align-items: center; 
-            justify-content: flex-start;
+            justify-content: center;
             gap: 8px; 
             margin-top: 4px;
+            margin-bottom: 8px;
         }
         
         .product-description { display: none; }
         
-        .product-price { color: var(--accent-color); font-weight: 700; font-size: 16px; }
+        .product-price { color: var(--accent-light); font-weight: 700; font-size: 15px; }
         .original-price { color: var(--dark-gray); text-decoration: line-through; font-size: 13px; }
         .discount-badge { position: absolute; top: 8px; right: 8px; background-color: var(--danger-color); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; }
         
@@ -325,10 +322,9 @@
         .delete-btn { background-color: var(--danger-color); }
 
         .add-to-cart-btn-card { 
-            width: auto;
-            padding: 8px 12px;
-            margin-top: 8px;
-            align-self: flex-start;
+            width: 100%;
+            padding: 8px;
+            margin-top: auto;
             background-color: var(--accent-color); 
             color: white; 
             border: none; 
@@ -356,8 +352,8 @@
         .favorite-btn:hover { transform: scale(1.1); }
         .favorite-btn.favorited { color: var(--danger-color); }
         
-        /* === DAWÎHATINA KODA ÇAKKIRÎ === */
-
+        /* === کۆتایی ستایلی کارتی کاڵاکان === */
+        
         .add-to-cart-btn { 
             width: 100%;
             height: auto;
@@ -863,7 +859,7 @@
                 <span class="close" style="top: 20px;">&times;</span>
             </div>
             <div class="sheet-content">
-                <div id="favoritesContainer" class="products-container" style="display: grid;"></div>
+                <div id="favoritesContainer" class="products-container"></div>
                 <div id="emptyFavoritesMessage" class="cart-empty" style="display:none;">
                     <i class="fas fa-heart-broken"></i>
                     <p data-translate-key="favorites_empty">لیستی دڵخوازەکانت بەتاڵە</p>
