@@ -335,15 +335,11 @@ const notificationsSheet = document.getElementById('notificationsSheet');
 const notificationsListContainer = document.getElementById('notificationsListContainer');
 const adminAnnouncementManagement = document.getElementById('adminAnnouncementManagement');
 const announcementForm = document.getElementById('announcementForm');
-
-// ========== START: ADD THESE SELECTORS ==========
 const termsAndPoliciesBtn = document.getElementById('termsAndPoliciesBtn');
 const termsSheet = document.getElementById('termsSheet');
 const termsContentContainer = document.getElementById('termsContentContainer');
 const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
 const policiesForm = document.getElementById('policiesForm');
-// ========== END: ADD THESE SELECTORS ==========
-
 // ========== END: ELEMENT SELECTORS ==========
 
 
@@ -375,7 +371,7 @@ function openPopup(id, type = 'sheet') {
         if (id === 'favoritesSheet') renderFavoritesPage();
         if (id === 'categoriesSheet') renderCategoriesSheet();
         if (id === 'notificationsSheet') renderUserNotifications();
-        if (id === 'termsSheet') renderPolicies(); // ADDED
+        if (id === 'termsSheet') renderPolicies();
         if (id === 'profileSheet') {
             document.getElementById('profileName').value = userProfile.name || '';
             document.getElementById('profileAddress').value = userProfile.address || '';
@@ -1231,9 +1227,6 @@ function renderContactMethodsAdmin() {
     });
 }
 
-// ========== START: ADD THESE NEW FUNCTIONS ==========
-
-// Function to show policies to the user
 async function renderPolicies() {
     termsContentContainer.innerHTML = `<p>${t('loading_policies')}</p>`;
     try {
@@ -1243,7 +1236,6 @@ async function renderPolicies() {
         if (docSnap.exists() && docSnap.data().content) {
             const policies = docSnap.data().content;
             const content = policies[currentLanguage] || policies.ku_sorani || '';
-            // Using .innerHTML to render line breaks correctly
             termsContentContainer.innerHTML = content ? content.replace(/\n/g, '<br>') : `<p>${t('no_policies_found')}</p>`;
         } else {
             termsContentContainer.innerHTML = `<p>${t('no_policies_found')}</p>`;
@@ -1254,7 +1246,6 @@ async function renderPolicies() {
     }
 }
 
-// Function to load policies into the admin textareas
 async function loadPoliciesForAdmin() {
     try {
         const docRef = doc(db, "settings", "policies");
@@ -1270,8 +1261,6 @@ async function loadPoliciesForAdmin() {
         console.error("Error loading policies for admin:", error);
     }
 }
-
-// ========== END: ADD THESE NEW FUNCTIONS ==========
 
 function checkNewAnnouncements() {
     const q = query(announcementsCollection, orderBy("createdAt", "desc"), limit(1));
@@ -1371,7 +1360,7 @@ function updateAdminUI(isAdmin) {
     const adminCategoryManagement = document.getElementById('adminCategoryManagement');
     const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
     
-    if (adminPoliciesManagement) { // ADDED
+    if (adminPoliciesManagement) {
         adminPoliciesManagement.style.display = isAdmin ? 'block' : 'none';
     }
 
@@ -1880,7 +1869,6 @@ function setupEventListeners() {
         });
     }
 
-    // ========== START: ADD THESE LISTENERS ==========
     if (termsAndPoliciesBtn) {
         termsAndPoliciesBtn.addEventListener('click', () => {
             openPopup('termsSheet');
@@ -1903,7 +1891,7 @@ function setupEventListeners() {
 
             try {
                 const docRef = doc(db, "settings", "policies");
-                await setDoc(docRef, policiesData, { merge: true }); // Using merge to be safe
+                await setDoc(docRef, policiesData, { merge: true });
                 showNotification(t('policies_saved_success'), 'success');
             } catch (error) {
                 console.error("Error saving policies:", error);
@@ -1913,7 +1901,6 @@ function setupEventListeners() {
             }
         });
     }
-    // ========== END: ADD THESE LISTENERS ==========
 
     const enableNotificationsBtn = document.getElementById('enableNotificationsBtn');
     if (enableNotificationsBtn) {
@@ -1939,7 +1926,7 @@ onAuthStateChanged(auth, async (user) => {
     if (user && user.uid === adminUID) {
         isAdmin = true;
         sessionStorage.setItem('isAdmin', 'true');
-        loadPoliciesForAdmin(); // ADDED
+        loadPoliciesForAdmin();
 
         // Close the login modal if it's open upon successful login
         if (document.getElementById('loginModal').style.display === 'block') {
