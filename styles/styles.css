@@ -4,12 +4,13 @@
          url('https://www.nrttv.com/css/fonts/NRT-Reg.woff') format('woff');
     font-weight: normal;
     font-display: swap;
-}@font-face {
-font-family: 'NRT';
-src: url('https://www.nrttv.com/css/fonts/NRT-Bold.woff2') format('woff2'),
-     url('https://www.nrttv.com/css/fonts/NRT-Bold.woff') format('woff');
-font-weight: bold;
-font-display: swap;
+}
+@font-face {
+    font-family: 'NRT';
+    src: url('https://www.nrttv.com/css/fonts/NRT-Bold.woff2') format('woff2'),
+         url('https://www.nrttv.com/css/fonts/NRT-Bold.woff') format('woff');
+    font-weight: bold;
+    font-display: swap;
 }
 
 :root {
@@ -213,27 +214,30 @@ body.overlay-active {
     text-overflow: ellipsis;
 }
 
+/* === بەشێ ستایلێ نوو بۆ کارتا کاڵایان ل ڤێرە دەستپێدکەت === */
 .products-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); /* قەبارێ کارتان کەمەک مەزنتر کر */
+    gap: 16px;
 }
 
-.product-card { 
-    background-color: white; 
-    border-radius: 12px;
-    overflow: hidden; 
-    position: relative; 
-    border: 1px solid var(--section-border); 
-    display: flex; 
-    flex-direction: column; 
-    cursor: pointer; 
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-    transition: transform 0.2s, box-shadow 0.2s;
+.product-card {
+    background-color: white;
+    border-radius: 16px; /* گۆشە خڕتر دکەین */
+    overflow: hidden;
+    position: relative;
+    border: 1px solid #f0f0f0; /* چوارچێوەیەکێ گەلەک تەنک و بێ رەنگ */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); /* سێبەرەکا نەرمتر */
+    padding-bottom: 50px; /* بۆشایەکێ ل بن کارتێ دروست دکەین بۆ دوگمەیێ */
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
-.product-card:hover { 
-    transform: translateY(-5px); 
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+
+.product-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 .product-card-reveal {
@@ -246,13 +250,21 @@ body.overlay-active {
     transform: translateY(0);
 }
 
-.product-image-container { width: 100%; aspect-ratio: 1/1; position: relative; }
+.product-image-container { 
+    width: 100%; 
+    aspect-ratio: 1/1; 
+    position: relative; 
+    border-radius: 0; 
+}
+
 .product-image { 
     width: 100%; 
     height: 100%; 
     object-fit: contain; 
-    padding: 10px; 
-    background-color: #f8f9fa;
+    padding: 0; 
+    background-color: #ffffff;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
 }
 
 .product-info {
@@ -260,19 +272,23 @@ body.overlay-active {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    text-align: center;
+    text-align: right; /* نڤیسین ل لایێ راستێ بیت */
 }
 
 .product-name { 
     font-weight: bold; 
     font-size: 14px; 
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .product-price-container { 
     display: flex; 
     flex-direction: row;
     align-items: center; 
-    justify-content: center;
+    justify-content: flex-end; /* نرخ دێ بەینە لایێ راستێ */
     gap: 8px; 
     margin-top: 4px;
     margin-bottom: 8px;
@@ -280,7 +296,11 @@ body.overlay-active {
 
 .product-description { display: none; }
 
-.product-price { color: var(--accent-light); font-weight: 700; font-size: 15px; }
+.product-price { 
+    color: var(--accent-color); 
+    font-weight: 700; 
+    font-size: 16px; 
+}
 .original-price { color: var(--dark-gray); text-decoration: line-through; font-size: 13px; }
 .discount-badge { position: absolute; top: 8px; right: 8px; background-color: var(--danger-color); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; }
 
@@ -296,28 +316,54 @@ body.overlay-active {
 .edit-btn { background-color: var(--accent-color); }
 .delete-btn { background-color: var(--danger-color); }
 
-.add-to-cart-btn-card { 
-    width: 100%;
-    padding: 8px;
-    margin-top: auto;
-    background-color: var(--accent-color); 
-    color: white; 
-    border: none; 
-    border-radius: 6px;
-    display: flex; 
-    align-items: center; 
+.add-to-cart-btn-card {
+    position: absolute; 
+    bottom: 10px; 
+    left: 12px;   
+    width: 40px; 
+    height: 40px; 
+    border-radius: 50%; 
+    display: flex;
+    align-items: center;
     justify-content: center;
-    gap: 8px;
-    cursor: pointer; 
-    font-weight: bold;
-    font-size: 14px;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 18px; 
     transition: background-color 0.2s;
 }
+
 .add-to-cart-btn-card:hover { background-color: var(--accent-light); }
+
 .add-to-cart-btn-card:disabled {
-     background-color: var(--dark-gray);
-     cursor: not-allowed;
+    background-color: var(--dark-gray);
+    cursor: not-allowed;
 }
+
+.favorite-btn {
+    position: absolute; 
+    top: 12px; 
+    right: 12px; 
+    left: auto; 
+    background: rgba(255, 255, 255, 0.8); 
+    border: 1px solid var(--medium-gray);
+    width: 32px; 
+    height: 32px; 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    cursor: pointer;
+    font-size: 16px; 
+    color: var(--dark-gray); 
+    transition: color 0.2s, transform 0.2s; 
+    z-index: 5;
+}
+.favorite-btn:hover { transform: scale(1.1); }
+.favorite-btn.favorited { color: var(--danger-color); }
+/* === دوماهییا بەشێ ستایلێ نوو === */
+
 
 .add-to-cart-btn { 
     width: 100%;
@@ -337,14 +383,6 @@ body.overlay-active {
     font-size: 14px;
 }
 .add-to-cart-btn:hover { background-color: var(--accent-light); }
-
-.favorite-btn {
-    position: absolute; top: 8px; left: 8px; background: rgba(255, 255, 255, 0.8); border: 1px solid var(--medium-gray);
-    width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;
-    font-size: 16px; color: var(--dark-gray); transition: color 0.2s, transform 0.2s; z-index: 5;
-}
-.favorite-btn:hover { transform: scale(1.1); }
-.favorite-btn.favorited { color: var(--danger-color); }
 
 @keyframes scaleIn {
     from { transform: scale(0.95); opacity: 0; }
@@ -654,11 +692,11 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     flex: 1;
 }
 .social-link-item .item-details {
-     display: flex;
-     flex-direction: column;
-     align-items: flex-start;
-     gap: 3px;
-     overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 3px;
+      overflow: hidden;
 }
 .social-link-item .item-name {
     font-weight: bold;
