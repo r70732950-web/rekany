@@ -1828,7 +1828,7 @@ onAuthStateChanged(auth, async (user) => {
     // 1. بچە Firebase Console
     // 2. بچە Authentication > Users
     // 3. UID یا ئەکاونتێ خۆ کۆپی بکە و ل ڤێرێ بدانە
-    const adminUID = "YOUR_ADMIN_UID_HERE"; 
+    const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3"; 
  
     if (user && user.uid === adminUID) {
         isAdmin = true;
