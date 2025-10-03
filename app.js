@@ -4,6 +4,7 @@ import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from
 import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
+
 const firebaseConfig = {
     apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE",
     authDomain: "maten-store.firebaseapp.com",
@@ -283,6 +284,7 @@ let currentSearch = '';
 let products = [];
 let categories = [];
 let contactInfo = {};
+
 let currentSubcategory = 'all';
 let subcategories = [];
 
@@ -290,7 +292,7 @@ let subcategories = [];
 let lastVisibleProductDoc = null;
 let isLoadingMoreProducts = false;
 let allProductsLoaded = false;
-const PRODUCTS_PER_PAGE = 25; // ژمارەی کاڵا لە هەر جارێکدا
+const PRODUCTS_PER_PAGE = 25;
 // ==============================================================
 
 
@@ -362,7 +364,7 @@ function debounce(func, delay = 500) {
 // ==============================================================
 
 
-// ========== START: NEW NAVIGATION & POPUP LOGIC ==========
+// ========== START: NAVIGATION & POPUP LOGIC ==========
 function showPage(pageId) {
     document.querySelectorAll('.page').forEach(page => {
         page.classList.toggle('page-hidden', page.id !== pageId);
@@ -381,7 +383,6 @@ function closeAllPopupsUI() {
 function openPopup(id, type = 'sheet') {
     const element = document.getElementById(id);
     if (!element) return;
-
     closeAllPopupsUI();
     if (type === 'sheet') {
         sheetOverlay.classList.add('show');
@@ -400,7 +401,6 @@ function openPopup(id, type = 'sheet') {
         element.style.display = 'block';
     }
     document.body.classList.add('overlay-active');
-
     history.pushState({ type: type, id: id }, '', `#${id}`);
 }
 
@@ -429,7 +429,6 @@ window.addEventListener('popstate', (event) => {
 function handleInitialPageLoad() {
     const hash = window.location.hash.substring(1);
     const element = document.getElementById(hash);
-
     if (hash === 'settingsPage') {
         showPage('settingsPage');
         history.replaceState({ type: 'page', id: 'settingsPage' }, '', '#settingsPage');
@@ -437,7 +436,6 @@ function handleInitialPageLoad() {
         showPage('mainPage');
         history.replaceState({ type: 'page', id: 'mainPage' }, '', window.location.pathname);
     }
-
     if (element) {
         const isSheet = element.classList.contains('bottom-sheet');
         const isModal = element.classList.contains('modal');
@@ -446,9 +444,10 @@ function handleInitialPageLoad() {
         }
     }
 }
-// ========== END: NEW NAVIGATION & POPUP LOGIC ==========
+// ========== END: NAVIGATION & POPUP LOGIC ==========
 
 
+// ========== START: UTILITY FUNCTIONS ==========
 function t(key, replacements = {}) {
     let translation = translations[currentLanguage][key] || translations['ku_sorani'][key] || key;
     for (const placeholder in replacements) {
@@ -460,10 +459,8 @@ function t(key, replacements = {}) {
 function setLanguage(lang) {
     currentLanguage = lang;
     localStorage.setItem('language', lang);
-
     document.documentElement.lang = lang.startsWith('ar') ? 'ar' : 'ku';
     document.documentElement.dir = 'rtl';
-
     document.querySelectorAll('[data-translate-key]').forEach(element => {
         const key = element.dataset.translateKey;
         const translation = t(key);
@@ -475,23 +472,16 @@ function setLanguage(lang) {
             element.textContent = translation;
         }
     });
-
     document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.lang === lang);
     });
-
     const fetchedCategories = categories.filter(cat => cat.id !== 'all');
     categories = [{ id: 'all', name: t('all_categories_label'), icon: 'fas fa-th' }, ...fetchedCategories];
-
-    renderProducts();
+    
     renderMainCategories();
     renderCategoriesSheet();
     if (document.getElementById('cartSheet').classList.contains('show')) renderCart();
     if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPage();
-}
-
-function updateContactLinksUI() {
-    if (!contactInfo) return;
 }
 
 function updateActiveNav(activeBtnId) {
@@ -502,106 +492,6 @@ function updateActiveNav(activeBtnId) {
     if (activeBtn) {
         activeBtn.classList.add('active');
     }
-}
-
-function formatDescription(text) {
-    if (!text) return '';
-    let escapedText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
-    let textWithLinks = escapedText.replace(urlRegex, (url) => {
-        const hyperLink = url.startsWith('http') ? url : `https://${url}`;
-        return `<a href="${hyperLink}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-    });
-    return textWithLinks.replace(/\n/g, '<br>');
-}
-
-async function requestNotificationPermission() {
-    console.log('Requesting notification permission...');
-    try {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-            console.log('Notification permission granted.');
-            showNotification('مۆڵەتی ناردنی ئاگەداری درا', 'success');
-            const currentToken = await getToken(messaging, {
-                vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ'
-            });
-
-            if (currentToken) {
-                console.log('FCM Token:', currentToken);
-                await saveTokenToFirestore(currentToken);
-            } else {
-                console.log('No registration token available.');
-            }
-        } else {
-            console.log('Unable to get permission to notify.');
-            showNotification('مۆڵەت نەدرا', 'error');
-        }
-    } catch (error) {
-        console.error('An error occurred while requesting permission: ', error);
-    }
-}
-
-async function saveTokenToFirestore(token) {
-    try {
-        const tokensCollection = collection(db, 'device_tokens');
-        await setDoc(doc(tokensCollection, token), {
-            createdAt: Date.now()
-        });
-        console.log('Token saved to Firestore.');
-    } catch (error) {
-        console.error('Error saving token to Firestore: ', error);
-    }
-}
-
-function saveFavorites() {
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
-}
-
-function isFavorite(productId) {
-    return favorites.includes(productId);
-}
-
-function toggleFavorite(productId) {
-    const productIndex = favorites.indexOf(productId);
-    if (productIndex > -1) {
-        favorites.splice(productIndex, 1);
-        showNotification(t('product_removed_from_favorites'), 'error');
-    } else {
-        favorites.push(productId);
-        showNotification(t('product_added_to_favorites'), 'success');
-    }
-    saveFavorites();
-    renderProducts();
-    if (document.getElementById('favoritesSheet').classList.contains('show')) {
-        renderFavoritesPage();
-    }
-}
-
-function renderFavoritesPage() {
-    favoritesContainer.innerHTML = '';
-    const favoritedProducts = products.filter(p => favorites.includes(p.id));
-
-    if (favoritedProducts.length === 0) {
-        emptyFavoritesMessage.style.display = 'block';
-        favoritesContainer.style.display = 'none';
-    } else {
-        emptyFavoritesMessage.style.display = 'none';
-        favoritesContainer.style.display = 'grid'; // Changed for consistency
-        favoritedProducts.forEach(product => {
-            const productCard = createProductCardElement(product);
-            favoritesContainer.appendChild(productCard);
-        });
-    }
-}
-
-function saveCart() {
-    localStorage.setItem(CART_KEY, JSON.stringify(cart));
-    updateCartCount();
-}
-
-function updateCartCount() {
-    const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
-    document.querySelectorAll('.cart-count').forEach(el => { el.textContent = totalItems; });
 }
 
 function showNotification(message, type = 'success') {
@@ -616,65 +506,191 @@ function showNotification(message, type = 'success') {
     }, 3000);
 }
 
-function populateCategoryDropdown() {
-    productCategorySelect.innerHTML = '<option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>';
-    const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
-    categoriesWithoutAll.forEach(cat => {
-        const option = document.createElement('option');
-        option.value = cat.id;
-        option.textContent = cat['name_' + currentLanguage] || cat.name;
-        productCategorySelect.appendChild(option);
+function formatDescription(text) {
+    if (!text) return '';
+    let escapedText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+    let textWithLinks = escapedText.replace(urlRegex, (url) => {
+        const hyperLink = url.startsWith('http') ? url : `https://${url}`;
+        return `<a href="${hyperLink}" target="_blank" rel="noopener noreferrer">${url}</a>`;
     });
+    return textWithLinks.replace(/\n/g, '<br>');
+}
+// ========== END: UTILITY FUNCTIONS ==========
+
+
+// ========== START: DATA FETCHING & RENDERING ==========
+
+async function fetchProducts() {
+    if (isLoadingMoreProducts || allProductsLoaded) return;
+    isLoadingMoreProducts = true;
+    loader.style.display = 'block';
+
+    try {
+        let queryConstraints = [orderBy("createdAt", "desc")];
+
+        if (currentCategory !== 'all') {
+            queryConstraints.push(where('categoryId', '==', currentCategory));
+            if (currentSubcategory !== 'all') {
+                queryConstraints.push(where('subcategoryId', '==', currentSubcategory));
+            }
+        }
+
+        if (lastVisibleProductDoc) {
+            queryConstraints.push(startAfter(lastVisibleProductDoc));
+        }
+
+        queryConstraints.push(limit(PRODUCTS_PER_PAGE));
+
+        const productsQuery = query(productsCollection, ...queryConstraints);
+        const snapshot = await getDocs(productsQuery);
+
+        if (snapshot.empty) {
+            allProductsLoaded = true;
+            if (products.length === 0) {
+                productsContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px; color: var(--dark-gray);">هیچ کاڵایەک لەم جۆرەدا نییە</div>';
+                skeletonLoader.style.display = 'none';
+                productsContainer.style.display = 'grid';
+            }
+            loader.style.display = 'none';
+            return;
+        }
+
+        lastVisibleProductDoc = snapshot.docs[snapshot.docs.length - 1];
+        const newProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        products.push(...newProducts);
+
+        if (skeletonLoader.style.display !== 'none') {
+            skeletonLoader.style.display = 'none';
+            productsContainer.style.display = 'grid';
+        }
+
+        renderProducts();
+
+    } catch (error) {
+        console.error("Error fetching products:", error);
+        showNotification("هەڵەیەک لە هێنانی کاڵاکان ڕوویدا", "error");
+    } finally {
+        isLoadingMoreProducts = false;
+        loader.style.display = 'none';
+    }
 }
 
-function renderCategoriesSheet() {
-    sheetCategoriesContainer.innerHTML = '';
+async function searchProductsInFirestore(searchTerm) {
+    if (!searchTerm) {
+        products = [];
+        lastVisibleProductDoc = null;
+        allProductsLoaded = false;
+        productsContainer.innerHTML = '';
+        renderSkeletonLoader();
+        await fetchProducts();
+        return;
+    }
+    allProductsLoaded = true;
+    products = [];
+    productsContainer.innerHTML = '';
+    renderSkeletonLoader();
+    
+    try {
+        const lowerCaseSearchTerm = searchTerm.toLowerCase();
+        let searchConstraints = [
+            where('searchableName', '>=', lowerCaseSearchTerm),
+            where('searchableName', '<=', lowerCaseSearchTerm + '\uf8ff')
+        ];
+
+        if (currentCategory !== 'all') {
+            searchConstraints.push(where('categoryId', '==', currentCategory));
+            if (currentSubcategory !== 'all') {
+                searchConstraints.push(where('subcategoryId', '==', currentSubcategory));
+            }
+        }
+
+        searchConstraints.push(limit(25));
+        const searchQuery = query(productsCollection, ...searchConstraints);
+        const snapshot = await getDocs(searchQuery);
+
+        products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        skeletonLoader.style.display = 'none';
+        productsContainer.style.display = 'grid';
+
+        if (products.length === 0) {
+            productsContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px; color: var(--dark-gray);">هیچ کاڵایەک بەم ناوەوە نەدۆزرایەوە</div>';
+        } else {
+            renderProducts();
+        }
+
+    } catch (error) {
+        console.error("Error searching products:", error);
+        showNotification("هەڵەیەک لە کاتی گەڕان ڕوویدا", "error");
+        skeletonLoader.style.display = 'none';
+        productsContainer.style.display = 'grid';
+        productsContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px; color: var(--dark-gray);">هەڵەیەک ڕوویدا</div>';
+    }
+}
+
+function renderProducts() {
+    productsContainer.innerHTML = '';
+    products.forEach(product => {
+        const productCardElement = createProductCardElement(product);
+        productsContainer.appendChild(productCardElement);
+    });
+    setupScrollAnimations();
+}
+
+function renderMainCategories() {
+    const container = document.getElementById('mainCategoriesContainer');
+    if (!container) return;
+    container.innerHTML = '';
     categories.forEach(cat => {
         const btn = document.createElement('button');
-        btn.className = 'sheet-category-btn';
+        btn.className = 'main-category-btn';
         btn.dataset.category = cat.id;
-        if (currentCategory === cat.id) { btn.classList.add('active'); }
-        const categoryName = cat['name_' + currentLanguage] || cat.name;
-        btn.innerHTML = `<i class="${cat.icon}"></i> ${categoryName}`;
-
+        if (currentCategory === cat.id) btn.classList.add('active');
+        const categoryName = cat['name_' + currentLanguage] || cat.name_ku_sorani || cat.name;
+        btn.innerHTML = `<i class="${cat.icon}"></i> <span>${categoryName}</span>`;
         btn.onclick = () => {
-            currentCategory = cat.id;
-            currentSubcategory = 'all';
-            renderSubcategories(currentCategory);
-            renderProducts();
-            history.back();
-            renderMainCategories();
-            showPage('mainPage');
+            if (currentCategory !== cat.id) {
+                currentCategory = cat.id;
+                currentSubcategory = 'all';
+                products = [];
+                productsContainer.innerHTML = '';
+                lastVisibleProductDoc = null;
+                allProductsLoaded = false;
+                renderSkeletonLoader();
+                renderMainCategories();
+                renderSubcategories(currentCategory);
+                fetchProducts();
+            }
         };
-
-        sheetCategoriesContainer.appendChild(btn);
+        container.appendChild(btn);
     });
 }
 
 async function renderSubcategories(categoryId) {
     const subcategoriesContainer = document.getElementById('subcategoriesContainer');
     subcategoriesContainer.innerHTML = '';
-
-    if (categoryId === 'all') {
-        return;
-    }
-
+    if (categoryId === 'all') return;
     try {
         const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
         const querySnapshot = await getDocs(subcategoriesQuery);
-
         subcategories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
         if (subcategories.length === 0) return;
 
         const allBtn = document.createElement('button');
         allBtn.className = 'subcategory-btn active';
         allBtn.textContent = t('all_categories_label');
         allBtn.onclick = () => {
-            currentSubcategory = 'all';
-            document.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
-            allBtn.classList.add('active');
-            renderProducts();
+            if (currentSubcategory !== 'all') {
+                currentSubcategory = 'all';
+                products = [];
+                productsContainer.innerHTML = '';
+                lastVisibleProductDoc = null;
+                allProductsLoaded = false;
+                renderSkeletonLoader();
+                document.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
+                allBtn.classList.add('active');
+                fetchProducts();
+            }
         };
         subcategoriesContainer.appendChild(allBtn);
 
@@ -683,10 +699,17 @@ async function renderSubcategories(categoryId) {
             subcatBtn.className = 'subcategory-btn';
             subcatBtn.textContent = subcat['name_' + currentLanguage] || subcat.name_ku_sorani;
             subcatBtn.onclick = () => {
-                currentSubcategory = subcat.id;
-                document.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
-                subcatBtn.classList.add('active');
-                renderProducts();
+                if (currentSubcategory !== subcat.id) {
+                    currentSubcategory = subcat.id;
+                    products = [];
+                    productsContainer.innerHTML = '';
+                    lastVisibleProductDoc = null;
+                    allProductsLoaded = false;
+                    renderSkeletonLoader();
+                    document.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
+                    subcatBtn.classList.add('active');
+                    fetchProducts();
+                }
             };
             subcategoriesContainer.appendChild(subcatBtn);
         });
@@ -694,36 +717,110 @@ async function renderSubcategories(categoryId) {
         console.error("Error fetching subcategories: ", error);
     }
 }
+// ========== END: DATA FETCHING & RENDERING ==========
 
-function renderMainCategories() {
-    const container = document.getElementById('mainCategoriesContainer');
-    if (!container) return;
-    container.innerHTML = '';
 
-    categories.forEach(cat => {
-        const btn = document.createElement('button');
-        btn.className = 'main-category-btn';
-        btn.dataset.category = cat.id;
+// ========== START: PRODUCT & UI ELEMENT CREATION ==========
+function createProductCardElement(product) {
+    const productCard = document.createElement('div');
+    productCard.className = 'product-card product-card-reveal';
+    const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || 'https://placehold.co/300x300/e2e8f0/2d3748?text=No+Image');
+    let priceHTML = `<div class="product-price-container"><div class="product-price">${product.price.toLocaleString()} د.ع.</div></div>`;
+    let discountBadgeHTML = '';
+    const hasDiscount = product.originalPrice && product.originalPrice > product.price;
 
-        if (currentCategory === cat.id) {
-            btn.classList.add('active');
+    if (hasDiscount) {
+        priceHTML = `<div class="product-price-container"><span class="product-price">${product.price.toLocaleString()} د.ع.</span><del class="original-price">${product.originalPrice.toLocaleString()} د.ع.</del></div>`;
+        const discountPercentage = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+        discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
+    }
+
+    const isProdFavorite = isFavorite(product.id);
+    const heartIconClass = isProdFavorite ? 'fas' : 'far';
+    const favoriteBtnClass = isProdFavorite ? 'favorite-btn favorited' : 'favorite-btn';
+
+    productCard.innerHTML = `
+        <div class="product-image-container">
+            <img src="${mainImage}" alt="${product.name}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
+            ${discountBadgeHTML}
+            <button class="${favoriteBtnClass}" aria-label="Add to favorites"><i class="${heartIconClass} fa-heart"></i></button>
+        </div>
+        <div class="product-info">
+            <div class="product-name">${product.name}</div>
+            ${priceHTML}
+            <button class="add-to-cart-btn-card"><i class="fas fa-cart-plus"></i> <span>${t('add_to_cart')}</span></button>
+        </div>
+        <div class="product-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
+            <button class="edit-btn" aria-label="Edit product"><i class="fas fa-edit"></i></button>
+            <button class="delete-btn" aria-label="Delete product"><i class="fas fa-trash"></i></button>
+        </div>
+    `;
+
+    productCard.addEventListener('click', (event) => {
+        const target = event.target;
+        const addToCartButton = target.closest('.add-to-cart-btn-card');
+        if (addToCartButton) {
+            addToCart(product.id);
+            if (!addToCartButton.disabled) {
+                const originalContent = addToCartButton.innerHTML;
+                addToCartButton.disabled = true;
+                addToCartButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
+                setTimeout(() => {
+                    addToCartButton.innerHTML = `<i class="fas fa-check"></i> <span>${t('added_to_cart')}</span>`;
+                    setTimeout(() => {
+                        addToCartButton.innerHTML = originalContent;
+                        addToCartButton.disabled = false;
+                    }, 1500);
+                }, 500);
+            }
+        } else if (target.closest('.edit-btn')) {
+            editProduct(product.id);
+        } else if (target.closest('.delete-btn')) {
+            deleteProduct(product.id);
+        } else if (target.closest('.favorite-btn')) {
+            toggleFavorite(product.id);
+        } else if (!target.closest('a')) {
+            showProductDetails(product.id);
         }
+    });
+    return productCard;
+}
 
-        const categoryName = cat['name_' + currentLanguage] || cat.name;
-        btn.innerHTML = `<i class="${cat.icon}"></i> <span>${categoryName}</span>`;
+function renderSkeletonLoader() {
+    skeletonLoader.innerHTML = '';
+    for (let i = 0; i < 8; i++) {
+        const skeletonCard = document.createElement('div');
+        skeletonCard.className = 'skeleton-card';
+        skeletonCard.innerHTML = `
+            <div class="skeleton-image shimmer"></div>
+            <div class="skeleton-text shimmer"></div>
+            <div class="skeleton-price shimmer"></div>
+            <div class="skeleton-button shimmer"></div>
+        `;
+        skeletonLoader.appendChild(skeletonCard);
+    }
+    skeletonLoader.style.display = 'grid';
+    productsContainer.style.display = 'none';
+    loader.style.display = 'none';
+}
 
-        btn.onclick = () => {
-            currentCategory = cat.id;
-            currentSubcategory = 'all';
-
-            renderMainCategories();
-            renderSubcategories(currentCategory);
-            renderProducts();
-        };
-
-        container.appendChild(btn);
+function setupScrollAnimations() {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                observer.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.product-card-reveal').forEach(card => {
+        observer.observe(card);
     });
 }
+// ========== END: PRODUCT & UI ELEMENT CREATION ==========
+
+
+// ========== START: OTHER FUNCTIONS (Cart, Admin, etc.) ==========
 
 function showProductDetails(productId) {
     const product = products.find(p => p.id === productId);
@@ -802,235 +899,65 @@ function showProductDetails(productId) {
     openPopup('productDetailSheet');
 }
 
-function createProductCardElement(product) {
-    const productCard = document.createElement('div');
-    productCard.className = 'product-card';
-
-    const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || 'https://placehold.co/300x300/e2e8f0/2d3748?text=No+Image');
-
-    let priceHTML = `<div class="product-price-container"><div class="product-price">${product.price.toLocaleString()} د.ع.</div></div>`;
-    let discountBadgeHTML = '';
-    const hasDiscount = product.originalPrice && product.originalPrice > product.price;
-
-    if (hasDiscount) {
-        priceHTML = `<div class="product-price-container"><span class="product-price">${product.price.toLocaleString()} د.ع.</span><del class="original-price">${product.originalPrice.toLocaleString()} د.ع.</del></div>`;
-        const discountPercentage = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
-        discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
-    }
-
-    const isProdFavorite = isFavorite(product.id);
-    const heartIconClass = isProdFavorite ? 'fas' : 'far';
-    const favoriteBtnClass = isProdFavorite ? 'favorite-btn favorited' : 'favorite-btn';
-
-    productCard.innerHTML = `
-        <div class="product-image-container">
-            <img src="${mainImage}" alt="${product.name}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
-            ${discountBadgeHTML}
-            <button class="${favoriteBtnClass}" aria-label="Add to favorites">
-                <i class="${heartIconClass} fa-heart"></i>
-            </button>
-        </div>
-        <div class="product-info">
-            <div class="product-name">${product.name}</div>
-            ${priceHTML}
-            <button class="add-to-cart-btn-card">
-                <i class="fas fa-cart-plus"></i>
-                <span>${t('add_to_cart')}</span>
-            </button>
-        </div>
-        <div class="product-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
-            <button class="edit-btn" aria-label="Edit product"><i class="fas fa-edit"></i></button>
-            <button class="delete-btn" aria-label="Delete product"><i class="fas fa-trash"></i></button>
-        </div>
-    `;
-
-    productCard.addEventListener('click', (event) => {
-        const target = event.target;
-        const addToCartButton = target.closest('.add-to-cart-btn-card');
-
-        if (addToCartButton) {
-            addToCart(product.id);
-            if (!addToCartButton.disabled) {
-                const originalContent = addToCartButton.innerHTML;
-                addToCartButton.disabled = true;
-                addToCartButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
-                setTimeout(() => {
-                    addToCartButton.innerHTML = `<i class="fas fa-check"></i> <span>${t('added_to_cart')}</span>`;
-                    setTimeout(() => {
-                        addToCartButton.innerHTML = originalContent;
-                        addToCartButton.disabled = false;
-                    }, 1500);
-                }, 500);
-            }
-        } else if (target.closest('.edit-btn')) {
-            editProduct(product.id);
-        } else if (target.closest('.delete-btn')) {
-            deleteProduct(product.id);
-        } else if (target.closest('.favorite-btn')) {
-            toggleFavorite(product.id);
-        } else if (!target.closest('a')) {
-            showProductDetails(product.id);
-        }
-    });
-    return productCard;
+function updateCartCount() {
+    const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
+    document.querySelectorAll('.cart-count').forEach(el => { el.textContent = totalItems; });
 }
 
-function setupScrollAnimations() {
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-                observer.unobserve(entry.target);
-            }
-        });
-    }, {
-        threshold: 0.1
-    });
-
-    document.querySelectorAll('.product-card-reveal').forEach(card => {
-        observer.observe(card);
-    });
+function saveCart() {
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    updateCartCount();
 }
-
-function renderSkeletonLoader() {
-    skeletonLoader.innerHTML = '';
-    for (let i = 0; i < 8; i++) {
-        const skeletonCard = document.createElement('div');
-        skeletonCard.className = 'skeleton-card';
-        skeletonCard.innerHTML = `
-            <div class="skeleton-image shimmer"></div>
-            <div class="skeleton-text shimmer"></div>
-            <div class="skeleton-price shimmer"></div>
-            <div class="skeleton-button shimmer"></div>
-        `;
-        skeletonLoader.appendChild(skeletonCard);
-    }
-    skeletonLoader.style.display = 'grid';
-    productsContainer.style.display = 'none';
-    loader.style.display = 'none';
-}
-
-function renderProducts() {
-    // چیتر پێویست بە فلتەری گەڕان ناکات لێرە، چونکە لەسەر سێرڤەر دەکرێت
-    const productCards = products.map(createProductCardElement);
-
-    productsContainer.innerHTML = ''; // پاککردنەوەی کۆنتەینەر
-    productCards.forEach(card => {
-        card.classList.add('product-card-reveal');
-        productsContainer.appendChild(card);
-    });
-
-    if (products.length === 0 && !isLoadingMoreProducts) {
-        // ئەمە تەنها بۆ کاتێکە کە هیچ کاڵایەک لە سەرەتاوە نییە
-        // پەیامی "نەدۆزرایەوە" لە فەنکشنی گەڕان خۆیدا بەڕێوەدەبرێت
-    }
-
-    setupScrollAnimations();
-}
-
 
 function addToCart(productId) {
     const product = products.find(p => p.id === productId);
-    if (!product) return;
+    if (!product) {
+        getDoc(doc(db, "products", productId)).then(docSnap => {
+            if (docSnap.exists()) {
+                const fetchedProduct = { id: docSnap.id, ...docSnap.data() };
+                const mainImage = (fetchedProduct.imageUrls && fetchedProduct.imageUrls.length > 0) ? fetchedProduct.imageUrls[0] : (fetchedProduct.image || '');
+                const existingItem = cart.find(item => item.id === productId);
+                if (existingItem) {
+                    existingItem.quantity++;
+                } else {
+                    cart.push({ id: fetchedProduct.id, name: fetchedProduct.name, price: fetchedProduct.price, image: mainImage, quantity: 1 });
+                }
+                saveCart();
+                showNotification(t('product_added_to_cart'));
+            } else {
+                showNotification(t('product_not_found_error'), 'error');
+            }
+        });
+        return;
+    }
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
     const existingItem = cart.find(item => item.id === productId);
-    if (existingItem) { existingItem.quantity++; }
-    else { cart.push({ id: product.id, name: product.name, price: product.price, image: mainImage, quantity: 1 }); }
+    if (existingItem) {
+        existingItem.quantity++;
+    } else {
+        cart.push({ id: product.id, name: product.name, price: product.price, image: mainImage, quantity: 1 });
+    }
     saveCart();
     showNotification(t('product_added_to_cart'));
 }
 
-function createProductImageInputs(imageUrls = []) {
-    imageInputsContainer.innerHTML = '';
-    for (let i = 0; i < 4; i++) {
-        const url = imageUrls[i] || '';
-        const isRequired = i === 0 ? 'required' : '';
-        const placeholder = i === 0 ? 'لینکی وێنەی یەکەم (سەرەکی)' : `لینکی وێنەی ${['دووەم', 'سێیەم', 'چوارەم'][i-1]}`;
-        const previewSrc = url || `https://placehold.co/40x40/e2e8f0/2d3748?text=${i + 1}`;
-        const inputGroup = document.createElement('div');
-        inputGroup.className = 'image-input-group';
-        inputGroup.innerHTML = `<input type="text" class="productImageUrl" placeholder="${placeholder}" value="${url}" ${isRequired}><img src="${previewSrc}" class="image-preview-small" onerror="this.src='https://placehold.co/40x40/e2e8f0/2d3748?text=Err'">`;
-        imageInputsContainer.appendChild(inputGroup);
-    }
-}
-
-async function populateSubcategoriesDropdown(categoryId, selectedSubcategoryId = null) {
-    if (!categoryId) {
-        subcategorySelectContainer.style.display = 'none';
-        return;
-    }
-
-    productSubcategorySelect.innerHTML = '<option value="" disabled selected>...چاوەڕێ بە</option>';
-    productSubcategorySelect.disabled = true;
-    subcategorySelectContainer.style.display = 'block';
-
-    try {
-        const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
-        const querySnapshot = await getDocs(subcategoriesQuery);
-
-        productSubcategorySelect.innerHTML = '<option value="" disabled selected>-- جۆری لاوەکی هەڵبژێرە --</option>';
-
-        if (querySnapshot.empty) {
-            productSubcategorySelect.innerHTML = '<option value="" disabled selected>هیچ جۆرێکی لاوەکی نییە</option>';
+function updateQuantity(productId, change) {
+    const cartItem = cart.find(item => item.id === productId);
+    if (cartItem) {
+        cartItem.quantity += change;
+        if (cartItem.quantity <= 0) {
+            removeFromCart(productId);
         } else {
-            querySnapshot.docs.forEach(doc => {
-                const subcat = { id: doc.id, ...doc.data() };
-                const option = document.createElement('option');
-                option.value = subcat.id;
-                option.textContent = subcat.name_ku_sorani || subcat.id;
-                if (subcat.id === selectedSubcategoryId) {
-                    option.selected = true;
-                }
-                productSubcategorySelect.appendChild(option);
-            });
+            saveCart();
+            renderCart();
         }
-    } catch (error) {
-        console.error("Error fetching subcategories for form:", error);
-        productSubcategorySelect.innerHTML = '<option value="" disabled selected>هەڵەیەک ڕوویدا</option>';
-    } finally {
-        productSubcategorySelect.disabled = false;
     }
 }
 
-async function editProduct(productId) {
-    const product = products.find(p => p.id === productId);
-    if (!product) { showNotification(t('product_not_found_error'), 'error'); return; }
-
-    editingProductId = productId;
-    formTitle.textContent = 'دەستکاری کردنی کاڵا';
-    productForm.reset();
-    document.getElementById('productName').value = product.name;
-    document.getElementById('productPrice').value = product.price;
-    document.getElementById('productOriginalPrice').value = product.originalPrice || '';
-
-    const categoryId = product.categoryId || product.category;
-    document.getElementById('productCategoryId').value = categoryId;
-
-    await populateSubcategoriesDropdown(categoryId, product.subcategoryId);
-
-    if (product.description) {
-        document.getElementById('productDescriptionKuSorani').value = product.description.ku_sorani || '';
-        document.getElementById('productDescriptionKuBadini').value = product.description.ku_badini || '';
-        document.getElementById('productDescriptionAr').value = product.description.ar || '';
-    }
-
-    const imageUrls = product.imageUrls || (product.image ? [product.image] : []);
-    createProductImageInputs(imageUrls);
-    document.getElementById('productExternalLink').value = product.externalLink || '';
-    productForm.querySelector('button[type="submit"]').textContent = 'نوێکردنەوە';
-    openPopup('productFormModal', 'modal');
-}
-
-async function deleteProduct(productId) {
-    if (!confirm(t('delete_confirm'))) return;
-    try {
-        await deleteDoc(doc(db, "products", productId));
-        showNotification(t('product_deleted'), 'success');
-        // بۆ نوێکردنەوەی لیستەکە دوای سڕینەوە
-        searchProductsInFirestore(searchInput.value); 
-    } catch (error) {
-        showNotification(t('product_delete_error'), 'error');
-    }
+function removeFromCart(productId) {
+    cart = cart.filter(item => item.id !== productId);
+    saveCart();
+    renderCart();
 }
 
 function renderCart() {
@@ -1045,16 +972,13 @@ function renderCart() {
     cartTotal.style.display = 'block';
     cartActions.style.display = 'block';
     renderCartActionButtons();
-
     let total = 0;
     cart.forEach(item => {
         const itemTotal = item.price * item.quantity;
         total += itemTotal;
         const cartItem = document.createElement('div');
         cartItem.className = 'cart-item';
-
-        const itemNameInCurrentLang = (item.name && item.name[currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
-
+        const itemNameInCurrentLang = (item.name && typeof item.name === 'object' ? item.name[currentLanguage] || item.name.ku_sorani : item.name) || 'کاڵای بێ ناو';
         cartItem.innerHTML = `
             <img src="${item.image}" alt="${itemNameInCurrentLang}" class="cart-item-image">
             <div class="cart-item-details">
@@ -1080,31 +1004,15 @@ function renderCart() {
     document.querySelectorAll('.cart-item-remove').forEach(btn => btn.onclick = (e) => removeFromCart(e.currentTarget.dataset.id));
 }
 
-function updateQuantity(productId, change) {
-    const cartItem = cart.find(item => item.id === productId);
-    if (cartItem) {
-        cartItem.quantity += change;
-        if (cartItem.quantity <= 0) { removeFromCart(productId); }
-        else { saveCart(); renderCart(); }
-    }
-}
-
-function removeFromCart(productId) {
-    cart = cart.filter(item => item.id !== productId);
-    saveCart();
-    renderCart();
-}
-
 function generateOrderMessage() {
     if (cart.length === 0) return "";
     let message = t('order_greeting') + "\n\n";
     cart.forEach(item => {
-        const itemNameInCurrentLang = (item.name && item.name[currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
+        const itemNameInCurrentLang = (item.name && typeof item.name === 'object' ? item.name[currentLanguage] || item.name.ku_sorani : item.name) || 'کاڵای بێ ناو';
         const itemDetails = t('order_item_details', { price: item.price.toLocaleString(), quantity: item.quantity });
         message += `- ${itemNameInCurrentLang} | ${itemDetails}\n`;
     });
     message += `\n${t('order_total')}: ${totalAmount.textContent} د.ع.\n`;
-
     if (userProfile.name && userProfile.address && userProfile.phone) {
         message += `\n${t('order_user_info')}\n`;
         message += `${t('order_user_name')}: ${userProfile.name}\n`;
@@ -1124,7 +1032,7 @@ function populateParentCategorySelect() {
         categoriesWithoutAll.forEach(cat => {
             const option = document.createElement('option');
             option.value = cat.id;
-            option.textContent = cat['name_' + currentLanguage] || cat.name;
+            option.textContent = cat['name_' + currentLanguage] || cat.name_ku_sorani || cat.name;
             select.appendChild(option);
         });
     } catch (error) {
@@ -1136,33 +1044,26 @@ function populateParentCategorySelect() {
 async function renderCartActionButtons() {
     const container = document.getElementById('cartActions');
     container.innerHTML = '';
-
     const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
     const q = query(methodsCollection, orderBy("createdAt"));
-
     const snapshot = await getDocs(q);
     if (snapshot.empty) {
         container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
         return;
     }
-
     snapshot.forEach(doc => {
         const method = { id: doc.id, ...doc.data() };
         const btn = document.createElement('button');
         btn.className = 'whatsapp-btn';
         btn.style.backgroundColor = method.color;
-
         const name = method['name_' + currentLanguage] || method.name_ku_sorani;
         btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
-
         btn.onclick = () => {
             const message = generateOrderMessage();
             if (!message) return;
-
             let link = '';
             const encodedMessage = encodeURIComponent(message);
             const value = method.value;
-
             switch (method.type) {
                 case 'whatsapp':
                     link = `https://wa.me/${value}?text=${encodedMessage}`;
@@ -1180,12 +1081,10 @@ async function renderCartActionButtons() {
                     link = value;
                     break;
             }
-
             if (link) {
                 window.open(link, '_blank');
             }
         };
-
         container.appendChild(btn);
     });
 }
@@ -1198,7 +1097,7 @@ async function deleteContactMethod(methodId) {
             showNotification('شێوازەکە سڕدرایەوە', 'success');
         } catch (error) {
             console.error("Error deleting contact method: ", error);
-            showNotification('هەڵەیەک لە сڕینەوە ڕوویدا', 'error');
+            showNotification('هەڵەیەک لە سڕینەوە ڕوویدا', 'error');
         }
     }
 }
@@ -1207,7 +1106,6 @@ function renderContactMethodsAdmin() {
     const container = document.getElementById('contactMethodsListContainer');
     const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
     const q = query(methodsCollection, orderBy("createdAt", "desc"));
-
     onSnapshot(q, (snapshot) => {
         container.innerHTML = '';
         if (snapshot.empty) {
@@ -1217,7 +1115,6 @@ function renderContactMethodsAdmin() {
         snapshot.forEach(doc => {
             const method = { id: doc.id, ...doc.data() };
             const name = method['name_' + currentLanguage] || method.name_ku_sorani;
-
             const item = document.createElement('div');
             item.className = 'social-link-item';
             item.innerHTML = `
@@ -1230,7 +1127,6 @@ function renderContactMethodsAdmin() {
                 </div>
                 <button class="delete-btn"><i class="fas fa-trash"></i></button>
             `;
-
             item.querySelector('.delete-btn').onclick = () => deleteContactMethod(method.id);
             container.appendChild(item);
         });
@@ -1242,7 +1138,6 @@ async function renderPolicies() {
     try {
         const docRef = doc(db, "settings", "policies");
         const docSnap = await getDoc(docRef);
-
         if (docSnap.exists() && docSnap.data().content) {
             const policies = docSnap.data().content;
             const content = policies[currentLanguage] || policies.ku_sorani || '';
@@ -1260,7 +1155,6 @@ async function loadPoliciesForAdmin() {
     try {
         const docRef = doc(db, "settings", "policies");
         const docSnap = await getDoc(docRef);
-
         if (docSnap.exists() && docSnap.data().content) {
             const policies = docSnap.data().content;
             document.getElementById('policiesContentKuSorani').value = policies.ku_sorani || '';
@@ -1278,7 +1172,6 @@ function checkNewAnnouncements() {
         if (!snapshot.empty) {
             const latestAnnouncement = snapshot.docs[0].data();
             const lastSeenTimestamp = localStorage.getItem('lastSeenAnnouncementTimestamp') || 0;
-
             if (latestAnnouncement.createdAt > lastSeenTimestamp) {
                 notificationBadge.style.display = 'block';
             } else {
@@ -1291,26 +1184,21 @@ function checkNewAnnouncements() {
 async function renderUserNotifications() {
     const q = query(announcementsCollection, orderBy("createdAt", "desc"));
     const snapshot = await getDocs(q);
-
     notificationsListContainer.innerHTML = '';
     if (snapshot.empty) {
         notificationsListContainer.innerHTML = `<div class="cart-empty"><i class="fas fa-bell-slash"></i><p>${t('no_notifications_found')}</p></div>`;
         return;
     }
-
     let latestTimestamp = 0;
     snapshot.forEach(doc => {
         const announcement = doc.data();
         if (announcement.createdAt > latestTimestamp) {
             latestTimestamp = announcement.createdAt;
         }
-
         const date = new Date(announcement.createdAt);
         const formattedDate = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
-
         const title = (announcement.title && announcement.title[currentLanguage]) || (announcement.title && announcement.title.ku_sorani) || '';
         const content = (announcement.content && announcement.content[currentLanguage]) || (announcement.content && announcement.content.ku_sorani) || '';
-
         const item = document.createElement('div');
         item.className = 'notification-item';
         item.innerHTML = `
@@ -1322,7 +1210,6 @@ async function renderUserNotifications() {
         `;
         notificationsListContainer.appendChild(item);
     });
-
     localStorage.setItem('lastSeenAnnouncementTimestamp', latestTimestamp);
     notificationBadge.style.display = 'none';
 }
@@ -1341,7 +1228,6 @@ async function deleteAnnouncement(id) {
 function renderAdminAnnouncementsList() {
     const container = document.getElementById('announcementsListContainer');
     const q = query(announcementsCollection, orderBy("createdAt", "desc"));
-
     onSnapshot(q, (snapshot) => {
         container.innerHTML = '';
         if (snapshot.empty) {
@@ -1369,15 +1255,12 @@ function updateAdminUI(isAdmin) {
     document.querySelectorAll('.product-actions').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
     const adminCategoryManagement = document.getElementById('adminCategoryManagement');
     const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
-    if (adminPoliciesManagement) {
-        adminPoliciesManagement.style.display = isAdmin ? 'block' : 'none';
-    }
+    if (adminPoliciesManagement) adminPoliciesManagement.style.display = isAdmin ? 'block' : 'none';
     if (adminSocialMediaManagement) adminSocialMediaManagement.style.display = isAdmin ? 'block' : 'none';
     if (adminAnnouncementManagement) {
         adminAnnouncementManagement.style.display = isAdmin ? 'block' : 'none';
         if (isAdmin) renderAdminAnnouncementsList();
     }
-
     if (isAdmin) {
         settingsLogoutBtn.style.display = 'flex';
         settingsAdminLoginBtn.style.display = 'none';
@@ -1394,12 +1277,8 @@ function updateAdminUI(isAdmin) {
         settingsLogoutBtn.style.display = 'none';
         settingsAdminLoginBtn.style.display = 'flex';
         addProductBtn.style.display = 'none';
-        if (adminCategoryManagement) {
-            adminCategoryManagement.style.display = 'none';
-        }
-        if (adminContactMethodsManagement) {
-            adminContactMethodsManagement.style.display = 'none';
-        }
+        if (adminCategoryManagement) adminCategoryManagement.style.display = 'none';
+        if (adminContactMethodsManagement) adminContactMethodsManagement.style.display = 'none';
     }
 }
 
@@ -1419,7 +1298,6 @@ async function deleteSocialMediaLink(linkId) {
 function renderSocialMediaLinks() {
     const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
     const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
-
     onSnapshot(q, (snapshot) => {
         socialLinksListContainer.innerHTML = '';
         if (snapshot.empty) {
@@ -1429,7 +1307,6 @@ function renderSocialMediaLinks() {
         snapshot.forEach(doc => {
             const link = { id: doc.id, ...doc.data() };
             const name = link['name_' + currentLanguage] || link.name_ku_sorani;
-
             const item = document.createElement('div');
             item.className = 'social-link-item';
             item.innerHTML = `
@@ -1442,7 +1319,6 @@ function renderSocialMediaLinks() {
                 </div>
                 <button class="delete-btn"><i class="fas fa-trash"></i></button>
             `;
-
             item.querySelector('.delete-btn').onclick = () => deleteSocialMediaLink(link.id);
             socialLinksListContainer.appendChild(item);
         });
@@ -1453,24 +1329,19 @@ function renderContactLinks() {
     const contactLinksContainer = document.getElementById('dynamicContactLinksContainer');
     const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
     const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
-
     onSnapshot(q, (snapshot) => {
         contactLinksContainer.innerHTML = '';
-
         if (snapshot.empty) {
             contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هیچ لینکی پەیوەندی نییە.</p>';
             return;
         }
-
         snapshot.forEach(doc => {
             const link = doc.data();
             const name = link['name_' + currentLanguage] || link.name_ku_sorani;
-
             const linkElement = document.createElement('a');
             linkElement.href = link.url;
             linkElement.target = '_blank';
             linkElement.className = 'settings-item';
-
             linkElement.innerHTML = `
                 <div>
                     <i class="${link.icon}" style="margin-left: 10px;"></i>
@@ -1478,7 +1349,6 @@ function renderContactLinks() {
                 </div>
                 <i class="fas fa-external-link-alt"></i>
             `;
-
             contactLinksContainer.appendChild(linkElement);
         });
     });
@@ -1496,74 +1366,59 @@ function setupGpsButton() {
     const profileAddressInput = document.getElementById('profileAddress');
     const btnSpan = getLocationBtn.querySelector('span');
     const originalBtnText = btnSpan.textContent;
-
     if (!getLocationBtn) return;
-
     getLocationBtn.addEventListener('click', () => {
         if (!('geolocation' in navigator)) {
             showNotification('وێبگەڕەکەت پشتگیری GPS ناکات', 'error');
             return;
         }
-
         btnSpan.textContent = '...چاوەڕوان بە';
         getLocationBtn.disabled = true;
-
-        navigator.geolocation.getCurrentPosition(successCallback, errorCallback);
-    });
-
-    async function successCallback(position) {
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
-
-        try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`);
-            const data = await response.json();
-
-            if (data && data.display_name) {
-                profileAddressInput.value = data.display_name;
-                showNotification('ناونیشان وەرگیرا', 'success');
-            } else {
-                showNotification('نەتوانرا ناونیشان بدۆزرێتەوە', 'error');
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`);
+                    const data = await response.json();
+                    if (data && data.display_name) {
+                        profileAddressInput.value = data.display_name;
+                        showNotification('ناونیشان وەرگیرا', 'success');
+                    } else {
+                        showNotification('نەتوانرا ناونیشان بدۆزرێتەوە', 'error');
+                    }
+                } catch (error) {
+                    showNotification('هەڵەیەک لە وەرگرتنی ناونیشان ڕوویدا', 'error');
+                } finally {
+                    btnSpan.textContent = originalBtnText;
+                    getLocationBtn.disabled = false;
+                }
+            },
+            (error) => {
+                let message = 'هەڵەیەکی نادیار ڕوویدا';
+                switch (error.code) {
+                    case 1: message = 'ڕێگەت نەدا GPS بەکاربهێنرێت'; break;
+                    case 2: message = 'شوێنەکەت نەدۆزرایەوە'; break;
+                    case 3: message = 'کاتی داواکارییەکە تەواو بوو'; break;
+                }
+                showNotification(message, 'error');
+                btnSpan.textContent = originalBtnText;
+                getLocationBtn.disabled = false;
             }
-        } catch (error) {
-            console.error('Reverse Geocoding Error:', error);
-            showNotification('هەڵەیەک لە وەرگرتنی ناونیشان ڕوویدا', 'error');
-        } finally {
-            btnSpan.textContent = originalBtnText;
-            getLocationBtn.disabled = false;
-        }
-    }
-
-    function errorCallback(error) {
-        let message = '';
-        switch (error.code) {
-            case 1:
-                message = 'ڕێگەت نەدا GPS بەکاربهێنرێت';
-                break;
-            case 2:
-                message = 'شوێنەکەت نەدۆزرایەوە';
-                break;
-            case 3:
-                message = 'کاتی داواکارییەکە تەواو بوو';
-                break;
-            default:
-                message = 'هەڵەیەکی نادیار ڕوویدا';
-                break;
-        }
-        showNotification(message, 'error');
-        btnSpan.textContent = originalBtnText;
-        getLocationBtn.disabled = false;
-    }
+        );
+    });
 }
+// ========== END: OTHER FUNCTIONS ==========
 
-// فەنکشنی چاودێری سکڕۆڵ
+
+// ========== START: EVENT LISTENERS & INITIALIZATION ==========
+
 function setupScrollObserver() {
     const trigger = document.getElementById('scroll-loader-trigger');
     if (!trigger) return;
 
     const observer = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting) {
-            // کاتێک بەکارهێنەر دەگاتە کۆتایی، کاڵای نوێ بهێنە
+            if (searchInput.value) return; 
             fetchProducts();
         }
     }, {
@@ -1579,35 +1434,24 @@ function setupEventListeners() {
         history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname);
         showPage('mainPage');
     };
-
     settingsBtn.onclick = () => {
         history.pushState({ type: 'page', id: 'settingsPage' }, '', '#settingsPage');
         showPage('settingsPage');
     };
-
     profileBtn.onclick = () => {
         openPopup('profileSheet');
         updateActiveNav('profileBtn');
     };
-
     cartBtn.onclick = () => {
         openPopup('cartSheet');
         updateActiveNav('cartBtn');
     };
-
     categoriesBtn.onclick = () => {
         openPopup('categoriesSheet');
         updateActiveNav('categoriesBtn');
     };
-
-    settingsFavoritesBtn.onclick = () => {
-        openPopup('favoritesSheet');
-    };
-
-    settingsAdminLoginBtn.onclick = () => {
-        openPopup('loginModal', 'modal');
-    };
-
+    settingsFavoritesBtn.onclick = () => openPopup('favoritesSheet');
+    settingsAdminLoginBtn.onclick = () => openPopup('loginModal', 'modal');
     addProductBtn.onclick = () => {
         editingProductId = null;
         productForm.reset();
@@ -1617,13 +1461,12 @@ function setupEventListeners() {
         productForm.querySelector('button[type="submit"]').textContent = 'پاشەکەوتکردن';
         openPopup('productFormModal', 'modal');
     };
-    settingsLogoutBtn.onclick = async () => {
-        await signOut(auth);
-    };
+    settingsLogoutBtn.onclick = async () => await signOut(auth);
 
-    sheetOverlay.onclick = () => closeCurrentPopup();
+    sheetOverlay.onclick = closeCurrentPopup;
     document.querySelectorAll('.close').forEach(btn => btn.onclick = closeCurrentPopup);
     window.onclick = (e) => { if (e.target.classList.contains('modal')) closeCurrentPopup(); };
+
     loginForm.onsubmit = async (e) => {
         e.preventDefault();
         try {
@@ -1649,28 +1492,24 @@ function setupEventListeners() {
             submitButton.textContent = editingProductId ? 'نوێکردنەوە' : 'پاشەکەوتکردن';
             return;
         }
-
-        const productDescriptionObject = {
-            ku_sorani: document.getElementById('productDescriptionKuSorani').value,
-            ku_badini: document.getElementById('productDescriptionKuBadini').value,
-            ar: document.getElementById('productDescriptionAr').value
-        };
-        
         const productName = document.getElementById('productName').value;
-
+        const productData = {
+            name: productName,
+            searchableName: productName.toLowerCase(),
+            price: parseInt(document.getElementById('productPrice').value),
+            originalPrice: parseInt(document.getElementById('productOriginalPrice').value) || null,
+            categoryId: document.getElementById('productCategoryId').value,
+            subcategoryId: document.getElementById('productSubcategoryId').value,
+            description: {
+                ku_sorani: document.getElementById('productDescriptionKuSorani').value,
+                ku_badini: document.getElementById('productDescriptionKuBadini').value,
+                ar: document.getElementById('productDescriptionAr').value
+            },
+            imageUrls: imageUrls,
+            createdAt: Date.now(),
+            externalLink: document.getElementById('productExternalLink').value || null
+        };
         try {
-            const productData = {
-                name: productName,
-                searchableName: productName.toLowerCase(), // گرنگە بۆ گەڕان
-                price: parseInt(document.getElementById('productPrice').value),
-                originalPrice: parseInt(document.getElementById('productOriginalPrice').value) || null,
-                categoryId: document.getElementById('productCategoryId').value,
-                subcategoryId: document.getElementById('productSubcategoryId').value,
-                description: productDescriptionObject,
-                imageUrls: imageUrls,
-                createdAt: Date.now(),
-                externalLink: document.getElementById('productExternalLink').value || null
-            };
             if (editingProductId) {
                 const { createdAt, ...updateData } = productData;
                 await updateDoc(doc(db, "products", editingProductId), updateData);
@@ -1690,19 +1529,6 @@ function setupEventListeners() {
         }
     };
 
-    imageInputsContainer.addEventListener('input', (e) => {
-        if (e.target.classList.contains('productImageUrl')) {
-            const previewImg = e.target.nextElementSibling;
-            const url = e.target.value;
-            if (url) { previewImg.src = url; }
-            else {
-                const index = Array.from(e.target.parentElement.parentElement.children).indexOf(e.target.parentElement);
-                previewImg.src = `https://placehold.co/40x40/e2e8f0/2d3748?text=${index + 1}`;
-            }
-        }
-    });
-    
-    // گۆڕینی event listenerـەکانی گەڕان
     const debouncedSearch = debounce((term) => {
         searchProductsInFirestore(term);
     }, 500);
@@ -1721,21 +1547,14 @@ function setupEventListeners() {
         searchProductsInFirestore('');
     };
 
-
     contactToggle.onclick = () => {
-        const container = document.getElementById('dynamicContactLinksContainer');
-        const chevron = contactToggle.querySelector('.contact-chevron');
-        container.classList.toggle('open');
-        chevron.classList.toggle('open');
+        document.getElementById('dynamicContactLinksContainer').classList.toggle('open');
+        contactToggle.querySelector('.contact-chevron').classList.toggle('open');
     };
-
     socialMediaToggle.onclick = () => {
-        const container = adminSocialMediaManagement.querySelector('.contact-links-container');
-        const chevron = socialMediaToggle.querySelector('.contact-chevron');
-        container.classList.toggle('open');
-        chevron.classList.toggle('open');
+        adminSocialMediaManagement.querySelector('.contact-links-container').classList.toggle('open');
+        socialMediaToggle.querySelector('.contact-chevron').classList.toggle('open');
     };
-
     profileForm.onsubmit = (e) => {
         e.preventDefault();
         userProfile = {
@@ -1747,51 +1566,40 @@ function setupEventListeners() {
         showNotification(t('profile_saved'), 'success');
         closeCurrentPopup();
     };
-
     document.querySelectorAll('.lang-btn').forEach(btn => {
-        btn.onclick = () => {
-            setLanguage(btn.dataset.lang);
-        };
+        btn.onclick = () => setLanguage(btn.dataset.lang);
     });
-
     const installBtn = document.getElementById('installAppBtn');
     if (installBtn) {
         installBtn.addEventListener('click', async () => {
             if (deferredPrompt) {
                 installBtn.style.display = 'none';
                 deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                console.log(`User response to the install prompt: ${outcome}`);
+                await deferredPrompt.userChoice;
                 deferredPrompt = null;
             }
         });
     }
-
     const addCategoryForm = document.getElementById('addCategoryForm');
-    const addSubcategoryForm = document.getElementById('addSubcategoryForm');
-
     if (addCategoryForm) {
         addCategoryForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const submitButton = e.target.querySelector('button[type="submit"]');
             submitButton.disabled = true;
             submitButton.textContent = '...پاشەکەوت دەکرێت';
-
             const categoryData = {
-                name: document.getElementById('mainCategoryNameKuBadini').value,
+                name: document.getElementById('mainCategoryNameKuSorani').value, // Use Sorani as default name
                 name_ku_sorani: document.getElementById('mainCategoryNameKuSorani').value,
                 name_ku_badini: document.getElementById('mainCategoryNameKuBadini').value,
                 name_ar: document.getElementById('mainCategoryNameAr').value,
                 icon: document.getElementById('mainCategoryIcon').value,
                 order: parseInt(document.getElementById('mainCategoryOrder').value)
             };
-
             try {
                 await addDoc(categoriesCollection, categoryData);
-                showNotification('جۆری سەرەکی بە سەرکەوتوویی زیادکرا', 'success');
+                showNotification('جۆری سەرەکی زیادکرا', 'success');
                 addCategoryForm.reset();
             } catch (error) {
-                console.error("Error adding main category: ", error);
                 showNotification(t('error_generic'), 'error');
             } finally {
                 submitButton.disabled = false;
@@ -1799,34 +1607,29 @@ function setupEventListeners() {
             }
         });
     }
-
+    const addSubcategoryForm = document.getElementById('addSubcategoryForm');
     if (addSubcategoryForm) {
         addSubcategoryForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const submitButton = e.target.querySelector('button[type="submit"]');
             const parentCategoryId = document.getElementById('parentCategorySelect').value;
-
             if (!parentCategoryId) {
                 showNotification('تکایە جۆری سەرەکی هەڵبژێرە', 'error');
                 return;
             }
-
             submitButton.disabled = true;
             submitButton.textContent = '...پاشەکەوت دەکرێت';
-
             const subcategoryData = {
                 name_ku_sorani: document.getElementById('subcategoryNameKuSorani').value,
                 name_ku_badini: document.getElementById('subcategoryNameKuBadini').value,
                 name_ar: document.getElementById('subcategoryNameAr').value,
             };
-
             try {
                 const subcategoriesCollectionRef = collection(db, "categories", parentCategoryId, "subcategories");
                 await addDoc(subcategoriesCollectionRef, subcategoryData);
-                showNotification('جۆری لاوەکی بە سەرکەوتوویی زیادکرا', 'success');
+                showNotification('جۆری لاوەکی زیادکرا', 'success');
                 addSubcategoryForm.reset();
             } catch (error) {
-                console.error("Error adding subcategory: ", error);
                 showNotification(t('error_generic'), 'error');
             } finally {
                 submitButton.disabled = false;
@@ -1834,14 +1637,12 @@ function setupEventListeners() {
             }
         });
     }
-
     const addContactMethodForm = document.getElementById('addContactMethodForm');
     if (addContactMethodForm) {
         addContactMethodForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const submitButton = e.target.querySelector('button[type="submit"]');
             submitButton.disabled = true;
-
             const methodData = {
                 type: document.getElementById('contactMethodType').value,
                 value: document.getElementById('contactMethodValue').value,
@@ -1852,32 +1653,25 @@ function setupEventListeners() {
                 color: document.getElementById('contactMethodColor').value,
                 createdAt: Date.now()
             };
-
             try {
                 const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
                 await addDoc(methodsCollection, methodData);
-                showNotification('شێوازی نوێ بە سەرکەوتوویی زیادکرا', 'success');
+                showNotification('شێوازی نوێ زیادکرا', 'success');
                 addContactMethodForm.reset();
             } catch (error) {
-                console.error("Error adding contact method: ", error);
                 showNotification(t('error_generic'), 'error');
             } finally {
                 submitButton.disabled = false;
             }
         });
     }
-
-    notificationBtn.addEventListener('click', () => {
-        openPopup('notificationsSheet');
-    });
-
+    notificationBtn.addEventListener('click', () => openPopup('notificationsSheet'));
     if (announcementForm) {
         announcementForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const submitButton = e.target.querySelector('button[type="submit"]');
             submitButton.disabled = true;
             submitButton.textContent = '...ناردن';
-
             const announcementData = {
                 title: {
                     ku_sorani: document.getElementById('announcementTitleKuSorani').value,
@@ -1891,13 +1685,11 @@ function setupEventListeners() {
                 },
                 createdAt: Date.now()
             };
-
             try {
                 await addDoc(announcementsCollection, announcementData);
-                showNotification('ئاگەداری بە سەرکەوتوویی نێردرا', 'success');
+                showNotification('ئاگەداری نێردرا', 'success');
                 announcementForm.reset();
             } catch (error) {
-                console.error("Error sending announcement: ", error);
                 showNotification(t('error_generic'), 'error');
             } finally {
                 submitButton.disabled = false;
@@ -1905,19 +1697,12 @@ function setupEventListeners() {
             }
         });
     }
-
-    if (termsAndPoliciesBtn) {
-        termsAndPoliciesBtn.addEventListener('click', () => {
-            openPopup('termsSheet');
-        });
-    }
-
+    if (termsAndPoliciesBtn) termsAndPoliciesBtn.addEventListener('click', () => openPopup('termsSheet'));
     if (policiesForm) {
         policiesForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const submitButton = e.target.querySelector('button[type="submit"]');
             submitButton.disabled = true;
-
             const policiesData = {
                 content: {
                     ku_sorani: document.getElementById('policiesContentKuSorani').value,
@@ -1925,88 +1710,65 @@ function setupEventListeners() {
                     ar: document.getElementById('policiesContentAr').value,
                 }
             };
-
             try {
                 const docRef = doc(db, "settings", "policies");
                 await setDoc(docRef, policiesData, { merge: true });
                 showNotification(t('policies_saved_success'), 'success');
             } catch (error) {
-                console.error("Error saving policies:", error);
                 showNotification(t('error_generic'), 'error');
             } finally {
                 submitButton.disabled = false;
             }
         });
     }
-
     const enableNotificationsBtn = document.getElementById('enableNotificationsBtn');
-    if (enableNotificationsBtn) {
-        enableNotificationsBtn.addEventListener('click', requestNotificationPermission);
-    }
-
+    if (enableNotificationsBtn) enableNotificationsBtn.addEventListener('click', requestNotificationPermission);
     onMessage(messaging, (payload) => {
         console.log('Foreground message received: ', payload);
-        const title = payload.notification.title;
-        const body = payload.notification.body;
+        const { title, body } = payload.notification;
         showNotification(`${title}: ${body}`, 'success');
     });
 }
 
 onAuthStateChanged(auth, async (user) => {
-    // !!! گرنگ: ئەم UID بگۆڕە بۆ UIDی ئەکاونتی ئەدمینی خۆت !!!
     const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3";
-
-    if (user && user.uid === adminUID) {
-        isAdmin = true;
-        sessionStorage.setItem('isAdmin', 'true');
+    isAdmin = user && user.uid === adminUID;
+    
+    if (isAdmin) {
+        if (document.getElementById('loginModal').style.display === 'block') closeCurrentPopup();
         loadPoliciesForAdmin();
-
-        if (document.getElementById('loginModal').style.display === 'block') {
-            closeCurrentPopup();
-        }
-    } else {
-        isAdmin = false;
-        sessionStorage.removeItem('isAdmin');
-        if (user) {
-            await signOut(auth);
-        }
+        renderContactMethodsAdmin();
+        renderSocialMediaLinks();
+        renderAdminAnnouncementsList();
+    } else if (user) {
+        await signOut(auth);
     }
-
+    
     updateAdminUI(isAdmin);
-    renderProducts();
+    // Don't call renderProducts here, it will be called by fetchProducts/setLanguage in init
 });
-
 
 function init() {
     renderSkeletonLoader();
-
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     onSnapshot(categoriesQuery, (snapshot) => {
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         categories = [{ id: 'all', name: t('all_categories_label'), icon: 'fas fa-th' }, ...fetchedCategories];
         populateCategoryDropdown();
+        populateParentCategorySelect();
         renderMainCategories();
-        setLanguage(currentLanguage);
+        renderCategoriesSheet();
     });
-
-    // بانگکردنی فەنکشنی نوێ بۆ هێنانی کاڵاکان
-    fetchProducts();
 
     const contactInfoRef = doc(db, "settings", "contactInfo");
     onSnapshot(contactInfoRef, (docSnap) => {
-        if (docSnap.exists()) {
-            contactInfo = docSnap.data();
-            updateContactLinksUI();
-        } else {
-            console.log("No contact info document found!");
-        }
+        if (docSnap.exists()) contactInfo = docSnap.data();
     });
 
     updateCartCount();
     setupEventListeners();
-    setupScrollObserver(); // بانگکردنی چاودێری سکڕۆڵ
-    setLanguage(currentLanguage);
-    renderSocialMediaLinks();
+    setupScrollObserver();
+    setLanguage(currentLanguage); // This will trigger the first fetch
     renderContactLinks();
     checkNewAnnouncements();
     showWelcomeMessage();
@@ -2020,39 +1782,27 @@ window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
     const installBtn = document.getElementById('installAppBtn');
-    if (installBtn) {
-        installBtn.style.display = 'flex';
-    }
+    if (installBtn) installBtn.style.display = 'flex';
 });
 
 if ('serviceWorker' in navigator) {
     const updateNotification = document.getElementById('update-notification');
     const updateNowBtn = document.getElementById('update-now-btn');
-
     navigator.serviceWorker.register('/sw.js').then(registration => {
-        console.log('Service Worker registered successfully.');
-
         registration.addEventListener('updatefound', () => {
             const newWorker = registration.installing;
-            console.log('New service worker found!', newWorker);
-
             newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                     updateNotification.classList.add('show');
                 }
             });
         });
-
         updateNowBtn.addEventListener('click', () => {
             registration.waiting.postMessage({ action: 'skipWaiting' });
         });
-
-    }).catch(err => {
-        console.log('Service Worker registration failed: ', err);
-    });
-
+    }).catch(err => console.log('Service Worker registration failed: ', err));
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-        console.log('New Service Worker activated. Reloading page...');
         window.location.reload();
     });
 }
+
