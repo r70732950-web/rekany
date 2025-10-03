@@ -960,10 +960,21 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         
         const finalSearchTerm = searchTerm.trim().toLowerCase();
         if (finalSearchTerm) {
-             q = query(q, where('searchableName', '>=', finalSearchTerm), where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
+             q = query(q, 
+                 where('searchableName', '>=', finalSearchTerm), 
+                 where('searchableName', '<=', finalSearchTerm + '\uf8ff')
+             );
         }
         
-        q = query(q, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
+        // --- گرنگ --- ڕیزبەندی ڕاستکراوە
+        if (finalSearchTerm) {
+            // ئەگەر گەڕان هەبوو، یەکەمجار بەپێی ناو ڕیزی بکە
+            q = query(q, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
+        } else {
+            // ئەگەر گەڕان نەبوو، تەنها بەپێی کاتی دروستکردن ڕیزی بکە
+            q = query(q, orderBy("createdAt", "desc"));
+        }
+        // --- کۆتایی ڕاستکردنەوە ---
 
         // لاپەڕەبەند
         if (lastVisibleProductDoc && !isNewSearch) {
