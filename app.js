@@ -1576,6 +1576,7 @@ function updateAdminUI(isAdmin) {
         addProductBtn.style.display = 'flex';
         if (adminCategoryManagement) {
             adminCategoryManagement.style.display = 'block';
+            renderCategoryManagementUI(); // Show category management list
         }
         if (adminContactMethodsManagement) {
             adminContactMethodsManagement.style.display = 'block';
@@ -1762,6 +1763,121 @@ function setupScrollObserver() {
 
     observer.observe(trigger);
 }
+
+// ============= NEW CATEGORY MANAGEMENT FUNCTIONS =============
+
+async function renderCategoryManagementUI() {
+    const container = document.getElementById('categoryListContainer');
+    if (!container) return;
+    container.innerHTML = '<p>...خەریکی بارکردنی جۆرەکانە</p>';
+
+    let content = '';
+    const mainCategoriesQuery = query(collection(db, "categories"), orderBy("order", "asc"));
+    const mainCategoriesSnapshot = await getDocs(mainCategoriesQuery);
+
+    for (const mainDoc of mainCategoriesSnapshot.docs) {
+        const mainCategory = { id: mainDoc.id, ...mainDoc.data() };
+        const mainPath = `categories/${mainCategory.id}`;
+        content += `
+            <div class="category-manage-item" style="background: #f0f2f5; padding: 8px; border-radius: 4px; margin-bottom: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <strong><i class="${mainCategory.icon}"></i> ${mainCategory.name_ku_sorani} (ڕیزبەندی: ${mainCategory.order})</strong>
+                    <div>
+                        <button class="edit-btn small-btn" data-path="${mainPath}" data-level="1"><i class="fas fa-edit"></i></button>
+                        <button class="delete-btn small-btn" data-path="${mainPath}" data-name="${mainCategory.name_ku_sorani}"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            </div>`;
+
+        const subCategoriesQuery = collection(db, mainPath, "subcategories");
+        const subCategoriesSnapshot = await getDocs(subCategoriesQuery);
+        for (const subDoc of subCategoriesSnapshot.docs) {
+            const subCategory = { id: subDoc.id, ...subDoc.data() };
+            const subPath = `${mainPath}/subcategories/${subCategory.id}`;
+            content += `
+                <div class="category-manage-item" style="margin-right: 20px; padding: 8px; border-right: 2px solid #ccc; margin-bottom: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>- ${subCategory.name_ku_sorani}</span>
+                        <div>
+                            <button class="edit-btn small-btn" data-path="${subPath}" data-level="2"><i class="fas fa-edit"></i></button>
+                            <button class="delete-btn small-btn" data-path="${subPath}" data-name="${subCategory.name_ku_sorani}"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                </div>`;
+            
+            const subSubCategoriesQuery = collection(db, subPath, "subSubcategories");
+            const subSubCategoriesSnapshot = await getDocs(subSubCategoriesQuery);
+            for (const subSubDoc of subSubCategoriesSnapshot.docs) {
+                const subSubCategory = { id: subSubDoc.id, ...subSubDoc.data() };
+                const subSubPath = `${subPath}/subSubcategories/${subSubCategory.id}`;
+                content += `
+                    <div class="category-manage-item" style="margin-right: 40px; padding: 8px; border-right: 2px solid #e2e8f0; margin-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>-- ${subSubCategory.name_ku_sorani}</span>
+                            <div>
+                                <button class="edit-btn small-btn" data-path="${subSubPath}" data-level="3"><i class="fas fa-edit"></i></button>
+                                <button class="delete-btn small-btn" data-path="${subSubPath}" data-name="${subSubCategory.name_ku_sorani}"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+        }
+    }
+
+    container.innerHTML = content || '<p>هیچ جۆرێک زیاد نەکراوە.</p>';
+
+    container.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => openEditCategoryModal(btn.dataset.path, btn.dataset.level));
+    });
+    container.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => handleDeleteCategory(btn.dataset.path, btn.dataset.name));
+    });
+}
+
+async function openEditCategoryModal(docPath, level) {
+    const docRef = doc(db, docPath);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+        showNotification('جۆرەکە نەدۆزرایەوە!', 'error');
+        return;
+    }
+    const category = docSnap.data();
+    
+    document.getElementById('editCategoryDocPath').value = docPath;
+    document.getElementById('editCategoryLevel').value = level;
+    
+    document.getElementById('editCategoryNameKuSorani').value = category.name_ku_sorani || '';
+    document.getElementById('editCategoryNameKuBadini').value = category.name_ku_badini || '';
+    document.getElementById('editCategoryNameAr').value = category.name_ar || '';
+
+    const mainCategoryFields = document.getElementById('editMainCategoryFields');
+    if (level === '1') {
+        mainCategoryFields.style.display = 'block';
+        document.getElementById('editCategoryIcon').value = category.icon || '';
+        document.getElementById('editCategoryOrder').value = category.order || 0;
+    } else {
+        mainCategoryFields.style.display = 'none';
+    }
+
+    openPopup('editCategoryModal', 'modal');
+}
+
+async function handleDeleteCategory(docPath, categoryName) {
+    const confirmation = confirm(`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: سڕینەوەی جۆرێکی سەرەکی، هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە.`);
+    if (confirmation) {
+        try {
+            await deleteDoc(doc(db, docPath));
+            showNotification('جۆرەکە بە سەرکەوتوویی سڕدرایەوە', 'success');
+        } catch (error) {
+            console.error("Error deleting category: ", error);
+            showNotification('هەڵەیەک ڕوویدا لە کاتی سڕینەوە', 'error');
+        }
+    }
+}
+
+// ============= END OF NEW FUNCTIONS =============
+
 
 function setupEventListeners() {
     homeBtn.onclick = () => {
@@ -2174,6 +2290,44 @@ function setupEventListeners() {
             }
         });
     }
+    
+    // NEW: Add event listener for the edit category form
+    const editCategoryForm = document.getElementById('editCategoryForm');
+    if (editCategoryForm) {
+        editCategoryForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = '...پاشەکەوت دەکرێت';
+
+            const docPath = document.getElementById('editCategoryDocPath').value;
+            const level = document.getElementById('editCategoryLevel').value;
+
+            let updateData = {
+                name_ku_sorani: document.getElementById('editCategoryNameKuSorani').value,
+                name_ku_badini: document.getElementById('editCategoryNameKuBadini').value,
+                name_ar: document.getElementById('editCategoryNameAr').value,
+            };
+
+            if (level === '1') {
+                updateData.icon = document.getElementById('editCategoryIcon').value;
+                updateData.order = parseInt(document.getElementById('editCategoryOrder').value);
+            }
+            
+            try {
+                await updateDoc(doc(db, docPath), updateData);
+                showNotification('گۆڕانکارییەکان پاشەکەوت کران', 'success');
+                closeCurrentPopup();
+            } catch (error) {
+                console.error("Error updating category: ", error);
+                showNotification('هەڵەیەک ڕوویدا', 'error');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'پاشەکەوتکردنی گۆڕانکاری';
+            }
+        });
+    }
+
 
     const enableNotificationsBtn = document.getElementById('enableNotificationsBtn');
     if (enableNotificationsBtn) {
@@ -2242,6 +2396,7 @@ function initializeAppLogic() {
         
         if (isAdmin) {
             populateParentCategorySelect();
+            renderCategoryManagementUI(); // NEW: Update the management list on any change
             
             const mainCatSelectForSubSub = document.getElementById('parentMainCategorySelectForSubSub');
             const subCatSelectForSubSub = document.getElementById('parentSubcategorySelectForSubSub');
@@ -2359,4 +2514,3 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
-

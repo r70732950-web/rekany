@@ -1108,6 +1108,13 @@
                     </form>
                 </div>
 
+                <hr style="margin: 25px 0;">
+                <div style="padding: 15px;">
+                    <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">دەستکاریکردنی جۆرەکانی ئێستا</h4>
+                    <div id="categoryListContainer" style="border: 1px solid var(--section-border); border-radius: 6px; padding: 10px;">
+                        <p>...خەریکی بارکردنی جۆرەکانە</p>
+                    </div>
+                </div>
             </div>
             
 			<div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
@@ -1253,6 +1260,42 @@
         
         <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
 
+        <div id="editCategoryModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2 id="editCategoryFormTitle" style="text-align: center; margin-bottom: 18px;">دەستکاریکردنی جۆر</h2>
+                <form id="editCategoryForm">
+                    <input type="hidden" id="editCategoryDocPath">
+                    <input type="hidden" id="editCategoryLevel">
+                    
+                    <div class="form-group">
+                        <label for="editCategoryNameKuSorani">ناوی جۆر (سۆرانی):</label>
+                        <input type="text" id="editCategoryNameKuSorani" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editCategoryNameKuBadini">ناوی جۆر (بادینی):</label>
+                        <input type="text" id="editCategoryNameKuBadini" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editCategoryNameAr">اسم الفئة (عربي):</label>
+                        <input type="text" id="editCategoryNameAr" required>
+                    </div>
+
+                    <div id="editMainCategoryFields">
+                        <div class="form-group">
+                            <label for="editCategoryIcon">ئایکۆن (بۆ نموونە: fas fa-mobile-alt):</label>
+                            <input type="text" id="editCategoryIcon">
+                        </div>
+                        <div class="form-group">
+                            <label for="editCategoryOrder">ژمارەی ڕیزبەندی:</label>
+                            <input type="number" id="editCategoryOrder">
+                        </div>
+                    </div>
+                    <button type="submit">پاشەکەوتکردنی گۆڕانکاری</button>
+                </form>
+            </div>
+        </div>
+
         <div id="productFormModal" class="modal">
             <div class="modal-content">
                 <span class="close">&times;</span>
@@ -1289,7 +1332,7 @@
                     <div class="form-group" id="subSubcategorySelectContainer" style="display: none;">
                         <label for="productSubSubcategoryId">جۆری لاوەکیی لاوەکی:</label>
                         <select id="productSubSubcategoryId">
-                            </select>
+                        </select>
                     </div>
 
                     <div class="form-group">
