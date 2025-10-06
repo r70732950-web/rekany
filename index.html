@@ -907,6 +907,8 @@
             <div class="section">
                 <div id="mainCategoriesContainer" class="main-categories-container"></div>
                 <div id="subcategoriesContainer" class="subcategories-container"></div>
+                <div id="subSubcategoriesContainer" class="subcategories-container" style="padding-top: 0; padding-bottom: 10px;"></div>
+                
                 <div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;" data-translate-key="loading_products">...خەریکی بارکردنی کاڵاکانە</p></div>
                 <div id="skeletonLoader" class="products-container"></div>
                 <div class="products-container" id="productsContainer" style="display: none;"></div>
@@ -1047,11 +1049,11 @@
                             <label>ژمارەی ڕیزبەندی:</label>
                             <input type="number" id="mainCategoryOrder" value="10" required>
                         </div>
-                        <button type="submit" style="background-color: var(--primary-color);">پاشەکەوتکردنی جۆری سەرەکی</button>
+                        <button type="submit" style="background-color: var(--primary-color);">پاشەکەوتکردنی جۆری سەرەki</button>
                     </form>
                 </div>
                 
-                <div style="padding: 15px;">
+                <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
                     <form id="addSubcategoryForm">
                         <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی جۆری لاوەکی</h4>
                         <div class="form-group">
@@ -1075,6 +1077,37 @@
                         <button type="submit">پاشەکەوتکردنی جۆری لاوەکی</button>
                     </form>
                 </div>
+                <div style="padding: 15px;">
+                    <form id="addSubSubcategoryForm">
+                        <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی جۆری لاوەکیی لاوەکی</h4>
+                        <div class="form-group">
+                            <label>جۆری سەرەکی هەڵبژێرە:</label>
+                            <select id="parentMainCategorySelectForSubSub" required>
+                                <option value="" disabled selected>-- سەرەتا جۆری سەرەکی هەڵبژێرە --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>جۆری لاوەکی هەڵبژێرە:</label>
+                            <select id="parentSubcategorySelectForSubSub" required>
+                                <option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەکی بە --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>ناوی جۆری نوێ (سۆرانی):</label>
+                            <input type="text" id="subSubcategoryNameKuSorani" required>
+                        </div>
+                        <div class="form-group">
+                            <label>ناوی جۆری نوێ (بادینی):</label>
+                            <input type="text" id="subSubcategoryNameKuBadini" required>
+                        </div>
+                        <div class="form-group">
+                            <label>اسم الفئة (عربي):</label>
+                            <input type="text" id="subSubcategoryNameAr" required>
+                        </div>
+                        <button type="submit">پاشەکەوتکردنی جۆری نوێ</button>
+                    </form>
+                </div>
+
             </div>
             
 			<div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
@@ -1225,7 +1258,19 @@
                 <span class="close">&times;</span>
                 <h2 id="formTitle" style="text-align: center; margin-bottom: 18px;">زیادکردنی کاڵای نوێ</h2>
                 <form id="productForm">
-                    <div class="form-group"><label for="productName">ناوی کاڵا:</label><input type="text" id="productName" required></div>
+                    
+                    <div class="form-group">
+                        <label for="productNameKuSorani">ناوی کاڵا (سۆرانی):</label>
+                        <input type="text" id="productNameKuSorani" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productNameKuBadini">ناڤێ کاڵای (بادینی):</label>
+                        <input type="text" id="productNameKuBadini" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productNameAr">اسم المنتج (عربي):</label>
+                        <input type="text" id="productNameAr" required>
+                    </div>
                     <div class="form-group"><label for="productPrice">نرخی فرۆشتن (د.ع.):</label><input type="number" id="productPrice" required min="0" step="1"></div>
                     <div class="form-group"><label for="productOriginalPrice">نرخی ڕەسەن (د.ع.):</label><input type="number" id="productOriginalPrice" min="0" step="1" placeholder="ئەگەر داشکانی نییە، بەتاڵ بێت"></div>
                     
@@ -1237,9 +1282,14 @@
                     
                     <div class="form-group" id="subcategorySelectContainer" style="display: none;">
                         <label for="productSubcategoryId">جۆری لاوەکی:</label>
-                        <select id="productSubcategoryId" required>
+                        <select id="productSubcategoryId">
                             <option value="" disabled selected>-- سەرەتا جۆری سەرەکی هەڵبژێرە --</option>
                         </select>
+                    </div>
+                    <div class="form-group" id="subSubcategorySelectContainer" style="display: none;">
+                        <label for="productSubSubcategoryId">جۆری لاوەکیی لاوەکی:</label>
+                        <select id="productSubSubcategoryId">
+                            </select>
                     </div>
 
                     <div class="form-group">
