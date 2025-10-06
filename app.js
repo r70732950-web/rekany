@@ -14,16 +14,20 @@ const firebaseConfig = {
     measurementId: "G-1PV3DRY2V2"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const messaging = getMessaging(app);
 
+// Firestore Collections
 const productsCollection = collection(db, "products");
 const categoriesCollection = collection(db, "categories");
 const announcementsCollection = collection(db, "announcements");
+const slidersCollection = collection(db, "sliders");
 
+// Translations
 const translations = {
     ku_sorani: {
         search_placeholder: "گەڕان بە ناوی کاڵا...",
@@ -246,6 +250,7 @@ const translations = {
     }
 };
 
+// Global State
 let currentLanguage = localStorage.getItem('language') || 'ku_sorani';
 let deferredPrompt;
 const CART_KEY = "maten_store_cart";
@@ -271,6 +276,13 @@ let currentCategory = 'all';
 let currentSubcategory = 'all';
 let currentSubSubcategory = 'all';
 
+// Slider State
+let sliderInterval;
+let currentSlideIndex = 0;
+let slidesData = [];
+
+
+// DOM Elements
 const loginModal = document.getElementById('loginModal');
 const addProductBtn = document.getElementById('addProductBtn');
 const productFormModal = document.getElementById('productFormModal');
@@ -959,7 +971,6 @@ function renderProducts() {
     setupScrollAnimations();
 }
 
-
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     if (isLoadingMoreProducts) return;
     
@@ -1044,7 +1055,6 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         productsContainer.style.display = 'grid';
     }
 }
-
 
 function addToCart(productId) {
     const product = products.find(p => p.id === productId);
@@ -1198,7 +1208,6 @@ async function editProduct(productId) {
     productForm.querySelector('button[type="submit"]').textContent = 'نوێکردنەوە';
     openPopup('productFormModal', 'modal');
 }
-
 
 async function deleteProduct(productId) {
     if (!confirm(t('delete_confirm'))) return;
@@ -1547,8 +1556,13 @@ function updateAdminUI(isAdmin) {
     document.querySelectorAll('.product-actions').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
     const adminCategoryManagement = document.getElementById('adminCategoryManagement');
     const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
+    const adminSliderManagement = document.getElementById('adminSliderManagement');
+
     if (adminPoliciesManagement) {
         adminPoliciesManagement.style.display = isAdmin ? 'block' : 'none';
+    }
+    if(adminSliderManagement) {
+        adminSliderManagement.style.display = isAdmin ? 'block' : 'none';
     }
     if (adminSocialMediaManagement) adminSocialMediaManagement.style.display = isAdmin ? 'block' : 'none';
     if (adminAnnouncementManagement) {
@@ -1568,6 +1582,9 @@ function updateAdminUI(isAdmin) {
             adminContactMethodsManagement.style.display = 'block';
             renderContactMethodsAdmin();
         }
+        if (adminSliderManagement) {
+             renderAdminSlidersList();
+        }
     } else {
         settingsLogoutBtn.style.display = 'none';
         settingsAdminLoginBtn.style.display = 'flex';
@@ -1577,6 +1594,9 @@ function updateAdminUI(isAdmin) {
         }
         if (adminContactMethodsManagement) {
             adminContactMethodsManagement.style.display = 'none';
+        }
+        if (adminSliderManagement) {
+            adminSliderManagement.style.display = 'none';
         }
     }
 }
@@ -1750,7 +1770,7 @@ function setupScrollObserver() {
     observer.observe(trigger);
 }
 
-// ============= NEW/MODIFIED CATEGORY MANAGEMENT FUNCTIONS =============
+// ============= CATEGORY MANAGEMENT FUNCTIONS =============
 
 async function renderCategoryManagementUI() {
     const container = document.getElementById('categoryListContainer');
@@ -1862,8 +1882,158 @@ async function handleDeleteCategory(docPath, categoryName) {
     }
 }
 
-// ============= END OF NEW/MODIFIED FUNCTIONS =============
+// ============= SLIDER FUNCTIONS (NEW) =============
 
+function renderAdminSlidersList() {
+    const container = document.getElementById('slidersListContainer');
+    const q = query(slidersCollection, orderBy("order", "asc"));
+
+    onSnapshot(q, (snapshot) => {
+        container.innerHTML = '';
+        if (snapshot.empty) {
+            container.innerHTML = `<p style="text-align:center;">هیچ سلایدێک زیاد نەکراوە.</p>`;
+            return;
+        }
+        snapshot.forEach(doc => {
+            const slider = { id: doc.id, ...doc.data() };
+            const item = document.createElement('div');
+            item.className = 'admin-slider-item';
+            item.innerHTML = `
+                <img src="${slider.imageUrl}" alt="Slider Preview">
+                <div class="admin-slider-item-info">
+                    <span><strong>ڕیزبەندی:</strong> ${slider.order}</span>
+                    <span style="direction: ltr;"><strong>URL:</strong> ${slider.link || 'نییە'}</span>
+                </div>
+                <button class="delete-btn"><i class="fas fa-trash"></i></button>
+            `;
+            item.querySelector('.delete-btn').addEventListener('click', async () => {
+                if (confirm('دڵنیایت دەتەوێت ئەم سلایدە بسڕیتەوە؟')) {
+                    await deleteDoc(doc(db, "sliders", slider.id));
+                    showNotification('سلایدەکە سڕدرایەوە', 'success');
+                }
+            });
+            container.appendChild(item);
+        });
+    });
+}
+
+function setupAdminSliderForm() {
+    const addSliderForm = document.getElementById('addSliderForm');
+    if (addSliderForm) {
+        addSliderForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+
+            const sliderData = {
+                imageUrl: document.getElementById('sliderImageUrl').value,
+                link: document.getElementById('sliderLink').value || null,
+                order: parseInt(document.getElementById('sliderOrder').value),
+                isActive: true, 
+                createdAt: Date.now()
+            };
+
+            try {
+                await addDoc(slidersCollection, sliderData);
+                showNotification('سلایدی نوێ زیادکرا', 'success');
+                addSliderForm.reset();
+            } catch (error) {
+                console.error("Error adding slider:", error);
+                showNotification('هەڵەیەک ڕوویدا', 'error');
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+    }
+}
+
+function showSlide(index) {
+    const sliderWrapper = document.querySelector('.slider-wrapper');
+    const dots = document.querySelectorAll('.pagination-dot');
+
+    if (!sliderWrapper || slidesData.length === 0) return;
+
+    if (index >= slidesData.length) {
+        currentSlideIndex = 0;
+    } else if (index < 0) {
+        currentSlideIndex = slidesData.length - 1;
+    } else {
+        currentSlideIndex = index;
+    }
+
+    sliderWrapper.style.transform = `translateX(-${currentSlideIndex * 100}%)`;
+
+    dots.forEach((dot, dotIndex) => {
+        dot.classList.toggle('active', dotIndex === currentSlideIndex);
+    });
+}
+
+function initSlider() {
+    const sliderContainer = document.getElementById('mainSliderContainer');
+    if (!sliderContainer || slidesData.length === 0) return;
+
+    const prevButton = sliderContainer.querySelector('.slider-nav.prev');
+    const nextButton = sliderContainer.querySelector('.slider-nav.next');
+    const paginationContainer = sliderContainer.querySelector('.slider-pagination');
+    
+    paginationContainer.innerHTML = '';
+
+    slidesData.forEach((_, index) => {
+        const dot = document.createElement('div');
+        dot.className = 'pagination-dot';
+        dot.addEventListener('click', () => {
+            showSlide(index);
+            clearInterval(sliderInterval);
+            sliderInterval = setInterval(() => showSlide(currentSlideIndex + 1), 5000);
+        });
+        paginationContainer.appendChild(dot);
+    });
+
+    prevButton.addEventListener('click', () => showSlide(currentSlideIndex - 1));
+    nextButton.addEventListener('click', () => showSlide(currentSlideIndex + 1));
+
+    clearInterval(sliderInterval);
+    sliderInterval = setInterval(() => showSlide(currentSlideIndex + 1), 5000);
+
+    showSlide(0);
+}
+
+async function fetchAndRenderSlider() {
+    const sliderContainer = document.getElementById('mainSliderContainer');
+    const sliderWrapper = sliderContainer.querySelector('.slider-wrapper');
+    sliderWrapper.innerHTML = '';
+    
+    const q = query(slidersCollection, where("isActive", "==", true), orderBy("order", "asc"));
+    try {
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) {
+            sliderContainer.style.display = 'none';
+            return;
+        }
+
+        slidesData = snapshot.docs.map(doc => doc.data());
+        
+        slidesData.forEach(slideData => {
+            const slideElement = document.createElement('div');
+            slideElement.className = 'slide';
+            if (slideData.link) {
+                slideElement.innerHTML = `<a href="${slideData.link}" target="_blank"><img src="${slideData.imageUrl}" alt="Advertisement"></a>`;
+            } else {
+                slideElement.innerHTML = `<img src="${slideData.imageUrl}" alt="Advertisement">`;
+            }
+            sliderWrapper.appendChild(slideElement);
+        });
+
+        sliderContainer.style.display = 'block';
+        initSlider();
+
+    } catch (error) {
+        console.error("Error fetching sliders:", error);
+        sliderContainer.style.display = 'none';
+    }
+}
+
+// ============= EVENT LISTENERS SETUP =============
 
 function setupEventListeners() {
     homeBtn.onclick = () => {
@@ -2406,7 +2576,7 @@ function initializeAppLogic() {
                         
                         subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>...خەریکی بارکردنە</option>';
                         subCatSelectForSubSub.disabled = true;
-    
+   
                         const subcategoriesQuery = collection(db, "categories", mainCategoryId, "subcategories");
                         const q = query(subcategoriesQuery, orderBy("order", "asc"));
                         const querySnapshot = await getDocs(q);
@@ -2434,6 +2604,8 @@ function initializeAppLogic() {
     });
 
     searchProductsInFirestore('', true);
+    fetchAndRenderSlider(); 
+    setupAdminSliderForm();
 
     const contactInfoRef = doc(db, "settings", "contactInfo");
     onSnapshot(contactInfoRef, (docSnap) => {
@@ -2500,4 +2672,3 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
-
