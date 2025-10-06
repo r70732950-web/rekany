@@ -1833,7 +1833,6 @@ function setupEventListeners() {
         populateSubSubcategoriesDropdown(mainCatId, e.target.value);
     });
 
-
     productForm.onsubmit = async (e) => {
         e.preventDefault();
         const submitButton = e.target.querySelector('button[type="submit"]');
@@ -2039,32 +2038,10 @@ function setupEventListeners() {
     
     const addSubSubcategoryForm = document.getElementById('addSubSubcategoryForm');
     if (addSubSubcategoryForm) {
-        const mainCatSelect = document.getElementById('parentMainCategorySelectForSubSub');
-        const subCatSelect = document.getElementById('parentSubcategorySelectForSubSub');
-        
-        mainCatSelect.addEventListener('change', async () => {
-            const mainCategoryId = mainCatSelect.value;
-            if (!mainCategoryId) return;
-            
-            subCatSelect.innerHTML = '<option value="" disabled selected>...خەریکی بارکردنە</option>';
-            subCatSelect.disabled = true;
-
-            const subcategoriesQuery = collection(db, "categories", mainCategoryId, "subcategories");
-            const querySnapshot = await getDocs(subcategoriesQuery);
-            
-            subCatSelect.innerHTML = '<option value="" disabled selected>-- جۆری لاوەکی هەڵبژێرە --</option>';
-            querySnapshot.forEach(doc => {
-                const subcat = { id: doc.id, ...doc.data() };
-                const option = document.createElement('option');
-                option.value = subcat.id;
-                option.textContent = subcat.name_ku_sorani;
-                subCatSelect.appendChild(option);
-            });
-            subCatSelect.disabled = false;
-        });
-
         addSubSubcategoryForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const mainCatSelect = document.getElementById('parentMainCategorySelectForSubSub');
+            const subCatSelect = document.getElementById('parentSubcategorySelectForSubSub');
             const mainCatId = mainCatSelect.value;
             const subCatId = subCatSelect.value;
 
@@ -2085,13 +2062,14 @@ function setupEventListeners() {
                 await addDoc(subSubcategoriesRef, subSubcategoryData);
                 showNotification('جۆری نوێ بە سەرکەوتوویی زیادکرا', 'success');
                 addSubSubcategoryForm.reset();
+                mainCatSelect.value = '';
+                subCatSelect.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەکی بە --</option>';
             } catch (error) {
                 console.error("Error adding sub-subcategory: ", error);
                 showNotification('هەڵەیەک ڕوویدا', 'error');
             }
         });
     }
-
 
     const addContactMethodForm = document.getElementById('addContactMethodForm');
     if (addContactMethodForm) {
@@ -2264,16 +2242,50 @@ function initializeAppLogic() {
         
         if (isAdmin) {
             populateParentCategorySelect();
-            const mainCatSelect = document.getElementById('parentMainCategorySelectForSubSub');
-            if (mainCatSelect) {
-                mainCatSelect.innerHTML = '<option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>';
+            
+            const mainCatSelectForSubSub = document.getElementById('parentMainCategorySelectForSubSub');
+            const subCatSelectForSubSub = document.getElementById('parentSubcategorySelectForSubSub');
+            
+            if (mainCatSelectForSubSub && subCatSelectForSubSub) {
+                mainCatSelectForSubSub.innerHTML = '<option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>';
                 const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
                 categoriesWithoutAll.forEach(cat => {
                     const option = document.createElement('option');
                     option.value = cat.id;
                     option.textContent = cat.name_ku_sorani || cat.name;
-                    mainCatSelect.appendChild(option);
+                    mainCatSelectForSubSub.appendChild(option);
                 });
+
+                if (!mainCatSelectForSubSub.listenerAttached) {
+                    mainCatSelectForSubSub.addEventListener('change', async () => {
+                        const mainCategoryId = mainCatSelectForSubSub.value;
+                        if (!mainCategoryId) {
+                             subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەکی بە --</option>';
+                             return;
+                        };
+                        
+                        subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>...خەریکی بارکردنە</option>';
+                        subCatSelectForSubSub.disabled = true;
+    
+                        const subcategoriesQuery = collection(db, "categories", mainCategoryId, "subcategories");
+                        const querySnapshot = await getDocs(subcategoriesQuery);
+                        
+                        subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>-- جۆری لاوەکی هەڵبژێرە --</option>';
+                        if (!querySnapshot.empty) {
+                            querySnapshot.forEach(doc => {
+                                const subcat = { id: doc.id, ...doc.data() };
+                                const option = document.createElement('option');
+                                option.value = subcat.id;
+                                option.textContent = subcat.name_ku_sorani || subcat.name_ku_badini || 'بێ ناو';
+                                subCatSelectForSubSub.appendChild(option);
+                            });
+                        } else {
+                            subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>هیچ جۆرێکی لاوەکی نییە</option>';
+                        }
+                        subCatSelectForSubSub.disabled = false;
+                    });
+                    mainCatSelectForSubSub.listenerAttached = true;
+                }
             }
         }
 
