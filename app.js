@@ -285,7 +285,6 @@ let allProductsLoaded = false;
 const PRODUCTS_PER_PAGE = 25;
 let mainPageScrollPosition = 0;
 
-// گۆڕاوی نوێ بۆ فلتەرەکان
 let currentCategory = 'all';
 let currentSubcategory = 'all';
 let currentSubSubcategory = 'all';
@@ -316,8 +315,8 @@ const sheetCategoriesContainer = document.getElementById('sheetCategoriesContain
 const productCategorySelect = document.getElementById('productCategoryId');
 const subcategorySelectContainer = document.getElementById('subcategorySelectContainer');
 const productSubcategorySelect = document.getElementById('productSubcategoryId');
-const subSubcategorySelectContainer = document.getElementById('subSubcategorySelectContainer'); // نوێ
-const productSubSubcategorySelect = document.getElementById('productSubSubcategoryId'); // نوێ
+const subSubcategorySelectContainer = document.getElementById('subSubcategorySelectContainer');
+const productSubSubcategorySelect = document.getElementById('productSubSubcategoryId');
 const profileForm = document.getElementById('profileForm');
 const settingsPage = document.getElementById('settingsPage');
 const mainPage = document.getElementById('mainPage');
@@ -343,7 +342,7 @@ const termsSheet = document.getElementById('termsSheet');
 const termsContentContainer = document.getElementById('termsContentContainer');
 const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
 const policiesForm = document.getElementById('policiesForm');
-const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer'); // نوێ
+const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
 
 
 function debounce(func, delay = 500) {
@@ -645,7 +644,7 @@ function renderCategoriesSheet() {
             currentSubcategory = 'all';
             currentSubSubcategory = 'all';
             renderSubcategories(currentCategory);
-            renderSubSubcategories(currentCategory, currentSubcategory); // پاککردنەوە
+            renderSubSubcategories(currentCategory, currentSubcategory);
             searchProductsInFirestore('', true);
             history.back();
             renderMainCategories();
@@ -699,7 +698,7 @@ async function renderSubSubcategories(mainCatId, subCatId) {
 async function renderSubcategories(categoryId) {
     const subcategoriesContainer = document.getElementById('subcategoriesContainer');
     subcategoriesContainer.innerHTML = '';
-    subSubcategoriesContainer.innerHTML = ''; // پاککردنەوەی ئاستی سێیەم
+    subSubcategoriesContainer.innerHTML = '';
 
     if (categoryId === 'all') {
         return;
@@ -721,7 +720,7 @@ async function renderSubcategories(categoryId) {
             currentSubSubcategory = 'all';
             document.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
             allBtn.classList.add('active');
-            subSubcategoriesContainer.innerHTML = ''; // پاککردنەوە
+            subSubcategoriesContainer.innerHTML = '';
             searchProductsInFirestore('', true);
         };
         subcategoriesContainer.appendChild(allBtn);
@@ -744,7 +743,6 @@ async function renderSubcategories(categoryId) {
         console.error("Error fetching subcategories: ", error);
     }
 }
-
 
 function renderMainCategories() {
     const container = document.getElementById('mainCategoriesContainer');
@@ -1004,7 +1002,6 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
             q = query(q, where("subcategoryId", "==", currentSubcategory));
         }
         
-        // مەرجی نوێ بۆ جۆری سێیەم
         if (currentSubSubcategory && currentSubSubcategory !== 'all') {
             q = query(q, where("subSubcategoryId", "==", currentSubSubcategory));
         }
@@ -1108,7 +1105,7 @@ async function populateSubSubcategoriesDropdown(mainCategoryId, subcategoryId, s
         const ref = collection(db, "categories", mainCategoryId, "subcategories", subcategoryId, "subSubcategories");
         const snapshot = await getDocs(ref);
 
-        select.innerHTML = '<option value="">-- هیچ --</option>'; // Bبژاردەی بەتاڵ
+        select.innerHTML = '<option value="">-- هیچ --</option>'; 
         if (!snapshot.empty) {
             snapshot.forEach(doc => {
                 const subSubcat = { id: doc.id, ...doc.data() };
@@ -1209,7 +1206,6 @@ async function editProduct(productId) {
     createProductImageInputs(imageUrls);
     document.getElementById('productExternalLink').value = product.externalLink || '';
     
-    // پڕکردنەوەی هەرسێ لیستەکە بە ڕیزبەندی
     await populateSubcategoriesDropdown(categoryId, product.subcategoryId);
     await populateSubSubcategoriesDropdown(categoryId, product.subcategoryId, product.subSubcategoryId);
 
@@ -1580,7 +1576,6 @@ function updateAdminUI(isAdmin) {
         addProductBtn.style.display = 'flex';
         if (adminCategoryManagement) {
             adminCategoryManagement.style.display = 'block';
-            populateParentCategorySelect();
         }
         if (adminContactMethodsManagement) {
             adminContactMethodsManagement.style.display = 'block';
@@ -1830,7 +1825,6 @@ function setupEventListeners() {
 
     productCategorySelect.addEventListener('change', (e) => {
         populateSubcategoriesDropdown(e.target.value);
-        // پاککردنەوەی لیستی سێیەم
         populateSubSubcategoriesDropdown(null, null);
     });
 
@@ -1874,7 +1868,7 @@ function setupEventListeners() {
                 originalPrice: parseInt(document.getElementById('productOriginalPrice').value) || null,
                 categoryId: document.getElementById('productCategoryId').value,
                 subcategoryId: document.getElementById('productSubcategoryId').value || null,
-                subSubcategoryId: document.getElementById('productSubSubcategoryId').value || null, // زیادکرا
+                subSubcategoryId: document.getElementById('productSubSubcategoryId').value || null,
                 description: productDescriptionObject,
                 imageUrls: imageUrls,
                 createdAt: Date.now(),
@@ -2043,22 +2037,10 @@ function setupEventListeners() {
         });
     }
     
-    // Event listener for the new sub-subcategory form
     const addSubSubcategoryForm = document.getElementById('addSubSubcategoryForm');
     if (addSubSubcategoryForm) {
         const mainCatSelect = document.getElementById('parentMainCategorySelectForSubSub');
         const subCatSelect = document.getElementById('parentSubcategorySelectForSubSub');
-
-        function populateMainCategoriesForSubSub() {
-            mainCatSelect.innerHTML = '<option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>';
-            const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
-            categoriesWithoutAll.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat.id;
-                option.textContent = cat.name_ku_sorani || cat.name;
-                mainCatSelect.appendChild(option);
-            });
-        }
         
         mainCatSelect.addEventListener('change', async () => {
             const mainCategoryId = mainCatSelect.value;
@@ -2108,10 +2090,6 @@ function setupEventListeners() {
                 showNotification('هەڵەیەک ڕوویدا', 'error');
             }
         });
-
-        if (isAdmin) {
-            populateMainCategoriesForSubSub();
-        }
     }
 
 
@@ -2280,8 +2258,25 @@ function initializeAppLogic() {
     onSnapshot(categoriesQuery, (snapshot) => {
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         categories = [{ id: 'all', name: t('all_categories_label'), icon: 'fas fa-th' }, ...fetchedCategories];
+        
         populateCategoryDropdown();
         renderMainCategories();
+        
+        if (isAdmin) {
+            populateParentCategorySelect();
+            const mainCatSelect = document.getElementById('parentMainCategorySelectForSubSub');
+            if (mainCatSelect) {
+                mainCatSelect.innerHTML = '<option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>';
+                const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
+                categoriesWithoutAll.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = cat.name_ku_sorani || cat.name;
+                    mainCatSelect.appendChild(option);
+                });
+            }
+        }
+
         setLanguage(currentLanguage);
     });
 
@@ -2352,3 +2347,4 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
+
