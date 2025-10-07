@@ -236,7 +236,7 @@
         
         .products-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
             gap: 8px;
         }
         
@@ -764,6 +764,52 @@
             85%  { transform: translateX(0); opacity: 1; }
             100% { transform: translateX(120%); opacity: 0; }
         }
+        
+        /* START: Styles for the new featured cards */
+        .featured-container {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding: 5px 0 15px 0;
+            scrollbar-width: none; /* For Firefox */
+        }
+        .featured-container::-webkit-scrollbar {
+            display: none; /* For Chrome, Safari, and Opera */
+        }
+
+        .featured-card {
+            flex-shrink: 0; /* رێگە نادات کارتەکان بچووک ببنەوە */
+            width: 280px;
+            height: 120px;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            color: white;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+        }
+        .featured-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .featured-card .featured-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 0 0 5px 0;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
+        }
+
+        .featured-card .featured-subtitle {
+            font-size: 13px;
+            margin: 0;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
+        }
+        /* END: Styles for the new featured cards */
     </style>
 </head>
 <body>
@@ -923,6 +969,10 @@
 		</div>
 		
         <main class="main-content page" id="mainPage">
+            <div class="section" style="padding-bottom: 0;">
+                 <div id="featuredContainer" class="featured-container">
+                    </div>
+            </div>
             <div class="section">
                 <div id="mainCategoriesContainer" class="main-categories-container"></div>
                 <div id="subcategoriesContainer" class="subcategories-container"></div>

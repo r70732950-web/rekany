@@ -4,6 +4,9 @@ import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from
 import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
+// تکایە ئاگاداربە: بۆ پاراستنی ئەپەکەت، پێویستە Firestore Security Rules لەناو کۆنسۆڵی فایەربەیس دابنێیت.
+// بەبێ ئەم یاسایانە، هەر کەسێک دەتوانێت دەستکاری داتابەیسەکەت بکات.
+
 const firebaseConfig = {
     apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE",
     authDomain: "maten-store.firebaseapp.com",
@@ -283,6 +286,28 @@ let currentCategory = 'all';
 let currentSubcategory = 'all';
 let currentSubSubcategory = 'all';
 
+// نموونەیەک بۆ داتای کارتە تایبەتەکان - دەتوانیت ئەمە لە فایەربەیسەوە بهێنیت
+const featuredItemsData = [
+    {
+        title: { ku_sorani: "داشکاندنی گەورە", ku_badini: "داشکانەکا مەزن", ar: "خصومات كبيرة" },
+        subtitle: { ku_sorani: "هەموو جلوبەرگەکان تا ٥٠٪", ku_badini: "هەمی جلوبەرگ تا ٥٠٪", ar: "كل الملابس حتى ٥٠٪" },
+        backgroundColor: "linear-gradient(45deg, #ff8c00, #ff0080)",
+        link: "#" // لێرە دەتوانیت لینکی بەشێک یان کاڵایەک دابنێیت
+    },
+    {
+        title: { ku_sorani: "کاڵای نوێ گەیشت", ku_badini: "کاڵایێ نوو گەهشت", ar: "وصلت منتجات جديدة" },
+        subtitle: { ku_sorani: "سەیری کۆلێکشنە نوێیەکەمان بکە", ku_badini: "بەرێخۆدە کۆلێکشنێ نوو", ar: "شاهد مجموعتنا الجديدة" },
+        backgroundColor: "linear-gradient(45deg, #4158D0, #C850C0)",
+        link: "#"
+    },
+    {
+        title: { ku_sorani: "گەیاندن بەخۆڕایی", ku_badini: "گەهاندن بێ بەرامبەرە", ar: "توصيل مجاني" },
+        subtitle: { ku_sorani: "بۆ داواکاری سەروو ٥٠ هەزار", ku_badini: "بۆ داخازیێن سەر ٥٠ هزارا", ar: "للطلبات فوق ٥٠ ألف" },
+        backgroundColor: "linear-gradient(45deg, #00c6ff, #0072ff)",
+        link: "#"
+    }
+];
+
 const loginModal = document.getElementById('loginModal');
 const addProductBtn = document.getElementById('addProductBtn');
 const productFormModal = document.getElementById('productFormModal');
@@ -479,6 +504,7 @@ function setLanguage(lang) {
     const fetchedCategories = categories.filter(cat => cat.id !== 'all');
     categories = [{ id: 'all', name: t('all_categories_label'), icon: 'fas fa-th' }, ...fetchedCategories];
 
+    renderFeaturedCards(); // نوێکردنەوەی زمانی کارتە تایبەتەکان
     renderProducts();
     renderMainCategories();
     renderCategoriesSheet();
@@ -1051,7 +1077,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
              q = query(q, 
                 where('searchableName', '>=', finalSearchTerm), 
                 where('searchableName', '<=', finalSearchTerm + '\uf8ff')
-             );
+              );
         }
         
         if (finalSearchTerm) {
@@ -1926,6 +1952,34 @@ async function handleDeleteCategory(docPath, categoryName) {
     }
 }
 
+// زیادکردنی فەنکشنی نوێ بۆ دروستکردنی کارتە تایبەتەکان
+function renderFeaturedCards() {
+    const container = document.getElementById('featuredContainer');
+    if (!container) return;
+
+    container.innerHTML = ''; // پاککردنەوەی کۆنتەینەر
+
+    featuredItemsData.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'featured-card';
+        card.style.background = item.backgroundColor;
+        card.onclick = () => {
+            // لێرە دەتوانیت کارێک بکەیت کاتێک کلیک لە کارتەکە کرا، بۆ نموونە کردنەوەی لینکێک
+            // window.location.href = item.link;
+            console.log(`Card clicked: ${item.link}`);
+        };
+
+        const title = item.title[currentLanguage] || item.title.ku_sorani;
+        const subtitle = item.subtitle[currentLanguage] || item.subtitle.ku_sorani;
+
+        card.innerHTML = `
+            <h3 class="featured-title">${title}</h3>
+            <p class="featured-subtitle">${subtitle}</p>
+        `;
+        container.appendChild(card);
+    });
+}
+
 function setupEventListeners() {
     homeBtn.onclick = () => {
         history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname);
@@ -2520,7 +2574,7 @@ function initializeAppLogic() {
     updateCartCount();
     setupEventListeners();
     setupScrollObserver();
-    setLanguage(currentLanguage);
+    renderFeaturedCards(); // بانگکردنی فەنکشنی نوێ لێرە
     renderSocialMediaLinks();
     renderContactLinks();
     checkNewAnnouncements();
@@ -2572,5 +2626,3 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
-maten
-
