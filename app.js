@@ -97,6 +97,7 @@ const translations = {
         policies_saved_success: "مەرج و ڕێساکان پاشەکەوتکران",
         loading_policies: "...خەریکی بارکردنی ڕێساکانە",
         no_policies_found: "هیچ مەرج و ڕێسایەک دانەنراوە.",
+        has_discount_badge: "داشکانی تێدایە",
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -170,6 +171,7 @@ const translations = {
         policies_saved_success: "مەرج و سیاسەت هاتنە پاشەکەفتکرن",
         loading_policies: "...د بارکرنا سیاسەتان دایە",
         no_policies_found: "چ مەرج و سیاسەت نەهاتینە دانان.",
+        has_discount_badge: "داشکان تێدایە",
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -243,6 +245,7 @@ const translations = {
         policies_saved_success: "تم حفظ الشروط والسياسات بنجاح",
         loading_policies: "...جاري تحميل السياسات",
         no_policies_found: "لم يتم تحديد أي شروط أو سياسات.",
+        has_discount_badge: "يتضمن خصم",
     }
 };
 
@@ -853,20 +856,25 @@ function createProductCardElement(product) {
         const discountPercentage = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
         discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
     }
-    
-    // ======== کۆدی نوێکراوە بۆ دروستکردنی ئاڵای گەیاندن ========
+
+    // ======== کۆدی نوێکراوە و چاککراو بۆ دروستکردنی ئاڵاکان ========
     let extraInfoHTML = '';
-    const shippingText = product.shippingInfo && product.shippingInfo[currentLanguage];
-    if (shippingText) {
-        extraInfoHTML = `
-            <div class="product-extra-info">
-                <span class="info-badge shipping-badge">
-                    <i class="fas fa-truck"></i> ${shippingText}
-                </span>
-            </div>
-        `;
+    const shippingText = product.shippingInfo && product.shippingInfo[currentLanguage] && product.shippingInfo[currentLanguage].trim();
+
+    if (hasDiscount || shippingText) {
+        extraInfoHTML += '<div class="product-extra-info">';
+
+        if (shippingText) {
+            extraInfoHTML += `<span class="info-badge shipping-badge"><i class="fas fa-truck"></i> ${shippingText}</span>`;
+        }
+        
+        if (hasDiscount) {
+            extraInfoHTML += `<span class="info-badge discount-badge-text"><i class="fas fa-tags"></i> ${t('has_discount_badge')}</span>`;
+        }
+        
+        extraInfoHTML += '</div>';
     }
-    // =========================================================
+    // =======================================================
 
     const isProdFavorite = isFavorite(product.id);
     const heartIconClass = isProdFavorite ? 'fas' : 'far';
@@ -1207,7 +1215,6 @@ async function editProduct(productId) {
     createProductImageInputs(imageUrls);
     document.getElementById('productExternalLink').value = product.externalLink || '';
     
-    // نوێکردنەوە بۆ پڕکردنەوەی زانیاری گەیاندن
     if (product.shippingInfo) {
         document.getElementById('shippingInfoKuSorani').value = product.shippingInfo.ku_sorani || '';
         document.getElementById('shippingInfoKuBadini').value = product.shippingInfo.ku_badini || '';
@@ -2001,9 +2008,9 @@ function setupEventListeners() {
                 createdAt: Date.now(),
                 externalLink: document.getElementById('productExternalLink').value || null,
                 shippingInfo: {
-                    ku_sorani: document.getElementById('shippingInfoKuSorani').value,
-                    ku_badini: document.getElementById('shippingInfoKuBadini').value,
-                    ar: document.getElementById('shippingInfoAr').value
+                    ku_sorani: document.getElementById('shippingInfoKuSorani').value.trim(),
+                    ku_badini: document.getElementById('shippingInfoKuBadini').value.trim(),
+                    ar: document.getElementById('shippingInfoAr').value.trim()
                 }
             };
             if (editingProductId) {
@@ -2015,6 +2022,7 @@ function setupEventListeners() {
                 showNotification('کاڵا زیادکرا', 'success');
             }
             closeCurrentPopup();
+            searchProductsInFirestore(currentSearch, true); 
         } catch (error) {
             showNotification(t('error_generic'), 'error');
             console.error("Error saving product:", error);
@@ -2531,3 +2539,4 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
+
