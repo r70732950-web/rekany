@@ -865,8 +865,7 @@ function createProductCardElement(product) {
         extraInfoHTML = `
             <div class="product-extra-info">
                 <div class="info-badge shipping-badge">
-                    <i class="fas fa-truck"></i>
-                    <span>${shippingText}</span>
+                    <i class="fas fa-truck"></i>${shippingText}
                 </div>
             </div>
         `;

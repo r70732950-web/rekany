@@ -728,66 +728,43 @@
             user-select: none;
         }
 
-        /* ========== ستایلی نوێ و ئەنیمەیشنی بەشی گەیاندن ========== */
+        /* ========== ستایلی نوێ و چاککراو بۆ ئەنیمەیشنی گەیاندن ========== */
         .product-extra-info {
             display: flex;
             justify-content: center;
             align-items: center;
             margin-top: 8px;
-            height: 24px; /* دانانی بەرزییەکی دیاریکراو بۆ ڕێگری لە بازی کارتەکە */
-        }
-        
-        .info-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: bold;
-            overflow: hidden; /* گرنگە بۆ شاردنەوەی جوڵەی ناوەوە */
-            white-space: nowrap; /* ڕێگری لە شکانەوەی نووسین دەکات */
+            height: 28px; /* زیادکردنی بەرزی بۆ قەبارەی گەورەتر */
+            overflow: hidden; /* گرنگە بۆ شاردنەوەی جوڵە */
         }
         
         .shipping-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 12px; /* گەورەکردنی بۆشایی ناوەوە */
+            border-radius: 16px; /* خڕکردنی زیاتر */
             background-color: #e6f4ea;
             color: #38a169;
-        }
-
-        .discount-badge-text {
-            background-color: #fefcbf; /* رەنگی زەردی کاڵ */
-            color: #d69e2e; /* رەنگی زەردی تۆخ */
-        }
-
-        .shipping-badge .fa-truck {
-            animation: driveIn 4s infinite ease-in-out;
-            animation-delay: 1s; /* بۆ ئەوەی دوای یەک چرکە دەست پێبکات */
+            font-size: 12px; /* گەورەکردنی فۆنت */
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* زیادکردنی سێبەرێکی کاڵ */
+            animation: slideAndFade 5s infinite ease-in-out; /* جێبەجێکردنی ئەنیمەیشنی نوێ */
+            animation-delay: 1.5s;
         }
         
-        .shipping-badge span {
-            display: inline-block;
-            padding-right: 0;
-            width: 0;
-            opacity: 0;
-            animation: revealText 4s infinite ease-in-out;
-            animation-delay: 1s; /* لەگەڵ ئایکۆنەکە دەست پێدەکات */
+        .shipping-badge i {
+            margin-left: 6px; /* بۆشایی نێوان ئایکۆن و نووسین */
         }
         
-        /* ئەنیمەیشنی هاتنی ئایکۆنی ئۆتۆمبێل */
-        @keyframes driveIn {
-            0% { transform: translateX(-20px); opacity: 0; }
-            20% { transform: translateX(0); opacity: 1; }
-            80% { transform: translateX(0); opacity: 1; }
-            100% { transform: translateX(20px); opacity: 0; }
+        /* ئەنیمەیشنی نوێ بۆ هەموو ئاڵاکە */
+        @keyframes slideAndFade {
+            0%   { transform: translateX(120%); opacity: 0; }
+            15%  { transform: translateX(0); opacity: 1; }
+            85%  { transform: translateX(0); opacity: 1; }
+            100% { transform: translateX(120%); opacity: 0; }
         }
-        
-        /* ئەنیمەیشنی دەرکەوتنی نووسین */
-        @keyframes revealText {
-            0%, 25% { width: 0; opacity: 0; padding-right: 0; } /* نووسینەکە ونە کاتێک ئۆتۆمبێل دێت */
-            40% { width: auto; opacity: 1; padding-right: 5px; } /* نووسینەکە دەردەکەوێت */
-            80% { width: auto; opacity: 1; padding-right: 5px; } /* نووسینەکە دەمێنێتەوە */
-            100% { width: 0; opacity: 0; padding-right: 0; } /* نووسینەکە ون دەبێت */
-        }
-        /* ======================================================== */
+        /* ============================================================= */
     </style>
 </head>
 <body>
@@ -1456,3 +1433,4 @@
     <script type="module" src="app.js"></script>
 </body>
 </html>
+
