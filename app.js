@@ -1,4 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
@@ -98,6 +99,9 @@ const translations = {
         loading_policies: "...خەریکی بارکردنی ڕێساکانە",
         no_policies_found: "هیچ مەرج و ڕێسایەک دانەنراوە.",
         has_discount_badge: "داشکانی تێدایە",
+        force_update: "ناچارکردن بە نوێکردنەوە (سڕینەوەی کاش)",
+        update_confirm: "دڵنیایت دەتەوێت ئەپەکە نوێ بکەیتەوە؟ هەموو کاشی ناو وێبگەڕەکەت دەسڕدرێتەوە.",
+        update_success: "ئەپەکە بە سەرکەوتوویی نوێکرایەوە!",
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -172,6 +176,9 @@ const translations = {
         loading_policies: "...د بارکرنا سیاسەتان دایە",
         no_policies_found: "چ مەرج و سیاسەت نەهاتینە دانان.",
         has_discount_badge: "داشکان تێدایە",
+        force_update: "ناچارکرن ب نویکرنەوە (ژێبرنا کاشی)",
+        update_confirm: "تو پشتراستی دێ ئەپی نویکەیەڤە؟ دێ هەمی کاش د ناڤ وێبگەرا تە دا هێتە ژێبرن.",
+        update_success: "ئەپ ب سەرکەفتیانە هاتە نویکرن!",
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -246,6 +253,9 @@ const translations = {
         loading_policies: "...جاري تحميل السياسات",
         no_policies_found: "لم يتم تحديد أي شروط أو سياسات.",
         has_discount_badge: "يتضمن خصم",
+        force_update: "فرض التحديث (مسح ذاكرة التخزين المؤقت)",
+        update_confirm: "هل أنت متأكد من رغبتك في تحديث التطبيق؟ سيتم مسح جميع بيانات ذاكرة التخزين المؤقت.",
+        update_success: "تم تحديث التطبيق بنجاح!",
     }
 };
 
@@ -475,6 +485,36 @@ function setLanguage(lang) {
     renderCategoriesSheet();
     if (document.getElementById('cartSheet').classList.contains('show')) renderCart();
     if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPage();
+}
+
+async function forceUpdate() {
+    if (confirm(t('update_confirm'))) {
+        try {
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const registration of registrations) {
+                    await registration.unregister();
+                }
+                console.log('Service Workers unregistered.');
+            }
+
+            if (window.caches) {
+                const keys = await window.caches.keys();
+                await Promise.all(keys.map(key => window.caches.delete(key)));
+                console.log('All caches cleared.');
+            }
+
+            showNotification(t('update_success'), 'success');
+
+            setTimeout(() => {
+                window.location.reload(true);
+            }, 1500);
+
+        } catch (error) {
+            console.error('Error during force update:', error);
+            showNotification(t('error_generic'), 'error');
+        }
+    }
 }
 
 function updateContactLinksUI() {
@@ -857,7 +897,6 @@ function createProductCardElement(product) {
         discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
     }
     
-    // ======== کۆدی نوێکراوە و چاککراو بۆ دروستکردنی ئاڵاکان ========
     let extraInfoHTML = '';
     const shippingText = product.shippingInfo && product.shippingInfo[currentLanguage] && product.shippingInfo[currentLanguage].trim();
 
@@ -870,7 +909,6 @@ function createProductCardElement(product) {
             </div>
         `;
     }
-    // =========================================================
 
     const isProdFavorite = isFavorite(product.id);
     const heartIconClass = isProdFavorite ? 'fas' : 'far';
@@ -1779,8 +1817,6 @@ function setupScrollObserver() {
     observer.observe(trigger);
 }
 
-// ============= NEW/MODIFIED CATEGORY MANAGEMENT FUNCTIONS =============
-
 async function renderCategoryManagementUI() {
     const container = document.getElementById('categoryListContainer');
     if (!container) return;
@@ -1886,13 +1922,10 @@ async function handleDeleteCategory(docPath, categoryName) {
             showNotification('جۆرەکە بە سەرکەوتوویی سڕدرایەوە', 'success');
         } catch (error) {
             console.error("Error deleting category: ", error);
-            showNotification('هەڵەیەک ڕوویدا لە کاتی سڕینەوە', 'error');
+            showNotification('هەڵەیەک ڕوویدا لە کاتی sڕینەوە', 'error');
         }
     }
 }
-
-// ============= END OF NEW/MODIFIED FUNCTIONS =============
-
 
 function setupEventListeners() {
     homeBtn.onclick = () => {
@@ -2353,6 +2386,11 @@ function setupEventListeners() {
     if (enableNotificationsBtn) {
         enableNotificationsBtn.addEventListener('click', requestNotificationPermission);
     }
+    
+    const forceUpdateBtn = document.getElementById('forceUpdateBtn');
+    if(forceUpdateBtn) {
+        forceUpdateBtn.addEventListener('click', forceUpdate);
+    }
 
     onMessage(messaging, (payload) => {
         console.log('Foreground message received: ', payload);
@@ -2441,7 +2479,7 @@ function initializeAppLogic() {
                         
                         subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>...خەریکی بارکردنە</option>';
                         subCatSelectForSubSub.disabled = true;
-    
+
                         const subcategoriesQuery = collection(db, "categories", mainCategoryId, "subcategories");
                         const q = query(subcategoriesQuery, orderBy("order", "asc"));
                         const querySnapshot = await getDocs(q);
@@ -2535,4 +2573,3 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
-
