@@ -6,7 +6,7 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a365d">
@@ -727,116 +727,42 @@
             -ms-user-select: none;
             user-select: none;
         }
+
+        /* ========== ستایلی نوێ بۆ ئاڵاکانی داشکان و گەیاندن ========== */
+        .product-extra-info {
+            display: flex;
+            flex-direction: column; /* وا دەکات ئاڵاکان لەسەر یەک بن */
+            align-items: center;
+            gap: 5px; /* بۆشایی نێوان ئاڵاکان */
+            margin-top: 8px; /* بۆشایی لەگەڵ دوگمەی سەبەتە */
+        }
         
-        /* SLIDER STYLES START */
-        .slider-container {
-            width: calc(100% - 24px);
-            margin: 0 auto 16px auto;
-            position: relative;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            aspect-ratio: 16 / 8;
-            background-color: var(--medium-gray);
-        }
-
-        .slider-wrapper {
-            display: flex;
-            height: 100%;
-            transition: transform 0.5s ease-in-out;
-        }
-
-        .slide {
-            min-width: 100%;
-            height: 100%;
-            position: relative;
-        }
-
-        .slide img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-
-        .slider-nav {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background-color: rgba(0, 0, 0, 0.4);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            font-size: 20px;
-            cursor: pointer;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .slider-nav.prev {
-            left: 10px;
-        }
-
-        .slider-nav.next {
-            right: 10px;
-        }
-
-        .slider-pagination {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 8px;
-            z-index: 10;
-        }
-
-        .pagination-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.6);
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .pagination-dot.active {
-            background-color: white;
-        }
-
-        .admin-slider-item {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            background-color: #fff;
-            padding: 10px;
-            border: 1px solid var(--section-border);
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-        .admin-slider-item img {
-            width: 80px;
-            height: 45px;
-            object-fit: cover;
+        .info-badge {
+            padding: 3px 8px;
             border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
-        .admin-slider-item-info {
-            flex-grow: 1;
-            font-size: 13px;
-            color: var(--text-light);
-            overflow: hidden;
+        
+        .info-badge i {
+            font-size: 10px;
         }
-        .admin-slider-item-info span {
-            display: block;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        
+        .shipping-badge {
+            background-color: #e6f4ea; /* رەنگی سەوزی کاڵ */
+            color: #38a169; /* رەنگی سەوزی تۆخ */
+            border: 1px solid #c6f6d5;
         }
-        /* SLIDER STYLES END */
+        
+        .discount-badge-text {
+            background-color: #fefcbf; /* رەنگی زەردی کاڵ */
+            color: #d69e2e; /* رەنگی زەردی تۆخ */
+            border: 1px solid #faf089;
+        }
+        /* ============================================================= */
     </style>
 </head>
 <body>
@@ -996,14 +922,6 @@
 		</div>
 		
         <main class="main-content page" id="mainPage">
-            <div class="slider-container" id="mainSliderContainer" style="display: none;">
-                <div class="slider-wrapper">
-                    </div>
-                <button class="slider-nav prev" aria-label="Previous slide">&#10094;</button>
-                <button class="slider-nav next" aria-label="Next slide">&#10095;</button>
-                <div class="slider-pagination">
-                    </div>
-            </div>
             <div class="section">
                 <div id="mainCategoriesContainer" class="main-categories-container"></div>
                 <div id="subcategoriesContainer" class="subcategories-container"></div>
@@ -1281,35 +1199,6 @@
                 </div>
             </div>
 
-            <div class="settings-group" id="adminSliderManagement" style="display: none;">
-                <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
-                    <i class="fas fa-images"></i> <span>بەڕێوەبردنی سلایدەری ڕیکلام</span>
-                </h3>
-                <div style="padding: 15px;">
-                    <form id="addSliderForm">
-                        <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی سلایدی نوێ</h4>
-                        <div class="form-group">
-                            <label>لینکی وێنە (URL):</label>
-                            <input type="url" id="sliderImageUrl" placeholder="https://..." required>
-                        </div>
-                        <div class="form-group">
-                            <label>لینکی پەیوەستکراو (ئارەزوومەندانە):</label>
-                            <input type="url" id="sliderLink" placeholder="بۆ نموونە، لینکی کاڵایەک">
-                        </div>
-                        <div class="form-group">
-                            <label>ژمارەی ڕیزبەندی:</label>
-                            <input type="number" id="sliderOrder" value="10" required>
-                        </div>
-                        <button type="submit" style="background-color: var(--primary-color);">پاشەکەوتکردنی سلاید</button>
-                    </form>
-            
-                    <hr style="margin: 25px 0;">
-                    <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">سلایدە زیادکراوەکان</h4>
-                    <div id="slidersListContainer">
-                         <p>...خەریکی بارکردنی سلایدەکانە</p>
-                    </div>
-                </div>
-            </div>
             <div class="settings-group" id="adminSocialMediaManagement" style="display: none;">
                 <div class="settings-item" id="socialMediaToggle">
                     <div>
@@ -1487,6 +1376,20 @@
                         <div class="image-inputs-container" id="imageInputsContainer"></div>
                     </div>
                     <div class="form-group"><label for="productExternalLink">لینکی دەرەکی:</label><input type="text" id="productExternalLink" placeholder="بۆ نموونە، لینکی ڤیدیۆ..."></div>
+                    
+                    <hr style="margin: 20px 0; border-top: 1px solid var(--section-border);">
+                    <div class="form-group">
+                        <label for="shippingInfoKuSorani">زانیاری گەیاندن (سۆرانی):</label>
+                        <input type="text" id="shippingInfoKuSorani" placeholder="بۆ نموونە: گەیاندن خۆڕاییە">
+                    </div>
+                    <div class="form-group">
+                        <label for="shippingInfoKuBadini">زانیاریێن گەهاندنێ (بادینی):</label>
+                        <input type="text" id="shippingInfoKuBadini" placeholder="بۆ نموونە: گەهاندن بێ بەرامبەرە">
+                    </div>
+                    <div class="form-group">
+                        <label for="shippingInfoAr">معلومات التوصيل (عربي):</label>
+                        <input type="text" id="shippingInfoAr" placeholder="مثال: التوصيل مجاني">
+                    </div>
                     <button type="submit">پاشەکەوتکردن</button>
                 </form>
             </div>

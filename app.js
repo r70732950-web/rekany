@@ -14,20 +14,16 @@ const firebaseConfig = {
     measurementId: "G-1PV3DRY2V2"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const messaging = getMessaging(app);
 
-// Firestore Collections
 const productsCollection = collection(db, "products");
 const categoriesCollection = collection(db, "categories");
 const announcementsCollection = collection(db, "announcements");
-const slidersCollection = collection(db, "sliders");
 
-// Translations
 const translations = {
     ku_sorani: {
         search_placeholder: "گەڕان بە ناوی کاڵا...",
@@ -84,7 +80,7 @@ const translations = {
         product_added_to_favorites: "زیادکرا بۆ لیستی دڵخوازەکان",
         product_removed_from_favorites: "لە لیستی دڵخوازەکان سڕدرایەوە",
         manage_categories_title: "بەڕێوەبردنی جۆرەکان",
-        manage_contact_methods_title: "بەڕێوەبردنی شێوازەکانی ناردنی داواکاری",
+		manage_contact_methods_title: "بەڕێوەبردنی شێوازەکانی ناردنی داواکاری",
         notifications_title: "ئاگەهدارییەکان",
         no_notifications_found: "هیچ ئاگەهدارییەک نییە",
         manage_announcements_title: "ناردنی ئاگەهداری گشتی",
@@ -250,7 +246,6 @@ const translations = {
     }
 };
 
-// Global State
 let currentLanguage = localStorage.getItem('language') || 'ku_sorani';
 let deferredPrompt;
 const CART_KEY = "maten_store_cart";
@@ -276,13 +271,6 @@ let currentCategory = 'all';
 let currentSubcategory = 'all';
 let currentSubSubcategory = 'all';
 
-// Slider State
-let sliderInterval;
-let currentSlideIndex = 0;
-let slidesData = [];
-
-
-// DOM Elements
 const loginModal = document.getElementById('loginModal');
 const addProductBtn = document.getElementById('addProductBtn');
 const productFormModal = document.getElementById('productFormModal');
@@ -865,6 +853,20 @@ function createProductCardElement(product) {
         const discountPercentage = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
         discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
     }
+    
+    // ======== کۆدی نوێکراوە بۆ دروستکردنی ئاڵای گەیاندن ========
+    let extraInfoHTML = '';
+    const shippingText = product.shippingInfo && product.shippingInfo[currentLanguage];
+    if (shippingText) {
+        extraInfoHTML = `
+            <div class="product-extra-info">
+                <span class="info-badge shipping-badge">
+                    <i class="fas fa-truck"></i> ${shippingText}
+                </span>
+            </div>
+        `;
+    }
+    // =========================================================
 
     const isProdFavorite = isFavorite(product.id);
     const heartIconClass = isProdFavorite ? 'fas' : 'far';
@@ -885,6 +887,7 @@ function createProductCardElement(product) {
                 <i class="fas fa-cart-plus"></i>
                 <span>${t('add_to_cart')}</span>
             </button>
+            ${extraInfoHTML}
         </div>
         <div class="product-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
             <button class="edit-btn" aria-label="Edit product"><i class="fas fa-edit"></i></button>
@@ -971,6 +974,7 @@ function renderProducts() {
     setupScrollAnimations();
 }
 
+
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     if (isLoadingMoreProducts) return;
     
@@ -1055,6 +1059,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         productsContainer.style.display = 'grid';
     }
 }
+
 
 function addToCart(productId) {
     const product = products.find(p => p.id === productId);
@@ -1202,12 +1207,24 @@ async function editProduct(productId) {
     createProductImageInputs(imageUrls);
     document.getElementById('productExternalLink').value = product.externalLink || '';
     
+    // نوێکردنەوە بۆ پڕکردنەوەی زانیاری گەیاندن
+    if (product.shippingInfo) {
+        document.getElementById('shippingInfoKuSorani').value = product.shippingInfo.ku_sorani || '';
+        document.getElementById('shippingInfoKuBadini').value = product.shippingInfo.ku_badini || '';
+        document.getElementById('shippingInfoAr').value = product.shippingInfo.ar || '';
+    } else {
+        document.getElementById('shippingInfoKuSorani').value = '';
+        document.getElementById('shippingInfoKuBadini').value = '';
+        document.getElementById('shippingInfoAr').value = '';
+    }
+
     await populateSubcategoriesDropdown(categoryId, product.subcategoryId);
     await populateSubSubcategoriesDropdown(categoryId, product.subcategoryId, product.subSubcategoryId);
 
     productForm.querySelector('button[type="submit"]').textContent = 'نوێکردنەوە';
     openPopup('productFormModal', 'modal');
 }
+
 
 async function deleteProduct(productId) {
     if (!confirm(t('delete_confirm'))) return;
@@ -1556,13 +1573,8 @@ function updateAdminUI(isAdmin) {
     document.querySelectorAll('.product-actions').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
     const adminCategoryManagement = document.getElementById('adminCategoryManagement');
     const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
-    const adminSliderManagement = document.getElementById('adminSliderManagement');
-
     if (adminPoliciesManagement) {
         adminPoliciesManagement.style.display = isAdmin ? 'block' : 'none';
-    }
-    if(adminSliderManagement) {
-        adminSliderManagement.style.display = isAdmin ? 'block' : 'none';
     }
     if (adminSocialMediaManagement) adminSocialMediaManagement.style.display = isAdmin ? 'block' : 'none';
     if (adminAnnouncementManagement) {
@@ -1582,9 +1594,6 @@ function updateAdminUI(isAdmin) {
             adminContactMethodsManagement.style.display = 'block';
             renderContactMethodsAdmin();
         }
-        if (adminSliderManagement) {
-             renderAdminSlidersList();
-        }
     } else {
         settingsLogoutBtn.style.display = 'none';
         settingsAdminLoginBtn.style.display = 'flex';
@@ -1594,9 +1603,6 @@ function updateAdminUI(isAdmin) {
         }
         if (adminContactMethodsManagement) {
             adminContactMethodsManagement.style.display = 'none';
-        }
-        if (adminSliderManagement) {
-            adminSliderManagement.style.display = 'none';
         }
     }
 }
@@ -1770,7 +1776,7 @@ function setupScrollObserver() {
     observer.observe(trigger);
 }
 
-// ============= CATEGORY MANAGEMENT FUNCTIONS =============
+// ============= NEW/MODIFIED CATEGORY MANAGEMENT FUNCTIONS =============
 
 async function renderCategoryManagementUI() {
     const container = document.getElementById('categoryListContainer');
@@ -1882,158 +1888,8 @@ async function handleDeleteCategory(docPath, categoryName) {
     }
 }
 
-// ============= SLIDER FUNCTIONS (NEW) =============
+// ============= END OF NEW/MODIFIED FUNCTIONS =============
 
-function renderAdminSlidersList() {
-    const container = document.getElementById('slidersListContainer');
-    const q = query(slidersCollection, orderBy("order", "asc"));
-
-    onSnapshot(q, (snapshot) => {
-        container.innerHTML = '';
-        if (snapshot.empty) {
-            container.innerHTML = `<p style="text-align:center;">هیچ سلایدێک زیاد نەکراوە.</p>`;
-            return;
-        }
-        snapshot.forEach(doc => {
-            const slider = { id: doc.id, ...doc.data() };
-            const item = document.createElement('div');
-            item.className = 'admin-slider-item';
-            item.innerHTML = `
-                <img src="${slider.imageUrl}" alt="Slider Preview">
-                <div class="admin-slider-item-info">
-                    <span><strong>ڕیزبەندی:</strong> ${slider.order}</span>
-                    <span style="direction: ltr;"><strong>URL:</strong> ${slider.link || 'نییە'}</span>
-                </div>
-                <button class="delete-btn"><i class="fas fa-trash"></i></button>
-            `;
-            item.querySelector('.delete-btn').addEventListener('click', async () => {
-                if (confirm('دڵنیایت دەتەوێت ئەم سلایدە بسڕیتەوە؟')) {
-                    await deleteDoc(doc(db, "sliders", slider.id));
-                    showNotification('سلایدەکە سڕدرایەوە', 'success');
-                }
-            });
-            container.appendChild(item);
-        });
-    });
-}
-
-function setupAdminSliderForm() {
-    const addSliderForm = document.getElementById('addSliderForm');
-    if (addSliderForm) {
-        addSliderForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-
-            const sliderData = {
-                imageUrl: document.getElementById('sliderImageUrl').value,
-                link: document.getElementById('sliderLink').value || null,
-                order: parseInt(document.getElementById('sliderOrder').value),
-                isActive: true, 
-                createdAt: Date.now()
-            };
-
-            try {
-                await addDoc(slidersCollection, sliderData);
-                showNotification('سلایدی نوێ زیادکرا', 'success');
-                addSliderForm.reset();
-            } catch (error) {
-                console.error("Error adding slider:", error);
-                showNotification('هەڵەیەک ڕوویدا', 'error');
-            } finally {
-                submitButton.disabled = false;
-            }
-        });
-    }
-}
-
-function showSlide(index) {
-    const sliderWrapper = document.querySelector('.slider-wrapper');
-    const dots = document.querySelectorAll('.pagination-dot');
-
-    if (!sliderWrapper || slidesData.length === 0) return;
-
-    if (index >= slidesData.length) {
-        currentSlideIndex = 0;
-    } else if (index < 0) {
-        currentSlideIndex = slidesData.length - 1;
-    } else {
-        currentSlideIndex = index;
-    }
-
-    sliderWrapper.style.transform = `translateX(-${currentSlideIndex * 100}%)`;
-
-    dots.forEach((dot, dotIndex) => {
-        dot.classList.toggle('active', dotIndex === currentSlideIndex);
-    });
-}
-
-function initSlider() {
-    const sliderContainer = document.getElementById('mainSliderContainer');
-    if (!sliderContainer || slidesData.length === 0) return;
-
-    const prevButton = sliderContainer.querySelector('.slider-nav.prev');
-    const nextButton = sliderContainer.querySelector('.slider-nav.next');
-    const paginationContainer = sliderContainer.querySelector('.slider-pagination');
-    
-    paginationContainer.innerHTML = '';
-
-    slidesData.forEach((_, index) => {
-        const dot = document.createElement('div');
-        dot.className = 'pagination-dot';
-        dot.addEventListener('click', () => {
-            showSlide(index);
-            clearInterval(sliderInterval);
-            sliderInterval = setInterval(() => showSlide(currentSlideIndex + 1), 5000);
-        });
-        paginationContainer.appendChild(dot);
-    });
-
-    prevButton.addEventListener('click', () => showSlide(currentSlideIndex - 1));
-    nextButton.addEventListener('click', () => showSlide(currentSlideIndex + 1));
-
-    clearInterval(sliderInterval);
-    sliderInterval = setInterval(() => showSlide(currentSlideIndex + 1), 5000);
-
-    showSlide(0);
-}
-
-async function fetchAndRenderSlider() {
-    const sliderContainer = document.getElementById('mainSliderContainer');
-    const sliderWrapper = sliderContainer.querySelector('.slider-wrapper');
-    sliderWrapper.innerHTML = '';
-    
-    const q = query(slidersCollection, where("isActive", "==", true), orderBy("order", "asc"));
-    try {
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-            sliderContainer.style.display = 'none';
-            return;
-        }
-
-        slidesData = snapshot.docs.map(doc => doc.data());
-        
-        slidesData.forEach(slideData => {
-            const slideElement = document.createElement('div');
-            slideElement.className = 'slide';
-            if (slideData.link) {
-                slideElement.innerHTML = `<a href="${slideData.link}" target="_blank"><img src="${slideData.imageUrl}" alt="Advertisement"></a>`;
-            } else {
-                slideElement.innerHTML = `<img src="${slideData.imageUrl}" alt="Advertisement">`;
-            }
-            sliderWrapper.appendChild(slideElement);
-        });
-
-        sliderContainer.style.display = 'block';
-        initSlider();
-
-    } catch (error) {
-        console.error("Error fetching sliders:", error);
-        sliderContainer.style.display = 'none';
-    }
-}
-
-// ============= EVENT LISTENERS SETUP =============
 
 function setupEventListeners() {
     homeBtn.onclick = () => {
@@ -2143,7 +1999,12 @@ function setupEventListeners() {
                 description: productDescriptionObject,
                 imageUrls: imageUrls,
                 createdAt: Date.now(),
-                externalLink: document.getElementById('productExternalLink').value || null
+                externalLink: document.getElementById('productExternalLink').value || null,
+                shippingInfo: {
+                    ku_sorani: document.getElementById('shippingInfoKuSorani').value,
+                    ku_badini: document.getElementById('shippingInfoKuBadini').value,
+                    ar: document.getElementById('shippingInfoAr').value
+                }
             };
             if (editingProductId) {
                 const { createdAt, ...updateData } = productData;
@@ -2576,7 +2437,7 @@ function initializeAppLogic() {
                         
                         subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>...خەریکی بارکردنە</option>';
                         subCatSelectForSubSub.disabled = true;
-   
+    
                         const subcategoriesQuery = collection(db, "categories", mainCategoryId, "subcategories");
                         const q = query(subcategoriesQuery, orderBy("order", "asc"));
                         const querySnapshot = await getDocs(q);
@@ -2604,8 +2465,6 @@ function initializeAppLogic() {
     });
 
     searchProductsInFirestore('', true);
-    fetchAndRenderSlider(); 
-    setupAdminSliderForm();
 
     const contactInfoRef = doc(db, "settings", "contactInfo");
     onSnapshot(contactInfoRef, (docSnap) => {
