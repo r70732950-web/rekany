@@ -763,12 +763,20 @@
             100% { transform: translateX(120%); opacity: 0; }
         }
 
-        /* ستایلەکانی بەشی ئۆفەرەکان */
+        /* ستایلی نوێ بۆ هێڵی جیاکەرەوە */
+        .section-separator {
+            border-top: 1px solid var(--medium-gray);
+            margin: 24px 5px 20px 5px;
+        }
+        
+        /* ستایلەکانی بەشی ئۆفەرەکان - دەستکاری کراوە */
         .section-title-horizontal {
             font-size: 18px;
             font-weight: bold;
-            margin-bottom: 12px;
-            padding-right: 5px;
+            margin-bottom: 16px;
+            text-align: center; /* ناونیشانەکە دەهێنێتە ناوەڕاست */
+            color: var(--primary-color);
+            padding-right: 0; 
         }
         .offers-container {
             display: flex;
@@ -781,8 +789,8 @@
             display: none;
         }
         .offer-product-card {
-            flex: 0 0 140px;
-            width: 140px;
+            flex: 0 0 125px; /* قەبارە بچووکتر کرایەوە */
+            width: 125px;    /* پانییەکە بچووکتر کرایەوە */
             display: flex;
             flex-direction: column;
             background-color: white;
@@ -809,14 +817,14 @@
             padding: 8px;
         }
         .offer-product-card .product-info {
-            padding: 10px 8px;
+            padding: 8px;
             text-align: center;
             display: flex;
             flex-direction: column;
             flex-grow: 1;
         }
         .offer-product-card .product-name {
-            font-size: 13px;
+            font-size: 12px; /* فۆنت بچووکتر کرایەوە */
             font-weight: bold;
             white-space: nowrap;
             overflow: hidden;
@@ -832,12 +840,12 @@
             margin-top: auto;
         }
         .offer-product-card .product-price {
-            font-size: 14px;
+            font-size: 13px; /* فۆنت بچووکتر کرایەوە */
             font-weight: bold;
             color: var(--accent-light);
         }
         .offer-product-card .original-price {
-            font-size: 12px;
+            font-size: 11px; /* فۆنت بچووکتر کرایەوە */
             color: var(--dark-gray);
             text-decoration: line-through;
         }
@@ -1007,21 +1015,24 @@
 		
         <main class="main-content page" id="mainPage">
             <div class="section">
-                <div id="offersSection" style="display: none;">
-                    <h3 class="section-title-horizontal" data-translate-key="best_offers_title">باشترین ئۆفەرەکان</h3>
-                    <div id="offersContainer" class="offers-container">
-                        </div>
-                </div>
+                
                 <div id="mainCategoriesContainer" class="main-categories-container"></div>
                 <div id="subcategoriesContainer" class="subcategories-container"></div>
                 <div id="subSubcategoriesContainer" class="subcategories-container" style="padding-top: 0; padding-bottom: 10px;"></div>
                 
+                <div id="offersSection" style="display: none; margin-top: 16px;">
+                    <div class="section-separator"></div>
+                    <h3 class="section-title-horizontal" data-translate-key="best_offers_title">باشترین ئۆفەرەکان</h3>
+                    <div id="offersContainer" class="offers-container">
+                        </div>
+                </div>
+                
                 <div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;" data-translate-key="loading_products">...خەریکی بارکردنی کاڵاکانە</p></div>
                 <div id="skeletonLoader" class="products-container"></div>
                 <div class="products-container" id="productsContainer" style="display: none;"></div>
-
+        
                 <div id="scroll-loader-trigger" style="height: 50px;"></div>
-
+        
             </div>
         </main>
 
