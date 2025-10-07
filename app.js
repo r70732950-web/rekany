@@ -857,18 +857,20 @@ function createProductCardElement(product) {
         discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
     }
     
+    // ======== کۆدی نوێکراوە و چاککراو بۆ دروستکردنی ئاڵاکان ========
     let extraInfoHTML = '';
     const shippingText = product.shippingInfo && product.shippingInfo[currentLanguage] && product.shippingInfo[currentLanguage].trim();
 
     if (shippingText) {
         extraInfoHTML = `
             <div class="product-extra-info">
-                <div class="shipping-badge">
+                <div class="info-badge shipping-badge">
                     <i class="fas fa-truck"></i>${shippingText}
                 </div>
             </div>
         `;
     }
+    // =========================================================
 
     const isProdFavorite = isFavorite(product.id);
     const heartIconClass = isProdFavorite ? 'fas' : 'far';
@@ -885,13 +887,11 @@ function createProductCardElement(product) {
         <div class="product-info">
             <div class="product-name">${nameInCurrentLang}</div>
             ${priceHTML}
-            <div class="product-card-footer">
-                <button class="add-to-cart-btn-card">
-                    <i class="fas fa-cart-plus"></i>
-                    <span>${t('add_to_cart')}</span>
-                </button>
-                ${extraInfoHTML}
-            </div>
+            <button class="add-to-cart-btn-card">
+                <i class="fas fa-cart-plus"></i>
+                <span>${t('add_to_cart')}</span>
+            </button>
+            ${extraInfoHTML}
         </div>
         <div class="product-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
             <button class="edit-btn" aria-label="Edit product"><i class="fas fa-edit"></i></button>
