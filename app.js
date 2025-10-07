@@ -856,25 +856,22 @@ function createProductCardElement(product) {
         const discountPercentage = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
         discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
     }
-
+    
     // ======== کۆدی نوێکراوە و چاککراو بۆ دروستکردنی ئاڵاکان ========
     let extraInfoHTML = '';
     const shippingText = product.shippingInfo && product.shippingInfo[currentLanguage] && product.shippingInfo[currentLanguage].trim();
 
-    if (hasDiscount || shippingText) {
-        extraInfoHTML += '<div class="product-extra-info">';
-
-        if (shippingText) {
-            extraInfoHTML += `<span class="info-badge shipping-badge"><i class="fas fa-truck"></i> ${shippingText}</span>`;
-        }
-        
-        if (hasDiscount) {
-            extraInfoHTML += `<span class="info-badge discount-badge-text"><i class="fas fa-tags"></i> ${t('has_discount_badge')}</span>`;
-        }
-        
-        extraInfoHTML += '</div>';
+    if (shippingText) {
+        extraInfoHTML = `
+            <div class="product-extra-info">
+                <div class="info-badge shipping-badge">
+                    <i class="fas fa-truck"></i>
+                    <span>${shippingText}</span>
+                </div>
+            </div>
+        `;
     }
-    // =======================================================
+    // =========================================================
 
     const isProdFavorite = isFavorite(product.id);
     const heartIconClass = isProdFavorite ? 'fas' : 'far';
