@@ -6,7 +6,7 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a365d">
@@ -762,110 +762,6 @@
             85%  { transform: translateX(0); opacity: 1; }
             100% { transform: translateX(120%); opacity: 0; }
         }
-
-        /* ستایلی نوێ بۆ پاشبنەمای شیری و ڕێکخستنی بەشی ئۆفەرەکان */
-        .offers-subsection {
-            background-color: #f9f7f4; /* ڕەنگی شیری یان کرێمی کاڵ */
-            border-radius: 8px;
-            margin-left: -8px;
-            margin-right: -8px;
-            padding-left: 8px;
-            padding-right: 8px;
-        }
-
-        /* نوێکردنەوەی ستایلی هێڵی جیاکەرەوە بۆ کەمکردنەوەی مەودا */
-        .section-separator {
-            border-top: 1px solid var(--medium-gray);
-            margin: 16px 5px; /* مەودای سەرەوە و خوارەوەی کەمکرایەوە */
-        }
-        
-        /* ستایلەکانی بەشی ئۆفەرەکان - دەستکاری کراوە */
-        .section-title-horizontal {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 16px;
-            text-align: center; 
-            color: var(--primary-color);
-            padding-right: 0; 
-        }
-        .offers-container {
-            display: flex;
-            gap: 10px;
-            overflow-x: auto;
-            padding: 5px 0 15px 0;
-            scrollbar-width: none;
-        }
-        .offers-container::-webkit-scrollbar {
-            display: none;
-        }
-        /* بچووککردنەوەی زیاتری کارتی ئۆفەرەکان */
-        .offer-product-card {
-            flex: 0 0 115px; 
-            width: 115px;    
-            display: flex;
-            flex-direction: column;
-            background-color: white;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid var(--section-border);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .offer-product-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .offer-product-card .product-image-container {
-            width: 100%;
-            aspect-ratio: 1/1;
-            position: relative;
-        }
-        .offer-product-card .product-image {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            padding: 8px;
-        }
-        .offer-product-card .product-info {
-            padding: 6px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
-        }
-        .offer-product-card .product-name {
-            font-size: 11px;
-            font-weight: bold;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            margin-bottom: 4px;
-        }
-        .offer-product-card .product-price-container {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 2px;
-            margin-top: auto;
-        }
-        .offer-product-card .product-price {
-            font-size: 12px;
-            font-weight: bold;
-            color: var(--accent-light);
-        }
-        .offer-product-card .original-price {
-            font-size: 10px;
-            color: var(--dark-gray);
-            text-decoration: line-through;
-        }
-        .offer-product-card .discount-badge {
-            font-size: 11px;
-            padding: 2px 5px;
-            top: 5px;
-            right: 5px;
-        }
     </style>
 </head>
 <body>
@@ -1026,24 +922,16 @@
 		
         <main class="main-content page" id="mainPage">
             <div class="section">
-                
                 <div id="mainCategoriesContainer" class="main-categories-container"></div>
                 <div id="subcategoriesContainer" class="subcategories-container"></div>
                 <div id="subSubcategoriesContainer" class="subcategories-container" style="padding-top: 0; padding-bottom: 10px;"></div>
                 
-                <div id="offersSection" class="offers-subsection" style="display: none;">
-                    <div class="section-separator"></div>
-                    <h3 class="section-title-horizontal" data-translate-key="best_offers_title">باشترین ئۆفەرەکان</h3>
-                    <div id="offersContainer" class="offers-container">
-                        </div>
-                    <div class="section-separator"></div> </div>
-                
                 <div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;" data-translate-key="loading_products">...خەریکی بارکردنی کاڵاکانە</p></div>
                 <div id="skeletonLoader" class="products-container"></div>
                 <div class="products-container" id="productsContainer" style="display: none;"></div>
-        
+
                 <div id="scroll-loader-trigger" style="height: 50px;"></div>
-        
+
             </div>
         </main>
 
@@ -1494,13 +1382,8 @@
                         <div class="image-inputs-container" id="imageInputsContainer"></div>
                     </div>
                     <div class="form-group"><label for="productExternalLink">لینکی دەرەکی:</label><input type="text" id="productExternalLink" placeholder="بۆ نموونە، لینکی ڤیدیۆ..."></div>
-                    <hr style="margin: 20px 0; border-top: 1px solid var(--section-border);">
-
-                    <div class="form-group" style="display: flex; align-items: center; gap: 10px; user-select: none;">
-                        <input type="checkbox" id="productIsSpecialOffer" style="width: 20px; height: 20px; cursor: pointer;">
-                        <label for="productIsSpecialOffer" style="margin-bottom: 0; cursor: pointer;" data-translate-key="special_offer_label">کردنە ئۆفەری تایبەت (لە بەشی ئۆفەرەکان دەرکەوێت)</label>
-                    </div>
                     
+                    <hr style="margin: 20px 0; border-top: 1px solid var(--section-border);">
                     <div class="form-group">
                         <label for="shippingInfoKuSorani">زانیاری گەیاندن (سۆرانی):</label>
                         <input type="text" id="shippingInfoKuSorani" placeholder="بۆ نموونە: گەیاندن خۆڕاییە">
@@ -1552,3 +1435,4 @@
     <script type="module" src="app.js"></script>
 </body>
 </html>
+

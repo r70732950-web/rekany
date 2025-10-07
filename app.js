@@ -101,8 +101,6 @@ const translations = {
         force_update: "ناچارکردن بە نوێکردنەوە (سڕینەوەی کاش)",
         update_confirm: "دڵنیایت دەتەوێت ئەپەکە نوێ بکەیتەوە؟ هەموو کاشی ناو وێبگەڕەکەت دەسڕدرێتەوە.",
         update_success: "ئەپەکە بە سەرکەوتوویی نوێکرایەوە!",
-        best_offers_title: "باشترین ئۆفەرەکان",
-        special_offer_label: "کردنە ئۆفەری تایبەت (لە بەشی ئۆفەرەکان دەرکەوێت)",
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -180,8 +178,6 @@ const translations = {
         force_update: "ناچارکرن ب نویکرنەوە (ژێبرنا کاشی)",
         update_confirm: "تو پشتراستی دێ ئەپی نویکەیەڤە؟ دێ هەمی کاش د ناڤ وێبگەرا تە دا هێتە ژێبرن.",
         update_success: "ئەپ ب سەرکەفتیانە هاتە نویکرن!",
-        best_offers_title: "باشترین ئۆفەر",
-        special_offer_label: "بکە ئۆفەرەکا تایبەت (دێ د پشکا ئۆفەران دا دیار بیت)",
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -259,8 +255,6 @@ const translations = {
         force_update: "فرض التحديث (مسح ذاكرة التخزين المؤقت)",
         update_confirm: "هل أنت متأكد من رغبتك في تحديث التطبيق؟ سيتم مسح جميع بيانات ذاكرة التخزين المؤقت.",
         update_success: "تم تحديث التطبيق بنجاح!",
-        best_offers_title: "أفضل العروض",
-        special_offer_label: "جعله عرضًا خاصًا (يظهر في قسم العروض)",
     }
 };
 
@@ -344,77 +338,6 @@ const adminPoliciesManagement = document.getElementById('adminPoliciesManagement
 const policiesForm = document.getElementById('policiesForm');
 const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
 
-function createOfferProductCard(product) {
-    const offerCard = document.createElement('div');
-    offerCard.className = 'offer-product-card';
-
-    const nameInCurrentLang = (product.name && product.name[currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
-    const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || 'https://placehold.co/300x300/e2e8f0/2d3748?text=No+Image');
-
-    let priceHTML = `<div class="product-price-container"><div class="product-price">${product.price.toLocaleString()} د.ع.</div></div>`;
-    let discountBadgeHTML = '';
-    const hasDiscount = product.originalPrice && product.originalPrice > product.price;
-
-    if (hasDiscount) {
-        priceHTML = `<div class="product-price-container"><span class="product-price">${product.price.toLocaleString()} د.ع.</span><del class="original-price">${product.originalPrice.toLocaleString()}</del></div>`;
-        const discountPercentage = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
-        discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
-    }
-
-    offerCard.innerHTML = `
-        <div class="product-image-container">
-            <img src="${mainImage}" alt="${nameInCurrentLang}" class="product-image" loading="lazy">
-            ${discountBadgeHTML}
-        </div>
-        <div class="product-info">
-            <div class="product-name">${nameInCurrentLang}</div>
-            ${priceHTML}
-        </div>
-    `;
-    
-    offerCard.addEventListener('click', () => {
-        if (!products.some(p => p.id === product.id)) {
-             products.push(product);
-        }
-        showProductDetails(product.id);
-    });
-
-    return offerCard;
-}
-
-async function fetchAndRenderOffers() {
-    const offersSection = document.getElementById('offersSection');
-    const offersContainer = document.getElementById('offersContainer');
-    if (!offersSection || !offersContainer) return;
-
-    try {
-        const q = query(
-            productsCollection,
-            where("isSpecialOffer", "==", true),
-            orderBy("createdAt", "desc"),
-            limit(15)
-        );
-
-        const querySnapshot = await getDocs(q);
-        const offerProducts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        if (offerProducts.length === 0) {
-            offersSection.style.display = 'none';
-            return;
-        }
-
-        offersContainer.innerHTML = '';
-        offerProducts.forEach(product => {
-            const offerCard = createOfferProductCard(product);
-            offersContainer.appendChild(offerCard);
-        });
-        offersSection.style.display = 'block';
-
-    } catch (error) {
-        console.error("Error fetching special offer products:", error);
-        offersSection.style.display = 'none';
-    }
-}
 
 function debounce(func, delay = 500) {
     let timeout;
@@ -1325,8 +1248,6 @@ async function editProduct(productId) {
     createProductImageInputs(imageUrls);
     document.getElementById('productExternalLink').value = product.externalLink || '';
     
-    document.getElementById('productIsSpecialOffer').checked = product.isSpecialOffer || false;
-    
     if (product.shippingInfo) {
         document.getElementById('shippingInfoKuSorani').value = product.shippingInfo.ku_sorani || '';
         document.getElementById('shippingInfoKuBadini').value = product.shippingInfo.ku_badini || '';
@@ -2114,7 +2035,6 @@ function setupEventListeners() {
                 imageUrls: imageUrls,
                 createdAt: Date.now(),
                 externalLink: document.getElementById('productExternalLink').value || null,
-                isSpecialOffer: document.getElementById('productIsSpecialOffer').checked,
                 shippingInfo: {
                     ku_sorani: document.getElementById('shippingInfoKuSorani').value.trim(),
                     ku_badini: document.getElementById('shippingInfoKuBadini').value.trim(),
@@ -2523,8 +2443,6 @@ function init() {
 }
 
 function initializeAppLogic() {
-    fetchAndRenderOffers();
-
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     onSnapshot(categoriesQuery, (snapshot) => {
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -2654,3 +2572,5 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
+maten
+
