@@ -311,8 +311,6 @@ async function handleDeleteCategory(docPath, categoryName) {
     const confirmation = confirm(`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە.`);
     if (confirmation) {
         try {
-            // Firestore does not automatically delete subcollections, this requires more complex logic (e.g., a cloud function)
-            // For the client, we just delete the document.
             await deleteDoc(doc(db, docPath));
             showNotification('جۆرەکە بە سەرکەوتوویی سڕدرایەوە', 'success');
         } catch (error) {
