@@ -4,9 +4,6 @@ import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from
 import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
-// تکایە ئاگاداربە: بۆ پاراستنی ئەپەکەت، پێویستە Firestore Security Rules لەناو کۆنسۆڵی فایەربەیس دابنێیت.
-// بەبێ ئەم یاسایانە، هەر کەسێک دەتوانێت دەستکاری داتابەیسەکەت بکات.
-
 const firebaseConfig = {
     apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE",
     authDomain: "maten-store.firebaseapp.com",
@@ -104,6 +101,7 @@ const translations = {
         force_update: "ناچارکردن بە نوێکردنەوە (سڕینەوەی کاش)",
         update_confirm: "دڵنیایت دەتەوێت ئەپەکە نوێ بکەیتەوە؟ هەموو کاشی ناو وێبگەڕەکەت دەسڕدرێتەوە.",
         update_success: "ئەپەکە بە سەرکەوتوویی نوێکرایەوە!",
+        manage_banners_title: "بەڕێوەبردنی ڕیکلامەکان",
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -180,7 +178,8 @@ const translations = {
         has_discount_badge: "داشکان تێدایە",
         force_update: "ناچارکرن ب نویکرنەوە (ژێبرنا کاشی)",
         update_confirm: "تو پشتراستی دێ ئەپی نویکەیەڤە؟ دێ هەمی کاش د ناڤ وێبگەرا تە دا هێتە ژێبرن.",
-        update_success: "ئەپ ب سەرکەفتیانە هاتە نویکرن!",
+        update_success: "ئەپ ب سەرکەfتیانە هاتە نویکرن!",
+        manage_banners_title: "رێکخستنا رێکلامان",
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -258,6 +257,7 @@ const translations = {
         force_update: "فرض التحديث (مسح ذاكرة التخزين المؤقت)",
         update_confirm: "هل أنت متأكد من رغبتك في تحديث التطبيق؟ سيتم مسح جميع بيانات ذاكرة التخزين المؤقت.",
         update_success: "تم تحديث التطبيق بنجاح!",
+        manage_banners_title: "إدارة الإعلانات",
     }
 };
 
@@ -282,31 +282,12 @@ let allProductsLoaded = false;
 const PRODUCTS_PER_PAGE = 25;
 let mainPageScrollPosition = 0;
 
+let adBanners = [];
+let editingBannerId = null;
+
 let currentCategory = 'all';
 let currentSubcategory = 'all';
 let currentSubSubcategory = 'all';
-
-// نموونەیەک بۆ داتای کارتە تایبەتەکان - دەتوانیت ئەمە لە فایەربەیسەوە بهێنیت
-const featuredItemsData = [
-    {
-        title: { ku_sorani: "داشکاندنی گەورە", ku_badini: "داشکانەکا مەزن", ar: "خصومات كبيرة" },
-        subtitle: { ku_sorani: "هەموو جلوبەرگەکان تا ٥٠٪", ku_badini: "هەمی جلوبەرگ تا ٥٠٪", ar: "كل الملابس حتى ٥٠٪" },
-        backgroundColor: "linear-gradient(45deg, #ff8c00, #ff0080)",
-        link: "#" // لێرە دەتوانیت لینکی بەشێک یان کاڵایەک دابنێیت
-    },
-    {
-        title: { ku_sorani: "کاڵای نوێ گەیشت", ku_badini: "کاڵایێ نوو گەهشت", ar: "وصلت منتجات جديدة" },
-        subtitle: { ku_sorani: "سەیری کۆلێکشنە نوێیەکەمان بکە", ku_badini: "بەرێخۆدە کۆلێکشنێ نوو", ar: "شاهد مجموعتنا الجديدة" },
-        backgroundColor: "linear-gradient(45deg, #4158D0, #C850C0)",
-        link: "#"
-    },
-    {
-        title: { ku_sorani: "گەیاندن بەخۆڕایی", ku_badini: "گەهاندن بێ بەرامبەرە", ar: "توصيل مجاني" },
-        subtitle: { ku_sorani: "بۆ داواکاری سەروو ٥٠ هەزار", ku_badini: "بۆ داخازیێن سەر ٥٠ هزارا", ar: "للطلبات فوق ٥٠ ألف" },
-        backgroundColor: "linear-gradient(45deg, #00c6ff, #0072ff)",
-        link: "#"
-    }
-];
 
 const loginModal = document.getElementById('loginModal');
 const addProductBtn = document.getElementById('addProductBtn');
@@ -504,7 +485,6 @@ function setLanguage(lang) {
     const fetchedCategories = categories.filter(cat => cat.id !== 'all');
     categories = [{ id: 'all', name: t('all_categories_label'), icon: 'fas fa-th' }, ...fetchedCategories];
 
-    renderFeaturedCards(); // نوێکردنەوەی زمانی کارتە تایبەتەکان
     renderProducts();
     renderMainCategories();
     renderCategoriesSheet();
@@ -1033,11 +1013,26 @@ function renderProducts() {
 	if (!products || products.length === 0) {
 		return;
 	}
-    products.forEach(product => {
+
+    const adPositions = [4, 12, 20]; // شوێنی دەرکەوتنی ڕیکلامەکان
+    let adIndex = 0;
+
+    products.forEach((product, productIndex) => {
+        // زیادکردنی کارتی کاڵا
         const productCard = createProductCardElement(product);
-		productCard.classList.add('product-card-reveal');
+        productCard.classList.add('product-card-reveal');
         productsContainer.appendChild(productCard);
+
+        // زیادکردنی کارتی ڕیکلام لە شوێنی دیاریکراو
+        if (adPositions.includes(productIndex + 1)) {
+            if (adBanners[adIndex]) {
+                const bannerElement = createAdBannerElement(adBanners[adIndex]);
+                productsContainer.appendChild(bannerElement);
+                adIndex++;
+            }
+        }
     });
+
     setupScrollAnimations();
 }
 
@@ -1077,7 +1072,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
              q = query(q, 
                 where('searchableName', '>=', finalSearchTerm), 
                 where('searchableName', '<=', finalSearchTerm + '\uf8ff')
-              );
+               );
         }
         
         if (finalSearchTerm) {
@@ -1639,13 +1634,17 @@ function updateAdminUI(isAdmin) {
     document.querySelectorAll('.product-actions').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
     const adminCategoryManagement = document.getElementById('adminCategoryManagement');
     const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
+    const adminBannersManagement = document.getElementById('adminBannersManagement');
+
     if (adminPoliciesManagement) {
         adminPoliciesManagement.style.display = isAdmin ? 'block' : 'none';
     }
     if (adminSocialMediaManagement) adminSocialMediaManagement.style.display = isAdmin ? 'block' : 'none';
     if (adminAnnouncementManagement) {
         adminAnnouncementManagement.style.display = isAdmin ? 'block' : 'none';
-        if (isAdmin) renderAdminAnnouncementsList();
+    }
+    if (adminBannersManagement) {
+        adminBannersManagement.style.display = isAdmin ? 'block' : 'none';
     }
 
     if (isAdmin) {
@@ -1660,6 +1659,10 @@ function updateAdminUI(isAdmin) {
             adminContactMethodsManagement.style.display = 'block';
             renderContactMethodsAdmin();
         }
+        if (adminAnnouncementManagement) renderAdminAnnouncementsList();
+        renderAdminBannersList();
+        populateBannerCategoryDropdown();
+        createBannerImageInputs('bannerImageInputsContainer');
     } else {
         settingsLogoutBtn.style.display = 'none';
         settingsAdminLoginBtn.style.display = 'flex';
@@ -1952,33 +1955,193 @@ async function handleDeleteCategory(docPath, categoryName) {
     }
 }
 
-// زیادکردنی فەنکشنی نوێ بۆ دروستکردنی کارتە تایبەتەکان
-function renderFeaturedCards() {
-    const container = document.getElementById('featuredContainer');
-    if (!container) return;
+// ============== BANNER MANAGEMENT FUNCTIONS ==============
 
-    container.innerHTML = ''; // پاککردنەوەی کۆنتەینەر
+function createAdBannerElement(bannerData) {
+    const card = document.createElement('div');
+    card.className = 'ad-banner-card';
+    card.dataset.targetCategory = bannerData.targetCategoryId;
 
-    featuredItemsData.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'featured-card';
-        card.style.background = item.backgroundColor;
-        card.onclick = () => {
-            // لێرە دەتوانیت کارێک بکەیت کاتێک کلیک لە کارتەکە کرا، بۆ نموونە کردنەوەی لینکێک
-            // window.location.href = item.link;
-            console.log(`Card clicked: ${item.link}`);
-        };
+    const title = bannerData.title[currentLanguage] || bannerData.title.ku_sorani;
 
-        const title = item.title[currentLanguage] || item.title.ku_sorani;
-        const subtitle = item.subtitle[currentLanguage] || item.subtitle.ku_sorani;
+    let imagesHTML = '';
+    let dotsHTML = '';
+    bannerData.imageUrls.forEach((url, index) => {
+        imagesHTML += `<img src="${url}" alt="${title}" class="${index === 0 ? 'active' : ''}">`;
+        dotsHTML += `<div class="ad-banner-dot ${index === 0 ? 'active' : ''}" data-index="${index}"></div>`;
+    });
 
-        card.innerHTML = `
-            <h3 class="featured-title">${title}</h3>
-            <p class="featured-subtitle">${subtitle}</p>
-        `;
-        container.appendChild(card);
+    card.innerHTML = `
+        <div class="ad-banner-slider">
+            ${imagesHTML}
+            <div class="ad-banner-dots">
+                ${dotsHTML}
+            </div>
+        </div>
+        <div class="ad-banner-info">
+            <h3 class="ad-banner-title">${title}</h3>
+            <span class="ad-banner-cta">${t('nav_categories')}</span>
+        </div>
+    `;
+
+    let currentIndex = 0;
+    const images = card.querySelectorAll('.ad-banner-slider img');
+    const dots = card.querySelectorAll('.ad-banner-dot');
+
+    function showSlide(index) {
+        images.forEach(img => img.classList.remove('active'));
+        dots.forEach(dot => dot.classList.remove('active'));
+        if (images[index]) images[index].classList.add('active');
+        if (dots[index]) dots[index].classList.add('active');
+        currentIndex = index;
+    }
+
+    setInterval(() => {
+        const nextIndex = (currentIndex + 1) % images.length;
+        showSlide(nextIndex);
+    }, 4000);
+
+    card.addEventListener('click', () => {
+        const categoryId = card.dataset.targetCategory;
+        if (categoryId) {
+            currentCategory = categoryId;
+            currentSubcategory = 'all';
+            currentSubSubcategory = 'all';
+            
+            showPage('mainPage');
+            renderMainCategories();
+            renderSubcategories(categoryId);
+            searchProductsInFirestore('', true);
+            window.scrollTo(0, 0);
+        }
+    });
+
+    return card;
+}
+
+async function loadAdBanners() {
+    try {
+        const adBannersCollection = collection(db, "adBanners");
+        const q = query(adBannersCollection, where("isActive", "==", true), orderBy("order", "asc"));
+        const snapshot = await getDocs(q);
+        
+        adBanners = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log("Ad Banners loaded:", adBanners.length);
+    } catch (error) {
+        console.error("Error loading ad banners:", error);
+        adBanners = [];
+    }
+}
+
+function createBannerImageInputs(containerId, imageUrls = []) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    for (let i = 0; i < 3; i++) {
+        const url = imageUrls[i] || '';
+        const inputGroup = document.createElement('div');
+        inputGroup.className = 'image-input-group';
+        inputGroup.innerHTML = `<input type="text" class="bannerImageUrl" placeholder="لینکی وێنەی ${i + 1}" value="${url}"><img src="${url || 'https://placehold.co/40x40'}" class="image-preview-small">`;
+        container.appendChild(inputGroup);
+    }
+}
+
+async function deleteBanner(bannerId) {
+    if (confirm('دڵنیایت دەتەوێت ئەم ڕیکلامە بسڕیتەوە؟')) {
+        try {
+            await deleteDoc(doc(db, "adBanners", bannerId));
+            showNotification('ڕیکلامەکە سڕدرایەوە', 'success');
+        } catch (error) {
+            console.error("Error deleting banner:", error);
+            showNotification('هەڵەیەک ڕوویدا', 'error');
+        }
+    }
+}
+
+function editBanner(banner) {
+    editingBannerId = banner.id;
+    document.getElementById('editingBannerId').value = banner.id;
+    
+    document.getElementById('bannerTitleKuSorani').value = banner.title.ku_sorani || '';
+    document.getElementById('bannerTitleKuBadini').value = banner.title.ku_badini || '';
+    document.getElementById('bannerTitleAr').value = banner.title.ar || '';
+    
+    createBannerImageInputs('bannerImageInputsContainer', banner.imageUrls);
+    
+    document.getElementById('bannerTargetCategory').value = banner.targetCategoryId;
+    document.getElementById('bannerOrder').value = banner.order;
+    document.getElementById('bannerIsActive').checked = banner.isActive;
+
+    document.getElementById('bannerFormTitle').textContent = 'دەستکاریکردنی ڕیکلام';
+    document.getElementById('bannerSubmitBtn').textContent = 'نوێکردنەوەی ڕیکلام';
+    document.getElementById('cancelEditBannerBtn').style.display = 'block';
+
+    document.getElementById('bannerForm').scrollIntoView({ behavior: 'smooth' });
+}
+
+function resetBannerForm() {
+    editingBannerId = null;
+    document.getElementById('bannerForm').reset();
+    createBannerImageInputs('bannerImageInputsContainer');
+    
+    document.getElementById('bannerFormTitle').textContent = 'زیادکردنی ڕیکلامی نوێ';
+    document.getElementById('bannerSubmitBtn').textContent = 'زیادکردنی ڕیکلام';
+    document.getElementById('cancelEditBannerBtn').style.display = 'none';
+}
+
+function renderAdminBannersList() {
+    const container = document.getElementById('bannersListContainer');
+    const q = query(collection(db, "adBanners"), orderBy("order", "asc"));
+
+    onSnapshot(q, (snapshot) => {
+        container.innerHTML = '';
+        if (snapshot.empty) {
+            container.innerHTML = '<p>هیچ ڕیکلامێک تۆمار نەکراوە.</p>';
+            return;
+        }
+
+        snapshot.forEach(docSnap => {
+            const banner = { id: docSnap.id, ...docSnap.data() };
+            const item = document.createElement('div');
+            item.className = 'admin-list-item';
+
+            const title = banner.title.ku_sorani || 'بێ ناونیشان';
+            const status = banner.isActive ? '<span style="color: green;">چالاک</span>' : '<span style="color: red;">ناچالاک</span>';
+
+            item.innerHTML = `
+                <div class="admin-list-item-info">
+                    <img src="${banner.imageUrls[0] || 'https://placehold.co/45x45'}" alt="Banner Preview">
+                    <div>
+                        <span>${title}</span>
+                        <div style="font-size: 12px; color: #555;">ڕیزبەندی: ${banner.order} | ${status}</div>
+                    </div>
+                </div>
+                <div class="admin-list-item-actions">
+                    <button class="edit-btn"><i class="fas fa-edit"></i></button>
+                    <button class="delete-btn"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+
+            item.querySelector('.edit-btn').addEventListener('click', () => editBanner(banner));
+            item.querySelector('.delete-btn').addEventListener('click', () => deleteBanner(banner.id));
+            container.appendChild(item);
+        });
     });
 }
+
+function populateBannerCategoryDropdown() {
+    const select = document.getElementById('bannerTargetCategory');
+    select.innerHTML = '<option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>';
+    const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
+    categoriesWithoutAll.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat.id;
+        option.textContent = cat.name_ku_sorani || cat.name;
+        select.appendChild(option);
+    });
+}
+
+
+// ============== END BANNER FUNCTIONS ==============
 
 function setupEventListeners() {
     homeBtn.onclick = () => {
@@ -2444,6 +2607,71 @@ function setupEventListeners() {
     if(forceUpdateBtn) {
         forceUpdateBtn.addEventListener('click', forceUpdate);
     }
+    
+    const bannerForm = document.getElementById('bannerForm');
+    const cancelEditBannerBtn = document.getElementById('cancelEditBannerBtn');
+
+    if (bannerForm) {
+        bannerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitButton = document.getElementById('bannerSubmitBtn');
+            submitButton.disabled = true;
+
+            const imageUrls = Array.from(document.querySelectorAll('.bannerImageUrl'))
+                .map(input => input.value.trim())
+                .filter(url => url);
+
+            if (imageUrls.length === 0) {
+                showNotification('پێویستە بەلایەنی کەمەوە لینکی یەک وێنە دابنێیت', 'error');
+                submitButton.disabled = false;
+                return;
+            }
+
+            const bannerData = {
+                title: {
+                    ku_sorani: document.getElementById('bannerTitleKuSorani').value,
+                    ku_badini: document.getElementById('bannerTitleKuBadini').value,
+                    ar: document.getElementById('bannerTitleAr').value,
+                },
+                imageUrls: imageUrls,
+                targetCategoryId: document.getElementById('bannerTargetCategory').value,
+                order: parseInt(document.getElementById('bannerOrder').value),
+                isActive: document.getElementById('bannerIsActive').checked,
+            };
+
+            try {
+                if (editingBannerId) {
+                    await updateDoc(doc(db, "adBanners", editingBannerId), bannerData);
+                    showNotification('ڕیکلامەکە نوێکرایەوە', 'success');
+                } else {
+                    bannerData.createdAt = Date.now();
+                    await addDoc(collection(db, "adBanners"), bannerData);
+                    showNotification('ڕیکلامی نوێ زیادکرا', 'success');
+                }
+                resetBannerForm();
+            } catch (error) {
+                console.error("Error saving banner:", error);
+                showNotification('هەڵەیەک ڕوویدا', 'error');
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+    }
+
+    if (cancelEditBannerBtn) {
+        cancelEditBannerBtn.addEventListener('click', resetBannerForm);
+    }
+    
+    document.getElementById('bannerImageInputsContainer')?.addEventListener('input', (e) => {
+        if (e.target.classList.contains('bannerImageUrl')) {
+            const previewImg = e.target.nextElementSibling;
+            if (e.target.value) {
+                previewImg.src = e.target.value;
+            } else {
+                previewImg.src = 'https://placehold.co/40x40';
+            }
+        }
+    });
 
     onMessage(messaging, (payload) => {
         console.log('Foreground message received: ', payload);
@@ -2496,7 +2724,9 @@ function init() {
         });
 }
 
-function initializeAppLogic() {
+async function initializeAppLogic() {
+    await loadAdBanners();
+
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     onSnapshot(categoriesQuery, (snapshot) => {
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -2508,6 +2738,7 @@ function initializeAppLogic() {
         if (isAdmin) {
             populateParentCategorySelect();
             renderCategoryManagementUI();
+            populateBannerCategoryDropdown();
             
             const mainCatSelectForSubSub = document.getElementById('parentMainCategorySelectForSubSub');
             const subCatSelectForSubSub = document.getElementById('parentSubcategorySelectForSubSub');
@@ -2555,74 +2786,3 @@ function initializeAppLogic() {
                 }
             }
         }
-
-        setLanguage(currentLanguage);
-    });
-
-    searchProductsInFirestore('', true);
-
-    const contactInfoRef = doc(db, "settings", "contactInfo");
-    onSnapshot(contactInfoRef, (docSnap) => {
-        if (docSnap.exists()) {
-            contactInfo = docSnap.data();
-            updateContactLinksUI();
-        } else {
-            console.log("No contact info document found!");
-        }
-    });
-
-    updateCartCount();
-    setupEventListeners();
-    setupScrollObserver();
-    renderFeaturedCards(); // بانگکردنی فەنکشنی نوێ لێرە
-    renderSocialMediaLinks();
-    renderContactLinks();
-    checkNewAnnouncements();
-    showWelcomeMessage();
-    setupGpsButton();
-    handleInitialPageLoad();
-}
-
-
-document.addEventListener('DOMContentLoaded', init);
-
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    const installBtn = document.getElementById('installAppBtn');
-    if (installBtn) {
-        installBtn.style.display = 'flex';
-    }
-});
-
-if ('serviceWorker' in navigator) {
-    const updateNotification = document.getElementById('update-notification');
-    const updateNowBtn = document.getElementById('update-now-btn');
-
-    navigator.serviceWorker.register('/sw.js').then(registration => {
-        console.log('Service Worker registered successfully.');
-
-        registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            console.log('New service worker found!', newWorker);
-
-            newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    updateNotification.classList.add('show');
-                }
-            });
-        });
-
-        updateNowBtn.addEventListener('click', () => {
-            registration.waiting.postMessage({ action: 'skipWaiting' });
-        });
-
-    }).catch(err => {
-        console.log('Service Worker registration failed: ', err);
-    });
-
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-        console.log('New Service Worker activated. Reloading page...');
-        window.location.reload();
-    });
-}
