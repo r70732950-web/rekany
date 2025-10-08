@@ -238,6 +238,7 @@
         @keyframes shimmer { 0% { background-position: -468px 0; } 100% { background-position: 468px 0; } }
         @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         @keyframes slideAndFade { 0% { transform: translateX(120%); opacity: 0; } 15% { transform: translateX(0); opacity: 1; } 85% { transform: translateX(0); opacity: 1; } 100% { transform: translateX(120%); opacity: 0; } }
+
         .product-card-reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.5s ease-out, transform 0.5s ease-out; }
         .product-card-reveal.visible { opacity: 1; transform: translateY(0); }
     </style>
@@ -374,7 +375,7 @@
 			<div class="sheet-content"><div id="termsContentContainer" style="line-height: 1.8; color: var(--text-light);"><p data-translate-key="loading_policies"></p></div></div>
 		</div>
 		
-                <main class="main-content page" id="mainPage">
+        <main class="main-content page" id="mainPage">
             <div class="section">
                 <div id="mainCategoriesContainer" class="main-categories-container"></div>
                 <div id="subcategoriesContainer" class="subcategories-container"></div>
@@ -387,10 +388,10 @@
             </div>
         </main>
 
-                <div class="settings-page page page-hidden" id="settingsPage">
+        <div class="settings-page page page-hidden" id="settingsPage">
             <h3 style="margin-bottom: 15px;"><i class="fas fa-cog"></i> <span data-translate-key="settings_title"></span></h3>
             
-                        <div class="settings-group">
+            <div class="settings-group">
                 <div class="settings-item">
                     <div><i class="fas fa-language" style="margin-left: 10px;"></i><span data-translate-key="language_label"></span></div>
                     <div class="language-selector"><button class="lang-btn" data-lang="ku_sorani">سۆرانی</button><button class="lang-btn" data-lang="ku_badini">بادینی</button><button class="lang-btn" data-lang="ar">عربي</button></div>
@@ -420,7 +421,7 @@
                 <div class="settings-item" id="settingsLogoutBtn" style="display: none;"><div><i class="fas fa-sign-out-alt" style="margin-left: 10px;"></i><span data-translate-key="logout_nav"></span></div><i class="fas fa-chevron-left"></i></div>
             </div>
 
-                        <div class="settings-group" id="adminPoliciesManagement" style="display: none;">
+            <div class="settings-group" id="adminPoliciesManagement" style="display: none;">
                 <h3 class="section-title" style="margin:0; border-radius:0; box-shadow:none;"><i class="fas fa-edit"></i> <span data-translate-key="manage_policies_title"></span></h3>
                 <div style="padding: 15px;">
                     <form id="policiesForm">
