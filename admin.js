@@ -311,11 +311,13 @@ async function handleDeleteCategory(docPath, categoryName) {
     const confirmation = confirm(`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە.`);
     if (confirmation) {
         try {
+            // Firestore does not automatically delete subcollections, this requires more complex logic (e.g., a cloud function)
+            // For the client, we just delete the document.
             await deleteDoc(doc(db, docPath));
             showNotification('جۆرەکە بە سەرکەوتوویی سڕدرایەوە', 'success');
         } catch (error) {
             console.error("Error deleting category: ", error);
-            showNotification('هەڵەیەک ڕوویدا لە کاتی sڕینەوە', 'error');
+            showNotification('هەڵەیەک ڕوویدا لە کاتی سڕینەوە', 'error');
         }
     }
 }
@@ -540,7 +542,6 @@ export function initializeAdminPanel() {
                 submitButton.textContent = editingProductId ? 'نوێکردنەوە' : 'پاشەکەوتکردن';
                 return;
             }
-
             const productNameKuSorani = document.getElementById('productNameKuSorani').value;
             const productData = {
                 name: {
