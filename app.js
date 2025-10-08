@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebas
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, enableIndexedDbPersistence, collection, doc, onSnapshot, query, orderBy, getDocs, limit, getDoc, where, startAfter, setDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
+import { getMessaging, getToken, onMessage, isSupported } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js"; // زیادکردنی isSupported
 
 const firebaseConfig = {
     apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE",
@@ -14,14 +14,14 @@ const firebaseConfig = {
     measurementId: "G-1PV3DRY2V2"
 };
 
-// Initialize Firebase and export necessary modules
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-const messaging = getMessaging(app);
+let messaging; // لێرەدا تەنها پێناسەی دەکەین
 
-// Export collections for admin.js
+// Export collections
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
@@ -527,8 +527,13 @@ function updateActiveNav(activeBtnId) {
 }
 
 async function requestNotificationPermission() {
-    console.log('Requesting notification permission...');
     try {
+        const supported = await isSupported();
+        if (!supported) {
+            showNotification('Notification not supported in this browser.', 'error');
+            return;
+        }
+        console.log('Requesting notification permission...');
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
             console.log('Notification permission granted.');
@@ -1583,16 +1588,27 @@ function setupEventListeners() {
     if(forceUpdateBtn) {
         forceUpdateBtn.addEventListener('click', forceUpdate);
     }
-
-    onMessage(messaging, (payload) => {
-        console.log('Foreground message received: ', payload);
-        const title = payload.notification.title;
-        const body = payload.notification.body;
-        showNotification(`${title}: ${body}`, 'success');
-    });
 }
 
 function initializeAppLogic() {
+    isSupported().then(supported => {
+        const enableNotificationsBtn = document.getElementById('enableNotificationsBtn');
+        if (supported) {
+            console.log("Firebase Messaging is supported.");
+            messaging = getMessaging(app);
+            if(enableNotificationsBtn) enableNotificationsBtn.style.display = 'flex';
+            onMessage(messaging, (payload) => {
+                console.log('Foreground message received: ', payload);
+                const title = payload.notification.title;
+                const body = payload.notification.body;
+                showNotification(`${title}: ${body}`, 'success');
+            });
+        } else {
+            console.log("Firebase Messaging is not supported in this browser.");
+            if(enableNotificationsBtn) enableNotificationsBtn.style.display = 'none';
+        }
+    });
+
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     onSnapshot(categoriesQuery, (snapshot) => {
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
