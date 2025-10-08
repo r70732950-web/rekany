@@ -488,15 +488,9 @@ function populateParentCategorySelect() {
 // --- Main Initialization function for the Admin Panel ---
 export function initializeAdminPanel() {
     console.log("Admin Panel Initialized.");
-
-    const adminSections = [
-        'adminCategoryManagement', 'adminContactMethodsManagement', 'adminPoliciesManagement',
-        'adminSocialMediaManagement', 'adminAnnouncementManagement'
-    ];
-    adminSections.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = 'block';
-    });
+    
+    // NOTE: The code to show admin sections is now in app.js in the updateAdminUI function.
+    // This function now only sets up event listeners and loads admin data.
 
     if (addProductBtn) {
         addProductBtn.onclick = () => {
