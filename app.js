@@ -271,6 +271,9 @@ let isAdmin = false;
 let editingProductId = null;
 let currentSearch = '';
 let products = [];
+let allPromoCards = []; // بۆ هەڵگرتنی هەموو ڕیکلامەکان
+let currentPromoCardIndex = 0; // بۆ زانینی کام ڕیکلام پیشان دەدرێت
+let promoRotationInterval = null; // بۆ کۆنترۆڵکردنی کاتەکە
 let categories = [];
 let contactInfo = {};
 let subcategories = [];
@@ -1071,16 +1074,14 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     loader.style.display = 'block';
 
     try {
-        let promoCards = [];
-        // **** ГУХОРЕНА ЛВЕ ЧЕБУ ****
-        // This condition now checks if it's a new search AND the main "All" category is selected.
-        if (isNewSearch && currentCategory === 'all') { 
+        // تەنها یەکجار ڕیکلامەکان باربکە کاتێک ئەپەکە دەستپێدەکات یان کاتێک گەڕانێکی نوێ لەسەر پۆلی "هەموو" دەکرێت
+        if (isNewSearch && currentCategory === 'all' && allPromoCards.length === 0) {
             const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
             const promoSnapshot = await getDocs(promoQuery);
-            promoCards = promoSnapshot.docs.map(doc => ({ 
+            allPromoCards = promoSnapshot.docs.map(doc => ({ 
                 id: doc.id, 
                 ...doc.data(), 
-                isPromoCard: true
+                isPromoCard: true 
             }));
         }
 
@@ -1120,11 +1121,13 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         let combinedList = [...newProducts];
-        if (isNewSearch && promoCards.length > 0) {
-            promoCards.forEach(card => {
-                const position = Math.max(0, card.order - 1); 
-                combinedList.splice(position, 0, card);
-            });
+        // تەنها یەک کارتی ڕیکلام زیاد بکە ئەگەر لە پۆلی "هەموو" بووین و ڕیکلام هەبوو
+        if (isNewSearch && currentCategory === 'all' && allPromoCards.length > 0) {
+            if (currentPromoCardIndex >= allPromoCards.length) {
+                currentPromoCardIndex = 0;
+            }
+            // تەنها کارتی ڕیکلامی ئێستا بخە سەرەتای لیستەکە
+            combinedList.unshift(allPromoCards[currentPromoCardIndex]);
         }
         
         if (isNewSearch) {
@@ -1146,6 +1149,11 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
 
         if (products.length === 0) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ కాڵایەک نەدۆزرایەوە.</p>';
+        }
+
+        // دەستپێکردنی گۆڕینی ڕیکلامەکان
+        if (isNewSearch) {
+           startPromoRotation();
         }
 
     } catch (error) {
@@ -2737,4 +2745,45 @@ if ('serviceWorker' in navigator) {
         console.log('New Service Worker activated. Reloading page...');
         window.location.reload();
     });
+}
+
+// =======================================================
+// فەنکشنە نوێیەکان بۆ گۆڕینی ڕیکلام
+// =======================================================
+
+function rotatePromoCard() {
+    if (allPromoCards.length <= 1) return; // ئەگەر تەنها یەک ڕیکلام هەبوو، پێویست بە گۆڕین ناکات
+
+    const promoCardSlot = document.querySelector('.promo-card-grid-item');
+    if (!promoCardSlot) return; // ئەگەر شوێنی ڕیکلامەکە نەبوو
+
+    // ژمارەی ئیندێکسی ڕیکلامی داهاتوو زیاد دەکەین
+    currentPromoCardIndex = (currentPromoCardIndex + 1) % allPromoCards.length;
+
+    const nextCardData = allPromoCards[currentPromoCardIndex];
+    const newCardElement = createPromoCardElement(nextCardData);
+    newCardElement.classList.add('product-card-reveal'); // بۆ جوڵەی جوان
+
+    // زیادکردنی جوڵەی جوان بۆ گۆڕینەکە
+    promoCardSlot.style.opacity = 0;
+    setTimeout(() => {
+        if (promoCardSlot.parentNode) {
+            promoCardSlot.parentNode.replaceChild(newCardElement, promoCardSlot);
+             // جوڵەی جوان بۆ کارتی نوێ چالاک دەکەین
+            setTimeout(() => {
+                newCardElement.classList.add('visible');
+            }, 10);
+        }
+    }, 300); // چاوەڕێ دەکەین تا ڕیکلامە کۆنەکە بە تەواوی نامێنێت
+}
+
+function startPromoRotation() {
+    // هەر ئینتەرڤاڵێکی پێشووتر هەبێت دەیسڕینەوە
+    if (promoRotationInterval) {
+        clearInterval(promoRotationInterval);
+    }
+    // ئینتەرڤاڵێکی نوێ دروست دەکەین ئەگەر زیاتر لە ڕیکلامێک هەبێت
+    if (allPromoCards.length > 1) {
+        promoRotationInterval = setInterval(rotatePromoCard, 5000); // هەر ٥ چرکە جارێک
+    }
 }
