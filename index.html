@@ -800,6 +800,45 @@
             height: 100%;
             object-fit: cover;
         }
+        
+        /* New styles for promo card slider buttons */
+        .promo-slider-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(0, 0, 0, 0.3);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 16px;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+            opacity: 0; /* Initially hidden */
+            pointer-events: none; /* Initially not clickable */
+        }
+
+        .promo-card-grid-item:hover .promo-slider-btn {
+            opacity: 1; /* Show on hover */
+            pointer-events: auto; /* Clickable on hover */
+        }
+        
+        .promo-slider-btn:hover {
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+
+        .promo-slider-btn.prev {
+            left: 10px;
+        }
+
+        .promo-slider-btn.next {
+            right: 10px;
+        }
 
     </style>
 </head>

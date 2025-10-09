@@ -271,9 +271,9 @@ let isAdmin = false;
 let editingProductId = null;
 let currentSearch = '';
 let products = [];
-let allPromoCards = []; // بۆ هەڵگرتنی هەموو ڕیکلامەکان
-let currentPromoCardIndex = 0; // بۆ زانینی کام ڕیکلام پیشان دەدرێت
-let promoRotationInterval = null; // بۆ کۆنترۆڵکردنی کاتەکە
+let allPromoCards = [];
+let currentPromoCardIndex = 0;
+let promoRotationInterval = null;
 let categories = [];
 let contactInfo = {};
 let subcategories = [];
@@ -894,24 +894,42 @@ function createPromoCardElement(card) {
         <div class="product-image-container">
             <img src="${imageUrl}" class="product-image" loading="lazy" alt="Promotion">
         </div>
+        <button class="promo-slider-btn prev"><i class="fas fa-chevron-left"></i></button>
+        <button class="promo-slider-btn next"><i class="fas fa-chevron-right"></i></button>
     `;
 
-    cardElement.onclick = () => {
-        const targetCategoryId = card.categoryId;
-        const categoryExists = categories.some(cat => cat.id === targetCategoryId);
-        if (categoryExists) {
-            currentCategory = targetCategoryId;
-            currentSubcategory = 'all';
-            currentSubSubcategory = 'all';
+    // Event listener for the main card
+    cardElement.addEventListener('click', (e) => {
+        // Only navigate if the click is not on a button
+        if (!e.target.closest('button')) {
+            const targetCategoryId = card.categoryId;
+            const categoryExists = categories.some(cat => cat.id === targetCategoryId);
+            if (categoryExists) {
+                currentCategory = targetCategoryId;
+                currentSubcategory = 'all';
+                currentSubSubcategory = 'all';
 
-            renderMainCategories();
-            renderSubcategories(currentCategory);
-            renderSubSubcategories(currentCategory, currentSubcategory);
-            searchProductsInFirestore('', true);
+                renderMainCategories();
+                renderSubcategories(currentCategory);
+                renderSubSubcategories(currentCategory, currentSubcategory);
+                searchProductsInFirestore('', true);
 
-            document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
+            }
         }
-    };
+    });
+
+    // Event listeners for slider buttons
+    cardElement.querySelector('.promo-slider-btn.prev').addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent the main card click
+        changePromoCard(-1);
+    });
+    
+    cardElement.querySelector('.promo-slider-btn.next').addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent the main card click
+        changePromoCard(1);
+    });
+
     return cardElement;
 }
 
@@ -1074,7 +1092,6 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     loader.style.display = 'block';
 
     try {
-        // تەنها یەکجار ڕیکلامەکان باربکە کاتێک ئەپەکە دەستپێدەکات یان کاتێک گەڕانێکی نوێ لەسەر پۆلی "هەموو" دەکرێت
         if (isNewSearch && currentCategory === 'all' && allPromoCards.length === 0) {
             const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
             const promoSnapshot = await getDocs(promoQuery);
@@ -1121,12 +1138,10 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         let combinedList = [...newProducts];
-        // تەنها یەک کارتی ڕیکلام زیاد بکە ئەگەر لە پۆلی "هەموو" بووین و ڕیکلام هەبوو
         if (isNewSearch && currentCategory === 'all' && allPromoCards.length > 0) {
             if (currentPromoCardIndex >= allPromoCards.length) {
                 currentPromoCardIndex = 0;
             }
-            // تەنها کارتی ڕیکلامی ئێستا بخە سەرەتای لیستەکە
             combinedList.unshift(allPromoCards[currentPromoCardIndex]);
         }
         
@@ -1151,7 +1166,6 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ కాڵایەک نەدۆزرایەوە.</p>';
         }
 
-        // دەستپێکردنی گۆڕینی ڕیکلامەکان
         if (isNewSearch) {
            startPromoRotation();
         }
@@ -2751,39 +2765,52 @@ if ('serviceWorker' in navigator) {
 // فەنکشنە نوێیەکان بۆ گۆڕینی ڕیکلام
 // =======================================================
 
-function rotatePromoCard() {
-    if (allPromoCards.length <= 1) return; // ئەگەر تەنها یەک ڕیکلام هەبوو، پێویست بە گۆڕین ناکات
-
+function displayPromoCard(index) {
     const promoCardSlot = document.querySelector('.promo-card-grid-item');
-    if (!promoCardSlot) return; // ئەگەر شوێنی ڕیکلامەکە نەبوو
+    if (!promoCardSlot) return;
 
-    // ژمارەی ئیندێکسی ڕیکلامی داهاتوو زیاد دەکەین
-    currentPromoCardIndex = (currentPromoCardIndex + 1) % allPromoCards.length;
+    const cardData = allPromoCards[index];
+    const newCardElement = createPromoCardElement(cardData);
+    newCardElement.classList.add('product-card-reveal');
 
-    const nextCardData = allPromoCards[currentPromoCardIndex];
-    const newCardElement = createPromoCardElement(nextCardData);
-    newCardElement.classList.add('product-card-reveal'); // بۆ جوڵەی جوان
-
-    // زیادکردنی جوڵەی جوان بۆ گۆڕینەکە
     promoCardSlot.style.opacity = 0;
     setTimeout(() => {
         if (promoCardSlot.parentNode) {
             promoCardSlot.parentNode.replaceChild(newCardElement, promoCardSlot);
-             // جوڵەی جوان بۆ کارتی نوێ چالاک دەکەین
             setTimeout(() => {
                 newCardElement.classList.add('visible');
             }, 10);
         }
-    }, 300); // چاوەڕێ دەکەین تا ڕیکلامە کۆنەکە بە تەواوی نامێنێت
+    }, 300);
+}
+
+function rotatePromoCard() {
+    if (allPromoCards.length <= 1) return;
+    currentPromoCardIndex = (currentPromoCardIndex + 1) % allPromoCards.length;
+    displayPromoCard(currentPromoCardIndex);
+}
+
+function changePromoCard(direction) {
+    if (allPromoCards.length <= 1) return;
+
+    currentPromoCardIndex += direction;
+
+    if (currentPromoCardIndex >= allPromoCards.length) {
+        currentPromoCardIndex = 0;
+    } else if (currentPromoCardIndex < 0) {
+        currentPromoCardIndex = allPromoCards.length - 1;
+    }
+
+    displayPromoCard(currentPromoCardIndex);
+    startPromoRotation(); // Reset the timer
 }
 
 function startPromoRotation() {
-    // هەر ئینتەرڤاڵێکی پێشووتر هەبێت دەیسڕینەوە
     if (promoRotationInterval) {
         clearInterval(promoRotationInterval);
     }
-    // ئینتەرڤاڵێکی نوێ دروست دەکەین ئەگەر زیاتر لە ڕیکلامێک هەبێت
     if (allPromoCards.length > 1) {
-        promoRotationInterval = setInterval(rotatePromoCard, 5000); // هەر ٥ چرکە جارێک
+        promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
+
