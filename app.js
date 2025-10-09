@@ -881,13 +881,9 @@ function showProductDetails(productId) {
     openPopup('productDetailSheet');
 }
 
-// ======== THE FIX IS APPLIED HERE ========
 function createPromoCardElement(card) {
     const cardElement = document.createElement('div');
     cardElement.className = 'product-card promo-card-grid-item';
-
-    // Ensure it spans the full width of the grid
-    cardElement.style.gridColumn = '1 / -1';
 
     const imageUrl = card.imageUrls[currentLanguage] || card.imageUrls.ku_sorani;
 
@@ -896,20 +892,6 @@ function createPromoCardElement(card) {
             <img src="${imageUrl}" class="product-image" loading="lazy" alt="Promotion">
         </div>
     `;
-
-    // Adjust container and image styles for a banner look
-    const imageContainer = cardElement.querySelector('.product-image-container');
-    if (imageContainer) {
-        imageContainer.style.aspectRatio = 'auto'; // Remove the default 1/1 aspect ratio
-    }
-
-    const image = cardElement.querySelector('.product-image');
-    if (image) {
-        image.style.aspectRatio = '16 / 9';    // Set a banner-like aspect ratio
-        image.style.objectFit = 'cover';       // Ensure the image covers the area
-        image.style.padding = '0';             // Remove padding
-        image.style.backgroundColor = 'transparent'; // *** THIS IS THE FIX: Remove the default background color
-    }
 
     cardElement.onclick = () => {
         const targetCategoryId = card.categoryId;
@@ -929,7 +911,6 @@ function createPromoCardElement(card) {
     };
     return cardElement;
 }
-// ===========================================
 
 function createProductCardElement(product) {
     const productCard = document.createElement('div');
@@ -1091,6 +1072,8 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
 
     try {
         let promoCards = [];
+        // **** ГУХОРЕНА ЛВЕ ЧЕБУ ****
+        // This condition now checks if it's a new search AND the main "All" category is selected.
         if (isNewSearch && currentCategory === 'all') { 
             const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
             const promoSnapshot = await getDocs(promoQuery);
@@ -2657,7 +2640,7 @@ function initializeAppLogic() {
                         if (!mainCategoryId) {
                              subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەکی بە --</option>';
                              return;
-                        }
+                        };
                         
                         subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>...خەریکی بارکردنە</option>';
                         subCatSelectForSubSub.disabled = true;
@@ -2755,4 +2738,3 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
-
