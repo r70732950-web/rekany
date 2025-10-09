@@ -881,21 +881,24 @@ function showProductDetails(productId) {
     openPopup('productDetailSheet');
 }
 
-// ======== THE FIX IS APPLIED HERE ========
+// ======== THE CORRECTED FUNCTION ========
 function createPromoCardElement(card) {
     const cardElement = document.createElement('div');
-    // 'product-card' class is removed to prevent conflicting styles from .product-image-container
-    cardElement.className = 'promo-card-grid-item';
+    
+    // We use BOTH classes: 
+    // 'product-card' provides the base styling (background, shadow, border-radius).
+    // 'promo-card-grid-item' provides the specific layout rules (full width, height).
+    cardElement.className = 'product-card promo-card-grid-item';
 
     const imageUrl = card.imageUrls[currentLanguage] || card.imageUrls.ku_sorani;
 
-    // The simple structure relies on the powerful CSS defined in index.html
-    // for .promo-card-grid-item and .promo-card-grid-item img
+    // The inner HTML is just a single image tag.
+    // The specific CSS rule `.promo-card-grid-item img` in your HTML file will
+    // automatically make this image cover the entire card area correctly.
+    // We DO NOT use 'product-image-container' or the 'product-image' class here.
     cardElement.innerHTML = `
         <img src="${imageUrl}" loading="lazy" alt="Promotion">
     `;
-
-    // No inline styles are needed here anymore, making the code cleaner and more reliable.
 
     cardElement.onclick = () => {
         const targetCategoryId = card.categoryId;
@@ -910,7 +913,6 @@ function createPromoCardElement(card) {
             renderSubSubcategories(currentCategory, currentSubcategory);
             searchProductsInFirestore('', true);
 
-            // Scroll to the categories section for better UX
             document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
         }
     };
@@ -2742,3 +2744,4 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
+
