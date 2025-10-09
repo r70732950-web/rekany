@@ -885,6 +885,10 @@ function createPromoCardElement(card) {
     const cardElement = document.createElement('div');
     cardElement.className = 'product-card promo-card-grid-item';
 
+    // **** گۆڕانکاری لێرە کراوە ****
+    // زیادکردنی ستایل بۆ ئەوەی هەمیشە پانیی تەواو وەربگرێت
+    cardElement.style.gridColumn = '1 / -1';
+
     const imageUrl = card.imageUrls[currentLanguage] || card.imageUrls.ku_sorani;
 
     cardElement.innerHTML = `
@@ -892,6 +896,21 @@ function createPromoCardElement(card) {
             <img src="${imageUrl}" class="product-image" loading="lazy" alt="Promotion">
         </div>
     `;
+
+    // **** گۆڕانکاری لێرە کراوە ****
+    // لابردنی ستایلی چوارگۆشەیی و دانانی ستایلی بانەر
+    const imageContainer = cardElement.querySelector('.product-image-container');
+    if (imageContainer) {
+        imageContainer.style.aspectRatio = 'auto'; // لابردنی ڕێژەی 1/1
+    }
+
+    const image = cardElement.querySelector('.product-image');
+    if (image) {
+        image.style.aspectRatio = '16 / 9'; // دانانی ڕێژەی پانیی بانەر
+        image.style.objectFit = 'cover';    // دڵنیابوونەوە لەوەی وێنەکە پڕ دەبێتەوە
+        image.style.padding = '0';          // لابردنی پادینگی زیادە
+    }
+    // **********************************
 
     cardElement.onclick = () => {
         const targetCategoryId = card.categoryId;
@@ -904,7 +923,7 @@ function createPromoCardElement(card) {
             renderMainCategories();
             renderSubcategories(currentCategory);
             renderSubSubcategories(currentCategory, currentSubcategory);
-            searchProductsInFirestore('', true);
+            searchProductsInFirestore('', true); 
 
             document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
         }
@@ -2638,7 +2657,7 @@ function initializeAppLogic() {
                         if (!mainCategoryId) {
                              subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەکی بە --</option>';
                              return;
-                        } // **** THE BUG WAS HERE (A SEMICOLON WAS REMOVED) ****
+                        }
                         
                         subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>...خەریکی بارکردنە</option>';
                         subCatSelectForSubSub.disabled = true;
