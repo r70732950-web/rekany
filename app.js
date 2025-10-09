@@ -315,7 +315,6 @@ const policiesForm = document.getElementById('policiesForm');
 const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
 const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
 
-
 let currentLanguage = localStorage.getItem('language') || 'ku_sorani';
 let deferredPrompt;
 const CART_KEY = "maten_store_cart";
@@ -1316,7 +1315,6 @@ async function editProduct(productId) {
     openPopup('productFormModal', 'modal');
 }
 
-
 async function deleteProduct(productId) {
     if (!confirm(t('delete_confirm'))) return;
     try {
@@ -1939,6 +1937,60 @@ async function handleDeleteCategory(docPath, categoryName) {
     }
 }
 
+function updateAdminUI(isAdmin) {
+    document.querySelectorAll('.product-actions').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
+    const adminCategoryManagement = document.getElementById('adminCategoryManagement');
+    const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
+    if (adminPoliciesManagement) {
+        adminPoliciesManagement.style.display = isAdmin ? 'block' : 'none';
+    }
+    if (adminSocialMediaManagement) adminSocialMediaManagement.style.display = isAdmin ? 'block' : 'none';
+    if (adminAnnouncementManagement) {
+        adminAnnouncementManagement.style.display = isAdmin ? 'block' : 'none';
+        if (isAdmin) renderAdminAnnouncementsList();
+    }
+    
+    if (adminPromoCardsManagement) {
+        adminPromoCardsManagement.style.display = isAdmin ? 'block' : 'none';
+        if (isAdmin) {
+            renderPromoCardsAdminList();
+            const select = document.getElementById('promoCardTargetCategory');
+            select.innerHTML = '<option value="">-- جۆرێک هەڵبژێرە --</option>';
+            const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
+            categoriesWithoutAll.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.id;
+                option.textContent = cat.name_ku_sorani || cat.name;
+                select.appendChild(option);
+            });
+        }
+    }
+
+    if (isAdmin) {
+        settingsLogoutBtn.style.display = 'flex';
+        settingsAdminLoginBtn.style.display = 'none';
+        addProductBtn.style.display = 'flex';
+        if (adminCategoryManagement) {
+            adminCategoryManagement.style.display = 'block';
+            renderCategoryManagementUI();
+        }
+        if (adminContactMethodsManagement) {
+            adminContactMethodsManagement.style.display = 'block';
+            renderContactMethodsAdmin();
+        }
+    } else {
+        settingsLogoutBtn.style.display = 'none';
+        settingsAdminLoginBtn.style.display = 'flex';
+        addProductBtn.style.display = 'none';
+        if (adminCategoryManagement) {
+            adminCategoryManagement.style.display = 'none';
+        }
+        if (adminContactMethodsManagement) {
+            adminContactMethodsManagement.style.display = 'none';
+        }
+    }
+}
+
 function setupEventListeners() {
     homeBtn.onclick = () => {
         history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname);
@@ -2470,7 +2522,7 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     updateAdminUI(isAdmin);
-    renderProducts();
+    // renderProducts() is called inside updateAdminUI implicitly if needed, or by searchProducts...
 });
 
 
