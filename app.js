@@ -1072,8 +1072,6 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
 
     try {
         let promoCards = [];
-        // **** ГУХОРЕНА ЛВЕ ЧЕБУ ****
-        // This condition now checks if it's a new search AND the main "All" category is selected.
         if (isNewSearch && currentCategory === 'all') { 
             const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
             const promoSnapshot = await getDocs(promoQuery);
@@ -2640,7 +2638,7 @@ function initializeAppLogic() {
                         if (!mainCategoryId) {
                              subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەکی بە --</option>';
                              return;
-                        };
+                        } // **** THE BUG WAS HERE (A SEMICOLON WAS REMOVED) ****
                         
                         subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>...خەریکی بارکردنە</option>';
                         subCatSelectForSubSub.disabled = true;
@@ -2738,3 +2736,4 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
+
