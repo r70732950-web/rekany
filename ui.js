@@ -1743,3 +1743,4 @@ export function setupGpsButton() {
         getLocationBtn.disabled = false;
     }
 }
+maten
