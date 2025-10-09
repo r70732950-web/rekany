@@ -5,7 +5,7 @@ import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
-import { setupUIEventListeners, showNotification, updateAdminUI, renderProducts, renderCart, renderFavoritesPage, renderMainCategories, populateCategoryDropdown, populateParentCategorySelect, renderCategoryManagementUI, renderContactMethodsAdmin, renderSocialMediaLinks, renderContactLinks, checkNewAnnouncements, renderCategoriesSheet, loadPoliciesForAdmin, updateAdminCategorySelects, setupGpsButton, handleInitialPageLoad, updateActiveNav } from './ui.js';
+import { setupUIEventListeners, showNotification, updateAdminUI, renderProducts, renderCart, renderFavoritesPage, renderMainCategories, populateCategoryDropdown, populateParentCategorySelect, renderCategoryManagementUI, renderContactMethodsAdmin, renderSocialMediaLinks, renderContactLinks, checkNewAnnouncements, renderCategoriesSheet, loadPoliciesForAdmin, updateAdminCategorySelects, setupGpsButton, handleInitialPageLoad } from './ui.js';
 
 // ------------------------------------------------
 // Firebase Setup and Initialization
@@ -23,8 +23,8 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
-const auth = getAuth(app);
-const db = getFirestore(app);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
 const messaging = getMessaging(app);
 
 export const productsCollection = collection(db, "products");
@@ -318,7 +318,6 @@ export function setLanguage(lang) {
     categories = [{ id: 'all', name: t('all_categories_label'), icon: 'fas fa-th' }, ...fetchedCategories];
 
     // Trigger UI updates
-    // The actual UI element updates are in ui.js
     document.querySelectorAll('[data-translate-key]').forEach(element => {
         const key = element.dataset.translateKey;
         const translation = t(key);
@@ -847,7 +846,7 @@ function setupFirebaseListeners() {
             console.log("No contact info document found!");
         }
         renderSocialMediaLinks(); // Render links for admin management
-        renderContactLinks();    // Render links for user settings page
+        renderContactLinks();     // Render links for user settings page
     });
 
     // Check for new announcements in the background

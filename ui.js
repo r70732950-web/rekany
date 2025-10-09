@@ -1,10 +1,9 @@
 // ui.js
 
-import { t, currentLanguage, setLanguage, deferredPrompt, cart, favorites, userProfile, isAdmin, editingProductId, currentSearch, products, categories, subcategories, contactInfo, lastVisibleProductDoc, isLoadingMoreProducts, allProductsLoaded, PRODUCTS_PER_PAGE, saveCart, updateCartCount, saveFavorites, isFavorite, toggleFavorite, addToCart, updateQuantity, removeFromCart, generateOrderMessage, searchProductsInFirestore, editProductLogic, deleteProductLogic, getSubcategories, getSubSubcategories, saveProductLogic, saveCategoryLogic, updateCategoryLogic, deleteCategoryLogic, savePoliciesLogic, loadPoliciesLogic, sendAnnouncementLogic, deleteAnnouncementLogic, saveContactMethodLogic, deleteContactMethodLogic, saveSocialMediaLinkLogic, deleteSocialMediaLinkLogic, signInAdmin, signOutAdmin, requestNotificationPermissionLogic } from './app.js';
-import { getFirestore, collection, query, orderBy, getDocs, doc, deleteDoc, updateDoc, onSnapshot, limit, setDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { t, currentLanguage, setLanguage, deferredPrompt, cart, favorites, userProfile, isAdmin, editingProductId, currentSearch, products, categories, subcategories, contactInfo, lastVisibleProductDoc, isLoadingMoreProducts, allProductsLoaded, PRODUCTS_PER_PAGE, saveCart, updateCartCount, saveFavorites, isFavorite, toggleFavorite, addToCart, updateQuantity, removeFromCart, generateOrderMessage, searchProductsInFirestore, editProductLogic, deleteProductLogic, getSubcategories, getSubSubcategories, saveProductLogic, saveCategoryLogic, updateCategoryLogic, deleteCategoryLogic, savePoliciesLogic, loadPoliciesLogic, sendAnnouncementLogic, deleteAnnouncementLogic, saveContactMethodLogic, deleteContactMethodLogic, saveSocialMediaLinkLogic, deleteSocialMediaLinkLogic, signInAdmin, signOutAdmin, requestNotificationPermissionLogic, db } from './app.js';
+import { collection, query, orderBy, getDocs, doc, onSnapshot, limit } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-// Global DOM elements (only for repeated access or complex logic)
-const db = getFirestore();
+// Global DOM elements
 const loginModal = document.getElementById('loginModal');
 const addProductBtn = document.getElementById('addProductBtn');
 const productFormModal = document.getElementById('productFormModal');
@@ -299,7 +298,6 @@ function createProductCardElement(product) {
         </div>
     `;
 
-    // Event listeners attached directly to the card (delegation in app.js is now here)
     productCard.addEventListener('click', async (event) => {
         const target = event.target;
         const addToCartButton = target.closest('.add-to-cart-btn-card');
@@ -368,8 +366,6 @@ export function renderMainCategories() {
 }
 
 function handleCategoryChange(categoryId) {
-    // Logic to update global state is in app.js. Call it here.
-    const oldMainCatId = currentCategory;
     currentCategory = categoryId;
     currentSubcategory = 'all';
     currentSubSubcategory = 'all';
@@ -794,9 +790,8 @@ export async function populateSubcategoriesDropdown(categoryId, selectedSubcateg
     }
 
     productSubcategorySelect.disabled = false;
-    // Call sub-sub dropdown update in case of edit
     if (selectedSubcategoryId) {
-        const subSubCatId = document.getElementById('productSubSubcategoryId').value; // Might need to pass this through the main edit call
+        const subSubCatId = document.getElementById('productSubSubcategoryId').value;
         populateSubSubcategoriesDropdown(categoryId, selectedSubcategoryId, subSubCatId);
     }
 }
@@ -907,13 +902,12 @@ export function updateAdminCategorySelects() {
         mainCatSelectForSubSub.appendChild(option);
     });
 
-    // Check if the listener is already attached to avoid multiple calls
     if (!mainCatSelectForSubSub.listenerAttached) {
         mainCatSelectForSubSub.addEventListener('change', async () => {
             const mainCategoryId = mainCatSelectForSubSub.value;
             if (!mainCategoryId) {
-                subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەکی بە --</option>';
-                return;
+                 subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەکی بە --</option>';
+                 return;
             };
             
             subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>...خەریکی بارکردنە</option>';
@@ -1162,7 +1156,6 @@ export async function loadPoliciesForAdmin() {
 // ------------------------------------------------
 
 export function checkNewAnnouncements() {
-    const announcementsCollection = collection(db, "announcements");
     const q = query(announcementsCollection, orderBy("createdAt", "desc"), limit(1));
     onSnapshot(q, (snapshot) => {
         if (!snapshot.empty) {
@@ -1179,7 +1172,6 @@ export function checkNewAnnouncements() {
 }
 
 export async function renderUserNotifications() {
-    const announcementsCollection = collection(db, "announcements");
     const q = query(announcementsCollection, orderBy("createdAt", "desc"));
     const snapshot = await getDocs(q);
 
@@ -1219,7 +1211,6 @@ export async function renderUserNotifications() {
 }
 
 export function renderAdminAnnouncementsList() {
-    const announcementsCollection = collection(db, "announcements");
     const container = document.getElementById('announcementsListContainer');
     const q = query(announcementsCollection, orderBy("createdAt", "desc"));
 
@@ -1557,7 +1548,6 @@ export function setupUIEventListeners() {
     }
 
     // Admin Social Media Management
-    const addSocialMediaForm = document.getElementById('addSocialMediaForm');
     if (addSocialMediaForm) {
         addSocialMediaForm.addEventListener('submit', async (e) => {
             e.preventDefault();
