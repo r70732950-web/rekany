@@ -765,6 +765,17 @@
             100% { transform: translateX(120%); opacity: 0; }
         }
         
+        .promo-card-grid-item .product-image-container {
+            aspect-ratio: auto;
+            height: 100%;
+        }
+        
+        .promo-card-grid-item .product-image {
+            object-fit: cover;
+            padding: 0;
+            background-color: #1a202c;
+        }
+        
         .promo-card-grid-item {
             grid-column: 1 / -1;
             width: 100%;
@@ -774,7 +785,6 @@
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
             position: relative;
-            margin-bottom: 8px;
         }
 
         .promo-card-grid-item:hover {
