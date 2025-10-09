@@ -881,12 +881,12 @@ function showProductDetails(productId) {
     openPopup('productDetailSheet');
 }
 
+// ======== THE FIX IS APPLIED HERE ========
 function createPromoCardElement(card) {
     const cardElement = document.createElement('div');
     cardElement.className = 'product-card promo-card-grid-item';
 
-    // **** گۆڕانکاری لێرە کراوە ****
-    // زیادکردنی ستایل بۆ ئەوەی هەمیشە پانیی تەواو وەربگرێت
+    // Ensure it spans the full width of the grid
     cardElement.style.gridColumn = '1 / -1';
 
     const imageUrl = card.imageUrls[currentLanguage] || card.imageUrls.ku_sorani;
@@ -897,20 +897,19 @@ function createPromoCardElement(card) {
         </div>
     `;
 
-    // **** گۆڕانکاری لێرە کراوە ****
-    // لابردنی ستایلی چوارگۆشەیی و دانانی ستایلی بانەر
+    // Adjust container and image styles for a banner look
     const imageContainer = cardElement.querySelector('.product-image-container');
     if (imageContainer) {
-        imageContainer.style.aspectRatio = 'auto'; // لابردنی ڕێژەی 1/1
+        imageContainer.style.aspectRatio = 'auto'; // Remove the default 1/1 aspect ratio
     }
 
     const image = cardElement.querySelector('.product-image');
     if (image) {
-        image.style.aspectRatio = '16 / 9'; // دانانی ڕێژەی پانیی بانەر
-        image.style.objectFit = 'cover';    // دڵنیابوونەوە لەوەی وێنەکە پڕ دەبێتەوە
-        image.style.padding = '0';          // لابردنی پادینگی زیادە
+        image.style.aspectRatio = '16 / 9';    // Set a banner-like aspect ratio
+        image.style.objectFit = 'cover';       // Ensure the image covers the area
+        image.style.padding = '0';             // Remove padding
+        image.style.backgroundColor = 'transparent'; // *** THIS IS THE FIX: Remove the default background color
     }
-    // **********************************
 
     cardElement.onclick = () => {
         const targetCategoryId = card.categoryId;
@@ -923,13 +922,14 @@ function createPromoCardElement(card) {
             renderMainCategories();
             renderSubcategories(currentCategory);
             renderSubSubcategories(currentCategory, currentSubcategory);
-            searchProductsInFirestore('', true); 
+            searchProductsInFirestore('', true);
 
             document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
         }
     };
     return cardElement;
 }
+// ===========================================
 
 function createProductCardElement(product) {
     const productCard = document.createElement('div');
