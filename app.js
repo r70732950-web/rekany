@@ -23,6 +23,7 @@ const messaging = getMessaging(app);
 const productsCollection = collection(db, "products");
 const categoriesCollection = collection(db, "categories");
 const announcementsCollection = collection(db, "announcements");
+const promoCardsCollection = collection(db, "promo_cards");
 
 const translations = {
     ku_sorani: {
@@ -337,6 +338,7 @@ const termsContentContainer = document.getElementById('termsContentContainer');
 const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
 const policiesForm = document.getElementById('policiesForm');
 const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
+const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
 
 
 function debounce(func, delay = 500) {
@@ -879,6 +881,40 @@ function showProductDetails(productId) {
     openPopup('productDetailSheet');
 }
 
+// ======== ФУНКШНA НИ ل ڤێرێ زێدە بکە ========
+function createPromoCardElement(card) {
+    const cardElement = document.createElement('div');
+    // هەمان کلاسی کارتی کاڵا بەکاردێنین بۆ ئەوەی لەناو grid جوان دەرکەوێت
+    cardElement.className = 'product-card promo-card-grid-item';
+
+    const imageUrl = card.imageUrls[currentLanguage] || card.imageUrls.ku_sorani;
+
+    cardElement.innerHTML = `
+        <div class="product-image-container">
+            <img src="${imageUrl}" class="product-image" loading="lazy" alt="Promotion">
+        </div>
+    `;
+
+    cardElement.onclick = () => {
+        const targetCategoryId = card.categoryId;
+        const categoryExists = categories.some(cat => cat.id === targetCategoryId);
+        if (categoryExists) {
+            currentCategory = targetCategoryId;
+            currentSubcategory = 'all';
+            currentSubSubcategory = 'all';
+
+            renderMainCategories();
+            renderSubcategories(currentCategory);
+            renderSubSubcategories(currentCategory, currentSubcategory);
+            searchProductsInFirestore('', true); // گەڕان بۆ کاڵای جۆری دیاریکراو
+
+            document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
+        }
+    };
+    return cardElement;
+}
+// ===========================================
+
 function createProductCardElement(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
@@ -1007,14 +1043,21 @@ function renderProducts() {
 	if (!products || products.length === 0) {
 		return;
 	}
-    products.forEach(product => {
-        const productCard = createProductCardElement(product);
-		productCard.classList.add('product-card-reveal');
-        productsContainer.appendChild(productCard);
+
+    products.forEach(item => {
+        let element;
+        // لێرەدا پشکنین دەکەین ئایا ئایتمەکە کاڵایە یان کارتی ڕێنمایی
+        if (item.isPromoCard) {
+            element = createPromoCardElement(item);
+        } else {
+            element = createProductCardElement(item);
+        }
+        element.classList.add('product-card-reveal');
+        productsContainer.appendChild(element);
     });
+
     setupScrollAnimations();
 }
-
 
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     if (isLoadingMoreProducts) return;
@@ -1032,67 +1075,90 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     loader.style.display = 'block';
 
     try {
-        let q = collection(db, "products");
-        
-        if (currentCategory && currentCategory !== 'all') {
-            q = query(q, where("categoryId", "==", currentCategory));
+        // هەنگاوی 1: هێنانی هەموو کارتە ڕێنماییەکان (چونکە ژمارەیان کەمە)
+        let promoCards = [];
+        if (isNewSearch) { // تەنها لە یەکەم گەڕاندا کارتەکان بهێنە
+            const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
+            const promoSnapshot = await getDocs(promoQuery);
+            promoCards = promoSnapshot.docs.map(doc => ({ 
+                id: doc.id, 
+                ...doc.data(), 
+                isPromoCard: true // نیشانەیەک بۆ جیاکردنەوە
+            }));
         }
 
-        if (currentSubcategory && currentSubcategory !== 'all') {
-            q = query(q, where("subcategoryId", "==", currentSubcategory));
-        }
+        // هەنگاوی 2: هێنانی کاڵاکان بە هەمان شێوازی پێشوو
+        let productsQuery = collection(db, "products");
         
+        if (currentCategory && currentCategory !== 'all') {
+            productsQuery = query(productsQuery, where("categoryId", "==", currentCategory));
+        }
+        if (currentSubcategory && currentSubcategory !== 'all') {
+            productsQuery = query(productsQuery, where("subcategoryId", "==", currentSubcategory));
+        }
         if (currentSubSubcategory && currentSubSubcategory !== 'all') {
-            q = query(q, where("subSubcategoryId", "==", currentSubSubcategory));
+            productsQuery = query(productsQuery, where("subSubcategoryId", "==", currentSubSubcategory));
         }
         
         const finalSearchTerm = searchTerm.trim().toLowerCase();
         if (finalSearchTerm) {
-             q = query(q, 
+            productsQuery = query(productsQuery, 
                 where('searchableName', '>=', finalSearchTerm), 
                 where('searchableName', '<=', finalSearchTerm + '\uf8ff')
-             );
+            );
         }
         
         if (finalSearchTerm) {
-            q = query(q, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
+            productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
         } else {
-            q = query(q, orderBy("createdAt", "desc"));
+            productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         }
 
         if (lastVisibleProductDoc && !isNewSearch) {
-            q = query(q, startAfter(lastVisibleProductDoc));
+            productsQuery = query(productsQuery, startAfter(lastVisibleProductDoc));
         }
         
-        q = query(q, limit(PRODUCTS_PER_PAGE));
+        productsQuery = query(productsQuery, limit(PRODUCTS_PER_PAGE));
 
-        const querySnapshot = await getDocs(q);
-        const newProducts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const productSnapshot = await getDocs(productsQuery);
+        const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        if (isNewSearch) {
-            products = newProducts;
-        } else {
-            products = [...products, ...newProducts];
+        // هەنگاوی 3: تێکەڵکردنی کاڵا و کارتەکان
+        let combinedList = [...newProducts];
+        if (isNewSearch && promoCards.length > 0) {
+            // دانانی کارتەکان لەناو لیستی کاڵاکان بەپێی order
+            promoCards.forEach(card => {
+                // ژمارەی order دیاری دەکات دوای چەند کاڵا دابنرێت
+                // بۆ نموونە: order=1 لە سەرەتا، order=5 دوای ٤ کاڵا
+                const position = Math.max(0, card.order - 1); 
+                combinedList.splice(position, 0, card);
+            });
         }
-
-        if (querySnapshot.docs.length < PRODUCTS_PER_PAGE) {
+        
+        if (isNewSearch) {
+            products = combinedList;
+        } else {
+            products = [...products, ...newProducts]; // تەنها کاڵای نوێ زیاد دەکرێت لە سکڕۆڵی داهاتوودا
+        }
+        
+        if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
             allProductsLoaded = true;
             document.getElementById('scroll-loader-trigger').style.display = 'none';
         } else {
             document.getElementById('scroll-loader-trigger').style.display = 'block';
         }
 
-        lastVisibleProductDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+        lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
         
         renderProducts();
 
         if (products.length === 0) {
-            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ కాڵایەک نەدۆزرایەوە.</p>';
         }
 
     } catch (error) {
-        console.error("Error fetching products:", error);
-        productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا لە کاتی هێنانی کاڵاکان.</p>';
+        console.error("Error fetching content:", error);
+        productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
     } finally {
         isLoadingMoreProducts = false;
         loader.style.display = 'none';
@@ -1621,6 +1687,23 @@ function updateAdminUI(isAdmin) {
         adminAnnouncementManagement.style.display = isAdmin ? 'block' : 'none';
         if (isAdmin) renderAdminAnnouncementsList();
     }
+    
+    if (adminPromoCardsManagement) {
+        adminPromoCardsManagement.style.display = isAdmin ? 'block' : 'none';
+        if (isAdmin) {
+            renderPromoCardsAdminList();
+            // پڕکردنەوەی لیستی جۆرەکان بۆ فۆڕمەکە
+            const select = document.getElementById('promoCardTargetCategory');
+            select.innerHTML = '<option value="">-- جۆرێک هەڵبژێرە --</option>';
+            const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
+            categoriesWithoutAll.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.id;
+                option.textContent = cat.name_ku_sorani || cat.name;
+                select.appendChild(option);
+            });
+        }
+    }
 
     if (isAdmin) {
         settingsLogoutBtn.style.display = 'flex';
@@ -1816,6 +1899,62 @@ function setupScrollObserver() {
     observer.observe(trigger);
 }
 
+// ======== فەنکشنەکانی بەڕێوەبردنی کارتی ڕێنمایی ========
+function renderPromoCardsAdminList() {
+    const container = document.getElementById('promoCardsListContainer');
+    const q = query(promoCardsCollection, orderBy("order", "asc"));
+
+    onSnapshot(q, (snapshot) => {
+        container.innerHTML = '';
+        if (snapshot.empty) {
+            container.innerHTML = '<p>هیچ کاردێک زیاد نەکراوە.</p>';
+            return;
+        }
+        snapshot.forEach(doc => {
+            const card = { id: doc.id, ...doc.data() };
+            const item = document.createElement('div');
+            item.className = 'admin-notification-item'; // Re-using style
+            item.innerHTML = `
+                <div class="admin-notification-details" style="align-items: center; display: flex;">
+                    <img src="${card.imageUrls.ku_sorani}" style="width: 40px; height: 40px; object-fit: cover; margin-left: 10px; border-radius: 4px;">
+                    <div class="notification-title">کارتی ڕیزبەندی: ${card.order}</div>
+                </div>
+                <div>
+                    <button class="edit-btn small-btn" data-id="${card.id}"><i class="fas fa-edit"></i></button>
+                    <button class="delete-btn small-btn" data-id="${card.id}"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+            item.querySelector('.edit-btn').onclick = () => editPromoCard(card);
+            item.querySelector('.delete-btn').onclick = () => deletePromoCard(card.id);
+            container.appendChild(item);
+        });
+    });
+}
+
+function editPromoCard(card) {
+    document.getElementById('editingPromoCardId').value = card.id;
+    document.getElementById('promoCardImageKuSorani').value = card.imageUrls.ku_sorani;
+    document.getElementById('promoCardImageKuBadini').value = card.imageUrls.ku_badini;
+    document.getElementById('promoCardImageAr').value = card.imageUrls.ar;
+    document.getElementById('promoCardTargetCategory').value = card.categoryId;
+    document.getElementById('promoCardOrder').value = card.order;
+    document.getElementById('addPromoCardForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوە';
+    
+    document.getElementById('addPromoCardForm').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function deletePromoCard(cardId) {
+    if (confirm('دڵنیایت دەتەوێت ئەم کارتە بسڕیتەوە؟')) {
+        try {
+            await deleteDoc(doc(db, "promo_cards", cardId));
+            showNotification('کارتەکە سڕدرایەوە', 'success');
+        } catch (error) {
+            showNotification('هەڵەیەک ڕوویدا', 'error');
+        }
+    }
+}
+// ===========================================
+
 async function renderCategoryManagementUI() {
     const container = document.getElementById('categoryListContainer');
     if (!container) return;
@@ -1966,7 +2105,7 @@ function setupEventListeners() {
         createProductImageInputs();
         subcategorySelectContainer.style.display = 'none';
         subSubcategorySelectContainer.style.display = 'none';
-        formTitle.textContent = 'زیادکردنی کاڵای نوێ';
+        formTitle.textContent = 'زیادکردنی కాڵای نوێ';
         productForm.querySelector('button[type="submit"]').textContent = 'پاشەکەوتکردن';
         openPopup('productFormModal', 'modal');
     };
@@ -2380,6 +2519,44 @@ function setupEventListeners() {
             }
         });
     }
+    
+    const addPromoCardForm = document.getElementById('addPromoCardForm');
+    if(addPromoCardForm) {
+        addPromoCardForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+
+            const editingId = document.getElementById('editingPromoCardId').value;
+            const cardData = {
+                imageUrls: {
+                    ku_sorani: document.getElementById('promoCardImageKuSorani').value,
+                    ku_badini: document.getElementById('promoCardImageKuBadini').value,
+                    ar: document.getElementById('promoCardImageAr').value,
+                },
+                categoryId: document.getElementById('promoCardTargetCategory').value,
+                order: parseInt(document.getElementById('promoCardOrder').value),
+                createdAt: Date.now()
+            };
+
+            try {
+                if (editingId) {
+                    await setDoc(doc(db, "promo_cards", editingId), cardData);
+                    showNotification('کارتەکە نوێکرایەوە', 'success');
+                } else {
+                    await addDoc(promoCardsCollection, cardData);
+                    showNotification('کارتی نوێ زیادکرا', 'success');
+                }
+                addPromoCardForm.reset();
+                document.getElementById('editingPromoCardId').value = '';
+                submitButton.textContent = 'پاشەکەوتکردن';
+            } catch (error) {
+                showNotification('هەڵەیەک ڕوویدا', 'error');
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+    }
 
     const enableNotificationsBtn = document.getElementById('enableNotificationsBtn');
     if (enableNotificationsBtn) {
@@ -2572,5 +2749,3 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
-maten
-

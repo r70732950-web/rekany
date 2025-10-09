@@ -764,6 +764,31 @@
             85%  { transform: translateX(0); opacity: 1; }
             100% { transform: translateX(120%); opacity: 0; }
         }
+        
+        /* ======== КОДИ НИИ ======== */
+        .promo-card-grid-item {
+            background-color: transparent;
+            border: none;
+            padding: 0;
+            box-shadow: none;
+        }
+
+        .promo-card-grid-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+        }
+
+        .promo-card-grid-item .product-image-container {
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .promo-card-grid-item .product-image {
+            padding: 0;
+            object-fit: cover;
+        }
+        /* ======================== */
+
     </style>
 </head>
 <body>
@@ -1151,7 +1176,46 @@
                 </div>
             </div>
             
-			<div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
+            <div class="settings-group" id="adminPromoCardsManagement" style="display: none;">
+                <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
+                    <i class="fas fa-bullhorn"></i> <span>بەڕێوەبردنی کارتە ڕێنماییەکان</span>
+                </h3>
+                <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
+                    <form id="addPromoCardForm">
+                        <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی کارتی نوێ</h4>
+                        <div class="form-group">
+                            <label>لینکی وێنە (سۆرانی):</label>
+                            <input type="url" id="promoCardImageKuSorani" required>
+                        </div>
+                        <div class="form-group">
+                            <label>لینکی وێنە (بادینی):</label>
+                            <input type="url" id="promoCardImageKuBadini" required>
+                        </div>
+                        <div class="form-group">
+                            <label>لینکی وێنە (عربی):</label>
+                            <input type="url" id="promoCardImageAr" required>
+                        </div>
+                        <div class="form-group">
+                            <label>جۆری کاڵا کە لینک بکرێت بۆی:</label>
+                            <select id="promoCardTargetCategory" required>
+                                <option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>ژمارەی ڕیزبەندی (بۆ پیشاندان لەناو کاڵاکان):</label>
+                            <input type="number" id="promoCardOrder" value="1" required>
+                            <small>ژمارەی بچووکتر لە پێشتر پیشان دەدرێت.</small>
+                        </div>
+                        <input type="hidden" id="editingPromoCardId">
+                        <button type="submit">پاشەکەوتکردن</button>
+                    </form>
+                </div>
+                <div style="padding: 15px;">
+                    <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">کارتە زیادکراوەکان</h4>
+                    <div id="promoCardsListContainer"></div>
+                </div>
+            </div>
+            <div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;"><i class="fas fa-paper-plane"></i> <span data-translate-key="manage_contact_methods_title">بەڕێوەبردنی شێوازەکانی ناردنی داواکاری</span></h3>
                 
                 <div style="padding: 15px;">
