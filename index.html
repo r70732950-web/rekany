@@ -280,19 +280,16 @@
             background-color: #f8f9fa;
         }
         
+        /* === ستایلێ دوماهیێ بۆ چارەسەرکرنا ئاریشا بهای === */
         .product-info {
             padding: 8px 6px 6px 6px;
             flex-grow: 1;
             display: flex;
             flex-direction: column;
             text-align: center;
+            min-height: 75px;
+            justify-content: center;
         }
-        
-        .product-name { 
-            font-weight: bold; 
-            font-size: 14px; 
-        }
-        
         .product-price-container { 
             display: flex; 
             flex-direction: row;
@@ -301,6 +298,11 @@
             gap: 8px; 
             margin-top: 2px;
             margin-bottom: 4px;
+        }
+        
+        .product-name { 
+            font-weight: bold; 
+            font-size: 14px; 
         }
         
         .product-description { display: none; }
@@ -320,7 +322,7 @@
         .edit-btn, .delete-btn { width: 28px; height: 28px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 13px; color: white; cursor: pointer; }
         .edit-btn { background-color: var(--accent-color); }
         .delete-btn { background-color: var(--danger-color); }
-        
+
         .add-to-cart-btn-card {
             position: absolute;
             top: 60%;
@@ -741,7 +743,6 @@
             user-select: none;
         }
 
-        /* === ستایلێ دوماهیێ === */
         .product-extra-info {
             /* بەتاڵە و هیچ کاریگەرییەکی نییە */
         }
@@ -763,7 +764,6 @@
             animation: none;
             z-index: 6;
         }
-        /* === دوماهی هات === */
 
         .shipping-badge i {
             margin-left: 6px;
