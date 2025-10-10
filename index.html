@@ -237,7 +237,7 @@
         /* === ستایلێ نوو و مۆدێرن بۆ کارتان === */
         .products-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* کەمەک مەزنتر لێهات */
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 12px;
         }
         
@@ -250,8 +250,8 @@
             cursor: pointer; 
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
             transition: transform 0.2s, box-shadow 0.2s;
-            display: flex; /* === ZEDAKRA: bo rêkxstna jêr wêne === */
-            flex-direction: column; /* === ZEDAKRA: bo rêkxstna jêr wêne === */
+            display: flex;
+            flex-direction: column;
         }
         .product-card:hover { 
             transform: translateY(-5px); 
@@ -273,9 +273,17 @@
             aspect-ratio: 1/1; 
             position: relative; 
         }
-        /* Gradient l benya wênay bo xwandna nvisînê */
+        /* Gradient hate zivrîn bo ser wênay */
         .product-image-container::after {
-            display: none; /* === GORANKARI: Gradient hate rakirn === */
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(to top, rgba(0,0,0,0.75), transparent);
+            pointer-events: none;
+            display: block; /* Hate zivrîn */
         }
 
         .product-image { 
@@ -286,33 +294,35 @@
             background-color: #f8f9fa;
         }
         
-        /* === GORANKARI: Hemî Styla Product Info hate gorîn === */
+        /* Beşa spî ya jêrîn */
         .product-info {
             background-color: white;
-            padding: 10px 10px 45px; /* Boshay bo aykonan l xarê */
-            text-align: right;
-            position: relative; /* Kritike bo jehgirkirina aykonan */
-            flex-grow: 1; /* Da ku boshayî dagir bike */
+            padding: 8px;
+            height: 52px; /* Bilindahiya beşa spî hate kêmkirin */
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
         
+        /* === GORANKARI: Nav hate birn bo ser wênay === */
         .product-name { 
+            position: absolute;
+            bottom: 60px; /* Li ser beşa spî */
+            right: 10px;
+            left: 10px;
+            z-index: 3;
             font-weight: bold; 
             font-size: 14px;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            color: var(--text-color); /* Reng hate gorîn bo reş */
-            text-shadow: none; /* Sêber hate rakirin */
-            margin-bottom: 4px;
+            color: white; /* Reng bû spî */
         }
         
         .product-price-container { 
-            display: flex; 
-            flex-direction: row;
-            align-items: center; 
-            justify-content: flex-start;
-            gap: 8px; 
-            margin: 0;
+            /* Cihê wê başe */
         }
         
         .product-description { display: none; }
@@ -320,14 +330,14 @@
         .product-price { 
             font-weight: 700; 
             font-size: 15px; 
-            color: var(--accent-color); /* Reng hate gorîn */
-            text-shadow: none; /* Sêber hate rakirin */
+            color: var(--accent-color);
+            text-shadow: none;
         }
         .original-price { 
-            color: var(--dark-gray); /* Reng hate gorîn */
+            color: var(--dark-gray);
             text-decoration: line-through; 
             font-size: 13px; 
-            text-shadow: none; /* Sêber hate rakirin */
+            text-shadow: none;
         }
         
         .discount-badge { position: absolute; top: 8px; right: 8px; z-index: 3; background-color: var(--danger-color); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; }
@@ -345,11 +355,11 @@
         .edit-btn { background-color: var(--accent-color); }
         .delete-btn { background-color: var(--danger-color); }
         
-        /* === GORANKARI: Aykone Sebetê noke l nav beşa spî ye === */
+        /* Aykona sebetê noke l nav beşa spî ye */
         .add-to-cart-btn-card {
             position: absolute;
-            bottom: 8px;
-            right: 8px;
+            bottom: 10px;
+            right: 10px;
             width: 32px;
             height: 32px;
             background-color: var(--accent-color);
@@ -389,13 +399,13 @@
         .add-to-cart-btn:hover { background-color: var(--accent-light); }
         
         .product-extra-info {
-            /* No longer needed for positioning */
+             /* vala */
         }
-        /* === GORANKARI: Nishana gehandinê noke l nav beşa spî ye === */
+        /* Nishana gehandinê noke l nav beşa spî ye */
         .shipping-badge {
             position: absolute;
-            bottom: 10px;
-            left: 8px;
+            bottom: 15px;
+            left: 10px;
             transform: none;
             display: inline-flex;
             align-items: center;
