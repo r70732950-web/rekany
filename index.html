@@ -6,7 +6,7 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a365d">
@@ -800,41 +800,94 @@
             height: 100%;
             object-fit: cover;
         }
-        
-        /* New styles for promo card slider buttons */
-        .promo-slider-btn {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background-color: rgba(0, 0, 0, 0.3);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            font-size: 16px;
-            cursor: pointer;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s, opacity 0.2s;
-            opacity: 0.7; /* Buttons are now visible by default */
-            pointer-events: auto; /* Buttons are now clickable by default */
-        }
-        
-        .promo-slider-btn:hover {
-            background-color: rgba(0, 0, 0, 0.6);
-            opacity: 1;
-        }
 
-        .promo-slider-btn.prev {
-            left: 10px;
-        }
+		/* ============================================= */
+		/* کۆدی نوێ بۆ دیزاینی کارتی کاڵا         */
+		/* ============================================= */
 
-        .promo-slider-btn.next {
-            right: 10px;
-        }
+		/* دیزاینی گشتی کارتەکە - دڵنیابوونەوە لەوەی کاریگەری لەسەر کارتی ڕیکلام نییە */
+		.product-card:not(.promo-card-grid-item) {
+			display: flex;
+			flex-direction: column;
+			gap: 0; /* لابردنی بۆشایی زیادە */
+		}
+
+		/* بەشی زانیارییەکانی ژێر وێنەکە */
+		.product-card:not(.promo-card-grid-item) .product-info {
+			padding: 12px;
+			display: grid; /* بەکارهێنانی سیستمێکی پێشکەوتوو بۆ دیزاین */
+			grid-template-columns: 1fr auto; /* ستوونی یەکەم بۆ نرخ، ستوونی دووەم بۆ دوگمە */
+			grid-template-rows: auto auto auto; /* سێ ڕیز: ناو، نرخ/دوگمە، گەیاندن */
+			gap: 8px;
+			text-align: right; /* نووسینەکان لە ڕاستەوە دەست پێبکەن */
+		}
+
+		/* ناوی کاڵا */
+		.product-card:not(.promo-card-grid-item) .product-name {
+			grid-column: 1 / -1; /* هەردوو ستوونەکە بگرێتەوە */
+			font-size: 14px;
+			font-weight: bold;
+			margin-bottom: 4px;
+		}
+
+		/* کۆنتەینەری نرخ */
+		.product-card:not(.promo-card-grid-item) .product-price-container {
+			grid-column: 1 / 2; /* لە ستوونی یەکەمدا بێت */
+			grid-row: 2 / 3; /* لە ڕیزی دووەمدا بێت */
+			display: flex;
+			align-items: center;
+			justify-content: flex-start; /* لە ڕاستەوە دەربکەوێت */
+			margin: 0; /* لابردنی مارجینی زیادە */
+			gap: 6px;
+		}
+
+		/* نرخی سەرەکی */
+		.product-card:not(.promo-card-grid-item) .product-price {
+			font-size: 16px;
+		}
+
+		/* نرخی داشکێنراو */
+		.product-card:not(.promo-card-grid-item) .original-price {
+			font-size: 13px;
+		}
+
+		/* دوگمەی زیادکردن بۆ سەبەتە */
+		.product-card:not(.promo-card-grid-item) .add-to-cart-btn-card {
+			grid-column: 2 / 3; /* لە ستوونی دووەمدا بێت */
+			grid-row: 2 / 3; /* لە ڕیزی دووەمدا بێت */
+			
+			/* گۆڕینی بۆ دوگمەیەکی بچووکی بازنەیی */
+			width: 38px;
+			height: 38px;
+			padding: 0;
+			margin: 0;
+			border-radius: 50%;
+			margin-top: 0; /* لابردنی مارجینی سەرەوە */
+		}
+
+		/* شاردنەوەی نووسینی ناو دوگمەکە تا تەنها ئایکۆنەکە بمێنێتەوە */
+		.product-card:not(.promo-card-grid-item) .add-to-cart-btn-card span {
+			display: none;
+		}
+
+		/* سفڕکردنەوەی مارجینی ئایکۆنی ناو دوگمەکە */
+		.product-card:not(.promo-card-grid-item) .add-to-cart-btn-card i {
+			margin: 0;
+			font-size: 16px;
+		}
+
+		/* بەشی زانیاری گەیاندن */
+		.product-card:not(.promo-card-grid-item) .product-extra-info {
+			grid-column: 1 / -1; /* هەردوو ستوونەکە بگرێتەوە */
+			height: auto;
+			margin-top: 4px; /* کەمێک بۆشایی لە سەرەوە */
+		}
+
+		.product-card:not(.promo-card-grid-item) .shipping-badge {
+			animation: none; /* وەستاندنی جوڵەی سلاید */
+			transform: translateX(0);
+			opacity: 1;
+		}
 
     </style>
 </head>
