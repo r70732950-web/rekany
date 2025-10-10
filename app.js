@@ -933,8 +933,6 @@ function createPromoCardElement(card) {
     return cardElement;
 }
 
-// === START: UPDATED FUNCTION ===
-// This is the function that has been changed to match your request.
 function createProductCardElement(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
@@ -942,31 +940,32 @@ function createProductCardElement(product) {
     const nameInCurrentLang = (product.name && product.name[currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || 'https://placehold.co/300x300/e2e8f0/2d3748?text=No+Image');
 
-    let priceHTML = `<div class="product-price">${product.price.toLocaleString()} د.ع.</div>`;
-    if (product.originalPrice && product.originalPrice > product.price) {
-        priceHTML = `<span class="product-price">${product.price.toLocaleString()} د.ع.</span><del class="original-price">${product.originalPrice.toLocaleString()} د.ع.</del>`;
-    }
-
+    let priceHTML = `<div class="product-price-container"><div class="product-price">${product.price.toLocaleString()} د.ع.</div></div>`;
     let discountBadgeHTML = '';
-    if (product.originalPrice && product.originalPrice > product.price) {
+    const hasDiscount = product.originalPrice && product.originalPrice > product.price;
+
+    if (hasDiscount) {
+        priceHTML = `<div class="product-price-container"><span class="product-price">${product.price.toLocaleString()} د.ع.</span><del class="original-price">${product.originalPrice.toLocaleString()} د.ع.</del></div>`;
         const discountPercentage = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
         discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
     }
     
-    const isProdFavorite = isFavorite(product.id);
-    const heartIconClass = isProdFavorite ? 'fas' : 'far';
-    const favoriteBtnClass = isProdFavorite ? 'favorite-btn favorited' : 'favorite-btn';
-
-    let shippingInfoHTML = '';
+    let extraInfoHTML = '';
     const shippingText = product.shippingInfo && product.shippingInfo[currentLanguage] && product.shippingInfo[currentLanguage].trim();
+
     if (shippingText) {
-        shippingInfoHTML = `
-            <div class="shipping-info">
-                <i class="fas fa-truck"></i>
-                <span>${shippingText}</span>
+        extraInfoHTML = `
+            <div class="product-extra-info">
+                <div class="info-badge shipping-badge">
+                    <i class="fas fa-truck"></i>${shippingText}
+                </div>
             </div>
         `;
     }
+
+    const isProdFavorite = isFavorite(product.id);
+    const heartIconClass = isProdFavorite ? 'fas' : 'far';
+    const favoriteBtnClass = isProdFavorite ? 'favorite-btn favorited' : 'favorite-btn';
 
     productCard.innerHTML = `
         <div class="product-image-container">
@@ -976,15 +975,14 @@ function createProductCardElement(product) {
                 <i class="${heartIconClass} fa-heart"></i>
             </button>
         </div>
-        <div class="product-details">
-            <h3 class="product-name">${nameInCurrentLang}</h3>
-            <div class="product-price-container">${priceHTML}</div>
-        </div>
-        <div class="card-footer">
-            ${shippingInfoHTML || '<div></div>'} <!-- Empty div to maintain layout -->
-            <button class="add-to-cart-btn-card" aria-label="${t('add_to_cart')}">
+        <div class="product-info">
+            <div class="product-name">${nameInCurrentLang}</div>
+            ${priceHTML}
+            <button class="add-to-cart-btn-card">
                 <i class="fas fa-cart-plus"></i>
+                <span>${t('add_to_cart')}</span>
             </button>
+            ${extraInfoHTML}
         </div>
         <div class="product-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
             <button class="edit-btn" aria-label="Edit product"><i class="fas fa-edit"></i></button>
@@ -994,8 +992,22 @@ function createProductCardElement(product) {
 
     productCard.addEventListener('click', (event) => {
         const target = event.target;
-        if (target.closest('.add-to-cart-btn-card')) {
+        const addToCartButton = target.closest('.add-to-cart-btn-card');
+
+        if (addToCartButton) {
             addToCart(product.id);
+            if (!addToCartButton.disabled) {
+                const originalContent = addToCartButton.innerHTML;
+                addToCartButton.disabled = true;
+                addToCartButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
+                setTimeout(() => {
+                    addToCartButton.innerHTML = `<i class="fas fa-check"></i> <span>${t('added_to_cart')}</span>`;
+                    setTimeout(() => {
+                        addToCartButton.innerHTML = originalContent;
+                        addToCartButton.disabled = false;
+                    }, 1500);
+                }, 500);
+            }
         } else if (target.closest('.edit-btn')) {
             editProduct(product.id);
         } else if (target.closest('.delete-btn')) {
@@ -1008,7 +1020,6 @@ function createProductCardElement(product) {
     });
     return productCard;
 }
-// === END: UPDATED FUNCTION ===
 
 function setupScrollAnimations() {
     const observer = new IntersectionObserver((entries) => {
@@ -2802,3 +2813,4 @@ function startPromoRotation() {
         promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
+
