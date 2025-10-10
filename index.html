@@ -6,7 +6,7 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a365d">
@@ -236,176 +236,27 @@
         
         .products-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 8px;
         }
-
-        /* ======================================================= */
-        /* ====== کۆدێ داویێ: ناڤ لسەر وێنەی دگەل ڕەنگێ ڕەش یێ شەفاف ====== */
-        /* ======================================================= */
-
-        .product-card {
-            background-color: white;
+        
+        .product-card { 
+            background-color: white; 
             border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid var(--section-border);
-            display: flex;
+            overflow: hidden; 
+            position: relative; 
+            border: 1px solid var(--section-border); 
+            display: flex; 
             flex-direction: column;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            cursor: pointer; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
             transition: transform 0.2s, box-shadow 0.2s;
         }
-        .product-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08);
+        .product-card:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
         }
-        .product-card:hover .product-image {
-            transform: scale(1.05);
-        }
-
-        .product-card .product-image-container {
-            width: 100%;
-            aspect-ratio: 1/1;
-            position: relative; /* گرنگە */
-            overflow: hidden;
-        }
-
-        /* === گوهۆڕینا ئێکێ: ڕەنگێ ڕەش یێ شەفاف ل ڤێرێ هاتە زێدەکرن === */
-        .product-card .product-image-container::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 60%; /* بلنداهییا ڕەنگێ شەفاف */
-            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);
-            z-index: 1; /* دێ کەڤیتە دناڤبەرا وێنەی و نڤیسینێ دا */
-            pointer-events: none;
-        }
-
-        .product-card .product-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            padding: 0;
-            transition: transform 0.3s ease-in-out;
-        }
-
-        .product-card .product-info {
-            margin-top: -65px; 
-            position: relative;
-            z-index: 2;
-            text-align: center;
-            background: transparent;
-            display: flex;
-            flex-direction: column;
-            padding: 0;
-        }
-
-        /* === گوهۆڕینا دووێ: Text-shadow هاتە سڕین ژبەرکو مە ڕەنگێ شەفاف دانا === */
-        .product-card .product-name {
-            color: white;
-            font-weight: bold;
-            font-size: 15px;
-            padding: 15px 10px;
-            line-height: 1.4;
-            height: 65px;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            text-align: center;
-        }
-
-        .product-card .product-price-container, 
-        .product-card .product-extra-info {
-            background: white;
-        }
-        .product-card .product-price-container {
-             padding: 10px 10px 4px 10px;
-             margin-top: 0;
-             justify-content: center;
-        }
-        .product-card .product-extra-info {
-            padding-bottom: 8px;
-            margin-top: 0;
-            height: auto;
-        }
-        .product-card .shipping-badge {
-            animation: none;
-        }
-        .product-card .product-price {
-            color: var(--accent-light);
-            font-weight: 700;
-            font-size: 16px;
-        }
-        .product-card .original-price {
-            color: var(--dark-gray);
-            font-size: 13px;
-        }
-
-        .product-card .add-to-cart-btn-card {
-            position: absolute;
-            top: 15px; 
-            left: 15px;
-            z-index: 3;
-            width: 32px;
-            height: 32px;
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        .product-card .add-to-cart-btn-card:hover { 
-            background-color: var(--accent-light); 
-            transform: scale(1.1);
-        }
-        .product-card .add-to-cart-btn-card span { display: none; }
-        .product-card .add-to-cart-btn-card i { font-size: 15px; margin: 0; }
-        .product-card .add-to-cart-btn-card:disabled {
-            background-color: var(--dark-gray);
-            cursor: not-allowed;
-        }
-
-        .product-card .favorite-btn {
-            top: 15px;
-            right: 15px;
-            z-index: 3;
-            background: rgba(255, 255, 255, 0.8);
-            border: 1px solid var(--medium-gray);
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 16px;
-            color: var(--dark-gray);
-            transition: color 0.2s, transform 0.2s;
-        }
-        .product-card .favorite-btn:hover { transform: scale(1.1); }
-        .product-card .favorite-btn.favorited { color: var(--danger-color); }
-                
-        .product-card .discount-badge {
-            position: absolute;
-            top: 15px;
-            left: 55px;
-            right: auto;
-            z-index: 3;
-            background-color: var(--danger-color);
-            color: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
+        
         .product-card-reveal {
             opacity: 0;
             transform: translateY(20px);
@@ -416,25 +267,91 @@
             transform: translateY(0);
         }
 
-        .product-description { display: none; }
+        .product-image-container { 
+            width: 100%; 
+            aspect-ratio: 1/1; 
+            position: relative; 
+        }
+        .product-image { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain; 
+            padding: 10px; 
+            background-color: #f8f9fa;
+        }
+        
+        .product-info {
+            padding: 12px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            text-align: center;
+        }
 
+        .product-name { 
+            font-weight: bold; 
+            font-size: 14px; 
+        }
+        
+        .product-price-container { 
+            display: flex; 
+            flex-direction: row;
+            align-items: center; 
+            justify-content: center;
+            gap: 8px; 
+            margin-top: 4px;
+            margin-bottom: 8px;
+        }
+        
+        .product-description { display: none; }
+        
+        .product-price { color: var(--accent-light); font-weight: 700; font-size: 15px; }
+        .original-price { color: var(--dark-gray); text-decoration: line-through; font-size: 13px; }
+        .discount-badge { position: absolute; top: 8px; right: 8px; background-color: var(--danger-color); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        
         .product-actions { 
             position: absolute; 
-            top: 60px; 
-            left: 15px;
+            top: 5px; 
+            left: 45px;
             display: flex; 
-            gap: 8px; 
+            gap: 5px; 
             flex-direction: column; 
-            z-index: 4;
         }
-        .edit-btn, .delete-btn { width: 32px; height: 32px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 14px; color: white; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .edit-btn, .delete-btn { width: 28px; height: 28px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 13px; color: white; cursor: pointer; }
         .edit-btn { background-color: var(--accent-color); }
         .delete-btn { background-color: var(--danger-color); }
 
-        /* ======================================================= */
-        /* ================= کۆتایی هاتنا کۆدێ نوو ================= */
-        /* ======================================================= */
-
+        .add-to-cart-btn-card { 
+            width: 100%;
+            padding: 8px;
+            margin-top: auto;
+            background-color: var(--accent-color); 
+            color: white; 
+            border: none; 
+            border-radius: 6px;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer; 
+            font-weight: bold;
+            font-size: 14px;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+        .add-to-cart-btn-card:hover { background-color: var(--accent-light); }
+        .add-to-cart-btn-card:disabled {
+            background-color: var(--dark-gray);
+            cursor: not-allowed;
+        }
+        
+        .favorite-btn {
+            position: absolute; top: 8px; left: 8px; background: rgba(255, 255, 255, 0.8); border: 1px solid var(--medium-gray);
+            width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;
+            font-size: 16px; color: var(--dark-gray); transition: color 0.2s, transform 0.2s; z-index: 5;
+        }
+        .favorite-btn:hover { transform: scale(1.1); }
+        .favorite-btn.favorited { color: var(--danger-color); }
         
         .add-to-cart-btn { 
             width: 100%;
@@ -547,7 +464,7 @@
         
         #sheetImageSlider { position: relative; max-width: 100%; margin-bottom: 15px; }
         #sheetImageContainer { display: flex; overflow: hidden; border-radius: 8px; }
-        #sheetImageContainer img { width: 100%; flex-shrink: 0; display: none; object-fit: contain; max-height: 350px; transition: opacity: 0.3s ease-in-out; }
+        #sheetImageContainer img { width: 100%; flex-shrink: 0; display: none; object-fit: contain; max-height: 350px; transition: opacity 0.3s ease-in-out; }
         #sheetImageContainer img.active { display: block; }
         .slider-btn { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0,0,0,0.4); color: white; border: none; font-size: 20px; cursor: pointer; z-index: 10; border-radius: 50%; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; }
         .slider-btn.prev { left: 10px; }
@@ -813,6 +730,34 @@
             user-select: none;
         }
 
+        .product-extra-info {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 8px;
+            height: 28px;
+            overflow: hidden;
+        }
+        
+        .shipping-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 12px;
+            border-radius: 16px;
+            background-color: #e6f4ea;
+            color: #38a169;
+            font-size: 12px;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            animation: slideAndFade 5s infinite ease-in-out;
+            animation-delay: 1.5s;
+        }
+        
+        .shipping-badge i {
+            margin-left: 6px;
+        }
+        
         @keyframes slideAndFade {
             0%   { transform: translateX(120%); opacity: 0; }
             15%  { transform: translateX(0); opacity: 1; }
@@ -916,7 +861,7 @@
 
         <div id="loginModal" class="modal">
             <div class="modal-content">
-                <span class="close" aria-label="Close">&times;</span>
+                <span class="close">&times;</span>
                 <h2 style="text-align: center; margin-bottom: 18px;" data-translate-key="admin_login_title">چوونەژوورەوەی بەڕێوەبەر</h2>
                 <form id="loginForm">
                     <div class="form-group"><label for="email" data-translate-key="email_label">ئیمەیڵ:</label><input type="email" id="email" required></div>
@@ -928,7 +873,7 @@
         
         <div id="welcomeModal" class="modal">
             <div class="modal-content" style="text-align: center;">
-                <span class="close" aria-label="Close">&times;</span>
+                <span class="close">&times;</span>
                 <i class="fas fa-store" style="font-size: 40px; color: var(--accent-color); margin-bottom: 15px;"></i>
                 <h2 style="margin-bottom: 10px;">بەخێرهاتن بۆ فرۆشگای MATEN</h2>
                 <p style="color: var(--text-light);">هیوادارین ئەزموونێکی کڕینی خۆشت هەبێت!</p>
@@ -941,7 +886,7 @@
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 class="sheet-title"><i class="fas fa-bell"></i> <span data-translate-key="notifications_title">ئاگەهدارییەکان</span></h2>
-                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
+                <span class="close" style="top: 20px;">&times;</span>
             </div>
             <div id="notificationsListContainer" class="sheet-content"></div>
         </div>
@@ -950,7 +895,7 @@
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 class="sheet-title"><i class="fas fa-shopping-cart"></i> <span data-translate-key="cart_title">سەبەتەی کڕین</span></h2>
-                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
+                <span class="close" style="top: 20px;">&times;</span>
             </div>
             <div class="sheet-content">
                 <div id="cartItemsContainer"></div>
@@ -965,7 +910,7 @@
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 class="sheet-title"><i class="fas fa-list"></i> <span data-translate-key="choose_category">هەڵبژاردنی جۆر</span></h2>
-                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
+                <span class="close" style="top: 20px;">&times;</span>
             </div>
             <div id="sheetCategoriesContainer" class="sheet-content"></div>
         </div>
@@ -974,7 +919,7 @@
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 class="sheet-title"><i class="fas fa-user"></i> <span data-translate-key="profile_title">پڕۆفایلی من</span></h2>
-                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
+                <span class="close" style="top: 20px;">&times;</span>
             </div>
             <div class="sheet-content">
                 <form id="profileForm">
@@ -1003,7 +948,7 @@
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 class="sheet-title"><i class="fas fa-heart" style="color: var(--danger-color);"></i> <span data-translate-key="favorites_title">لیستی دڵخوازەکان</span></h2>
-                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
+                <span class="close" style="top: 20px;">&times;</span>
             </div>
             <div class="sheet-content">
                 <div id="favoritesContainer" class="products-container"></div>
@@ -1018,7 +963,7 @@
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 id="sheetProductName" class="sheet-title"></h2>
-                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
+                <span class="close" style="top: 20px;">&times;</span>
             </div>
             <div class="sheet-content">
                 <div id="sheetImageSlider">
@@ -1040,7 +985,7 @@
 					<i class="fas fa-file-contract"></i> 
 					<span data-translate-key="terms_policies_title">مەرج و ڕێساکان</span>
 				</h2>
-				<span class="close" style="top: 20px;" aria-label="Close">&times;</span>
+				<span class="close" style="top: 20px;">&times;</span>
 			</div>
 			<div class="sheet-content">
 				<div id="termsContentContainer" style="line-height: 1.8; color: var(--text-light);">
@@ -1463,7 +1408,7 @@
 
         <div id="editCategoryModal" class="modal">
             <div class="modal-content">
-                <span class="close" aria-label="Close">&times;</span>
+                <span class="close">&times;</span>
                 <h2 id="editCategoryFormTitle" style="text-align: center; margin-bottom: 18px;">دەستکاریکردنی جۆر</h2>
                 <form id="editCategoryForm">
                     <input type="hidden" id="editCategoryDocPath">
@@ -1497,7 +1442,7 @@
 
         <div id="productFormModal" class="modal">
             <div class="modal-content">
-                <span class="close" aria-label="Close">&times;</span>
+                <span class="close">&times;</span>
                 <h2 id="formTitle" style="text-align: center; margin-bottom: 18px;">زیادکردنی کاڵای نوێ</h2>
                 <form id="productForm">
                     
