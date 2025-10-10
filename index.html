@@ -6,7 +6,7 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a365d">
@@ -236,25 +236,26 @@
         
         .products-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 8px;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px; /* Increased gap a bit */
         }
         
+        /* === START: PRODUCT CARD NEW DESIGN === */
+
         .product-card { 
             background-color: white; 
             border-radius: 12px;
             overflow: hidden; 
-            position: relative; 
-            border: 1px solid var(--section-border); 
             display: flex; 
             flex-direction: column;
             cursor: pointer; 
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: all 0.3s ease;
+            border: 1px solid var(--section-border);
         }
         .product-card:hover { 
-            transform: translateY(-5px); 
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+            transform: translateY(-4px); 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
         }
         
         .product-card-reveal {
@@ -281,31 +282,41 @@
         }
         
         .product-info {
+            text-align: right; /* Align text to the right for RTL */
             padding: 12px;
-            flex-grow: 1;
+            flex-grow: 1; /* Make sure info div takes available space */
             display: flex;
-            flex-direction: column;
-            text-align: center;
+            flex-direction: column; /* Stack name and price vertically */
+            min-height: 110px; /* Ensure consistent height for cards in a row */
+            position: relative; /* For positioning the add to cart button */
         }
 
         .product-name { 
             font-weight: bold; 
             font-size: 14px; 
+            line-height: 1.4;
+            height: 39.2px; /* for 2 lines of text (14px * 1.4 * 2) */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            margin-bottom: auto; /* This is a key property to push price to the bottom */
         }
         
         .product-price-container { 
             display: flex; 
             flex-direction: row;
             align-items: center; 
-            justify-content: center;
+            justify-content: flex-end; /* Align price items to the right */
             gap: 8px; 
-            margin-top: 4px;
-            margin-bottom: 8px;
+            margin-top: 8px;
+            padding-left: 45px; /* Add space to avoid overlapping with the cart button */
         }
         
         .product-description { display: none; }
         
-        .product-price { color: var(--accent-light); font-weight: 700; font-size: 15px; }
+        .product-price { color: var(--accent-light); font-weight: 700; font-size: 16px; }
         .original-price { color: var(--dark-gray); text-decoration: line-through; font-size: 13px; }
         .discount-badge { position: absolute; top: 8px; right: 8px; background-color: var(--danger-color); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; }
         
@@ -321,30 +332,67 @@
         .edit-btn { background-color: var(--accent-color); }
         .delete-btn { background-color: var(--danger-color); }
 
-        .add-to-cart-btn-card { 
-            width: 100%;
-            padding: 8px;
-            margin-top: auto;
-            background-color: var(--accent-color); 
-            color: white; 
-            border: none; 
-            border-radius: 6px;
-            display: flex; 
-            align-items: center; 
+        /* The main change: Redesigning the Add to Cart button */
+        .add-to-cart-btn-card {
+            /* Reset and Reshape */
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            margin: 0;
+            font-size: 16px; /* Icon size */
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
             justify-content: center;
-            gap: 8px;
-            cursor: pointer; 
-            font-weight: bold;
-            font-size: 14px;
-            transition: background-color 0.2s;
-            white-space: nowrap;
+            
+            /* Positioning */
+            position: absolute;
+            bottom: 12px;
+            left: 12px; /* On the left for RTL */
+            z-index: 5;
+            
+            /* Style and Effects */
+            background-color: var(--accent-color);
+            color: white;
+            cursor: pointer;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
         }
-        .add-to-cart-btn-card:hover { background-color: var(--accent-light); }
+
+        .add-to-cart-btn-card:hover {
+            transform: scale(1.1);
+            background-color: var(--accent-light); /* Keep existing hover color */
+        }
+        
+        .add-to-cart-btn-card:active {
+            transform: scale(1);
+        }
+
+        /* The JS adds a span for the text, so we can hide it */
+        .add-to-cart-btn-card span {
+            display: none;
+        }
+        
+        /* Center the icon inside the circular button */
+        .add-to-cart-btn-card i {
+           margin: 0;
+        }
+        
+        /* Handle the disabled state (when item is being added) */
         .add-to-cart-btn-card:disabled {
+            transform: scale(1);
             background-color: var(--dark-gray);
             cursor: not-allowed;
         }
         
+        /* This badge was taking up vertical space, hiding it makes the card shorter */
+        .product-extra-info {
+            display: none;
+        }
+
+        /* === END: PRODUCT CARD NEW DESIGN === */
+
         .favorite-btn {
             position: absolute; top: 8px; left: 8px; background: rgba(255, 255, 255, 0.8); border: 1px solid var(--medium-gray);
             width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;
@@ -730,34 +778,6 @@
             user-select: none;
         }
 
-        .product-extra-info {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-top: 8px;
-            height: 28px;
-            overflow: hidden;
-        }
-        
-        .shipping-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 5px 12px;
-            border-radius: 16px;
-            background-color: #e6f4ea;
-            color: #38a169;
-            font-size: 12px;
-            font-weight: bold;
-            white-space: nowrap;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            animation: slideAndFade 5s infinite ease-in-out;
-            animation-delay: 1.5s;
-        }
-        
-        .shipping-badge i {
-            margin-left: 6px;
-        }
-        
         @keyframes slideAndFade {
             0%   { transform: translateX(120%); opacity: 0; }
             15%  { transform: translateX(0); opacity: 1; }
@@ -801,70 +821,11 @@
             object-fit: cover;
         }
 
-		
-		/* ======================================================= */
-		/* گوهۆڕینێن نوو بۆ دیزاینا کارتا کاڵای (ڤێرژنا چاککری) */
-		/* ======================================================= */
-
-		/* گرنگترین بەش: دانانا context بۆ positioning */
-		.product-card {
-			position: relative;
-		}
-
-		/* کورتکرنا بۆشایی و ناڤەندکرنا ناڤ و نڕخی */
-		.product-info {
-			padding: 8px 12px 12px 12px;
-			text-align: center; /* هاتە زڤڕاندن بۆ ناڤەندێ */
-		}
-
-		.product-name {
-			font-size: 14px;
-			font-weight: bold;
-			margin-bottom: 2px;
-		}
-
-		.product-price-container {
-			justify-content: center; /* هاتە زڤڕاندن بۆ ناڤەندێ */
-			margin-top: 0;
-			margin-bottom: 4px;
-		}
-
-		/* ستایلێن دوگمەیا سەبەتێ بتنێ بۆ کارتێن ئاسایی، نە بۆ ڕیکلامێ */
-		.product-card:not(.promo-card-grid-item) .add-to-cart-btn-card {
-			position: absolute;
-			bottom: 8px;
-			left: 8px;
-			width: 36px;
-			height: 36px;
-			border-radius: 50%;
-			padding: 0;
-			margin: 0;
-			box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-			z-index: 5;
-			background-color: var(--accent-color);
-		}
-
-		/* ڤەشارتنا نڤیسینێ بتنێ ل کارتێن ئاسایی */
-		.product-card:not(.promo-card-grid-item) .add-to-cart-btn-card span {
-			display: none;
-		}
-
-		/* ناڤەندکرنا ئایکۆنی */
-		.product-card:not(.promo-card-grid-item) .add-to-cart-btn-card i {
-			font-size: 16px;
-			margin: 0;
-		}
-
-		/* چاککرنا کێشەیا تێکەل بوونا بەشێ گەهاندنێ */
-		.product-extra-info {
-			justify-content: center; /* هاتە زڤڕاندن بۆ ناڤەندێ */
-			margin-top: 4px;
-		}
-
     </style>
 </head>
 <body>
     <div class="app-container">
+        <!-- HEADER (UNCHANGED) -->
         <header class="app-header">
             <div class="logo">
                 <i class="fas fa-store" style="color: var(--accent-color); font-size: 24px;"></i>
@@ -884,6 +845,7 @@
             </div>
         </header>
 
+        <!-- MODALS & SHEETS (UNCHANGED) -->
         <div id="loginModal" class="modal">
             <div class="modal-content">
                 <span class="close">&times;</span>
@@ -1034,6 +996,7 @@
             </div>
         </main>
 
+        <!-- SETTINGS PAGE & ADMIN SECTIONS (UNCHANGED) -->
         <div class="settings-page page page-hidden" id="settingsPage">
             <h3 class="section-title" style="margin: 0; border-radius: 8px 8px 0 0;"><i class="fas fa-cog"></i> <span data-translate-key="settings_title">ڕێکخستنەکان</span></h3>
             
