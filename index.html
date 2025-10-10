@@ -237,8 +237,8 @@
         /* === ستایلێ نوو و مۆدێرن بۆ کارتان === */
         .products-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* قەبارە کەمەک مەزنتر لێهات دا جوانتر بیت */
-            gap: 12px; /* ناڤبەر کەمەک زێدەتر بوو */
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
         }
         
         .product-card { 
@@ -278,9 +278,9 @@
             bottom: 0;
             left: 0;
             right: 0;
-            height: 60%;
-            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
-            pointer-events: none; /* داهێلیت کلیک ل سەر دوگمان بهێتە کرن */
+            height: 70%; /* === GORANKARI 1: Hate zedakrn bo 70% === */
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            pointer-events: none;
         }
 
         .product-image { 
@@ -297,7 +297,7 @@
             bottom: 0;
             left: 0;
             right: 0;
-            padding: 8px;
+            padding: 8px 8px 45px; /* === GORANKARI 2: Boshay bo xare hate zedakrn === */
             color: white;
             z-index: 2;
             text-align: right;
@@ -310,13 +310,14 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            margin-bottom: 2px; /* ZEDAKRA: Kamek boshay l xare */
         }
         
         .product-price-container { 
             display: flex; 
             flex-direction: row;
             align-items: center; 
-            justify-content: flex-start; /* لایێ راستێ */
+            justify-content: flex-start;
             gap: 8px; 
             margin: 0;
         }
@@ -341,7 +342,6 @@
         .edit-btn { background-color: var(--accent-color); }
         .delete-btn { background-color: var(--danger-color); }
         
-        /* جهێ دوگمەیا سەبەتێ ل سەر وێنەی */
         .add-to-cart-btn-card {
             position: absolute;
             bottom: 8px;
@@ -384,17 +384,14 @@
         }
         .add-to-cart-btn:hover { background-color: var(--accent-light); }
         
-        /* === ستایلێ دوماهیێ بۆ نیشانا گەهاندنێ === */
         .product-extra-info {
             /* بەتاڵە و هیچ کاریگەرییەکی نییە */
         }
         .shipping-badge {
             position: absolute;
-            /* === START: گۆڕانکاری ل ڤێرێ هاتە کرن === */
-            bottom: 10px;       /* ژ سەرەوە هاتە خارێ */
-            left: 8px;          /* ژ ناڤەراستێ چوو لایێ چەپێ */
-            transform: none;    /* راستکرنا ناڤەراستێ هاتە راکرن */
-            /* === END: دوماهییا گۆڕانکاریێ === */
+            bottom: 10px;
+            left: 8px;
+            transform: none;
             display: inline-flex;
             align-items: center;
             padding: 3px 8px;
