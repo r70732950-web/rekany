@@ -236,28 +236,10 @@
         
         .products-container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /*-- بنیادنانی قەبارە --*/
-            gap: 12px; /*-- بنیادنانی بۆشایی --*/
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
         }
-        
-        /* === KODÊ NÛ BO DÎZAYNA KARTÊ === */
-        .product-card { 
-            background-color: white; 
-            border-radius: 12px;
-            overflow: hidden; 
-            position: relative;
-            border: 1px solid var(--section-border); 
-            display: flex; 
-            flex-direction: column;
-            cursor: pointer; 
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .product-card:hover { 
-            transform: translateY(-5px); 
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
-        }
-        
+
         .product-card-reveal {
             opacity: 0;
             transform: translateY(20px);
@@ -267,115 +249,127 @@
             opacity: 1;
             transform: translateY(0);
         }
-
-        .product-image-container { 
-            width: 100%; 
-            aspect-ratio: 1/1; 
-            position: relative; 
-        }
-        /* Gradient bo ser wêne ji bo xwandina nivîsê */
-        .product-image-container::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 70%;
-            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.6) 30%, transparent 100%);
-            pointer-events: none; /* Rê dide ku bitikînî ser wêne */
-            border-radius: 0 0 12px 12px;
-        }
-
-        .product-image { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; /* Wêne bi tevahî cih digire */
-        }
         
-        .product-info {
-            padding: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 48px; /* Bilindahiya kêm */
-            text-align: center;
-        }
-
-        /* Veguhestina nav û nirx bo ser wêne */
-        .product-name, .product-price-container {
-            position: absolute;
-            left: 10px;
-            right: 10px;
-            color: white;
-            z-index: 2;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-        }
-
-        .product-name { 
-            bottom: 30px; /* Cihê navî */
-            font-weight: bold; 
-            font-size: 14px; 
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            text-align: right;
-        }
-        
-        .product-price-container { 
-            bottom: 8px; /* Cihê nirxî */
-            display: flex; 
-            flex-direction: row-reverse; /* Ji bo rêzkirina nirxê kevn û nû */
-            align-items: baseline; 
-            justify-content: flex-end;
-            gap: 8px; 
-        }
-        
-        .product-price { 
-            color: #ffffff; /* Rengê spî */
-            font-weight: 700; 
-            font-size: 16px; 
-        }
-        .original-price { 
-            color: #d1d5db; /* Rengê gewrê sivik */
-            text-decoration: line-through; 
-            font-size: 12px; 
-        }
-
         .product-description { display: none; }
-        
-        .discount-badge { 
-            position: absolute; 
-            top: 8px; 
-            right: 8px; 
-            background-color: var(--danger-color); 
-            color: white; 
-            padding: 2px 6px; 
-            border-radius: 4px; 
-            font-size: 12px; 
-            font-weight: bold; 
-            z-index: 3; /* Da ku li ser her tiştî be */
-        }
         
         .product-actions { 
             position: absolute; 
-            top: 8px; 
+            top: 5px; 
             left: 45px;
             display: flex; 
             gap: 5px; 
             flex-direction: column; 
-            z-index: 3;
+            z-index: 4;
         }
         .edit-btn, .delete-btn { width: 28px; height: 28px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 13px; color: white; cursor: pointer; }
         .edit-btn { background-color: var(--accent-color); }
         .delete-btn { background-color: var(--danger-color); }
 
-        /* Veguhestina cihê bişkojka selikê */
-        .add-to-cart-btn-card {
+
+        /* ======================================================= */
+        /* ====== کۆدێ نوو (تەنها CSS) بۆ دیزاینا کارتا کاڵای ====== */
+        /* ======================================================= */
+
+        .product-card {
+            background-color: white;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--section-border);
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08);
+        }
+        .product-card:hover .product-image {
+            transform: scale(1.05);
+        }
+
+        .product-card .product-image-container {
+            width: 100%;
+            aspect-ratio: 1/1;
+            position: relative; /* گرنگە */
+            overflow: hidden;
+        }
+        .product-card .product-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* وێنە دێ هەمی جهی گریت */
+            padding: 0;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        /* === TRICK-A СӘРӘКИ Л ВÊРÊ ЙӘ === */
+        .product-card .product-info {
+            /* ئەم ڤی بەشی هەمیێ دئینینە سەروە دا ناڤ بچیتە سەر وێنەی */
+            margin-top: -65px; 
+            position: relative; /* دا لسەر وێنەی دیار بیت */
+            z-index: 2;
+            text-align: center;
+            background: transparent; /* پاشبناڤا وی یا شەفافە */
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+        }
+
+        .product-card .product-name {
+            /* ناڤ دێ بیتە سپی و دێ سیبەرەک هەبیت دا بهێتە خواندن */
+            color: white;
+            font-weight: bold;
+            font-size: 15px;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
+            padding: 15px 10px;
+            line-height: 1.4;
+            height: 65px; /* بلنداهیەکا دیارکری دا جهێ خۆ بزانیت */
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            text-align: center;
+        }
+
+        /* سعر و گەهاندن دێ پاشبناڤەکا سپی وەرگرن دا وەک بەشەکێ ل بن دیار بن */
+        .product-card .product-price-container, 
+        .product-card .product-extra-info {
+            background: white;
+        }
+
+        .product-card .product-price-container {
+             padding: 10px 10px 4px 10px;
+             margin-top: 0; /* دڤێت 0 بیت */
+             justify-content: center;
+        }
+        .product-card .product-extra-info {
+            padding-bottom: 8px;
+            margin-top: 0;
+            height: auto;
+        }
+        .product-card .shipping-badge {
+            animation: none;
+        }
+
+        .product-card .product-price {
+            color: var(--accent-light);
+            font-weight: 700;
+            font-size: 16px;
+        }
+        .product-card .original-price {
+            color: var(--dark-gray);
+            font-size: 13px;
+        }
+
+
+        /* جهێ دوگمەیان دێ هێتە ڕێکخستن */
+        .product-card .add-to-cart-btn-card {
             position: absolute;
-            bottom: 8px;
-            left: 8px;
-            width: 34px;
-            height: 34px;
+            top: 10px;
+            left: 10px;
+            z-index: 3;
+            width: 32px;
+            height: 32px;
             background-color: var(--accent-color);
             color: white;
             border: none;
@@ -385,24 +379,64 @@
             justify-content: center;
             cursor: pointer;
             transition: all 0.2s;
-            z-index: 5;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-        .add-to-cart-btn-card:hover { 
+        .product-card .add-to-cart-btn-card:hover { 
             background-color: var(--accent-light); 
             transform: scale(1.1);
         }
-        .add-to-cart-btn-card span { display: none; }
-        .add-to-cart-btn-card i { font-size: 15px; margin: 0; }
-        .add-to-cart-btn-card:disabled { background-color: var(--dark-gray); cursor: not-allowed; }
-        
-        .favorite-btn {
-            position: absolute; top: 8px; left: 8px; background: rgba(255, 255, 255, 0.8); border: 1px solid var(--medium-gray);
-            width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;
-            font-size: 16px; color: var(--dark-gray); transition: color 0.2s, transform 0.2s; z-index: 5;
+        .product-card .add-to-cart-btn-card span {
+            display: none;
         }
-        .favorite-btn:hover { transform: scale(1.1); }
-        .favorite-btn.favorited { color: var(--danger-color); }
+        .product-card .add-to-cart-btn-card i {
+            font-size: 15px;
+            margin: 0;
+        }
+        .product-card .add-to-cart-btn-card:disabled {
+            background-color: var(--dark-gray);
+            cursor: not-allowed;
+        }
+
+
+        .product-card .favorite-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 3;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid var(--medium-gray);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--dark-gray);
+            transition: color 0.2s, transform 0.2s;
+        }
+        .product-card .favorite-btn:hover { transform: scale(1.1); }
+        .product-card .favorite-btn.favorited { color: var(--danger-color); }
+        
+        .product-card .discount-badge {
+            position: absolute;
+            top: 10px;
+            left: 50px;
+            right: auto;
+            z-index: 3;
+            background-color: var(--danger-color);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        /* ======================================================= */
+        /* ================= کۆتایی هاتنا کۆدێ نوو ================= */
+        /* ======================================================= */
+
         
         .add-to-cart-btn { 
             width: 100%;
@@ -423,8 +457,6 @@
         }
         .add-to-cart-btn:hover { background-color: var(--accent-light); }
         
-        /* === DAWÎHATINA KODÊ NÛ === */
-
         @keyframes scaleIn {
             from { transform: scale(0.95); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
@@ -783,31 +815,12 @@
             user-select: none;
         }
 
-        .product-extra-info {
-            /* Ev beş di nav .product-info de ye */
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        @keyframes slideAndFade {
+            0%   { transform: translateX(120%); opacity: 0; }
+            15%  { transform: translateX(0); opacity: 1; }
+            85%  { transform: translateX(0); opacity: 1; }
+            100% { transform: translateX(120%); opacity: 0; }
         }
-        
-        .shipping-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 10px; /* Piçûktir kirin */
-            border-radius: 16px;
-            background-color: #e6f4ea;
-            color: #38a169;
-            font-size: 11px; /* Font piçûktir kirin */
-            font-weight: bold;
-            white-space: nowrap;
-        }
-        
-        .shipping-badge i {
-            margin-left: 5px;
-        }
-        
-        /* Animation êdî ne pêwîst e ji ber ku cihê wê sabît e */
         
         .promo-card-grid-item .product-image-container {
             aspect-ratio: auto;
