@@ -6,7 +6,7 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a365d">
@@ -800,41 +800,66 @@
             height: 100%;
             object-fit: cover;
         }
-        
-        /* New styles for promo card slider buttons */
-        .promo-slider-btn {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background-color: rgba(0, 0, 0, 0.3);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            font-size: 16px;
-            cursor: pointer;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s, opacity 0.2s;
-            opacity: 0.7; /* Buttons are now visible by default */
-            pointer-events: auto; /* Buttons are now clickable by default */
-        }
-        
-        .promo-slider-btn:hover {
-            background-color: rgba(0, 0, 0, 0.6);
-            opacity: 1;
-        }
 
-        .promo-slider-btn.prev {
-            left: 10px;
-        }
+		
+		// =======================================================
+		// گوهۆڕینێن نوو بۆ دیزاینا کارتا کاڵای
+		// =======================================================
 
-        .promo-slider-btn.next {
-            right: 10px;
-        }
+		/* ١. گرنگترین بەش: دانانا context بۆ positioning */
+		.product-card {
+			position: relative;
+		}
+
+		/* ٢. کورتکرنا بۆشایی و رێکخستنا ناڤ و نڕخی */
+		.product-info {
+			padding: 8px 12px 12px 12px; /* بۆشایی ژ سەرڤە کێمتر لێهات */
+			text-align: right; /* دڵنیابە هەمی تشت ل لایێ راستێ نە */
+		}
+
+		.product-name {
+			font-size: 14px;
+			font-weight: bold;
+			margin-bottom: 2px; /* بۆشایییا بن ناڤی کێمتر لێهات */
+		}
+
+		.product-price-container {
+			justify-content: flex-end; /* نڕخ دێ چیتە لایێ راستێ */
+			margin-top: 0;
+			margin-bottom: 4px; /* بۆشایییا بن نڕخی کێمتر لێهات */
+		}
+
+		/* ٣. گوهۆڕینا شێوەی بۆ ئایکۆنەکا بازنەیی و ڤەگۆهاستنا بۆ سەر وێنەی */
+		.add-to-cart-btn-card {
+			position: absolute; /* دێ ژ جهێ خۆ یێ ئاسایی دەرکەڤیت */
+			bottom: 8px;   /* 8px ژ بنیا وێنەی بلند بیت */
+			left: 8px;     /* 8px ژ لایێ چەپێ یێ وێنەی دیر بیت */
+			
+			width: 36px;
+			height: 36px;
+			border-radius: 50%;
+			padding: 0;
+			margin: 0; /* هەمی مارجنێن کەڤن هاتنە ژێبرن */
+			box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+			z-index: 5; /* داکو ل سەر هەمی تشتان بیت */
+		}
+
+		/* ٤. ڤەشارتنا نڤیسینا "زێدەکرن بۆ سەبەتێ" */
+		.add-to-cart-btn-card span {
+			display: none;
+		}
+
+		/* ٥. ناڤەندکرنا ئایکۆنی دناڤ بازنەی دا */
+		.add-to-cart-btn-card i {
+			font-size: 16px;
+			margin: 0;
+		}
+
+		/* ٦. رێکخستنا بەشێ گەهاندنێ */
+		.product-extra-info {
+			justify-content: flex-end; /* دێ چیتە لایێ راستێ */
+			margin-top: 4px;
+		}
 
     </style>
 </head>
