@@ -280,27 +280,47 @@
             background-color: #f8f9fa;
         }
         
+        /* === ستایلێ دوماهیێ === */
         .product-info {
-            padding: 8px;
+            padding: 8px 6px 6px 6px;
             flex-grow: 1;
             display: flex;
             flex-direction: column;
             text-align: center;
         }
-
-        .product-name { 
-            font-weight: bold; 
-            font-size: 14px; 
-        }
-        
         .product-price-container { 
             display: flex; 
             flex-direction: row;
             align-items: center; 
             justify-content: center;
             gap: 8px; 
-            margin-top: 4px;
-            margin-bottom: 8px;
+            margin-top: 2px;
+            margin-bottom: 4px;
+        }
+        .add-to-cart-btn-card {
+            position: absolute;
+            top: 60%;
+            transform: translateY(-50%);
+            left: 4px;
+            width: 32px;
+            height: 32px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            z-index: 5;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        /* === دوماهی هات === */
+
+        .product-name { 
+            font-weight: bold; 
+            font-size: 14px; 
         }
         
         .product-description { display: none; }
@@ -321,26 +341,6 @@
         .edit-btn { background-color: var(--accent-color); }
         .delete-btn { background-color: var(--danger-color); }
 
-        /* === کۆدێ دوماهیێ یێ دوگمەیا سەبەتێ === */
-        .add-to-cart-btn-card {
-            position: absolute;
-            top: 60%;
-            transform: translateY(-50%);
-            left: 4px;
-            width: 32px;
-            height: 32px;
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            z-index: 5;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
         .add-to-cart-btn-card:hover { 
             background-color: var(--accent-light); 
             transform: translateY(-50%) scale(1.1);
