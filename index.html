@@ -296,8 +296,8 @@
             background-color: white;
             height: 80px;
             position: relative;
-            text-align: right;
             padding: 0;
+            text-align: right;
         }
         
         .product-name { 
@@ -351,11 +351,11 @@
         .edit-btn { background-color: var(--accent-color); }
         .delete-btn { background-color: var(--danger-color); }
         
-        /* === GORANKARI: شوێنی سەبەتە گۆڕا بۆ لای ڕاست === */
+        /* شوێنی سەبەتە: لای ڕاست */
         .add-to-cart-btn-card {
             position: absolute;
             bottom: 10px;
-            right: 12px; /* Hate guhertin bo rast */
+            right: 12px;
             left: auto;
             width: 32px;
             height: 32px;
@@ -398,11 +398,11 @@
         .product-extra-info {
              /* vala */
         }
-        /* === GORANKARI: شوێنی گەیاندن گۆڕا بۆ لای چەپ + جوڵەی بۆ زیادکرا === */
+        /* شوێنی گەیاندن: لای چەپ + جوڵەی بۆ زیادکرا */
         .shipping-badge {
             position: absolute;
             bottom: 15px;
-            left: 12px; /* Hate guhertin bo çep */
+            left: 12px;
             right: auto;
             transform: none;
             display: inline-flex;
@@ -416,15 +416,13 @@
             white-space: nowrap;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             z-index: 6;
-            animation: move-right 3s infinite ease-in-out; /* جوڵە بۆ زیادکرا */
+            animation: move-peek 5s infinite ease-in-out; /* === GORANKARI: Dem درێژتر لێهات === */
         }
 
-        /* === GORANKARI: جوڵەی گەیاندن لێرەدا زیادکرا === */
-        @keyframes move-right {
-            0% { transform: translateX(0); }
-            25% { transform: translateX(8px); }
-            50% { transform: translateX(0); }
-            100% { transform: translateX(0); }
+        /* === GORANKARI: جوڵە هێدیتر و درەنگتر لێهات === */
+        @keyframes move-peek {
+            0%, 80%, 100% { transform: translateX(0); }
+            90% { transform: translateX(8px); }
         }
 
         @keyframes scaleIn {
