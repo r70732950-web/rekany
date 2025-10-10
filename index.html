@@ -6,7 +6,7 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a365d">
@@ -239,10 +239,6 @@
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 8px;
         }
-
-        /* ================================================ */
-        /* == START: NEW PRODUCT CARD STYLES == */
-        /* ================================================ */
         
         .product-card { 
             background-color: white; 
@@ -284,123 +280,33 @@
             background-color: #f8f9fa;
         }
         
-        /* Final adjusted style for a shorter name overlay */
-        .product-name-overlay {
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            left: 0;
-            
-            /* Kept for visibility */
-            background-color: rgba(0, 0, 0, 0.55); 
-            text-shadow: 0px 1px 3px rgba(0, 0, 0, 0.9);
-
-            /* Padding is reduced to make the background shorter */
-            padding: 6px 10px;
-
-            /* Unchanged styles */
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
+        .product-info {
+            padding: 12px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
             text-align: center;
         }
-        
-        /* This is the container for Price row + Actions row */
-        .product-info {
-            padding: 6px 10px; /* Padding reduced for a shorter card */
-            display: flex;
-            flex-direction: column; /* Vertical layout */
-            align-items: center;   /* Center everything horizontally */
-            gap: 4px; /* Space between price row and actions row reduced */
+
+        .product-name { 
+            font-weight: bold; 
+            font-size: 14px; 
         }
         
-        .product-info .product-name {
-             display: none; /* Hide old product name */
-        }
-
-        .product-price-container {
-            margin: 0;
-            width: 100%;
-            justify-content: center; /* Center the price */
-        }
-        
-        .product-price { 
-            color: var(--accent-light); 
-            font-weight: 700; 
-            font-size: 14px; /* Price font size slightly smaller */
-        }
-        .original-price { 
-            color: var(--dark-gray); 
-            text-decoration: line-through; 
-            font-size: 12px; /* Original price font size smaller */
-        }
-
-        /* This is the second row, containing shipping and cart */
-        .actions-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-        }
-
-        .shipping-badge {
-            animation: none;
-            padding: 3px 8px; /* Padding of shipping badge reduced */
-            font-size: 10px;  /* Font size of shipping badge reduced */
-            white-space: nowrap;
-            /* Original shipping badge styles */
-            display: inline-flex;
-            align-items: center;
-            border-radius: 16px;
-            background-color: #e6f4ea;
-            color: #38a169;
-            font-weight: bold;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .shipping-badge i {
-            margin-left: 4px;
-        }
-
-        .add-to-cart-btn-card {
-            width: 38px;  /* Button size slightly smaller */
-            height: 38px; /* Button size slightly smaller */
-            font-size: 16px; /* Icon size inside button */
-            border-radius: 50%;
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            display: flex;
-            align-items: center;
+        .product-price-container { 
+            display: flex; 
+            flex-direction: row;
+            align-items: center; 
             justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            padding: 0;
-            margin-top: 0;
-            flex-shrink: 0;
+            gap: 8px; 
+            margin-top: 4px;
+            margin-bottom: 8px;
         }
-        .add-to-cart-btn-card:hover {
-            background-color: var(--accent-light);
-            transform: scale(1.1);
-        }
-        .add-to-cart-btn-card:disabled {
-            cursor: not-allowed;
-            background-color: var(--dark-gray);
-            transform: scale(1);
-        }
-        .add-to-cart-btn-card.loading {
-            background-color: #ffc107;
-        }
-        .add-to-cart-btn-card.added {
-            background-color: #28a745;
-            transform: scale(1.1);
-        }
-
-        /* ================================================ */
-        /* == END: NEW PRODUCT CARD STYLES == */
-        /* ================================================ */
         
         .product-description { display: none; }
         
+        .product-price { color: var(--accent-light); font-weight: 700; font-size: 15px; }
+        .original-price { color: var(--dark-gray); text-decoration: line-through; font-size: 13px; }
         .discount-badge { position: absolute; top: 8px; right: 8px; background-color: var(--danger-color); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; }
         
         .product-actions { 
@@ -414,6 +320,30 @@
         .edit-btn, .delete-btn { width: 28px; height: 28px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 13px; color: white; cursor: pointer; }
         .edit-btn { background-color: var(--accent-color); }
         .delete-btn { background-color: var(--danger-color); }
+
+        .add-to-cart-btn-card { 
+            width: 100%;
+            padding: 8px;
+            margin-top: auto;
+            background-color: var(--accent-color); 
+            color: white; 
+            border: none; 
+            border-radius: 6px;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer; 
+            font-weight: bold;
+            font-size: 14px;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+        .add-to-cart-btn-card:hover { background-color: var(--accent-light); }
+        .add-to-cart-btn-card:disabled {
+            background-color: var(--dark-gray);
+            cursor: not-allowed;
+        }
         
         .favorite-btn {
             position: absolute; top: 8px; left: 8px; background: rgba(255, 255, 255, 0.8); border: 1px solid var(--medium-gray);
@@ -800,6 +730,41 @@
             user-select: none;
         }
 
+        .product-extra-info {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 8px;
+            height: 28px;
+            overflow: hidden;
+        }
+        
+        .shipping-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 12px;
+            border-radius: 16px;
+            background-color: #e6f4ea;
+            color: #38a169;
+            font-size: 12px;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            animation: slideAndFade 5s infinite ease-in-out;
+            animation-delay: 1.5s;
+        }
+        
+        .shipping-badge i {
+            margin-left: 6px;
+        }
+        
+        @keyframes slideAndFade {
+            0%   { transform: translateX(120%); opacity: 0; }
+            15%  { transform: translateX(0); opacity: 1; }
+            85%  { transform: translateX(0); opacity: 1; }
+            100% { transform: translateX(120%); opacity: 0; }
+        }
+        
         .promo-card-grid-item .product-image-container {
             aspect-ratio: auto;
             height: 100%;
@@ -834,6 +799,41 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+        }
+        
+        /* New styles for promo card slider buttons */
+        .promo-slider-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(0, 0, 0, 0.3);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 16px;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s, opacity 0.2s;
+            opacity: 0.7; /* Buttons are now visible by default */
+            pointer-events: auto; /* Buttons are now clickable by default */
+        }
+        
+        .promo-slider-btn:hover {
+            background-color: rgba(0, 0, 0, 0.6);
+            opacity: 1;
+        }
+
+        .promo-slider-btn.prev {
+            left: 10px;
+        }
+
+        .promo-slider-btn.next {
+            right: 10px;
         }
 
     </style>
