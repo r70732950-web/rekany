@@ -234,7 +234,6 @@
             text-overflow: ellipsis;
         }
         
-        /* === گۆڕانکاریا بچیککرنا کارتان === */
         .products-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -245,7 +244,7 @@
             background-color: white; 
             border-radius: 12px;
             overflow: hidden; 
-            position: relative; /* گرنگە بۆ بلندکرنا دوگمەیێ */
+            position: relative;
             border: 1px solid var(--section-border); 
             display: flex; 
             flex-direction: column;
@@ -281,7 +280,6 @@
             background-color: #f8f9fa;
         }
         
-        /* === گۆڕانکاریا کێمکرنا پادینگێ === */
         .product-info {
             padding: 8px;
             flex-grow: 1;
@@ -323,10 +321,11 @@
         .edit-btn { background-color: var(--accent-color); }
         .delete-btn { background-color: var(--danger-color); }
 
-        /* === گۆڕانکاریا دوگمەیا سەبەتێ === */
+        /* === کۆدێ نوو یێ دوگمەیا سەبەتێ === */
         .add-to-cart-btn-card {
             position: absolute;
-            bottom: 8px;
+            top: 50%;
+            transform: translateY(-50%);
             left: 8px;
             width: 32px;
             height: 32px;
@@ -344,7 +343,7 @@
         }
         .add-to-cart-btn-card:hover { 
             background-color: var(--accent-light); 
-            transform: scale(1.1);
+            transform: translateY(-50%) scale(1.1);
         }
         .add-to-cart-btn-card span {
             display: none;
