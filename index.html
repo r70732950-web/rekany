@@ -273,7 +273,6 @@
             aspect-ratio: 1/1; 
             position: relative; 
         }
-        /* Gradient hate zivrîn bo ser wênay */
         .product-image-container::after {
             content: '';
             position: absolute;
@@ -283,7 +282,6 @@
             height: 50%;
             background: linear-gradient(to top, rgba(0,0,0,0.75), transparent);
             pointer-events: none;
-            display: block; /* Hate zivrîn */
         }
 
         .product-image { 
@@ -294,21 +292,17 @@
             background-color: #f8f9fa;
         }
         
-        /* Beşa spî ya jêrîn */
         .product-info {
             background-color: white;
             padding: 8px;
-            height: 52px; /* Bilindahiya beşa spî hate kêmkirin */
+            height: 52px;
             position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            text-align: right;
         }
         
-        /* === GORANKARI: Nav hate birn bo ser wênay === */
         .product-name { 
             position: absolute;
-            bottom: 60px; /* Li ser beşa spî */
+            bottom: 60px;
             right: 10px;
             left: 10px;
             z-index: 3;
@@ -318,11 +312,11 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            color: white; /* Reng bû spî */
+            color: white;
         }
         
         .product-price-container { 
-            /* Cihê wê başe */
+             /* Cihê wê başe */
         }
         
         .product-description { display: none; }
@@ -355,11 +349,10 @@
         .edit-btn { background-color: var(--accent-color); }
         .delete-btn { background-color: var(--danger-color); }
         
-        /* Aykona sebetê noke l nav beşa spî ye */
         .add-to-cart-btn-card {
             position: absolute;
             bottom: 10px;
-            right: 10px;
+            left: 10px;
             width: 32px;
             height: 32px;
             background-color: var(--accent-color);
@@ -401,11 +394,10 @@
         .product-extra-info {
              /* vala */
         }
-        /* Nishana gehandinê noke l nav beşa spî ye */
         .shipping-badge {
             position: absolute;
             bottom: 15px;
-            left: 10px;
+            left: 52px;
             transform: none;
             display: inline-flex;
             align-items: center;
