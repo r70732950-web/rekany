@@ -802,62 +802,62 @@
         }
 
 		
-		// =======================================================
-		// گوهۆڕینێن نوو بۆ دیزاینا کارتا کاڵای
-		// =======================================================
+		/* ======================================================= */
+		/* گوهۆڕینێن نوو بۆ دیزاینا کارتا کاڵای (ڤێرژنا چاککری) */
+		/* ======================================================= */
 
-		/* ١. گرنگترین بەش: دانانا context بۆ positioning */
+		/* گرنگترین بەش: دانانا context بۆ positioning */
 		.product-card {
 			position: relative;
 		}
 
-		/* ٢. کورتکرنا بۆشایی و رێکخستنا ناڤ و نڕخی */
+		/* کورتکرنا بۆشایی و ناڤەندکرنا ناڤ و نڕخی */
 		.product-info {
-			padding: 8px 12px 12px 12px; /* بۆشایی ژ سەرڤە کێمتر لێهات */
-			text-align: right; /* دڵنیابە هەمی تشت ل لایێ راستێ نە */
+			padding: 8px 12px 12px 12px;
+			text-align: center; /* هاتە زڤڕاندن بۆ ناڤەندێ */
 		}
 
 		.product-name {
 			font-size: 14px;
 			font-weight: bold;
-			margin-bottom: 2px; /* بۆشایییا بن ناڤی کێمتر لێهات */
+			margin-bottom: 2px;
 		}
 
 		.product-price-container {
-			justify-content: flex-end; /* نڕخ دێ چیتە لایێ راستێ */
+			justify-content: center; /* هاتە زڤڕاندن بۆ ناڤەندێ */
 			margin-top: 0;
-			margin-bottom: 4px; /* بۆشایییا بن نڕخی کێمتر لێهات */
+			margin-bottom: 4px;
 		}
 
-		/* ٣. گوهۆڕینا شێوەی بۆ ئایکۆنەکا بازنەیی و ڤەگۆهاستنا بۆ سەر وێنەی */
-		.add-to-cart-btn-card {
-			position: absolute; /* دێ ژ جهێ خۆ یێ ئاسایی دەرکەڤیت */
-			bottom: 8px;   /* 8px ژ بنیا وێنەی بلند بیت */
-			left: 8px;     /* 8px ژ لایێ چەپێ یێ وێنەی دیر بیت */
-			
+		/* ستایلێن دوگمەیا سەبەتێ بتنێ بۆ کارتێن ئاسایی، نە بۆ ڕیکلامێ */
+		.product-card:not(.promo-card-grid-item) .add-to-cart-btn-card {
+			position: absolute;
+			bottom: 8px;
+			left: 8px;
 			width: 36px;
 			height: 36px;
 			border-radius: 50%;
 			padding: 0;
-			margin: 0; /* هەمی مارجنێن کەڤن هاتنە ژێبرن */
+			margin: 0;
 			box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-			z-index: 5; /* داکو ل سەر هەمی تشتان بیت */
+			z-index: 5;
+			background-color: var(--accent-color);
 		}
 
-		/* ٤. ڤەشارتنا نڤیسینا "زێدەکرن بۆ سەبەتێ" */
-		.add-to-cart-btn-card span {
+		/* ڤەشارتنا نڤیسینێ بتنێ ل کارتێن ئاسایی */
+		.product-card:not(.promo-card-grid-item) .add-to-cart-btn-card span {
 			display: none;
 		}
 
-		/* ٥. ناڤەندکرنا ئایکۆنی دناڤ بازنەی دا */
-		.add-to-cart-btn-card i {
+		/* ناڤەندکرنا ئایکۆنی */
+		.product-card:not(.promo-card-grid-item) .add-to-cart-btn-card i {
 			font-size: 16px;
 			margin: 0;
 		}
 
-		/* ٦. رێکخستنا بەشێ گەهاندنێ */
+		/* چاککرنا کێشەیا تێکەل بوونا بەشێ گەهاندنێ */
 		.product-extra-info {
-			justify-content: flex-end; /* دێ چیتە لایێ راستێ */
+			justify-content: center; /* هاتە زڤڕاندن بۆ ناڤەندێ */
 			margin-top: 4px;
 		}
 
