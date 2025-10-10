@@ -234,7 +234,7 @@
             text-overflow: ellipsis;
         }
         
-        /* === ستایلێ نوو و مۆدێرن بۆ کارتان === */
+        /* === ستایلێ کارت === */
         .products-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -292,17 +292,17 @@
             background-color: #f8f9fa;
         }
         
-        /* === GORANKARI KOTAYI === */
         .product-info {
             background-color: white;
-            height: 80px; /* Bilindahiya beşa spî hate zêdekirin */
+            height: 80px;
             position: relative;
-            padding: 0; /* Padding hate rakirin */
+            text-align: right;
+            padding: 0;
         }
         
         .product-name { 
             position: absolute;
-            bottom: 88px; /* = Bilindahiya beşa spî (80px) + 8px boşayî */
+            bottom: 88px;
             right: 10px;
             left: 10px;
             z-index: 3;
@@ -351,10 +351,12 @@
         .edit-btn { background-color: var(--accent-color); }
         .delete-btn { background-color: var(--danger-color); }
         
+        /* === GORANKARI: شوێنی سەبەتە گۆڕا بۆ لای ڕاست === */
         .add-to-cart-btn-card {
             position: absolute;
             bottom: 10px;
-            left: 12px;
+            right: 12px; /* Hate guhertin bo rast */
+            left: auto;
             width: 32px;
             height: 32px;
             background-color: var(--accent-color);
@@ -396,12 +398,12 @@
         .product-extra-info {
              /* vala */
         }
-
+        /* === GORANKARI: شوێنی گەیاندن گۆڕا بۆ لای چەپ + جوڵەی بۆ زیادکرا === */
         .shipping-badge {
             position: absolute;
             bottom: 15px;
-            right: 12px;
-            left: auto;
+            left: 12px; /* Hate guhertin bo çep */
+            right: auto;
             transform: none;
             display: inline-flex;
             align-items: center;
@@ -414,6 +416,15 @@
             white-space: nowrap;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             z-index: 6;
+            animation: move-right 3s infinite ease-in-out; /* جوڵە بۆ زیادکرا */
+        }
+
+        /* === GORANKARI: جوڵەی گەیاندن لێرەدا زیادکرا === */
+        @keyframes move-right {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(8px); }
+            50% { transform: translateX(0); }
+            100% { transform: translateX(0); }
         }
 
         @keyframes scaleIn {
@@ -821,7 +832,6 @@
             object-fit: cover;
         }
         
-        /* New styles for promo card slider buttons */
         .promo-slider-btn {
             position: absolute;
             top: 50%;
@@ -839,8 +849,8 @@
             align-items: center;
             justify-content: center;
             transition: background-color 0.2s, opacity 0.2s;
-            opacity: 0.7; /* Buttons are now visible by default */
-            pointer-events: auto; /* Buttons are now clickable by default */
+            opacity: 0.7;
+            pointer-events: auto;
         }
         
         .promo-slider-btn:hover {
