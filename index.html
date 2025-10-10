@@ -6,7 +6,7 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a365d">
@@ -234,9 +234,10 @@
             text-overflow: ellipsis;
         }
         
+        /* === گۆڕانکاریا ئێکێ === */
         .products-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); /* ل ڤێرێ 150 بوو 135 */
             gap: 8px;
         }
         
@@ -321,25 +322,35 @@
         .edit-btn { background-color: var(--accent-color); }
         .delete-btn { background-color: var(--danger-color); }
 
-        .add-to-cart-btn-card { 
-            width: 100%;
-            padding: 8px;
+        /* === گۆڕانکاریا دووێ === */
+        .add-to-cart-btn-card {
+            width: 32px;
+            height: 32px;
+            padding: 0;
             margin-top: auto;
-            background-color: var(--accent-color); 
-            color: white; 
-            border: none; 
-            border-radius: 6px;
-            display: flex; 
-            align-items: center; 
+            margin-right: auto;
+            margin-left: auto;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
             justify-content: center;
-            gap: 8px;
-            cursor: pointer; 
-            font-weight: bold;
-            font-size: 14px;
+            cursor: pointer;
             transition: background-color 0.2s;
-            white-space: nowrap;
+            gap: 0;
         }
-        .add-to-cart-btn-card:hover { background-color: var(--accent-light); }
+        .add-to-cart-btn-card:hover { 
+            background-color: var(--accent-light); 
+        }
+        .add-to-cart-btn-card span {
+            display: none;
+        }
+        .add-to-cart-btn-card i {
+            font-size: 15px;
+            margin: 0;
+        }
         .add-to-cart-btn-card:disabled {
             background-color: var(--dark-gray);
             cursor: not-allowed;
@@ -861,7 +872,7 @@
 
         <div id="loginModal" class="modal">
             <div class="modal-content">
-                <span class="close">&times;</span>
+                <span class="close" aria-label="Close">&times;</span>
                 <h2 style="text-align: center; margin-bottom: 18px;" data-translate-key="admin_login_title">چوونەژوورەوەی بەڕێوەبەر</h2>
                 <form id="loginForm">
                     <div class="form-group"><label for="email" data-translate-key="email_label">ئیمەیڵ:</label><input type="email" id="email" required></div>
@@ -873,7 +884,7 @@
         
         <div id="welcomeModal" class="modal">
             <div class="modal-content" style="text-align: center;">
-                <span class="close">&times;</span>
+                <span class="close" aria-label="Close">&times;</span>
                 <i class="fas fa-store" style="font-size: 40px; color: var(--accent-color); margin-bottom: 15px;"></i>
                 <h2 style="margin-bottom: 10px;">بەخێرهاتن بۆ فرۆشگای MATEN</h2>
                 <p style="color: var(--text-light);">هیوادارین ئەزموونێکی کڕینی خۆشت هەبێت!</p>
@@ -886,7 +897,7 @@
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 class="sheet-title"><i class="fas fa-bell"></i> <span data-translate-key="notifications_title">ئاگەهدارییەکان</span></h2>
-                <span class="close" style="top: 20px;">&times;</span>
+                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
             </div>
             <div id="notificationsListContainer" class="sheet-content"></div>
         </div>
@@ -895,7 +906,7 @@
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 class="sheet-title"><i class="fas fa-shopping-cart"></i> <span data-translate-key="cart_title">سەبەتەی کڕین</span></h2>
-                <span class="close" style="top: 20px;">&times;</span>
+                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
             </div>
             <div class="sheet-content">
                 <div id="cartItemsContainer"></div>
@@ -910,7 +921,7 @@
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 class="sheet-title"><i class="fas fa-list"></i> <span data-translate-key="choose_category">هەڵبژاردنی جۆر</span></h2>
-                <span class="close" style="top: 20px;">&times;</span>
+                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
             </div>
             <div id="sheetCategoriesContainer" class="sheet-content"></div>
         </div>
@@ -919,7 +930,7 @@
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 class="sheet-title"><i class="fas fa-user"></i> <span data-translate-key="profile_title">پڕۆفایلی من</span></h2>
-                <span class="close" style="top: 20px;">&times;</span>
+                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
             </div>
             <div class="sheet-content">
                 <form id="profileForm">
@@ -948,7 +959,7 @@
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 class="sheet-title"><i class="fas fa-heart" style="color: var(--danger-color);"></i> <span data-translate-key="favorites_title">لیستی دڵخوازەکان</span></h2>
-                <span class="close" style="top: 20px;">&times;</span>
+                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
             </div>
             <div class="sheet-content">
                 <div id="favoritesContainer" class="products-container"></div>
@@ -963,7 +974,7 @@
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 id="sheetProductName" class="sheet-title"></h2>
-                <span class="close" style="top: 20px;">&times;</span>
+                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
             </div>
             <div class="sheet-content">
                 <div id="sheetImageSlider">
@@ -985,7 +996,7 @@
 					<i class="fas fa-file-contract"></i> 
 					<span data-translate-key="terms_policies_title">مەرج و ڕێساکان</span>
 				</h2>
-				<span class="close" style="top: 20px;">&times;</span>
+				<span class="close" style="top: 20px;" aria-label="Close">&times;</span>
 			</div>
 			<div class="sheet-content">
 				<div id="termsContentContainer" style="line-height: 1.8; color: var(--text-light);">
@@ -1408,7 +1419,7 @@
 
         <div id="editCategoryModal" class="modal">
             <div class="modal-content">
-                <span class="close">&times;</span>
+                <span class="close" aria-label="Close">&times;</span>
                 <h2 id="editCategoryFormTitle" style="text-align: center; margin-bottom: 18px;">دەستکاریکردنی جۆر</h2>
                 <form id="editCategoryForm">
                     <input type="hidden" id="editCategoryDocPath">
@@ -1442,7 +1453,7 @@
 
         <div id="productFormModal" class="modal">
             <div class="modal-content">
-                <span class="close">&times;</span>
+                <span class="close" aria-label="Close">&times;</span>
                 <h2 id="formTitle" style="text-align: center; margin-bottom: 18px;">زیادکردنی کاڵای نوێ</h2>
                 <form id="productForm">
                     
