@@ -234,20 +234,19 @@
             text-overflow: ellipsis;
         }
         
+        /* === ستایلێ نوو و مۆدێرن بۆ کارتان === */
         .products-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 8px;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* قەبارە کەمەک مەزنتر لێهات دا جوانتر بیت */
+            gap: 12px; /* ناڤبەر کەمەک زێدەتر بوو */
         }
         
         .product-card { 
             background-color: white; 
             border-radius: 12px;
             overflow: hidden; 
-            position: relative; 
+            position: relative;
             border: 1px solid var(--section-border); 
-            display: flex; 
-            flex-direction: column;
             cursor: pointer; 
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
             transition: transform 0.2s, box-shadow 0.2s;
@@ -272,6 +271,18 @@
             aspect-ratio: 1/1; 
             position: relative; 
         }
+        /* Gradient ل بنیا وێنەی بۆ خواندنا نڤیسینێ */
+        .product-image-container::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60%;
+            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+            pointer-events: none; /* داهێلیت کلیک ل سەر دوگمان بهێتە کرن */
+        }
+
         .product-image { 
             width: 100%; 
             height: 100%; 
@@ -280,34 +291,42 @@
             background-color: #f8f9fa;
         }
         
+        /* ناڤ و بها دچنە سەر وێنەی */
         .product-info {
-            padding: 12px;
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            text-align: center;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 8px;
+            color: white;
+            z-index: 2;
+            text-align: right;
         }
-
+        
         .product-name { 
             font-weight: bold; 
-            font-size: 14px; 
+            font-size: 14px;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .product-price-container { 
             display: flex; 
             flex-direction: row;
             align-items: center; 
-            justify-content: center;
+            justify-content: flex-start; /* لایێ راستێ */
             gap: 8px; 
-            margin-top: 4px;
-            margin-bottom: 8px;
+            margin: 0;
         }
         
         .product-description { display: none; }
         
-        .product-price { color: var(--accent-light); font-weight: 700; font-size: 15px; }
-        .original-price { color: var(--dark-gray); text-decoration: line-through; font-size: 13px; }
-        .discount-badge { position: absolute; top: 8px; right: 8px; background-color: var(--danger-color); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .product-price { color: #f0f0f0; font-weight: 700; font-size: 15px; text-shadow: 1px 1px 3px rgba(0,0,0,0.5); }
+        .original-price { color: #aaa; text-decoration: line-through; font-size: 13px; text-shadow: 1px 1px 3px rgba(0,0,0,0.5); }
+        
+        .discount-badge { position: absolute; top: 8px; right: 8px; z-index: 3; background-color: var(--danger-color); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; }
         
         .product-actions { 
             position: absolute; 
@@ -316,34 +335,38 @@
             display: flex; 
             gap: 5px; 
             flex-direction: column; 
+            z-index: 4;
         }
         .edit-btn, .delete-btn { width: 28px; height: 28px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 13px; color: white; cursor: pointer; }
         .edit-btn { background-color: var(--accent-color); }
         .delete-btn { background-color: var(--danger-color); }
-
-        .add-to-cart-btn-card { 
-            width: 100%;
-            padding: 8px;
-            margin-top: auto;
-            background-color: var(--accent-color); 
-            color: white; 
-            border: none; 
-            border-radius: 6px;
-            display: flex; 
-            align-items: center; 
+        
+        /* جهێ دوگمەیا سەبەتێ ل سەر وێنەی */
+        .add-to-cart-btn-card {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            width: 32px;
+            height: 32px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
             justify-content: center;
-            gap: 8px;
-            cursor: pointer; 
-            font-weight: bold;
-            font-size: 14px;
-            transition: background-color 0.2s;
-            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s;
+            z-index: 5;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-        .add-to-cart-btn-card:hover { background-color: var(--accent-light); }
-        .add-to-cart-btn-card:disabled {
-            background-color: var(--dark-gray);
-            cursor: not-allowed;
+        .add-to-cart-btn-card:hover { 
+            background-color: var(--accent-light); 
+            transform: scale(1.1);
         }
+        .add-to-cart-btn-card span { display: none; }
+        .add-to-cart-btn-card i { font-size: 15px; margin: 0; }
+        .add-to-cart-btn-card:disabled { background-color: var(--dark-gray); cursor: not-allowed; }
         
         .favorite-btn {
             position: absolute; top: 8px; left: 8px; background: rgba(255, 255, 255, 0.8); border: 1px solid var(--medium-gray);
@@ -354,24 +377,36 @@
         .favorite-btn.favorited { color: var(--danger-color); }
         
         .add-to-cart-btn { 
-            width: 100%;
-            height: auto;
-            padding: 8px;
-            margin-top: auto; 
-            background-color: var(--accent-color); 
-            color: white; 
-            border: none; 
-            border-radius: 6px;
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            gap: 8px;
-            cursor: pointer; 
-            font-weight: bold;
-            font-size: 14px;
+            width: 100%; height: auto; padding: 8px; margin-top: auto; 
+            background-color: var(--accent-color); color: white; border: none; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            cursor: pointer; font-weight: bold; font-size: 14px;
         }
         .add-to-cart-btn:hover { background-color: var(--accent-light); }
         
+        /* === ستایلێ دوماهیێ بۆ نیشانا گەهاندنێ === */
+        .product-extra-info {
+            /* بەتاڵە و هیچ کاریگەرییەکی نییە */
+        }
+        .shipping-badge {
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            border-radius: 16px;
+            background-color: rgba(230, 244, 234, 0.9);
+            color: #38a169;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            animation: none;
+            z-index: 6;
+        }
+
         @keyframes scaleIn {
             from { transform: scale(0.95); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
@@ -729,30 +764,6 @@
             -ms-user-select: none;
             user-select: none;
         }
-
-        .product-extra-info {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-top: 8px;
-            height: 28px;
-            overflow: hidden;
-        }
-        
-        .shipping-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 5px 12px;
-            border-radius: 16px;
-            background-color: #e6f4ea;
-            color: #38a169;
-            font-size: 12px;
-            font-weight: bold;
-            white-space: nowrap;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            animation: slideAndFade 5s infinite ease-in-out;
-            animation-delay: 1.5s;
-        }
         
         .shipping-badge i {
             margin-left: 6px;
@@ -800,94 +811,41 @@
             height: 100%;
             object-fit: cover;
         }
+        
+        /* New styles for promo card slider buttons */
+        .promo-slider-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(0, 0, 0, 0.3);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 16px;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s, opacity 0.2s;
+            opacity: 0.7; /* Buttons are now visible by default */
+            pointer-events: auto; /* Buttons are now clickable by default */
+        }
+        
+        .promo-slider-btn:hover {
+            background-color: rgba(0, 0, 0, 0.6);
+            opacity: 1;
+        }
 
-		/* ============================================= */
-		/* کۆدی نوێ بۆ دیزاینی کارتی کاڵا         */
-		/* ============================================= */
+        .promo-slider-btn.prev {
+            left: 10px;
+        }
 
-		/* دیزاینی گشتی کارتەکە - دڵنیابوونەوە لەوەی کاریگەری لەسەر کارتی ڕیکلام نییە */
-		.product-card:not(.promo-card-grid-item) {
-			display: flex;
-			flex-direction: column;
-			gap: 0; /* لابردنی بۆشایی زیادە */
-		}
-
-		/* بەشی زانیارییەکانی ژێر وێنەکە */
-		.product-card:not(.promo-card-grid-item) .product-info {
-			padding: 12px;
-			display: grid; /* بەکارهێنانی سیستمێکی پێشکەوتوو بۆ دیزاین */
-			grid-template-columns: 1fr auto; /* ستوونی یەکەم بۆ نرخ، ستوونی دووەم بۆ دوگمە */
-			grid-template-rows: auto auto auto; /* سێ ڕیز: ناو، نرخ/دوگمە، گەیاندن */
-			gap: 8px;
-			text-align: right; /* نووسینەکان لە ڕاستەوە دەست پێبکەن */
-		}
-
-		/* ناوی کاڵا */
-		.product-card:not(.promo-card-grid-item) .product-name {
-			grid-column: 1 / -1; /* هەردوو ستوونەکە بگرێتەوە */
-			font-size: 14px;
-			font-weight: bold;
-			margin-bottom: 4px;
-		}
-
-		/* کۆنتەینەری نرخ */
-		.product-card:not(.promo-card-grid-item) .product-price-container {
-			grid-column: 1 / 2; /* لە ستوونی یەکەمدا بێت */
-			grid-row: 2 / 3; /* لە ڕیزی دووەمدا بێت */
-			display: flex;
-			align-items: center;
-			justify-content: flex-start; /* لە ڕاستەوە دەربکەوێت */
-			margin: 0; /* لابردنی مارجینی زیادە */
-			gap: 6px;
-		}
-
-		/* نرخی سەرەکی */
-		.product-card:not(.promo-card-grid-item) .product-price {
-			font-size: 16px;
-		}
-
-		/* نرخی داشکێنراو */
-		.product-card:not(.promo-card-grid-item) .original-price {
-			font-size: 13px;
-		}
-
-		/* دوگمەی زیادکردن بۆ سەبەتە */
-		.product-card:not(.promo-card-grid-item) .add-to-cart-btn-card {
-			grid-column: 2 / 3; /* لە ستوونی دووەمدا بێت */
-			grid-row: 2 / 3; /* لە ڕیزی دووەمدا بێت */
-			
-			/* گۆڕینی بۆ دوگمەیەکی بچووکی بازنەیی */
-			width: 38px;
-			height: 38px;
-			padding: 0;
-			margin: 0;
-			border-radius: 50%;
-			margin-top: 0; /* لابردنی مارجینی سەرەوە */
-		}
-
-		/* شاردنەوەی نووسینی ناو دوگمەکە تا تەنها ئایکۆنەکە بمێنێتەوە */
-		.product-card:not(.promo-card-grid-item) .add-to-cart-btn-card span {
-			display: none;
-		}
-
-		/* سفڕکردنەوەی مارجینی ئایکۆنی ناو دوگمەکە */
-		.product-card:not(.promo-card-grid-item) .add-to-cart-btn-card i {
-			margin: 0;
-			font-size: 16px;
-		}
-
-		/* بەشی زانیاری گەیاندن */
-		.product-card:not(.promo-card-grid-item) .product-extra-info {
-			grid-column: 1 / -1; /* هەردوو ستوونەکە بگرێتەوە */
-			height: auto;
-			margin-top: 4px; /* کەمێک بۆشایی لە سەرەوە */
-		}
-
-		.product-card:not(.promo-card-grid-item) .shipping-badge {
-			animation: none; /* وەستاندنی جوڵەی سلاید */
-			transform: translateX(0);
-			opacity: 1;
-		}
+        .promo-slider-btn.next {
+            right: 10px;
+        }
 
     </style>
 </head>
@@ -914,7 +872,7 @@
 
         <div id="loginModal" class="modal">
             <div class="modal-content">
-                <span class="close">&times;</span>
+                <span class="close" aria-label="Close">&times;</span>
                 <h2 style="text-align: center; margin-bottom: 18px;" data-translate-key="admin_login_title">چوونەژوورەوەی بەڕێوەبەر</h2>
                 <form id="loginForm">
                     <div class="form-group"><label for="email" data-translate-key="email_label">ئیمەیڵ:</label><input type="email" id="email" required></div>
@@ -926,7 +884,7 @@
         
         <div id="welcomeModal" class="modal">
             <div class="modal-content" style="text-align: center;">
-                <span class="close">&times;</span>
+                <span class="close" aria-label="Close">&times;</span>
                 <i class="fas fa-store" style="font-size: 40px; color: var(--accent-color); margin-bottom: 15px;"></i>
                 <h2 style="margin-bottom: 10px;">بەخێرهاتن بۆ فرۆشگای MATEN</h2>
                 <p style="color: var(--text-light);">هیوادارین ئەزموونێکی کڕینی خۆشت هەبێت!</p>
@@ -939,7 +897,7 @@
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 class="sheet-title"><i class="fas fa-bell"></i> <span data-translate-key="notifications_title">ئاگەهدارییەکان</span></h2>
-                <span class="close" style="top: 20px;">&times;</span>
+                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
             </div>
             <div id="notificationsListContainer" class="sheet-content"></div>
         </div>
@@ -948,7 +906,7 @@
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 class="sheet-title"><i class="fas fa-shopping-cart"></i> <span data-translate-key="cart_title">سەبەتەی کڕین</span></h2>
-                <span class="close" style="top: 20px;">&times;</span>
+                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
             </div>
             <div class="sheet-content">
                 <div id="cartItemsContainer"></div>
@@ -963,7 +921,7 @@
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 class="sheet-title"><i class="fas fa-list"></i> <span data-translate-key="choose_category">هەڵبژاردنی جۆر</span></h2>
-                <span class="close" style="top: 20px;">&times;</span>
+                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
             </div>
             <div id="sheetCategoriesContainer" class="sheet-content"></div>
         </div>
@@ -972,7 +930,7 @@
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 class="sheet-title"><i class="fas fa-user"></i> <span data-translate-key="profile_title">پڕۆفایلی من</span></h2>
-                <span class="close" style="top: 20px;">&times;</span>
+                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
             </div>
             <div class="sheet-content">
                 <form id="profileForm">
@@ -1001,7 +959,7 @@
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 class="sheet-title"><i class="fas fa-heart" style="color: var(--danger-color);"></i> <span data-translate-key="favorites_title">لیستی دڵخوازەکان</span></h2>
-                <span class="close" style="top: 20px;">&times;</span>
+                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
             </div>
             <div class="sheet-content">
                 <div id="favoritesContainer" class="products-container"></div>
@@ -1016,7 +974,7 @@
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 id="sheetProductName" class="sheet-title"></h2>
-                <span class="close" style="top: 20px;">&times;</span>
+                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
             </div>
             <div class="sheet-content">
                 <div id="sheetImageSlider">
@@ -1038,7 +996,7 @@
 					<i class="fas fa-file-contract"></i> 
 					<span data-translate-key="terms_policies_title">مەرج و ڕێساکان</span>
 				</h2>
-				<span class="close" style="top: 20px;">&times;</span>
+				<span class="close" style="top: 20px;" aria-label="Close">&times;</span>
 			</div>
 			<div class="sheet-content">
 				<div id="termsContentContainer" style="line-height: 1.8; color: var(--text-light);">
@@ -1461,7 +1419,7 @@
 
         <div id="editCategoryModal" class="modal">
             <div class="modal-content">
-                <span class="close">&times;</span>
+                <span class="close" aria-label="Close">&times;</span>
                 <h2 id="editCategoryFormTitle" style="text-align: center; margin-bottom: 18px;">دەستکاریکردنی جۆر</h2>
                 <form id="editCategoryForm">
                     <input type="hidden" id="editCategoryDocPath">
@@ -1495,7 +1453,7 @@
 
         <div id="productFormModal" class="modal">
             <div class="modal-content">
-                <span class="close">&times;</span>
+                <span class="close" aria-label="Close">&times;</span>
                 <h2 id="formTitle" style="text-align: center; margin-bottom: 18px;">زیادکردنی کاڵای نوێ</h2>
                 <form id="productForm">
                     
