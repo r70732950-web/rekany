@@ -234,26 +234,10 @@
             text-overflow: ellipsis;
         }
         
-        /* === ستایلێ نوو و مۆدێرن بۆ کارتان === */
         .products-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* قەبارە کەمەک مەزنتر لێهات دا جوانتر بیت */
-            gap: 12px; /* ناڤبەر کەمەک زێدەتر بوو */
-        }
-        
-        .product-card { 
-            background-color: white; 
-            border-radius: 12px;
-            overflow: hidden; 
-            position: relative;
-            border: 1px solid var(--section-border); 
-            cursor: pointer; 
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .product-card:hover { 
-            transform: translateY(-5px); 
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
         }
         
         .product-card-reveal {
@@ -271,17 +255,6 @@
             aspect-ratio: 1/1; 
             position: relative; 
         }
-        /* Gradient ل بنیا وێنەی بۆ خواندنا نڤیسینێ */
-        .product-image-container::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 60%;
-            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
-            pointer-events: none; /* داهێلیت کلیک ل سەر دوگمان بهێتە کرن */
-        }
 
         .product-image { 
             width: 100%; 
@@ -291,40 +264,7 @@
             background-color: #f8f9fa;
         }
         
-        /* ناڤ و بها دچنە سەر وێنەی */
-        .product-info {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 8px;
-            color: white;
-            z-index: 2;
-            text-align: right;
-        }
-        
-        .product-name { 
-            font-weight: bold; 
-            font-size: 14px;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .product-price-container { 
-            display: flex; 
-            flex-direction: row;
-            align-items: center; 
-            justify-content: flex-start; /* لایێ راستێ */
-            gap: 8px; 
-            margin: 0;
-        }
-        
         .product-description { display: none; }
-        
-        .product-price { color: #f0f0f0; font-weight: 700; font-size: 15px; text-shadow: 1px 1px 3px rgba(0,0,0,0.5); }
-        .original-price { color: #aaa; text-decoration: line-through; font-size: 13px; text-shadow: 1px 1px 3px rgba(0,0,0,0.5); }
         
         .discount-badge { position: absolute; top: 8px; right: 8px; z-index: 3; background-color: var(--danger-color); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; }
         
@@ -340,33 +280,6 @@
         .edit-btn, .delete-btn { width: 28px; height: 28px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 13px; color: white; cursor: pointer; }
         .edit-btn { background-color: var(--accent-color); }
         .delete-btn { background-color: var(--danger-color); }
-        
-        /* جهێ دوگمەیا سەبەتێ ل سەر وێنەی */
-        .add-to-cart-btn-card {
-            position: absolute;
-            bottom: 8px;
-            right: 8px;
-            width: 32px;
-            height: 32px;
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            z-index: 5;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        .add-to-cart-btn-card:hover { 
-            background-color: var(--accent-light); 
-            transform: scale(1.1);
-        }
-        .add-to-cart-btn-card span { display: none; }
-        .add-to-cart-btn-card i { font-size: 15px; margin: 0; }
-        .add-to-cart-btn-card:disabled { background-color: var(--dark-gray); cursor: not-allowed; }
         
         .favorite-btn {
             position: absolute; top: 8px; left: 8px; background: rgba(255, 255, 255, 0.8); border: 1px solid var(--medium-gray);
@@ -384,28 +297,133 @@
         }
         .add-to-cart-btn:hover { background-color: var(--accent-light); }
         
-        /* === ستایلێ دوماهیێ بۆ نیشانا گەهاندنێ === */
         .product-extra-info {
             /* بەتاڵە و هیچ کاریگەرییەکی نییە */
         }
-        .shipping-badge {
-            position: absolute;
-            top: 8px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: inline-flex;
-            align-items: center;
-            padding: 3px 8px;
-            border-radius: 16px;
-            background-color: rgba(230, 244, 234, 0.9);
-            color: #38a169;
-            font-size: 11px;
-            font-weight: bold;
-            white-space: nowrap;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            animation: none;
-            z-index: 6;
+        
+        /* === START: NEW STYLES FOR PRODUCT CARD (FROM YOUR REQUEST) === */
+
+        /* 1. گۆڕانکاری لەسەر خودی کارتی سەرەکی */
+        .product-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background-color: white;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid var(--section-border);
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: transform 0.2s, box-shadow 0.2s;
         }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+        }
+
+        /* 2. لابردنی Gradient لەسەر وێنەکە */
+        .product-image-container::after {
+            display: none;
+        }
+
+        /* 3. ستایلی بەشی نوێی زانیارییەکان */
+        .product-details {
+            padding: 12px;
+            text-align: right;
+        }
+
+        /* 4. ستایلی نوێ بۆ ناو و نرخ */
+        .product-name {
+            font-weight: bold;
+            font-size: 14px;
+            color: var(--text-color); /* گۆڕینی ڕەنگ */
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .product-price-container {
+            justify-content: flex-end; /* لای راست */
+        }
+        .product-price {
+            color: var(--primary-color); /* گۆڕینی ڕەنگ */
+            font-weight: 700;
+            font-size: 15px;
+        }
+        .original-price {
+            color: var(--dark-gray); /* گۆڕینی ڕەنگ */
+            text-decoration: line-through;
+            font-size: 13px;
+            margin-right: 8px;
+        }
+
+        /* 5. ستایلی بەشی نوێی خوارەوە (Footer) */
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 12px 12px 12px;
+            border-top: 1px solid var(--light-gray);
+            margin-top: auto; /* گرنگە بۆ ئەوەی هەمیشە لە خوارەوە بێت */
+        }
+
+        /* 6. ستایلی نوێ بۆ زانیاری گەیاندن */
+        .shipping-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--accent-color);
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .shipping-info i {
+            font-size: 14px;
+        }
+        /* سڕینەوەی ستایلی کۆنی shipping-badge */
+        .shipping-badge {
+            position: static;
+            transform: none;
+            padding: 0;
+            box-shadow: none;
+            background-color: transparent;
+            animation: none;
+            color: var(--accent-color);
+            font-size: 12px;
+        }
+
+        /* 7. گۆڕینی ستایلی دوگمەی سەبەتە */
+        .add-to-cart-btn-card {
+            position: static; /* لابردنی absolute */
+            width: 36px;
+            height: 36px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px; /* گۆڕین بۆ چوارگۆشەیی */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: none;
+        }
+        .add-to-cart-btn-card:hover {
+            background-color: var(--accent-light);
+            transform: scale(1.05);
+        }
+        .add-to-cart-btn-card i {
+            font-size: 16px;
+        }
+
+        /* سڕینەوەی ستایلی ناپێویست */
+        .product-info {
+            position: static;
+            padding: 0;
+            color: inherit;
+        }
+        
+        /* === END: NEW STYLES === */
 
         @keyframes scaleIn {
             from { transform: scale(0.95); opacity: 0; }
@@ -812,7 +830,6 @@
             object-fit: cover;
         }
         
-        /* New styles for promo card slider buttons */
         .promo-slider-btn {
             position: absolute;
             top: 50%;
@@ -830,8 +847,8 @@
             align-items: center;
             justify-content: center;
             transition: background-color 0.2s, opacity 0.2s;
-            opacity: 0.7; /* Buttons are now visible by default */
-            pointer-events: auto; /* Buttons are now clickable by default */
+            opacity: 0.7;
+            pointer-events: auto;
         }
         
         .promo-slider-btn:hover {

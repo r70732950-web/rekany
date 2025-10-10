@@ -933,7 +933,8 @@ function createPromoCardElement(card) {
     return cardElement;
 }
 
-// === گۆڕانکاریا فەنکشنێ ل ڤێرێ یە ===
+// === START: UPDATED FUNCTION ===
+// This is the function that has been changed to match your request.
 function createProductCardElement(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
@@ -956,18 +957,16 @@ function createProductCardElement(product) {
     const heartIconClass = isProdFavorite ? 'fas' : 'far';
     const favoriteBtnClass = isProdFavorite ? 'favorite-btn favorited' : 'favorite-btn';
 
-    let shippingBadgeHTML = '';
+    let shippingInfoHTML = '';
     const shippingText = product.shippingInfo && product.shippingInfo[currentLanguage] && product.shippingInfo[currentLanguage].trim();
     if (shippingText) {
-        shippingBadgeHTML = `
-            <div class="shipping-badge">
+        shippingInfoHTML = `
+            <div class="shipping-info">
                 <i class="fas fa-truck"></i>
                 <span>${shippingText}</span>
             </div>
         `;
     }
-
-    const cartButtonHTML = `<button class="add-to-cart-btn-card" aria-label="${t('add_to_cart')}"><i class="fas fa-cart-plus"></i></button>`;
 
     productCard.innerHTML = `
         <div class="product-image-container">
@@ -976,14 +975,16 @@ function createProductCardElement(product) {
             <button class="${favoriteBtnClass}" aria-label="Add to favorites">
                 <i class="${heartIconClass} fa-heart"></i>
             </button>
-            <div class="product-info">
-                <div class="product-name">${nameInCurrentLang}</div>
-                <div class="product-price-container">${priceHTML}</div>
-            </div>
+        </div>
+        <div class="product-details">
+            <h3 class="product-name">${nameInCurrentLang}</h3>
+            <div class="product-price-container">${priceHTML}</div>
         </div>
         <div class="card-footer">
-            ${shippingBadgeHTML || '<div></div>'} <!-- Div vala bo parastina rêzbendiyê -->
-            ${cartButtonHTML}
+            ${shippingInfoHTML || '<div></div>'} <!-- Empty div to maintain layout -->
+            <button class="add-to-cart-btn-card" aria-label="${t('add_to_cart')}">
+                <i class="fas fa-cart-plus"></i>
+            </button>
         </div>
         <div class="product-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
             <button class="edit-btn" aria-label="Edit product"><i class="fas fa-edit"></i></button>
@@ -993,22 +994,8 @@ function createProductCardElement(product) {
 
     productCard.addEventListener('click', (event) => {
         const target = event.target;
-        const addToCartButton = target.closest('.add-to-cart-btn-card');
-
-        if (addToCartButton) {
+        if (target.closest('.add-to-cart-btn-card')) {
             addToCart(product.id);
-            if (!addToCartButton.disabled) {
-                const originalContent = addToCartButton.innerHTML;
-                addToCartButton.disabled = true;
-                addToCartButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
-                setTimeout(() => {
-                    addToCartButton.innerHTML = `<i class="fas fa-check"></i>`;
-                    setTimeout(() => {
-                        addToCartButton.innerHTML = originalContent;
-                        addToCartButton.disabled = false;
-                    }, 1500);
-                }, 500);
-            }
         } else if (target.closest('.edit-btn')) {
             editProduct(product.id);
         } else if (target.closest('.delete-btn')) {
@@ -1021,6 +1008,7 @@ function createProductCardElement(product) {
     });
     return productCard;
 }
+// === END: UPDATED FUNCTION ===
 
 function setupScrollAnimations() {
     const observer = new IntersectionObserver((entries) => {
