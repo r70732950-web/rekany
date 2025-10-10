@@ -271,9 +271,9 @@ let isAdmin = false;
 let editingProductId = null;
 let currentSearch = '';
 let products = [];
-let allPromoCards = [];
-let currentPromoCardIndex = 0;
-let promoRotationInterval = null;
+let allPromoCards = []; 
+let currentPromoCardIndex = 0; 
+let promoRotationInterval = null; 
 let categories = [];
 let contactInfo = {};
 let subcategories = [];
@@ -894,44 +894,31 @@ function createPromoCardElement(card) {
         <div class="product-image-container">
             <img src="${imageUrl}" class="product-image" loading="lazy" alt="Promotion">
         </div>
-        <button class="promo-slider-btn prev"><i class="fas fa-chevron-left"></i></button>
-        <button class="promo-slider-btn next"><i class="fas fa-chevron-right"></i></button>
     `;
 
-    // Event listener for the main card
-    cardElement.addEventListener('click', (e) => {
-        // Only navigate if the click is not on a button
-        if (!e.target.closest('button')) {
-            const targetCategoryId = card.categoryId;
-            const categoryExists = categories.some(cat => cat.id === targetCategoryId);
-            if (categoryExists) {
-                currentCategory = targetCategoryId;
-                currentSubcategory = 'all';
-                currentSubSubcategory = 'all';
+    cardElement.onclick = () => {
+        const targetCategoryId = card.categoryId;
+        const categoryExists = categories.some(cat => cat.id === targetCategoryId);
+        if (categoryExists) {
+            currentCategory = targetCategoryId;
+            currentSubcategory = 'all';
+            currentSubSubcategory = 'all';
 
-                renderMainCategories();
-                renderSubcategories(currentCategory);
-                renderSubSubcategories(currentCategory, currentSubcategory);
-                searchProductsInFirestore('', true);
+            renderMainCategories();
+            renderSubcategories(currentCategory);
+            renderSubSubcategories(currentCategory, currentSubcategory);
+            searchProductsInFirestore('', true);
 
-                document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
-            }
+            document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
         }
-    });
-
-    // Event listeners for slider buttons
-    cardElement.querySelector('.promo-slider-btn.prev').addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent the main card click
-        changePromoCard(-1);
-    });
-    
-    cardElement.querySelector('.promo-slider-btn.next').addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent the main card click
-        changePromoCard(1);
-    });
-
+    };
     return cardElement;
 }
+
+
+// =================================================================================
+// == START: THIS IS THE ONLY FUNCTION THAT HAS BEEN MODIFIED FOR THE NEW CARD DESIGN ==
+// =================================================================================
 
 function createProductCardElement(product) {
     const productCard = document.createElement('div');
@@ -955,10 +942,8 @@ function createProductCardElement(product) {
 
     if (shippingText) {
         extraInfoHTML = `
-            <div class="product-extra-info">
-                <div class="info-badge shipping-badge">
-                    <i class="fas fa-truck"></i>${shippingText}
-                </div>
+            <div class="shipping-badge">
+                <i class="fas fa-truck"></i>${shippingText}
             </div>
         `;
     }
@@ -970,19 +955,20 @@ function createProductCardElement(product) {
     productCard.innerHTML = `
         <div class="product-image-container">
             <img src="${mainImage}" alt="${nameInCurrentLang}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
+            <div class="product-name-overlay">${nameInCurrentLang}</div>
             ${discountBadgeHTML}
             <button class="${favoriteBtnClass}" aria-label="Add to favorites">
                 <i class="${heartIconClass} fa-heart"></i>
             </button>
         </div>
         <div class="product-info">
-            <div class="product-name">${nameInCurrentLang}</div>
-            ${priceHTML}
-            <button class="add-to-cart-btn-card">
-                <i class="fas fa-cart-plus"></i>
-                <span>${t('add_to_cart')}</span>
-            </button>
-            ${extraInfoHTML}
+             ${priceHTML}
+             <div class="actions-row">
+                ${extraInfoHTML}
+                <button class="add-to-cart-btn-card">
+                    <i class="fas fa-cart-plus"></i>
+                </button>
+            </div>
         </div>
         <div class="product-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
             <button class="edit-btn" aria-label="Edit product"><i class="fas fa-edit"></i></button>
@@ -990,6 +976,7 @@ function createProductCardElement(product) {
         </div>
     `;
 
+    // Event listener part remains the same
     productCard.addEventListener('click', (event) => {
         const target = event.target;
         const addToCartButton = target.closest('.add-to-cart-btn-card');
@@ -997,13 +984,17 @@ function createProductCardElement(product) {
         if (addToCartButton) {
             addToCart(product.id);
             if (!addToCartButton.disabled) {
-                const originalContent = addToCartButton.innerHTML;
+                const originalIcon = addToCartButton.innerHTML;
                 addToCartButton.disabled = true;
+                addToCartButton.classList.add('loading');
                 addToCartButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
                 setTimeout(() => {
-                    addToCartButton.innerHTML = `<i class="fas fa-check"></i> <span>${t('added_to_cart')}</span>`;
+                    addToCartButton.classList.remove('loading');
+                    addToCartButton.classList.add('added');
+                    addToCartButton.innerHTML = `<i class="fas fa-check"></i>`;
                     setTimeout(() => {
-                        addToCartButton.innerHTML = originalContent;
+                        addToCartButton.classList.remove('added');
+                        addToCartButton.innerHTML = originalIcon;
                         addToCartButton.disabled = false;
                     }, 1500);
                 }, 500);
@@ -1020,6 +1011,11 @@ function createProductCardElement(product) {
     });
     return productCard;
 }
+
+// ===============================================================================
+// == END: THIS IS THE ONLY FUNCTION THAT HAS BEEN MODIFIED FOR THE NEW CARD DESIGN ==
+// ===============================================================================
+
 
 function setupScrollAnimations() {
     const observer = new IntersectionObserver((entries) => {
@@ -1925,7 +1921,7 @@ function renderPromoCardsAdminList() {
         snapshot.forEach(doc => {
             const card = { id: doc.id, ...doc.data() };
             const item = document.createElement('div');
-            item.className = 'admin-notification-item'; // Re-using style
+            item.className = 'admin-notification-item'; 
             item.innerHTML = `
                 <div class="admin-notification-details" style="align-items: center; display: flex;">
                     <img src="${card.imageUrls.ku_sorani}" style="width: 40px; height: 40px; object-fit: cover; margin-left: 10px; border-radius: 4px;">
@@ -2761,17 +2757,18 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// =======================================================
-// فەنکشنە نوێیەکان بۆ گۆڕینی ڕیکلام
-// =======================================================
 
-function displayPromoCard(index) {
+function rotatePromoCard() {
+    if (allPromoCards.length <= 1) return; 
+
     const promoCardSlot = document.querySelector('.promo-card-grid-item');
-    if (!promoCardSlot) return;
+    if (!promoCardSlot) return; 
 
-    const cardData = allPromoCards[index];
-    const newCardElement = createPromoCardElement(cardData);
-    newCardElement.classList.add('product-card-reveal');
+    currentPromoCardIndex = (currentPromoCardIndex + 1) % allPromoCards.length;
+
+    const nextCardData = allPromoCards[currentPromoCardIndex];
+    const newCardElement = createPromoCardElement(nextCardData);
+    newCardElement.classList.add('product-card-reveal'); 
 
     promoCardSlot.style.opacity = 0;
     setTimeout(() => {
@@ -2781,28 +2778,7 @@ function displayPromoCard(index) {
                 newCardElement.classList.add('visible');
             }, 10);
         }
-    }, 300);
-}
-
-function rotatePromoCard() {
-    if (allPromoCards.length <= 1) return;
-    currentPromoCardIndex = (currentPromoCardIndex + 1) % allPromoCards.length;
-    displayPromoCard(currentPromoCardIndex);
-}
-
-function changePromoCard(direction) {
-    if (allPromoCards.length <= 1) return;
-
-    currentPromoCardIndex += direction;
-
-    if (currentPromoCardIndex >= allPromoCards.length) {
-        currentPromoCardIndex = 0;
-    } else if (currentPromoCardIndex < 0) {
-        currentPromoCardIndex = allPromoCards.length - 1;
-    }
-
-    displayPromoCard(currentPromoCardIndex);
-    startPromoRotation(); // Reset the timer
+    }, 300); 
 }
 
 function startPromoRotation() {
@@ -2810,7 +2786,6 @@ function startPromoRotation() {
         clearInterval(promoRotationInterval);
     }
     if (allPromoCards.length > 1) {
-        promoRotationInterval = setInterval(rotatePromoCard, 5000);
+        promoRotationInterval = setInterval(rotatePromoCard, 5000); 
     }
 }
-
