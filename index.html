@@ -279,7 +279,7 @@
             bottom: 0;
             left: 0;
             right: 0;
-            height: 40%; /* === GORANKARI: Sêber kurtir lêhat === */
+            height: 20%; /* === GORANKARI: Sêber kurtir lêhat === */
             background: linear-gradient(to top, rgba(0,0,0,0.75), transparent);
             pointer-events: none;
         }
@@ -861,6 +861,37 @@
             right: 10px;
         }
 
+        /* ============== STYLÊN NÛ BO BEŞÊN SEREKÎ ============== */
+        .homepage-section {
+            margin-bottom: 20px;
+        }
+
+        .homepage-section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+            padding: 0 5px; /* Ev dihêle sernivîs bi teniştan ve nenez be */
+        }
+
+        .horizontal-products-container {
+            display: flex;
+            overflow-x: auto;
+            gap: 12px;
+            padding: 10px 5px 15px 5px; /* Piçek valahî li jêr û jor */
+            scrollbar-width: none; /* Bo Firefox */
+            -ms-overflow-style: none; /* Bo IE û Edge */
+        }
+
+        .horizontal-products-container::-webkit-scrollbar {
+            display: none; /* Bo Chrome, Safari, û Opera */
+        }
+
+        .horizontal-products-container .product-card {
+            flex: 0 0 160px; /* Her kart dê 160px fireh be û nahêle biçûk bibe */
+            width: 160px;
+        }
+
     </style>
 </head>
 <body>
@@ -1025,6 +1056,8 @@
                 <div id="subcategoriesContainer" class="subcategories-container"></div>
                 <div id="subSubcategoriesContainer" class="subcategories-container" style="padding-top: 0; padding-bottom: 10px;"></div>
                 
+                <div id="homepageSectionsContainer">
+                    </div>
                 <div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;" data-translate-key="loading_products">...خەریکی بارکردنی کاڵاکانە</p></div>
                 <div id="skeletonLoader" class="products-container"></div>
                 <div class="products-container" id="productsContainer" style="display: none;"></div>
@@ -1288,7 +1321,21 @@
                 </div>
             </div>
 
-			<div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
+            <div class="settings-group" id="adminHomepageLayoutManagement" style="display: none;">
+                <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
+                    <i class="fas fa-grip-horizontal"></i> <span>ڕێکخستنا بەشێن لاپەڕا سەرەکی</span>
+                </h3>
+                <div style="padding: 15px;">
+                    <form id="homepageLayoutForm">
+                        <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">بەشێن سەرەکی هەلبژێرە و رێزبەندیا وان دیار بکە</h4>
+                        <div id="homepageCategoriesContainer">
+                            <p>...د هینانا جوران دایە</p>
+                        </div>
+                        <button type="submit" style="margin-top: 15px;">پاشەکەفتکرنا رێکخستنێ</button>
+                    </form>
+                </div>
+            </div>
+            <div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;"><i class="fas fa-paper-plane"></i> <span data-translate-key="manage_contact_methods_title">بەڕێوەبردنی شێوازەکانی ناردنی داواکاری</span></h3>
                 
                 <div style="padding: 15px;">
