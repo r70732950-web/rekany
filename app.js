@@ -168,7 +168,7 @@ const translations = {
         sent_announcements: "ئاگەهداریێن هاتینە فرێکرن",
         no_announcements_sent: "چ ئاگەهداری نەهاتینە فرێکرن",
         announcement_deleted_success: "ئاگەهداری هاتە ژێبرن",
-        announcement_delete_confirm: "تو پشتڕاستی دێ ڤێ ئاگەهداریێ ژێبەی؟",
+        announcement_delete_confirm: "تو پشتڕاستی دێ ڤێ ئaگەهداریێ ژێبەی؟",
         enable_notifications: "چالاکرنا ئاگەهداریان",
         error_generic: "خەلەتییەک چێبوو!",
         terms_policies_title: "مەرج و سیاسەت",
@@ -289,6 +289,7 @@ let mainPageScrollPosition = 0;
 let currentCategory = 'all';
 let currentSubcategory = 'all';
 let currentSubSubcategory = 'all';
+let isRenderingHomePage = false; // <<<==== [چارەسەری ١] گۆڕاوەکە لێرە زیادکرا
 
 const loginModal = document.getElementById('loginModal');
 const addProductBtn = document.getElementById('addProductBtn');
@@ -1190,39 +1191,56 @@ async function renderCategorySections() {
     return mainContainer;
 }
 
+// <<<==== [چارەسەری ٢] تەواوی ئەم فەنکشنە نوێکرایەوە
 async function renderHomePageContent() {
+    // ڕێگری دەکات لەوەی فەنکشنەکە دووبارە کاربکات ئەگەر پێشتر سەرقاڵ بوو
+    if (isRenderingHomePage) {
+        console.log("HomePage is already rendering. Skipping duplicate call.");
+        return;
+    }
+    isRenderingHomePage = true;
+
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
-    skeletonLoader.style.display = 'grid';
-    homeSectionsContainer.innerHTML = '';
     
-    // Fetch promo cards if not already fetched
-    if (allPromoCards.length === 0) {
-        const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
-        const promoSnapshot = await getDocs(promoQuery);
-        allPromoCards = promoSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPromoCard: true }));
+    try {
+        skeletonLoader.style.display = 'grid';
+        homeSectionsContainer.innerHTML = '';
+        
+        // Fetch promo cards if not already fetched
+        if (allPromoCards.length === 0) {
+            const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
+            const promoSnapshot = await getDocs(promoQuery);
+            allPromoCards = promoSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPromoCard: true }));
+        }
+
+        // 1. Promo Card
+        if (allPromoCards.length > 0) {
+            if (currentPromoCardIndex >= allPromoCards.length) currentPromoCardIndex = 0;
+            const promoCardElement = createPromoCardElement(allPromoCards[currentPromoCardIndex]);
+            const promoGrid = document.createElement('div');
+            promoGrid.className = 'products-container';  
+            promoGrid.style.marginBottom = '24px';
+            promoGrid.appendChild(promoCardElement);
+            homeSectionsContainer.appendChild(promoGrid);
+            startPromoRotation();
+        }
+
+        // 2. Newest Products
+        const newestSection = await renderNewestProductsSection();
+        if (newestSection) homeSectionsContainer.appendChild(newestSection);
+
+        // 3. Category Sections
+        const categorySections = await renderCategorySections();
+        if (categorySections) homeSectionsContainer.appendChild(categorySections);
+        
+    } catch (error) {
+        console.error("Error rendering home page content:", error);
+        homeSectionsContainer.innerHTML = `<p>هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
+    } finally {
+        // دڵنیادەبێتەوە کە قوفڵەکە لادەبرێت تەنانەت ئەگەر هەڵەیەکیش ڕووبدات
+        skeletonLoader.style.display = 'none';
+        isRenderingHomePage = false;
     }
-
-    // 1. Promo Card
-    if (allPromoCards.length > 0) {
-        if (currentPromoCardIndex >= allPromoCards.length) currentPromoCardIndex = 0;
-        const promoCardElement = createPromoCardElement(allPromoCards[currentPromoCardIndex]);
-        const promoGrid = document.createElement('div');
-        promoGrid.className = 'products-container'; 
-        promoGrid.style.marginBottom = '24px';
-        promoGrid.appendChild(promoCardElement);
-        homeSectionsContainer.appendChild(promoGrid);
-        startPromoRotation();
-    }
-
-    // 2. Newest Products
-    const newestSection = await renderNewestProductsSection();
-    if (newestSection) homeSectionsContainer.appendChild(newestSection);
-
-    // 3. Category Sections
-    const categorySections = await renderCategorySections();
-    if (categorySections) homeSectionsContainer.appendChild(categorySections);
-    
-    skeletonLoader.style.display = 'none';
 }
 
 // =======================================================
