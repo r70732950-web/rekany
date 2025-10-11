@@ -81,7 +81,7 @@ const translations = {
         product_added_to_favorites: "زیادکرا بۆ لیستی دڵخوازەکان",
         product_removed_from_favorites: "لە لیستی دڵخوازەکان سڕدرایەوە",
         manage_categories_title: "بەڕێوەبردنی جۆرەکان",
-        manage_contact_methods_title: "بەڕێوەبردنی شێوازەکانی ناردنی داواکاری",
+		manage_contact_methods_title: "بەڕێوەبردنی شێوازەکانی ناردنی داواکاری",
         notifications_title: "ئاگەهدارییەکان",
         no_notifications_found: "هیچ ئاگەهدارییەک نییە",
         manage_announcements_title: "ناردنی ئاگەهداری گشتی",
@@ -102,6 +102,7 @@ const translations = {
         force_update: "ناچارکردن بە نوێکردنەوە (سڕینەوەی کاش)",
         update_confirm: "دڵنیایت دەتەوێت ئەپەکە نوێ بکەیتەوە؟ هەموو کاشی ناو وێبگەڕەکەت دەسڕدرێتەوە.",
         update_success: "ئەپەکە بە سەرکەوتوویی نوێکرایەوە!",
+        newest_products: "نوێترین کاڵاکان",
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -158,7 +159,7 @@ const translations = {
         product_added_to_favorites: "هاتە زێدەکرن بۆ لیستا حەزژێکریان",
         product_removed_from_favorites: "ژ لیستا حەزژێکریان هاتە ژێبرن",
         manage_categories_title: "рێکخستنا جوران",
-        manage_contact_methods_title: "рێکخستنا رێکێن فرێکرنا داخازیێ",
+		manage_contact_methods_title: "рێکخستنا رێکێن فرێکرنا داخازیێ",
         notifications_title: "ئاگەهداری",
         no_notifications_found: "چ ئاگەهداری نینن",
         manage_announcements_title: "رێکخستنا ئاگەهداریان",
@@ -179,6 +180,7 @@ const translations = {
         force_update: "ناچارکرن ب نویکرنەوە (ژێبرنا کاشی)",
         update_confirm: "تو پشتراستی دێ ئەپی نویکەیەڤە؟ دێ هەمی کاش د ناڤ وێبگەرا تە دا هێتە ژێبرن.",
         update_success: "ئەپ ب سەرکەفتیانە هاتە نویکرن!",
+        newest_products: "نوترین کاڵا",
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -235,7 +237,7 @@ const translations = {
         product_added_to_favorites: "تمت الإضافة إلى المفضلة",
         product_removed_from_favorites: "تمت الإزالة من المفضلة",
         manage_categories_title: "إدارة الفئات",
-        manage_contact_methods_title: "إدارة طرق إرسال الطلب",
+		manage_contact_methods_title: "إدارة طرق إرسال الطلب",
         notifications_title: "الإشعارات",
         no_notifications_found: "لا توجد إشعارات",
         manage_announcements_title: "إدارة الإشعارات العامة",
@@ -256,6 +258,7 @@ const translations = {
         force_update: "فرض التحديث (مسح ذاكرة التخزين المؤقت)",
         update_confirm: "هل أنت متأكد من رغبتك في تحديث التطبيق؟ سيتم مسح جميع بيانات ذاكرة التخزين المؤقت.",
         update_success: "تم تحديث التطبيق بنجاح!",
+        newest_products: "أحدث المنتجات",
     }
 };
 
@@ -342,8 +345,6 @@ const adminPoliciesManagement = document.getElementById('adminPoliciesManagement
 const policiesForm = document.getElementById('policiesForm');
 const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
 const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
-const adminHomepageManagement = document.getElementById('adminHomepageManagement');
-const homepageSectionsContainer = document.getElementById('homepageSectionsContainer');
 
 
 function debounce(func, delay = 500) {
@@ -486,7 +487,14 @@ function setLanguage(lang) {
     const fetchedCategories = categories.filter(cat => cat.id !== 'all');
     categories = [{ id: 'all', name: t('all_categories_label'), icon: 'fas fa-th' }, ...fetchedCategories];
 
-    renderProducts();
+    // Check which view is active and re-render it
+    const isHomeView = !currentSearch && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
+    if (isHomeView) {
+        renderHomePageContent();
+    } else {
+        renderProducts();
+    }
+
     renderMainCategories();
     renderCategoriesSheet();
     if (document.getElementById('cartSheet').classList.contains('show')) renderCart();
@@ -604,7 +612,14 @@ function toggleFavorite(productId) {
         showNotification(t('product_added_to_favorites'), 'success');
     }
     saveFavorites();
-    renderProducts();
+
+    const isHomeView = !currentSearch && currentCategory === 'all';
+    if(isHomeView) {
+        renderHomePageContent();
+    } else {
+        renderProducts();
+    }
+
     if (document.getElementById('favoritesSheet').classList.contains('show')) {
         renderFavoritesPage();
     }
@@ -900,9 +915,7 @@ function createPromoCardElement(card) {
         <button class="promo-slider-btn next"><i class="fas fa-chevron-right"></i></button>
     `;
 
-    // Event listener for the main card
     cardElement.addEventListener('click', (e) => {
-        // Only navigate if the click is not on a button
         if (!e.target.closest('button')) {
             const targetCategoryId = card.categoryId;
             const categoryExists = categories.some(cat => cat.id === targetCategoryId);
@@ -921,14 +934,13 @@ function createPromoCardElement(card) {
         }
     });
 
-    // Event listeners for slider buttons
     cardElement.querySelector('.promo-slider-btn.prev').addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent the main card click
+        e.stopPropagation();
         changePromoCard(-1);
     });
     
     cardElement.querySelector('.promo-slider-btn.next').addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent the main card click
+        e.stopPropagation();
         changePromoCard(1);
     });
 
@@ -1055,15 +1067,14 @@ function renderSkeletonLoader() {
     }
     skeletonLoader.style.display = 'grid';
     productsContainer.style.display = 'none';
-    homepageSectionsContainer.style.display = 'none';
     loader.style.display = 'none';
 }
 
 function renderProducts() {
     productsContainer.innerHTML = '';
-    if (!products || products.length === 0) {
-        return;
-    }
+	if (!products || products.length === 0) {
+		return;
+	}
 
     products.forEach(item => {
         let element;
@@ -1079,8 +1090,164 @@ function renderProducts() {
     setupScrollAnimations();
 }
 
-// === گۆڕانکاری لە لۆجیکی گەڕان ===
+// =======================================================
+// START: فەنکشنە نوێیەکان بۆ دروستکردنی پەڕەی سەرەکی
+// =======================================================
+
+/**
+ * بەشی "نوێترین کاڵا" دروست دەکات و کاڵاکانی 15 ڕۆژی ڕابردوو پیشان دەدات
+ */
+async function renderNewestProductsSection() {
+    const container = document.createElement('div');
+    container.className = 'dynamic-section';
+
+    const title = document.createElement('h3');
+    title.className = 'section-title-main';
+    title.textContent = t('newest_products');
+    container.appendChild(title);
+
+    const productsScroller = document.createElement('div');
+    productsScroller.className = 'horizontal-products-container';
+    container.appendChild(productsScroller);
+
+    try {
+        const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
+
+        const q = query(
+            productsCollection,
+            where('createdAt', '>=', fifteenDaysAgo),
+            orderBy('createdAt', 'desc')
+        );
+
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) {
+            return null; // ئەگەر هیچ کاڵایەکی نوێ نەبوو، ئەم بەشە پیشان نادرێت
+        }
+
+        snapshot.forEach(doc => {
+            const product = { id: doc.id, ...doc.data() };
+            const card = createProductCardElement(product);
+            productsScroller.appendChild(card);
+        });
+
+        return container;
+
+    } catch (error) {
+        console.error("Error fetching newest products:", error);
+        return null;
+    }
+}
+
+/**
+ * بۆ هەر جۆرێکی سەرەکی، بەشێکی تایبەت دروست دەکات و 10 لە نوێترین کاڵاکانی پیشان دەدات
+ */
+async function renderCategorySections() {
+    const mainContainer = document.createElement('div');
+    const categoriesToRender = categories.filter(cat => cat.id !== 'all');
+    categoriesToRender.sort((a, b) => (a.order || 99) - (b.order || 99));
+
+    for (const category of categoriesToRender) {
+        const sectionContainer = document.createElement('div');
+        sectionContainer.className = 'dynamic-section';
+
+        const title = document.createElement('h3');
+        title.className = 'section-title-main';
+        const categoryName = category['name_' + currentLanguage] || category.name_ku_sorani;
+        title.innerHTML = `<i class="${category.icon}"></i> ${categoryName}`;
+        sectionContainer.appendChild(title);
+
+        const productsScroller = document.createElement('div');
+        productsScroller.className = 'horizontal-products-container';
+        sectionContainer.appendChild(productsScroller);
+
+        try {
+            const q = query(
+                productsCollection,
+                where('categoryId', '==', category.id),
+                orderBy('createdAt', 'desc'),
+                limit(10)
+            );
+
+            const snapshot = await getDocs(q);
+            if (!snapshot.empty) {
+                snapshot.forEach(doc => {
+                    const product = { id: doc.id, ...doc.data() };
+                    const card = createProductCardElement(product);
+                    productsScroller.appendChild(card);
+                });
+                mainContainer.appendChild(sectionContainer);
+            }
+        } catch (error) {
+            console.error(`Error fetching products for category ${category.id}:`, error);
+        }
+    }
+    return mainContainer;
+}
+
+/**
+ * فەنکشنی سەرەکی بۆ دروستکردنی تەواوی ناوەڕۆکی پەڕەی سەرەکی (Home Page)
+ */
+async function renderHomePageContent() {
+    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
+    const mainProductsContainer = document.getElementById('productsContainer');
+    const skeleton = document.getElementById('skeletonLoader');
+
+    mainProductsContainer.style.display = 'none';
+    homeSectionsContainer.innerHTML = '';
+    skeleton.style.display = 'grid';
+
+    // 1. پیشاندانی کارتی ڕیکلام (Promo Card)
+    if (currentCategory === 'all' && allPromoCards.length > 0) {
+        if (currentPromoCardIndex >= allPromoCards.length) {
+            currentPromoCardIndex = 0;
+        }
+        const promoCardElement = createPromoCardElement(allPromoCards[currentPromoCardIndex]);
+        const promoGrid = document.createElement('div');
+        promoGrid.className = 'products-container';
+        promoGrid.style.marginBottom = '24px';
+        promoGrid.appendChild(promoCardElement);
+        homeSectionsContainer.appendChild(promoGrid);
+        startPromoRotation();
+    }
+
+    // 2. پیشاندانی بەشی نوێترین کاڵا
+    const newestSection = await renderNewestProductsSection();
+    if (newestSection) {
+        homeSectionsContainer.appendChild(newestSection);
+    }
+
+    // 3. پیشاندانی بەشی جۆرەکان
+    const categorySections = await renderCategorySections();
+    if (categorySections) {
+        homeSectionsContainer.appendChild(categorySections);
+    }
+    
+    homeSectionsContainer.style.display = 'block';
+    skeleton.style.display = 'none';
+}
+
+// =======================================================
+// END: فەنکشنە نوێیەکان
+// =======================================================
+
+
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
+    // START: گۆڕانکاری بۆ جیاکردنەوەی شێوازی پیشاندان
+    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
+    const shouldShowHomeSections = !searchTerm && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
+    
+    if (shouldShowHomeSections) {
+        // ئەگەر لە پەڕەی سەرەکیدا بووین و هیچ گەڕان/فلتەرێک نەبوو، شێوازی نوێ پیشان بدە
+        productsContainer.style.display = 'none';
+        await renderHomePageContent();
+        return; // لێرەدا فەنکشنەکە بوەستێنە
+    } else {
+        // ئەگەر گەڕان یان فلتەر کرا، شێوازی نوێ بشارەوە و بگەڕێوە بۆ شێوازی پێشوو
+        homeSectionsContainer.innerHTML = '';
+        homeSectionsContainer.style.display = 'none';
+    }
+    // END: گۆڕانکاری
+
     if (isLoadingMoreProducts) return;
     
     if (isNewSearch) {
@@ -1096,6 +1263,16 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     loader.style.display = 'block';
 
     try {
+        if (isNewSearch && currentCategory === 'all' && allPromoCards.length === 0) {
+            const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
+            const promoSnapshot = await getDocs(promoQuery);
+            allPromoCards = promoSnapshot.docs.map(doc => ({ 
+                id: doc.id, 
+                ...doc.data(), 
+                isPromoCard: true 
+            }));
+        }
+
         let productsQuery = collection(db, "products");
         
         if (currentCategory && currentCategory !== 'all') {
@@ -1131,8 +1308,16 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         const productSnapshot = await getDocs(productsQuery);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+        let combinedList = [...newProducts];
+        if (isNewSearch && currentCategory === 'all' && allPromoCards.length > 0) {
+            if (currentPromoCardIndex >= allPromoCards.length) {
+                currentPromoCardIndex = 0;
+            }
+            combinedList.unshift(allPromoCards[currentPromoCardIndex]);
+        }
+        
         if (isNewSearch) {
-            products = newProducts;
+            products = combinedList;
         } else {
             products = [...products, ...newProducts]; 
         }
@@ -1146,10 +1331,14 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
 
         lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
         
-        renderProducts(); // This will now render inside productsContainer
+        renderProducts();
 
         if (products.length === 0) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ కాڵایەک نەدۆزرایەوە.</p>';
+        }
+
+        if (isNewSearch) {
+           startPromoRotation();
         }
 
     } catch (error) {
@@ -1159,23 +1348,14 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         isLoadingMoreProducts = false;
         loader.style.display = 'none';
         skeletonLoader.style.display = 'none';
-        productsContainer.style.display = 'grid'; // Ensure this is visible after search
-        homepageSectionsContainer.style.display = 'none'; // Keep sections hidden during search
+        productsContainer.style.display = 'grid';
     }
 }
 
 
 function addToCart(productId) {
-    // Check local `products` array first, which now holds products from homepage sections too
-    let product = products.find(p => p.id === productId);
-
-    if (!product) { 
-        console.error("Product not found in local cache, trying to fetch...");
-        // Fallback to fetch from Firestore if not found, though ideally it should be in the array
-        // This part can be enhanced if needed
-        return;
-     }
-
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
     const existingItem = cart.find(item => item.id === productId);
     if (existingItem) { existingItem.quantity++; }
@@ -1342,12 +1522,7 @@ async function deleteProduct(productId) {
     try {
         await deleteDoc(doc(db, "products", productId));
         showNotification(t('product_deleted'), 'success');
-        // Refresh the current view
-        if (currentSearch) {
-            searchProductsInFirestore(currentSearch, true);
-        } else {
-            renderHomepageSections();
-        }
+        searchProductsInFirestore(searchInput.value, true);
     } catch (error) {
         showNotification(t('product_delete_error'), 'error');
     }
@@ -1689,13 +1864,6 @@ function updateAdminUI(isAdmin) {
     document.querySelectorAll('.product-actions').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
     const adminCategoryManagement = document.getElementById('adminCategoryManagement');
     const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
-    
-    if (adminHomepageManagement) {
-        adminHomepageManagement.style.display = isAdmin ? 'block' : 'none';
-        if (isAdmin) {
-            renderHomepageManagementUI();
-        }
-    }
     if (adminPoliciesManagement) {
         adminPoliciesManagement.style.display = isAdmin ? 'block' : 'none';
     }
@@ -1905,10 +2073,7 @@ function setupScrollObserver() {
 
     const observer = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting) {
-            // Only load more if we are in search/category view
-            if (productsContainer.style.display === 'grid') {
-                searchProductsInFirestore(currentSearch, false);
-            }
+            searchProductsInFirestore(currentSearch, false);
         }
     }, {
         root: null,
@@ -1916,125 +2081,6 @@ function setupScrollObserver() {
     });
 
     observer.observe(trigger);
-}
-
-// === کۆدی نوێ بۆ بەڕێوەبردنی پەڕەی سەرەکی ===
-async function renderHomepageManagementUI() {
-    const container = document.getElementById('homepageSectionsAdminContainer');
-    const sectionsCollection = collection(db, 'homepage_sections');
-    const q = query(sectionsCollection, orderBy("order", "asc"));
-
-    onSnapshot(q, (snapshot) => {
-        container.innerHTML = '';
-        if (snapshot.empty) {
-            container.innerHTML = '<p>هیچ بەشێک دانەنراوە. تکایە لە Firestore زیاد بکە.</p>';
-            return;
-        }
-        snapshot.forEach(doc => {
-            const section = { id: doc.id, ...doc.data() };
-            const title = section['title_ku_sorani'] || section.id;
-            const isChecked = section.enabled ? 'checked' : '';
-
-            const itemHTML = `
-                <div class="form-group" style="display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--medium-gray); padding-bottom: 10px; margin-bottom: 10px;">
-                    <label for="order_${section.id}" style="flex-grow: 1; margin-bottom: 0;">${title}</label>
-                    <input type="number" value="${section.order}" class="homepage-section-order" data-id="${section.id}" style="width: 70px; padding: 5px;">
-                    <input type="checkbox" class="homepage-section-enabled" data-id="${section.id}" ${isChecked} style="width: 20px; height: 20px;">
-                </div>
-            `;
-            container.innerHTML += itemHTML;
-        });
-    });
-}
-
-// === فەنکشنە نوێیەکانی پەڕەی سەرەکی ===
-async function renderHomepageSections() {
-    homepageSectionsContainer.innerHTML = ''; 
-    productsContainer.style.display = 'none'; 
-    homepageSectionsContainer.style.display = 'block';
-    
-    renderSkeletonLoader(); 
-
-    const sectionsCollection = collection(db, 'homepage_sections');
-    const q = query(sectionsCollection, where("enabled", "==", true), orderBy("order", "asc"));
-    
-    try {
-        const snapshot = await getDocs(q);
-        // Clear global products array before rendering homepage sections to avoid duplicates
-        products = []; 
-        
-        if (snapshot.empty) {
-            searchProductsInFirestore('', true);
-            return;
-        }
-
-        for (const doc of snapshot.docs) {
-            const section = { id: doc.id, ...doc.data() };
-            const sectionElement = document.createElement('div');
-            sectionElement.className = 'homepage-section';
-            sectionElement.style.marginBottom = '20px';
-
-            const title = section['title_' + currentLanguage] || section.title_ku_sorani;
-            sectionElement.innerHTML = `<h3 class="section-title-homepage">${title}</h3>`;
-            
-            const productContainer = document.createElement('div');
-            productContainer.className = 'horizontal-scroll-container';
-            sectionElement.appendChild(productContainer);
-            homepageSectionsContainer.appendChild(sectionElement);
-
-            if (section.type === 'newest_products') {
-                await renderNewestProductsSection(productContainer);
-            } else if (section.type === 'category') {
-                await renderCategoryProductsSection(productContainer, section.categoryId);
-            }
-        }
-
-    } catch (error) {
-        console.error("Error rendering homepage sections:", error);
-        homepageSectionsContainer.innerHTML = '<p>هەڵەیەک لە بارکردنی بەشەکان ڕوویدا.</p>';
-    } finally {
-        skeletonLoader.style.display = 'none'; 
-    }
-}
-
-async function renderNewestProductsSection(container) {
-    const tenDaysAgoTimestamp = Date.now() - (10 * 24 * 60 * 60 * 1000);
-
-    const productsQuery = query(
-        productsCollection, 
-        where('createdAt', '>=', tenDaysAgoTimestamp), 
-        orderBy('createdAt', 'desc'), 
-        limit(15)
-    );
-    
-    const snapshot = await getDocs(productsQuery);
-    snapshot.forEach(doc => {
-        const product = { id: doc.id, ...doc.data() };
-        if (!products.some(p => p.id === product.id)) {
-            products.push(product);
-        }
-        const card = createProductCardElement(product);
-        container.appendChild(card);
-    });
-}
-
-async function renderCategoryProductsSection(container, categoryId) {
-    const productsQuery = query(
-        productsCollection, 
-        where('categoryId', '==', categoryId), 
-        orderBy('createdAt', 'desc'), 
-        limit(15)
-    );
-
-    const snapshot = await getDocs(q);
-    snapshot.forEach(doc => {
-        const product = { id: doc.id, ...doc.data() };
-        if (!products.some(p => p.id === product.id)) {
-            products.push(product);
-        }
-        const card = createProductCardElement(product);
-        container.appendChild(card);
-    });
 }
 
 function renderPromoCardsAdminList() {
@@ -2205,13 +2251,6 @@ function setupEventListeners() {
     homeBtn.onclick = () => {
         history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname);
         showPage('mainPage');
-        // Clear search and render homepage sections
-        if (currentSearch) {
-            searchInput.value = '';
-            currentSearch = '';
-            clearSearchBtn.style.display = 'none';
-            renderHomepageSections();
-        }
     };
 
     settingsBtn.onclick = () => {
@@ -2332,12 +2371,7 @@ function setupEventListeners() {
                 showNotification('کاڵا زیادکرا', 'success');
             }
             closeCurrentPopup();
-            // Refresh view
-            if(currentSearch) {
-                searchProductsInFirestore(currentSearch, true); 
-            } else {
-                renderHomepageSections();
-            }
+            searchProductsInFirestore(currentSearch, true); 
         } catch (error) {
             showNotification(t('error_generic'), 'error');
             console.error("Error saving product:", error);
@@ -2368,23 +2402,14 @@ function setupEventListeners() {
         const searchTerm = searchInput.value;
         currentSearch = searchTerm;
         clearSearchBtn.style.display = searchTerm ? 'block' : 'none';
-
-        if (searchTerm) {
-            homepageSectionsContainer.style.display = 'none';
-            debouncedSearch(searchTerm);
-        } else {
-            // If search is cleared by deleting text, restore homepage
-            productsContainer.style.display = 'none';
-            renderHomepageSections();
-        }
+        debouncedSearch(searchTerm);
     };
 
     clearSearchBtn.onclick = () => {
         searchInput.value = '';
         currentSearch = '';
         clearSearchBtn.style.display = 'none';
-        productsContainer.style.display = 'none';
-        renderHomepageSections();
+        searchProductsInFirestore('', true);
     };
 
 
@@ -2715,34 +2740,6 @@ function setupEventListeners() {
         });
     }
 
-    document.getElementById('saveHomepageOrderBtn').addEventListener('click', async () => {
-        const inputs = document.querySelectorAll('.homepage-section-order');
-        const checkboxes = document.querySelectorAll('.homepage-section-enabled');
-        const updatePromises = [];
-    
-        inputs.forEach(input => {
-            const docId = input.dataset.id;
-            const newOrder = parseInt(input.value);
-            const docRef = doc(db, 'homepage_sections', docId);
-            updatePromises.push(updateDoc(docRef, { order: newOrder }));
-        });
-    
-        checkboxes.forEach(checkbox => {
-            const docId = checkbox.dataset.id;
-            const isEnabled = checkbox.checked;
-            const docRef = doc(db, 'homepage_sections', docId);
-            updatePromises.push(updateDoc(docRef, { enabled: isEnabled }));
-        });
-    
-        try {
-            await Promise.all(updatePromises);
-            showNotification('ڕیزبەندی بەشەکان پاشەکەوتکرا', 'success');
-        } catch (error) {
-            console.error("Error updating homepage order: ", error);
-            showNotification('هەڵەیەک ڕوویدا', 'error');
-        }
-    });
-
     const enableNotificationsBtn = document.getElementById('enableNotificationsBtn');
     if (enableNotificationsBtn) {
         enableNotificationsBtn.addEventListener('click', requestNotificationPermission);
@@ -2781,7 +2778,8 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     updateAdminUI(isAdmin);
-    // Refresh products on auth change if needed, handled by main render functions now
+    // Re-render the correct view after auth state changes
+    searchProductsInFirestore(currentSearch, true);
 });
 
 
@@ -2866,9 +2864,8 @@ function initializeAppLogic() {
 
         setLanguage(currentLanguage);
     });
-    
-    // === گۆڕانکاری سەرەکی لێرەیە ===
-    renderHomepageSections();
+
+    searchProductsInFirestore('', true);
 
     const contactInfoRef = doc(db, "settings", "contactInfo");
     onSnapshot(contactInfoRef, (docSnap) => {
@@ -2935,10 +2932,6 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
-
-// =======================================================
-// فەنکشنە نوێیەکان بۆ گۆڕینی ڕیکلام
-// =======================================================
 
 function displayPromoCard(index) {
     const promoCardSlot = document.querySelector('.promo-card-grid-item');

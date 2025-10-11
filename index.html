@@ -718,11 +718,11 @@
             flex: 1;
         }
         .social-link-item .item-details {
-             display: flex;
-             flex-direction: column;
-             align-items: flex-start;
-             gap: 3px;
-             overflow: hidden;
+              display: flex;
+              flex-direction: column;
+              align-items: flex-start;
+              gap: 3px;
+              overflow: hidden;
         }
         .social-link-item .item-name {
             font-weight: bold;
@@ -860,32 +860,37 @@
         .promo-slider-btn.next {
             right: 10px;
         }
-        
-        /* === ستایلی نوێ بۆ بەشەکانی پەڕەی سەرەکی === */
-        .section-title-homepage {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 12px;
-            color: var(--primary-color);
+
+        /* START: ستایلە نوێیەکان بۆ پەڕەی سەرەکی */
+        .dynamic-section {
+            margin-bottom: 24px;
         }
 
-        .horizontal-scroll-container {
+        .section-title-main {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+            padding-right: 5px;
+        }
+
+        .horizontal-products-container {
             display: flex;
-            overflow-x: auto;
             gap: 12px;
-            padding-bottom: 15px; /* بۆ ئەوەی scrollbar جوانتر دەربکەوێت */
+            overflow-x: auto;
+            padding: 5px 0 15px 0;
             scrollbar-width: none; /* Firefox */
         }
 
-        .horizontal-scroll-container::-webkit-scrollbar {
+        .horizontal-products-container::-webkit-scrollbar {
             display: none; /* Chrome, Safari, Opera */
         }
 
-        /* قەبارەی کاردەکان لەناو سکڕۆڵی ئاسۆیی دیاری دەکەین */
-        .horizontal-scroll-container .product-card {
-            flex: 0 0 160px; /* ڕێگە نادات کاردەکە بچووک بێتەوە و پانییەکەی 160px دەبێت */
-            width: 160px;
+        .horizontal-products-container .product-card {
+            flex-shrink: 0;
+            width: 160px; /* قەبارەی کارتی کاڵا لە شریتی ئاسۆیی */
         }
+        /* END: ستایلە نوێیەکان */
 
     </style>
 </head>
@@ -1029,36 +1034,36 @@
             </div>
         </div>
 
-        <div id="termsSheet" class="bottom-sheet">
-            <div class="sheet-header">
-                <span class="sheet-handle"></span>
-                <h2 class="sheet-title">
-                    <i class="fas fa-file-contract"></i> 
-                    <span data-translate-key="terms_policies_title">مەرج و ڕێساکان</span>
-                </h2>
-                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
-            </div>
-            <div class="sheet-content">
-                <div id="termsContentContainer" style="line-height: 1.8; color: var(--text-light);">
-                    <p data-translate-key="loading_policies">...خەریکی بارکردنی ڕێساکانە</p>
-                </div>
-            </div>
-        </div>
-        
+		<div id="termsSheet" class="bottom-sheet">
+			<div class="sheet-header">
+				<span class="sheet-handle"></span>
+				<h2 class="sheet-title">
+					<i class="fas fa-file-contract"></i> 
+					<span data-translate-key="terms_policies_title">مەرج و ڕێساکان</span>
+				</h2>
+				<span class="close" style="top: 20px;" aria-label="Close">&times;</span>
+			</div>
+			<div class="sheet-content">
+				<div id="termsContentContainer" style="line-height: 1.8; color: var(--text-light);">
+					<p data-translate-key="loading_policies">...خەریکی بارکردنی ڕێساکانە</p>
+				</div>
+			</div>
+		</div>
+		
         <main class="main-content page" id="mainPage">
             <div class="section">
                 <div id="mainCategoriesContainer" class="main-categories-container"></div>
                 <div id="subcategoriesContainer" class="subcategories-container"></div>
                 <div id="subSubcategoriesContainer" class="subcategories-container" style="padding-top: 0; padding-bottom: 10px;"></div>
                 
-                <div id="homepageSectionsContainer">
+                <div id="homePageSectionsContainer">
                     </div>
-
                 <div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;" data-translate-key="loading_products">...خەریکی بارکردنی کاڵاکانە</p></div>
                 <div id="skeletonLoader" class="products-container"></div>
                 <div class="products-container" id="productsContainer" style="display: none;"></div>
+
                 <div id="scroll-loader-trigger" style="height: 50px;"></div>
-                 </div>
+            </div>
         </main>
 
         <div class="settings-page page page-hidden" id="settingsPage">
@@ -1150,19 +1155,6 @@
                 </div>
             </div>
 
-            <div class="settings-group" id="adminHomepageManagement" style="display: none;">
-                <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
-                    <i class="fas fa-desktop"></i> <span>بەڕێوەبردنی پەڕەی سەرەکی</span>
-                </h3>
-                <div style="padding: 15px;">
-                    <p style="margin-bottom: 15px; color: var(--text-light);">
-                        لێرەوە دەتوانیت ڕیزبەندی ئەو بەشانە دیاری بکەیت کە لە پەڕەی سەرەکیدا پیشان دەدرێن. ژمارەی بچووکتر واتە لە پێشتر پیشان دەدرێت.
-                    </p>
-                    <div id="homepageSectionsAdminContainer">
-                        </div>
-                    <button id="saveHomepageOrderBtn" style="margin-top: 15px; width: 100%; padding: 10px; background-color: var(--accent-color); color: white; border: none; border-radius: 6px; cursor: pointer;">پاشەکەوتکردنی ڕیزبەندی</button>
-                </div>
-            </div>
             <div class="settings-group" id="adminPoliciesManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                     <i class="fas fa-edit"></i> <span data-translate-key="manage_policies_title">بەڕێوەبردنی مەرج و ڕێساکان</span>
@@ -1328,7 +1320,7 @@
                 </div>
             </div>
 
-            <div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
+			<div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;"><i class="fas fa-paper-plane"></i> <span data-translate-key="manage_contact_methods_title">بەڕێوەبردنی شێوازەکانی ناردنی داواکاری</span></h3>
                 
                 <div style="padding: 15px;">
