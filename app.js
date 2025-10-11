@@ -79,7 +79,7 @@ const translations = {
         install_app: "دامەزراندنی ئەپ",
         product_added_to_cart: "کاڵاکە زیادکرا بۆ سەبەتە",
         product_added_to_favorites: "زیادکرا بۆ لیستی دڵخوازەکان",
-        product_removed_from_favorites: "لە لیستی دڵخوازەکان سڕدرایەوە",
+        product_removed_from_favorites: "لە لیستی دڵخوازەkan سڕدرایەوە",
         manage_categories_title: "بەڕێوەبردنی جۆرەکان",
 		manage_contact_methods_title: "بەڕێوەبردنی شێوازەکانی ناردنی داواکاری",
         notifications_title: "ئاگەهدارییەکان",
@@ -1070,6 +1070,9 @@ function renderProducts() {
     setupScrollAnimations();
 }
 
+// =======================================================
+// === فەنکشنی نوێکراوە بۆ چارەسەری کێشەی startAfter ===
+// =======================================================
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     if (!searchTerm && currentCategory === 'all') {
         productsContainer.style.display = 'none';
@@ -1077,70 +1080,67 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         homepageSectionsContainer.style.display = 'block';
         promoCardSliderContainer.style.display = 'none';
         if (homepageSectionsContainer.innerHTML === '') {
-        	renderHomepageSections(); 
+            renderHomepageSections();
         }
-        return; 
+        return;
     }
-    
+
     homepageSectionsContainer.style.display = 'none';
     renderPromoSlider();
-    
+
     if (isLoadingMoreProducts) return;
-    
+    if (allProductsLoaded && !isNewSearch) return;
+
     if (isNewSearch) {
         allProductsLoaded = false;
         lastVisibleProductDoc = null;
         products = [];
         renderSkeletonLoader();
     }
-    
-    if (allProductsLoaded && !isNewSearch) return;
 
     isLoadingMoreProducts = true;
     loader.style.display = 'block';
 
     try {
-        let productsQuery = collection(db, "products");
+        let q = productsCollection;
+        const constraints = [];
         
         if (currentCategory && currentCategory !== 'all') {
-            productsQuery = query(productsQuery, where("categoryId", "==", currentCategory));
+            constraints.push(where("categoryId", "==", currentCategory));
         }
         if (currentSubcategory && currentSubcategory !== 'all') {
-            productsQuery = query(productsQuery, where("subcategoryId", "==", currentSubcategory));
+            constraints.push(where("subcategoryId", "==", currentSubcategory));
         }
         if (currentSubSubcategory && currentSubSubcategory !== 'all') {
-            productsQuery = query(productsQuery, where("subSubcategoryId", "==", currentSubSubcategory));
+            constraints.push(where("subSubcategoryId", "==", currentSubSubcategory));
         }
-        
+
         const finalSearchTerm = searchTerm.trim().toLowerCase();
         if (finalSearchTerm) {
-            productsQuery = query(productsQuery, 
-                where('searchableName', '>=', finalSearchTerm), 
-                where('searchableName', '<=', finalSearchTerm + '\uf8ff')
-            );
+            constraints.push(where('searchableName', '>=', finalSearchTerm));
+            constraints.push(where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
+            constraints.push(orderBy("searchableName", "asc"));
         }
         
-        if (finalSearchTerm) {
-            productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
-        } else {
-            productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
+        constraints.push(orderBy("createdAt", "desc"));
+
+        if (!isNewSearch && lastVisibleProductDoc) {
+            constraints.push(startAfter(lastVisibleProductDoc));
         }
 
-        if (lastVisibleProductDoc && !isNewSearch) {
-            productsQuery = query(productsQuery, startAfter(lastVisibleProductDoc));
-        }
+        constraints.push(limit(PRODUCTS_PER_PAGE));
+
+        const finalQuery = query(q, ...constraints);
+        const productSnapshot = await getDocs(finalQuery);
         
-        productsQuery = query(productsQuery, limit(PRODUCTS_PER_PAGE));
-
-        const productSnapshot = await getDocs(productsQuery);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         if (isNewSearch) {
             products = newProducts;
         } else {
-            products = [...products, ...newProducts]; 
+            products = [...products, ...newProducts];
         }
-        
+
         if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
             allProductsLoaded = true;
             document.getElementById('scroll-loader-trigger').style.display = 'none';
@@ -1148,8 +1148,8 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
             document.getElementById('scroll-loader-trigger').style.display = 'block';
         }
 
-        lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
-        
+        lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1]; // Will be undefined if docs is empty, which is fine
+
         renderProducts();
 
         if (products.length === 0) {
@@ -1166,6 +1166,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         productsContainer.style.display = 'grid';
     }
 }
+
 
 // Homepage Sections Logic
 async function renderHomepageSections() {
@@ -2753,7 +2754,7 @@ async function initializePromoCards() {
 }
 
 function initializeAppLogic() {
-    let isInitialLoad = true; // Flag to run initial search only once
+    let isInitialLoad = true; 
 
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     onSnapshot(categoriesQuery, (snapshot) => {
@@ -2815,8 +2816,7 @@ function initializeAppLogic() {
         }
 
         setLanguage(currentLanguage);
-
-        // **FIX**: Call the initial search *after* categories are loaded
+        
         if (isInitialLoad) {
             searchProductsInFirestore('', true);
             isInitialLoad = false;
@@ -2843,7 +2843,7 @@ function initializeAppLogic() {
     showWelcomeMessage();
     setupGpsButton();
     handleInitialPageLoad();
-    initializePromoCards();
+    initializePromoCards(); // Fetch promo cards
 }
 
 
@@ -2897,7 +2897,7 @@ function renderPromoSlider() {
     const showSlider = allPromoCards.length > 0 && (currentCategory !== 'all' || currentSearch);
     
     if (showSlider) {
-        promoCardSliderContainer.style.display = 'grid';
+        promoCardSliderContainer.style.display = 'grid'; // Use grid to match productsContainer
         displayPromoCard(currentPromoCardIndex);
         startPromoRotation();
     } else {
@@ -2911,13 +2911,14 @@ function renderPromoSlider() {
 
 function displayPromoCard(index) {
     if (allPromoCards.length === 0) return;
-    promoCardSliderContainer.innerHTML = ''; 
+    promoCardSliderContainer.innerHTML = ''; // Clear previous card
     
     const cardData = allPromoCards[index];
     const newCardElement = createPromoCardElement(cardData);
     newCardElement.classList.add('product-card-reveal');
     promoCardSliderContainer.appendChild(newCardElement);
     
+    // Animate it
     setTimeout(() => {
         newCardElement.classList.add('visible');
     }, 10);
@@ -2941,7 +2942,7 @@ function changePromoCard(direction) {
     }
 
     displayPromoCard(currentPromoCardIndex);
-    startPromoRotation(); 
+    startPromoRotation(); // Reset the timer
 }
 
 function startPromoRotation() {
@@ -2952,3 +2953,44 @@ function startPromoRotation() {
         promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
+
+async function deleteCollectionRecursive(collectionRef) {
+    const snapshot = await getDocs(query(collectionRef));
+    if (snapshot.size === 0) {
+        return; // Empty collection, stop recursion
+    }
+    
+    const batch = writeBatch(db);
+    for (const docSnapshot of snapshot.docs) {
+        // Recursively delete subcollections
+        const subcollections = ['subcategories', 'subSubcategories'];
+        for (const sub of subcollections) {
+            const subRef = collection(docSnapshot.ref, sub);
+            await deleteCollectionRecursive(subRef);
+        }
+        batch.delete(docSnapshot.ref);
+    }
+    await batch.commit();
+}
+
+
+async function handleDeleteCategory(docPath, categoryName) {
+    const confirmation = confirm(`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە.`);
+    if (confirmation) {
+        try {
+            const docRef = doc(db, docPath);
+            // Delete subcollections first
+            const subcategoriesRef = collection(docRef, 'subcategories');
+            await deleteCollectionRecursive(subcategoriesRef);
+            
+            // Delete the main document
+            await deleteDoc(docRef);
+            
+            showNotification('جۆرەکە و هەموو لقەکانی سڕدرانەوە', 'success');
+        } catch (error) {
+            console.error("Error deleting category recursively:", error);
+            showNotification('هەڵەیەک ڕوویدا لە کاتی سڕینەوە', 'error');
+        }
+    }
+}
+
