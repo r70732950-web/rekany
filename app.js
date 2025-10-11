@@ -2753,6 +2753,8 @@ async function initializePromoCards() {
 }
 
 function initializeAppLogic() {
+    let isInitialLoad = true; // Flag to run initial search only once
+
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     onSnapshot(categoriesQuery, (snapshot) => {
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -2813,9 +2815,13 @@ function initializeAppLogic() {
         }
 
         setLanguage(currentLanguage);
-    });
 
-    searchProductsInFirestore('', true);
+        // **FIX**: Call the initial search *after* categories are loaded
+        if (isInitialLoad) {
+            searchProductsInFirestore('', true);
+            isInitialLoad = false;
+        }
+    });
 
     const contactInfoRef = doc(db, "settings", "contactInfo");
     onSnapshot(contactInfoRef, (docSnap) => {
@@ -2837,7 +2843,7 @@ function initializeAppLogic() {
     showWelcomeMessage();
     setupGpsButton();
     handleInitialPageLoad();
-    initializePromoCards(); // Fetch promo cards
+    initializePromoCards();
 }
 
 
@@ -2891,7 +2897,7 @@ function renderPromoSlider() {
     const showSlider = allPromoCards.length > 0 && (currentCategory !== 'all' || currentSearch);
     
     if (showSlider) {
-        promoCardSliderContainer.style.display = 'grid'; // Use grid to match productsContainer
+        promoCardSliderContainer.style.display = 'grid';
         displayPromoCard(currentPromoCardIndex);
         startPromoRotation();
     } else {
@@ -2905,14 +2911,13 @@ function renderPromoSlider() {
 
 function displayPromoCard(index) {
     if (allPromoCards.length === 0) return;
-    promoCardSliderContainer.innerHTML = ''; // Clear previous card
+    promoCardSliderContainer.innerHTML = ''; 
     
     const cardData = allPromoCards[index];
     const newCardElement = createPromoCardElement(cardData);
     newCardElement.classList.add('product-card-reveal');
     promoCardSliderContainer.appendChild(newCardElement);
     
-    // Animate it
     setTimeout(() => {
         newCardElement.classList.add('visible');
     }, 10);
@@ -2936,7 +2941,7 @@ function changePromoCard(direction) {
     }
 
     displayPromoCard(currentPromoCardIndex);
-    startPromoRotation(); // Reset the timer
+    startPromoRotation(); 
 }
 
 function startPromoRotation() {
