@@ -487,7 +487,6 @@ function setLanguage(lang) {
     const fetchedCategories = categories.filter(cat => cat.id !== 'all');
     categories = [{ id: 'all', name: t('all_categories_label'), icon: 'fas fa-th' }, ...fetchedCategories];
 
-    // Check which view is active and re-render it
     const isHomeView = !currentSearch && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
     if (isHomeView) {
         renderHomePageContent();
@@ -613,7 +612,7 @@ function toggleFavorite(productId) {
     }
     saveFavorites();
 
-    const isHomeView = !currentSearch && currentCategory === 'all';
+    const isHomeView = !currentSearch && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
     if(isHomeView) {
         renderHomePageContent();
     } else {
@@ -824,9 +823,28 @@ function renderMainCategories() {
 }
 
 function showProductDetails(productId) {
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
+    // Find product from all products loaded, not just the grid ones
+    const allFetchedProducts = [...products]; // Make a copy
+    const product = allFetchedProducts.find(p => p.id === productId);
 
+    if (!product) {
+        console.log("Product not found for details view. Trying to fetch...");
+        // Fallback to fetch from DB if not found in memory
+        getDoc(doc(db, "products", productId)).then(docSnap => {
+            if (docSnap.exists()) {
+                const fetchedProduct = { id: docSnap.id, ...docSnap.data() };
+                // Call itself again with the fetched product
+                showProductDetailsWithData(fetchedProduct);
+            } else {
+                showNotification(t('product_not_found_error'), 'error');
+            }
+        });
+        return;
+    }
+    showProductDetailsWithData(product);
+}
+
+function showProductDetailsWithData(product) {
     const nameInCurrentLang = (product.name && product.name[currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
     const descriptionText = (product.description && product.description[currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
     const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
@@ -1029,7 +1047,7 @@ function createProductCardElement(product) {
         } else if (target.closest('.favorite-btn')) {
             toggleFavorite(product.id);
         } else if (!target.closest('a')) {
-            showProductDetails(product.id);
+            showProductDetailsWithData(product);
         }
     });
     return productCard;
@@ -1094,9 +1112,6 @@ function renderProducts() {
 // START: فەنکشنە نوێیەکان بۆ دروستکردنی پەڕەی سەرەکی
 // =======================================================
 
-/**
- * بەشی "نوێترین کاڵا" دروست دەکات و کاڵاکانی 15 ڕۆژی ڕابردوو پیشان دەدات
- */
 async function renderNewestProductsSection() {
     const container = document.createElement('div');
     container.className = 'dynamic-section';
@@ -1112,16 +1127,14 @@ async function renderNewestProductsSection() {
 
     try {
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
-
         const q = query(
             productsCollection,
             where('createdAt', '>=', fifteenDaysAgo),
             orderBy('createdAt', 'desc')
         );
-
         const snapshot = await getDocs(q);
         if (snapshot.empty) {
-            return null; // ئەگەر هیچ کاڵایەکی نوێ نەبوو، ئەم بەشە پیشان نادرێت
+            return null;
         }
 
         snapshot.forEach(doc => {
@@ -1129,18 +1142,13 @@ async function renderNewestProductsSection() {
             const card = createProductCardElement(product);
             productsScroller.appendChild(card);
         });
-
         return container;
-
     } catch (error) {
         console.error("Error fetching newest products:", error);
         return null;
     }
 }
 
-/**
- * بۆ هەر جۆرێکی سەرەکی، بەشێکی تایبەت دروست دەکات و 10 لە نوێترین کاڵاکانی پیشان دەدات
- */
 async function renderCategorySections() {
     const mainContainer = document.createElement('div');
     const categoriesToRender = categories.filter(cat => cat.id !== 'all');
@@ -1149,7 +1157,6 @@ async function renderCategorySections() {
     for (const category of categoriesToRender) {
         const sectionContainer = document.createElement('div');
         sectionContainer.className = 'dynamic-section';
-
         const title = document.createElement('h3');
         title.className = 'section-title-main';
         const categoryName = category['name_' + currentLanguage] || category.name_ku_sorani;
@@ -1167,7 +1174,6 @@ async function renderCategorySections() {
                 orderBy('createdAt', 'desc'),
                 limit(10)
             );
-
             const snapshot = await getDocs(q);
             if (!snapshot.empty) {
                 snapshot.forEach(doc => {
@@ -1184,46 +1190,39 @@ async function renderCategorySections() {
     return mainContainer;
 }
 
-/**
- * فەنکشنی سەرەکی بۆ دروستکردنی تەواوی ناوەڕۆکی پەڕەی سەرەکی (Home Page)
- */
 async function renderHomePageContent() {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
-    const mainProductsContainer = document.getElementById('productsContainer');
-    const skeleton = document.getElementById('skeletonLoader');
-
-    mainProductsContainer.style.display = 'none';
+    skeletonLoader.style.display = 'grid';
     homeSectionsContainer.innerHTML = '';
-    skeleton.style.display = 'grid';
+    
+    // Fetch promo cards if not already fetched
+    if (allPromoCards.length === 0) {
+        const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
+        const promoSnapshot = await getDocs(promoQuery);
+        allPromoCards = promoSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPromoCard: true }));
+    }
 
-    // 1. پیشاندانی کارتی ڕیکلام (Promo Card)
-    if (currentCategory === 'all' && allPromoCards.length > 0) {
-        if (currentPromoCardIndex >= allPromoCards.length) {
-            currentPromoCardIndex = 0;
-        }
+    // 1. Promo Card
+    if (allPromoCards.length > 0) {
+        if (currentPromoCardIndex >= allPromoCards.length) currentPromoCardIndex = 0;
         const promoCardElement = createPromoCardElement(allPromoCards[currentPromoCardIndex]);
         const promoGrid = document.createElement('div');
-        promoGrid.className = 'products-container';
+        promoGrid.className = 'products-container'; 
         promoGrid.style.marginBottom = '24px';
         promoGrid.appendChild(promoCardElement);
         homeSectionsContainer.appendChild(promoGrid);
         startPromoRotation();
     }
 
-    // 2. پیشاندانی بەشی نوێترین کاڵا
+    // 2. Newest Products
     const newestSection = await renderNewestProductsSection();
-    if (newestSection) {
-        homeSectionsContainer.appendChild(newestSection);
-    }
+    if (newestSection) homeSectionsContainer.appendChild(newestSection);
 
-    // 3. پیشاندانی بەشی جۆرەکان
+    // 3. Category Sections
     const categorySections = await renderCategorySections();
-    if (categorySections) {
-        homeSectionsContainer.appendChild(categorySections);
-    }
+    if (categorySections) homeSectionsContainer.appendChild(categorySections);
     
-    homeSectionsContainer.style.display = 'block';
-    skeleton.style.display = 'none';
+    skeletonLoader.style.display = 'none';
 }
 
 // =======================================================
@@ -1232,21 +1231,22 @@ async function renderHomePageContent() {
 
 
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
-    // START: گۆڕانکاری بۆ جیاکردنەوەی شێوازی پیشاندان
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
+    const scrollTrigger = document.getElementById('scroll-loader-trigger');
     const shouldShowHomeSections = !searchTerm && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
-    
+
     if (shouldShowHomeSections) {
-        // ئەگەر لە پەڕەی سەرەکیدا بووین و هیچ گەڕان/فلتەرێک نەبوو، شێوازی نوێ پیشان بدە
-        productsContainer.style.display = 'none';
-        await renderHomePageContent();
-        return; // لێرەدا فەنکشنەکە بوەستێنە
+        if (isNewSearch) {
+            productsContainer.style.display = 'none';
+            scrollTrigger.style.display = 'none';
+            homeSectionsContainer.style.display = 'block';
+            await renderHomePageContent();
+        }
+        return; // For both new search and infinite scroll, stop here if we are on the home page.
     } else {
-        // ئەگەر گەڕان یان فلتەر کرا، شێوازی نوێ بشارەوە و بگەڕێوە بۆ شێوازی پێشوو
         homeSectionsContainer.innerHTML = '';
         homeSectionsContainer.style.display = 'none';
     }
-    // END: گۆڕانکاری
 
     if (isLoadingMoreProducts) return;
     
@@ -1263,16 +1263,6 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     loader.style.display = 'block';
 
     try {
-        if (isNewSearch && currentCategory === 'all' && allPromoCards.length === 0) {
-            const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
-            const promoSnapshot = await getDocs(promoQuery);
-            allPromoCards = promoSnapshot.docs.map(doc => ({ 
-                id: doc.id, 
-                ...doc.data(), 
-                isPromoCard: true 
-            }));
-        }
-
         let productsQuery = collection(db, "products");
         
         if (currentCategory && currentCategory !== 'all') {
@@ -1308,37 +1298,26 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         const productSnapshot = await getDocs(productsQuery);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        let combinedList = [...newProducts];
-        if (isNewSearch && currentCategory === 'all' && allPromoCards.length > 0) {
-            if (currentPromoCardIndex >= allPromoCards.length) {
-                currentPromoCardIndex = 0;
-            }
-            combinedList.unshift(allPromoCards[currentPromoCardIndex]);
-        }
-        
         if (isNewSearch) {
-            products = combinedList;
+            products = newProducts;
         } else {
             products = [...products, ...newProducts]; 
         }
         
         if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
             allProductsLoaded = true;
-            document.getElementById('scroll-loader-trigger').style.display = 'none';
+            scrollTrigger.style.display = 'none';
         } else {
-            document.getElementById('scroll-loader-trigger').style.display = 'block';
+            allProductsLoaded = false;
+            scrollTrigger.style.display = 'block';
         }
 
         lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
         
         renderProducts();
 
-        if (products.length === 0) {
+        if (products.length === 0 && isNewSearch) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ కాڵایەک نەدۆزرایەوە.</p>';
-        }
-
-        if (isNewSearch) {
-           startPromoRotation();
         }
 
     } catch (error) {
@@ -1354,8 +1333,32 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
 
 
 function addToCart(productId) {
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
+    // Find product from all products loaded, not just the grid ones
+    const allFetchedProducts = [...products]; 
+    let product = allFetchedProducts.find(p => p.id === productId);
+
+    if(!product){
+        // If not in memory, we assume it's being added from a detail view
+        // that may have fetched it independently. We'll add it without full data,
+        // which might be an edge case to handle better later if needed.
+        console.warn("Product not found in local 'products' array. Adding with limited data.");
+        // This part needs the full product object, which we don't have. 
+        // A better approach is to ensure any product you can add to cart is in the 'products' array.
+        // For now, let's just prevent the error. The detail view should be populated from 'products'.
+        getDoc(doc(db, "products", productId)).then(docSnap => {
+            if (docSnap.exists()) {
+                const fetchedProduct = { id: docSnap.id, ...docSnap.data() };
+                const mainImage = (fetchedProduct.imageUrls && fetchedProduct.imageUrls.length > 0) ? fetchedProduct.imageUrls[0] : (fetchedProduct.image || '');
+                const existingItem = cart.find(item => item.id === productId);
+                if (existingItem) { existingItem.quantity++; }
+                else { cart.push({ id: fetchedProduct.id, name: fetchedProduct.name, price: fetchedProduct.price, image: mainImage, quantity: 1 }); }
+                saveCart();
+                showNotification(t('product_added_to_cart'));
+            }
+        });
+        return;
+    }
+
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
     const existingItem = cart.find(item => item.id === productId);
     if (existingItem) { existingItem.quantity++; }
@@ -2778,7 +2781,6 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     updateAdminUI(isAdmin);
-    // Re-render the correct view after auth state changes
     searchProductsInFirestore(currentSearch, true);
 });
 
