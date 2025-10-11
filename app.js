@@ -49,7 +49,7 @@ let mainPageScrollPosition = 0;
 let currentCategory = 'all';
 let currentSubcategory = 'all';
 let currentSubSubcategory = 'all';
-let cleanupAdmin = null; // فەنکشنەک بۆ پاککرنا فرمانێن ئەدمینی
+let cleanupAdmin = null;
 
 const loginModal = document.getElementById('loginModal');
 const productsContainer = document.getElementById('productsContainer');
@@ -125,7 +125,7 @@ function checkNewAnnouncements() { const q = query(announcementsCollection, orde
 async function renderUserNotifications() { const q = query(announcementsCollection, orderBy("createdAt", "desc")); const snapshot = await getDocs(q); notificationsListContainer.innerHTML = ''; if (snapshot.empty) { notificationsListContainer.innerHTML = `<div class="cart-empty"><i class="fas fa-bell-slash"></i><p>${t('no_notifications_found')}</p></div>`; return; } let latestTimestamp = 0; snapshot.forEach(doc => { const ann = doc.data(); if (ann.createdAt > latestTimestamp) latestTimestamp = ann.createdAt; const date = new Date(ann.createdAt); const item = document.createElement('div'); item.className = 'notification-item'; item.innerHTML = `<div class="notification-header"><span class="notification-title">${ann.title?.[currentLanguage] || ann.title?.ku_sorani}</span><span class="notification-date">${date.toLocaleDateString()}</span></div><p class="notification-content">${ann.content?.[currentLanguage] || ann.content?.ku_sorani}</p>`; notificationsListContainer.appendChild(item); }); localStorage.setItem('lastSeenAnnouncementTimestamp', latestTimestamp); notificationBadge.style.display = 'none'; }
 function renderContactLinks() { const container = document.getElementById('dynamicContactLinksContainer'); const q = query(collection(db, 'settings/contactInfo/socialLinks'), orderBy("createdAt", "desc")); onSnapshot(q, (snapshot) => { container.innerHTML = ''; if (snapshot.empty) return; snapshot.forEach(doc => { const link = doc.data(); const name = link['name_' + currentLanguage] || link.name_ku_sorani; const linkElement = document.createElement('a'); linkElement.href = link.url; linkElement.target = '_blank'; linkElement.className = 'settings-item'; linkElement.innerHTML = `<div><i class="${link.icon}" style="margin-left: 10px;"></i><span>${name}</span></div><i class="fas fa-external-link-alt"></i>`; container.appendChild(linkElement); }); }); }
 function showWelcomeMessage() { if (!localStorage.getItem('hasVisited')) { openPopup('welcomeModal', 'modal'); localStorage.setItem('hasVisited', 'true'); } }
-function setupGpsButton() { /* ... */ }
+function setupGpsButton() { /* This can be implemented based on the original code */ }
 function setupScrollObserver() { const trigger = document.getElementById('scroll-loader-trigger'); const observer = new IntersectionObserver((entries) => { if (entries[0].isIntersecting) { searchProductsInFirestore(currentSearch, false); } }, { threshold: 0.1 }); if (trigger) observer.observe(trigger); }
 function changePromoCard(direction) { if (allPromoCards.length <= 1) return; currentPromoCardIndex = (currentPromoCardIndex + direction + allPromoCards.length) % allPromoCards.length; displayPromoCard(currentPromoCardIndex); startPromoRotation(); }
 function startPromoRotation() { if (promoRotationInterval) clearInterval(promoRotationInterval); if (allPromoCards.length > 1) { promoRotationInterval = setInterval(rotatePromoCard, 5000); } }
@@ -143,10 +143,8 @@ function deactivateAdminUI() {
         const panel = document.getElementById(id);
         if(panel) panel.style.display = 'none';
     });
-    // پاککرنا فەنکشنێن ئەدمینی ژ window
     if (window.editProduct) window.editProduct = undefined;
     if (window.deleteProduct) window.deleteProduct = undefined;
-    // ڕاوەستاندنا real-time listenerـێن ئەدمینی
     if (cleanupAdmin) {
         cleanupAdmin();
         cleanupAdmin = null;
@@ -201,7 +199,7 @@ function initializeAppLogic() {
 
         if (isAdmin) {
             sessionStorage.setItem('isAdmin', 'true');
-            if (!wasAdmin) { // بتنێ ئەگەر نوو هاتبیتە ژوور
+            if (!wasAdmin || !cleanupAdmin) {
                 try {
                     cleanupAdmin = initAdmin(db, auth, showNotification, t, closeCurrentPopup, openPopup, categories);
                 } catch(e) { console.error("Failed to load admin module", e); }
