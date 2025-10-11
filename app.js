@@ -1071,22 +1071,43 @@ function renderProducts() {
 }
 
 // =======================================================
-// === فەنکشنی نوێکراوە بۆ چارەسەری کێشەی startAfter ===
+// === فەنکشنی نوێکراوە بۆ چارەسەری کێشەی پەڕەی سەرەکی ===
 // =======================================================
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
-    if (!searchTerm && currentCategory === 'all') {
-        productsContainer.style.display = 'none';
-        skeletonLoader.style.display = 'none';
-        homepageSectionsContainer.style.display = 'block';
-        promoCardSliderContainer.style.display = 'none';
-        if (homepageSectionsContainer.innerHTML === '') {
-            renderHomepageSections();
-        }
+    // دڵنیابوونەوە لە بوونی هەموو ئێلێمێنتە سەرەکییەکان
+    if (!homepageSectionsContainer || !promoCardSliderContainer || !productsContainer || !skeletonLoader) {
+        console.error("A critical UI element is missing! Aborting render.");
         return;
     }
 
-    homepageSectionsContainer.style.display = 'none';
-    renderPromoSlider();
+    // --- لۆجیکی نوێ بۆ پەڕەی سەرەکی ---
+    if (!searchTerm && currentCategory === 'all') {
+        // شاردنەوەی لیستی کاڵا و پیشاندانی کۆنتەینەری بەشە سەرەکییەکان
+        productsContainer.style.display = 'none';
+        skeletonLoader.style.display = 'none';
+        promoCardSliderContainer.style.display = 'none';
+        homepageSectionsContainer.style.display = 'block';
+
+        // هەوڵدان بۆ ڕەندەرکردنی بەشە تایبەتەکانی پەڕەی سەرەکی
+        await renderHomepageSections();
+
+        // چارەسەری یەدەگ: ئەگەر دوای ڕەندەرکردن، هێشتا پەڕەی سەرەکی بەتاڵ بوو،
+        // ئەوا لەبری شاشەی سپی، هەموو کاڵاکان پیشان بدە.
+        if (homepageSectionsContainer.innerHTML.trim() === '') {
+            homepageSectionsContainer.style.display = 'none'; // شاردنەوەی کۆنتەینەری بەتاڵ
+            // هیچ 'return'ێک لێرە نییە، بۆیە کۆدەکە بەردەوام دەبێت بۆ خوارەوە بۆ پیشاندانی هەموو کاڵاکان
+        } else {
+            // ئەگەر بەشەکان بە سەرکەوتوویی ڕەندەر کران، لێرەدا بوەستە
+            return;
+        }
+    }
+    // --- کۆتایی گۆڕانکاری ---
+
+    // ئەم بەشەی خوارەوە ئێستا کاردەکات بۆ جۆرەکان، گەڕان، و هەروەها وەک یەدەگ بۆ پەڕەی سەرەکیی بەتاڵ
+    if (isNewSearch) {
+        homepageSectionsContainer.style.display = 'none';
+        renderPromoSlider();
+    }
 
     if (isLoadingMoreProducts) return;
     if (allProductsLoaded && !isNewSearch) return;
@@ -1104,7 +1125,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     try {
         let q = productsCollection;
         const constraints = [];
-        
+
         if (currentCategory && currentCategory !== 'all') {
             constraints.push(where("categoryId", "==", currentCategory));
         }
@@ -1121,7 +1142,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
             constraints.push(where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
             constraints.push(orderBy("searchableName", "asc"));
         }
-        
+
         constraints.push(orderBy("createdAt", "desc"));
 
         if (!isNewSearch && lastVisibleProductDoc) {
@@ -1132,7 +1153,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
 
         const finalQuery = query(q, ...constraints);
         const productSnapshot = await getDocs(finalQuery);
-        
+
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         if (isNewSearch) {
@@ -1148,12 +1169,12 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
             document.getElementById('scroll-loader-trigger').style.display = 'block';
         }
 
-        lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1]; // Will be undefined if docs is empty, which is fine
+        lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
 
         renderProducts();
 
         if (products.length === 0) {
-            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ కాڵایەک نەدۆزرایەوە.</p>';
+            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         }
 
     } catch (error) {
@@ -2993,4 +3014,3 @@ async function handleDeleteCategory(docPath, categoryName) {
         }
     }
 }
-
