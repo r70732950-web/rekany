@@ -289,7 +289,7 @@ let mainPageScrollPosition = 0;
 let currentCategory = 'all';
 let currentSubcategory = 'all';
 let currentSubSubcategory = 'all';
-let isRenderingHomePage = false; 
+let isRenderingHomePage = false;
 
 const loginModal = document.getElementById('loginModal');
 const addProductBtn = document.getElementById('addProductBtn');
@@ -488,12 +488,7 @@ function setLanguage(lang) {
     const fetchedCategories = categories.filter(cat => cat.id !== 'all');
     categories = [{ id: 'all', name: t('all_categories_label'), icon: 'fas fa-th' }, ...fetchedCategories];
 
-    const isHomeView = !currentSearch && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
-    if (isHomeView) {
-        renderHomePageContent();
-    } else {
-        renderProducts();
-    }
+    searchProductsInFirestore(currentSearch, true);
 
     renderMainCategories();
     renderCategoriesSheet();
@@ -824,7 +819,7 @@ function renderMainCategories() {
 }
 
 function showProductDetails(productId) {
-    const allFetchedProducts = [...products]; 
+    const allFetchedProducts = [...products];
     const product = allFetchedProducts.find(p => p.id === productId);
 
     if (!product) {
@@ -1145,21 +1140,20 @@ async function renderNewestProductsSection() {
 
 async function renderCategorySections() {
     const mainContainer = document.createElement('div');
+
     try {
         const q = query(
             categoriesCollection,
-            where("homeOrder", ">", 0),
-            orderBy("homeOrder", "asc")
+            where("homePageOrder", ">", 0),
+            orderBy("homePageOrder", "asc")
         );
-        const snapshot = await getDocs(q);
+        const categoriesSnapshot = await getDocs(q);
 
-        if (snapshot.empty) return null;
-        
-        for (const doc of snapshot.docs) {
-            const category = { id: doc.id, ...doc.data() };
-            
+        for (const categoryDoc of categoriesSnapshot.docs) {
+            const category = { id: categoryDoc.id, ...categoryDoc.data() };
             const sectionContainer = document.createElement('div');
             sectionContainer.className = 'dynamic-section';
+
             const title = document.createElement('h3');
             title.className = 'section-title-main';
             const categoryName = category['name_' + currentLanguage] || category.name_ku_sorani;
@@ -1177,23 +1171,22 @@ async function renderCategorySections() {
                 limit(10)
             );
             const productsSnapshot = await getDocs(productsQuery);
-            
+
             if (!productsSnapshot.empty) {
-                productsSnapshot.forEach(productDoc => {
-                    const product = { id: productDoc.id, ...productDoc.data() };
+                productsSnapshot.forEach(doc => {
+                    const product = { id: doc.id, ...doc.data() };
                     const card = createProductCardElement(product);
                     productsScroller.appendChild(card);
                 });
                 mainContainer.appendChild(sectionContainer);
             }
         }
-        return mainContainer;
     } catch (error) {
-        console.error("Error rendering category sections:", error);
-        return null;
+        console.error("Error rendering homepage category sections:", error);
     }
-}
 
+    return mainContainer;
+}
 
 async function renderHomePageContent() {
     if (isRenderingHomePage) {
@@ -1205,12 +1198,15 @@ async function renderHomePageContent() {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     
     try {
+        homeSectionsContainer.innerHTML = '';
+        
         if (allPromoCards.length === 0) {
             const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
             const promoSnapshot = await getDocs(promoQuery);
             allPromoCards = promoSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPromoCard: true }));
         }
 
+        // 1. Promo Card
         if (allPromoCards.length > 0) {
             if (currentPromoCardIndex >= allPromoCards.length) currentPromoCardIndex = 0;
             const promoCardElement = createPromoCardElement(allPromoCards[currentPromoCardIndex]);
@@ -1222,9 +1218,11 @@ async function renderHomePageContent() {
             startPromoRotation();
         }
 
+        // 2. Newest Products
         const newestSection = await renderNewestProductsSection();
         if (newestSection) homeSectionsContainer.appendChild(newestSection);
 
+        // 3. Category Sections
         const categorySections = await renderCategorySections();
         if (categorySections) homeSectionsContainer.appendChild(categorySections);
         
@@ -1236,43 +1234,43 @@ async function renderHomePageContent() {
     }
 }
 
+
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
-    
     const shouldShowHomeSections = !searchTerm && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
 
-    if (isLoadingMoreProducts && !isNewSearch) return; 
+    if (isLoadingMoreProducts && !isNewSearch) return;
     
     if (isNewSearch) {
         allProductsLoaded = false;
         lastVisibleProductDoc = null;
-        products = [];
-        productsContainer.innerHTML = ''; 
-        homeSectionsContainer.innerHTML = ''; 
-        renderSkeletonLoader();
+        products = []; // لیستی کاڵا گشتییەکان بەتاڵ دەکەینەوە
+
+        if (shouldShowHomeSections) {
+            // ئەگەر لە پەڕەی سەرەکیداین
+            homeSectionsContainer.style.display = 'block';
+            productsContainer.style.display = 'none'; // کاتییە بۆ پیشاندانی سکێڵتۆن
+            await renderHomePageContent(); // **یەکەم جار: بەشە ڕێکخراوەکان دروست دەکرێن**
+        } else {
+            // ئەگەر لە فلتەر یان گەڕانداین
+            homeSectionsContainer.innerHTML = '';
+            homeSectionsContainer.style.display = 'none';
+        }
+        
+        renderSkeletonLoader(); // سکێڵتۆن بۆ کاڵا گشتییەکان پیشان دەدەین
     }
     
-    if (shouldShowHomeSections && isNewSearch) {
-        homeSectionsContainer.style.display = 'block';
-        productsContainer.style.display = 'none'; 
-        await renderHomePageContent(); 
-    } else {
-        homeSectionsContainer.style.display = 'none';
-    }
-
     if (allProductsLoaded && !isNewSearch) return;
 
     isLoadingMoreProducts = true;
     loader.style.display = 'block';
 
     try {
-        let productsQuery;
+        let productsQuery = collection(db, "products");
         
-        if (shouldShowHomeSections) {
-             productsQuery = query(productsCollection, orderBy("createdAt", "desc"));
-        } else {
-            productsQuery = collection(db, "products");
+        // **گۆڕانکاری گرنگ:** فلتەرکردن تەنها کاتێک کاردەکات کە لە پەڕەی سەرەکی نەبین
+        if (!shouldShowHomeSections) {
             if (currentCategory && currentCategory !== 'all') {
                 productsQuery = query(productsQuery, where("categoryId", "==", currentCategory));
             }
@@ -1282,14 +1280,18 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
             if (currentSubSubcategory && currentSubSubcategory !== 'all') {
                 productsQuery = query(productsQuery, where("subSubcategoryId", "==", currentSubSubcategory));
             }
-            const finalSearchTerm = searchTerm.trim().toLowerCase();
-            if (finalSearchTerm) {
-                productsQuery = query(productsQuery, where('searchableName', '>=', finalSearchTerm), where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
-                productsQuery = query(productsQuery, orderBy("searchableName", "asc"));
-            }
-             productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
+        }
+
+        const finalSearchTerm = searchTerm.trim().toLowerCase();
+        if (finalSearchTerm) {
+            productsQuery = query(productsQuery,
+                where('searchableName', '>=', finalSearchTerm),
+                where('searchableName', '<=', finalSearchTerm + '\uf8ff')
+            );
         }
         
+        productsQuery = query(productsQuery, orderBy(finalSearchTerm ? "searchableName" : "createdAt", finalSearchTerm ? "asc" : "desc"));
+
         if (lastVisibleProductDoc && !isNewSearch) {
             productsQuery = query(productsQuery, startAfter(lastVisibleProductDoc));
         }
@@ -1299,26 +1301,27 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         const productSnapshot = await getDocs(productsQuery);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        products = [...products, ...newProducts];
-        
-        newProducts.forEach(item => {
-            const element = createProductCardElement(item);
-            element.classList.add('product-card-reveal');
-            productsContainer.appendChild(element);
-        });
-        setupScrollAnimations();
+        // لێرەدا کاڵا نوێیەکان زیاد دەکرێن بۆ لیستی کاڵا گشتییەکان
+        if (isNewSearch) {
+            products = newProducts;
+        } else {
+            products = [...products, ...newProducts];
+        }
         
         if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
             allProductsLoaded = true;
             scrollTrigger.style.display = 'none';
         } else {
+            allProductsLoaded = false;
             scrollTrigger.style.display = 'block';
         }
 
         lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
         
+        renderProducts(); // **دووەم جار: کاڵا تێکەڵاوەکان لە خوارەوە پیشان دەدرێن**
+
         if (products.length === 0 && isNewSearch) {
-            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ కాڵایەک نەدۆزرایەوە.</p>';
+            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         }
 
     } catch (error) {
@@ -1331,7 +1334,6 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         productsContainer.style.display = 'grid';
     }
 }
-
 
 
 function addToCart(productId) {
@@ -2221,16 +2223,16 @@ async function openEditCategoryModal(docPath, level) {
     document.getElementById('editCategoryOrder').value = category.order || 0;
 
     const iconField = document.getElementById('editIconField');
-    const homeOrderField = document.getElementById('editHomeOrderField');
+    const homePageOrderField = document.getElementById('editHomePageOrderField');
 
     if (level === '1') {
         iconField.style.display = 'block';
-        homeOrderField.style.display = 'block';
+        homePageOrderField.style.display = 'block';
         document.getElementById('editCategoryIcon').value = category.icon || '';
-        document.getElementById('editCategoryHomeOrder').value = category.homeOrder === undefined ? 10 : category.homeOrder;
+        document.getElementById('editCategoryHomePageOrder').value = category.homePageOrder || 0;
     } else {
         iconField.style.display = 'none';
-        homeOrderField.style.display = 'none';
+        homePageOrderField.style.display = 'none';
     }
 
     openPopup('editCategoryModal', 'modal');
@@ -2476,8 +2478,7 @@ function setupEventListeners() {
                 name_ku_badini: document.getElementById('mainCategoryNameKuBadini').value,
                 name_ar: document.getElementById('mainCategoryNameAr').value,
                 icon: document.getElementById('mainCategoryIcon').value,
-                order: parseInt(document.getElementById('mainCategoryOrder').value),
-                homeOrder: parseInt(document.getElementById('mainCategoryHomeOrder').value)
+                order: parseInt(document.getElementById('mainCategoryOrder').value)
             };
 
             try {
@@ -2585,7 +2586,7 @@ function setupEventListeners() {
 
             if (level === '1') {
                 updateData.icon = document.getElementById('editCategoryIcon').value;
-                updateData.homeOrder = parseInt(document.getElementById('editCategoryHomeOrder').value);
+                updateData.homePageOrder = parseInt(document.getElementById('editCategoryHomePageOrder').value) || 0;
             }
             
             try {
