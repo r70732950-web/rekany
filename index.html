@@ -513,7 +513,7 @@
         }
 
         .bottom-nav-item:hover { background-color: var(--light-gray); }
-        .bottom-nav-item i { font-size: 20px; color: var(--primary-color); transition: color 0.2s; }
+        .bottom-nav-item i { font-size: 22px; color: var(--primary-color); transition: color 0.2s; } /* قەبارەی ئایکۆنەکان زیادکرا */
         .bottom-nav-item.active i,
         .bottom-nav-item.active span {
             color: var(--accent-light);
@@ -915,46 +915,6 @@
             width: 160px; /* قەبارەی کارتی کاڵا لە شریتی ئاسۆیی */
         }
         /* END: ستایلە نوێیەکان */
-
-        /* START: ستایلێ دوو رەنگ بۆ ئایکونێن بنکی */
-        .bottom-nav-item .fa-duotone {
-            position: relative; /* پێدڤیە بۆ جهکرنا رەنگێ دووەم */
-            font-size: 22px; /* هندەک مەزنترکرن بۆ جوانتر دەرکەفتن */
-        }
-
-        /* رەنگێ لاوەکی (پشتی - secondary) */
-        .bottom-nav-item .fa-duotone::before {
-            opacity: 0.3; /* رەنگێ پشتی هندەکێ تاری دکەین */
-            color: var(--primary-color);
-        }
-
-        /* رەنگێ سەرەکی (پێشی - primary) */
-        .bottom-nav-item .fa-duotone::after {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            -webkit-clip-path: inset(50% 0 0 0); /* نیڤا ئایکونی ژ سەری ب تەنێ نیشان ددەت */
-            clip-path: inset(50% 0 0 0);
-            color: var(--primary-color);
-            opacity: 1; /* رەنگێ پێشیێ ب تمامی دیار دکەین */
-        }
-
-        /* زێدەکرنا کۆدێ یونیکۆد (Unicode) بۆ هەر ئایکونەکێ */
-        .bottom-nav-item .fa-shop::after { content: '\f54e'; }
-        .bottom-nav-item .fa-layer-group::after { content: '\f5fd'; }
-        .bottom-nav-item .fa-cart-shopping::after { content: '\f07a'; }
-        .bottom-nav-item .fa-circle-user::after { content: '\f2bd'; }
-        .bottom-nav-item .fa-gears::after { content: '\f085'; }
-
-
-        /* دەمێ ئایکونەک چالاک دبیت، رەنگێ وێ دگوهۆرین */
-        .bottom-nav-item.active .fa-duotone::before,
-        .bottom-nav-item.active .fa-duotone::after {
-            color: var(--accent-light); /* رەنگێ چالاکبوونێ */
-        }
-        /* END: ستایلێ دوو رەنگ بۆ ئایکونێن بنکی */
 
     </style>
 </head>
@@ -1639,24 +1599,24 @@
         
         <div class="bottom-nav">
              <button id="homeBtn" class="bottom-nav-item">
-                <i class="fa-solid fa-shop fa-duotone"></i>
+                <i class="fas fa-store"></i>
                 <span data-translate-key="nav_home">سەرەکی</span>
             </button>
             <button id="categoriesBtn" class="bottom-nav-item">
-                <i class="fa-solid fa-layer-group fa-duotone"></i>
+                <i class="fas fa-shapes"></i>
                 <span data-translate-key="nav_categories">جۆرەکان</span>
             </button>
             <button id="cartBtn" class="bottom-nav-item">
                 <span class="cart-count" id="cartCount">0</span>
-                <i class="fa-solid fa-cart-shopping fa-duotone"></i>
+                <i class="fas fa-basket-shopping"></i>
                 <span data-translate-key="nav_cart">سەبەتە</span>
             </button>
             <button id="profileBtn" class="bottom-nav-item">
-                <i class="fa-solid fa-circle-user fa-duotone"></i>
+                <i class="fas fa-user-gear"></i>
                 <span data-translate-key="nav_profile">پڕۆفایل</span>
             </button>
             <button id="settingsBtn" class="bottom-nav-item">
-                <i class="fa-solid fa-gears fa-duotone"></i>
+                <i class="fas fa-sliders"></i>
                 <span data-translate-key="nav_settings">ڕێکخستن</span>
             </button>
         </div>
