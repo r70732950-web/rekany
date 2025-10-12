@@ -189,7 +189,7 @@
             border: 1px solid var(--section-border);
             border-radius: 8px;
             padding: 15px;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
         .notification-item:last-child {
@@ -857,7 +857,7 @@
 
         /* START: ستایلە نوێیەکان بۆ پەڕەی سەرەکی */
         .dynamic-section {
-            margin-bottom: 12px; /* GORANKARI */
+            margin-bottom: 12px;
         }
 
         .section-title-main {
@@ -886,21 +886,19 @@
         }
         /* END: ستایلە نوێیەکان */
 
-        /* START: چارەسەری کێشەکانی دیزاین (ڤێرژنی چاککراو) */
+        /* START: چارەسەری کێشەکانی دیزاین (ڤێرژنی ٢.٠) */
         .product-price-container {
-            /* ئەم دێڕانە بۆی زیادکرایەوە بۆ چاککردنی کێشەکە */
             position: absolute;
             top: 10px;
             right: 12px;
-            
-            /* ئەم دێڕانە بۆ یەکخستنی قەبارەیە */
+            width: calc(100% - 60px); /* <<< ئەم دێڕە نوێیە زیادکرا */
             min-height: 38px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: flex-end;
         }
-        /* END: چارەسەری کێشەکانی دیزاین (ڤێرژنی چاککراو) */
+        /* END: چارەسەری کێشەکانی دیزاین (ڤێرژنی ٢.٠) */
 
     </style>
 </head>
