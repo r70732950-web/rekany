@@ -513,14 +513,29 @@
         }
 
         .bottom-nav-item:hover { background-color: var(--light-gray); }
-        .bottom-nav-item i { font-size: 22px; color: var(--primary-color); transition: color 0.2s; } /* قەبارەی ئایکۆنەکان زیادکرا */
-        .bottom-nav-item.active i,
+        
         .bottom-nav-item.active span {
             color: var(--accent-light);
             font-weight: bold;
         }
         .bottom-nav-item .cart-count { position: absolute; top: 5px; left: calc(50% + 5px); background-color: var(--danger-light); color: white; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 11px; border: 1px solid white; }
         
+        /* START: ستایلی نوێی ئایکۆنەکان (Outline/Solid) */
+        .bottom-nav-item i {
+            font-size: 22px;
+            color: transparent;
+            -webkit-text-stroke: 1.5px var(--primary-color);
+            text-stroke: 1.5px var(--primary-color);
+            transition: all 0.2s ease-in-out;
+        }
+
+        .bottom-nav-item.active i {
+            color: var(--accent-light);
+            -webkit-text-stroke: 0;
+            text-stroke: 0;
+        }
+        /* END: ستایلی نوێی ئایکۆنەکان */
+
         .sheet-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1500; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
         .sheet-overlay.show { opacity: 1; visibility: visible; }
         .bottom-sheet { position: fixed; bottom: 0; left: 0; right: 0; background-color: white; border-top-left-radius: 16px; border-top-right-radius: 16px; box-shadow: 0 -4px 20px rgba(0,0,0,0.15); transform: translateY(100%); transition: transform 0.3s ease-out; z-index: 1600; max-height: 80vh; display: flex; flex-direction: column; }
@@ -1599,24 +1614,24 @@
         
         <div class="bottom-nav">
              <button id="homeBtn" class="bottom-nav-item">
-                <i class="fas fa-store"></i>
+                <i class="fa-solid fa-store"></i>
                 <span data-translate-key="nav_home">سەرەکی</span>
             </button>
             <button id="categoriesBtn" class="bottom-nav-item">
-                <i class="fas fa-shapes"></i>
+                <i class="fa-solid fa-shapes"></i>
                 <span data-translate-key="nav_categories">جۆرەکان</span>
             </button>
             <button id="cartBtn" class="bottom-nav-item">
                 <span class="cart-count" id="cartCount">0</span>
-                <i class="fas fa-basket-shopping"></i>
+                <i class="fa-solid fa-basket-shopping"></i>
                 <span data-translate-key="nav_cart">سەبەتە</span>
             </button>
             <button id="profileBtn" class="bottom-nav-item">
-                <i class="fas fa-user-gear"></i>
+                <i class="fa-solid fa-user-gear"></i>
                 <span data-translate-key="nav_profile">پڕۆفایل</span>
             </button>
             <button id="settingsBtn" class="bottom-nav-item">
-                <i class="fas fa-sliders"></i>
+                <i class="fa-solid fa-sliders"></i>
                 <span data-translate-key="nav_settings">ڕێکخستن</span>
             </button>
         </div>
