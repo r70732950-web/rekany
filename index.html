@@ -189,7 +189,7 @@
             border: 1px solid var(--section-border);
             border-radius: 8px;
             padding: 15px;
-            margin-bottom: 4px;
+            margin-bottom: 12px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
         .notification-item:last-child {
@@ -346,11 +346,6 @@
         }
         .add-to-cart-btn:hover { background-color: var(--accent-light); }
         
-        @keyframes move-peek {
-            0%, 80%, 100% { transform: translateX(0); }
-            90% { transform: translateX(8px); }
-        }
-
         @keyframes scaleIn {
             from { transform: scale(0.95); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
@@ -821,54 +816,60 @@
         }
         /* END: ستایلە نوێیەکان */
 
-        /* START: چارەسەری کێشەکانی دیزاین (ڤێرژنی ٤.٠) */
+        /* START: چارەسەری کێشەکانی دیزاین (ڤێرژنی ٥.٠ - چاککراو) */
+
+        /* جوڵەی نوێ بۆ زانیاری گەیاندن */
+        @keyframes gentle-pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
 
         /* شاردنەوەی نرخی داشکاندن لەسەر کارتی سەرەکی */
         .product-card .original-price {
             display: none;
         }
 
-        /* ڕێکخستنی نوێی بەشی خوارەوەی کارت */
+        /* بەرزی بەشی خوارەوەی کارت */
         .product-info {
-            padding: 8px 12px;
-            height: auto;
-            display: flex;
-            flex-wrap: wrap; /* ڕێگە دەدات توخمەکان بێنە دێڕی نوێ */
-            justify-content: space-between; /* بۆشایی دەخاتە نێوانیان */
-            align-items: center;
+            height: 60px;
+            position: relative;
         }
 
-        /* شوێنی نرخی کاڵا */
+        /* هێڵی یەکەم: نرخی کاڵا */
         .product-price-container {
-            position: static;
-            flex-grow: 1; /* وا دەکات زۆرترین بۆشایی بەکاربهێنێت */
+            position: absolute;
+            top: 10px;
+            right: 12px;
         }
 
-        /* شوێنی زانیاری گەیاندن */
-        .shipping-badge {
-            position: static;
-            animation: none;
-            padding: 2px 6px;
-            font-size: 10px;
-            margin-top: 4px; /* کەمێک بۆشایی لە سەرەوەی */
-            width: 100%; /* پانی تەواو وەردەگرێت بۆ ئەوەی بێتە دێڕی نوێ */
-            text-align: right; /* دەقەکە دەباتە لای ڕاست */
-        }
-
-        /* شوێنی دوگمەی سەبەتە */
+        /* هێڵی یەکەم: دوگمەی سەبەتە */
         .add-to-cart-btn-card {
-            position: static;
+            position: absolute;
+            top: 6px; /* بۆ ناوەڕاستکردن لەگەڵ نرخ */
+            left: 12px;
             width: 36px;
             height: 36px;
-            flex-shrink: 0; /* ڕێگری دەکات لە بچووکبوونەوەی */
         }
 
-        /* گەڕاندنەوەی ناوی کاڵا بۆ شوێنی دروستی خۆی */
+        /* هێڵی دووەم: زانیاری گەیاندن */
+        .shipping-badge {
+            position: absolute;
+            bottom: 8px;
+            right: 12px;
+            animation: gentle-pulse 2s infinite ease-in-out;
+            transform-origin: center;
+        }
+
+        /* ناوی کاڵا لەسەر وێنەکە */
         .product-name { 
             position: absolute;
-            bottom: 8px; /* لەناو وێنەکەدا کەمێک بەرزی دەکەینەوە */
-            right: 10px;
+            bottom: 8px;
             left: 10px;
+            right: 10px;
             z-index: 3;
             font-weight: bold; 
             font-size: 14px;
@@ -883,7 +884,7 @@
         .product-extra-info {
             display: none;
         }
-        /* END: چارەسەری کێشەکانی دیزاین (ڤێرژنی ٤.٠) */
+        /* END: چارەسەری کێشەکانی دیزاین (ڤێرژنی ٥.٠ - چاککراو) */
 
     </style>
 </head>
