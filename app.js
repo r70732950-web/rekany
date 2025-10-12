@@ -1245,20 +1245,19 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     if (isNewSearch) {
         allProductsLoaded = false;
         lastVisibleProductDoc = null;
-        products = []; // لیستی کاڵا گشتییەکان بەتاڵ دەکەینەوە
+        products = []; 
 
         if (shouldShowHomeSections) {
             // ئەگەر لە پەڕەی سەرەکیداین
             homeSectionsContainer.style.display = 'block';
-            productsContainer.style.display = 'none'; // کاتییە بۆ پیشاندانی سکێڵتۆن
-            await renderHomePageContent(); // **یەکەم جار: بەشە ڕێکخراوەکان دروست دەکرێن**
+            await renderHomePageContent(); 
         } else {
             // ئەگەر لە فلتەر یان گەڕانداین
             homeSectionsContainer.innerHTML = '';
             homeSectionsContainer.style.display = 'none';
         }
         
-        renderSkeletonLoader(); // سکێڵتۆن بۆ کاڵا گشتییەکان پیشان دەدەین
+        renderSkeletonLoader();
     }
     
     if (allProductsLoaded && !isNewSearch) return;
@@ -1269,7 +1268,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     try {
         let productsQuery = collection(db, "products");
         
-        // **گۆڕانکاری گرنگ:** فلتەرکردن تەنها کاتێک کاردەکات کە لە پەڕەی سەرەکی نەبین
+        // فلتەرکردن تەنها کاتێک کاردەکات کە لە پەڕەی سەرەکی نەبین
         if (!shouldShowHomeSections) {
             if (currentCategory && currentCategory !== 'all') {
                 productsQuery = query(productsQuery, where("categoryId", "==", currentCategory));
@@ -1301,7 +1300,6 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         const productSnapshot = await getDocs(productsQuery);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // لێرەدا کاڵا نوێیەکان زیاد دەکرێن بۆ لیستی کاڵا گشتییەکان
         if (isNewSearch) {
             products = newProducts;
         } else {
@@ -1318,7 +1316,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
 
         lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
         
-        renderProducts(); // **دووەم جار: کاڵا تێکەڵاوەکان لە خوارەوە پیشان دەدرێن**
+        renderProducts();
 
         if (products.length === 0 && isNewSearch) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
@@ -2239,7 +2237,7 @@ async function openEditCategoryModal(docPath, level) {
 }
 
 async function handleDeleteCategory(docPath, categoryName) {
-    const confirmation = confirm(`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە.`);
+    const confirmation = confirm(`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە، بەڵام پێویستە بە Cloud Function ئەنجام بدرێت. سڕینەوەی لێرە تەنها جۆرە سەرەکییەکە لادەبات.`);
     if (confirmation) {
         try {
             await deleteDoc(doc(db, docPath));
@@ -2253,8 +2251,24 @@ async function handleDeleteCategory(docPath, categoryName) {
 
 function setupEventListeners() {
     homeBtn.onclick = () => {
+        const needsReset = currentCategory !== 'all' || currentSubcategory !== 'all' || currentSubSubcategory !== 'all' || currentSearch;
+        
         history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname);
         showPage('mainPage');
+
+        if (needsReset) {
+            currentCategory = 'all';
+            currentSubcategory = 'all';
+            currentSubSubcategory = 'all';
+            currentSearch = '';
+            searchInput.value = '';
+            clearSearchBtn.style.display = 'none';
+
+            renderMainCategories();
+            renderSubcategories('all'); 
+            
+            searchProductsInFirestore('', true);
+        }
     };
 
     settingsBtn.onclick = () => {
@@ -2291,7 +2305,7 @@ function setupEventListeners() {
         createProductImageInputs();
         subcategorySelectContainer.style.display = 'none';
         subSubcategorySelectContainer.style.display = 'none';
-        formTitle.textContent = 'زیادکردنی కాڵای نوێ';
+        formTitle.textContent = 'زیادکردنی کاڵای نوێ';
         productForm.querySelector('button[type="submit"]').textContent = 'پاشەکەوتکردن';
         openPopup('productFormModal', 'modal');
     };
@@ -2984,4 +2998,4 @@ function startPromoRotation() {
     if (allPromoCards.length > 1) {
         promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
-} 
+}
