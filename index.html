@@ -742,11 +742,11 @@
             flex: 1;
         }
         .social-link-item .item-details {
-             display: flex;
-             flex-direction: column;
-             align-items: flex-start;
-             gap: 3px;
-             overflow: hidden;
+              display: flex;
+              flex-direction: column;
+              align-items: flex-start;
+              gap: 3px;
+              overflow: hidden;
         }
         .social-link-item .item-name {
             font-weight: bold;
@@ -915,6 +915,15 @@
             width: 160px; /* قەبارەی کارتی کاڵا لە شریتی ئاسۆیی */
         }
         /* END: ستایلە نوێیەکان */
+		
+		/* START: ستایلی هێڵی جیاکەرەوە */
+        .section-divider {
+            border: none;
+            height: 1px;
+            background-color: var(--section-border);
+            margin: 16px 0;
+        }
+        /* END: ستایلی هێڵی جیاکەرەوە */
 
     </style>
 </head>
@@ -1080,6 +1089,7 @@
                 <div id="subcategoriesContainer" class="subcategories-container"></div>
                 <div id="subSubcategoriesContainer" class="subcategories-container" style="padding-top: 0; padding-bottom: 10px;"></div>
                 
+				<hr class="section-divider">
                 <div id="homePageSectionsContainer">
                 </div>
                 
