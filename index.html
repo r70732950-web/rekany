@@ -237,7 +237,7 @@
         /* === ستایلێ کارت === */
         .products-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); /* GORANKARI 1 */
             gap: 12px;
         }
         
@@ -279,8 +279,8 @@
             bottom: 0;
             left: 0;
             right: 0;
-            height: 25%;
-            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            height: 20%; /* === GORANKARI: Sêber kurtir lêhat === */
+            background: linear-gradient(to top, rgba(0,0,0,0.75), transparent);
             pointer-events: none;
         }
 
@@ -290,6 +290,35 @@
             object-fit: contain; 
             padding: 10px; 
             background-color: #f8f9fa;
+        }
+        
+        .product-info {
+            background-color: white;
+            height: 80px;
+            position: relative;
+            padding: 0;
+            text-align: right;
+        }
+        
+        .product-name { 
+            position: absolute;
+            bottom: 88px;
+            right: 10px;
+            left: 10px;
+            z-index: 3;
+            font-weight: bold; 
+            font-size: 14px;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: white;
+        }
+        
+        .product-price-container { 
+            position: absolute;
+            top: 10px;
+            right: 12px;
         }
         
         .product-description { display: none; }
@@ -307,7 +336,28 @@
             text-shadow: none;
         }
         
-        .discount-badge { position: absolute; top: 8px; right: 8px; z-index: 3; background-color: var(--danger-color); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        @keyframes bounce-badge { /* GORANKARI 3: Animation bo badge */
+            0%, 100% {
+                transform: translateY(0) scale(1);
+            }
+            50% {
+                transform: translateY(-4px) scale(1.05);
+            }
+        }
+
+        .discount-badge { 
+            position: absolute; 
+            top: 8px; 
+            right: 8px; 
+            z-index: 3; 
+            background-color: var(--danger-color); 
+            color: white; 
+            padding: 2px 6px; 
+            border-radius: 4px; 
+            font-size: 12px; 
+            font-weight: bold;
+            animation: bounce-badge 2s infinite ease-in-out; /* GORANKARI 3 */
+        }
         
         .product-actions { 
             position: absolute; 
@@ -322,6 +372,25 @@
         .edit-btn { background-color: var(--accent-color); }
         .delete-btn { background-color: var(--danger-color); }
         
+        .add-to-cart-btn-card {
+            position: absolute;
+            bottom: 10px;
+            right: 12px;
+            left: auto;
+            width: 32px;
+            height: 32px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            z-index: 5;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
         .add-to-cart-btn-card:hover { 
             background-color: var(--accent-light); 
             transform: scale(1.1);
@@ -346,6 +415,52 @@
         }
         .add-to-cart-btn:hover { background-color: var(--accent-light); }
         
+        .product-extra-info {
+             /* vala */
+        }
+        .shipping-badge {
+            position: absolute;
+            bottom: 15px;
+            left: 12px;
+            right: auto;
+            transform: none;
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            border-radius: 16px;
+            background-color: rgba(230, 244, 234, 0.9);
+            color: #38a169;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            z-index: 6;
+            animation: move-peek 5s infinite ease-in-out;
+        }
+
+        /* START: GORANKARI 3 - CSS bo card dashkandn */
+        .product-card:has(.discount-badge) .product-price-container {
+            display: none;
+        }
+        .product-card:has(.discount-badge) .add-to-cart-btn-card {
+            top: 10px;
+            bottom: auto;
+            left: 12px;
+            right: auto;
+        }
+        .product-card:has(.discount-badge) .shipping-badge {
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: none;
+        }
+        /* END: GORANKARI 3 */
+        
+        @keyframes move-peek {
+            0%, 80%, 100% { transform: translateX(0); }
+            90% { transform: translateX(8px); }
+        }
+
         @keyframes scaleIn {
             from { transform: scale(0.95); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
@@ -642,11 +757,11 @@
             flex: 1;
         }
         .social-link-item .item-details {
-              display: flex;
-              flex-direction: column;
-              align-items: flex-start;
-              gap: 3px;
-              overflow: hidden;
+             display: flex;
+             flex-direction: column;
+             align-items: flex-start;
+             gap: 3px;
+             overflow: hidden;
         }
         .social-link-item .item-name {
             font-weight: bold;
@@ -787,7 +902,7 @@
 
         /* START: ستایلە نوێیەکان بۆ پەڕەی سەرەکی */
         .dynamic-section {
-            margin-bottom: 12px;
+            margin-bottom: 10px; /* GORANKARI 2 */
         }
 
         .section-title-main {
@@ -815,76 +930,6 @@
             width: 160px; /* قەبارەی کارتی کاڵا لە شریتی ئاسۆیی */
         }
         /* END: ستایلە نوێیەکان */
-
-        /* START: چارەسەری کێشەکانی دیزاین (ڤێرژنی ٥.٠ - چاککراو) */
-
-        /* جوڵەی نوێ بۆ زانیاری گەیاندن */
-        @keyframes gentle-pulse {
-            0%, 100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.05);
-            }
-        }
-
-        /* شاردنەوەی نرخی داشکاندن لەسەر کارتی سەرەکی */
-        .product-card .original-price {
-            display: none;
-        }
-
-        /* بەرزی بەشی خوارەوەی کارت */
-        .product-info {
-            height: 60px;
-            position: relative;
-        }
-
-        /* هێڵی یەکەم: نرخی کاڵا */
-        .product-price-container {
-            position: absolute;
-            top: 10px;
-            right: 12px;
-        }
-
-        /* هێڵی یەکەم: دوگمەی سەبەتە */
-        .add-to-cart-btn-card {
-            position: absolute;
-            top: 6px; /* بۆ ناوەڕاستکردن لەگەڵ نرخ */
-            left: 12px;
-            width: 36px;
-            height: 36px;
-        }
-
-        /* هێڵی دووەم: زانیاری گەیاندن */
-        .shipping-badge {
-            position: absolute;
-            bottom: 8px;
-            right: 12px;
-            animation: gentle-pulse 2s infinite ease-in-out;
-            transform-origin: center;
-        }
-
-        /* ناوی کاڵا لەسەر وێنەکە */
-        .product-name { 
-            position: absolute;
-            bottom: 8px;
-            left: 10px;
-            right: 10px;
-            z-index: 3;
-            font-weight: bold; 
-            font-size: 14px;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            color: white;
-        }
-
-        /* بەشی زانیاری زیادە لادەبەین */
-        .product-extra-info {
-            display: none;
-        }
-        /* END: چارەسەری کێشەکانی دیزاین (ڤێرژنی ٥.٠ - چاککراو) */
 
     </style>
 </head>
