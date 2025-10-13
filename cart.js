@@ -1,5 +1,4 @@
 // cart.js
-
 import { showNotification } from './ui.js';
 import { db } from './firebase.js';
 import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
@@ -8,9 +7,7 @@ const CART_KEY = "maten_store_cart";
 let cart = JSON.parse(localStorage.getItem(CART_KEY)) || [];
 let contactMethods = [];
 
-// وەرگرتنی شێوازەکانی پەیوەندی (واتسئاپ، ڤایبەر، هتد) لە فایەربەیس
 async function loadContactMethods() {
-    // ئەم функشنە تەنها یەک جار ئیش دەکات بۆ ئەوەی دووبارە داواکاری نەنێرێت
     if (contactMethods.length > 0) return;
     try {
         const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
@@ -22,36 +19,29 @@ async function loadContactMethods() {
     }
 }
 
-// پاشەکەوتکردنی سەبەتە لە بیرگەی ناوخۆیی وێبگەڕ
 export function saveCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
     updateCartCount();
 }
 
-// نوێکردنەوەی ژمارەی سەر ئایکۆنی سەبەتە
 export function updateCartCount() {
     const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
     const cartCountEl = document.getElementById('cartCount');
     if (cartCountEl) {
         cartCountEl.textContent = totalItems;
-        // ئەگەر سەبەتە بەتاڵ بوو، ژمارەکە بشارەوە
         cartCountEl.style.display = totalItems > 0 ? 'flex' : 'none';
     }
 }
 
-// زیادکردنی کاڵا بۆ سەبەتە
 export function addToCart(product, t) {
     if (!product) {
         showNotification(t('product_not_found_error'), 'error');
         return;
     }
     const existingItem = cart.find(item => item.id === product.id);
-
     if (existingItem) {
-        // ئەگەر کاڵاکە پێشتر هەبوو، تەنها ژمارەکەی زیاد بکە
         existingItem.quantity++;
     } else {
-        // ئەگەر کاڵایەکی نوێ بوو، زیادی بکە بۆ لیستی سەبەتە
         const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
         cart.push({ id: product.id, name: product.name, price: product.price, image: mainImage, quantity: 1 });
     }
@@ -59,29 +49,25 @@ export function addToCart(product, t) {
     showNotification(t('product_added_to_cart'));
 }
 
-// سڕینەوەی کاڵا لە سەبەتە
 function removeFromCart(productId, t, currentLanguage, userProfile) {
     cart = cart.filter(item => item.id !== productId);
     saveCart();
-    renderCart(t, currentLanguage, userProfile); // دوای سڕینەوە، شیتەکە نوێ بکەرەوە
+    renderCart(t, currentLanguage, userProfile);
 }
 
-// گۆڕینی ژمارەی کاڵا (کەم و زیاد کردن)
 function updateQuantity(productId, change, t, currentLanguage, userProfile) {
     const cartItem = cart.find(item => item.id === productId);
     if (cartItem) {
         cartItem.quantity += change;
         if (cartItem.quantity <= 0) {
-            // ئەگەر ژمارەکە بوو بە سفر، کاڵاکە بسڕەوە
             removeFromCart(productId, t, currentLanguage, userProfile);
         } else {
             saveCart();
-            renderCart(t, currentLanguage, userProfile); // شیتەکە نوێ بکەرەوە
+            renderCart(t, currentLanguage, userProfile);
         }
     }
 }
 
-// دروستکردنی ئەو نامەیەی کە بۆ واتسئاپ و ڤایبەر دەنێردرێت
 function generateOrderMessage(t, currentLanguage, userProfile) {
     let message = t('order_greeting') + "\n\n";
     let total = 0;
@@ -103,7 +89,6 @@ function generateOrderMessage(t, currentLanguage, userProfile) {
     return message;
 }
 
-// دروستکردنی دوگمەکانی ناردنی داواکاری (واتسئاپ، ڤایبەر، هتد)
 function renderCartActionButtons(t, currentLanguage, userProfile) {
     const container = document.getElementById('cartActions');
     container.innerHTML = '';
@@ -114,7 +99,7 @@ function renderCartActionButtons(t, currentLanguage, userProfile) {
 
     contactMethods.forEach(method => {
         const btn = document.createElement('button');
-        btn.className = 'whatsapp-btn'; // هەمان ستایل بەکاردێنین
+        btn.className = 'whatsapp-btn';
         btn.style.backgroundColor = method.color;
         const name = method['name_' + currentLanguage] || method.name_ku_sorani;
         btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
@@ -137,7 +122,6 @@ function renderCartActionButtons(t, currentLanguage, userProfile) {
     });
 }
 
-// نیشاندانی تەواوی بەشەکانی ناوەوەی سەبەتە (UI)
 export async function renderCart(t, currentLanguage, userProfile) {
     await loadContactMethods();
     
@@ -185,7 +169,6 @@ export async function renderCart(t, currentLanguage, userProfile) {
 
     document.getElementById('totalAmount').textContent = total.toLocaleString();
 
-    // دانانی Event Listener بۆ دوگمەکان
     container.querySelectorAll('.increase-btn').forEach(btn => btn.onclick = () => updateQuantity(btn.dataset.id, 1, t, currentLanguage, userProfile));
     container.querySelectorAll('.decrease-btn').forEach(btn => btn.onclick = () => updateQuantity(btn.dataset.id, -1, t, currentLanguage, userProfile));
     container.querySelectorAll('.cart-item-remove').forEach(btn => btn.onclick = () => removeFromCart(btn.dataset.id, t, currentLanguage, userProfile));

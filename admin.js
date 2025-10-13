@@ -6,10 +6,7 @@ import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, setDoc, onSnapsh
 
 let editingProductId = null;
 
-// نیشاندان یان شاردنەوەی بەشەکانی تایبەت بە ئەدمین
 export function updateAdminUI(isAdmin, callbacks) {
-    document.querySelectorAll('.product-actions').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
-    
     const adminElements = [
         'addProductBtn', 'adminCategoryManagement', 'adminContactMethodsManagement', 
         'adminPoliciesManagement', 'adminSocialMediaManagement', 'adminAnnouncementManagement',
@@ -27,16 +24,9 @@ export function updateAdminUI(isAdmin, callbacks) {
         if (el) el.style.display = isAdmin ? 'none' : 'flex';
     });
     
-    // کاتێک ئەدمین چوونەژوورەوە دەکات، داتاکانی بەشی بەڕێوەبردن باربکە
-    if (isAdmin && callbacks) {
+    if (isAdmin && callbacks && callbacks.loadAdminData) {
         callbacks.loadAdminData();
     }
-}
-
-// ---- بەڕێوەبردنی کاڵا ----
-
-async function populateCategoryDropdowns(categories, product) {
-    // ... (This function is complex, we will simplify by keeping it inside the event listener for now)
 }
 
 function createProductImageInputs(imageUrls = []) {
@@ -92,7 +82,6 @@ export async function openEditProductForm(productId, categories) {
     document.getElementById('formTitle').textContent = 'دەستکاری کردنی کاڵا';
     form.querySelector('button[type="submit"]').textContent = 'نوێکردنەوە';
 
-    // Populate fields
     document.getElementById('productNameKuSorani').value = product.name?.ku_sorani || '';
     document.getElementById('productNameKuBadini').value = product.name?.ku_badini || '';
     document.getElementById('productNameAr').value = product.name?.ar || '';
@@ -118,11 +107,9 @@ export async function openEditProductForm(productId, categories) {
         catSelect.appendChild(option);
     });
 
-    // Manually trigger change to load subcategories
     const event = new Event('change');
     catSelect.dispatchEvent(event);
 
-    // We need to wait for subcategories to load before setting their value
     setTimeout(async () => {
         if (product.subcategoryId) {
             const subCatSelect = document.getElementById('productSubcategoryId');
@@ -134,15 +121,13 @@ export async function openEditProductForm(productId, categories) {
                 if (product.subSubcategoryId) {
                      document.getElementById('productSubSubcategoryId').value = product.subSubcategoryId;
                 }
-            }, 500); // Another delay for sub-sub
+            }, 500);
         }
     }, 500);
-
 
     document.getElementById('productFormModal').style.display = 'block';
     document.body.classList.add('overlay-active');
 }
-
 
 export async function deleteProduct(productId, t) {
     if (!confirm(t('delete_confirm'))) return false;
@@ -157,17 +142,10 @@ export async function deleteProduct(productId, t) {
     }
 }
 
-
-// ---- بەڕێوەبردنی بەشەکانی تر (جۆر، ئاگەداری، هتد) ----
-
-// This huge function will setup all admin-related event listeners
 export function initializeAdminPanel(categories, refreshProducts, t) {
-    
-    // Listener for product form
     const productForm = document.getElementById('productForm');
     productForm.onsubmit = async (e) => {
         e.preventDefault();
-        // ... (کۆدی ناردنی فۆرمی کاڵا وەک خۆی لێرە دادەنرێت)
         const submitButton = e.target.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         const imageUrls = Array.from(document.querySelectorAll('.productImageUrl')).map(input => input.value.trim()).filter(url => url);
@@ -196,7 +174,6 @@ export function initializeAdminPanel(categories, refreshProducts, t) {
                 ku_badini: document.getElementById('shippingInfoKuBadini').value.trim(),
                 ar: document.getElementById('shippingInfoAr').value.trim()
             },
-            createdAt: editingProductId ? (await getDoc(doc(db, "products", editingProductId))).data().createdAt : Date.now()
         };
 
         try {
@@ -204,6 +181,7 @@ export function initializeAdminPanel(categories, refreshProducts, t) {
                 await updateDoc(doc(db, "products", editingProductId), productData);
                 showNotification('کاڵا نوێکرایەوە', 'success');
             } else {
+                productData.createdAt = Date.now();
                 await addDoc(collection(db, "products"), productData);
                 showNotification('کاڵا زیادکرا', 'success');
             }
@@ -215,10 +193,9 @@ export function initializeAdminPanel(categories, refreshProducts, t) {
             console.error("Error saving product:", error);
         } finally {
             submitButton.disabled = false;
+            submitButton.textContent = editingProductId ? 'نوێکردنەوە' : 'پاشەکەوتکردن';
         }
     };
     
-    // ... لێرەدا دەتوانین event listenerـی فۆرمەکانی تری ئەدمینیش زیاد بکەین
-    // وەک فۆرمی زیادکردنی جۆر، ناردنی ئاگەداری، هتد.
-    // بۆ سادەیی، ئێستا تەنها بەشی کاڵاکانمان جیاکردەوە.
+    // ... لێرەدا کۆدی بەڕێوەبردنی بەشەکانی تری ئەدمین دادەنرێت
 }
