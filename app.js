@@ -183,7 +183,7 @@ const translations = {
         update_confirm: "تو پشتراستی دێ ئەپی نویکەیەڤە؟ دێ هەمی کاش د ناڤ وێبگەرا تە دا هێتە ژێبرن.",
         update_success: "ئەپ ب سەرکەفتیانە هاتە نویکرن!",
         newest_products: "نوترین کاڵا",
-        see_all: "هەمیا ببینە",
+        see_all: "دیتنا هەمیان",
         all_products_section_title: "هەمی کاڵا",
     },
     ar: {
@@ -264,7 +264,7 @@ const translations = {
         update_success: "تم تحديث التطبيق بنجاح!",
         newest_products: "أحدث المنتجات",
         see_all: "عرض الكل",
-        all_products_section_title: "جميع المنتجات",
+        all_products_section_title: "كل المنتجات",
     }
 };
 
@@ -461,13 +461,12 @@ function handleInitialPageLoad() {
 }
 
 function t(key, replacements = {}) {
-    let translation = (translations[currentLanguage] && translations[currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
+    let translation = translations[currentLanguage][key] || translations['ku_sorani'][key] || key;
     for (const placeholder in replacements) {
         translation = translation.replace(`{${placeholder}}`, replacements[placeholder]);
     }
     return translation;
 }
-
 
 function setLanguage(lang) {
     currentLanguage = lang;
@@ -677,7 +676,7 @@ function populateCategoryDropdown() {
     categoriesWithoutAll.forEach(cat => {
         const option = document.createElement('option');
         option.value = cat.id;
-        option.textContent = cat['name_' + currentLanguage] || cat.name_ku_sorani;
+        option.textContent = cat['name_' + currentLanguage] || cat.name;
         productCategorySelect.appendChild(option);
     });
 }
@@ -689,7 +688,7 @@ function renderCategoriesSheet() {
         btn.className = 'sheet-category-btn';
         btn.dataset.category = cat.id;
         if (currentCategory === cat.id) { btn.classList.add('active'); }
-        const categoryName = cat['name_' + currentLanguage] || cat.name_ku_sorani;
+        const categoryName = cat['name_' + currentLanguage] || cat.name;
         btn.innerHTML = `<i class="${cat.icon}"></i> ${categoryName}`;
 
         btn.onclick = () => {
@@ -813,7 +812,7 @@ function renderMainCategories() {
             btn.classList.add('active');
         }
 
-        const categoryName = cat['name_' + currentLanguage] || cat.name_ku_sorani;
+        const categoryName = cat['name_' + currentLanguage] || cat.name;
         btn.innerHTML = `<i class="${cat.icon}"></i> <span>${categoryName}</span>`;
 
         btn.onclick = () => {
@@ -1094,42 +1093,70 @@ function renderSkeletonLoader() {
 }
 
 function renderProducts() {
-    productsContainer.innerHTML = '';
-	if (!products || products.length === 0) {
-		return;
-	}
-
+    // Append new products instead of replacing
     products.forEach(item => {
-        let element;
-        if (item.isPromoCard) {
-            element = createPromoCardElement(item);
-        } else {
-            element = createProductCardElement(item);
+        // Check if the element already exists to avoid duplicates
+        if (!productsContainer.querySelector(`[data-product-id="${item.id}"]`)) {
+            let element;
+            if (item.isPromoCard) {
+                element = createPromoCardElement(item);
+            } else {
+                element = createProductCardElement(item);
+                element.dataset.productId = item.id; // Add a unique identifier
+            }
+            element.classList.add('product-card-reveal');
+            productsContainer.appendChild(element);
         }
-        element.classList.add('product-card-reveal');
-        productsContainer.appendChild(element);
     });
 
     setupScrollAnimations();
 }
 
 // =======================================================
-// START: فەنکشنە نوێکراوەکان بۆ دروستکردنی پەڕەی سەرەکی
+// START: New functions for home page rendering
 // =======================================================
 
 async function renderNewestProductsSection() {
     const container = document.createElement('div');
     container.className = 'dynamic-section';
 
-    const header = document.createElement('div');
-    header.className = 'section-title-header';
+    const sectionHeader = document.createElement('div');
+    sectionHeader.style.display = 'flex';
+    sectionHeader.style.justifyContent = 'space-between';
+    sectionHeader.style.alignItems = 'center';
+    sectionHeader.style.marginBottom = '12px';
+    sectionHeader.style.paddingRight = '5px';
 
     const title = document.createElement('h3');
     title.className = 'section-title-main';
+    title.style.marginBottom = '0';
     title.textContent = t('newest_products');
-    header.appendChild(title);
-    
-    container.appendChild(header);
+
+    const seeAllBtn = document.createElement('button');
+    seeAllBtn.textContent = t('see_all');
+    seeAllBtn.style.cssText = `
+        background: none;
+        border: none;
+        color: var(--primary-color);
+        font-weight: bold;
+        cursor: pointer;
+        font-size: 13px;
+    `;
+    seeAllBtn.onclick = () => {
+        currentCategory = 'all';
+        currentSubcategory = 'all';
+        currentSubSubcategory = 'all';
+        searchInput.value = '';
+        currentSearch = '';
+        renderMainCategories();
+        renderSubcategories('all');
+        searchProductsInFirestore('', true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    sectionHeader.appendChild(title);
+    sectionHeader.appendChild(seeAllBtn);
+    container.appendChild(sectionHeader);
 
     const productsScroller = document.createElement('div');
     productsScroller.className = 'horizontal-products-container';
@@ -1140,7 +1167,8 @@ async function renderNewestProductsSection() {
         const q = query(
             productsCollection,
             where('createdAt', '>=', fifteenDaysAgo),
-            orderBy('createdAt', 'desc')
+            orderBy('createdAt', 'desc'),
+            limit(10)
         );
         const snapshot = await getDocs(q);
         if (snapshot.empty) {
@@ -1167,31 +1195,11 @@ async function renderCategorySections() {
     for (const category of categoriesToRender) {
         const sectionContainer = document.createElement('div');
         sectionContainer.className = 'dynamic-section';
-        
-        const header = document.createElement('div');
-        header.className = 'section-title-header';
-
         const title = document.createElement('h3');
         title.className = 'section-title-main';
         const categoryName = category['name_' + currentLanguage] || category.name_ku_sorani;
         title.innerHTML = `<i class="${category.icon}"></i> ${categoryName}`;
-        header.appendChild(title);
-
-        const seeAllLink = document.createElement('a');
-        seeAllLink.className = 'see-all-link';
-        seeAllLink.textContent = t('see_all');
-        seeAllLink.onclick = () => {
-            currentCategory = category.id;
-            currentSubcategory = 'all';
-            currentSubSubcategory = 'all';
-            renderMainCategories();
-            renderSubcategories(currentCategory);
-            searchProductsInFirestore('', true);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        };
-        header.appendChild(seeAllLink);
-
-        sectionContainer.appendChild(header);
+        sectionContainer.appendChild(title);
 
         const productsScroller = document.createElement('div');
         productsScroller.className = 'horizontal-products-container';
@@ -1220,41 +1228,6 @@ async function renderCategorySections() {
     return mainContainer;
 }
 
-async function renderAllProductsSection() {
-    const container = document.createElement('div');
-    container.className = 'dynamic-section';
-    container.style.marginTop = '20px';
-
-    const header = document.createElement('div');
-    header.className = 'section-title-header';
-    const title = document.createElement('h3');
-    title.className = 'section-title-main';
-    title.textContent = t('all_products_section_title');
-    header.appendChild(title);
-    container.appendChild(header);
-
-    const productsGrid = document.createElement('div');
-    productsGrid.className = 'products-container';
-    container.appendChild(productsGrid);
-
-    try {
-        const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(10));
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-            return null;
-        }
-
-        snapshot.forEach(doc => {
-            const product = { id: doc.id, ...doc.data() };
-            const card = createProductCardElement(product);
-            productsGrid.appendChild(card);
-        });
-        return container;
-    } catch (error) {
-        console.error("Error fetching all products for home page:", error);
-        return null;
-    }
-}
 
 async function renderHomePageContent() {
     if (isRenderingHomePage) {
@@ -1286,15 +1259,18 @@ async function renderHomePageContent() {
             startPromoRotation();
         }
 
-        const [newestSection, categorySections, allProductsSection] = await Promise.all([
-            renderNewestProductsSection(),
-            renderCategorySections(),
-            renderAllProductsSection()
-        ]);
-        
+        const newestSection = await renderNewestProductsSection();
         if (newestSection) homeSectionsContainer.appendChild(newestSection);
+
+        const categorySections = await renderCategorySections();
         if (categorySections) homeSectionsContainer.appendChild(categorySections);
-        if (allProductsSection) homeSectionsContainer.appendChild(allProductsSection);
+        
+        const allProductsTitle = document.createElement('h3');
+        allProductsTitle.className = 'section-title-main';
+        allProductsTitle.textContent = t('all_products_section_title');
+        allProductsTitle.style.marginTop = '24px'; 
+        allProductsTitle.style.paddingRight = '5px';
+        homeSectionsContainer.appendChild(allProductsTitle);
         
     } catch (error) {
         console.error("Error rendering home page content:", error);
@@ -1306,36 +1282,31 @@ async function renderHomePageContent() {
 }
 
 // =======================================================
-// END: فەنکشنە نوێکراوەکان
+// END: New functions for home page rendering
 // =======================================================
+
 
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
     const shouldShowHomeSections = !searchTerm && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
-
-    if (shouldShowHomeSections) {
-        if (isNewSearch) {
-            productsContainer.style.display = 'none';
-            scrollTrigger.style.display = 'none';
-            homeSectionsContainer.style.display = 'block';
-            await renderHomePageContent();
-        }
-        return;
-    } else {
-        homeSectionsContainer.innerHTML = '';
-        homeSectionsContainer.style.display = 'none';
-    }
-
-    if (isLoadingMoreProducts) return;
     
     if (isNewSearch) {
         allProductsLoaded = false;
         lastVisibleProductDoc = null;
         products = [];
+        productsContainer.innerHTML = '';
+
+        if (shouldShowHomeSections) {
+            await renderHomePageContent();
+        } else {
+            homeSectionsContainer.innerHTML = '';
+            homeSectionsContainer.style.display = 'none';
+        }
         renderSkeletonLoader();
     }
-    
+
+    if (isLoadingMoreProducts) return;
     if (allProductsLoaded && !isNewSearch) return;
 
     isLoadingMoreProducts = true;
@@ -1377,11 +1348,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         const productSnapshot = await getDocs(productsQuery);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        if (isNewSearch) {
-            products = newProducts;
-        } else {
-            products = [...products, ...newProducts]; 
-        }
+        products = isNewSearch ? newProducts : [...products, ...newProducts];
         
         if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
             allProductsLoaded = true;
@@ -1407,16 +1374,18 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         loader.style.display = 'none';
         skeletonLoader.style.display = 'none';
         productsContainer.style.display = 'grid';
+        if (shouldShowHomeSections) {
+             homeSectionsContainer.style.display = 'block';
+        }
     }
 }
 
 
 function addToCart(productId) {
-    const allFetchedProducts = [...products]; 
+    const allFetchedProducts = [...products];  
     let product = allFetchedProducts.find(p => p.id === productId);
 
     if(!product){
-        console.warn("Product not found in local 'products' array. Adding with limited data.");
         getDoc(doc(db, "products", productId)).then(docSnap => {
             if (docSnap.exists()) {
                 const fetchedProduct = { id: docSnap.id, ...docSnap.data() };
@@ -1694,7 +1663,7 @@ function populateParentCategorySelect() {
         categoriesWithoutAll.forEach(cat => {
             const option = document.createElement('option');
             option.value = cat.id;
-            option.textContent = cat['name_' + currentLanguage] || cat.name_ku_sorani;
+            option.textContent = cat['name_' + currentLanguage] || cat.name;
             select.appendChild(option);
         });
     } catch (error) {
@@ -1958,7 +1927,7 @@ function updateAdminUI(isAdmin) {
             categoriesWithoutAll.forEach(cat => {
                 const option = document.createElement('option');
                 option.value = cat.id;
-                option.textContent = cat.name_ku_sorani || cat.name_ku_badini;
+                option.textContent = cat.name_ku_sorani || cat.name;
                 select.appendChild(option);
             });
         }
@@ -2898,7 +2867,7 @@ function initializeAppLogic() {
                 categoriesWithoutAll.forEach(cat => {
                     const option = document.createElement('option');
                     option.value = cat.id;
-                    option.textContent = cat.name_ku_sorani || cat.name_ku_badini;
+                    option.textContent = cat.name_ku_sorani || cat.name;
                     mainCatSelectForSubSub.appendChild(option);
                 });
 
@@ -3044,7 +3013,7 @@ function changePromoCard(direction) {
     }
 
     displayPromoCard(currentPromoCardIndex);
-    startPromoRotation(); // Reset the timer
+    startPromoRotation(); 
 }
 
 function startPromoRotation() {
