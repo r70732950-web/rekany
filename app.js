@@ -25,6 +25,7 @@ const categoriesCollection = collection(db, "categories");
 const announcementsCollection = collection(db, "announcements");
 const promoCardsCollection = collection(db, "promo_cards");
 
+// Translations object for multilingual support
 const translations = {
     ku_sorani: {
         search_placeholder: "گەڕان بە ناوی کاڵا...",
@@ -295,8 +296,9 @@ let mainPageScrollPosition = 0;
 let currentCategory = 'all';
 let currentSubcategory = 'all';
 let currentSubSubcategory = 'all';
-let isRenderingHomePage = false; 
+let isRenderingHomePage = false; 
 
+// DOM Elements
 const loginModal = document.getElementById('loginModal');
 const addProductBtn = document.getElementById('addProductBtn');
 const productFormModal = document.getElementById('productFormModal');
@@ -492,9 +494,6 @@ function setLanguage(lang) {
         btn.classList.toggle('active', btn.dataset.lang === lang);
     });
 
-    const fetchedCategories = categories.filter(cat => cat.id !== 'all');
-    categories = [{ id: 'all', name: t('all_categories_label'), icon: 'fas fa-th' }, ...fetchedCategories];
-
     const isHomeView = !currentSearch && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
     if (isHomeView) {
         renderHomePageContent();
@@ -689,7 +688,11 @@ function renderCategoriesSheet() {
         btn.className = 'sheet-category-btn';
         btn.dataset.category = cat.id;
         if (currentCategory === cat.id) { btn.classList.add('active'); }
-        const categoryName = cat['name_' + currentLanguage] || cat.name_ku_sorani;
+        
+        const categoryName = cat.id === 'all' 
+            ? t('all_categories_label') 
+            : (cat['name_' + currentLanguage] || cat.name_ku_sorani);
+
         btn.innerHTML = `<i class="${cat.icon}"></i> ${categoryName}`;
 
         btn.onclick = () => {
@@ -813,7 +816,10 @@ function renderMainCategories() {
             btn.classList.add('active');
         }
 
-        const categoryName = cat['name_' + currentLanguage] || cat.name_ku_sorani;
+        const categoryName = cat.id === 'all'
+            ? t('all_categories_label')
+            : (cat['name_' + currentLanguage] || cat.name_ku_sorani);
+
         btn.innerHTML = `<i class="${cat.icon}"></i> <span>${categoryName}</span>`;
 
         btn.onclick = () => {
@@ -1114,7 +1120,7 @@ function renderProducts() {
 }
 
 // =======================================================
-// START: فەنکشنە نوێکراوەکان بۆ دروستکردنی پەڕەی سەرەکی
+// START: Home page rendering functions
 // =======================================================
 
 async function renderNewestProductsSection() {
@@ -1306,7 +1312,7 @@ async function renderHomePageContent() {
 }
 
 // =======================================================
-// END: فەنکشنە نوێکراوەکان
+// END: Home page rendering functions
 // =======================================================
 
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
@@ -2880,7 +2886,7 @@ function initializeAppLogic() {
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     onSnapshot(categoriesQuery, (snapshot) => {
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        categories = [{ id: 'all', name: t('all_categories_label'), icon: 'fas fa-th' }, ...fetchedCategories];
+        categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories];
         
         populateCategoryDropdown();
         renderMainCategories();
