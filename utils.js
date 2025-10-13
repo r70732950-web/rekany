@@ -1,4 +1,4 @@
-import { translations, currentLanguage } from './app.js';
+import { translations, currentLanguage, favorites } from './app.js';
 
 export function t(key, replacements = {}) {
     let translation = (translations[currentLanguage] && translations[currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
@@ -32,6 +32,5 @@ export function formatDescription(text) {
 }
 
 export function isFavorite(productId) {
-    // Access global state
-    return window.favorites ? window.favorites.includes(productId) : false;
+    return favorites.includes(productId);
 }

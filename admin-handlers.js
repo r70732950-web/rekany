@@ -1,13 +1,16 @@
 import { t, showNotification } from './utils.js';
-import { db, productsCollection, announcementsCollection, currentLanguage, categories, promoCardsCollection, searchProductsInFirestore, renderMainCategories, renderSubcategories, renderSubSubcategories, setGlobalState } from './app.js';
-import { openPopup, closeAllPopupsUI } from './ui-handlers.js';
+import { 
+    db, productsCollection, announcementsCollection, currentLanguage, categories, 
+    promoCardsCollection, currentSearch, editingProductId, setGlobalState, 
+    searchProductsInFirestore 
+} from './app.js';
+import { openPopup, closeAllPopupsUI, renderMainCategories, renderSubcategories } from './ui-handlers.js';
 import {
     doc, deleteDoc, updateDoc, getDoc, collection, query, orderBy, getDocs, addDoc, setDoc
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-// DOM Elements
+// DOM Elements (from index.html)
 const addProductBtn = document.getElementById('addProductBtn');
-const productFormModal = document.getElementById('productFormModal');
 const productForm = document.getElementById('productForm');
 const formTitle = document.getElementById('formTitle');
 const imageInputsContainer = document.getElementById('imageInputsContainer');
@@ -26,6 +29,7 @@ const announcementsListContainer = document.getElementById('announcementsListCon
 const socialLinksListContainer = document.getElementById('socialLinksListContainer');
 const contactMethodsListContainer = document.getElementById('contactMethodsListContainer');
 const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
+const categoryListContainer = document.getElementById('categoryListContainer');
 
 
 // =======================================================
@@ -86,7 +90,7 @@ async function populateSubSubcategoriesDropdown(mainCategoryId, subcategoryId, s
     }
 }
 
-async function populateSubcategoriesDropdown(categoryId, selectedSubcategoryId = null) {
+export async function populateSubcategoriesDropdown(categoryId, selectedSubcategoryId = null) {
     if (!categoryId) {
         subcategorySelectContainer.style.display = 'none';
         subSubcategorySelectContainer.style.display = 'none';
@@ -190,7 +194,7 @@ export async function deleteProduct(productId) {
     try {
         await deleteDoc(doc(db, "products", productId));
         showNotification(t('product_deleted'), 'success');
-        searchProductsInFirestore(window.currentSearch, true); // Use global state
+        searchProductsInFirestore(currentSearch, true); 
     } catch (error) {
         showNotification(t('product_delete_error'), 'error');
     }
@@ -239,6 +243,7 @@ export function updateAdminUI(isAdmin) {
             document.getElementById('adminContactMethodsManagement').style.display = 'block';
             renderContactMethodsAdmin();
         }
+        renderSocialMediaLinksAdmin();
     } else {
         settingsLogoutBtn.style.display = 'none';
         settingsAdminLoginBtn.style.display = 'flex';
@@ -428,7 +433,7 @@ export function renderPromoCardsAdminList() {
     });
 }
 
-function editPromoCard(card) {
+export function editPromoCard(card) {
     document.getElementById('editingPromoCardId').value = card.id;
     document.getElementById('promoCardImageKuSorani').value = card.imageUrls.ku_sorani;
     document.getElementById('promoCardImageKuBadini').value = card.imageUrls.ku_badini;
@@ -440,7 +445,7 @@ function editPromoCard(card) {
     document.getElementById('addPromoCardForm').scrollIntoView({ behavior: 'smooth' });
 }
 
-async function deletePromoCard(cardId) {
+export async function deletePromoCard(cardId) {
     if (confirm('دڵنیایت دەتەوێت ئەم کارتە بسڕیتەوە؟')) {
         try {
             await deleteDoc(doc(db, "promo_cards", cardId));
@@ -452,9 +457,8 @@ async function deletePromoCard(cardId) {
 }
 
 export async function renderCategoryManagementUI() {
-    const container = document.getElementById('categoryListContainer');
-    if (!container) return;
-    container.innerHTML = '<p>...خەریکی بارکردنی جۆرەکانە</p>';
+    if (!categoryListContainer) return;
+    categoryListContainer.innerHTML = '<p>...خەریکی بارکردنی جۆرەکانە</p>';
 
     let content = '';
     const mainCategoriesQuery = query(collection(db, "categories"), orderBy("order", "asc"));
@@ -509,12 +513,12 @@ export async function renderCategoryManagementUI() {
         }
     }
 
-    container.innerHTML = content || '<p>هیچ جۆرێک زیاد نەکراوە.</p>';
+    categoryListContainer.innerHTML = content || '<p>هیچ جۆرێک زیاد نەکراوە.</p>';
 
-    container.querySelectorAll('.edit-btn').forEach(btn => {
+    categoryListContainer.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', () => openEditCategoryModal(btn.dataset.path, btn.dataset.level));
     });
-    container.querySelectorAll('.delete-btn').forEach(btn => {
+    categoryListContainer.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', () => handleDeleteCategory(btn.dataset.path, btn.dataset.name));
     });
 }

@@ -1,9 +1,16 @@
-import { t, isFavorite, showNotification, formatDescription } from './utils.js';
-import { db, productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, currentLanguage, userProfile, cart, favorites, isAdmin, saveCart, saveFavorites, lastVisibleProductDoc, PRODUCTS_PER_PAGE, currentSearch, currentCategory, currentSubcategory, currentSubSubcategory, allProductsLoaded, isLoadingMoreProducts, mainPageScrollPosition, allPromoCards, currentPromoCardIndex, setGlobalState, startPromoRotation, categories } from './app.js';
-import { deleteProduct, editProduct } from './admin-handlers.js';
+import { t, isFavorite, showNotification } from './utils.js';
+import { 
+    db, productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, 
+    currentLanguage, userProfile, cart, favorites, isAdmin, saveCart, saveFavorites, 
+    lastVisibleProductDoc, PRODUCTS_PER_PAGE, currentSearch, currentCategory, 
+    currentSubcategory, currentSubSubcategory, allProductsLoaded, isLoadingMoreProducts, 
+    mainPageScrollPosition, allPromoCards, currentPromoCardIndex, setGlobalState, 
+    categories, searchProductsInFirestore, startPromoRotation, products 
+} from './app.js';
+import { deleteProduct, editProduct, editPromoCard, deletePromoCard } from './admin-handlers.js';
 import {
     getDocs, collection, query, orderBy, getDoc, doc, updateDoc,
-    limit, where, startAfter, setDoc, addDoc, deleteDoc
+    limit, where, startAfter, setDoc, addDoc
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
 // DOM Elements
@@ -21,7 +28,6 @@ const favoritesContainer = document.getElementById('favoritesContainer');
 const emptyFavoritesMessage = document.getElementById('emptyFavoritesMessage');
 const sheetOverlay = document.getElementById('sheet-overlay');
 const sheetCategoriesContainer = document.getElementById('sheetCategoriesContainer');
-const profileForm = document.getElementById('profileForm');
 const profileAddressInput = document.getElementById('profileAddress');
 const mainPage = document.getElementById('mainPage');
 const subcategoriesContainer = document.getElementById('subcategoriesContainer');
@@ -121,17 +127,106 @@ function setupScrollAnimations() {
 }
 
 function showProductDetailsWithData(product) {
-    const nameInCurrentLang = (product.name && product.name[currentLanguage]) || (product.name && product.name.ku_sorani) || t('product_no_name');
+    const nameInCurrentLang = (product.name && product.name[currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
     const descriptionText = (product.description && product.description[currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
     const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
 
-    // ... (Product Detail Sheet UI logic is complex and should ideally be kept)
-    // For brevity in the answer, let's assume the body of showProductDetailsWithData remains the same
-    // but relies on imported state and utility functions.
-    // ...
+    const imageContainer = document.getElementById('sheetImageContainer');
+    const thumbnailContainer = document.getElementById('sheetThumbnailContainer');
+    imageContainer.innerHTML = '';
+    thumbnailContainer.innerHTML = '';
+
+    if (imageUrls.length > 0) {
+        imageUrls.forEach((url, index) => {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = nameInCurrentLang;
+            if (index === 0) img.classList.add('active');
+            imageContainer.appendChild(img);
+
+            const thumb = document.createElement('img');
+            thumb.src = url;
+            thumb.alt = `Thumbnail of ${nameInCurrentLang}`;
+            thumb.className = 'thumbnail';
+            if (index === 0) thumb.classList.add('active');
+            thumb.dataset.index = index;
+            thumbnailContainer.appendChild(thumb);
+        });
+    }
+
+    let currentIndex = 0;
+    const images = imageContainer.querySelectorAll('img');
+    const thumbnails = thumbnailContainer.querySelectorAll('.thumbnail');
+    const prevBtn = document.getElementById('sheetPrevBtn');
+    const nextBtn = document.getElementById('sheetNextBtn');
+
+    function updateSlider(index) {
+        if (!images[index] || !thumbnails[index]) return;
+        images.forEach(img => img.classList.remove('active'));
+        thumbnails.forEach(thumb => thumb.classList.remove('active'));
+        images[index].classList.add('active');
+        thumbnails[index].classList.add('active');
+        currentIndex = index;
+    }
+
+    if (imageUrls.length > 1) {
+        prevBtn.style.display = 'flex';
+        nextBtn.style.display = 'flex';
+    } else {
+        prevBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
+    }
+
+    prevBtn.onclick = () => updateSlider((currentIndex - 1 + images.length) % images.length);
+    nextBtn.onclick = () => updateSlider((currentIndex + 1) % images.length);
+    thumbnails.forEach(thumb => thumb.onclick = () => updateSlider(parseInt(thumb.dataset.index)));
+
+    document.getElementById('sheetProductName').textContent = nameInCurrentLang;
+    document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText);
+
+    const priceContainer = document.getElementById('sheetProductPrice');
+    if (product.originalPrice && product.originalPrice > product.price) {
+        priceContainer.innerHTML = `<span style="color: var(--accent-color);">${product.price.toLocaleString()} د.ع</span> <del style="color: var(--dark-gray); font-size: 16px; margin-right: 10px;">${product.originalPrice.toLocaleString()} د.ع</del>`;
+    } else {
+        priceContainer.innerHTML = `<span>${product.price.toLocaleString()} د.ع</span>`;
+    }
+
+    const addToCartButton = document.getElementById('sheetAddToCartBtn');
+    addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
+    addToCartButton.onclick = () => {
+        addToCart(product.id);
+        history.back(); // Use history.back() for sheet
+    };
 
     openPopup('productDetailSheet');
 }
+
+function addToCart(productId) {
+    const product = products.find(p => p.id === productId);
+
+    if(!product) {
+        getDoc(doc(db, "products", productId)).then(docSnap => {
+            if (docSnap.exists()) {
+                const fetchedProduct = { id: docSnap.id, ...docSnap.data() };
+                const mainImage = (fetchedProduct.imageUrls && fetchedProduct.imageUrls.length > 0) ? fetchedProduct.imageUrls[0] : (fetchedProduct.image || '');
+                const existingItem = cart.find(item => item.id === productId);
+                if (existingItem) { existingItem.quantity++; }
+                else { setGlobalState('cart', [...cart, { id: fetchedProduct.id, name: fetchedProduct.name, price: fetchedProduct.price, image: mainImage, quantity: 1 }]); }
+                saveCart();
+                showNotification(t('product_added_to_cart'));
+            }
+        });
+        return;
+    }
+
+    const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
+    const existingItem = cart.find(item => item.id === productId);
+    if (existingItem) { existingItem.quantity++; }
+    else { setGlobalState('cart', [...cart, { id: product.id, name: product.name, price: product.price, image: mainImage, quantity: 1 }]); }
+    saveCart();
+    showNotification(t('product_added_to_cart'));
+}
+
 
 export function createProductCardElement(product) {
     const productCard = document.createElement('div');
@@ -198,33 +293,7 @@ export function createProductCardElement(product) {
         const addToCartButton = target.closest('.add-to-cart-btn-card');
 
         if (addToCartButton) {
-            // Add to cart logic
-            const allFetchedProducts = window.products || [];
-            let product = allFetchedProducts.find(p => p.id === productId);
-
-            if(!product) {
-                // If product isn't in main list, fetch minimal data
-                getDoc(doc(db, "products", productId)).then(docSnap => {
-                    if (docSnap.exists()) {
-                        const fetchedProduct = { id: docSnap.id, ...docSnap.data() };
-                        const mainImage = (fetchedProduct.imageUrls && fetchedProduct.imageUrls.length > 0) ? fetchedProduct.imageUrls[0] : (fetchedProduct.image || '');
-                        const existingItem = cart.find(item => item.id === productId);
-                        if (existingItem) { existingItem.quantity++; }
-                        else { cart.push({ id: fetchedProduct.id, name: fetchedProduct.name, price: fetchedProduct.price, image: mainImage, quantity: 1 }); }
-                        saveCart();
-                        showNotification(t('product_added_to_cart'));
-                    }
-                });
-                return;
-            }
-
-            const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
-            const existingItem = cart.find(item => item.id === productId);
-            if (existingItem) { existingItem.quantity++; }
-            else { cart.push({ id: product.id, name: product.name, price: product.price, image: mainImage, quantity: 1 }); }
-            saveCart();
-            showNotification(t('product_added_to_cart'));
-
+            addToCart(productId);
             // UI feedback
             if (!addToCartButton.disabled) {
                 const originalContent = addToCartButton.innerHTML;
@@ -299,12 +368,11 @@ export function createPromoCardElement(card) {
 
 export function renderProducts() {
     productsContainer.innerHTML = '';
-    const allProducts = window.products || []; // Use the global state passed via window for ease
-    if (!allProducts || allProducts.length === 0) {
+    if (!products || products.length === 0) {
         return;
     }
 
-    allProducts.forEach(item => {
+    products.forEach(item => {
         let element;
         if (item.isPromoCard) {
             element = createPromoCardElement(item);
@@ -469,8 +537,7 @@ async function renderAllProductsSection() {
 }
 
 export async function renderHomePageContent() {
-    if (window.isRenderingHomePage) {
-        console.log("HomePage is already rendering. Skipping duplicate call.");
+    if (isRenderingHomePage) {
         return;
     }
     setGlobalState('isRenderingHomePage', true);
@@ -496,7 +563,6 @@ export async function renderHomePageContent() {
             homeSectionsContainer.appendChild(promoGrid);
             startPromoRotation();
         } else {
-            // Stop rotation if there are no promo cards
             if (window.promoRotationInterval) {
                 clearInterval(window.promoRotationInterval);
                 window.promoRotationInterval = null;
@@ -544,6 +610,10 @@ function displayPromoCard(index) {
     const cardData = allPromoCards[index];
     const newCardElement = createPromoCardElement(cardData);
     newCardElement.classList.add('product-card-reveal');
+
+    // This is to avoid errors if promoCardSlot is already replaced
+    if (promoCardSlot.dataset.cardId === cardData.id) return;
+    promoCardSlot.dataset.cardId = cardData.id;
 
     promoCardSlot.style.opacity = 0;
     setTimeout(() => {
@@ -882,8 +952,7 @@ export function toggleFavorite(productId) {
 
 export function renderFavoritesPage() {
     favoritesContainer.innerHTML = '';
-    const allProducts = window.products || []; // Use the global state passed via window
-    const favoritedProducts = allProducts.filter(p => favorites.includes(p.id));
+    const favoritedProducts = products.filter(p => favorites.includes(p.id));
 
     if (favoritedProducts.length === 0) {
         emptyFavoritesMessage.style.display = 'block';
@@ -1045,7 +1114,7 @@ export async function searchProductsInFirestore(searchTerm = '', isNewSearch = f
         const productSnapshot = await getDocs(q);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        const updatedProducts = isNewSearch ? newProducts : [...window.products, ...newProducts];
+        const updatedProducts = isNewSearch ? newProducts : [...products, ...newProducts];
         setGlobalState('products', updatedProducts);
 
         if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
@@ -1060,7 +1129,7 @@ export async function searchProductsInFirestore(searchTerm = '', isNewSearch = f
 
         renderProducts();
 
-        if (window.products.length === 0 && isNewSearch) {
+        if (products.length === 0 && isNewSearch) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         }
 
@@ -1081,6 +1150,7 @@ export async function searchProductsInFirestore(searchTerm = '', isNewSearch = f
 
 export function setupGpsButton() {
     const getLocationBtn = document.getElementById('getLocationBtn');
+    const profileAddressInput = document.getElementById('profileAddress');
     const btnSpan = getLocationBtn.querySelector('span');
     const originalBtnText = btnSpan.textContent;
 
