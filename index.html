@@ -890,14 +890,6 @@
             margin-bottom: 10px;
         }
 
-        .section-title-main {
-            font-size: 18px;
-            font-weight: bold;
-            color: var(--primary-color);
-            margin-bottom: 12px;
-            padding-right: 5px;
-        }
-
         .horizontal-products-container {
             display: flex;
             gap: 12px;
@@ -916,6 +908,38 @@
         }
         /* END: ستایلە نوێیەکان */
 
+        /* START: ستایلە نوێیەکان بۆ باشترکردنی پەڕەی سەرەکی */
+        .section-title-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-right: 5px;
+        }
+
+        .section-title-main {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 0; /* لابردنی مەودای پێشوو */
+        }
+
+        .see-all-link {
+            font-size: 13px;
+            font-weight: bold;
+            color: var(--accent-color);
+            text-decoration: none;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+            white-space: nowrap; /* بۆ ئەوەی نەشکێت */
+        }
+
+        .see-all-link:hover {
+            background-color: var(--medium-gray);
+        }
+        /* END: ستایلە نوێیەکان */
     </style>
 </head>
 <body>
