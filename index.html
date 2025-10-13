@@ -239,6 +239,7 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
             gap: 12px;
+            transition: opacity 0.4s ease-in-out; /* *** GOHERTINA NÛ *** */
         }
         
         .product-card { 
@@ -742,11 +743,11 @@
             flex: 1;
         }
         .social-link-item .item-details {
-              display: flex;
-              flex-direction: column;
-              align-items: flex-start;
-              gap: 3px;
-              overflow: hidden;
+             display: flex;
+             flex-direction: column;
+             align-items: flex-start;
+             gap: 3px;
+             overflow: hidden;
         }
         .social-link-item .item-name {
             font-weight: bold;
@@ -890,13 +891,39 @@
             margin-bottom: 10px;
         }
 
+        /* === ستایلێ نوو بۆ ناڤ و نیشانێ بەشان === */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-right: 5px;
+        }
+
         .section-title-main {
             font-size: 18px;
             font-weight: bold;
             color: var(--primary-color);
-            margin-bottom: 12px;
-            padding-right: 5px;
+            margin-bottom: 0; /* em marginê li vir radikin */
+            padding-right: 12px;
+            border-right: 4px solid var(--accent-color);
         }
+
+        .view-all-link {
+            font-size: 13px;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+        }
+
+        .view-all-link:hover {
+            background-color: var(--light-gray);
+        }
+        /* === دوماهییا ستایلێ نوو === */
+
 
         .horizontal-products-container {
             display: flex;
@@ -915,15 +942,6 @@
             width: 160px; /* قەبارەی کارتی کاڵا لە شریتی ئاسۆیی */
         }
         /* END: ستایلە نوێیەکان */
-		
-		/* START: ستایلی هێڵی جیاکەرەوە */
-        .section-divider {
-            border: none;
-            height: 1px;
-            background-color: var(--section-border);
-            margin: 16px 0;
-        }
-        /* END: ستایلی هێڵی جیاکەرەوە */
 
     </style>
 </head>
@@ -1089,8 +1107,13 @@
                 <div id="subcategoriesContainer" class="subcategories-container"></div>
                 <div id="subSubcategoriesContainer" class="subcategories-container" style="padding-top: 0; padding-bottom: 10px;"></div>
                 
-				<hr class="section-divider">
                 <div id="homePageSectionsContainer">
+                </div>
+
+                <div id="allProductsSectionTitleContainer" style="display: none;">
+                    <div class="section-header" style="margin-top: 25px;">
+                        <h3 class="section-title-main">هەمی کاڵایان</h3>
+                    </div>
                 </div>
                 
                 <div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;" data-translate-key="loading_products">...خەریکی بارکردنی کاڵاکانە</p></div>

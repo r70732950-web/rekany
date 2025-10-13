@@ -1105,10 +1105,17 @@ async function renderNewestProductsSection() {
     const container = document.createElement('div');
     container.className = 'dynamic-section';
 
+    // *** START: GOHERTINA NÛ ***
+    const header = document.createElement('div');
+    header.className = 'section-header';
+
     const title = document.createElement('h3');
     title.className = 'section-title-main';
     title.textContent = t('newest_products');
-    container.appendChild(title);
+    header.appendChild(title);
+    
+    container.appendChild(header);
+    // *** END: GOHERTINA NÛ ***
 
     const productsScroller = document.createElement('div');
     productsScroller.className = 'horizontal-products-container';
@@ -1154,11 +1161,18 @@ async function renderCategorySections() {
             const sectionContainer = document.createElement('div');
             sectionContainer.className = 'dynamic-section';
 
+            // *** START: GOHERTINA NÛ ***
+            const header = document.createElement('div');
+            header.className = 'section-header';
+
             const title = document.createElement('h3');
             title.className = 'section-title-main';
             const categoryName = category['name_' + currentLanguage] || category.name_ku_sorani;
             title.innerHTML = `<i class="${category.icon}"></i> ${categoryName}`;
-            sectionContainer.appendChild(title);
+            header.appendChild(title);
+            
+            sectionContainer.appendChild(header);
+            // *** END: GOHERTINA NÛ ***
 
             const productsScroller = document.createElement('div');
             productsScroller.className = 'horizontal-products-container';
@@ -1238,6 +1252,7 @@ async function renderHomePageContent() {
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
+    const allProductsTitleContainer = document.getElementById('allProductsSectionTitleContainer');
     const shouldShowHomeSections = !searchTerm && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
 
     if (isLoadingMoreProducts && !isNewSearch) return;
@@ -1246,15 +1261,16 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         allProductsLoaded = false;
         lastVisibleProductDoc = null;
         products = []; 
+        productsContainer.style.opacity = '0'; // *** GOHERTINA NÛ ***
 
         if (shouldShowHomeSections) {
-            // ئەگەر لە پەڕەی سەرەکیداین
             homeSectionsContainer.style.display = 'block';
             await renderHomePageContent(); 
+            allProductsTitleContainer.style.display = 'none'; // *** GOHERTINA NÛ ***
         } else {
-            // ئەگەر لە فلتەر یان گەڕانداین
             homeSectionsContainer.innerHTML = '';
             homeSectionsContainer.style.display = 'none';
+            allProductsTitleContainer.style.display = 'block'; // *** GOHERTINA NÛ ***
         }
         
         renderSkeletonLoader();
@@ -1268,7 +1284,6 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     try {
         let productsQuery = collection(db, "products");
         
-        // فلتەرکردن تەنها کاتێک کاردەکات کە لە پەڕەی سەرەکی نەبین
         if (!shouldShowHomeSections) {
             if (currentCategory && currentCategory !== 'all') {
                 productsQuery = query(productsQuery, where("categoryId", "==", currentCategory));
@@ -1330,6 +1345,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         loader.style.display = 'none';
         skeletonLoader.style.display = 'none';
         productsContainer.style.display = 'grid';
+        productsContainer.style.opacity = '1'; // *** GOHERTINA NÛ ***
     }
 }
 
