@@ -1105,10 +1105,11 @@ async function renderNewestProductsSection() {
     const container = document.createElement('div');
     container.className = 'dynamic-section';
 
-    const title = document.createElement('h3');
-    title.className = 'section-title-main';
-    title.textContent = t('newest_products');
-    container.appendChild(title);
+    // دروستکردنی سەردێڕ بە دیزاینی نوێ
+    const header = document.createElement('div');
+    header.className = 'section-header-main';
+    header.innerHTML = `<h3 class="section-title-main">${t('newest_products')}</h3>`;
+    container.appendChild(header);
 
     const productsScroller = document.createElement('div');
     productsScroller.className = 'horizontal-products-container';
@@ -1154,16 +1155,23 @@ async function renderCategorySections() {
             const sectionContainer = document.createElement('div');
             sectionContainer.className = 'dynamic-section';
 
-            const title = document.createElement('h3');
-            title.className = 'section-title-main';
             const categoryName = category['name_' + currentLanguage] || category.name_ku_sorani;
-            title.innerHTML = `<i class="${category.icon}"></i> ${categoryName}`;
-            sectionContainer.appendChild(title);
+
+            // دروستکردنی سەردێڕ بە دیزاینی نوێ و لینکی "هەموویان ببینە"
+            const header = document.createElement('div');
+            header.className = 'section-header-main';
+            header.innerHTML = `
+                <h3 class="section-title-main">
+                    <i class="${category.icon}"></i> ${categoryName}
+                </h3>
+                <a href="#" class="view-all-link" data-category-id="${category.id}">هەموویان ببینە <i class="fas fa-chevron-left"></i></a>
+            `;
+            sectionContainer.appendChild(header);
 
             const productsScroller = document.createElement('div');
             productsScroller.className = 'horizontal-products-container';
             sectionContainer.appendChild(productsScroller);
-
+            
             const productsQuery = query(
                 productsCollection,
                 where('categoryId', '==', category.id),
@@ -1184,9 +1192,26 @@ async function renderCategorySections() {
     } catch (error) {
         console.error("Error rendering homepage category sections:", error);
     }
+    
+    // زیادکردنی Event Listener بۆ کاراکردنی لینکەکانی "هەموویان ببینە"
+    mainContainer.querySelectorAll('.view-all-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const categoryId = link.dataset.categoryId;
+            currentCategory = categoryId;
+            currentSubcategory = 'all';
+            currentSubSubcategory = 'all';
+
+            renderMainCategories();
+            renderSubcategories(currentCategory);
+            searchProductsInFirestore('', true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    });
 
     return mainContainer;
 }
+
 
 async function renderHomePageContent() {
     if (isRenderingHomePage) {
@@ -1234,10 +1259,10 @@ async function renderHomePageContent() {
     }
 }
 
-
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
+    const homePageSkeleton = document.getElementById('homePageSkeletonLoader');
     const shouldShowHomeSections = !searchTerm && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
 
     if (isLoadingMoreProducts && !isNewSearch) return;
@@ -1250,26 +1275,31 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         if (shouldShowHomeSections) {
             // ئەگەر لە پەڕەی سەرەکیداین
             homeSectionsContainer.style.display = 'block';
+            homePageSkeleton.style.display = 'block'; // سکێڵتۆنەکە پیشان بدە
+            productsContainer.style.display = 'none'; // لیستی گشتی بشارەوە
+            skeletonLoader.style.display = 'none'; // سکێڵتۆنی پێشوو بشارەوە
             await renderHomePageContent(); 
+            homePageSkeleton.style.display = 'none'; // دوای لۆدبوون سکێڵتۆنەکە بشارەوە
         } else {
             // ئەگەر لە فلتەر یان گەڕانداین
             homeSectionsContainer.innerHTML = '';
             homeSectionsContainer.style.display = 'none';
+            homePageSkeleton.style.display = 'none'; // سکێڵتۆنەکە بشارەوە
+            renderSkeletonLoader();
         }
         
-        renderSkeletonLoader();
     }
     
     if (allProductsLoaded && !isNewSearch) return;
 
-    isLoadingMoreProducts = true;
-    loader.style.display = 'block';
+    // تەنها ئەگەر لە پەڕەی سەرەکی نەبین، لۆدەری زیاتر کارا بکە
+    if (!shouldShowHomeSections) {
+        isLoadingMoreProducts = true;
+        loader.style.display = 'block';
 
-    try {
-        let productsQuery = collection(db, "products");
-        
-        // فلتەرکردن تەنها کاتێک کاردەکات کە لە پەڕەی سەرەکی نەبین
-        if (!shouldShowHomeSections) {
+        try {
+            let productsQuery = collection(db, "products");
+            
             if (currentCategory && currentCategory !== 'all') {
                 productsQuery = query(productsQuery, where("categoryId", "==", currentCategory));
             }
@@ -1279,57 +1309,63 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
             if (currentSubSubcategory && currentSubSubcategory !== 'all') {
                 productsQuery = query(productsQuery, where("subSubcategoryId", "==", currentSubSubcategory));
             }
+
+            const finalSearchTerm = searchTerm.trim().toLowerCase();
+            if (finalSearchTerm) {
+                productsQuery = query(productsQuery,
+                    where('searchableName', '>=', finalSearchTerm),
+                    where('searchableName', '<=', finalSearchTerm + '\uf8ff')
+                );
+            }
+            
+            productsQuery = query(productsQuery, orderBy(finalSearchTerm ? "searchableName" : "createdAt", finalSearchTerm ? "asc" : "desc"));
+
+            if (lastVisibleProductDoc && !isNewSearch) {
+                productsQuery = query(productsQuery, startAfter(lastVisibleProductDoc));
+            }
+            
+            productsQuery = query(productsQuery, limit(PRODUCTS_PER_PAGE));
+
+            const productSnapshot = await getDocs(productsQuery);
+            const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            if (isNewSearch) {
+                products = newProducts;
+            } else {
+                products = [...products, ...newProducts];
+            }
+            
+            if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
+                allProductsLoaded = true;
+                scrollTrigger.style.display = 'none';
+            } else {
+                allProductsLoaded = false;
+                scrollTrigger.style.display = 'block';
+            }
+
+            lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
+            
+            renderProducts();
+
+            if (products.length === 0 && isNewSearch) {
+                productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+            }
+
+        } catch (error) {
+            console.error("Error fetching content:", error);
+            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
+        } finally {
+            isLoadingMoreProducts = false;
+            loader.style.display = 'none';
+            skeletonLoader.style.display = 'none';
+            productsContainer.style.display = 'grid';
         }
-
-        const finalSearchTerm = searchTerm.trim().toLowerCase();
-        if (finalSearchTerm) {
-            productsQuery = query(productsQuery,
-                where('searchableName', '>=', finalSearchTerm),
-                where('searchableName', '<=', finalSearchTerm + '\uf8ff')
-            );
-        }
-        
-        productsQuery = query(productsQuery, orderBy(finalSearchTerm ? "searchableName" : "createdAt", finalSearchTerm ? "asc" : "desc"));
-
-        if (lastVisibleProductDoc && !isNewSearch) {
-            productsQuery = query(productsQuery, startAfter(lastVisibleProductDoc));
-        }
-        
-        productsQuery = query(productsQuery, limit(PRODUCTS_PER_PAGE));
-
-        const productSnapshot = await getDocs(productsQuery);
-        const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        if (isNewSearch) {
-            products = newProducts;
-        } else {
-            products = [...products, ...newProducts];
-        }
-        
-        if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
-            allProductsLoaded = true;
-            scrollTrigger.style.display = 'none';
-        } else {
-            allProductsLoaded = false;
-            scrollTrigger.style.display = 'block';
-        }
-
-        lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
-        
-        renderProducts();
-
-        if (products.length === 0 && isNewSearch) {
-            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
-        }
-
-    } catch (error) {
-        console.error("Error fetching content:", error);
-        productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
-    } finally {
-        isLoadingMoreProducts = false;
-        loader.style.display = 'none';
+    } else {
+        // ئەگەر لە پەڕەی سەرەکی بووین، هیچ شتێکی تر لۆد مەکە
+        productsContainer.style.display = 'none';
         skeletonLoader.style.display = 'none';
-        productsContainer.style.display = 'grid';
+        loader.style.display = 'none';
+        scrollTrigger.style.display = 'none';
     }
 }
 

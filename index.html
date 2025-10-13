@@ -234,7 +234,7 @@
             text-overflow: ellipsis;
         }
         
-        /* === ستایلێ کارت === */
+        /* === ستایلی کارت === */
         .products-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
@@ -630,7 +630,10 @@
         .skeleton-button {
             height: 35px; background-color: #e0e0e0; margin: 12px; border-radius: 6px;
         }
-        .skeleton-card .shimmer {
+        .skeleton-card .shimmer,
+        .skeleton-promo-card.shimmer,
+        .skeleton-title.shimmer,
+        .skeleton-horizontal-card.shimmer {
             animation: shimmer 1.5s linear infinite;
             background: linear-gradient(to right, #eeeeee 8%, #dddddd 18%, #eeeeee 33%);
             background-size: 1000px 100%;
@@ -887,35 +890,94 @@
 
         /* START: ستایلە نوێیەکان بۆ پەڕەی سەرەکی */
         .dynamic-section {
-            margin-bottom: 10px;
+            margin-bottom: 24px;
         }
-
-        .section-title-main {
-            font-size: 18px;
-            font-weight: bold;
-            color: var(--primary-color);
-            margin-bottom: 12px;
-            padding-right: 5px;
-        }
-
         .horizontal-products-container {
             display: flex;
             gap: 12px;
             overflow-x: auto;
-            padding: 5px 0 15px 0;
+            padding: 5px 2px 15px 2px;
             scrollbar-width: none; /* Firefox */
         }
-
         .horizontal-products-container::-webkit-scrollbar {
             display: none; /* Chrome, Safari, Opera */
         }
-
         .horizontal-products-container .product-card {
             flex-shrink: 0;
             width: 160px; /* قەبارەی کارتی کاڵا لە شریتی ئاسۆیی */
         }
         /* END: ستایلە نوێیەکان */
 
+        /* START: ستایلی نوێ بۆ سەردێڕی بەشەکان */
+        .section-header-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-right: 5px;
+        }
+
+        .section-title-main {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 0;
+            padding-right: 12px;
+            border-right: 4px solid var(--accent-color);
+        }
+        
+        .section-title-main i {
+            margin-left: 8px; /* بۆشایی نێوان ئایکۆن و نووسین */
+        }
+
+        .view-all-link {
+            font-size: 13px;
+            color: var(--dark-gray);
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.2s;
+        }
+
+        .view-all-link:hover {
+            color: var(--primary-color);
+        }
+        /* END: ستایلی نوێ */
+        
+        /* START: ستایلی سکێڵتۆن بۆ پەڕەی سەرەکی */
+        .skeleton-promo-card {
+            width: 100%;
+            height: 140px;
+            background-color: #e0e0e0;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+
+        .skeleton-horizontal-section {
+            margin-bottom: 20px;
+        }
+
+        .skeleton-title {
+            height: 24px;
+            width: 40%;
+            background-color: #e0e0e0;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .skeleton-horizontal-container {
+            display: flex;
+            gap: 12px;
+            overflow: hidden;
+        }
+
+        .skeleton-horizontal-card {
+            flex-shrink: 0;
+            width: 160px;
+            height: 250px; /* بەرزیی نزیکەیی کارتێک */
+            background-color: #e0e0e0;
+            border-radius: 12px;
+        }
+        /* END: ستایلی سکێڵتۆن */
     </style>
 </head>
 <body>
@@ -1081,8 +1143,28 @@
                 <div id="subSubcategoriesContainer" class="subcategories-container" style="padding-top: 0; padding-bottom: 10px;"></div>
                 
                 <div id="homePageSectionsContainer">
-                </div>
+                    </div>
                 
+                <div id="homePageSkeletonLoader" style="display: none;">
+                    <div class="skeleton-promo-card shimmer"></div>
+                    <div class="skeleton-horizontal-section">
+                        <div class="skeleton-title shimmer"></div>
+                        <div class="skeleton-horizontal-container">
+                            <div class="skeleton-horizontal-card shimmer"></div>
+                            <div class="skeleton-horizontal-card shimmer"></div>
+                            <div class="skeleton-horizontal-card shimmer"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-horizontal-section">
+                        <div class="skeleton-title shimmer"></div>
+                        <div class="skeleton-horizontal-container">
+                            <div class="skeleton-horizontal-card shimmer"></div>
+                            <div class="skeleton-horizontal-card shimmer"></div>
+                            <div class="skeleton-horizontal-card shimmer"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;" data-translate-key="loading_products">...خەریکی بارکردنی کاڵاکانە</p></div>
                 <div id="skeletonLoader" class="products-container"></div>
                 <div class="products-container" id="productsContainer" style="display: none;"></div>
