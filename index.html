@@ -234,7 +234,7 @@
             text-overflow: ellipsis;
         }
         
-        /* === ستایلی کارت === */
+        /* === ستایلێ کارت === */
         .products-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
@@ -630,10 +630,7 @@
         .skeleton-button {
             height: 35px; background-color: #e0e0e0; margin: 12px; border-radius: 6px;
         }
-        .skeleton-card .shimmer,
-        .skeleton-promo-card.shimmer,
-        .skeleton-title.shimmer,
-        .skeleton-horizontal-card.shimmer {
+        .skeleton-card .shimmer {
             animation: shimmer 1.5s linear infinite;
             background: linear-gradient(to right, #eeeeee 8%, #dddddd 18%, #eeeeee 33%);
             background-size: 1000px 100%;
@@ -890,26 +887,29 @@
 
         /* START: ستایلە نوێیەکان بۆ پەڕەی سەرەکی */
         .dynamic-section {
-            margin-bottom: 24px;
+            margin-bottom: 10px;
         }
+
         .horizontal-products-container {
             display: flex;
             gap: 12px;
             overflow-x: auto;
-            padding: 5px 2px 15px 2px;
+            padding: 5px 0 15px 0;
             scrollbar-width: none; /* Firefox */
         }
+
         .horizontal-products-container::-webkit-scrollbar {
             display: none; /* Chrome, Safari, Opera */
         }
+
         .horizontal-products-container .product-card {
             flex-shrink: 0;
             width: 160px; /* قەبارەی کارتی کاڵا لە شریتی ئاسۆیی */
         }
         /* END: ستایلە نوێیەکان */
 
-        /* START: ستایلی نوێ بۆ سەردێڕی بەشەکان */
-        .section-header-main {
+        /* START: ستایلە نوێیەکان بۆ باشترکردنی پەڕەی سەرەکی */
+        .section-title-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -921,63 +921,25 @@
             font-size: 18px;
             font-weight: bold;
             color: var(--primary-color);
-            margin: 0;
-            padding-right: 12px;
-            border-right: 4px solid var(--accent-color);
-        }
-        
-        .section-title-main i {
-            margin-left: 8px; /* بۆشایی نێوان ئایکۆن و نووسین */
+            margin: 0; /* لابردنی مەودای پێشوو */
         }
 
-        .view-all-link {
+        .see-all-link {
             font-size: 13px;
-            color: var(--dark-gray);
-            text-decoration: none;
             font-weight: bold;
-            transition: color 0.2s;
-        }
-
-        .view-all-link:hover {
-            color: var(--primary-color);
-        }
-        /* END: ستایلی نوێ */
-        
-        /* START: ستایلی سکێڵتۆن بۆ پەڕەی سەرەکی */
-        .skeleton-promo-card {
-            width: 100%;
-            height: 140px;
-            background-color: #e0e0e0;
-            border-radius: 12px;
-            margin-bottom: 24px;
-        }
-
-        .skeleton-horizontal-section {
-            margin-bottom: 20px;
-        }
-
-        .skeleton-title {
-            height: 24px;
-            width: 40%;
-            background-color: #e0e0e0;
+            color: var(--accent-color);
+            text-decoration: none;
+            cursor: pointer;
+            padding: 4px 10px;
             border-radius: 6px;
-            margin-bottom: 12px;
+            transition: background-color 0.2s;
+            white-space: nowrap; /* بۆ ئەوەی نەشکێت */
         }
 
-        .skeleton-horizontal-container {
-            display: flex;
-            gap: 12px;
-            overflow: hidden;
+        .see-all-link:hover {
+            background-color: var(--medium-gray);
         }
-
-        .skeleton-horizontal-card {
-            flex-shrink: 0;
-            width: 160px;
-            height: 250px; /* بەرزیی نزیکەیی کارتێک */
-            background-color: #e0e0e0;
-            border-radius: 12px;
-        }
-        /* END: ستایلی سکێڵتۆن */
+        /* END: ستایلە نوێیەکان */
     </style>
 </head>
 <body>
@@ -1144,27 +1106,6 @@
                 
                 <div id="homePageSectionsContainer">
                     </div>
-                
-                <div id="homePageSkeletonLoader" style="display: none;">
-                    <div class="skeleton-promo-card shimmer"></div>
-                    <div class="skeleton-horizontal-section">
-                        <div class="skeleton-title shimmer"></div>
-                        <div class="skeleton-horizontal-container">
-                            <div class="skeleton-horizontal-card shimmer"></div>
-                            <div class="skeleton-horizontal-card shimmer"></div>
-                            <div class="skeleton-horizontal-card shimmer"></div>
-                        </div>
-                    </div>
-                    <div class="skeleton-horizontal-section">
-                        <div class="skeleton-title shimmer"></div>
-                        <div class="skeleton-horizontal-container">
-                            <div class="skeleton-horizontal-card shimmer"></div>
-                            <div class="skeleton-horizontal-card shimmer"></div>
-                            <div class="skeleton-horizontal-card shimmer"></div>
-                        </div>
-                    </div>
-                </div>
-
                 <div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;" data-translate-key="loading_products">...خەریکی بارکردنی کاڵاکانە</p></div>
                 <div id="skeletonLoader" class="products-container"></div>
                 <div class="products-container" id="productsContainer" style="display: none;"></div>
@@ -1595,14 +1536,8 @@
                         <label for="editCategoryIcon">ئایکۆن (بۆ نموونە: fas fa-mobile-alt):</label>
                         <input type="text" id="editCategoryIcon">
                     </div>
-                    
-                    <div id="editHomePageOrderField" class="form-group" style="display: none;">
-                        <label for="editCategoryHomePageOrder">ڕیزبەندی لە پەڕەی سەرەکی (0 بۆ شاردنەوە):</label>
-                        <input type="number" id="editCategoryHomePageOrder" value="0" min="0">
-                        <small>ئەو جۆرانەی ژمارەی گەورەتر لە سفریان هەیە، لە پەڕەی سەرەکی وەک بەش پیشان دەدرێن.</small>
-                    </div>
                     <div class="form-group">
-                        <label for="editCategoryOrder">ژمارەی ڕیزبەندی (گشتی):</label>
+                        <label for="editCategoryOrder">ژمارەی ڕیزبەندی:</label>
                         <input type="number" id="editCategoryOrder" required>
                     </div>
                     <button type="submit">پاشەکەوتکردنی گۆڕانکاری</button>
