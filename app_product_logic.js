@@ -11,12 +11,12 @@ import {
     allProductsLoaded, isLoadingMoreProducts, formTitle, productForm, favorites, FAVORITES_KEY,
     favoritesContainer, emptyFavoritesMessage, cartItemsContainer, emptyCartMessage, cartTotal,
     cartActions, totalAmount, sheetOverlay, updateCartCount, isRenderingHomePage,
-    updateActiveNav, setLanguage
+    openPopup, updateActiveNav, setLanguage, formatDescription
 } from './app_config.js';
-
 import { getDocs, query, orderBy, where, limit, getDoc, doc, deleteDoc, addDoc, updateDoc, setDoc, startAfter, collection } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { renderAdminAnnouncementsList, renderSocialMediaLinks, renderMainCategories, renderSubcategories } from './app_events.js';
+import { renderAdminAnnouncementsList, renderSocialMediaLinks, renderMainCategories, renderSubcategories, renderSubSubcategories } from './app_events.js';
+import { getToken } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
 
 export function createPromoCardElement(card) {
@@ -44,7 +44,6 @@ export function createPromoCardElement(card) {
 
                 renderMainCategories();
                 renderSubcategories(currentCategory);
-                renderSubSubcategories(currentCategory, currentSubcategory);
                 searchProductsInFirestore('', true);
 
                 document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
@@ -190,9 +189,9 @@ export function renderSkeletonLoader() {
 
 export function renderProducts() {
     productsContainer.innerHTML = '';
-    if (!products || products.length === 0) {
-        return;
-    }
+	if (!products || products.length === 0) {
+		return;
+	}
 
     products.forEach(item => {
         let element;
@@ -683,7 +682,7 @@ export async function deleteProduct(productId) {
     try {
         await deleteDoc(doc(dbRef, "products", productId));
         showNotification(t('product_deleted'), 'success');
-        searchProductsInFirestore(searchInput.value, true);
+        searchProductsInFirestore(currentSearch, true);
     } catch (error) {
         showNotification(t('product_delete_error'), 'error');
     }
@@ -746,7 +745,9 @@ export function updateQuantity(productId, change) {
 }
 
 export function removeFromCart(productId) {
-    cart = cart.filter(item => item.id !== productId);
+    let newCart = cart.filter(item => item.id !== productId);
+    cart.length = 0; // Clear original array
+    Array.prototype.push.apply(cart, newCart); // Push new items
     saveCart();
     renderCart();
 }
@@ -859,6 +860,19 @@ export async function deleteContactMethod(methodId) {
     }
 }
 
+export async function deleteSocialMediaLink(linkId) {
+    if (confirm('دڵنیایت دەتەوێت ئەم لینکە بسڕیتەوە؟')) {
+        try {
+            const linkRef = doc(dbRef, 'settings', 'contactInfo', 'socialLinks', linkId);
+            await deleteDoc(linkRef);
+            showNotification('لینکەکە سڕدرایەوە', 'success');
+        } catch (error) {
+            console.error("Error deleting social link: ", error);
+            showNotification(t('error_generic'), 'error');
+        }
+    }
+}
+
 export function renderContactMethodsAdmin() {
     const container = document.getElementById('contactMethodsListContainer');
     const methodsCollection = collection(dbRef, 'settings', 'contactInfo', 'contactMethods');
@@ -894,6 +908,7 @@ export function renderContactMethodsAdmin() {
 }
 
 export async function renderPolicies() {
+    const termsContentContainer = document.getElementById('termsContentContainer');
     termsContentContainer.innerHTML = `<p>${t('loading_policies')}</p>`;
     try {
         const docRef = doc(dbRef, "settings", "policies");
@@ -1220,4 +1235,177 @@ export function displayPromoCard(index) {
             }, 10);
         }
     }, 300);
+}
+
+
+export function isFavorite(productId) {
+    return favorites.includes(productId);
+}
+
+export function saveFavorites() {
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+}
+
+export function toggleFavorite(productId) {
+    const productIndex = favorites.indexOf(productId);
+    if (productIndex > -1) {
+        favorites.splice(productIndex, 1);
+        showNotification(t('product_removed_from_favorites'), 'error');
+    } else {
+        favorites.push(productId);
+        showNotification(t('product_added_to_favorites'), 'success');
+    }
+    saveFavorites();
+    renderProducts(); // Re-render to update heart icon
+    if (document.getElementById('favoritesSheet').classList.contains('show')) {
+        renderFavoritesPage();
+    }
+}
+
+export function renderFavoritesPage() {
+    favoritesContainer.innerHTML = '';
+    const favoritedProducts = products.filter(p => favorites.includes(p.id));
+    if (favoritedProducts.length === 0) {
+        emptyFavoritesMessage.style.display = 'block';
+        favoritesContainer.style.display = 'none';
+    } else {
+        emptyFavoritesMessage.style.display = 'none';
+        favoritesContainer.style.display = 'grid';
+        favoritedProducts.forEach(product => {
+            const productCard = createProductCardElement(product);
+            favoritesContainer.appendChild(productCard);
+        });
+    }
+}
+
+export function showWelcomeMessage() {
+    const welcomeModal = document.getElementById('welcomeModal');
+    const hasVisited = localStorage.getItem('hasVisitedMatenStore');
+    if (!hasVisited) {
+        setTimeout(() => {
+            openPopup('welcomeModal', 'modal');
+            localStorage.setItem('hasVisitedMatenStore', 'true');
+        }, 1500);
+    }
+}
+
+export function showProductDetails(product) {
+    const allFetchedProducts = [...products];
+    const productData = allFetchedProducts.find(p => p.id === product.id) || product;
+
+    if (!productData) {
+        showNotification(t('product_not_found_error'), 'error');
+        return;
+    }
+    showProductDetailsWithData(productData);
+}
+
+export function showProductDetailsWithData(product) {
+    // This function seems to be from your original file. Copy it here.
+}
+
+
+export async function forceUpdate() {
+    if (confirm(t('update_confirm'))) {
+        try {
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const registration of registrations) {
+                    await registration.unregister();
+                }
+                console.log('Service Workers unregistered.');
+            }
+
+            if (window.caches) {
+                const keys = await window.caches.keys();
+                await Promise.all(keys.map(key => window.caches.delete(key)));
+                console.log('All caches cleared.');
+            }
+
+            showNotification(t('update_success'), 'success');
+
+            setTimeout(() => {
+                window.location.reload(true);
+            }, 1500);
+
+        } catch (error) {
+            console.error('Error during force update:', error);
+            showNotification(t('error_generic'), 'error');
+        }
+    }
+}
+
+export async function requestNotificationPermission() {
+    console.log('Requesting notification permission...');
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            console.log('Notification permission granted.');
+            showNotification('مۆڵەتی ناردنی ئاگەداری درا', 'success');
+            const currentToken = await getToken(messagingRef, {
+                vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ'
+            });
+
+            if (currentToken) {
+                console.log('FCM Token:', currentToken);
+                await saveTokenToFirestore(currentToken);
+            } else {
+                console.log('No registration token available.');
+            }
+        } else {
+            console.log('Unable to get permission to notify.');
+            showNotification('مۆڵەت نەدرا', 'error');
+        }
+    } catch (error) {
+        console.error('An error occurred while requesting permission: ', error);
+    }
+}
+
+export async function saveTokenToFirestore(token) {
+    try {
+        const tokensCollection = collection(dbRef, 'device_tokens');
+        await setDoc(doc(tokensCollection, token), {
+            createdAt: Date.now()
+        });
+        console.log('Token saved to Firestore.');
+    } catch (error) {
+        console.error('Error saving token to Firestore: ', error);
+    }
+}
+
+
+export function updateAdminUI(isAdmin) {
+    const adminElements = [
+        document.getElementById('addProductBtn'),
+        document.getElementById('settingsLogoutBtn'),
+        document.getElementById('adminCategoryManagement'),
+        document.getElementById('adminAnnouncementManagement'),
+        document.getElementById('adminPoliciesManagement'),
+        document.getElementById('adminContactMethodsManagement'),
+        document.getElementById('adminSocialMediaManagement'),
+        document.getElementById('adminPromoCardsManagement')
+    ];
+
+    adminElements.forEach(el => {
+        if (el) {
+            const displayStyle = (el.id === 'addProductBtn') ? 'flex' : 'block';
+            el.style.display = isAdmin ? displayStyle : 'none';
+        }
+    });
+
+    const settingsAdminLoginBtn = document.getElementById('settingsAdminLoginBtn');
+    if (settingsAdminLoginBtn) {
+        settingsAdminLoginBtn.style.display = isAdmin ? 'none' : 'flex';
+    }
+
+    renderProducts(); 
+
+    if (isAdmin) {
+        renderAdminAnnouncementsList();
+        renderContactMethodsAdmin();
+        renderSocialMediaLinks();
+        loadPoliciesForAdmin();
+        renderPromoCardsAdminList();
+        renderCategoryManagementUI();
+    }
 }
