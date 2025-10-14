@@ -771,13 +771,14 @@ async function renderSubcategories(categoryId) {
 
         if (subcategories.length === 0) return;
 
+        // --- START: گۆڕانکارییەکە لێرە کراوە ---
         const allBtn = document.createElement('button');
-        allBtn.className = 'subcategory-btn active';
+        allBtn.className = `subcategory-btn ${currentSubcategory === 'all' ? 'active' : ''}`;
         allBtn.textContent = t('all_categories_label');
         allBtn.onclick = () => {
             currentSubcategory = 'all';
             currentSubSubcategory = 'all';
-            document.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('#subcategoriesContainer .subcategory-btn').forEach(b => b.classList.remove('active'));
             allBtn.classList.add('active');
             subSubcategoriesContainer.innerHTML = '';
             searchProductsInFirestore('', true);
@@ -786,7 +787,7 @@ async function renderSubcategories(categoryId) {
 
         subcategories.forEach(subcat => {
             const subcatBtn = document.createElement('button');
-            subcatBtn.className = 'subcategory-btn';
+            subcatBtn.className = `subcategory-btn ${currentSubcategory === subcat.id ? 'active' : ''}`;
             subcatBtn.textContent = subcat['name_' + currentLanguage] || subcat.name_ku_sorani;
             subcatBtn.onclick = () => {
                 currentSubcategory = subcat.id;
@@ -798,6 +799,12 @@ async function renderSubcategories(categoryId) {
             };
             subcategoriesContainer.appendChild(subcatBtn);
         });
+
+        // This line ensures sub-subcategories are shown if a subcategory is pre-selected
+        if (currentSubcategory && currentSubcategory !== 'all') {
+            renderSubSubcategories(categoryId, currentSubcategory);
+        }
+        // --- END: کۆتایی گۆڕانکارییەکە ---
     } catch (error) {
         console.error("Error fetching subcategories: ", error);
     }
@@ -3115,7 +3122,7 @@ function updateCategoryDependentUI() {
 
     // 1. For user-facing UI
     populateCategoryDropdown();
-    renderMainCategories();     
+    renderMainCategories();      
 
     // 2. For admin-facing UI
     if (isAdmin) {
@@ -3293,4 +3300,3 @@ function startPromoRotation() {
         promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
-
