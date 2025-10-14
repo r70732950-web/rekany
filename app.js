@@ -293,7 +293,6 @@ let isLoadingMoreProducts = false;
 let allProductsLoaded = false;
 const PRODUCTS_PER_PAGE = 25;
 let mainPageScrollPosition = 0;
-let adminDropdownsInitialized = false;
 
 let currentCategory = 'all';
 let currentSubcategory = 'all';
@@ -1326,7 +1325,6 @@ async function renderAllProductsSection() {
 
 async function renderHomePageContent() {
     if (isRenderingHomePage) {
-        console.log("HomePage is already rendering. Skipping duplicate call.");
         return;
     }
     isRenderingHomePage = true;
@@ -2008,54 +2006,31 @@ function renderAdminAnnouncementsList() {
 
 function updateAdminUI(isAdmin) {
     document.querySelectorAll('.product-actions').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
-    const adminCategoryManagement = document.getElementById('adminCategoryManagement');
-    const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
-    if (adminPoliciesManagement) {
-        adminPoliciesManagement.style.display = isAdmin ? 'block' : 'none';
-    }
-    if (adminSocialMediaManagement) adminSocialMediaManagement.style.display = isAdmin ? 'block' : 'none';
-    if (adminAnnouncementManagement) {
-        adminAnnouncementManagement.style.display = isAdmin ? 'block' : 'none';
-        if (isAdmin) renderAdminAnnouncementsList();
-    }
     
-    if (adminPromoCardsManagement) {
-        adminPromoCardsManagement.style.display = isAdmin ? 'block' : 'none';
-        if (isAdmin) {
-            renderPromoCardsAdminList();
-        }
-    }
-
-    if (adminBrandsManagement) {
-        adminBrandsManagement.style.display = isAdmin ? 'block' : 'none';
-        if (isAdmin) {
-            renderBrandsAdminList();
-        }
-    }
+    const adminSections = [
+        'adminPoliciesManagement', 'adminSocialMediaManagement', 'adminAnnouncementManagement',
+        'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
+        'adminContactMethodsManagement'
+    ];
+    adminSections.forEach(id => {
+        const section = document.getElementById(id);
+        if (section) section.style.display = isAdmin ? 'block' : 'none';
+    });
 
     if (isAdmin) {
         settingsLogoutBtn.style.display = 'flex';
         settingsAdminLoginBtn.style.display = 'none';
         addProductBtn.style.display = 'flex';
-        if (adminCategoryManagement) {
-            adminCategoryManagement.style.display = 'block';
-            renderCategoryManagementUI();
-        }
-        if (adminContactMethodsManagement) {
-            adminContactMethodsManagement.style.display = 'block';
-            renderContactMethodsAdmin();
-        }
-        setupAdminCategoryDropdowns();
+
+        // Render lists that don't depend on categories
+        renderAdminAnnouncementsList();
+        renderPromoCardsAdminList();
+        renderBrandsAdminList();
+        renderContactMethodsAdmin();
     } else {
         settingsLogoutBtn.style.display = 'none';
         settingsAdminLoginBtn.style.display = 'flex';
         addProductBtn.style.display = 'none';
-        if (adminCategoryManagement) {
-            adminCategoryManagement.style.display = 'none';
-        }
-        if (adminContactMethodsManagement) {
-            adminContactMethodsManagement.style.display = 'none';
-        }
     }
 }
 
@@ -2457,6 +2432,106 @@ async function deleteBrand(brandId) {
     }
 }
 // END: Brand Management Logic
+
+// چارەسەری ئاریشەی فۆرمەکانی ئەدمین
+function setupAdminCategoryDropdowns() {
+    if (!isAdmin || categories.length <= 1) { 
+        return;
+    }
+
+    const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
+
+    // 1. Add Subcategory Form
+    const parentCategorySelect = document.getElementById('parentCategorySelect');
+    if (parentCategorySelect) {
+        parentCategorySelect.innerHTML = '<option value="">-- جۆرێک هەڵبژێرە --</option>';
+        categoriesWithoutAll.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.id;
+            option.textContent = cat.name_ku_sorani || cat.name_ku_badini;
+            parentCategorySelect.appendChild(option);
+        });
+    }
+
+    // 2. Add Sub-Subcategory Form
+    const mainCatSelectForSubSub = document.getElementById('parentMainCategorySelectForSubSub');
+    if (mainCatSelectForSubSub && !mainCatSelectForSubSub.listenerAttached) {
+        mainCatSelectForSubSub.innerHTML = '<option value="">-- جۆرێک هەڵبژێرە --</option>';
+        categoriesWithoutAll.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.id;
+            option.textContent = cat.name_ku_sorani || cat.name_ku_badini;
+            mainCatSelectForSubSub.appendChild(option);
+        });
+
+        mainCatSelectForSubSub.addEventListener('change', async () => {
+            const mainCategoryId = mainCatSelectForSubSub.value;
+            const subCatSelectForSubSub = document.getElementById('parentSubcategorySelectForSubSub');
+            if (!mainCategoryId) {
+                subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەکی بە --</option>';
+                return;
+            };
+            
+            subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>...خەریکی بارکردنە</option>';
+            subCatSelectForSubSub.disabled = true;
+
+            const subcategoriesQuery = collection(db, "categories", mainCategoryId, "subcategories");
+            const q = query(subcategoriesQuery, orderBy("order", "asc"));
+            const querySnapshot = await getDocs(q);
+            
+            subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>-- جۆری لاوەکی هەڵبژێرە --</option>';
+            if (!querySnapshot.empty) {
+                querySnapshot.forEach(doc => {
+                    const subcat = { id: doc.id, ...doc.data() };
+                    const option = document.createElement('option');
+                    option.value = subcat.id;
+                    option.textContent = subcat.name_ku_sorani || subcat.name_ku_badini || 'بێ ناو';
+                    subCatSelectForSubSub.appendChild(option);
+                });
+            } else {
+                subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>هیچ جۆرێکی لاوەکی نییە</option>';
+            }
+            subCatSelectForSubSub.disabled = false;
+        });
+        mainCatSelectForSubSub.listenerAttached = true;
+    }
+    
+    // 3. Brand Form
+    const brandMainCatSelect = document.getElementById('brandTargetMainCategory');
+    if (brandMainCatSelect && !brandMainCatSelect.listenerAttached) {
+        brandMainCatSelect.innerHTML = '<option value="">-- هەموو جۆرەکان --</option>';
+        categoriesWithoutAll.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.id;
+            option.textContent = cat.name_ku_sorani;
+            brandMainCatSelect.appendChild(option);
+        });
+        
+        brandMainCatSelect.addEventListener('change', async (e) => {
+            const mainCatId = e.target.value;
+            const brandSubCatContainer = document.getElementById('brandSubcategoryContainer');
+            const brandSubCatSelect = document.getElementById('brandTargetSubcategory');
+            if (mainCatId) {
+                brandSubCatContainer.style.display = 'block';
+                brandSubCatSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
+                const subCatQuery = query(collection(db, "categories", mainCatId, "subcategories"), orderBy("order", "asc"));
+                const snapshot = await getDocs(subCatQuery);
+                brandSubCatSelect.innerHTML = '<option value="">-- هەموو لاوەکییەکان --</option>';
+                snapshot.forEach(doc => {
+                    const subcat = { id: doc.id, ...doc.data() };
+                    const option = document.createElement('option');
+                    option.value = subcat.id;
+                    option.textContent = subcat.name_ku_sorani;
+                    brandSubCatSelect.appendChild(option);
+                });
+            } else {
+                brandSubCatContainer.style.display = 'none';
+                brandSubCatSelect.innerHTML = '';
+            }
+        });
+        brandMainCatSelect.listenerAttached = true;
+    }
+}
 
 
 function setupEventListeners() {
@@ -2952,7 +3027,6 @@ function setupEventListeners() {
         });
     }
 
-    const addBrandForm = document.getElementById('addBrandForm');
     if (addBrandForm) {
         addBrandForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -2969,13 +3043,13 @@ function setupEventListeners() {
                 imageUrl: document.getElementById('brandImageUrl').value,
                 categoryId: document.getElementById('brandTargetMainCategory').value || null,
                 subcategoryId: document.getElementById('brandTargetSubcategory').value || null,
-                order: parseInt(document.getElementById('brandOrder').value) || 0, // چاککرا
+                order: parseInt(document.getElementById('brandOrder').value) || 0,
                 createdAt: Date.now()
             };
     
             try {
                 if (editingId) {
-                    const { createdAt, ...updateData } = brandData; // چاککرا
+                    const { createdAt, ...updateData } = brandData;
                     await setDoc(doc(db, "brands", editingId), updateData, { merge: true });
                     showNotification('براند نوێکرایەوە', 'success');
                 } else {
@@ -3013,97 +3087,64 @@ function setupEventListeners() {
     });
 }
 
-function setupAdminCategoryDropdowns() {
-    if (!isAdmin || categories.length === 0 || adminDropdownsInitialized) {
-        return;
-    }
-
-    const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
-
-    // Populate dropdowns
-    const dropdowns = [
-        document.getElementById('parentCategorySelect'),
-        document.getElementById('parentMainCategorySelectForSubSub'),
-        document.getElementById('promoCardTargetCategory'),
-        document.getElementById('brandTargetMainCategory')
-    ];
-    
-    dropdowns.forEach(select => {
-        if(select) {
-            const firstOption = select.querySelector('option');
-            select.innerHTML = '';
-            if (firstOption) select.appendChild(firstOption);
-            categoriesWithoutAll.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat.id;
-                option.textContent = cat.name_ku_sorani || cat.name_ku_badini;
-                select.appendChild(option);
-            });
-        }
-    });
-
-    const mainCatSelectForSubSub = document.getElementById('parentMainCategorySelectForSubSub');
-    if (mainCatSelectForSubSub && !mainCatSelectForSubSub.listenerAttached) {
-        mainCatSelectForSubSub.addEventListener('change', async () => {
-            const mainCategoryId = mainCatSelectForSubSub.value;
-            const subCatSelectForSubSub = document.getElementById('parentSubcategorySelectForSubSub');
-            // ... (the rest of the logic is the same)
-        });
-        mainCatSelectForSubSub.listenerAttached = true;
-    }
-
-    const brandMainCatSelect = document.getElementById('brandTargetMainCategory');
-    if (brandMainCatSelect && !brandMainCatSelect.listenerAttached) {
-        brandMainCatSelect.addEventListener('change', async (e) => {
-            const mainCatId = e.target.value;
-            const brandSubCatContainer = document.getElementById('brandSubcategoryContainer');
-            const brandSubCatSelect = document.getElementById('brandTargetSubcategory');
-            if (mainCatId) {
-                brandSubCatContainer.style.display = 'block';
-                brandSubCatSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
-                const subCatQuery = query(collection(db, "categories", mainCatId, "subcategories"), orderBy("order", "asc"));
-                const snapshot = await getDocs(subCatQuery);
-                brandSubCatSelect.innerHTML = '<option value="">-- هەموو لاوەکییەکان --</option>';
-                snapshot.forEach(doc => {
-                    const subcat = { id: doc.id, ...doc.data() };
-                    const option = document.createElement('option');
-                    option.value = subcat.id;
-                    option.textContent = subcat.name_ku_sorani;
-                    brandSubCatSelect.appendChild(option);
-                });
-            } else {
-                brandSubCatContainer.style.display = 'none';
-                brandSubCatSelect.innerHTML = '';
-            }
-        });
-        brandMainCatSelect.listenerAttached = true;
-    }
-
-    adminDropdownsInitialized = true;
-}
-
-
 onAuthStateChanged(auth, async (user) => {
     const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3";
 
-    if (user && user.uid === adminUID) {
-        isAdmin = true;
+    isAdmin = user && user.uid === adminUID;
+
+    if (isAdmin) {
         sessionStorage.setItem('isAdmin', 'true');
         loadPoliciesForAdmin();
-        if (document.getElementById('loginModal').style.display === 'block') {
-            closeCurrentPopup();
-        }
     } else {
-        isAdmin = false;
         sessionStorage.removeItem('isAdmin');
         if (user) {
             await signOut(auth);
         }
     }
 
-    updateAdminUI(isAdmin);
-    // Moved setupAdminCategoryDropdowns to be called AFTER categories are loaded
+    updateAdminUI(isAdmin); 
+    updateCategoryDependentUI(); 
+
+    if (document.getElementById('loginModal').style.display === 'block') {
+        closeCurrentPopup();
+    }
 });
+
+function updateCategoryDependentUI() {
+    if (categories.length === 0) return;
+
+    // 1. For user-facing UI
+    populateCategoryDropdown();
+    renderMainCategories();     
+
+    // 2. For admin-facing UI
+    if (isAdmin) {
+        renderCategoryManagementUI();
+
+        const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
+
+        const dropdowns = [
+            { id: 'parentCategorySelect', defaultText: '-- جۆرێک هەڵبژێرە --' },
+            { id: 'parentMainCategorySelectForSubSub', defaultText: '-- جۆرێک هەڵبژێرە --' },
+            { id: 'promoCardTargetCategory', defaultText: '-- جۆرێک هەڵبژێرە --' },
+            { id: 'brandTargetMainCategory', defaultText: '-- هەموو جۆرەکان --' }
+        ];
+
+        dropdowns.forEach(d => {
+            const select = document.getElementById(d.id);
+            if (select) {
+                const firstOptionHTML = `<option value="">${d.defaultText}</option>`;
+                select.innerHTML = firstOptionHTML;
+                categoriesWithoutAll.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = cat.name_ku_sorani || cat.name_ku_badini;
+                    select.appendChild(option);
+                });
+            }
+        });
+    }
+}
 
 
 function init() {
@@ -3131,13 +3172,7 @@ function initializeAppLogic() {
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories];
         
-        populateCategoryDropdown();
-        renderMainCategories();
-        
-        if (isAdmin) {
-            renderCategoryManagementUI();
-            setupAdminCategoryDropdowns(); // Ensure dropdowns are set up when categories arrive
-        }
+        updateCategoryDependentUI(); 
 
         setLanguage(currentLanguage);
     });
@@ -3257,55 +3292,5 @@ function startPromoRotation() {
     if (allPromoCards.length > 1) {
         promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
-}
-```
-
-### ٢. یاساکانی ئاسایشی Firestore (Security Rules)
-
-**ئەم هەنگاوە زۆر گرنگە.** هۆکاری سەرەکی هەڵەکەی تۆ لەوانەیە ئەوە بێت کە ڕێگەت بە نووسین نەداوە لەناو کۆلێکشنە نوێیەکەدا (`brands`).
-
-1.  بچۆ ناو پرۆژەکەت لە **Firebase Console**.
-2.  لە لیستی لای چەپدا، کلیک لەسەر **Firestore Database** بکە.
-3.  لە سەرەوە، بچۆ بەشی **Rules**.
-4.  کۆدی ناو `Rules`ـەکەت بەم شێوەیە نوێ بکەرەوە:
-
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    
-    // Read access for everyone to most collections
-    match /products/{productId} {
-      allow read: if true;
-      allow write: if request.auth.uid == "xNjDmjYkTxOjEKURGP879wvgpcG3";
-    }
-    match /categories/{docId=**} {
-       allow read: if true;
-       allow write: if request.auth.uid == "xNjDmjYkTxOjEKURGP879wvgpcG3";
-    }
-    match /announcements/{announcementId} {
-        allow read: if true;
-        allow write: if request.auth.uid == "xNjDmjYkTxOjEKURGP879wvgpcG3";
-    }
-    match /settings/{settingId=**} {
-    	allow read: if true;
-      allow write: if request.auth.uid == "xNjDmjYkTxOjEKURGP879wvgpcG3";
-    }
-    match /promo_cards/{cardId} {
-    	allow read: if true;
-      allow write: if request.auth.uid == "xNjDmjYkTxOjEKURGP879wvgpcG3";
-    }
-    
-    // *** START: ئەم بەشە نوێیە زیاد بکە ***
-    match /brands/{brandId} {
-    	allow read: if true;
-      allow write: if request.auth.uid == "xNjDmjYkTxOjEKURGP879wvgpcG3";
-    }
-    // *** END: کۆتایی بەشی زیادکراو ***
-    
-    match /device_tokens/{token} {
-    	allow write: if true;
-    }
-  }
 }
 
