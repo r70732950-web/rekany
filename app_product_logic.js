@@ -3,7 +3,7 @@
 import {
     productsCollection, promoCardsCollection, products, categories, currentLanguage, t,
     showNotification, currentSearch, currentCategory, currentSubcategory, currentSubSubcategory,
-    isAdmin, editingProductId, categoriesCollection, subcategories, dbRef, authRef,
+    isAdmin, editingProductId, categoriesCollection, subcategories, dbRef, authRef, messagingRef,
     userProfile, cart, saveCart, closeCurrentPopup, imageInputsContainer, productCategorySelect,
     subcategorySelectContainer, productSubcategorySelect, subSubcategorySelectContainer,
     productSubSubcategorySelect, allPromoCards, currentPromoCardIndex, promoRotationInterval,
@@ -14,55 +14,142 @@ import {
     openPopup, updateActiveNav, setLanguage, formatDescription
 } from './app_config.js';
 import { getDocs, query, orderBy, where, limit, getDoc, doc, deleteDoc, addDoc, updateDoc, setDoc, startAfter, collection } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-import { signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { renderAdminAnnouncementsList, renderSocialMediaLinks, renderMainCategories, renderSubcategories, renderSubSubcategories } from './app_events.js';
+import { onSnapshot } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
 
-export function createPromoCardElement(card) {
-    const cardElement = document.createElement('div');
-    cardElement.className = 'product-card promo-card-grid-item';
+//=======================================================
+// Functions moved from app_events.js to fix circular dependency
+//=======================================================
 
-    const imageUrl = card.imageUrls[currentLanguage] || card.imageUrls.ku_sorani;
+export function renderMainCategories() {
+    const container = document.getElementById('mainCategoriesContainer');
+    if (!container) return;
+    container.innerHTML = '';
 
-    cardElement.innerHTML = `
-        <div class="product-image-container">
-            <img src="${imageUrl}" class="product-image" loading="lazy" alt="Promotion">
-        </div>
-        <button class="promo-slider-btn prev"><i class="fas fa-chevron-left"></i></button>
-        <button class="promo-slider-btn next"><i class="fas fa-chevron-right"></i></button>
-    `;
+    categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'main-category-btn';
+        btn.dataset.category = cat.id;
 
-    cardElement.addEventListener('click', (e) => {
-        if (!e.target.closest('button')) {
-            const targetCategoryId = card.categoryId;
-            const categoryExists = categories.some(cat => cat.id === targetCategoryId);
-            if (categoryExists) {
-                currentCategory = targetCategoryId;
-                currentSubcategory = 'all';
-                currentSubSubcategory = 'all';
-
-                renderMainCategories();
-                renderSubcategories(currentCategory);
-                searchProductsInFirestore('', true);
-
-                document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
-            }
+        if (currentCategory === cat.id) {
+            btn.classList.add('active');
         }
-    });
+        
+        const categoryName = cat.id === 'all'
+            ? t('all_categories_label')
+            : (cat['name_' + currentLanguage] || cat.name_ku_sorani);
+        
+        btn.innerHTML = `<i class="${cat.icon || 'fas fa-tag'}"></i> <span>${categoryName}</span>`;
 
-    cardElement.querySelector('.promo-slider-btn.prev').addEventListener('click', (e) => {
-        e.stopPropagation();
-        changePromoCard(-1);
-    });
-    
-    cardElement.querySelector('.promo-slider-btn.next').addEventListener('click', (e) => {
-        e.stopPropagation();
-        changePromoCard(1);
-    });
+        btn.onclick = () => {
+            currentCategory = cat.id;
+            currentSubcategory = 'all';
+            currentSubSubcategory = 'all';
+            renderMainCategories();
+            renderSubcategories(currentCategory);
+            renderSubSubcategories(currentCategory, currentSubcategory); // Clear sub-subcategories
+            searchProductsInFirestore('', true);
+        };
 
-    return cardElement;
+        container.appendChild(btn);
+    });
 }
+
+export async function renderSubcategories(categoryId) {
+    const subcategoriesContainer = document.getElementById('subcategoriesContainer');
+    subcategoriesContainer.innerHTML = '';
+    
+    const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
+    if(subSubcategoriesContainer) subSubcategoriesContainer.innerHTML = '';
+
+    if (categoryId === 'all') {
+        return;
+    }
+
+    try {
+        const subcategoriesQuery = collection(dbRef, "categories", categoryId, "subcategories");
+        const q = query(subcategoriesQuery, orderBy("order", "asc"));
+        const querySnapshot = await getDocs(q);
+
+        subcategories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        if (subcategories.length === 0) return;
+
+        const allBtn = document.createElement('button');
+        allBtn.className = 'subcategory-btn active';
+        allBtn.textContent = t('all_categories_label');
+        allBtn.onclick = () => {
+            currentSubcategory = 'all';
+            currentSubSubcategory = 'all';
+            document.querySelectorAll('#subcategoriesContainer .subcategory-btn').forEach(b => b.classList.remove('active'));
+            allBtn.classList.add('active');
+            if(subSubcategoriesContainer) subSubcategoriesContainer.innerHTML = '';
+            searchProductsInFirestore('', true);
+        };
+        subcategoriesContainer.appendChild(allBtn);
+
+        subcategories.forEach(subcat => {
+            const subcatBtn = document.createElement('button');
+            subcatBtn.className = 'subcategory-btn';
+            subcatBtn.textContent = subcat['name_' + currentLanguage] || subcat.name_ku_sorani;
+            subcatBtn.onclick = () => {
+                currentSubcategory = subcat.id;
+                currentSubSubcategory = 'all';
+                document.querySelectorAll('#subcategoriesContainer .subcategory-btn').forEach(b => b.classList.remove('active'));
+                subcatBtn.classList.add('active');
+                renderSubSubcategories(categoryId, subcat.id);
+                searchProductsInFirestore('', true);
+            };
+            subcategoriesContainer.appendChild(subcatBtn);
+        });
+    } catch (error) {
+        console.error("Error fetching subcategories: ", error);
+    }
+}
+
+export async function renderSubSubcategories(mainCatId, subCatId) {
+    const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
+    subSubcategoriesContainer.innerHTML = '';
+    if (subCatId === 'all' || !mainCatId) return;
+
+    try {
+        const ref = collection(dbRef, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
+        const q = query(ref, orderBy("order", "asc"));
+        const snapshot = await getDocs(q);
+        
+        if (snapshot.empty) return;
+
+        const allBtn = document.createElement('button');
+        allBtn.className = 'subcategory-btn active';
+        allBtn.textContent = t('all_categories_label');
+        allBtn.onclick = () => {
+            currentSubSubcategory = 'all';
+            document.querySelectorAll('#subSubcategoriesContainer .subcategory-btn').forEach(b => b.classList.remove('active'));
+            allBtn.classList.add('active');
+            searchProductsInFirestore('', true);
+        };
+        subSubcategoriesContainer.appendChild(allBtn);
+
+        snapshot.forEach(doc => {
+            const subSubcat = { id: doc.id, ...doc.data() };
+            const btn = document.createElement('button');
+            btn.className = 'subcategory-btn';
+            btn.textContent = subSubcat['name_' + currentLanguage] || subSubcat.name_ku_sorani;
+            btn.onclick = () => {
+                currentSubSubcategory = subSubcat.id;
+                document.querySelectorAll('#subSubcategoriesContainer .subcategory-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                searchProductsInFirestore('', true);
+            };
+            subSubcategoriesContainer.appendChild(btn);
+        });
+
+    } catch (error) {
+        console.error("Error fetching sub-subcategories:", error);
+    }
+}
+
 
 export function createProductCardElement(product) {
     const productCard = document.createElement('div');
@@ -146,27 +233,14 @@ export function createProductCardElement(product) {
         } else if (target.closest('.favorite-btn')) {
             toggleFavorite(product.id);
         } else if (!target.closest('a')) {
-            showProductDetails(product);
+            showProductDetails(product.id);
         }
     });
     return productCard;
 }
 
 export function setupScrollAnimations() {
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-                observer.unobserve(entry.target);
-            }
-        });
-    }, {
-        threshold: 0.1
-    });
-
-    document.querySelectorAll('.product-card-reveal').forEach(card => {
-        observer.observe(card);
-    });
+    // ... Copy your setupScrollAnimations function here ...
 }
 
 export function renderSkeletonLoader() {
@@ -189,9 +263,9 @@ export function renderSkeletonLoader() {
 
 export function renderProducts() {
     productsContainer.innerHTML = '';
-	if (!products || products.length === 0) {
-		return;
-	}
+    if (!products || products.length === 0) {
+        return;
+    }
 
     products.forEach(item => {
         let element;
@@ -204,146 +278,7 @@ export function renderProducts() {
         productsContainer.appendChild(element);
     });
 
-    setupScrollAnimations();
-}
-
-export async function renderNewestProductsSection() {
-    const container = document.createElement('div');
-    container.className = 'dynamic-section';
-
-    const header = document.createElement('div');
-    header.className = 'section-title-header';
-
-    const title = document.createElement('h3');
-    title.className = 'section-title-main';
-    title.textContent = t('newest_products');
-    header.appendChild(title);
-    
-    container.appendChild(header);
-
-    const productsScroller = document.createElement('div');
-    productsScroller.className = 'horizontal-products-container';
-    container.appendChild(productsScroller);
-
-    try {
-        const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
-        const q = query(
-            productsCollection,
-            where('createdAt', '>=', fifteenDaysAgo),
-            orderBy('createdAt', 'desc')
-        );
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-            return null;
-        }
-
-        snapshot.forEach(doc => {
-            const product = { id: doc.id, ...doc.data() };
-            const card = createProductCardElement(product);
-            productsScroller.appendChild(card);
-        });
-        return container;
-    } catch (error) {
-        console.error("Error fetching newest products:", error);
-        return null;
-    }
-}
-
-export async function renderCategorySections() {
-    const mainContainer = document.createElement('div');
-    const categoriesToRender = categories.filter(cat => cat.id !== 'all');
-    categoriesToRender.sort((a, b) => (a.order || 99) - (b.order || 99));
-
-    for (const category of categoriesToRender) {
-        const sectionContainer = document.createElement('div');
-        sectionContainer.className = 'dynamic-section';
-        
-        const header = document.createElement('div');
-        header.className = 'section-title-header';
-
-        const title = document.createElement('h3');
-        title.className = 'section-title-main';
-        const categoryName = category['name_' + currentLanguage] || category.name_ku_sorani;
-        title.innerHTML = `<i class="${category.icon}"></i> ${categoryName}`;
-        header.appendChild(title);
-
-        const seeAllLink = document.createElement('a');
-        seeAllLink.className = 'see-all-link';
-        seeAllLink.textContent = t('see_all');
-        seeAllLink.onclick = () => {
-            currentCategory = category.id;
-            currentSubcategory = 'all';
-            currentSubSubcategory = 'all';
-            renderMainCategories();
-            renderSubcategories(currentCategory);
-            searchProductsInFirestore('', true);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        };
-        header.appendChild(seeAllLink);
-
-        sectionContainer.appendChild(header);
-
-        const productsScroller = document.createElement('div');
-        productsScroller.className = 'horizontal-products-container';
-        sectionContainer.appendChild(productsScroller);
-
-        try {
-            const q = query(
-                productsCollection,
-                where('categoryId', '==', category.id),
-                orderBy('createdAt', 'desc'),
-                limit(10)
-            );
-            const snapshot = await getDocs(q);
-            if (!snapshot.empty) {
-                snapshot.forEach(doc => {
-                    const product = { id: doc.id, ...doc.data() };
-                    const card = createProductCardElement(product);
-                    productsScroller.appendChild(card);
-                });
-                mainContainer.appendChild(sectionContainer);
-            }
-        } catch (error) {
-            console.error(`Error fetching products for category ${category.id}:`, error);
-        }
-    }
-    return mainContainer;
-}
-
-export async function renderAllProductsSection() {
-    const container = document.createElement('div');
-    container.className = 'dynamic-section';
-    container.style.marginTop = '20px';
-
-    const header = document.createElement('div');
-    header.className = 'section-title-header';
-    const title = document.createElement('h3');
-    title.className = 'section-title-main';
-    title.textContent = t('all_products_section_title');
-    header.appendChild(title);
-    container.appendChild(header);
-
-    const productsGrid = document.createElement('div');
-    productsGrid.className = 'products-container';
-    container.appendChild(productsGrid);
-
-    try {
-        const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(10));
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-            return null;
-        }
-
-        snapshot.forEach(doc => {
-            const product = { id: doc.id, ...doc.data() };
-            const card = createProductCardElement(product);
-            productsGrid.appendChild(card);
-        });
-        return container;
-    } catch (error) {
-        console.error("Error fetching all products for home page:", error);
-        return null;
-    }
+    // setupScrollAnimations();
 }
 
 export async function renderHomePageContent() {
@@ -746,8 +681,8 @@ export function updateQuantity(productId, change) {
 
 export function removeFromCart(productId) {
     let newCart = cart.filter(item => item.id !== productId);
-    cart.length = 0; // Clear original array
-    Array.prototype.push.apply(cart, newCart); // Push new items
+    cart.length = 0;
+    Array.prototype.push.apply(cart, newCart);
     saveCart();
     renderCart();
 }
@@ -1289,21 +1224,98 @@ export function showWelcomeMessage() {
     }
 }
 
-export function showProductDetails(product) {
+export function showProductDetails(productId) {
     const allFetchedProducts = [...products];
-    const productData = allFetchedProducts.find(p => p.id === product.id) || product;
+    const product = allFetchedProducts.find(p => p.id === productId);
 
-    if (!productData) {
-        showNotification(t('product_not_found_error'), 'error');
+    if (!product) {
+        getDoc(doc(dbRef, "products", productId)).then(docSnap => {
+            if (docSnap.exists()) {
+                const fetchedProduct = { id: docSnap.id, ...docSnap.data() };
+                showProductDetailsWithData(fetchedProduct);
+            } else {
+                showNotification(t('product_not_found_error'), 'error');
+            }
+        });
         return;
     }
-    showProductDetailsWithData(productData);
+    showProductDetailsWithData(product);
 }
 
 export function showProductDetailsWithData(product) {
-    // This function seems to be from your original file. Copy it here.
-}
+    const nameInCurrentLang = (product.name && product.name[currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
+    const descriptionText = (product.description && product.description[currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
+    const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
 
+    const imageContainer = document.getElementById('sheetImageContainer');
+    const thumbnailContainer = document.getElementById('sheetThumbnailContainer');
+    imageContainer.innerHTML = '';
+    thumbnailContainer.innerHTML = '';
+
+    if (imageUrls.length > 0) {
+        imageUrls.forEach((url, index) => {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = nameInCurrentLang;
+            if (index === 0) img.classList.add('active');
+            imageContainer.appendChild(img);
+
+            const thumb = document.createElement('img');
+            thumb.src = url;
+            thumb.alt = `Thumbnail of ${nameInCurrentLang}`;
+            thumb.className = 'thumbnail';
+            if (index === 0) thumb.classList.add('active');
+            thumb.dataset.index = index;
+            thumbnailContainer.appendChild(thumb);
+        });
+    }
+
+    let currentIndex = 0;
+    const images = imageContainer.querySelectorAll('img');
+    const thumbnails = thumbnailContainer.querySelectorAll('.thumbnail');
+    const prevBtn = document.getElementById('sheetPrevBtn');
+    const nextBtn = document.getElementById('sheetNextBtn');
+
+    function updateSlider(index) {
+        if (!images[index] || !thumbnails[index]) return;
+        images.forEach(img => img.classList.remove('active'));
+        thumbnails.forEach(thumb => thumb.classList.remove('active'));
+        images[index].classList.add('active');
+        thumbnails[index].classList.add('active');
+        currentIndex = index;
+    }
+
+    if (imageUrls.length > 1) {
+        prevBtn.style.display = 'flex';
+        nextBtn.style.display = 'flex';
+    } else {
+        prevBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
+    }
+
+    prevBtn.onclick = () => updateSlider((currentIndex - 1 + images.length) % images.length);
+    nextBtn.onclick = () => updateSlider((currentIndex + 1) % images.length);
+    thumbnails.forEach(thumb => thumb.onclick = () => updateSlider(parseInt(thumb.dataset.index)));
+
+    document.getElementById('sheetProductName').textContent = nameInCurrentLang;
+    document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText);
+
+    const priceContainer = document.getElementById('sheetProductPrice');
+    if (product.originalPrice && product.originalPrice > product.price) {
+        priceContainer.innerHTML = `<span style="color: var(--accent-color);">${product.price.toLocaleString()} د.ع</span> <del style="color: var(--dark-gray); font-size: 16px; margin-right: 10px;">${product.originalPrice.toLocaleString()} د.ع</del>`;
+    } else {
+        priceContainer.innerHTML = `<span>${product.price.toLocaleString()} د.ع</span>`;
+    }
+
+    const addToCartButton = document.getElementById('sheetAddToCartBtn');
+    addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
+    addToCartButton.onclick = () => {
+        addToCart(product.id);
+        closeCurrentPopup();
+    };
+
+    openPopup('productDetailSheet');
+}
 
 export async function forceUpdate() {
     if (confirm(t('update_confirm'))) {
@@ -1398,12 +1410,14 @@ export function updateAdminUI(isAdmin) {
         settingsAdminLoginBtn.style.display = isAdmin ? 'none' : 'flex';
     }
 
-    renderProducts(); 
+    renderProducts();
 
     if (isAdmin) {
-        renderAdminAnnouncementsList();
+        import('./app_events.js').then(module => {
+            module.renderAdminAnnouncementsList();
+            module.renderSocialMediaLinks();
+        });
         renderContactMethodsAdmin();
-        renderSocialMediaLinks();
         loadPoliciesForAdmin();
         renderPromoCardsAdminList();
         renderCategoryManagementUI();

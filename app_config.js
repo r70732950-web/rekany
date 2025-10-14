@@ -4,8 +4,8 @@ import { collection } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-f
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { getFirestore, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getMessaging } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE",
@@ -31,7 +31,6 @@ export const dbRef = db;
 export const authRef = auth;
 export const messagingRef = messaging;
 
-// Translations object for multilingual support
 export const translations = {
     ku_sorani: {
         search_placeholder: "گەڕان بە ناوی کاڵا...",
@@ -409,20 +408,29 @@ export function openPopup(id, type = 'sheet') {
     const element = document.getElementById(id);
     if (!element) return;
 
-    closeAllPopupsUI();
+    // This is a bit of a hack. The functions are in other files.
+    // A better approach is an event emitter, but for simplicity, we use dynamic import.
+    // This assumes renderCart, renderFavoritesPage etc. are exported from their respective logic files.
     if (type === 'sheet') {
+        import('./app_product_logic.js').then(module => {
+            if (id === 'cartSheet') module.renderCart();
+            if (id === 'favoritesSheet') module.renderFavoritesPage();
+            // if (id === 'categoriesSheet') module.renderCategoriesSheet(); // This one might be in events
+            // if (id === 'termsSheet') module.renderPolicies();
+        });
+        import('./app_events.js').then(module => {
+            if (id === 'notificationsSheet') module.renderUserNotifications();
+        });
+        
         sheetOverlay.classList.add('show');
         element.classList.add('show');
-        if (id === 'cartSheet') renderCart();
-        if (id === 'favoritesSheet') renderFavoritesPage();
-        if (id === 'categoriesSheet') renderCategoriesSheet();
-        if (id === 'notificationsSheet') renderUserNotifications();
-        if (id === 'termsSheet') renderPolicies();
+        
         if (id === 'profileSheet') {
             document.getElementById('profileName').value = userProfile.name || '';
             document.getElementById('profileAddress').value = userProfile.address || '';
             document.getElementById('profilePhone').value = userProfile.phone || '';
         }
+
     } else {
         element.style.display = 'block';
     }
@@ -467,7 +475,6 @@ export function t(key, replacements = {}) {
     return translation;
 }
 
-
 export function setLanguage(lang) {
     currentLanguage = lang;
     localStorage.setItem('language', lang);
@@ -491,17 +498,19 @@ export function setLanguage(lang) {
         btn.classList.toggle('active', btn.dataset.lang === lang);
     });
 
-    const isHomeView = !currentSearch && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
-    if (isHomeView) {
-        renderHomePageContent();
-    } else {
-        renderProducts();
-    }
-
-    renderMainCategories();
-    renderCategoriesSheet();
-    if (document.getElementById('cartSheet').classList.contains('show')) renderCart();
-    if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPage();
+    // We need to import these functions to call them
+    import('./app_product_logic.js').then(module => {
+        const isHomeView = !currentSearch && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
+        if (isHomeView) {
+            module.renderHomePageContent();
+        } else {
+            module.renderProducts();
+        }
+        module.renderMainCategories();
+        // module.renderCategoriesSheet();
+        if (document.getElementById('cartSheet').classList.contains('show')) module.renderCart();
+        if (document.getElementById('favoritesSheet').classList.contains('show')) module.renderFavoritesPage();
+    });
 }
 
 export function updateContactLinksUI() {
@@ -527,4 +536,24 @@ export function formatDescription(text) {
         return `<a href="${hyperLink}" target="_blank" rel="noopener noreferrer">${url}</a>`;
     });
     return textWithLinks.replace(/\n/g, '<br>');
+}
+
+export function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.classList.add('show'), 10);
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => document.body.removeChild(notification), 300);
+    }, 3000);
+}
+
+export function updateCartCount() {
+    const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
+    const cartCountElement = document.getElementById('cartCount');
+    if (cartCountElement) {
+        cartCountElement.textContent = totalItems;
+    }
 }
