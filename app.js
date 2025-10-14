@@ -771,13 +771,15 @@ async function renderSubcategories(categoryId) {
 
         if (subcategories.length === 0) return;
 
-        // --- START: گۆڕانکارییەکە لێرە کراوە ---
+        // --- START: The fix is here ---
         const allBtn = document.createElement('button');
+        // Make the active class conditional
         allBtn.className = `subcategory-btn ${currentSubcategory === 'all' ? 'active' : ''}`;
         allBtn.textContent = t('all_categories_label');
         allBtn.onclick = () => {
             currentSubcategory = 'all';
             currentSubSubcategory = 'all';
+            // Remove 'active' from all other buttons and add it to this one
             document.querySelectorAll('#subcategoriesContainer .subcategory-btn').forEach(b => b.classList.remove('active'));
             allBtn.classList.add('active');
             subSubcategoriesContainer.innerHTML = '';
@@ -787,11 +789,13 @@ async function renderSubcategories(categoryId) {
 
         subcategories.forEach(subcat => {
             const subcatBtn = document.createElement('button');
+            // Make the active class conditional for each subcategory button
             subcatBtn.className = `subcategory-btn ${currentSubcategory === subcat.id ? 'active' : ''}`;
             subcatBtn.textContent = subcat['name_' + currentLanguage] || subcat.name_ku_sorani;
             subcatBtn.onclick = () => {
                 currentSubcategory = subcat.id;
                 currentSubSubcategory = 'all';
+                // Remove 'active' from all other buttons and add it to this one
                 document.querySelectorAll('#subcategoriesContainer .subcategory-btn').forEach(b => b.classList.remove('active'));
                 subcatBtn.classList.add('active');
                 renderSubSubcategories(categoryId, subcat.id);
@@ -800,15 +804,16 @@ async function renderSubcategories(categoryId) {
             subcategoriesContainer.appendChild(subcatBtn);
         });
 
-        // This line ensures sub-subcategories are shown if a subcategory is pre-selected
+        // If a subcategory was selected (e.g., by clicking a brand), make sure its sub-subcategories are rendered
         if (currentSubcategory && currentSubcategory !== 'all') {
             renderSubSubcategories(categoryId, currentSubcategory);
         }
-        // --- END: کۆتایی گۆڕانکارییەکە ---
+        // --- END: The fix ---
     } catch (error) {
         console.error("Error fetching subcategories: ", error);
     }
 }
+
 
 function renderMainCategories() {
     const container = document.getElementById('mainCategoriesContainer');
@@ -1135,14 +1140,8 @@ async function renderBrandsSection() {
     const sectionContainer = document.createElement('div');
     sectionContainer.className = 'brands-section';
 
-    const header = document.createElement('div');
-    header.className = 'section-title-header';
-    const title = document.createElement('h3');
-    title.className = 'section-title-main';
-    title.textContent = "براندەکان"; // You can add this to translations
-    header.appendChild(title);
-    sectionContainer.appendChild(header);
-
+    // The header/title element has been removed from here.
+    
     const brandsContainer = document.createElement('div');
     brandsContainer.id = 'brandsContainer';
     brandsContainer.className = 'brands-container';
@@ -3300,3 +3299,4 @@ function startPromoRotation() {
         promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
+
