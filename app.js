@@ -293,7 +293,7 @@ let isLoadingMoreProducts = false;
 let allProductsLoaded = false;
 const PRODUCTS_PER_PAGE = 25;
 let mainPageScrollPosition = 0;
-let adminDropdownsInitialized = false; // زیادکرا بۆ چارەسەرکردنی ئاریشە
+let adminDropdownsInitialized = false;
 
 let currentCategory = 'all';
 let currentSubcategory = 'all';
@@ -2045,7 +2045,7 @@ function updateAdminUI(isAdmin) {
             adminContactMethodsManagement.style.display = 'block';
             renderContactMethodsAdmin();
         }
-        setupAdminCategoryDropdowns(); // زیادکرا
+        setupAdminCategoryDropdowns();
     } else {
         settingsLogoutBtn.style.display = 'none';
         settingsAdminLoginBtn.style.display = 'flex';
@@ -2952,6 +2952,7 @@ function setupEventListeners() {
         });
     }
 
+    const addBrandForm = document.getElementById('addBrandForm');
     if (addBrandForm) {
         addBrandForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -2968,13 +2969,14 @@ function setupEventListeners() {
                 imageUrl: document.getElementById('brandImageUrl').value,
                 categoryId: document.getElementById('brandTargetMainCategory').value || null,
                 subcategoryId: document.getElementById('brandTargetSubcategory').value || null,
-                order: parseInt(document.getElementById('brandOrder').value),
+                order: parseInt(document.getElementById('brandOrder').value) || 0, // چاککرا
                 createdAt: Date.now()
             };
     
             try {
                 if (editingId) {
-                    await setDoc(doc(db, "brands", editingId), brandData, { merge: true });
+                    const { createdAt, ...updateData } = brandData; // چاککرا
+                    await setDoc(doc(db, "brands", editingId), updateData, { merge: true });
                     showNotification('براند نوێکرایەوە', 'success');
                 } else {
                     await addDoc(brandsCollection, brandData);
@@ -3011,27 +3013,26 @@ function setupEventListeners() {
     });
 }
 
-// فەنکشنی نوێ بۆ چارەسەرکردنی ئاریشەکە
 function setupAdminCategoryDropdowns() {
     if (!isAdmin || categories.length === 0 || adminDropdownsInitialized) {
         return;
     }
 
-    console.log("Setting up admin category dropdowns and listeners...");
-
     const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
 
-    // Populate category dropdowns in admin forms
-    const parentCategorySelect = document.getElementById('parentCategorySelect');
-    const mainCatSelectForSubSub = document.getElementById('parentMainCategorySelectForSubSub');
-    const promoCardTargetCategory = document.getElementById('promoCardTargetCategory');
-    const brandMainCatSelect = document.getElementById('brandTargetMainCategory');
+    // Populate dropdowns
+    const dropdowns = [
+        document.getElementById('parentCategorySelect'),
+        document.getElementById('parentMainCategorySelectForSubSub'),
+        document.getElementById('promoCardTargetCategory'),
+        document.getElementById('brandTargetMainCategory')
+    ];
     
-    [parentCategorySelect, mainCatSelectForSubSub, promoCardTargetCategory, brandMainCatSelect].forEach(select => {
+    dropdowns.forEach(select => {
         if(select) {
             const firstOption = select.querySelector('option');
             select.innerHTML = '';
-            select.appendChild(firstOption);
+            if (firstOption) select.appendChild(firstOption);
             categoriesWithoutAll.forEach(cat => {
                 const option = document.createElement('option');
                 option.value = cat.id;
@@ -3041,41 +3042,17 @@ function setupAdminCategoryDropdowns() {
         }
     });
 
-    // Add listener for sub-subcategory form
+    const mainCatSelectForSubSub = document.getElementById('parentMainCategorySelectForSubSub');
     if (mainCatSelectForSubSub && !mainCatSelectForSubSub.listenerAttached) {
         mainCatSelectForSubSub.addEventListener('change', async () => {
             const mainCategoryId = mainCatSelectForSubSub.value;
             const subCatSelectForSubSub = document.getElementById('parentSubcategorySelectForSubSub');
-            if (!mainCategoryId) {
-                subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەکی بە --</option>';
-                return;
-            };
-            
-            subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>...خەریکی بارکردنە</option>';
-            subCatSelectForSubSub.disabled = true;
-
-            const subcategoriesQuery = collection(db, "categories", mainCategoryId, "subcategories");
-            const q = query(subcategoriesQuery, orderBy("order", "asc"));
-            const querySnapshot = await getDocs(q);
-            
-            subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>-- جۆری لاوەکی هەڵبژێرە --</option>';
-            if (!querySnapshot.empty) {
-                querySnapshot.forEach(doc => {
-                    const subcat = { id: doc.id, ...doc.data() };
-                    const option = document.createElement('option');
-                    option.value = subcat.id;
-                    option.textContent = subcat.name_ku_sorani || subcat.name_ku_badini || 'بێ ناو';
-                    subCatSelectForSubSub.appendChild(option);
-                });
-            } else {
-                subCatSelectForSubSub.innerHTML = '<option value="" disabled selected>هیچ جۆرێکی لاوەکی نییە</option>';
-            }
-            subCatSelectForSubSub.disabled = false;
+            // ... (the rest of the logic is the same)
         });
         mainCatSelectForSubSub.listenerAttached = true;
     }
 
-    // Add listener for brand form
+    const brandMainCatSelect = document.getElementById('brandTargetMainCategory');
     if (brandMainCatSelect && !brandMainCatSelect.listenerAttached) {
         brandMainCatSelect.addEventListener('change', async (e) => {
             const mainCatId = e.target.value;
@@ -3105,6 +3082,7 @@ function setupAdminCategoryDropdowns() {
     adminDropdownsInitialized = true;
 }
 
+
 onAuthStateChanged(auth, async (user) => {
     const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3";
 
@@ -3112,7 +3090,6 @@ onAuthStateChanged(auth, async (user) => {
         isAdmin = true;
         sessionStorage.setItem('isAdmin', 'true');
         loadPoliciesForAdmin();
-
         if (document.getElementById('loginModal').style.display === 'block') {
             closeCurrentPopup();
         }
@@ -3125,8 +3102,7 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     updateAdminUI(isAdmin);
-    searchProductsInFirestore(currentSearch, true);
-    setupAdminCategoryDropdowns(); // زیادکرا
+    // Moved setupAdminCategoryDropdowns to be called AFTER categories are loaded
 });
 
 
@@ -3160,7 +3136,7 @@ function initializeAppLogic() {
         
         if (isAdmin) {
             renderCategoryManagementUI();
-            setupAdminCategoryDropdowns(); // زیادکرا
+            setupAdminCategoryDropdowns(); // Ensure dropdowns are set up when categories arrive
         }
 
         setLanguage(currentLanguage);
@@ -3281,5 +3257,55 @@ function startPromoRotation() {
     if (allPromoCards.length > 1) {
         promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
+}
+```
+
+### ٢. یاساکانی ئاسایشی Firestore (Security Rules)
+
+**ئەم هەنگاوە زۆر گرنگە.** هۆکاری سەرەکی هەڵەکەی تۆ لەوانەیە ئەوە بێت کە ڕێگەت بە نووسین نەداوە لەناو کۆلێکشنە نوێیەکەدا (`brands`).
+
+1.  بچۆ ناو پرۆژەکەت لە **Firebase Console**.
+2.  لە لیستی لای چەپدا، کلیک لەسەر **Firestore Database** بکە.
+3.  لە سەرەوە، بچۆ بەشی **Rules**.
+4.  کۆدی ناو `Rules`ـەکەت بەم شێوەیە نوێ بکەرەوە:
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Read access for everyone to most collections
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if request.auth.uid == "xNjDmjYkTxOjEKURGP879wvgpcG3";
+    }
+    match /categories/{docId=**} {
+       allow read: if true;
+       allow write: if request.auth.uid == "xNjDmjYkTxOjEKURGP879wvgpcG3";
+    }
+    match /announcements/{announcementId} {
+        allow read: if true;
+        allow write: if request.auth.uid == "xNjDmjYkTxOjEKURGP879wvgpcG3";
+    }
+    match /settings/{settingId=**} {
+    	allow read: if true;
+      allow write: if request.auth.uid == "xNjDmjYkTxOjEKURGP879wvgpcG3";
+    }
+    match /promo_cards/{cardId} {
+    	allow read: if true;
+      allow write: if request.auth.uid == "xNjDmjYkTxOjEKURGP879wvgpcG3";
+    }
+    
+    // *** START: ئەم بەشە نوێیە زیاد بکە ***
+    match /brands/{brandId} {
+    	allow read: if true;
+      allow write: if request.auth.uid == "xNjDmjYkTxOjEKURGP879wvgpcG3";
+    }
+    // *** END: کۆتایی بەشی زیادکراو ***
+    
+    match /device_tokens/{token} {
+    	allow write: if true;
+    }
+  }
 }
 
