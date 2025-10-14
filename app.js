@@ -21,6 +21,9 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const messaging = getMessaging(app);
 
+// Make Firebase services and helper functions globally available for admin.js
+window.globalAdminTools = {};
+
 // Firestore Collections
 const productsCollection = collection(db, "products");
 const categoriesCollection = collection(db, "categories");
@@ -2053,6 +2056,20 @@ function initializeAppLogic() {
     setupGpsButton();
     handleInitialPageLoad();
 }
+
+// Assign all necessary functions and variables to the global tools object
+Object.assign(window.globalAdminTools, {
+    db, auth,
+    doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut,
+    showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
+    productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
+    
+    // State variables
+    setEditingProductId: (id) => { editingProductId = id; },
+    getEditingProductId: () => editingProductId,
+    getCategories: () => categories,
+    getCurrentLanguage: () => currentLanguage
+});
 
 document.addEventListener('DOMContentLoaded', init);
 

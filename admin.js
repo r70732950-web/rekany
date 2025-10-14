@@ -1,8 +1,12 @@
-<script type="module" src="app.js"></script>
-<script src="admin.js"></script> ```
-
-```javascript
 // فایلی admin.js
+
+// Access the shared tools from app.js
+const { 
+    db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut,
+    showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
+    productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
+    setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage
+} = window.globalAdminTools;
 
 window.AdminLogic = {
     // This object will hold all admin-related functions and logic.
@@ -39,6 +43,10 @@ window.AdminLogic = {
             const section = document.getElementById(id);
             if (section) section.style.display = isAdmin ? 'block' : 'none';
         });
+        
+        const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
+        const settingsAdminLoginBtn = document.getElementById('settingsAdminLoginBtn');
+        const addProductBtn = document.getElementById('addProductBtn');
 
         if (isAdmin) {
             settingsLogoutBtn.style.display = 'flex';
@@ -60,10 +68,11 @@ window.AdminLogic = {
             return;
         }
         const product = { id: productSnap.id, ...productSnap.data() };
+        const categories = getCategories(); // Fetch categories
 
-        editingProductId = productId;
-        formTitle.textContent = 'دەستکاری کردنی کاڵا';
-        productForm.reset();
+        setEditingProductId(productId);
+        document.getElementById('formTitle').textContent = 'دەستکاری کردنی کاڵا';
+        document.getElementById('productForm').reset();
 
         if (product.name && typeof product.name === 'object') {
             document.getElementById('productNameKuSorani').value = product.name.ku_sorani || '';
@@ -104,7 +113,7 @@ window.AdminLogic = {
         await this.populateSubcategoriesDropdown(categoryId, product.subcategoryId);
         await this.populateSubSubcategoriesDropdown(categoryId, product.subcategoryId, product.subSubcategoryId);
 
-        productForm.querySelector('button[type="submit"]').textContent = 'نوێکردنەوە';
+        document.getElementById('productForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوە';
         openPopup('productFormModal', 'modal');
     },
 
@@ -113,13 +122,14 @@ window.AdminLogic = {
         try {
             await deleteDoc(doc(db, "products", productId));
             showNotification(t('product_deleted'), 'success');
-            searchProductsInFirestore(searchInput.value, true);
+            searchProductsInFirestore(document.getElementById('searchInput').value, true);
         } catch (error) {
             showNotification(t('product_delete_error'), 'error');
         }
     },
 
     createProductImageInputs: function(imageUrls = []) {
+        const imageInputsContainer = document.getElementById('imageInputsContainer');
         imageInputsContainer.innerHTML = '';
         for (let i = 0; i < 4; i++) {
             const url = imageUrls[i] || '';
@@ -134,9 +144,12 @@ window.AdminLogic = {
     },
 
     populateSubcategoriesDropdown: async function(categoryId, selectedSubcategoryId = null) {
+        const subcategorySelectContainer = document.getElementById('subcategorySelectContainer');
+        const productSubcategorySelect = document.getElementById('productSubcategoryId');
+
         if (!categoryId) {
             subcategorySelectContainer.style.display = 'none';
-            subSubcategorySelectContainer.style.display = 'none';
+            document.getElementById('subSubcategorySelectContainer').style.display = 'none';
             return;
         }
 
@@ -153,7 +166,7 @@ window.AdminLogic = {
 
             if (querySnapshot.empty) {
                 productSubcategorySelect.innerHTML = '<option value="" disabled selected>هیچ جۆرێکی لاوەکی نییە</option>';
-                subSubcategorySelectContainer.style.display = 'none';
+                document.getElementById('subSubcategorySelectContainer').style.display = 'none';
             } else {
                 querySnapshot.docs.forEach(doc => {
                     const subcat = { id: doc.id, ...doc.data() };
@@ -282,6 +295,7 @@ window.AdminLogic = {
     },
 
     renderSocialMediaLinks: function() {
+        const socialLinksListContainer = document.getElementById('socialLinksListContainer');
         const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
         const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
 
@@ -293,7 +307,7 @@ window.AdminLogic = {
             }
             snapshot.forEach(doc => {
                 const link = { id: doc.id, ...doc.data() };
-                const name = link['name_' + currentLanguage] || link.name_ku_sorani;
+                const name = link['name_' + getCurrentLanguage()] || link.name_ku_sorani;
 
                 const item = document.createElement('div');
                 item.className = 'social-link-item';
@@ -340,7 +354,7 @@ window.AdminLogic = {
             }
             snapshot.forEach(doc => {
                 const method = { id: doc.id, ...doc.data() };
-                const name = method['name_' + currentLanguage] || method.name_ku_sorani;
+                const name = method['name_' + getCurrentLanguage()] || method.name_ku_sorani;
 
                 const item = document.createElement('div');
                 item.className = 'social-link-item';
@@ -589,6 +603,7 @@ window.AdminLogic = {
     },
 
     updateAdminCategoryDropdowns: function() {
+        const categories = getCategories();
         if (categories.length <= 1) return;
         const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
 
@@ -620,33 +635,33 @@ window.AdminLogic = {
 
         const self = this;
 
-        addProductBtn.onclick = () => {
-            editingProductId = null;
-            productForm.reset();
+        document.getElementById('addProductBtn').onclick = () => {
+            setEditingProductId(null);
+            document.getElementById('productForm').reset();
             self.createProductImageInputs();
-            subcategorySelectContainer.style.display = 'none';
-            subSubcategorySelectContainer.style.display = 'none';
-            formTitle.textContent = 'زیادکردنی కాڵای نوێ';
-            productForm.querySelector('button[type="submit"]').textContent = 'پاشەکەوتکردن';
+            document.getElementById('subcategorySelectContainer').style.display = 'none';
+            document.getElementById('subSubcategorySelectContainer').style.display = 'none';
+            document.getElementById('formTitle').textContent = 'زیادکردنی కాڵای نوێ';
+            document.getElementById('productForm').querySelector('button[type="submit"]').textContent = 'پاشەکەوتکردن';
             openPopup('productFormModal', 'modal');
         };
 
-        settingsLogoutBtn.onclick = async () => {
+        document.getElementById('settingsLogoutBtn').onclick = async () => {
             await signOut(auth);
             showNotification(t('logout_success'), 'success');
         };
 
-        productCategorySelect.addEventListener('change', (e) => {
+        document.getElementById('productCategoryId').addEventListener('change', (e) => {
             self.populateSubcategoriesDropdown(e.target.value);
             self.populateSubSubcategoriesDropdown(null, null);
         });
 
-        productSubcategorySelect.addEventListener('change', (e) => {
+        document.getElementById('productSubcategoryId').addEventListener('change', (e) => {
             const mainCatId = document.getElementById('productCategoryId').value;
             self.populateSubSubcategoriesDropdown(mainCatId, e.target.value);
         });
 
-        productForm.onsubmit = async (e) => {
+        document.getElementById('productForm').onsubmit = async (e) => {
             e.preventDefault();
             const submitButton = e.target.querySelector('button[type="submit"]');
             submitButton.disabled = true;
@@ -655,7 +670,7 @@ window.AdminLogic = {
             if (imageUrls.length === 0) {
                 showNotification('پێویستە بەلایەنی کەمەوە لینکی یەک وێنە دابنێیت', 'error');
                 submitButton.disabled = false;
-                submitButton.textContent = editingProductId ? 'نوێکردنەوە' : 'پاشەکەوتکردن';
+                submitButton.textContent = getEditingProductId() ? 'نوێکردنەوە' : 'پاشەکەوتکردن';
                 return;
             }
 
@@ -691,27 +706,28 @@ window.AdminLogic = {
                         ar: document.getElementById('shippingInfoAr').value.trim()
                     }
                 };
-                if (editingProductId) {
+                const editingId = getEditingProductId();
+                if (editingId) {
                     const { createdAt, ...updateData } = productData;
-                    await updateDoc(doc(db, "products", editingProductId), updateData);
+                    await updateDoc(doc(db, "products", editingId), updateData);
                     showNotification('کاڵا نوێکرایەوە', 'success');
                 } else {
                     await addDoc(productsCollection, productData);
                     showNotification('کاڵا زیادکرا', 'success');
                 }
                 closeCurrentPopup();
-                searchProductsInFirestore(currentSearch, true);
+                searchProductsInFirestore(document.getElementById('searchInput').value, true);
             } catch (error) {
                 showNotification(t('error_generic'), 'error');
                 console.error("Error saving product:", error);
             } finally {
                 submitButton.disabled = false;
-                submitButton.textContent = editingProductId ? 'نوێکردنەوە' : 'پاشەکەوتکردن';
-                editingProductId = null;
+                submitButton.textContent = getEditingProductId() ? 'نوێکردنەوە' : 'پاشەکەوتکردن';
+                setEditingProductId(null);
             }
         };
 
-        imageInputsContainer.addEventListener('input', (e) => {
+        document.getElementById('imageInputsContainer').addEventListener('input', (e) => {
             if (e.target.classList.contains('productImageUrl')) {
                 const previewImg = e.target.nextElementSibling;
                 const url = e.target.value;
@@ -862,6 +878,7 @@ window.AdminLogic = {
             });
         }
 
+        const announcementForm = document.getElementById('announcementForm');
         if (announcementForm) {
             announcementForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -896,7 +913,8 @@ window.AdminLogic = {
                 }
             });
         }
-
+        
+        const policiesForm = document.getElementById('policiesForm');
         if (policiesForm) {
             policiesForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -923,14 +941,16 @@ window.AdminLogic = {
                 }
             });
         }
-
+        
+        const socialMediaToggle = document.getElementById('socialMediaToggle');
 		socialMediaToggle.onclick = () => {
-            const container = adminSocialMediaManagement.querySelector('.contact-links-container');
+            const container = document.getElementById('adminSocialMediaManagement').querySelector('.contact-links-container');
             const chevron = socialMediaToggle.querySelector('.contact-chevron');
             container.classList.toggle('open');
             chevron.classList.toggle('open');
         };
 		
+        const addSocialMediaForm = document.getElementById('addSocialMediaForm');
 		addSocialMediaForm.addEventListener('submit', async (e) => {
 			e.preventDefault();
 			const socialData = {
