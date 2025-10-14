@@ -1,7 +1,22 @@
 // app_product_logic.js
-import { productsCollection, promoCardsCollection, products, categories, currentLanguage, t, isFavorite, saveFavorites, showNotification, currentSearch, currentCategory, currentSubcategory, currentSubSubcategory, searchProductsInFirestore, updateActiveNav, formatDescription, isAdmin, editingProductId, setLanguage, updateAdminUI, categoriesCollection, subcategories, dbRef, authRef, userProfile, CART_KEY, favorites, updateCartCount, closeCurrentPopup, imageInputsContainer, productCategorySelect, subcategorySelectContainer, productSubcategorySelect, subSubcategorySelectContainer, productSubSubcategorySelect, allPromoCards, currentPromoCardIndex, promoRotationInterval, productsContainer, skeletonLoader, loader, PRODUCTS_PER_PAGE, lastVisibleProductDoc, allProductsLoaded, isLoadingMoreProducts } from './app_config.js';
+
+import {
+    productsCollection, promoCardsCollection, products, categories, currentLanguage, t,
+    showNotification, currentSearch, currentCategory, currentSubcategory, currentSubSubcategory,
+    isAdmin, editingProductId, categoriesCollection, subcategories, dbRef, authRef,
+    userProfile, cart, saveCart, closeCurrentPopup, imageInputsContainer, productCategorySelect,
+    subcategorySelectContainer, productSubcategorySelect, subSubcategorySelectContainer,
+    productSubSubcategorySelect, allPromoCards, currentPromoCardIndex, promoRotationInterval,
+    productsContainer, skeletonLoader, loader, PRODUCTS_PER_PAGE, lastVisibleProductDoc,
+    allProductsLoaded, isLoadingMoreProducts, formTitle, productForm, favorites, FAVORITES_KEY,
+    favoritesContainer, emptyFavoritesMessage, cartItemsContainer, emptyCartMessage, cartTotal,
+    cartActions, totalAmount, sheetOverlay, updateCartCount, isRenderingHomePage,
+    updateActiveNav, setLanguage
+} from './app_config.js';
+
 import { getDocs, query, orderBy, where, limit, getDoc, doc, deleteDoc, addDoc, updateDoc, setDoc, startAfter, collection } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+import { renderAdminAnnouncementsList, renderSocialMediaLinks, renderMainCategories, renderSubcategories } from './app_events.js';
 
 
 export function createPromoCardElement(card) {
@@ -101,7 +116,7 @@ export function createProductCardElement(product) {
             </button>
             ${extraInfoHTML}
         </div>
-        <div class="product-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
+        <div class="product-actions" style="display: ${sessionStorage.getItem('isAdmin') === 'true' ? 'flex' : 'none'};">
             <button class="edit-btn" aria-label="Edit product"><i class="fas fa-edit"></i></button>
             <button class="delete-btn" aria-label="Delete product"><i class="fas fa-trash"></i></button>
         </div>
@@ -132,7 +147,7 @@ export function createProductCardElement(product) {
         } else if (target.closest('.favorite-btn')) {
             toggleFavorite(product.id);
         } else if (!target.closest('a')) {
-            showProductDetailsWithData(product);
+            showProductDetails(product);
         }
     });
     return productCard;
@@ -175,9 +190,9 @@ export function renderSkeletonLoader() {
 
 export function renderProducts() {
     productsContainer.innerHTML = '';
-	if (!products || products.length === 0) {
-		return;
-	}
+    if (!products || products.length === 0) {
+        return;
+    }
 
     products.forEach(item => {
         let element;
@@ -192,10 +207,6 @@ export function renderProducts() {
 
     setupScrollAnimations();
 }
-
-// =======================================================
-// START: Home page rendering functions
-// =======================================================
 
 export async function renderNewestProductsSection() {
     const container = document.createElement('div');
@@ -383,10 +394,6 @@ export async function renderHomePageContent() {
         isRenderingHomePage = false;
     }
 }
-
-// =======================================================
-// END: Home page rendering functions
-// =======================================================
 
 export async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');

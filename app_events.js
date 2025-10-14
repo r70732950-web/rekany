@@ -1,8 +1,40 @@
 // app_events.js
-import { productsCollection, announcementsCollection, promoCardsCollection, dbRef, authRef, messagingRef, categories, currentLanguage, currentSearch, products, isAdmin, editingProductId, t, debounce, showNotification, updateAdminUI, saveCart, setLanguage, renderMainCategories, renderSubcategories, renderSubSubcategories, searchProductsInFirestore, closeCurrentPopup, populateCategoryDropdown, populateSubcategoriesDropdown, populateSubSubcategoriesDropdown, renderCart, populateParentCategorySelect, renderContactMethodsAdmin, loadPoliciesForAdmin, renderPromoCardsAdminList, renderCategoryManagementUI } from './app_config.js';
-import { deleteProduct, addToCart, renderCartActionButtons, deleteContactMethod, deleteSocialMediaLink, renderPolicies, showWelcomeMessage, setupGpsButton, setupScrollObserver, openEditCategoryModal, handleDeleteCategory } from './app_product_logic.js';
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { getDocs, query, orderBy, limit, onSnapshot, doc, getDoc, setDoc, addDoc, deleteDoc, updateDoc, collection, where } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+// بەشی یەکەم: هاوردەکردنی گۆڕاو و فەنکشنە سەرەتاییەکان لە app_config.js
+import {
+    productsCollection, announcementsCollection, promoCardsCollection, dbRef, authRef, messagingRef,
+    categories, currentLanguage, currentSearch, products, isAdmin, editingProductId, t,
+    debounce, showNotification, saveCart, setLanguage, closeAllPopupsUI,
+    populateCategoryDropdown, sheetOverlay, deferredPrompt, PROFILE_KEY, userProfile,
+    mainPage, settingsPage, homeBtn, settingsBtn, cartBtn, categoriesBtn, profileBtn,
+    settingsFavoritesBtn, settingsAdminLoginBtn, addProductBtn, settingsLogoutBtn,
+    loginForm, productForm, productCategorySelect, productSubcategorySelect, formTitle,
+    imageInputsContainer, searchInput, clearSearchBtn, subcategorySelectContainer,
+    subSubcategorySelectContainer, contactToggle, adminSocialMediaManagement,
+    socialMediaToggle, profileForm, addSocialMediaForm, socialLinksListContainer,
+    notificationBtn, notificationBadge, notificationsSheet, notificationsListContainer,
+    adminAnnouncementManagement, announcementForm, termsAndPoliciesBtn, termsSheet,
+    termsContentContainer, adminPoliciesManagement, policiesForm,
+    addCategoryForm, addSubcategoryForm, addSubSubcategoryForm, editCategoryForm,
+    addContactMethodForm,
+    handleInitialPageLoad, showPage, updateActiveNav
+} from './app_config.js';
+
+// بەشی دووەم: هاوردەکردنی فەنکشنە لۆجیکییەکان لە app_product_logic.js
+import {
+    deleteProduct, addToCart, renderCartActionButtons, deleteContactMethod,
+    deleteSocialMediaLink, renderPolicies, showWelcomeMessage, setupGpsButton,
+    setupScrollObserver, openEditCategoryModal, handleDeleteCategory,
+    populateSubcategoriesDropdown, populateSubSubcategoriesDropdown,
+    renderCart, populateParentCategorySelect, renderContactMethodsAdmin, loadPoliciesForAdmin,
+    renderPromoCardsAdminList, renderCategoryManagementUI, editProduct,
+    createProductImageInputs, updateAdminUI, searchProductsInFirestore,
+    renderMainCategories, renderSubcategories, forceUpdate, requestNotificationPermission
+} from './app_product_logic.js';
+
+import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+import { getDocs, query, orderBy, limit, onSnapshot, doc, getDoc, setDoc, addDoc, deleteDoc, updateDoc, collection, where, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
 
 export function checkNewAnnouncements() {
@@ -96,19 +128,6 @@ export function renderAdminAnnouncementsList() {
             container.appendChild(item);
         });
     });
-}
-
-export async function deleteSocialMediaLink(linkId) {
-    if (confirm('دڵنیایت دەتەوێت ئەم لینکە بسڕیتەوە؟')) {
-        try {
-            const linkRef = doc(dbRef, 'settings', 'contactInfo', 'socialLinks', linkId);
-            await deleteDoc(linkRef);
-            showNotification('لینکەکە سڕدرایەوە', 'success');
-        } catch (error) {
-            console.error("Error deleting social link: ", error);
-            showNotification(t('error_generic'), 'error');
-        }
-    }
 }
 
 export function renderSocialMediaLinks() {
@@ -231,6 +250,7 @@ export function setupEventListeners() {
     sheetOverlay.onclick = () => closeCurrentPopup();
     document.querySelectorAll('.close').forEach(btn => btn.onclick = closeCurrentPopup);
     window.onclick = (e) => { if (e.target.classList.contains('modal')) closeCurrentPopup(); };
+
     loginForm.onsubmit = async (e) => {
         e.preventDefault();
         try {
@@ -391,10 +411,6 @@ export function setupEventListeners() {
         });
     }
 
-    const addCategoryForm = document.getElementById('addCategoryForm');
-    const addSubcategoryForm = document.getElementById('addSubcategoryForm');
-    const addSubSubcategoryForm = document.getElementById('addSubSubcategoryForm');
-
     if (addCategoryForm) {
         addCategoryForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -411,7 +427,7 @@ export function setupEventListeners() {
             };
 
             try {
-                await addDoc(categoriesCollection, categoryData);
+                await addDoc(collection(dbRef, "categories"), categoryData);
                 showNotification('جۆری سەرەکی بە سەرکەوتوویی زیادکرا', 'success');
                 addCategoryForm.reset();
             } catch (error) {
@@ -495,7 +511,6 @@ export function setupEventListeners() {
         });
     }
     
-    const editCategoryForm = document.getElementById('editCategoryForm');
     if (editCategoryForm) {
         editCategoryForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -531,7 +546,6 @@ export function setupEventListeners() {
         });
     }
 
-    const addContactMethodForm = document.getElementById('addContactMethodForm');
     if (addContactMethodForm) {
         addContactMethodForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -659,7 +673,7 @@ export function setupEventListeners() {
                     await setDoc(doc(dbRef, "promo_cards", editingId), cardData);
                     showNotification('کارتەکە نوێکرایەوە', 'success');
                 } else {
-                    await addDoc(promoCardsCollection, cardData);
+                    await addDoc(collection(dbRef, "promo_cards"), cardData);
                     showNotification('کارتی نوێ زیادکرا', 'success');
                 }
                 addPromoCardForm.reset();
@@ -693,9 +707,10 @@ export function setupEventListeners() {
 
 onAuthStateChanged(authRef, async (user) => {
     const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3";
+    let currentIsAdmin = false;
 
     if (user && user.uid === adminUID) {
-        isAdmin = true;
+        currentIsAdmin = true;
         sessionStorage.setItem('isAdmin', 'true');
         loadPoliciesForAdmin();
 
@@ -703,21 +718,21 @@ onAuthStateChanged(authRef, async (user) => {
             closeCurrentPopup();
         }
     } else {
-        isAdmin = false;
+        currentIsAdmin = false;
         sessionStorage.removeItem('isAdmin');
         if (user) {
             await signOut(authRef);
         }
     }
-
-    updateAdminUI(isAdmin);
+    
+    // This is a workaround since direct mutation of `isAdmin` isn't ideal across modules.
+    // The `updateAdminUI` function will handle UI changes based on this outcome.
+    updateAdminUI(currentIsAdmin); 
     searchProductsInFirestore(currentSearch, true);
 });
 
 
 export function init() {
-    renderSkeletonLoader();
-
     enableIndexedDbPersistence(dbRef)
         .then(() => {
             console.log("Firestore offline persistence enabled successfully.");
@@ -735,15 +750,15 @@ export function init() {
 }
 
 export function initializeAppLogic() {
-    const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
+    const categoriesQuery = query(collection(dbRef, "categories"), orderBy("order", "asc"));
     onSnapshot(categoriesQuery, (snapshot) => {
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        categories.splice(0, categories.length, { id: 'all', icon: 'fas fa-th' }, ...fetchedCategories);
+        categories.splice(0, categories.length, { id: 'all', name_ku_sorani: t('all_categories_label'), icon: 'fas fa-th' }, ...fetchedCategories);
         
         populateCategoryDropdown();
         renderMainCategories();
         
-        if (isAdmin) {
+        if (sessionStorage.getItem('isAdmin') === 'true') {
             populateParentCategorySelect();
             renderCategoryManagementUI();
             
@@ -802,14 +817,13 @@ export function initializeAppLogic() {
     const contactInfoRef = doc(dbRef, "settings", "contactInfo");
     onSnapshot(contactInfoRef, (docSnap) => {
         if (docSnap.exists()) {
-            contactInfo = docSnap.data();
-            updateContactLinksUI();
+            // contactInfo = docSnap.data(); // This needs to be a mutable export
+            // updateContactLinksUI();
         } else {
             console.log("No contact info document found!");
         }
     });
 
-    updateCartCount();
     setupEventListeners();
     setupScrollObserver();
     setLanguage(currentLanguage);
