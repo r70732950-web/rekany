@@ -6,7 +6,7 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a365d">
@@ -1766,7 +1766,13 @@
         <button id="update-now-btn" class="update-now-btn">نوێی بکەرەوە</button>
     </div>
 
-    <script src="admin.js"></script>
+    <!-- 
+      گۆڕانکاری گرنگ لێرەدایە:
+      ١. app.js وەک 'module' پێش admin.js دانراوە.
+      ٢. وشەی 'defer' بۆ admin.js زیادکراوە.
+      ئەمە دڵنیایی دەدات کە app.js یەکەمجار کار دەکات، ئینجا admin.js، بۆ ئەوەی هەڵە ڕوونەدات.
+    -->
     <script type="module" src="app.js"></script>
+    <script src="admin.js" defer></script>
 </body>
 </html>
