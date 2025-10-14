@@ -940,6 +940,73 @@
             background-color: var(--medium-gray);
         }
         /* END: ستایلە نوێیەکان */
+
+        /* START: ستایلە نوێیەکان بۆ بەشی براندەکان */
+        .brands-section {
+            padding: 16px;
+            background-color: var(--section-bg);
+            margin: 0 0 16px;
+            border: 1px solid var(--section-border);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-right: none;
+            border-left: none;
+        }
+
+        .brands-container {
+            display: flex;
+            overflow-x: auto;
+            gap: 15px;
+            padding: 10px 5px;
+            scrollbar-width: none; /* Firefox */
+        }
+
+        .brands-container::-webkit-scrollbar {
+            display: none; /* Chrome, Safari */
+        }
+
+        .brand-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            text-align: center;
+            flex-shrink: 0;
+            width: 80px;
+        }
+
+        .brand-image-wrapper {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid var(--medium-gray);
+            transition: all 0.2s ease-in-out;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .brand-item:hover .brand-image-wrapper {
+            border-color: var(--primary-color);
+            transform: scale(1.05);
+        }
+
+        .brand-image-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .brand-item span {
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--text-light);
+            white-space: nowrap;
+        }
+        /* END: ستایلە نوێیەکان */
     </style>
 </head>
 <body>
@@ -1368,7 +1435,55 @@
                 </div>
             </div>
 
-			<div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
+            <div class="settings-group" id="adminBrandsManagement" style="display: none;">
+                <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
+                    <i class="fas fa-tags"></i> <span>بەڕێوەبردنی براند/جۆرە تایبەتەکان</span>
+                </h3>
+                <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
+                    <form id="addBrandForm">
+                        <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی براندی نوێ</h4>
+                        <div class="form-group">
+                            <label>ناوی براند (سۆرانی):</label>
+                            <input type="text" id="brandNameKuSorani" required>
+                        </div>
+                        <div class="form-group">
+                            <label>ناوی براند (بادینی):</label>
+                            <input type="text" id="brandNameKuBadini" required>
+                        </div>
+                        <div class="form-group">
+                            <label>اسم العلامة التجارية (عربي):</label>
+                            <input type="text" id="brandNameAr" required>
+                        </div>
+                        <div class="form-group">
+                            <label>لینکی وێنە (پێویستە بازنەیی یان PNG بێت):</label>
+                            <input type="url" id="brandImageUrl" required>
+                        </div>
+                        <div class="form-group">
+                            <label>لینک بکرێت بۆ کام جۆری سەرەکی:</label>
+                            <select id="brandTargetMainCategory">
+                                <option value="" selected>-- هەموو جۆرەکان --</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="brandSubcategoryContainer" style="display: none;">
+                            <label>لینک بکرێت بۆ کام جۆری لاوەکی:</label>
+                            <select id="brandTargetSubcategory">
+                                <option value="">-- هەموو لاوەکییەکان --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>ژمارەی ڕیزبەندی:</label>
+                            <input type="number" id="brandOrder" value="10" required>
+                        </div>
+                        <input type="hidden" id="editingBrandId">
+                        <button type="submit">پاشەکەوتکردن</button>
+                    </form>
+                </div>
+                <div style="padding: 15px;">
+                    <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">براندە زیادکراوەکان</h4>
+                    <div id="brandsListContainer"></div>
+                </div>
+            </div>
+            <div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;"><i class="fas fa-paper-plane"></i> <span data-translate-key="manage_contact_methods_title">بەڕێوەبردنی شێوازەکانی ناردنی داواکاری</span></h3>
                 
                 <div style="padding: 15px;">
@@ -1651,6 +1766,6 @@
         <button id="update-now-btn" class="update-now-btn">نوێی بکەرەوە</button>
     </div>
 
-    <script type="module" src="app_events.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>
