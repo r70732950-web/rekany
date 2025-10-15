@@ -987,8 +987,8 @@ function createPromoCardElement(card) {
             const categoryExists = categories.some(cat => cat.id === targetCategoryId);
             if (categoryExists) {
                 currentCategory = targetCategoryId;
-                currentSubcategory = 'all';
-                currentSubSubcategory = 'all';
+                currentSubcategory = card.subcategoryId || 'all';
+                currentSubSubcategory = card.subSubcategoryId || 'all';
 
                 renderMainCategories();
                 renderSubcategories(currentCategory);
@@ -1428,7 +1428,7 @@ async function renderHomePageContent() {
         homeSectionsContainer.innerHTML = '';
 
         if (allPromoCards.length === 0) {
-            const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
+            const promoQuery = query(promoCardsCollection, where("showOnHomepage", "==", true), orderBy("order", "asc"));
             const promoSnapshot = await getDocs(promoQuery);
             allPromoCards = promoSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPromoCard: true }));
         }
@@ -1468,6 +1468,7 @@ async function renderHomePageContent() {
     }
 }
 
+// *** START: گۆڕانکاریی سەرەکی و کۆتایی لێرەدایە ***
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
@@ -1501,40 +1502,61 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     loader.style.display = 'block';
 
     try {
-        let productsQuery = collection(db, "products");
+        const queryConstraints = [];
+        const finalSearchTerm = searchTerm.trim().toLowerCase();
 
+        // 1. زیادکردنی فلتەرەکان
         if (currentCategory && currentCategory !== 'all') {
-            productsQuery = query(productsQuery, where("categoryId", "==", currentCategory));
+            queryConstraints.push(where("categoryId", "==", currentCategory));
         }
         if (currentSubcategory && currentSubcategory !== 'all') {
-            productsQuery = query(productsQuery, where("subcategoryId", "==", currentSubcategory));
+            queryConstraints.push(where("subcategoryId", "==", currentSubcategory));
         }
         if (currentSubSubcategory && currentSubSubcategory !== 'all') {
-            productsQuery = query(productsQuery, where("subSubcategoryId", "==", currentSubSubcategory));
+            queryConstraints.push(where("subSubcategoryId", "==", currentSubSubcategory));
         }
-
-        const finalSearchTerm = searchTerm.trim().toLowerCase();
         if (finalSearchTerm) {
-            productsQuery = query(productsQuery,
-                where('searchableName', '>=', finalSearchTerm),
-                where('searchableName', '<=', finalSearchTerm + '\uf8ff')
-            );
+            queryConstraints.push(where('searchableName', '>=', finalSearchTerm));
+            queryConstraints.push(where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
         }
 
+        // 2. زیادکردنی ڕیزبەندی
         if (finalSearchTerm) {
-            productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
-        } else {
-            productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
+            queryConstraints.push(orderBy("searchableName", "asc"));
         }
+        queryConstraints.push(orderBy("createdAt", "desc")); // ئەمە هەمیشە دەمێنێتەوە
 
+        // 3. زیادکردنی لاپەڕەبەند (Pagination)
         if (lastVisibleProductDoc && !isNewSearch) {
-            productsQuery = query(productsQuery, startAfter(lastVisibleProductDoc));
+            queryConstraints.push(startAfter(lastVisibleProductDoc));
         }
 
-        productsQuery = query(productsQuery, limit(PRODUCTS_PER_PAGE));
+        // 4. زیادکردنی سنوور (Limit)
+        queryConstraints.push(limit(PRODUCTS_PER_PAGE));
 
+        // 5. دروستکردنی داواکاریی کۆتایی
+        const productsQuery = query(collection(db, "products"), ...queryConstraints);
         const productSnapshot = await getDocs(productsQuery);
-        const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        let newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // زیادکردنی کارتی ڕیکلام ئەگەر گەڕان نەبێت
+        if (!finalSearchTerm) {
+            const promoQueryConstraints = [where("showOnHomepage", "==", false)];
+            if (currentCategory !== 'all') promoQueryConstraints.push(where("categoryId", "==", currentCategory));
+            if (currentSubcategory !== 'all') promoQueryConstraints.push(where("subcategoryId", "==", currentSubcategory));
+            if (currentSubSubcategory !== 'all') promoQueryConstraints.push(where("subSubcategoryId", "==", currentSubSubcategory));
+            
+            if (promoQueryConstraints.length > 1) {
+                promoQueryConstraints.push(orderBy("order", "asc"));
+                const promoQuery = query(promoCardsCollection, ...promoQueryConstraints);
+                const promoSnapshot = await getDocs(promoQuery);
+                promoSnapshot.forEach(doc => {
+                    const promoCard = { id: doc.id, ...doc.data(), isPromoCard: true };
+                    const position = Math.max(0, promoCard.order - 1); 
+                    newProducts.splice(position, 0, promoCard);
+                });
+            }
+        }
 
         if (isNewSearch) {
             products = newProducts;
@@ -1551,7 +1573,6 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         }
 
         lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
-
         renderProducts();
 
         if (products.length === 0 && isNewSearch) {
@@ -1568,6 +1589,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         productsContainer.style.display = 'grid';
     }
 }
+// *** END: کۆتایی گۆڕانکاری ***
 
 
 function addToCart(productId) {
@@ -1686,57 +1708,61 @@ async function renderCartActionButtons() {
     const container = document.getElementById('cartActions');
     container.innerHTML = '';
 
-    const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
+    const methodsCollection = collection(db, 'settings/contactInfo/contactMethods');
     const q = query(methodsCollection, orderBy("createdAt"));
 
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) {
-        container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
-        return;
+    try {
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) {
+            container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
+            return;
+        }
+
+        snapshot.forEach(doc => {
+            const method = { id: doc.id, ...doc.data() };
+            const btn = document.createElement('button');
+            btn.className = 'whatsapp-btn';
+            btn.style.backgroundColor = method.color;
+
+            const name = method['name_' + currentLanguage] || method.name_ku_sorani;
+            btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
+
+            btn.onclick = () => {
+                const message = generateOrderMessage();
+                if (!message) return;
+
+                let link = '';
+                const encodedMessage = encodeURIComponent(message);
+                const value = method.value;
+
+                switch (method.type) {
+                    case 'whatsapp':
+                        link = `https://wa.me/${value}?text=${encodedMessage}`;
+                        break;
+                    case 'viber':
+                        link = `viber://chat?number=%2B${value}&text=${encodedMessage}`;
+                        break;
+                    case 'telegram':
+                        link = `https://t.me/${value}?text=${encodedMessage}`;
+                        break;
+                    case 'phone':
+                        link = `tel:${value}`;
+                        break;
+                    case 'url':
+                        link = value;
+                        break;
+                }
+
+                if (link) {
+                    window.open(link, '_blank');
+                }
+            };
+
+            container.appendChild(btn);
+        });
+    } catch(error){
+        console.error("Error fetching contact methods:", error);
     }
-
-    snapshot.forEach(doc => {
-        const method = { id: doc.id, ...doc.data() };
-        const btn = document.createElement('button');
-        btn.className = 'whatsapp-btn';
-        btn.style.backgroundColor = method.color;
-
-        const name = method['name_' + currentLanguage] || method.name_ku_sorani;
-        btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
-
-        btn.onclick = () => {
-            const message = generateOrderMessage();
-            if (!message) return;
-
-            let link = '';
-            const encodedMessage = encodeURIComponent(message);
-            const value = method.value;
-
-            switch (method.type) {
-                case 'whatsapp':
-                    link = `https://wa.me/${value}?text=${encodedMessage}`;
-                    break;
-                case 'viber':
-                    link = `viber://chat?number=%2B${value}&text=${encodedMessage}`;
-                    break;
-                case 'telegram':
-                    link = `https://t.me/${value}?text=${encodedMessage}`;
-                    break;
-                case 'phone':
-                    link = `tel:${value}`;
-                    break;
-                case 'url':
-                    link = value;
-                    break;
-            }
-
-            if (link) {
-                window.open(link, '_blank');
-            }
-        };
-
-        container.appendChild(btn);
-    });
 }
 
 async function renderPolicies() {
@@ -1816,7 +1842,7 @@ async function renderUserNotifications() {
 
 function renderContactLinks() {
     const contactLinksContainer = document.getElementById('dynamicContactLinksContainer');
-    const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
+    const socialLinksCollection = collection(db, 'settings/contactInfo/socialLinks');
     const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
 
     onSnapshot(q, (snapshot) => {
@@ -1846,6 +1872,8 @@ function renderContactLinks() {
 
             contactLinksContainer.appendChild(linkElement);
         });
+    }, (error) => {
+        console.error("Error fetching social links:", error);
     });
 }
 

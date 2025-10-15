@@ -1247,7 +1247,7 @@
                 <div id="subSubcategoriesContainer" class="subcategories-container" style="padding-top: 0; padding-bottom: 10px;"></div>
                 
                 <div id="homePageSectionsContainer">
-                    </div>
+                     </div>
                 <div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;" data-translate-key="loading_products">...خەریکی بارکردنی کاڵاکانە</p></div>
                 <div id="skeletonLoader" class="products-container"></div>
                 <div class="products-container" id="productsContainer" style="display: none;"></div>
@@ -1485,6 +1485,12 @@
                 <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
                     <form id="addPromoCardForm">
                         <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی کارتی نوێ</h4>
+                        
+                        <div class="form-group" style="background-color: #e6f4ff; padding: 10px; border-radius: 6px; display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" id="promoCardShowOnHomepage" checked style="width: auto;">
+                            <label for="promoCardShowOnHomepage" style="margin: 0; font-weight: bold;">پیشاندانی لە پەڕەی سەرەکی</label>
+                        </div>
+            
                         <div class="form-group">
                             <label>لینکی وێنە (سۆرانی):</label>
                             <input type="url" id="promoCardImageKuSorani" required>
@@ -1498,16 +1504,27 @@
                             <input type="url" id="promoCardImageAr" required>
                         </div>
                         <div class="form-group">
-                            <label>جۆری کاڵا کە لینک بکرێت بۆی:</label>
-                            <select id="promoCardTargetCategory" required>
+                            <label>لینک بکرێت بۆ کام جۆری سەرەکی:</label>
+                            <select id="promoCardTargetCategory"> 
                                 <option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>
                             </select>
                         </div>
+                        
+                        <div class="form-group" id="promoCardTargetSubcategoryContainer" style="display: none;">
+                            <label>لینک بکرێت بۆ کام جۆری لاوەکی:</label>
+                            <select id="promoCardTargetSubcategory"></select>
+                        </div>
+                        <div class="form-group" id="promoCardTargetSubSubcategoryContainer" style="display: none;">
+                            <label>لینک بکرێت بۆ کام جۆری لاوەکیی لاوەکی:</label>
+                            <select id="promoCardTargetSubSubcategory"></select>
+                        </div>
+            
                         <div class="form-group">
                             <label>ژمارەی ڕیزبەندی (بۆ پیشاندان لەناو کاڵاکان):</label>
                             <input type="number" id="promoCardOrder" value="1" required>
-                            <small>ژمارەی بچووکتر لە پێشتر پیشان دەدرێت.</small>
+                            <small>ئەگەر لە پەڕەی سەرەکی بێت، ژمارەی بچووکتر لە پێشترە. ئەگەر لەناو بەشێک بێت، دیاری دەکات دوای چەندەمین کاڵا دەربکەوێت.</small>
                         </div>
+            
                         <input type="hidden" id="editingPromoCardId">
                         <button type="submit">پاشەکەوتکردن</button>
                     </form>
@@ -1517,7 +1534,6 @@
                     <div id="promoCardsListContainer"></div>
                 </div>
             </div>
-
             <div class="settings-group" id="adminBrandsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                     <i class="fas fa-tags"></i> <span>بەڕێوەبردنی براند/جۆرە تایبەتەکان</span>
@@ -1567,7 +1583,6 @@
                 </div>
             </div>
             
-            <!-- START: بەشی بەڕێوەبردنی ڕیزی کارتەکان -->
             <div class="settings-group" id="adminShortcutRowsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                     <i class="fas fa-layer-group"></i> <span>بەڕێوەبردنی ڕیزی کارتەکان</span>
@@ -1653,8 +1668,6 @@
                     <div id="shortcutRowsListContainer"></div>
                 </div>
             </div>
-            <!-- END: بەشی بەڕێوەبردنی ڕیزی کارتەکان -->
-
             <div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;"><i class="fas fa-paper-plane"></i> <span data-translate-key="manage_contact_methods_title">بەڕێوەبردنی شێوازەکانی ناردنی داواکاری</span></h3>
                 
@@ -1946,4 +1959,3 @@
     <script src="admin.js" defer></script>
 </body>
 </html>
-
