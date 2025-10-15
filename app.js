@@ -1159,6 +1159,73 @@ function renderProducts() {
     setupScrollAnimations();
 }
 
+async function renderShortcutRows() {
+    const mainContainer = document.createDocumentFragment();
+
+    try {
+        const shortcutRowsCollection = collection(db, "shortcut_rows");
+        const rowsQuery = query(shortcutRowsCollection, orderBy("order", "asc"));
+        const rowsSnapshot = await getDocs(rowsQuery);
+
+        if (rowsSnapshot.empty) {
+            return null;
+        }
+        
+        for (const rowDoc of rowsSnapshot.docs) {
+            const rowData = { id: rowDoc.id, ...rowDoc.data() };
+            const rowTitle = rowData.title[currentLanguage] || rowData.title.ku_sorani;
+            
+            const cardsCollectionRef = collection(db, "shortcut_rows", rowData.id, "cards");
+            const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
+            const cardsSnapshot = await getDocs(cardsQuery);
+
+            if (!cardsSnapshot.empty) {
+                const sectionContainer = document.createElement('div');
+                sectionContainer.className = 'shortcut-cards-section';
+                
+                const titleElement = document.createElement('h3');
+                titleElement.className = 'shortcut-row-title';
+                titleElement.textContent = rowTitle;
+                sectionContainer.appendChild(titleElement);
+                
+                const cardsContainer = document.createElement('div');
+                cardsContainer.className = 'shortcut-cards-container';
+                sectionContainer.appendChild(cardsContainer);
+
+                cardsSnapshot.forEach(cardDoc => {
+                    const cardData = cardDoc.data();
+                    const cardName = cardData.name[currentLanguage] || cardData.name.ku_sorani;
+
+                    const item = document.createElement('div');
+                    item.className = 'shortcut-card';
+                    item.textContent = cardName;
+
+                    item.onclick = () => {
+                        currentCategory = cardData.categoryId || 'all';
+                        currentSubcategory = cardData.subcategoryId || 'all';
+                        currentSubSubcategory = cardData.subSubcategoryId || 'all';
+
+                        renderMainCategories();
+                        renderSubcategories(currentCategory);
+                        renderSubSubcategories(currentCategory, currentSubcategory); 
+                        searchProductsInFirestore('', true);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    };
+                    cardsContainer.appendChild(item);
+                });
+                
+                mainContainer.appendChild(sectionContainer);
+            }
+        }
+        
+        return mainContainer;
+
+    } catch (error) {
+        console.error("Error fetching shortcut rows:", error);
+        return null;
+    }
+}
+
 
 async function renderBrandsSection() {
     const sectionContainer = document.createElement('div');
@@ -1375,7 +1442,8 @@ async function renderHomePageContent() {
             startPromoRotation();
         }
 
-        const [brandsSection, newestSection, categorySections, allProductsSection] = await Promise.all([
+        const [shortcutRowsFragment, brandsSection, newestSection, categorySections, allProductsSection] = await Promise.all([
+            renderShortcutRows(),
             renderBrandsSection(),
             renderNewestProductsSection(),
             renderCategorySections(),
@@ -1383,6 +1451,7 @@ async function renderHomePageContent() {
         ]);
 
         if (promoGrid) homeSectionsContainer.appendChild(promoGrid);
+        if (shortcutRowsFragment) homeSectionsContainer.appendChild(shortcutRowsFragment);
         if (brandsSection) homeSectionsContainer.appendChild(brandsSection);
         if (newestSection) homeSectionsContainer.appendChild(newestSection);
         if (categorySections) homeSectionsContainer.appendChild(categorySections);
@@ -1870,7 +1939,6 @@ function updateCategoryDependentUI() {
     if (categories.length === 0) return;
     populateCategoryDropdown();
     renderMainCategories();
-    // Admin related dropdowns are now handled in admin.js
     if (sessionStorage.getItem('isAdmin') === 'true' && window.AdminLogic) {
         window.AdminLogic.updateAdminCategoryDropdowns();
     }
@@ -2185,4 +2253,3 @@ function startPromoRotation() {
         promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
-

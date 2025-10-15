@@ -8,6 +8,8 @@ const {
     setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage
 } = window.globalAdminTools;
 
+const shortcutRowsCollection = collection(db, "shortcut_rows");
+
 window.AdminLogic = {
     // This object will hold all admin-related functions and logic.
 
@@ -22,13 +24,14 @@ window.AdminLogic = {
         this.renderPromoCardsAdminList();
         this.renderBrandsAdminList();
         this.renderContactMethodsAdmin();
+        this.renderShortcutRowsAdminList(); // نوێکراوە
         this.updateAdminCategoryDropdowns();
+        this.updateShortcutCardCategoryDropdowns(); // نوێکراوە
     },
 
     deinitialize: function() {
         console.log("Admin logic de-initialized.");
         this.updateAdminUI(false);
-        // We can add logic to remove event listeners if needed, but for now, hiding UI is enough.
     },
 
     updateAdminUI: function(isAdmin) {
@@ -37,7 +40,7 @@ window.AdminLogic = {
         const adminSections = [
             'adminPoliciesManagement', 'adminSocialMediaManagement', 'adminAnnouncementManagement',
             'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
-            'adminContactMethodsManagement'
+            'adminContactMethodsManagement', 'adminShortcutRowsManagement' // نوێکراوە
         ];
         adminSections.forEach(id => {
             const section = document.getElementById(id);
@@ -68,7 +71,6 @@ window.AdminLogic = {
             return;
         }
         const product = { id: productSnap.id, ...productSnap.data() };
-        const categories = getCategories(); // Fetch categories
 
         setEditingProductId(productId);
         document.getElementById('formTitle').textContent = 'دەستکاری کردنی کاڵا';
@@ -598,6 +600,7 @@ window.AdminLogic = {
         const confirmation = confirm(`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە.`);
         if (confirmation) {
             try {
+                // A more robust delete would recursively delete subcollections. This is a simplified version.
                 await deleteDoc(doc(db, docPath));
                 showNotification('جۆرەکە بە سەرکەوتوویی سڕدرایەوە', 'success');
             } catch (error) {
@@ -634,8 +637,126 @@ window.AdminLogic = {
         });
     },
 
+    // START: Shortcut Rows & Cards Management
+    renderShortcutRowsAdminList: function() {
+        const container = document.getElementById('shortcutRowsListContainer');
+        const rowSelect = document.getElementById('selectRowForCard');
+        const q = query(shortcutRowsCollection, orderBy("order", "asc"));
+
+        onSnapshot(q, (snapshot) => {
+            container.innerHTML = '';
+            rowSelect.innerHTML = '<option value="" disabled selected>-- سەرەتا ڕیزێک هەڵبژێرە --</option>';
+            
+            if (snapshot.empty) {
+                container.innerHTML = '<p>هیچ ڕیزێک زیاد نەکراوە.</p>';
+                return;
+            }
+
+            snapshot.forEach(rowDoc => {
+                const row = { id: rowDoc.id, ...rowDoc.data() };
+                
+                // Populate dropdown
+                const option = document.createElement('option');
+                option.value = row.id;
+                option.textContent = row.title.ku_sorani;
+                rowSelect.appendChild(option);
+
+                // Render admin list
+                const rowElement = document.createElement('div');
+                rowElement.style.border = '1px solid #ddd';
+                rowElement.style.borderRadius = '6px';
+                rowElement.style.marginBottom = '10px';
+                
+                rowElement.innerHTML = `
+                    <div style="background: #f0f2f5; padding: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <strong>${row.title.ku_sorani} (ڕیز: ${row.order})</strong>
+                        <div>
+                            <button class="edit-row-btn edit-btn small-btn" data-id="${row.id}"><i class="fas fa-edit"></i></button>
+                            <button class="delete-row-btn delete-btn small-btn" data-id="${row.id}"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="cards-list-container" style="padding: 10px;">...خەریکی بارکردنی کارتەکانە</div>
+                `;
+                container.appendChild(rowElement);
+
+                const cardsContainer = rowElement.querySelector('.cards-list-container');
+                const cardsQuery = query(collection(db, "shortcut_rows", row.id, "cards"), orderBy("order", "asc"));
+                onSnapshot(cardsQuery, (cardsSnapshot) => {
+                    cardsContainer.innerHTML = '';
+                    if(cardsSnapshot.empty) {
+                        cardsContainer.innerHTML = '<p style="font-size: 12px; color: gray;">هیچ کارتێک بۆ ئەم ڕیزە زیاد نەکراوە.</p>';
+                    } else {
+                        cardsSnapshot.forEach(cardDoc => {
+                            const card = { id: cardDoc.id, ...cardDoc.data() };
+                            const cardElement = document.createElement('div');
+                            cardElement.style.display = 'flex';
+                            cardElement.style.justifyContent = 'space-between';
+                            cardElement.style.padding = '5px 0';
+                            cardElement.innerHTML = `
+                                <span>- ${card.name.ku_sorani} (ڕیز: ${card.order})</span>
+                                <div>
+                                    <button class="edit-card-btn edit-btn small-btn" data-row-id="${row.id}" data-card-id="${card.id}"><i class="fas fa-edit"></i></button>
+                                    <button class="delete-card-btn delete-btn small-btn" data-row-id="${row.id}" data-card-id="${card.id}"><i class="fas fa-trash"></i></button>
+                                </div>
+                            `;
+                            cardsContainer.appendChild(cardElement);
+                        });
+                    }
+                });
+            });
+        });
+    },
+
+    deleteShortcutRow: async function(rowId) {
+        if (confirm('دڵنیایت دەتەوێت ئەم ڕیزە بسڕیتەوە؟ هەموو کارتەکانی ناویشی دەسڕێنەوە!')) {
+            try {
+                const cardsRef = collection(db, "shortcut_rows", rowId, "cards");
+                const cardsSnapshot = await getDocs(cardsRef);
+                const deletePromises = [];
+                cardsSnapshot.forEach(doc => {
+                    deletePromises.push(deleteDoc(doc.ref));
+                });
+                await Promise.all(deletePromises);
+
+                await deleteDoc(doc(db, "shortcut_rows", rowId));
+                showNotification('ڕیزەکە بە تەواوی سڕدرایەوە', 'success');
+            } catch (error) {
+                showNotification('هەڵەیەک ڕوویدا', 'error');
+                console.error("Error deleting shortcut row: ", error);
+            }
+        }
+    },
+
+    deleteShortcutCard: async function(rowId, cardId) {
+         if (confirm('دڵنیایت دەتەوێت ئەم کارتە بسڕیتەوە؟')) {
+            try {
+                await deleteDoc(doc(db, "shortcut_rows", rowId, "cards", cardId));
+                showNotification('کارتەکە سڕدرایەوە', 'success');
+            } catch (error) {
+                showNotification('هەڵەیەک ڕوویدا', 'error');
+                console.error("Error deleting shortcut card: ", error);
+            }
+        }
+    },
+    
+    updateShortcutCardCategoryDropdowns: function() {
+        const categories = getCategories();
+        if (categories.length <= 1) return;
+        const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
+        const mainSelect = document.getElementById('shortcutCardMainCategory');
+        
+        mainSelect.innerHTML = '<option value="">-- هەموو کاڵاکان --</option>';
+        categoriesWithoutAll.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.id;
+            option.textContent = cat.name_ku_sorani;
+            mainSelect.appendChild(option);
+        });
+    },
+    // END: Shortcut Rows & Cards Management
+
+
     setupAdminEventListeners: function() {
-        // Prevent adding listeners multiple times
         if (this.listenersAttached) return;
 
         const self = this;
@@ -744,9 +865,6 @@ window.AdminLogic = {
         });
 
         const addCategoryForm = document.getElementById('addCategoryForm');
-        const addSubcategoryForm = document.getElementById('addSubcategoryForm');
-        const addSubSubcategoryForm = document.getElementById('addSubSubcategoryForm');
-
         if (addCategoryForm) {
             addCategoryForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -776,6 +894,7 @@ window.AdminLogic = {
             });
         }
 
+        const addSubcategoryForm = document.getElementById('addSubcategoryForm');
         if (addSubcategoryForm) {
             addSubcategoryForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -813,6 +932,7 @@ window.AdminLogic = {
             });
         }
 
+        const addSubSubcategoryForm = document.getElementById('addSubSubcategoryForm');
         if (addSubSubcategoryForm) {
             addSubSubcategoryForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -961,7 +1081,7 @@ window.AdminLogic = {
             chevron.classList.toggle('open');
         };
 		
-        const addSocialMediaForm = document.getElementById('addSocialMediaForm');
+		const addSocialMediaForm = document.getElementById('addSocialMediaForm');
 		addSocialMediaForm.addEventListener('submit', async (e) => {
 			e.preventDefault();
 			const socialData = {
@@ -1118,7 +1238,202 @@ window.AdminLogic = {
                 }
             });
         }
-		
+
+        // START: Shortcut Rows & Cards Listeners
+        const addShortcutRowForm = document.getElementById('addShortcutRowForm');
+        addShortcutRowForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const editingId = document.getElementById('editingShortcutRowId').value;
+            const rowData = {
+                title: {
+                    ku_sorani: document.getElementById('shortcutRowTitleKuSorani').value,
+                    ku_badini: document.getElementById('shortcutRowTitleKuBadini').value,
+                    ar: document.getElementById('shortcutRowTitleAr').value,
+                },
+                order: parseInt(document.getElementById('shortcutRowOrder').value) || 0,
+            };
+
+            try {
+                if (editingId) {
+                    await setDoc(doc(db, "shortcut_rows", editingId), rowData, { merge: true });
+                    showNotification('ڕیز نوێکرایەوە', 'success');
+                } else {
+                    rowData.createdAt = Date.now();
+                    await addDoc(shortcutRowsCollection, rowData);
+                    showNotification('ڕیزی نوێ زیادکرا', 'success');
+                }
+                addShortcutRowForm.reset();
+                document.getElementById('editingShortcutRowId').value = '';
+                document.getElementById('cancelRowEditBtn').style.display = 'none';
+            } catch (error) { console.error("Error saving row:", error); showNotification('هەڵەیەک ڕوویدا', 'error'); }
+        });
+
+        const addCardToRowForm = document.getElementById('addCardToRowForm');
+        addCardToRowForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const rowId = document.getElementById('selectRowForCard').value;
+            if (!rowId) {
+                showNotification('تکایە ڕیزێک هەڵبژێرە', 'error');
+                return;
+            }
+            const editingId = document.getElementById('editingShortcutCardId').value;
+            const cardData = {
+                 name: {
+                    ku_sorani: document.getElementById('shortcutCardNameKuSorani').value,
+                    ku_badini: document.getElementById('shortcutCardNameKuBadini').value,
+                    ar: document.getElementById('shortcutCardNameAr').value,
+                },
+                categoryId: document.getElementById('shortcutCardMainCategory').value || null,
+                subcategoryId: document.getElementById('shortcutCardSubcategory').value || null,
+                subSubcategoryId: document.getElementById('shortcutCardSubSubcategory').value || null,
+                order: parseInt(document.getElementById('shortcutCardOrder').value) || 0,
+            };
+
+            try {
+                if (editingId) {
+                    await setDoc(doc(db, "shortcut_rows", rowId, "cards", editingId), cardData, { merge: true });
+                    showNotification('کارت نوێکرایەوە', 'success');
+                } else {
+                    cardData.createdAt = Date.now();
+                    await addDoc(collection(db, "shortcut_rows", rowId, "cards"), cardData);
+                    showNotification('کارتی نوێ زیادکرا بۆ ڕیزەکە', 'success');
+                }
+                addCardToRowForm.reset();
+                document.getElementById('editingShortcutCardId').value = '';
+                document.getElementById('selectRowForCard').disabled = false;
+                document.getElementById('cancelCardEditBtn').style.display = 'none';
+                addCardToRowForm.querySelector('button[type="submit"]').textContent = 'زیادکردنی کارت';
+            } catch (error) { console.error("Error saving card:", error); showNotification('هەڵەیەک ڕوویدا', 'error'); }
+        });
+        
+        document.getElementById('shortcutRowsListContainer').addEventListener('click', async (e) => {
+            const editRowBtn = e.target.closest('.edit-row-btn');
+            const deleteRowBtn = e.target.closest('.delete-row-btn');
+            const editCardBtn = e.target.closest('.edit-card-btn');
+            const deleteCardBtn = e.target.closest('.delete-card-btn');
+
+            if (editRowBtn) {
+                const rowId = editRowBtn.dataset.id;
+                const rowSnap = await getDoc(doc(db, "shortcut_rows", rowId));
+                if(rowSnap.exists()) {
+                    const row = rowSnap.data();
+                    document.getElementById('editingShortcutRowId').value = rowId;
+                    document.getElementById('shortcutRowTitleKuSorani').value = row.title.ku_sorani;
+                    document.getElementById('shortcutRowTitleKuBadini').value = row.title.ku_badini;
+                    document.getElementById('shortcutRowTitleAr').value = row.title.ar;
+                    document.getElementById('shortcutRowOrder').value = row.order;
+                    document.getElementById('cancelRowEditBtn').style.display = 'block';
+                    addShortcutRowForm.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+            if (deleteRowBtn) {
+                this.deleteShortcutRow(deleteRowBtn.dataset.id);
+            }
+            if (editCardBtn) {
+                const rowId = editCardBtn.dataset.rowId;
+                const cardId = editCardBtn.dataset.cardId;
+                const cardSnap = await getDoc(doc(db, "shortcut_rows", rowId, "cards", cardId));
+                if(cardSnap.exists()) {
+                    const card = cardSnap.data();
+                    document.getElementById('selectRowForCard').value = rowId;
+                    document.getElementById('selectRowForCard').disabled = true; 
+                    document.getElementById('editingShortcutCardId').value = cardId;
+                    document.getElementById('shortcutCardNameKuSorani').value = card.name.ku_sorani || '';
+                    document.getElementById('shortcutCardNameKuBadini').value = card.name.ku_badini || '';
+                    document.getElementById('shortcutCardNameAr').value = card.name.ar || '';
+                    document.getElementById('shortcutCardOrder').value = card.order || 10;
+                    const mainCatSelect = document.getElementById('shortcutCardMainCategory');
+                    mainCatSelect.value = card.categoryId || '';
+                    mainCatSelect.dispatchEvent(new Event('change'));
+                    setTimeout(() => {
+                        const subCatSelect = document.getElementById('shortcutCardSubcategory');
+                        subCatSelect.value = card.subcategoryId || '';
+                        subCatSelect.dispatchEvent(new Event('change'));
+                        setTimeout(() => {
+                             document.getElementById('shortcutCardSubSubcategory').value = card.subSubcategoryId || '';
+                        }, 500);
+                    }, 500);
+                    
+                    document.getElementById('addCardToRowForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوەی کارت';
+                    document.getElementById('cancelCardEditBtn').style.display = 'block';
+                    addCardToRowForm.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+            if (deleteCardBtn) {
+                this.deleteShortcutCard(deleteCardBtn.dataset.rowId, deleteCardBtn.dataset.cardId);
+            }
+        });
+
+        document.getElementById('cancelRowEditBtn').addEventListener('click', () => {
+            addShortcutRowForm.reset();
+            document.getElementById('editingShortcutRowId').value = '';
+            document.getElementById('cancelRowEditBtn').style.display = 'none';
+        });
+
+        document.getElementById('cancelCardEditBtn').addEventListener('click', () => {
+            addCardToRowForm.reset();
+            document.getElementById('editingShortcutCardId').value = '';
+            document.getElementById('selectRowForCard').disabled = false;
+            document.getElementById('cancelCardEditBtn').style.display = 'none';
+            document.getElementById('addCardToRowForm').querySelector('button[type="submit"]').textContent = 'زیادکردنی کارت';
+        });
+
+        const shortcutMainCatSelect = document.getElementById('shortcutCardMainCategory');
+        shortcutMainCatSelect.addEventListener('change', async (e) => {
+            const mainCatId = e.target.value;
+            const subContainer = document.getElementById('shortcutCardSubContainer');
+            const subSubContainer = document.getElementById('shortcutCardSubSubContainer');
+            const subSelect = document.getElementById('shortcutCardSubcategory');
+            
+            subSubContainer.style.display = 'none';
+            subSelect.innerHTML = '';
+            
+            if (mainCatId) {
+                subContainer.style.display = 'block';
+                subSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
+                const subCatQuery = query(collection(db, "categories", mainCatId, "subcategories"), orderBy("order", "asc"));
+                const snapshot = await getDocs(subCatQuery);
+                subSelect.innerHTML = '<option value="">-- هەموو جۆرە لاوەکییەکان --</option>';
+                snapshot.forEach(doc => {
+                    const subcat = { id: doc.id, ...doc.data() };
+                    const option = document.createElement('option');
+                    option.value = subcat.id;
+                    option.textContent = subcat.name_ku_sorani;
+                    subSelect.appendChild(option);
+                });
+            } else {
+                subContainer.style.display = 'none';
+            }
+        });
+
+        const shortcutSubCatSelect = document.getElementById('shortcutCardSubcategory');
+        shortcutSubCatSelect.addEventListener('change', async(e) => {
+            const mainCatId = document.getElementById('shortcutCardMainCategory').value;
+            const subCatId = e.target.value;
+            const subSubContainer = document.getElementById('shortcutCardSubSubContainer');
+            const subSubSelect = document.getElementById('shortcutCardSubSubcategory');
+
+            subSubSelect.innerHTML = '';
+
+            if(mainCatId && subCatId) {
+                subSubContainer.style.display = 'block';
+                subSubSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
+                 const subSubQuery = query(collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories"), orderBy("order", "asc"));
+                const snapshot = await getDocs(subSubQuery);
+                subSubSelect.innerHTML = '<option value="">-- هەموو جۆرەکان --</option>';
+                 snapshot.forEach(doc => {
+                    const subSubCat = { id: doc.id, ...doc.data() };
+                    const option = document.createElement('option');
+                    option.value = subSubCat.id;
+                    option.textContent = subSubCat.name_ku_sorani;
+                    subSubSelect.appendChild(option);
+                });
+
+            } else {
+                subSubContainer.style.display = 'none';
+            }
+        });
+        // END: Shortcut Rows & Cards Listeners
 
         this.listenersAttached = true;
     }
