@@ -300,7 +300,6 @@ let favorites = JSON.parse(localStorage.getItem(FAVORITES_KEY)) || [];
 const PROFILE_KEY = "maten_store_profile";
 let userProfile = JSON.parse(localStorage.getItem(PROFILE_KEY)) || {};
 let editingProductId = null;
-let currentSearch = '';
 let products = [];
 let allPromoCards = [];
 let currentPromoCardIndex = 0;
@@ -313,10 +312,16 @@ let isLoadingMoreProducts = false;
 let allProductsLoaded = false;
 const PRODUCTS_PER_PAGE = 25;
 let mainPageScrollPosition = 0;
-let currentCategory = 'all';
-let currentSubcategory = 'all';
-let currentSubSubcategory = 'all';
 let isRenderingHomePage = false;
+const viewCache = {}; // چارەسەری ١: زیادکردنی کاش بۆ خەزنکردنی داتا
+
+// Global state for current view
+let currentView = {
+    search: '',
+    category: 'all',
+    subcategory: 'all',
+    subSubcategory: 'all'
+};
 
 // DOM Elements
 const loginModal = document.getElementById('loginModal');
@@ -442,56 +447,89 @@ function openPopup(id, type = 'sheet') {
 
 function closeCurrentPopup() {
     if (history.state && (history.state.type === 'sheet' || history.state.type === 'modal')) {
-        history.back();
+        history.back(); // This will trigger the popstate event
     } else {
         closeAllPopupsUI();
     }
 }
 
+// چارەسەری ٢: نوێکردنەوەی popstate بۆ مامەڵەکردن لەگەڵ هەموو دۆخەکان
 window.addEventListener('popstate', (event) => {
-    closeAllPopupsUI();
+    closeAllPopupsUI(); // Unconditionally close any open popups first
     const state = event.state;
+
     if (state) {
-        if (state.type === 'page') {
-            showPage(state.id);
-        } else if (state.type === 'sheet' || state.type === 'modal') {
-            openPopup(state.id, state.type);
+        switch (state.type) {
+            case 'page':
+                showPage(state.id);
+                break;
+            case 'filter':
+                // Restore the view based on the state
+                currentView = {
+                    search: state.search || '',
+                    category: state.category || 'all',
+                    subcategory: state.subcategory || 'all',
+                    subSubcategory: state.subSubcategory || 'all',
+                };
+                searchInput.value = currentView.search;
+                loadProductsForCurrentView(false); // false means don't push a new history state
+                break;
+            case 'sheet':
+            case 'modal':
+                // Re-open the popup. This is needed for forward/back navigation between popups.
+                openPopup(state.id, state.type);
+                break;
+            default:
+                // Fallback to home page if state is unknown
+                navigateToFilter({ category: 'all' }, false);
+                break;
         }
     } else {
-        showPage('mainPage');
+        // If there's no state, it's the initial page load state
+        navigateToFilter({ category: 'all' }, false);
     }
 });
 
-function handleInitialPageLoad() {
-    const hash = window.location.hash.substring(1);
-    const element = document.getElementById(hash);
 
+function handleInitialPageLoad() {
+    const params = new URLSearchParams(window.location.search);
+    const hash = window.location.hash.substring(1);
+
+    // Set initial view from URL parameters
+    currentView = {
+        search: params.get('search') || '',
+        category: params.get('category') || 'all',
+        subcategory: params.get('subcategory') || 'all',
+        subSubcategory: params.get('subSubcategory') || 'all'
+    };
+
+    searchInput.value = currentView.search;
+
+    // Determine which main page to show
     if (hash === 'settingsPage') {
         showPage('settingsPage');
         history.replaceState({ type: 'page', id: 'settingsPage' }, '', '#settingsPage');
     } else {
         showPage('mainPage');
-        history.replaceState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
+        // Load content based on URL params without pushing new history
+        loadProductsForCurrentView(false); 
     }
 
-    if (element) {
-        const isSheet = element.classList.contains('bottom-sheet');
-        const isModal = element.classList.contains('modal');
-        if (isSheet || isModal) {
-            openPopup(hash, isSheet ? 'sheet' : 'modal');
-        }
+    // Handle popups from hash
+    const element = document.getElementById(hash);
+    if (element && (element.classList.contains('bottom-sheet') || element.classList.contains('modal'))) {
+        openPopup(hash, element.classList.contains('bottom-sheet') ? 'sheet' : 'modal');
     }
-    
-    // زیادکراوە بۆ کردنەوەی کاڵا لە ڕێگەی لینکەوە
-    const urlParams = new URLSearchParams(window.location.search);
-    const productId = urlParams.get('product');
+
+    // Handle direct product link
+    const productId = params.get('product');
     if (productId) {
-        // کەمێک وەستان بۆ دڵنیابوون لەوەی ئەپەکە بە تەواوی ئامادەیە
         setTimeout(() => {
             showProductDetails(productId);
         }, 500);
     }
 }
+
 
 function t(key, replacements = {}) {
     let translation = (translations[currentLanguage] && translations[currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
@@ -525,14 +563,12 @@ function setLanguage(lang) {
         btn.classList.toggle('active', btn.dataset.lang === lang);
     });
 
-    const isHomeView = !currentSearch && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
-    if (isHomeView) {
-        renderHomePageContent();
-    } else {
-        renderProducts();
-    }
+    // Clear cache because language has changed
+    Object.keys(viewCache).forEach(key => delete viewCache[key]);
+    
+    // Reload the current view with the new language
+    loadProductsForCurrentView(false);
 
-    renderMainCategories();
     renderCategoriesSheet();
     if (document.getElementById('cartSheet').classList.contains('show')) renderCart();
     if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPage();
@@ -650,12 +686,8 @@ function toggleFavorite(productId) {
     }
     saveFavorites();
 
-    const isHomeView = !currentSearch && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
-    if(isHomeView) {
-        renderHomePageContent();
-    } else {
-        renderProducts();
-    }
+    // Rerender cards in the current view to update the favorite icon
+    loadProductsForCurrentView(false, true); // Don't create history, but force re-render
 
     if (document.getElementById('favoritesSheet').classList.contains('show')) {
         renderFavoritesPage();
@@ -718,7 +750,7 @@ function renderCategoriesSheet() {
         const btn = document.createElement('button');
         btn.className = 'sheet-category-btn';
         btn.dataset.category = cat.id;
-        if (currentCategory === cat.id) { btn.classList.add('active'); }
+        if (currentView.category === cat.id) { btn.classList.add('active'); }
 
         const categoryName = cat.id === 'all'
             ? t('all_categories_label')
@@ -727,14 +759,12 @@ function renderCategoriesSheet() {
         btn.innerHTML = `<i class="${cat.icon}"></i> ${categoryName}`;
 
         btn.onclick = () => {
-            currentCategory = cat.id;
-            currentSubcategory = 'all';
-            currentSubSubcategory = 'all';
-            renderSubcategories(currentCategory);
-            renderSubSubcategories(currentCategory, currentSubcategory);
-            searchProductsInFirestore('', true);
-            history.back();
-            renderMainCategories();
+             navigateToFilter({
+                category: cat.id,
+                subcategory: 'all',
+                subSubcategory: 'all'
+            });
+            closeCurrentPopup();
             showPage('mainPage');
         };
 
@@ -754,24 +784,25 @@ async function renderSubSubcategories(mainCatId, subCatId) {
         if (snapshot.empty) return;
 
         const allBtn = document.createElement('button');
-        allBtn.className = 'subcategory-btn active';
+        allBtn.className = `subcategory-btn ${currentView.subSubcategory === 'all' ? 'active' : ''}`;
         const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
         allBtn.innerHTML = `
             <div class="subcategory-image">${allIconSvg}</div>
             <span>${t('all_categories_label')}</span>
         `;
         allBtn.onclick = () => {
-            currentSubSubcategory = 'all';
-            document.querySelectorAll('#subSubcategoriesContainer .subcategory-btn').forEach(b => b.classList.remove('active'));
-            allBtn.classList.add('active');
-            searchProductsInFirestore('', true);
+             navigateToFilter({
+                category: mainCatId,
+                subcategory: subCatId,
+                subSubcategory: 'all'
+            });
         };
         subSubcategoriesContainer.appendChild(allBtn);
 
         snapshot.forEach(doc => {
             const subSubcat = { id: doc.id, ...doc.data() };
             const btn = document.createElement('button');
-            btn.className = 'subcategory-btn';
+            btn.className = `subcategory-btn ${currentView.subSubcategory === subSubcat.id ? 'active' : ''}`;
 
             const subSubcatName = subSubcat['name_' + currentLanguage] || subSubcat.name_ku_sorani;
             const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
@@ -783,10 +814,11 @@ async function renderSubSubcategories(mainCatId, subCatId) {
             `;
             
             btn.onclick = () => {
-                currentSubSubcategory = subSubcat.id;
-                document.querySelectorAll('#subSubcategoriesContainer .subcategory-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                searchProductsInFirestore('', true);
+                navigateToFilter({
+                    category: mainCatId,
+                    subcategory: subCatId,
+                    subSubcategory: subSubcat.id
+                });
             };
             subSubcategoriesContainer.appendChild(btn);
         });
@@ -815,25 +847,20 @@ async function renderSubcategories(categoryId) {
         if (subcategories.length === 0) return;
 
         const allBtn = document.createElement('button');
-        allBtn.className = `subcategory-btn ${currentSubcategory === 'all' ? 'active' : ''}`;
+        allBtn.className = `subcategory-btn ${currentView.subcategory === 'all' ? 'active' : ''}`;
         const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
         allBtn.innerHTML = `
             <div class="subcategory-image">${allIconSvg}</div>
             <span>${t('all_categories_label')}</span>
         `;
         allBtn.onclick = () => {
-            currentSubcategory = 'all';
-            currentSubSubcategory = 'all';
-            document.querySelectorAll('#subcategoriesContainer .subcategory-btn').forEach(b => b.classList.remove('active'));
-            allBtn.classList.add('active');
-            subSubcategoriesContainer.innerHTML = '';
-            searchProductsInFirestore('', true);
+            navigateToFilter({ category: categoryId, subcategory: 'all', subSubcategory: 'all' });
         };
         subcategoriesContainer.appendChild(allBtn);
 
         subcategories.forEach(subcat => {
             const subcatBtn = document.createElement('button');
-            subcatBtn.className = `subcategory-btn ${currentSubcategory === subcat.id ? 'active' : ''}`;
+            subcatBtn.className = `subcategory-btn ${currentView.subcategory === subcat.id ? 'active' : ''}`;
             
             const subcatName = subcat['name_' + currentLanguage] || subcat.name_ku_sorani;
             const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
@@ -845,18 +872,13 @@ async function renderSubcategories(categoryId) {
             `;
             
             subcatBtn.onclick = () => {
-                currentSubcategory = subcat.id;
-                currentSubSubcategory = 'all';
-                document.querySelectorAll('#subcategoriesContainer .subcategory-btn').forEach(b => b.classList.remove('active'));
-                subcatBtn.classList.add('active');
-                renderSubSubcategories(categoryId, subcat.id);
-                searchProductsInFirestore('', true);
+                 navigateToFilter({ category: categoryId, subcategory: subcat.id, subSubcategory: 'all' });
             };
             subcategoriesContainer.appendChild(subcatBtn);
         });
 
-        if (currentSubcategory && currentSubcategory !== 'all') {
-            renderSubSubcategories(categoryId, currentSubcategory);
+        if (currentView.subcategory && currentView.subcategory !== 'all') {
+            renderSubSubcategories(categoryId, currentView.subcategory);
         }
     } catch (error) {
         console.error("Error fetching subcategories: ", error);
@@ -874,7 +896,7 @@ function renderMainCategories() {
         btn.className = 'main-category-btn';
         btn.dataset.category = cat.id;
 
-        if (currentCategory === cat.id) {
+        if (currentView.category === cat.id) {
             btn.classList.add('active');
         }
 
@@ -885,13 +907,11 @@ function renderMainCategories() {
         btn.innerHTML = `<i class="${cat.icon}"></i> <span>${categoryName}</span>`;
 
         btn.onclick = () => {
-            currentCategory = cat.id;
-            currentSubcategory = 'all';
-            currentSubSubcategory = 'all';
-            renderMainCategories();
-            renderSubcategories(currentCategory);
-            renderSubSubcategories(currentCategory, currentSubcategory);
-            searchProductsInFirestore('', true);
+             navigateToFilter({
+                category: cat.id,
+                subcategory: 'all',
+                subSubcategory: 'all'
+            });
         };
 
         container.appendChild(btn);
@@ -917,7 +937,6 @@ function showProductDetails(productId) {
     showProductDetailsWithData(product);
 }
 
-// فانکشنی نوێ بۆ هێنانی کاڵا هاوشێوەکان
 async function renderRelatedProducts(currentProduct) {
     const section = document.getElementById('relatedProductsSection');
     const container = document.getElementById('relatedProductsContainer');
@@ -929,7 +948,6 @@ async function renderRelatedProducts(currentProduct) {
     }
 
     let q;
-    // یەکەمجار هەوڵدەدەین لە هەمان جۆری وردتر (sub-subcategory) بگەڕێین، پاشان جۆری لاوەکی، پاشان سەرەکی
     if (currentProduct.subSubcategoryId) {
         q = query(
             productsCollection,
@@ -938,7 +956,7 @@ async function renderRelatedProducts(currentProduct) {
             limit(6)
         );
     } else if (currentProduct.subcategoryId) {
-         q = query(
+       q = query(
             productsCollection,
             where('subcategoryId', '==', currentProduct.subcategoryId),
             where('__name__', '!=', currentProduct.id),
@@ -966,7 +984,7 @@ async function renderRelatedProducts(currentProduct) {
             container.appendChild(card);
         });
 
-        section.style.display = 'block'; // تەنها ئەگەر کاڵا دۆزرایەوە بەشەکە پیشان بدە
+        section.style.display = 'block'; 
 
     } catch (error) {
         console.error("هەڵە لە هێنانی کاڵا هاوشێوەکان:", error);
@@ -1048,7 +1066,6 @@ function showProductDetailsWithData(product) {
     const shareButton = document.getElementById('sheetShareBtn');
     shareButton.onclick = async () => {
         const nameInCurrentLang = (product.name && product.name[currentLanguage]) || (product.name && product.name.ku_sorani);
-        // دروستکردنی لینکێکی تایبەت بۆ کاڵاکە
         const productUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
 
         const shareData = {
@@ -1063,15 +1080,13 @@ function showProductDetailsWithData(product) {
                 console.log('Product shared successfully');
             } catch (err) {
                 console.error('Share error:', err);
-                // ئەگەر بەکارهێنەر پەشیمان بووەوە، هەڵەکە پیشان مەدە
                 if (err.name !== 'AbortError') {
-                     showNotification(t('share_error'), 'error');
+                    showNotification(t('share_error'), 'error');
                 }
             }
         } else {
-            // بۆ ئەو وێبگەڕانەی پشتگیری ناکەن، لینکەکە کۆپی دەکەین
             try {
-                navigator.clipboard.writeText(productUrl); // Note: this might not work in all iframe contexts.
+                navigator.clipboard.writeText(productUrl);
                 showNotification('لینکی کاڵا کۆپی کرا!', 'success');
             } catch (err) {
                 console.error('Fallback share error:', err);
@@ -1080,9 +1095,7 @@ function showProductDetailsWithData(product) {
         }
     };
 
-    // بانگکردنی فانکشنی هێنانی کاڵا هاوشێوەکان
     renderRelatedProducts(product);
-
     openPopup('productDetailSheet');
 }
 
@@ -1105,15 +1118,11 @@ function createPromoCardElement(card) {
             const targetCategoryId = card.categoryId;
             const categoryExists = categories.some(cat => cat.id === targetCategoryId);
             if (categoryExists) {
-                currentCategory = targetCategoryId;
-                currentSubcategory = 'all';
-                currentSubSubcategory = 'all';
-
-                renderMainCategories();
-                renderSubcategories(currentCategory);
-                renderSubSubcategories(currentCategory, currentSubcategory);
-                searchProductsInFirestore('', true);
-
+                 navigateToFilter({
+                    category: targetCategoryId,
+                    subcategory: 'all',
+                    subSubcategory: 'all'
+                });
                 document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
             }
         }
@@ -1258,13 +1267,13 @@ function renderSkeletonLoader() {
     loader.style.display = 'none';
 }
 
-function renderProducts() {
+function renderProducts(productsToRender) {
     productsContainer.innerHTML = '';
-	if (!products || products.length === 0) {
+	if (!productsToRender || productsToRender.length === 0) {
 		return;
 	}
 
-    products.forEach(item => {
+    productsToRender.forEach(item => {
         let element;
         if (item.isPromoCard) {
             element = createPromoCardElement(item);
@@ -1323,14 +1332,11 @@ async function renderShortcutRows() {
                     `;
 
                     item.onclick = () => {
-                        currentCategory = cardData.categoryId || 'all';
-                        currentSubcategory = cardData.subcategoryId || 'all';
-                        currentSubSubcategory = cardData.subSubcategoryId || 'all';
-
-                        renderMainCategories();
-                        renderSubcategories(currentCategory);
-                        renderSubSubcategories(currentCategory, currentSubcategory); 
-                        searchProductsInFirestore('', true);
+                         navigateToFilter({
+                            category: cardData.categoryId || 'all',
+                            subcategory: cardData.subcategoryId || 'all',
+                            subSubcategory: cardData.subSubcategoryId || 'all',
+                        });
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                     };
                     cardsContainer.appendChild(item);
@@ -1378,13 +1384,11 @@ async function renderBrandsSection() {
             `;
 
             item.onclick = () => {
-                currentCategory = brand.categoryId || 'all';
-                currentSubcategory = brand.subcategoryId || 'all';
-                currentSubSubcategory = 'all';
-
-                renderMainCategories();
-                renderSubcategories(currentCategory);
-                searchProductsInFirestore('', true);
+                 navigateToFilter({
+                    category: brand.categoryId || 'all',
+                    subcategory: brand.subcategoryId || 'all',
+                    subSubcategory: 'all'
+                });
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             };
 
@@ -1459,12 +1463,11 @@ async function renderCategorySections() {
         seeAllLink.className = 'see-all-link';
         seeAllLink.textContent = t('see_all');
         seeAllLink.onclick = () => {
-            currentCategory = category.id;
-            currentSubcategory = 'all';
-            currentSubSubcategory = 'all';
-            renderMainCategories();
-            renderSubcategories(currentCategory);
-            searchProductsInFirestore('', true);
+             navigateToFilter({
+                category: category.id,
+                subcategory: 'all',
+                subSubcategory: 'all'
+            });
             window.scrollTo({ top: 0, behavior: 'smooth' });
         };
         header.appendChild(seeAllLink);
@@ -1535,7 +1538,13 @@ async function renderAllProductsSection() {
 }
 
 async function renderHomePageContent() {
-    if (isRenderingHomePage) {
+    if (isRenderingHomePage) return;
+    
+    // چارەسەری ١: پشکنینی کاش پێش بارکردن
+    const cacheKey = 'home_page_' + currentLanguage;
+    if (viewCache[cacheKey]) {
+        document.getElementById('homePageSectionsContainer').innerHTML = viewCache[cacheKey];
+        skeletonLoader.style.display = 'none';
         return;
     }
     isRenderingHomePage = true;
@@ -1570,13 +1579,19 @@ async function renderHomePageContent() {
             renderShortcutRows(),
             renderAllProductsSection()
         ]);
+        
+        const fragment = document.createDocumentFragment();
+        if (promoGrid) fragment.appendChild(promoGrid);
+        if (brandsSection) fragment.appendChild(brandsSection);
+        if (newestSection) fragment.appendChild(newestSection);
+        if (categorySections) fragment.appendChild(categorySections);
+        if (shortcutRowsFragment) fragment.appendChild(shortcutRowsFragment);
+        if (allProductsSection) fragment.appendChild(allProductsSection);
+        
+        homeSectionsContainer.appendChild(fragment);
 
-        if (promoGrid) homeSectionsContainer.appendChild(promoGrid);
-        if (brandsSection) homeSectionsContainer.appendChild(brandsSection);
-        if (newestSection) homeSectionsContainer.appendChild(newestSection);
-        if (categorySections) homeSectionsContainer.appendChild(categorySections);
-        if (shortcutRowsFragment) homeSectionsContainer.appendChild(shortcutRowsFragment);
-        if (allProductsSection) homeSectionsContainer.appendChild(allProductsSection);
+        // چارەسەری ١: خەزنکردنی ئەنجام لە کاشدا
+        viewCache[cacheKey] = homeSectionsContainer.innerHTML;
 
     } catch (error) {
         console.error("Error rendering home page content:", error);
@@ -1587,33 +1602,32 @@ async function renderHomePageContent() {
     }
 }
 
-async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
-    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
-    const scrollTrigger = document.getElementById('scroll-loader-trigger');
-    const shouldShowHomeSections = !searchTerm && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
-
-    if (shouldShowHomeSections) {
-        if (isNewSearch) {
-            productsContainer.style.display = 'none';
-            scrollTrigger.style.display = 'none';
-            homeSectionsContainer.style.display = 'block';
-            await renderHomePageContent();
-        }
-        return;
-    } else {
-        homeSectionsContainer.innerHTML = '';
-        homeSectionsContainer.style.display = 'none';
-    }
-
+async function searchProductsInFirestore(isNewSearch = false) {
     if (isLoadingMoreProducts) return;
+    
+    // چارەسەری ١: دروستکردنی کلیلێکی تایبەت بۆ کاش
+    const { search, category, subcategory, subSubcategory } = currentView;
+    const cacheKey = `${search}-${category}-${subcategory}-${subSubcategory}`;
 
     if (isNewSearch) {
         allProductsLoaded = false;
         lastVisibleProductDoc = null;
         products = [];
+        
+        // پشکنینی کاش
+        if (viewCache[cacheKey]) {
+            products = viewCache[cacheKey].products;
+            lastVisibleProductDoc = viewCache[cacheKey].lastDoc;
+            allProductsLoaded = viewCache[cacheKey].allLoaded;
+            renderProducts(products);
+            productsContainer.style.display = 'grid';
+            skeletonLoader.style.display = 'none';
+            document.getElementById('scroll-loader-trigger').style.display = allProductsLoaded ? 'none' : 'block';
+            return;
+        }
         renderSkeletonLoader();
     }
-
+    
     if (allProductsLoaded && !isNewSearch) return;
 
     isLoadingMoreProducts = true;
@@ -1622,17 +1636,17 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     try {
         let productsQuery = collection(db, "products");
 
-        if (currentCategory && currentCategory !== 'all') {
-            productsQuery = query(productsQuery, where("categoryId", "==", currentCategory));
+        if (category && category !== 'all') {
+            productsQuery = query(productsQuery, where("categoryId", "==", category));
         }
-        if (currentSubcategory && currentSubcategory !== 'all') {
-            productsQuery = query(productsQuery, where("subcategoryId", "==", currentSubcategory));
+        if (subcategory && subcategory !== 'all') {
+            productsQuery = query(productsQuery, where("subcategoryId", "==", subcategory));
         }
-        if (currentSubSubcategory && currentSubSubcategory !== 'all') {
-            productsQuery = query(productsQuery, where("subSubcategoryId", "==", currentSubSubcategory));
+        if (subSubcategory && subSubcategory !== 'all') {
+            productsQuery = query(productsQuery, where("subSubcategoryId", "==", subSubcategory));
         }
 
-        const finalSearchTerm = searchTerm.trim().toLowerCase();
+        const finalSearchTerm = search.trim().toLowerCase();
         if (finalSearchTerm) {
             productsQuery = query(productsQuery,
                 where('searchableName', '>=', finalSearchTerm),
@@ -1655,26 +1669,31 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         const productSnapshot = await getDocs(productsQuery);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        if (isNewSearch) {
-            products = newProducts;
-        } else {
-            products = [...products, ...newProducts];
-        }
+        products = isNewSearch ? newProducts : [...products, ...newProducts];
 
         if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
             allProductsLoaded = true;
-            scrollTrigger.style.display = 'none';
+            document.getElementById('scroll-loader-trigger').style.display = 'none';
         } else {
             allProductsLoaded = false;
-            scrollTrigger.style.display = 'block';
+            document.getElementById('scroll-loader-trigger').style.display = 'block';
         }
 
         lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
 
-        renderProducts();
+        // خەزنکردنی ئەنجام لە کاشدا ئەگەر گەڕانێکی نوێ بوو
+        if (isNewSearch) {
+            viewCache[cacheKey] = {
+                products: products,
+                lastDoc: lastVisibleProductDoc,
+                allLoaded: allProductsLoaded
+            };
+        }
+        
+        renderProducts(products);
 
         if (products.length === 0 && isNewSearch) {
-            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ కాڵایەک نەدۆزرایەوە.</p>';
+            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         }
 
     } catch (error) {
@@ -2046,7 +2065,7 @@ function setupScrollObserver() {
 
     const observer = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting) {
-            searchProductsInFirestore(currentSearch, false);
+            searchProductsInFirestore(false); // isNewSearch is false for infinite scroll
         }
     }, {
         root: null,
@@ -2065,9 +2084,57 @@ function updateCategoryDependentUI() {
     }
 }
 
+// چارەسەری ٢: функشنی ناوەندی بۆ گۆڕینی دۆخ و URL
+function navigateToFilter(newFilters, pushState = true) {
+    // Update the global view state
+    currentView = { ...currentView, ...newFilters };
+
+    if (pushState) {
+        const state = { type: 'filter', ...currentView };
+        const params = new URLSearchParams();
+        if (currentView.search) params.set('search', currentView.search);
+        if (currentView.category !== 'all') params.set('category', currentView.category);
+        if (currentView.subcategory !== 'all') params.set('subcategory', currentView.subcategory);
+        if (currentView.subSubcategory !== 'all') params.set('subSubcategory', currentView.subSubcategory);
+        
+        const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+        history.pushState(state, '', newUrl);
+    }
+    
+    // Load the content for the new view
+    loadProductsForCurrentView(true);
+}
+
+function loadProductsForCurrentView(isNewSearch = true, forceRerender = false) {
+    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
+    const scrollTrigger = document.getElementById('scroll-loader-trigger');
+    
+    // Update the UI of category buttons
+    renderMainCategories();
+    renderSubcategories(currentView.category);
+    renderSubSubcategories(currentView.category, currentView.subcategory);
+
+    const isHomeView = !currentView.search && currentView.category === 'all';
+    
+    if (isHomeView) {
+        productsContainer.style.display = 'none';
+        scrollTrigger.style.display = 'none';
+        homeSectionsContainer.style.display = 'block';
+        renderHomePageContent();
+    } else {
+        homeSectionsContainer.style.display = 'none';
+        searchProductsInFirestore(isNewSearch);
+    }
+}
+
 function setupEventListeners() {
     homeBtn.onclick = () => {
-        history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
+        navigateToFilter({
+            search: '',
+            category: 'all',
+            subcategory: 'all',
+            subSubcategory: 'all'
+        });
         showPage('mainPage');
     };
 
@@ -2113,21 +2180,19 @@ function setupEventListeners() {
     };
 
     const debouncedSearch = debounce((term) => {
-        searchProductsInFirestore(term, true);
+        navigateToFilter({ search: term });
     }, 500);
 
     searchInput.oninput = () => {
         const searchTerm = searchInput.value;
-        currentSearch = searchTerm;
         clearSearchBtn.style.display = searchTerm ? 'block' : 'none';
         debouncedSearch(searchTerm);
     };
 
     clearSearchBtn.onclick = () => {
         searchInput.value = '';
-        currentSearch = '';
         clearSearchBtn.style.display = 'none';
-        searchProductsInFirestore('', true);
+        navigateToFilter({ search: '' });
     };
 
 
@@ -2246,10 +2311,9 @@ function initializeAppLogic() {
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories];
         updateCategoryDependentUI();
-        setLanguage(currentLanguage);
+        setLanguage(currentLanguage); // This will also trigger the initial data load
     });
 
-    searchProductsInFirestore('', true);
 
     const contactInfoRef = doc(db, "settings", "contactInfo");
     onSnapshot(contactInfoRef, (docSnap) => {
@@ -2264,12 +2328,11 @@ function initializeAppLogic() {
     updateCartCount();
     setupEventListeners();
     setupScrollObserver();
-    setLanguage(currentLanguage);
     renderContactLinks();
     checkNewAnnouncements();
     showWelcomeMessage();
     setupGpsButton();
-    handleInitialPageLoad();
+    handleInitialPageLoad(); // This should be one of the last calls
 }
 
 Object.assign(window.globalAdminTools, {
