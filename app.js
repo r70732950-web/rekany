@@ -309,14 +309,15 @@ let isLoadingMoreProducts = false;
 let allProductsLoaded = false;
 const PRODUCTS_PER_PAGE = 25;
 let isRenderingHomePage = false;
+let homePageHTMLCache = null; // <<-- زیادکراوە بۆ کاشکردنی پەڕەی سەرەکی
 
-// === START: NEW CACHING AND STATE VARIABLES ===
+// === START: CACHING AND STATE VARIABLES ===
 let productCache = {}; // Cache for first page of products
 let currentCategory = 'all';
 let currentSubcategory = 'all';
 let currentSubSubcategory = 'all';
 let currentSearch = '';
-// === END: NEW CACHING AND STATE VARIABLES ===
+// === END: CACHING AND STATE VARIABLES ===
 
 // DOM Elements
 const loginModal = document.getElementById('loginModal');
@@ -452,7 +453,6 @@ async function applyFilterState(state, fromPopState = false) {
     clearSearchBtn.style.display = currentSearch ? 'block' : 'none';
     
     renderMainCategories();
-    // Let renderSubcategories handle its own children
     await renderSubcategories(currentCategory); 
 
     await searchProductsInFirestore(currentSearch, true);
@@ -576,6 +576,7 @@ function setLanguage(lang) {
         btn.classList.toggle('active', btn.dataset.lang === lang);
     });
 
+    homePageHTMLCache = null; // پاککردنەوەی کاش لەکاتی گۆڕینی زمان
     const isHomeView = !currentSearch && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
     if (isHomeView) {
         renderHomePageContent();
@@ -703,6 +704,8 @@ function toggleFavorite(productId) {
 
     const isHomeView = !currentSearch && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
     if(isHomeView) {
+        // Clear home cache to reflect the change
+        homePageHTMLCache = null; 
         renderHomePageContent();
     } else {
         renderProducts();
@@ -843,7 +846,6 @@ async function renderSubSubcategories(mainCatId, subCatId) {
 async function renderSubcategories(categoryId) {
     const subcategoriesContainer = document.getElementById('subcategoriesContainer');
     subcategoriesContainer.innerHTML = '';
-    // Clear sub-subcategories here explicitly before re-rendering
     subSubcategoriesContainer.innerHTML = '';
 
     if (categoryId === 'all') {
@@ -896,7 +898,6 @@ async function renderSubcategories(categoryId) {
             subcategoriesContainer.appendChild(subcatBtn);
         });
 
-        // This is the crucial part: after rendering subcategories, render their children if one is active.
         if (currentSubcategory && currentSubcategory !== 'all') {
             await renderSubSubcategories(categoryId, currentSubcategory);
         }
@@ -1102,7 +1103,7 @@ function showProductDetailsWithData(product) {
             } catch (err) {
                 console.error('Share error:', err);
                 if (err.name !== 'AbortError') {
-                       showNotification(t('share_error'), 'error');
+                        showNotification(t('share_error'), 'error');
                 }
             }
         } else {
@@ -1604,9 +1605,14 @@ async function renderHomePageContent() {
         if (shortcutRowsFragment) homeSectionsContainer.appendChild(shortcutRowsFragment);
         if (allProductsSection) homeSectionsContainer.appendChild(allProductsSection);
 
+        // <<-- زیادکراوە بۆ هەڵگرتنی دیزاینی پەڕەی سەرەکی
+        homePageHTMLCache = homeSectionsContainer.innerHTML;
+        console.log("Home page content rendered and cached.");
+
     } catch (error) {
         console.error("Error rendering home page content:", error);
         homeSectionsContainer.innerHTML = `<p>هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
+        homePageHTMLCache = null; // پاککردنەوەی کاش لە کاتی هەڵە
     } finally {
         skeletonLoader.style.display = 'none';
         isRenderingHomePage = false;
@@ -1619,10 +1625,17 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     const shouldShowHomeSections = !searchTerm && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
 
     if (shouldShowHomeSections) {
-        if (isNewSearch) {
-            productsContainer.style.display = 'none';
-            scrollTrigger.style.display = 'none';
-            homeSectionsContainer.style.display = 'block';
+        productsContainer.style.display = 'none';
+        scrollTrigger.style.display = 'none';
+        homeSectionsContainer.style.display = 'block';
+
+        // <<-- بەشی گۆڕدراو بۆ بەکارهێنانی کاش
+        if (homePageHTMLCache && isNewSearch) {
+            console.log("Loading home page from cache.");
+            homeSectionsContainer.innerHTML = homePageHTMLCache;
+            skeletonLoader.style.display = 'none';
+            startPromoRotation(); // گرنگە بۆ دووبارە کارپێکردنەوەی سلایدەر
+        } else {
             await renderHomePageContent();
         }
         return;
@@ -1725,7 +1738,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         renderProducts();
 
         if (products.length === 0 && isNewSearch) {
-            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ కాڵایەک نەدۆزرایەوە.</p>';
+            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         }
 
     } catch (error) {
@@ -2316,9 +2329,12 @@ Object.assign(window.globalAdminTools, {
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
     productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
     
+    // <<-- فەنکشنی پاککردنەوەی کاش نوێکرایەوە
     clearProductCache: () => {
         console.log("Product cache cleared due to admin action.");
         productCache = {};
+        homePageHTMLCache = null; // پاککردنەوەی کاشی پەڕەی سەرەکی
+        console.log("Home page cache also cleared.");
     },
     
     setEditingProductId: (id) => { editingProductId = id; },
@@ -2415,4 +2431,3 @@ function startPromoRotation() {
         promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
-

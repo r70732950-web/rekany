@@ -1,11 +1,12 @@
-// فایلی admin.js
+// فایلی admin.js (نوێکراوە)
 
 // Access the shared tools from app.js
 const { 
     db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut,
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
     productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
-    setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage
+    setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage,
+    clearProductCache // <<-- دڵنیابە ئەمە زیادکراوە
 } = window.globalAdminTools;
 
 const shortcutRowsCollection = collection(db, "shortcut_rows");
@@ -24,9 +25,9 @@ window.AdminLogic = {
         this.renderPromoCardsAdminList();
         this.renderBrandsAdminList();
         this.renderContactMethodsAdmin();
-        this.renderShortcutRowsAdminList(); // Updated for rows
+        this.renderShortcutRowsAdminList();
         this.updateAdminCategoryDropdowns();
-        this.updateShortcutCardCategoryDropdowns(); // For the new form
+        this.updateShortcutCardCategoryDropdowns();
     },
 
     deinitialize: function() {
@@ -40,7 +41,7 @@ window.AdminLogic = {
         const adminSections = [
             'adminPoliciesManagement', 'adminSocialMediaManagement', 'adminAnnouncementManagement',
             'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
-            'adminContactMethodsManagement', 'adminShortcutRowsManagement' // Updated ID
+            'adminContactMethodsManagement', 'adminShortcutRowsManagement'
         ];
         adminSections.forEach(id => {
             const section = document.getElementById(id);
@@ -124,6 +125,7 @@ window.AdminLogic = {
         try {
             await deleteDoc(doc(db, "products", productId));
             showNotification(t('product_deleted'), 'success');
+            clearProductCache(); // پاککردنەوەی کاش
             searchProductsInFirestore(document.getElementById('searchInput').value, true);
         } catch (error) {
             showNotification(t('product_delete_error'), 'error');
@@ -376,8 +378,8 @@ window.AdminLogic = {
             });
         });
     },
-	
-	renderPromoCardsAdminList: function() {
+    
+    renderPromoCardsAdminList: function() {
         const container = document.getElementById('promoCardsListContainer');
         const q = query(promoCardsCollection, orderBy("order", "asc"));
 
@@ -424,13 +426,14 @@ window.AdminLogic = {
             try {
                 await deleteDoc(doc(db, "promo_cards", cardId));
                 showNotification('کارتەکە سڕدرایەوە', 'success');
+                clearProductCache(); // پاککردنەوەی کاش
             } catch (error) {
                 showNotification('هەڵەیەک ڕوویدا', 'error');
             }
         }
     },
-	
-	renderBrandsAdminList: function() {
+    
+    renderBrandsAdminList: function() {
         const container = document.getElementById('brandsListContainer');
         const q = query(brandsCollection, orderBy("order", "asc"));
 
@@ -487,14 +490,15 @@ window.AdminLogic = {
             try {
                 await deleteDoc(doc(db, "brands", brandId));
                 showNotification('براندەکە سڕدرایەوە', 'success');
+                clearProductCache(); // پاککردنەوەی کاش
             } catch (error) {
                 showNotification('هەڵەیەک ڕوویدا', 'error');
                 console.error("Error deleting brand: ", error);
             }
         }
     },
-	
-	renderCategoryManagementUI: async function() {
+    
+    renderCategoryManagementUI: async function() {
         const container = document.getElementById('categoryListContainer');
         if (!container) return;
         container.innerHTML = '<p>...خەریکی بارکردنی جۆرەکانە</p>';
@@ -600,8 +604,12 @@ window.AdminLogic = {
         const confirmation = confirm(`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە.`);
         if (confirmation) {
             try {
+                // In a real app, you'd recursively delete subcollections. 
+                // Firestore doesn't support this directly, so it requires client-side logic or a Cloud Function.
+                // For now, we just delete the document.
                 await deleteDoc(doc(db, docPath));
                 showNotification('جۆرەکە بە سەرکەوتوویی سڕدرایەوە', 'success');
+                clearProductCache(); // پاککردنەوەی کاش
             } catch (error) {
                 console.error("Error deleting category: ", error);
                 showNotification('هەڵەیەک ڕوویدا لە کاتی sڕینەوە', 'error');
@@ -717,6 +725,7 @@ window.AdminLogic = {
 
                 await deleteDoc(doc(db, "shortcut_rows", rowId));
                 showNotification('ڕیزەکە بە تەواوی سڕدرایەوە', 'success');
+                clearProductCache(); // پاککردنەوەی کاش
             } catch (error) {
                 showNotification('هەڵەیەک ڕوویدا', 'error');
                 console.error("Error deleting shortcut row: ", error);
@@ -729,6 +738,7 @@ window.AdminLogic = {
             try {
                 await deleteDoc(doc(db, "shortcut_rows", rowId, "cards", cardId));
                 showNotification('کارتەکە سڕدرایەوە', 'success');
+                clearProductCache(); // پاککردنەوەی کاش
             } catch (error) {
                 showNotification('هەڵەیەک ڕوویدا', 'error');
                 console.error("Error deleting shortcut card: ", error);
@@ -764,7 +774,7 @@ window.AdminLogic = {
             self.createProductImageInputs();
             document.getElementById('subcategorySelectContainer').style.display = 'none';
             document.getElementById('subSubcategorySelectContainer').style.display = 'none';
-            document.getElementById('formTitle').textContent = 'زیادکردنی కాڵای نوێ';
+            document.getElementById('formTitle').textContent = 'زیادکردنی کاڵای نوێ';
             document.getElementById('productForm').querySelector('button[type="submit"]').textContent = 'پاشەکەوتکردن';
             openPopup('productFormModal', 'modal');
         };
@@ -838,6 +848,7 @@ window.AdminLogic = {
                     await addDoc(productsCollection, productData);
                     showNotification('کاڵا زیادکرا', 'success');
                 }
+                clearProductCache(); // پاککردنەوەی کاش
                 closeCurrentPopup();
                 searchProductsInFirestore(document.getElementById('searchInput').value, true);
             } catch (error) {
@@ -881,6 +892,7 @@ window.AdminLogic = {
                     await addDoc(categoriesCollection, categoryData);
                     showNotification('جۆری سەرەکی بە سەرکەوتوویی زیادکرا', 'success');
                     addCategoryForm.reset();
+                    clearProductCache(); // پاککردنەوەی کاش
                 } catch (error) {
                     console.error("Error adding main category: ", error);
                     showNotification(t('error_generic'), 'error');
@@ -919,6 +931,7 @@ window.AdminLogic = {
                     await addDoc(subcategoriesCollectionRef, subcategoryData);
                     showNotification('جۆری لاوەکی بە سەرکەوتوویی زیادکرا', 'success');
                     addSubcategoryForm.reset();
+                    clearProductCache(); // پاککردنەوەی کاش
                 } catch (error) {
                     console.error("Error adding subcategory: ", error);
                     showNotification(t('error_generic'), 'error');
@@ -959,6 +972,7 @@ window.AdminLogic = {
                     addSubSubcategoryForm.reset();
                     mainCatSelect.value = '';
                     subCatSelect.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەکی بە --</option>';
+                    clearProductCache(); // پاککردنەوەی کاش
                 } catch (error) {
                     console.error("Error adding sub-subcategory: ", error);
                     showNotification('هەڵەیەک ڕوویدا', 'error');
@@ -996,6 +1010,7 @@ window.AdminLogic = {
                     await updateDoc(doc(db, docPath), updateData);
                     showNotification('گۆڕانکارییەکان پاشەکەوت کران', 'success');
                     closeCurrentPopup();
+                    clearProductCache(); // پاککردنەوەی کاش
                 } catch (error) {
                     console.error("Error updating category: ", error);
                     showNotification('هەڵەیەک ڕوویدا', 'error');
@@ -1071,35 +1086,35 @@ window.AdminLogic = {
         }
         
         const socialMediaToggle = document.getElementById('socialMediaToggle');
-		socialMediaToggle.onclick = () => {
+        socialMediaToggle.onclick = () => {
             const container = document.getElementById('adminSocialMediaManagement').querySelector('.contact-links-container');
             const chevron = socialMediaToggle.querySelector('.contact-chevron');
             container.classList.toggle('open');
             chevron.classList.toggle('open');
         };
-		
-		const addSocialMediaForm = document.getElementById('addSocialMediaForm');
-		addSocialMediaForm.addEventListener('submit', async (e) => {
-			e.preventDefault();
-			const socialData = {
-				name_ku_sorani: document.getElementById('socialNameKuSorani').value,
-				name_ku_badini: document.getElementById('socialNameKuBadini').value,
-				name_ar: document.getElementById('socialNameAr').value,
-				url: document.getElementById('socialUrl').value,
-				icon: document.getElementById('socialIcon').value,
-				createdAt: Date.now()
-			};
-			try {
-				const socialLinksRef = collection(db, 'settings', 'contactInfo', 'socialLinks');
-				await addDoc(socialLinksRef, socialData);
-				showNotification('لینک زیادکرا', 'success');
-				addSocialMediaForm.reset();
-			} catch (error) {
-				showNotification(t('error_generic'), 'error');
-			}
-		});
-		
-		const addContactMethodForm = document.getElementById('addContactMethodForm');
+        
+        const addSocialMediaForm = document.getElementById('addSocialMediaForm');
+        addSocialMediaForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const socialData = {
+                name_ku_sorani: document.getElementById('socialNameKuSorani').value,
+                name_ku_badini: document.getElementById('socialNameKuBadini').value,
+                name_ar: document.getElementById('socialNameAr').value,
+                url: document.getElementById('socialUrl').value,
+                icon: document.getElementById('socialIcon').value,
+                createdAt: Date.now()
+            };
+            try {
+                const socialLinksRef = collection(db, 'settings', 'contactInfo', 'socialLinks');
+                await addDoc(socialLinksRef, socialData);
+                showNotification('لینک زیادکرا', 'success');
+                addSocialMediaForm.reset();
+            } catch (error) {
+                showNotification(t('error_generic'), 'error');
+            }
+        });
+        
+        const addContactMethodForm = document.getElementById('addContactMethodForm');
         if (addContactMethodForm) {
             addContactMethodForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -1130,8 +1145,8 @@ window.AdminLogic = {
                 }
             });
         }
-		
-		const addPromoCardForm = document.getElementById('addPromoCardForm');
+        
+        const addPromoCardForm = document.getElementById('addPromoCardForm');
         if(addPromoCardForm) {
             addPromoCardForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -1161,6 +1176,7 @@ window.AdminLogic = {
                     addPromoCardForm.reset();
                     document.getElementById('editingPromoCardId').value = '';
                     submitButton.textContent = 'پاشەکەوتکردن';
+                    clearProductCache(); // پاککردنەوەی کاش
                 } catch (error) {
                     showNotification('هەڵەیەک ڕوویدا', 'error');
                 } finally {
@@ -1203,6 +1219,7 @@ window.AdminLogic = {
                     document.getElementById('editingBrandId').value = '';
                     document.getElementById('brandSubcategoryContainer').style.display = 'none';
                     submitButton.textContent = 'پاشەکەوتکردن';
+                    clearProductCache(); // پاککردنەوەی کاش
                 } catch (error) {
                     showNotification('هەڵەیەک ڕوویدا', 'error');
                     console.error("Error saving brand:", error);
@@ -1210,8 +1227,8 @@ window.AdminLogic = {
                     submitButton.disabled = false;
                 }
             });
-			
-			const brandMainCatSelect = document.getElementById('brandTargetMainCategory');
+            
+            const brandMainCatSelect = document.getElementById('brandTargetMainCategory');
             brandMainCatSelect.addEventListener('change', async (e) => {
                 const mainCatId = e.target.value;
                 const brandSubCatContainer = document.getElementById('brandSubcategoryContainer');
@@ -1235,7 +1252,7 @@ window.AdminLogic = {
                 }
             });
         }
-		
+        
 
         // START: Shortcut Rows & Cards Listeners
         const addShortcutRowForm = document.getElementById('addShortcutRowForm');
@@ -1263,6 +1280,7 @@ window.AdminLogic = {
                 addShortcutRowForm.reset();
                 document.getElementById('editingShortcutRowId').value = '';
                 document.getElementById('cancelRowEditBtn').style.display = 'none';
+                clearProductCache(); // پاککردنەوەی کاش
             } catch (error) { console.error("Error saving row:", error); showNotification('هەڵەیەک ڕوویدا', 'error'); }
         });
 
@@ -1302,6 +1320,7 @@ window.AdminLogic = {
                 document.getElementById('selectRowForCard').disabled = false;
                 document.getElementById('cancelCardEditBtn').style.display = 'none';
                 addCardToRowForm.querySelector('button[type="submit"]').textContent = 'زیادکردنی کارت';
+                clearProductCache(); // پاککردنەوەی کاش
             } catch (error) { console.error("Error saving card:", error); showNotification('هەڵەیەک ڕوویدا', 'error'); }
         });
         
@@ -1350,7 +1369,7 @@ window.AdminLogic = {
                         subCatSelect.value = card.subcategoryId || '';
                         subCatSelect.dispatchEvent(new Event('change'));
                         setTimeout(() => {
-                             document.getElementById('shortcutCardSubSubcategory').value = card.subSubcategoryId || '';
+                            document.getElementById('shortcutCardSubSubcategory').value = card.subSubcategoryId || '';
                         }, 500);
                     }, 500);
                     
@@ -1418,10 +1437,10 @@ window.AdminLogic = {
             if(mainCatId && subCatId) {
                 subSubContainer.style.display = 'block';
                 subSubSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
-                 const subSubQuery = query(collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories"), orderBy("order", "asc"));
+                const subSubQuery = query(collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories"), orderBy("order", "asc"));
                 const snapshot = await getDocs(subSubQuery);
                 subSubSelect.innerHTML = '<option value="">-- هەموو جۆرەکان --</option>';
-                 snapshot.forEach(doc => {
+                snapshot.forEach(doc => {
                     const subSubCat = { id: doc.id, ...doc.data() };
                     const option = document.createElement('option');
                     option.value = subSubCat.id;
