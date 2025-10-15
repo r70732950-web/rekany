@@ -1022,7 +1022,7 @@
             white-space: nowrap;
         }
         
-        /* START: ستایلە نوێیەکان بۆ کارتی میانبەر */
+        /* START: ستایلە نوێیەکان بۆ کارتی میانبەر (دیزاینی نوێ) */
         .shortcut-cards-section {
             padding: 16px;
             background-color: var(--section-bg);
@@ -1035,42 +1035,59 @@
 
         .shortcut-cards-container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); 
+            gap: 12px;
         }
 
         .shortcut-card {
-            background-color: #fff;
-            border: 1px solid var(--medium-gray);
-            border-radius: 8px;
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
             cursor: pointer;
             transition: all 0.2s ease-in-out;
-            overflow: hidden;
+            aspect-ratio: 1/1;
+            background-color: var(--light-gray);
         }
 
         .shortcut-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-4px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.12);
+        }
+
+        .shortcut-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60%;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            pointer-events: none;
         }
 
         .shortcut-card-image {
             width: 100%;
-            aspect-ratio: 1/1;
+            height: 100%;
             object-fit: cover;
-            background-color: var(--light-gray);
+            display: block;
         }
 
         .shortcut-card-name {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            right: 8px;
+            z-index: 2;
             font-weight: bold;
-            font-size: 12px;
-            color: var(--text-color);
-            padding: 8px 5px;
+            font-size: 13px;
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
             text-align: center;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        
+
         .shortcut-row-title {
             font-size: 18px;
             font-weight: bold;
@@ -1564,7 +1581,7 @@
                     <div id="brandsListContainer"></div>
                 </div>
             </div>
-
+            
             <!-- START: بەشی بەڕێوەبردنی ڕیزی کارتەکان -->
             <div class="settings-group" id="adminShortcutRowsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
@@ -1947,3 +1964,4 @@
     <script src="admin.js" defer></script>
 </body>
 </html>
+
