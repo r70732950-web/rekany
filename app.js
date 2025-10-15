@@ -387,7 +387,18 @@ function debounce(func, delay = 500) {
     };
 }
 
+// <<-- START: فەنکشنی نوێ بۆ هەڵگرتنی شوێنی سکڕۆڵ
+function saveCurrentScrollPosition() {
+    const currentState = history.state;
+    // تەنها شوێنی سکڕۆڵ هەڵبگرە ئەگەر لە پەڕەی سەرەکیدا بین و ستەیتەکە تایبەت نەبێت بە پۆپئەپ
+    if (!document.getElementById('mainPage').classList.contains('page-hidden') && currentState && !currentState.type) {
+        history.replaceState({ ...currentState, scroll: window.scrollY }, '');
+    }
+}
+// <<-- END: فەنکشنی نوێ
+
 function showPage(pageId) {
+    saveCurrentScrollPosition(); // هەڵگرتنی سکڕۆڵ پێش گۆڕینی پەڕە
     document.querySelectorAll('.page').forEach(page => {
         page.classList.toggle('page-hidden', page.id !== pageId);
     });
@@ -408,6 +419,7 @@ function closeAllPopupsUI() {
 }
 
 function openPopup(id, type = 'sheet') {
+    saveCurrentScrollPosition(); // هەڵگرتنی سکڕۆڵ پێش کردنەوەی پۆپئەپ
     const element = document.getElementById(id);
     if (!element) return;
 
@@ -457,23 +469,25 @@ async function applyFilterState(state, fromPopState = false) {
     await searchProductsInFirestore(currentSearch, true);
 
     if (fromPopState && typeof state.scroll === 'number') {
+        // گەڕاندنەوەی شوێنی سکڕۆڵ کاتێک بەکارهێنەر دوگمەی 'گەڕانەوە'ی وێبگەڕ بەکاردەهێنێت
         setTimeout(() => window.scrollTo(0, state.scroll), 50);
     } else if (!fromPopState) {
+        // گەڕاندنەوەی بۆ سەرەتا کاتێک فلتەرێکی نوێ چالاک دەکرێت
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
 async function navigateToFilter(newState) {
-    const currentState = {
+    // هەڵگرتنی ستەیتی ئێستا لەگەڵ شوێنی سکڕۆڵ پێش گۆڕانکاری
+    history.replaceState({
         category: currentCategory,
         subcategory: currentSubcategory,
         subSubcategory: currentSubSubcategory,
         search: currentSearch,
-        scroll: window.scrollY
-    };
-    history.replaceState(currentState, '');
+        scroll: window.scrollY 
+    }, '');
 
-    const finalState = { ...currentState, ...newState, scroll: 0 };
+    const finalState = { ...history.state, ...newState, scroll: 0 };
     
     const params = new URLSearchParams();
     if (finalState.category && finalState.category !== 'all') params.set('category', finalState.category);
@@ -497,7 +511,8 @@ window.addEventListener('popstate', (event) => {
         } else if (state.type === 'sheet' || state.type === 'modal') {
             openPopup(state.id, state.type);
         } else {
-            applyFilterState(state, true);
+            // کاتێک دەگەڕێیتەوە بۆ ستەیتی فلتەر، شوێنی سکڕۆڵەکەش بگەڕێنەرەوە
+            applyFilterState(state, true); 
         }
     } else {
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
@@ -577,7 +592,7 @@ function setLanguage(lang) {
 
     const homeContainer = document.getElementById('homePageSectionsContainer');
     if (homeContainer) {
-        homeContainer.innerHTML = '';
+        homeContainer.innerHTML = ''; 
     }
     
     const isHomeView = !currentSearch && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
@@ -2252,25 +2267,6 @@ function setupEventListeners() {
         const body = payload.notification.body;
         showNotification(`${title}: ${body}`, 'success');
     });
-
-    // <<-- START: چارەسەری کێشەی Scroll
-    const onScroll = () => {
-        // تەنها کاتێک شوێنی scroll هەڵبگرە کە لە پەڕەی سەرەکیدا بیت
-        if (document.getElementById('mainPage').classList.contains('page-hidden')) {
-            return;
-        }
-        
-        const currentState = history.state;
-        // دڵنیابە کە ستەیتی هیستۆری تایبەت بە پاپئەپ نییە
-        if (currentState && !currentState.type) { 
-            const updatedState = { ...currentState, scroll: window.scrollY };
-            history.replaceState(updatedState, '');
-        }
-    };
-
-    const debouncedOnScroll = debounce(onScroll, 150);
-    window.addEventListener('scroll', debouncedOnScroll);
-    // <<-- END: چارەسەری کێشەی Scroll
 }
 
 onAuthStateChanged(auth, async (user) => {
