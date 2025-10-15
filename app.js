@@ -575,15 +575,14 @@ function setLanguage(lang) {
         btn.classList.toggle('active', btn.dataset.lang === lang);
     });
 
-    // پاککردنەوەی پەڕەی سەرەکی بۆ ئەوەی بە زمانی نوێ دووبارە دروست بکرێتەوە
     const homeContainer = document.getElementById('homePageSectionsContainer');
     if (homeContainer) {
-        homeContainer.innerHTML = ''; 
+        homeContainer.innerHTML = '';
     }
     
     const isHomeView = !currentSearch && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
     if (isHomeView) {
-        renderHomePageContent(); // ڕاستەوخۆ بانگی دەکەین بۆ دروستکردنەوە
+        renderHomePageContent();
     } else {
         renderProducts();
     }
@@ -708,7 +707,6 @@ function toggleFavorite(productId) {
 
     const isHomeView = !currentSearch && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
     if(isHomeView) {
-        // Clear home cache to reflect the favorite change on the card
         const homeContainer = document.getElementById('homePageSectionsContainer');
         if (homeContainer) {
             homeContainer.innerHTML = '';
@@ -1632,16 +1630,13 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         scrollTrigger.style.display = 'none';
         homeSectionsContainer.style.display = 'block';
 
-        // تەنها ئەگەر پەڕەی سەرەکی بەتاڵ بوو، دووبارە دروستی بکەرەوە
         if (homeSectionsContainer.innerHTML.trim() === '') {
              await renderHomePageContent();
         } else {
-            console.log("Showing existing home page content, no re-render needed.");
             startPromoRotation();
         }
         return;
     } else {
-        // پەڕەی سەرەکی بشارەوە، بەڵام مەیسڕەوە
         homeSectionsContainer.style.display = 'none';
     }
     
@@ -1737,7 +1732,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         renderProducts();
 
         if (products.length === 0 && isNewSearch) {
-            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ కాڵایەک نەدۆزرایەوە.</p>';
         }
 
     } catch (error) {
@@ -2257,6 +2252,25 @@ function setupEventListeners() {
         const body = payload.notification.body;
         showNotification(`${title}: ${body}`, 'success');
     });
+
+    // <<-- START: چارەسەری کێشەی Scroll
+    const onScroll = () => {
+        // تەنها کاتێک شوێنی scroll هەڵبگرە کە لە پەڕەی سەرەکیدا بیت
+        if (document.getElementById('mainPage').classList.contains('page-hidden')) {
+            return;
+        }
+        
+        const currentState = history.state;
+        // دڵنیابە کە ستەیتی هیستۆری تایبەت بە پاپئەپ نییە
+        if (currentState && !currentState.type) { 
+            const updatedState = { ...currentState, scroll: window.scrollY };
+            history.replaceState(updatedState, '');
+        }
+    };
+
+    const debouncedOnScroll = debounce(onScroll, 150);
+    window.addEventListener('scroll', debouncedOnScroll);
+    // <<-- END: چارەسەری کێشەی Scroll
 }
 
 onAuthStateChanged(auth, async (user) => {
@@ -2328,15 +2342,13 @@ Object.assign(window.globalAdminTools, {
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
     productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
     
-    // فەنکشنی نوێکراوە بۆ پاککردنەوەی کاش
     clearProductCache: () => {
-        console.log("Product cache cleared due to admin action.");
+        console.log("Product cache and home page cleared due to admin action.");
         productCache = {};
         const homeContainer = document.getElementById('homePageSectionsContainer');
         if (homeContainer) {
             homeContainer.innerHTML = '';
         }
-        console.log("Home page content cleared for re-rendering.");
     },
     
     setEditingProductId: (id) => { editingProductId = id; },
