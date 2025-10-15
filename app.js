@@ -730,7 +730,7 @@ async function renderSubSubcategories(mainCatId, subCatId) {
 
         const allBtn = document.createElement('button');
         allBtn.className = 'subcategory-btn active';
-        allBtn.textContent = t('all_categories_label');
+        allBtn.innerHTML = `<span>${t('all_categories_label')}</span>`;
         allBtn.onclick = () => {
             currentSubSubcategory = 'all';
             document.querySelectorAll('#subSubcategoriesContainer .subcategory-btn').forEach(b => b.classList.remove('active'));
@@ -787,7 +787,7 @@ async function renderSubcategories(categoryId) {
 
         const allBtn = document.createElement('button');
         allBtn.className = `subcategory-btn ${currentSubcategory === 'all' ? 'active' : ''}`;
-        allBtn.textContent = t('all_categories_label');
+        allBtn.innerHTML = `<span>${t('all_categories_label')}</span>`;
         allBtn.onclick = () => {
             currentSubcategory = 'all';
             currentSubSubcategory = 'all';
@@ -803,7 +803,7 @@ async function renderSubcategories(categoryId) {
             subcatBtn.className = `subcategory-btn ${currentSubcategory === subcat.id ? 'active' : ''}`;
             
             const subcatName = subcat['name_' + currentLanguage] || subcat.name_ku_sorani;
-            const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"; // A transparent pixel
+            const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
             const imageUrl = subcat.imageUrl || placeholderImg;
         
             subcatBtn.innerHTML = `
@@ -2177,3 +2177,4 @@ function startPromoRotation() {
         promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
+
