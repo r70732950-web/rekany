@@ -309,7 +309,6 @@ let isLoadingMoreProducts = false;
 let allProductsLoaded = false;
 const PRODUCTS_PER_PAGE = 25;
 let isRenderingHomePage = false;
-let homePageHTMLCache = null; // <<-- زیادکراوە بۆ کاشکردنی پەڕەی سەرەکی
 
 // === START: CACHING AND STATE VARIABLES ===
 let productCache = {}; // Cache for first page of products
@@ -576,10 +575,15 @@ function setLanguage(lang) {
         btn.classList.toggle('active', btn.dataset.lang === lang);
     });
 
-    homePageHTMLCache = null; // پاککردنەوەی کاش لەکاتی گۆڕینی زمان
+    // پاککردنەوەی پەڕەی سەرەکی بۆ ئەوەی بە زمانی نوێ دووبارە دروست بکرێتەوە
+    const homeContainer = document.getElementById('homePageSectionsContainer');
+    if (homeContainer) {
+        homeContainer.innerHTML = ''; 
+    }
+    
     const isHomeView = !currentSearch && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
     if (isHomeView) {
-        renderHomePageContent();
+        renderHomePageContent(); // ڕاستەوخۆ بانگی دەکەین بۆ دروستکردنەوە
     } else {
         renderProducts();
     }
@@ -704,8 +708,11 @@ function toggleFavorite(productId) {
 
     const isHomeView = !currentSearch && currentCategory === 'all' && currentSubcategory === 'all' && currentSubSubcategory === 'all';
     if(isHomeView) {
-        // Clear home cache to reflect the change
-        homePageHTMLCache = null; 
+        // Clear home cache to reflect the favorite change on the card
+        const homeContainer = document.getElementById('homePageSectionsContainer');
+        if (homeContainer) {
+            homeContainer.innerHTML = '';
+        }
         renderHomePageContent();
     } else {
         renderProducts();
@@ -1605,14 +1612,9 @@ async function renderHomePageContent() {
         if (shortcutRowsFragment) homeSectionsContainer.appendChild(shortcutRowsFragment);
         if (allProductsSection) homeSectionsContainer.appendChild(allProductsSection);
 
-        // <<-- زیادکراوە بۆ هەڵگرتنی دیزاینی پەڕەی سەرەکی
-        homePageHTMLCache = homeSectionsContainer.innerHTML;
-        console.log("Home page content rendered and cached.");
-
     } catch (error) {
         console.error("Error rendering home page content:", error);
         homeSectionsContainer.innerHTML = `<p>هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
-        homePageHTMLCache = null; // پاککردنەوەی کاش لە کاتی هەڵە
     } finally {
         skeletonLoader.style.display = 'none';
         isRenderingHomePage = false;
@@ -1626,27 +1628,25 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
 
     if (shouldShowHomeSections) {
         productsContainer.style.display = 'none';
+        skeletonLoader.style.display = 'none';
         scrollTrigger.style.display = 'none';
         homeSectionsContainer.style.display = 'block';
 
-        // <<-- بەشی گۆڕدراو بۆ بەکارهێنانی کاش
-        if (homePageHTMLCache && isNewSearch) {
-            console.log("Loading home page from cache.");
-            homeSectionsContainer.innerHTML = homePageHTMLCache;
-            skeletonLoader.style.display = 'none';
-            startPromoRotation(); // گرنگە بۆ دووبارە کارپێکردنەوەی سلایدەر
+        // تەنها ئەگەر پەڕەی سەرەکی بەتاڵ بوو، دووبارە دروستی بکەرەوە
+        if (homeSectionsContainer.innerHTML.trim() === '') {
+             await renderHomePageContent();
         } else {
-            await renderHomePageContent();
+            console.log("Showing existing home page content, no re-render needed.");
+            startPromoRotation();
         }
         return;
     } else {
-        homeSectionsContainer.innerHTML = '';
+        // پەڕەی سەرەکی بشارەوە، بەڵام مەیسڕەوە
         homeSectionsContainer.style.display = 'none';
     }
     
     const cacheKey = `${currentCategory}-${currentSubcategory}-${currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
     if (isNewSearch && productCache[cacheKey]) {
-        console.log("Loading from cache for key:", cacheKey);
         products = productCache[cacheKey].products;
         lastVisibleProductDoc = productCache[cacheKey].lastVisible;
         allProductsLoaded = productCache[cacheKey].allLoaded;
@@ -1727,7 +1727,6 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
 
         if (isNewSearch) {
-             console.log("Saving to cache for key:", cacheKey);
             productCache[cacheKey] = {
                 products: products,
                 lastVisible: lastVisibleProductDoc,
@@ -2329,12 +2328,15 @@ Object.assign(window.globalAdminTools, {
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
     productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
     
-    // <<-- فەنکشنی پاککردنەوەی کاش نوێکرایەوە
+    // فەنکشنی نوێکراوە بۆ پاککردنەوەی کاش
     clearProductCache: () => {
         console.log("Product cache cleared due to admin action.");
         productCache = {};
-        homePageHTMLCache = null; // پاککردنەوەی کاشی پەڕەی سەرەکی
-        console.log("Home page cache also cleared.");
+        const homeContainer = document.getElementById('homePageSectionsContainer');
+        if (homeContainer) {
+            homeContainer.innerHTML = '';
+        }
+        console.log("Home page content cleared for re-rendering.");
     },
     
     setEditingProductId: (id) => { editingProductId = id; },
@@ -2431,3 +2433,4 @@ function startPromoRotation() {
         promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
+
