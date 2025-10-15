@@ -1198,7 +1198,10 @@ async function renderShortcutRows() {
 
                     const item = document.createElement('div');
                     item.className = 'shortcut-card';
-                    item.textContent = cardName;
+                    item.innerHTML = `
+                        <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
+                        <div class="shortcut-card-name">${cardName}</div>
+                    `;
 
                     item.onclick = () => {
                         currentCategory = cardData.categoryId || 'all';
@@ -1225,7 +1228,6 @@ async function renderShortcutRows() {
         return null;
     }
 }
-
 
 async function renderBrandsSection() {
     const sectionContainer = document.createElement('div');
@@ -1442,19 +1444,19 @@ async function renderHomePageContent() {
             startPromoRotation();
         }
 
-        const [shortcutRowsFragment, brandsSection, newestSection, categorySections, allProductsSection] = await Promise.all([
-            renderShortcutRows(),
+        const [brandsSection, newestSection, categorySections, shortcutRowsFragment, allProductsSection] = await Promise.all([
             renderBrandsSection(),
             renderNewestProductsSection(),
             renderCategorySections(),
+            renderShortcutRows(),
             renderAllProductsSection()
         ]);
 
         if (promoGrid) homeSectionsContainer.appendChild(promoGrid);
-        if (shortcutRowsFragment) homeSectionsContainer.appendChild(shortcutRowsFragment);
         if (brandsSection) homeSectionsContainer.appendChild(brandsSection);
         if (newestSection) homeSectionsContainer.appendChild(newestSection);
         if (categorySections) homeSectionsContainer.appendChild(categorySections);
+        if (shortcutRowsFragment) homeSectionsContainer.appendChild(shortcutRowsFragment);
         if (allProductsSection) homeSectionsContainer.appendChild(allProductsSection);
 
     } catch (error) {
@@ -2151,14 +2153,12 @@ function initializeAppLogic() {
     handleInitialPageLoad();
 }
 
-// Assign all necessary functions and variables to the global tools object
 Object.assign(window.globalAdminTools, {
     db, auth,
     doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut,
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
     productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
     
-    // State variables
     setEditingProductId: (id) => { editingProductId = id; },
     getEditingProductId: () => editingProductId,
     getCategories: () => categories,
@@ -2253,3 +2253,4 @@ function startPromoRotation() {
         promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
+

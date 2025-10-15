@@ -24,9 +24,9 @@ window.AdminLogic = {
         this.renderPromoCardsAdminList();
         this.renderBrandsAdminList();
         this.renderContactMethodsAdmin();
-        this.renderShortcutRowsAdminList(); // نوێکراوە
+        this.renderShortcutRowsAdminList(); // Updated for rows
         this.updateAdminCategoryDropdowns();
-        this.updateShortcutCardCategoryDropdowns(); // نوێکراوە
+        this.updateShortcutCardCategoryDropdowns(); // For the new form
     },
 
     deinitialize: function() {
@@ -40,7 +40,7 @@ window.AdminLogic = {
         const adminSections = [
             'adminPoliciesManagement', 'adminSocialMediaManagement', 'adminAnnouncementManagement',
             'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
-            'adminContactMethodsManagement', 'adminShortcutRowsManagement' // نوێکراوە
+            'adminContactMethodsManagement', 'adminShortcutRowsManagement' // Updated ID
         ];
         adminSections.forEach(id => {
             const section = document.getElementById(id);
@@ -600,7 +600,6 @@ window.AdminLogic = {
         const confirmation = confirm(`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە.`);
         if (confirmation) {
             try {
-                // A more robust delete would recursively delete subcollections. This is a simplified version.
                 await deleteDoc(doc(db, docPath));
                 showNotification('جۆرەکە بە سەرکەوتوویی سڕدرایەوە', 'success');
             } catch (error) {
@@ -655,13 +654,11 @@ window.AdminLogic = {
             snapshot.forEach(rowDoc => {
                 const row = { id: rowDoc.id, ...rowDoc.data() };
                 
-                // Populate dropdown
                 const option = document.createElement('option');
                 option.value = row.id;
                 option.textContent = row.title.ku_sorani;
                 rowSelect.appendChild(option);
 
-                // Render admin list
                 const rowElement = document.createElement('div');
                 rowElement.style.border = '1px solid #ddd';
                 rowElement.style.borderRadius = '6px';
@@ -1238,6 +1235,7 @@ window.AdminLogic = {
                 }
             });
         }
+		
 
         // START: Shortcut Rows & Cards Listeners
         const addShortcutRowForm = document.getElementById('addShortcutRowForm');
@@ -1283,6 +1281,7 @@ window.AdminLogic = {
                     ku_badini: document.getElementById('shortcutCardNameKuBadini').value,
                     ar: document.getElementById('shortcutCardNameAr').value,
                 },
+                imageUrl: document.getElementById('shortcutCardImageUrl').value,
                 categoryId: document.getElementById('shortcutCardMainCategory').value || null,
                 subcategoryId: document.getElementById('shortcutCardSubcategory').value || null,
                 subSubcategoryId: document.getElementById('shortcutCardSubSubcategory').value || null,
@@ -1341,6 +1340,7 @@ window.AdminLogic = {
                     document.getElementById('shortcutCardNameKuSorani').value = card.name.ku_sorani || '';
                     document.getElementById('shortcutCardNameKuBadini').value = card.name.ku_badini || '';
                     document.getElementById('shortcutCardNameAr').value = card.name.ar || '';
+                    document.getElementById('shortcutCardImageUrl').value = card.imageUrl || '';
                     document.getElementById('shortcutCardOrder').value = card.order || 10;
                     const mainCatSelect = document.getElementById('shortcutCardMainCategory');
                     mainCatSelect.value = card.categoryId || '';

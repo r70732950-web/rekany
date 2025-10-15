@@ -119,7 +119,6 @@
             display: none;
         }
         
-        /* === START: گۆڕانکاری نوێ بۆ دیزاینی جۆرە لاوەکییەکان === */
         .subcategory-btn {
             padding: 8px 5px;
             border: none;
@@ -164,7 +163,6 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             transition: all 0.2s ease-in-out;
         }
-        /* === END: گۆڕانکارییەکان === */
 
         .search-container { 
             flex-grow: 1;
@@ -260,7 +258,6 @@
             text-overflow: ellipsis;
         }
         
-        /* === ستایلێ کارت === */
         .products-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
@@ -328,7 +325,7 @@
         
         .product-name { 
             position: absolute;
-            top: -22px; /* Adjusted to not overlap with price/cart line */
+            top: -22px;
             right: 10px;
             left: 10px;
             z-index: 3;
@@ -441,11 +438,8 @@
         }
         .add-to-cart-btn:hover { background-color: var(--accent-light); }
         
-        .product-extra-info {
-             /* vala */
-        }
+        .product-extra-info {}
         
-        /* GORANKARI: گۆڕینی جوڵەی ئەنیمەیشن */
         @keyframes move-peek {
             0%, 80%, 100% { transform: translateX(-50%); }
             90% { transform: translateX(calc(-50% - 8px)); }
@@ -911,7 +905,6 @@
             right: 10px;
         }
 
-        /* START: ستایلە نوێیەکان بۆ پەڕەی سەرەکی */
         .dynamic-section {
             margin-bottom: 10px;
         }
@@ -921,20 +914,18 @@
             gap: 12px;
             overflow-x: auto;
             padding: 5px 0 15px 0;
-            scrollbar-width: none; /* Firefox */
+            scrollbar-width: none;
         }
 
         .horizontal-products-container::-webkit-scrollbar {
-            display: none; /* Chrome, Safari, Opera */
+            display: none;
         }
 
         .horizontal-products-container .product-card {
             flex-shrink: 0;
-            width: 160px; /* قەبارەی کارتی کاڵا لە شریتی ئاسۆیی */
+            width: 160px;
         }
-        /* END: ستایلە نوێیەکان */
 
-        /* START: ستایلە نوێیەکان بۆ باشترکردنی پەڕەی سەرەکی */
         .section-title-header {
             display: flex;
             justify-content: space-between;
@@ -947,7 +938,7 @@
             font-size: 18px;
             font-weight: bold;
             color: var(--primary-color);
-            margin: 0; /* لابردنی مەودای پێشوو */
+            margin: 0;
         }
 
         .see-all-link {
@@ -959,15 +950,13 @@
             padding: 4px 10px;
             border-radius: 6px;
             transition: background-color 0.2s;
-            white-space: nowrap; /* بۆ ئەوەی نەشکێت */
+            white-space: nowrap;
         }
 
         .see-all-link:hover {
             background-color: var(--medium-gray);
         }
-        /* END: ستایلە نوێیەکان */
 
-        /* START: ستایلە نوێیەکان بۆ بەشی براندەکان */
         .brands-section {
             padding: 16px;
             background-color: var(--section-bg);
@@ -983,11 +972,11 @@
             overflow-x: auto;
             gap: 15px;
             padding: 10px 5px;
-            scrollbar-width: none; /* Firefox */
+            scrollbar-width: none;
         }
 
         .brands-container::-webkit-scrollbar {
-            display: none; /* Chrome, Safari */
+            display: none;
         }
 
         .brand-item {
@@ -1032,8 +1021,7 @@
             color: var(--text-light);
             white-space: nowrap;
         }
-        /* END: ستایلە نوێیەکان */
-
+        
         /* START: ستایلە نوێیەکان بۆ کارتی میانبەر */
         .shortcut-cards-section {
             padding: 16px;
@@ -1047,30 +1035,40 @@
 
         .shortcut-cards-container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
             gap: 10px;
         }
 
         .shortcut-card {
-            background-color: var(--light-gray);
+            background-color: #fff;
             border: 1px solid var(--medium-gray);
             border-radius: 8px;
-            padding: 12px 10px;
-            text-align: center;
             cursor: pointer;
             transition: all 0.2s ease-in-out;
-            font-weight: bold;
-            font-size: 13px;
-            color: var(--text-color);
-            white-space: nowrap;
             overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .shortcut-card:hover {
-            background-color: var(--medium-gray);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .shortcut-card-image {
+            width: 100%;
+            aspect-ratio: 1/1;
+            object-fit: cover;
+            background-color: var(--light-gray);
+        }
+
+        .shortcut-card-name {
+            font-weight: bold;
+            font-size: 12px;
+            color: var(--text-color);
+            padding: 8px 5px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .shortcut-row-title {
@@ -1566,12 +1564,14 @@
                     <div id="brandsListContainer"></div>
                 </div>
             </div>
-            
+
+            <!-- START: بەشی بەڕێوەبردنی ڕیزی کارتەکان -->
             <div class="settings-group" id="adminShortcutRowsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                     <i class="fas fa-layer-group"></i> <span>بەڕێوەبردنی ڕیزی کارتەکان</span>
                 </h3>
                 
+                <!-- فۆرمی زیادکردنی ڕیزی نوێ -->
                 <div style="padding: 15px; border-bottom: 1px solid var(--section-border); background-color: #f8f9fa;">
                     <form id="addShortcutRowForm">
                         <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردن/دەستکاریکردنی ڕیز</h4>
@@ -1597,6 +1597,7 @@
                     </form>
                 </div>
 
+                <!-- فۆرمی زیادکردنی کارت بۆ ناو ڕیزێک -->
                 <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
                     <form id="addCardToRowForm">
                         <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی کارت بۆ ڕیز</h4>
@@ -1618,6 +1619,10 @@
                         <div class="form-group">
                             <label>اسم البطاقة (عربي):</label>
                             <input type="text" id="shortcutCardNameAr" required>
+                        </div>
+                         <div class="form-group">
+                            <label>لینکی وێنەی کارت:</label>
+                            <input type="url" id="shortcutCardImageUrl" required>
                         </div>
                          <div class="form-group">
                             <label>جۆری سەرەکی:</label>
@@ -1643,11 +1648,14 @@
                     </form>
                 </div>
 
+                <!-- لیستی ڕیز و کارتەکان -->
                 <div style="padding: 15px;">
                     <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">ڕیزە زیادکراوەکان</h4>
                     <div id="shortcutRowsListContainer"></div>
                 </div>
             </div>
+            <!-- END: بەشی بەڕێوەبردنی ڕیزی کارتەکان -->
+
             <div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;"><i class="fas fa-paper-plane"></i> <span data-translate-key="manage_contact_methods_title">بەڕێوەبردنی شێوازەکانی ناردنی داواکاری</span></h3>
                 
