@@ -987,8 +987,8 @@ function createPromoCardElement(card) {
             const categoryExists = categories.some(cat => cat.id === targetCategoryId);
             if (categoryExists) {
                 currentCategory = targetCategoryId;
-                currentSubcategory = 'all';
-                currentSubSubcategory = 'all';
+                currentSubcategory = card.subcategoryId || 'all';
+                currentSubSubcategory = card.subSubcategoryId || 'all';
 
                 renderMainCategories();
                 renderSubcategories(currentCategory);
@@ -1428,7 +1428,10 @@ async function renderHomePageContent() {
         homeSectionsContainer.innerHTML = '';
 
         if (allPromoCards.length === 0) {
-            const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
+            // *** START: گۆڕانکاری لێرە کراوە ***
+            // تەنها ئەو کارتانە بهێنە کە بۆ پەڕەی سەرەکی دیاریکراون
+            const promoQuery = query(promoCardsCollection, where("showOnHomepage", "==", true), orderBy("order", "asc"));
+            // *** END: گۆڕانکاری ***
             const promoSnapshot = await getDocs(promoQuery);
             allPromoCards = promoSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPromoCard: true }));
         }
@@ -1534,7 +1537,41 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         productsQuery = query(productsQuery, limit(PRODUCTS_PER_PAGE));
 
         const productSnapshot = await getDocs(productsQuery);
-        const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        let newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // *** START: کۆدی نوێ بۆ تێکەڵکردنی کارتی ڕیکلام لەگەڵ کاڵاکان ***
+        // ئەگەر بەدوای شتێکدا نەگەڕابوویت، بزانە هیچ ڕیکلامێک هەیە بۆ ئەم بەشە
+        if (!searchTerm.trim()) {
+            let promoQueryConstraints = [where("showOnHomepage", "==", false)];
+
+            if (currentCategory && currentCategory !== 'all') {
+                promoQueryConstraints.push(where("categoryId", "==", currentCategory));
+            }
+            if (currentSubcategory && currentSubcategory !== 'all') {
+                promoQueryConstraints.push(where("subcategoryId", "==", currentSubcategory));
+            }
+            if (currentSubSubcategory && currentSubSubcategory !== 'all') {
+                promoQueryConstraints.push(where("subSubcategoryId", "==", currentSubSubcategory));
+            }
+            
+            // تەنها ئەگەر بەشێک دیاریکرابوو (واتە زیاتر لە یەک مەرج هەبوو)، ڕیکلامەکان بهێنە
+            if(promoQueryConstraints.length > 1) {
+                promoQueryConstraints.push(orderBy("order", "asc"));
+                const promoQuery = query(promoCardsCollection, ...promoQueryConstraints);
+                const promoSnapshot = await getDocs(promoQuery);
+    
+                if (!promoSnapshot.empty) {
+                    promoSnapshot.forEach(doc => {
+                        const promoCard = { id: doc.id, ...doc.data(), isPromoCard: true };
+                        // دانانی کارتەکە لە شوێنی خۆی بەپێی ڕیزبەندی
+                        // (بۆ نموونە: order=3 واتە دوای دووەم کاڵا دادەنرێت)
+                        const position = Math.max(0, promoCard.order - 1); 
+                        newProducts.splice(position, 0, promoCard);
+                    });
+                }
+            }
+        }
+        // *** END: کۆتایی کۆدی نوێ ***
 
         if (isNewSearch) {
             products = newProducts;
@@ -2253,4 +2290,3 @@ function startPromoRotation() {
         promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
-

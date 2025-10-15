@@ -1,4 +1,4 @@
-// فایلی admin.js
+// admin.js
 
 // Access the shared tools from app.js
 const { 
@@ -408,16 +408,98 @@ window.AdminLogic = {
         });
     },
 
-    editPromoCard: function(card) {
+    // *** START: گۆڕانکاری لێرە کراوە ***
+    editPromoCard: async function(card) {
         document.getElementById('editingPromoCardId').value = card.id;
         document.getElementById('promoCardImageKuSorani').value = card.imageUrls.ku_sorani;
         document.getElementById('promoCardImageKuBadini').value = card.imageUrls.ku_badini;
         document.getElementById('promoCardImageAr').value = card.imageUrls.ar;
-        document.getElementById('promoCardTargetCategory').value = card.categoryId;
+        
+        // نوێ: دانانی نرخی چێک بۆکس - ئەگەر دانەنرابوو، وا دادەنرێت کە 'true'ـە
+        document.getElementById('promoCardShowOnHomepage').checked = card.showOnHomepage !== false;
+
+        const mainCatSelect = document.getElementById('promoCardTargetCategory');
+        mainCatSelect.value = card.categoryId || '';
+        
+        // نوێ: چالاککردنی لیستەکان بەشێوەیەکی زنجیرەیی
+        if (card.categoryId) {
+            await this.populatePromoCardSubcategories(card.categoryId, card.subcategoryId);
+        }
+        if (card.categoryId && card.subcategoryId) {
+            await this.populatePromoCardSubSubcategories(card.categoryId, card.subcategoryId, card.subSubcategoryId);
+        }
+
         document.getElementById('promoCardOrder').value = card.order;
         document.getElementById('addPromoCardForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوە';
         document.getElementById('addPromoCardForm').scrollIntoView({ behavior: 'smooth' });
     },
+
+    // فەنکشنی نوێ بۆ پڕکردنەوەی جۆرە لاوەکییەکانی کارتی ڕیکلام
+    populatePromoCardSubcategories: async function(mainCatId, selectedSubId = null) {
+        const container = document.getElementById('promoCardTargetSubcategoryContainer');
+        const select = document.getElementById('promoCardTargetSubcategory');
+        const subSubContainer = document.getElementById('promoCardTargetSubSubcategoryContainer');
+        
+        select.innerHTML = '';
+        subSubContainer.style.display = 'none'; // سڕینەوەی جۆری لاوەکی-لاوەکی
+
+        if (!mainCatId) {
+            container.style.display = 'none';
+            return;
+        }
+
+        const subCatQuery = query(collection(db, "categories", mainCatId, "subcategories"), orderBy("order", "asc"));
+        const snapshot = await getDocs(subCatQuery);
+
+        if (snapshot.empty) {
+            container.style.display = 'none';
+            return;
+        }
+        
+        container.style.display = 'block';
+        select.innerHTML = '<option value="">-- هەموو جۆرە لاوەکییەکان --</option>';
+        snapshot.forEach(doc => {
+            const subcat = { id: doc.id, ...doc.data() };
+            const option = document.createElement('option');
+            option.value = subcat.id;
+            option.textContent = subcat.name_ku_sorani;
+            if (subcat.id === selectedSubId) option.selected = true;
+            select.appendChild(option);
+        });
+    },
+
+    // فەنکشنی نوێ بۆ پڕکردنەوەی جۆرە لاوەکیی-لاوەکییەکانی کارتی ڕیکلام
+    populatePromoCardSubSubcategories: async function(mainCatId, subCatId, selectedSubSubId = null) {
+        const container = document.getElementById('promoCardTargetSubSubcategoryContainer');
+        const select = document.getElementById('promoCardTargetSubSubcategory');
+        
+        select.innerHTML = '';
+
+        if (!mainCatId || !subCatId) {
+            container.style.display = 'none';
+            return;
+        }
+
+        const subSubQuery = query(collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories"), orderBy("order", "asc"));
+        const snapshot = await getDocs(subSubQuery);
+
+        if (snapshot.empty) {
+            container.style.display = 'none';
+            return;
+        }
+
+        container.style.display = 'block';
+        select.innerHTML = '<option value="">-- هەموو جۆرە لاوەکییەکانی-لاوەکی --</option>';
+        snapshot.forEach(doc => {
+            const subSubCat = { id: doc.id, ...doc.data() };
+            const option = document.createElement('option');
+            option.value = subSubCat.id;
+            option.textContent = subSubCat.name_ku_sorani;
+            if (subSubCat.id === selectedSubSubId) option.selected = true;
+            select.appendChild(option);
+        });
+    },
+    // *** END: کۆتایی گۆڕانکاری ***
 
     deletePromoCard: async function(cardId) {
         if (confirm('دڵنیایت دەتەوێت ئەم کارتە بسڕیتەوە؟')) {
@@ -1131,6 +1213,7 @@ window.AdminLogic = {
             });
         }
 		
+        // *** START: گۆڕانکاری لێرە کراوە ***
 		const addPromoCardForm = document.getElementById('addPromoCardForm');
         if(addPromoCardForm) {
             addPromoCardForm.addEventListener('submit', async (e) => {
@@ -1140,34 +1223,53 @@ window.AdminLogic = {
 
                 const editingId = document.getElementById('editingPromoCardId').value;
                 const cardData = {
+                    showOnHomepage: document.getElementById('promoCardShowOnHomepage').checked, // نوێ
                     imageUrls: {
                         ku_sorani: document.getElementById('promoCardImageKuSorani').value,
                         ku_badini: document.getElementById('promoCardImageKuBadini').value,
                         ar: document.getElementById('promoCardImageAr').value,
                     },
-                    categoryId: document.getElementById('promoCardTargetCategory').value,
+                    categoryId: document.getElementById('promoCardTargetCategory').value || null,
+                    subcategoryId: document.getElementById('promoCardTargetSubcategory').value || null, // نوێ
+                    subSubcategoryId: document.getElementById('promoCardTargetSubSubcategory').value || null, // نوێ
                     order: parseInt(document.getElementById('promoCardOrder').value),
                     createdAt: Date.now()
                 };
 
                 try {
                     if (editingId) {
-                        await setDoc(doc(db, "promo_cards", editingId), cardData);
+                        await setDoc(doc(db, "promo_cards", editingId), cardData, { merge: true }); // merge زیادکرا
                         showNotification('کارتەکە نوێکرایەوە', 'success');
                     } else {
                         await addDoc(promoCardsCollection, cardData);
                         showNotification('کارتی نوێ زیادکرا', 'success');
                     }
                     addPromoCardForm.reset();
+                    document.getElementById('promoCardShowOnHomepage').checked = true; // گەڕاندنەوە بۆ دۆخی سەرەکی
                     document.getElementById('editingPromoCardId').value = '';
+                    document.getElementById('promoCardTargetSubcategoryContainer').style.display = 'none';
+                    document.getElementById('promoCardTargetSubSubcategoryContainer').style.display = 'none';
                     submitButton.textContent = 'پاشەکەوتکردن';
                 } catch (error) {
+                    console.error("Error saving promo card:", error);
                     showNotification('هەڵەیەک ڕوویدا', 'error');
                 } finally {
                     submitButton.disabled = false;
                 }
             });
         }
+        
+        // گوێگری نوێ بۆ گۆڕینی جۆری سەرەکی لە فۆڕمی ڕیکلام
+        document.getElementById('promoCardTargetCategory').addEventListener('change', (e) => {
+            self.populatePromoCardSubcategories(e.target.value);
+        });
+
+        // گوێگری نوێ بۆ گۆڕینی جۆری لاوەکی لە فۆڕمی ڕیکلام
+        document.getElementById('promoCardTargetSubcategory').addEventListener('change', (e) => {
+            const mainCatId = document.getElementById('promoCardTargetCategory').value;
+            self.populatePromoCardSubSubcategories(mainCatId, e.target.value);
+        });
+        // *** END: کۆتایی گۆڕانکاری ***
 
         const addBrandForm = document.getElementById('addBrandForm');
         if (addBrandForm) {
@@ -1276,7 +1378,7 @@ window.AdminLogic = {
             }
             const editingId = document.getElementById('editingShortcutCardId').value;
             const cardData = {
-                 name: {
+                   name: {
                     ku_sorani: document.getElementById('shortcutCardNameKuSorani').value,
                     ku_badini: document.getElementById('shortcutCardNameKuBadini').value,
                     ar: document.getElementById('shortcutCardNameAr').value,
