@@ -690,42 +690,46 @@ function isFavorite(productId) {
     return favorites.includes(productId);
 }
 
+// START: گۆڕانکاری بۆ چارەسەری کێشە
+function updateFavoriteStatusOnUI(productId) {
+    const isProdFavorite = isFavorite(productId);
+    const heartIconClass = isProdFavorite ? 'fas' : 'far';
+    const favoriteBtnClass = isProdFavorite ? 'favorite-btn favorited' : 'favorite-btn';
+
+    // Dۆzînaway hamw kārtakānī am kāłāyah la sar shāshah
+    const productCards = document.querySelectorAll(`.product-card[data-product-id="${productId}"]`);
+
+    productCards.forEach(card => {
+        const favoriteBtn = card.querySelector('.favorite-btn');
+        const heartIcon = card.querySelector('.fa-heart');
+
+        if (favoriteBtn && heartIcon) {
+            favoriteBtn.className = favoriteBtnClass;
+            heartIcon.className = `fa-heart ${heartIconClass}`;
+        }
+    });
+}
+
 function toggleFavorite(productId) {
     const productIndex = favorites.indexOf(productId);
-    const isNowFavorite = productIndex === -1;
-
-    if (isNowFavorite) {
-        favorites.push(productId);
-        showNotification(t('product_added_to_favorites'), 'success');
-    } else {
+    if (productIndex > -1) {
         favorites.splice(productIndex, 1);
         showNotification(t('product_removed_from_favorites'), 'error');
+    } else {
+        favorites.push(productId);
+        showNotification(t('product_added_to_favorites'), 'success');
     }
     saveFavorites();
 
-    // Update UI directly without full re-render
-    const allCardsForProduct = document.querySelectorAll(`.product-card[data-product-id="${productId}"]`);
-    allCardsForProduct.forEach(card => {
-        const favBtn = card.querySelector('.favorite-btn');
-        if (!favBtn) return;
-        const heartIcon = favBtn.querySelector('i');
-        if (isNowFavorite) {
-            favBtn.classList.add('favorited');
-            heartIcon.classList.remove('far');
-            heartIcon.classList.add('fas');
-        } else {
-            favBtn.classList.remove('favorited');
-            heartIcon.classList.remove('fas');
-            heartIcon.classList.add('far');
-        }
-    });
+    // La jīātī render krdnaway hamw shtēk, tanha UIy taybat ba kāłāka nwē dakaynewa
+    updateFavoriteStatusOnUI(productId);
 
-    // If the favorites sheet is open, we still need to re-render it.
+    // Agar panely dłxwāzakān krawabw, tanha aw render dakaynewa
     if (document.getElementById('favoritesSheet').classList.contains('show')) {
         renderFavoritesPage();
     }
 }
-
+// END: گۆڕانکاری بۆ چارەسەری کێشە
 
 function renderFavoritesPage() {
     favoritesContainer.innerHTML = '';
@@ -1135,53 +1139,12 @@ function showProductDetailsWithData(product) {
     openPopup('productDetailSheet');
 }
 
-function createPromoCardElement(card) {
-    const cardElement = document.createElement('div');
-    cardElement.className = 'product-card promo-card-grid-item';
-
-    const imageUrl = card.imageUrls[currentLanguage] || card.imageUrls.ku_sorani;
-
-    cardElement.innerHTML = `
-        <div class="product-image-container">
-            <img src="${imageUrl}" class="product-image" loading="lazy" alt="Promotion">
-        </div>
-        <button class="promo-slider-btn prev"><i class="fas fa-chevron-left"></i></button>
-        <button class="promo-slider-btn next"><i class="fas fa-chevron-right"></i></button>
-    `;
-
-    cardElement.addEventListener('click', async (e) => {
-        if (!e.target.closest('button')) {
-            const targetCategoryId = card.categoryId;
-            const categoryExists = categories.some(cat => cat.id === targetCategoryId);
-            if (categoryExists) {
-                await navigateToFilter({
-                    category: targetCategoryId,
-                    subcategory: 'all',
-                    subSubcategory: 'all',
-                    search: ''
-                });
-                document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
-            }
-        }
-    });
-
-    cardElement.querySelector('.promo-slider-btn.prev').addEventListener('click', (e) => {
-        e.stopPropagation();
-        changePromoCard(-1);
-    });
-
-    cardElement.querySelector('.promo-slider-btn.next').addEventListener('click', (e) => {
-        e.stopPropagation();
-        changePromoCard(1);
-    });
-
-    return cardElement;
-}
-
 function createProductCardElement(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
-    productCard.dataset.productId = product.id; // Added data-attribute for easier selection
+    // START: گۆڕانکاری بۆ چارەسەری کێشە
+    productCard.dataset.productId = product.id;
+    // END: گۆڕانکاری بۆ چارەسەری کێشە
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
 
 
