@@ -112,7 +112,6 @@ const translations = {
         newest_products: "نوێترین کاڵاکان",
         see_all: "بینینی هەمووی",
         all_products_section_title: "هەموو کاڵاکان",
-        // New keys
         share_product: "هاوبەشی پێکردن",
         related_products_title: "کاڵای هاوشێوە",
         share_text: "سەیری ئەم کاڵایە بکە",
@@ -197,7 +196,6 @@ const translations = {
         newest_products: "نوترین کاڵا",
         see_all: "هەمیا ببینە",
         all_products_section_title: "هەمی کاڵا",
-        // New keys
         share_product: "پارڤەکرن",
         related_products_title: "کاڵایێن وەک ئێکن",
         share_text: "بەرێخۆ بدە ڤی کاڵای",
@@ -282,7 +280,6 @@ const translations = {
         newest_products: "أحدث المنتجات",
         see_all: "عرض الكل",
         all_products_section_title: "جميع المنتجات",
-        // New keys
         share_product: "مشاركة المنتج",
         related_products_title: "منتجات مشابهة",
         share_text: "ألق نظرة على هذا المنتج",
@@ -314,7 +311,7 @@ const PRODUCTS_PER_PAGE = 25;
 let mainPageScrollPosition = 0;
 let isRenderingHomePage = false;
 const viewCache = {};
-let scrollObserver = null; // چارەسەری ٣: دانانی چاودێر وەک گۆڕاوێکی گشتی
+let scrollObserver = null;
 
 // Global state for current view
 let currentView = {
@@ -1256,18 +1253,6 @@ function renderSkeletonLoader() {
 }
 
 function renderProducts(productsToRender) {
-    // If it's a new render, clear the container. Otherwise, append.
-    if (!isLoadingMoreProducts || products.length === newProducts.length) {
-         productsContainer.innerHTML = '';
-    }
-
-	if (!productsToRender || productsToRender.length === 0) {
-        if(products.length === 0){
-             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ కాڵایەک نەدۆزرایەوە.</p>';
-        }
-		return;
-	}
-
     const fragment = document.createDocumentFragment();
     productsToRender.forEach(item => {
         let element;
@@ -1597,7 +1582,6 @@ async function renderHomePageContent() {
     }
 }
 
-// چارەسەری ٣: نوێکردنەوەی функشنی سکڕۆڵ
 async function searchProductsInFirestore(isNewSearch = false) {
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
 
@@ -1607,6 +1591,7 @@ async function searchProductsInFirestore(isNewSearch = false) {
         allProductsLoaded = false;
         lastVisibleProductDoc = null;
         products = [];
+        productsContainer.innerHTML = '';
         renderSkeletonLoader();
     }
     
@@ -1614,9 +1599,6 @@ async function searchProductsInFirestore(isNewSearch = false) {
 
     isLoadingMoreProducts = true;
     loader.style.display = 'block';
-    
-    // کاتێک دەست بە بارکردن دەکەین، چاودێری ڕادەگرین
-    if (scrollObserver) scrollObserver.unobserve(scrollTrigger);
 
     try {
         let productsQuery = collection(db, "products");
@@ -1655,14 +1637,9 @@ async function searchProductsInFirestore(isNewSearch = false) {
         const productSnapshot = await getDocs(productsQuery);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        if (isNewSearch) {
-            products = newProducts;
-            productsContainer.innerHTML = ''; // Clear container for new search
-        } else {
-            products = [...products, ...newProducts];
-        }
+        products.push(...newProducts);
         
-        renderProducts(newProducts); // Only render the new products
+        renderProducts(newProducts);
 
         lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
 
@@ -1676,17 +1653,14 @@ async function searchProductsInFirestore(isNewSearch = false) {
         
     } catch (error) {
         console.error("Error fetching content:", error);
-        productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
+        if (isNewSearch) {
+            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
+        }
     } finally {
         isLoadingMoreProducts = false;
         loader.style.display = 'none';
         skeletonLoader.style.display = 'none';
         productsContainer.style.display = 'grid';
-
-        // ئەگەر هێشتا کاڵای تر مابوو، چاودێرەکە دووبارە چالاک دەکەینەوە
-        if (!allProductsLoaded && scrollObserver) {
-            scrollObserver.observe(scrollTrigger);
-        }
     }
 }
 
@@ -2042,24 +2016,24 @@ function setupGpsButton() {
     }
 }
 
-// چارەسەری ٣: نوێکردنەوەی ئەم функشنە
 function setupScrollObserver() {
     const trigger = document.getElementById('scroll-loader-trigger');
     if (!trigger) return;
 
-    // If an observer already exists, disconnect it before creating a new one
     if (scrollObserver) {
         scrollObserver.disconnect();
     }
 
-    scrollObserver = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && !isLoadingMoreProducts) {
-             searchProductsInFirestore(false); // Load more data
+    const observerCallback = (entries) => {
+        if (entries[0].isIntersecting && !isLoadingMoreProducts && !allProductsLoaded) {
+            searchProductsInFirestore(false);
         }
-    }, { threshold: 0.1 });
+    };
 
+    scrollObserver = new IntersectionObserver(observerCallback, { threshold: 0.1 });
     scrollObserver.observe(trigger);
 }
+
 
 function updateCategoryDependentUI() {
     if (categories.length === 0) return;
@@ -2088,7 +2062,7 @@ function navigateToFilter(newFilters, pushState = true) {
     loadProductsForCurrentView(true);
 }
 
-function loadProductsForCurrentView(isNewSearch = true, forceRerender = false) {
+function loadProductsForCurrentView(isNewSearch = true) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
     
@@ -2102,9 +2076,11 @@ function loadProductsForCurrentView(isNewSearch = true, forceRerender = false) {
         productsContainer.style.display = 'none';
         scrollTrigger.style.display = 'none';
         homeSectionsContainer.style.display = 'block';
+        if (scrollObserver) scrollObserver.disconnect();
         renderHomePageContent();
     } else {
         homeSectionsContainer.style.display = 'none';
+        setupScrollObserver();
         searchProductsInFirestore(isNewSearch);
     }
 }
@@ -2309,7 +2285,7 @@ function initializeAppLogic() {
 
     updateCartCount();
     setupEventListeners();
-    setupScrollObserver(); // This now happens once at the beginning
+    setupScrollObserver();
     renderContactLinks();
     checkNewAnnouncements();
     showWelcomeMessage();
