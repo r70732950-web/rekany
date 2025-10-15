@@ -112,6 +112,11 @@ const translations = {
         newest_products: "نوێترین کاڵاکان",
         see_all: "بینینی هەمووی",
         all_products_section_title: "هەموو کاڵاکان",
+        // New keys
+        share_product: "هاوبەشی پێکردن",
+        related_products_title: "کاڵای هاوشێوە",
+        share_text: "سەیری ئەم کاڵایە بکە",
+        share_error: "هاوبەشیپێکردن سەرکەوتوو نەبوو",
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -192,6 +197,11 @@ const translations = {
         newest_products: "نوترین کاڵا",
         see_all: "هەمیا ببینە",
         all_products_section_title: "هەمی کاڵا",
+        // New keys
+        share_product: "پارڤەکرن",
+        related_products_title: "کاڵایێن وەک ئێکن",
+        share_text: "بەرێخۆ بدە ڤی کاڵای",
+        share_error: "پارڤەکرن سەرنەکەفت",
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -272,6 +282,11 @@ const translations = {
         newest_products: "أحدث المنتجات",
         see_all: "عرض الكل",
         all_products_section_title: "جميع المنتجات",
+        // New keys
+        share_product: "مشاركة المنتج",
+        related_products_title: "منتجات مشابهة",
+        share_text: "ألق نظرة على هذا المنتج",
+        share_error: "فشلت المشاركة",
     }
 };
 
@@ -456,7 +471,7 @@ function handleInitialPageLoad() {
         history.replaceState({ type: 'page', id: 'settingsPage' }, '', '#settingsPage');
     } else {
         showPage('mainPage');
-        history.replaceState({ type: 'page', id: 'mainPage' }, '', window.location.pathname);
+        history.replaceState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
     }
 
     if (element) {
@@ -465,6 +480,16 @@ function handleInitialPageLoad() {
         if (isSheet || isModal) {
             openPopup(hash, isSheet ? 'sheet' : 'modal');
         }
+    }
+    
+    // زیادکراوە بۆ کردنەوەی کاڵا لە ڕێگەی لینکەوە
+    const urlParams = new URLSearchParams(window.location.search);
+    const productId = urlParams.get('product');
+    if (productId) {
+        // کەمێک وەستان بۆ دڵنیابوون لەوەی ئەپەکە بە تەواوی ئامادەیە
+        setTimeout(() => {
+            showProductDetails(productId);
+        }, 500);
     }
 }
 
@@ -892,6 +917,62 @@ function showProductDetails(productId) {
     showProductDetailsWithData(product);
 }
 
+// فانکشنی نوێ بۆ هێنانی کاڵا هاوشێوەکان
+async function renderRelatedProducts(currentProduct) {
+    const section = document.getElementById('relatedProductsSection');
+    const container = document.getElementById('relatedProductsContainer');
+    container.innerHTML = '';
+    section.style.display = 'none';
+
+    if (!currentProduct.subcategoryId && !currentProduct.categoryId) {
+        return; // ناتوانین کاڵای هاوشێوە بدۆزینەوە بەبێ جۆر
+    }
+
+    let q;
+    // یەکەمجار هەوڵدەدەین لە هەمان جۆری وردتر (sub-subcategory) بگەڕێین، پاشان جۆری لاوەکی، پاشان سەرەکی
+    if (currentProduct.subSubcategoryId) {
+        q = query(
+            productsCollection,
+            where('subSubcategoryId', '==', currentProduct.subSubcategoryId),
+            where('__name__', '!=', currentProduct.id), // بۆ ئەوەی هەمان کاڵا دەرنەکەوێتەوە
+            limit(6)
+        );
+    } else if (currentProduct.subcategoryId) {
+         q = query(
+            productsCollection,
+            where('subcategoryId', '==', currentProduct.subcategoryId),
+            where('__name__', '!=', currentProduct.id),
+            limit(6)
+        );
+    } else {
+        q = query(
+            productsCollection,
+            where('categoryId', '==', currentProduct.categoryId),
+            where('__name__', '!=', currentProduct.id),
+            limit(6)
+        );
+    }
+
+    try {
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) {
+            console.log("هیچ کاڵایەکی هاوشێوە نەدۆزرایەوە.");
+            return;
+        }
+
+        snapshot.forEach(doc => {
+            const product = { id: doc.id, ...doc.data() };
+            const card = createProductCardElement(product);
+            container.appendChild(card);
+        });
+
+        section.style.display = 'block'; // تەنها ئەگەر کاڵا دۆزرایەوە بەشەکە پیشان بدە
+
+    } catch (error) {
+        console.error("هەڵە لە هێنانی کاڵا هاوشێوەکان:", error);
+    }
+}
+
 function showProductDetailsWithData(product) {
     const nameInCurrentLang = (product.name && product.name[currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
     const descriptionText = (product.description && product.description[currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
@@ -963,6 +1044,44 @@ function showProductDetailsWithData(product) {
         addToCart(product.id);
         closeCurrentPopup();
     };
+
+    const shareButton = document.getElementById('sheetShareBtn');
+    shareButton.onclick = async () => {
+        const nameInCurrentLang = (product.name && product.name[currentLanguage]) || (product.name && product.name.ku_sorani);
+        // دروستکردنی لینکێکی تایبەت بۆ کاڵاکە
+        const productUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
+
+        const shareData = {
+            title: nameInCurrentLang,
+            text: `${t('share_text')}: ${nameInCurrentLang}`,
+            url: productUrl,
+        };
+
+        if (navigator.share) { // Web Share API
+            try {
+                await navigator.share(shareData);
+                console.log('Product shared successfully');
+            } catch (err) {
+                console.error('Share error:', err);
+                // ئەگەر بەکارهێنەر پەشیمان بووەوە، هەڵەکە پیشان مەدە
+                if (err.name !== 'AbortError') {
+                     showNotification(t('share_error'), 'error');
+                }
+            }
+        } else {
+            // بۆ ئەو وێبگەڕانەی پشتگیری ناکەن، لینکەکە کۆپی دەکەین
+            try {
+                navigator.clipboard.writeText(productUrl); // Note: this might not work in all iframe contexts.
+                showNotification('لینکی کاڵا کۆپی کرا!', 'success');
+            } catch (err) {
+                console.error('Fallback share error:', err);
+                showNotification(t('share_error'), 'error');
+            }
+        }
+    };
+
+    // بانگکردنی فانکشنی هێنانی کاڵا هاوشێوەکان
+    renderRelatedProducts(product);
 
     openPopup('productDetailSheet');
 }
@@ -1948,7 +2067,7 @@ function updateCategoryDependentUI() {
 
 function setupEventListeners() {
     homeBtn.onclick = () => {
-        history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname);
+        history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
         showPage('mainPage');
     };
 
@@ -2253,4 +2372,3 @@ function startPromoRotation() {
         promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
-

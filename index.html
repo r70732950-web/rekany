@@ -6,7 +6,7 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a365d">
@@ -1082,6 +1082,52 @@
         }
         /* END: ستایلە نوێیەکان */
 
+        /* START: ستایلە نوێیەکان بۆ وەسفی کاڵا */
+        .sheet-actions {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .sheet-action-btn {
+            background-color: var(--light-gray);
+            border: 1px solid var(--medium-gray);
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--text-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .sheet-action-btn:hover {
+            background-color: var(--medium-gray);
+        }
+
+        .related-products-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--section-border);
+        }
+
+        .related-products-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        #relatedProductsContainer .product-card {
+            width: 140px; /* Make cards a bit smaller in the sheet */
+            flex-shrink: 0;
+        }
+        /* END: ستایلە نوێیەکان بۆ وەسفی کاڵا */
+
     </style>
 </head>
 <body>
@@ -1220,8 +1266,20 @@
                 <div id="sheetThumbnailContainer"></div>
                 <div id="sheetProductPrice" style="font-size: 22px; font-weight: bold; color: var(--accent-color); margin: 15px 0; text-align:center;"></div>
                 <p id="sheetProductDescription" style="color: #4a5568; margin-bottom: 20px; text-align:right; line-height: 1.7;"></p>
+                
+                <div class="sheet-actions">
+                    <button id="sheetShareBtn" class="sheet-action-btn">
+                        <i class="fas fa-share-alt"></i>
+                        <span data-translate-key="share_product">هاوبەشی پێکردن</span>
+                    </button>
+                </div>
                 <button id="sheetAddToCartBtn" class="add-to-cart-btn" style="padding: 12px; font-size: 16px;"></button>
-            </div>
+                
+                <div id="relatedProductsSection" class="related-products-section" style="display: none;">
+                    <h4 class="related-products-title" data-translate-key="related_products_title">کاڵای هاوشێوە</h4>
+                    <div id="relatedProductsContainer" class="horizontal-products-container"></div>
+                </div>
+                </div>
         </div>
 
 		<div id="termsSheet" class="bottom-sheet">
@@ -1567,7 +1625,6 @@
                 </div>
             </div>
             
-            <!-- START: بەشی بەڕێوەبردنی ڕیزی کارتەکان -->
             <div class="settings-group" id="adminShortcutRowsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                     <i class="fas fa-layer-group"></i> <span>بەڕێوەبردنی ڕیزی کارتەکان</span>
@@ -1653,8 +1710,6 @@
                     <div id="shortcutRowsListContainer"></div>
                 </div>
             </div>
-            <!-- END: بەشی بەڕێوەبردنی ڕیزی کارتەکان -->
-
             <div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;"><i class="fas fa-paper-plane"></i> <span data-translate-key="manage_contact_methods_title">بەڕێوەبردنی شێوازەکانی ناردنی داواکاری</span></h3>
                 
@@ -1946,4 +2001,3 @@
     <script src="admin.js" defer></script>
 </body>
 </html>
-
