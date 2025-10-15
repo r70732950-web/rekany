@@ -313,7 +313,8 @@ let allProductsLoaded = false;
 const PRODUCTS_PER_PAGE = 25;
 let mainPageScrollPosition = 0;
 let isRenderingHomePage = false;
-const viewCache = {}; // چارەسەری ١: زیادکردنی کاش بۆ خەزنکردنی داتا
+const viewCache = {};
+let scrollObserver = null; // چارەسەری ٣: دانانی چاودێر وەک گۆڕاوێکی گشتی
 
 // Global state for current view
 let currentView = {
@@ -447,15 +448,14 @@ function openPopup(id, type = 'sheet') {
 
 function closeCurrentPopup() {
     if (history.state && (history.state.type === 'sheet' || history.state.type === 'modal')) {
-        history.back(); // This will trigger the popstate event
+        history.back();
     } else {
         closeAllPopupsUI();
     }
 }
 
-// چارەسەری ٢: نوێکردنەوەی popstate بۆ مامەڵەکردن لەگەڵ هەموو دۆخەکان
 window.addEventListener('popstate', (event) => {
-    closeAllPopupsUI(); // Unconditionally close any open popups first
+    closeAllPopupsUI();
     const state = event.state;
 
     if (state) {
@@ -464,7 +464,6 @@ window.addEventListener('popstate', (event) => {
                 showPage(state.id);
                 break;
             case 'filter':
-                // Restore the view based on the state
                 currentView = {
                     search: state.search || '',
                     category: state.category || 'all',
@@ -472,20 +471,17 @@ window.addEventListener('popstate', (event) => {
                     subSubcategory: state.subSubcategory || 'all',
                 };
                 searchInput.value = currentView.search;
-                loadProductsForCurrentView(false); // false means don't push a new history state
+                loadProductsForCurrentView(false);
                 break;
             case 'sheet':
             case 'modal':
-                // Re-open the popup. This is needed for forward/back navigation between popups.
                 openPopup(state.id, state.type);
                 break;
             default:
-                // Fallback to home page if state is unknown
                 navigateToFilter({ category: 'all' }, false);
                 break;
         }
     } else {
-        // If there's no state, it's the initial page load state
         navigateToFilter({ category: 'all' }, false);
     }
 });
@@ -495,7 +491,6 @@ function handleInitialPageLoad() {
     const params = new URLSearchParams(window.location.search);
     const hash = window.location.hash.substring(1);
 
-    // Set initial view from URL parameters
     currentView = {
         search: params.get('search') || '',
         category: params.get('category') || 'all',
@@ -505,23 +500,19 @@ function handleInitialPageLoad() {
 
     searchInput.value = currentView.search;
 
-    // Determine which main page to show
     if (hash === 'settingsPage') {
         showPage('settingsPage');
         history.replaceState({ type: 'page', id: 'settingsPage' }, '', '#settingsPage');
     } else {
         showPage('mainPage');
-        // Load content based on URL params without pushing new history
         loadProductsForCurrentView(false); 
     }
 
-    // Handle popups from hash
     const element = document.getElementById(hash);
     if (element && (element.classList.contains('bottom-sheet') || element.classList.contains('modal'))) {
         openPopup(hash, element.classList.contains('bottom-sheet') ? 'sheet' : 'modal');
     }
 
-    // Handle direct product link
     const productId = params.get('product');
     if (productId) {
         setTimeout(() => {
@@ -563,10 +554,8 @@ function setLanguage(lang) {
         btn.classList.toggle('active', btn.dataset.lang === lang);
     });
 
-    // Clear cache because language has changed
     Object.keys(viewCache).forEach(key => delete viewCache[key]);
     
-    // Reload the current view with the new language
     loadProductsForCurrentView(false);
 
     renderCategoriesSheet();
@@ -686,8 +675,7 @@ function toggleFavorite(productId) {
     }
     saveFavorites();
 
-    // Rerender cards in the current view to update the favorite icon
-    loadProductsForCurrentView(false, true); // Don't create history, but force re-render
+    loadProductsForCurrentView(false, true);
 
     if (document.getElementById('favoritesSheet').classList.contains('show')) {
         renderFavoritesPage();
@@ -944,7 +932,7 @@ async function renderRelatedProducts(currentProduct) {
     section.style.display = 'none';
 
     if (!currentProduct.subcategoryId && !currentProduct.categoryId) {
-        return; // ناتوانین کاڵای هاوشێوە بدۆزینەوە بەبێ جۆر
+        return;
     }
 
     let q;
@@ -952,7 +940,7 @@ async function renderRelatedProducts(currentProduct) {
         q = query(
             productsCollection,
             where('subSubcategoryId', '==', currentProduct.subSubcategoryId),
-            where('__name__', '!=', currentProduct.id), // بۆ ئەوەی هەمان کاڵا دەرنەکەوێتەوە
+            where('__name__', '!=', currentProduct.id),
             limit(6)
         );
     } else if (currentProduct.subcategoryId) {
@@ -1074,7 +1062,7 @@ function showProductDetailsWithData(product) {
             url: productUrl,
         };
 
-        if (navigator.share) { // Web Share API
+        if (navigator.share) {
             try {
                 await navigator.share(shareData);
                 console.log('Product shared successfully');
@@ -1268,11 +1256,19 @@ function renderSkeletonLoader() {
 }
 
 function renderProducts(productsToRender) {
-    productsContainer.innerHTML = '';
+    // If it's a new render, clear the container. Otherwise, append.
+    if (!isLoadingMoreProducts || products.length === newProducts.length) {
+         productsContainer.innerHTML = '';
+    }
+
 	if (!productsToRender || productsToRender.length === 0) {
+        if(products.length === 0){
+             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ కాڵایەک نەدۆزرایەوە.</p>';
+        }
 		return;
 	}
 
+    const fragment = document.createDocumentFragment();
     productsToRender.forEach(item => {
         let element;
         if (item.isPromoCard) {
@@ -1281,8 +1277,9 @@ function renderProducts(productsToRender) {
             element = createProductCardElement(item);
         }
         element.classList.add('product-card-reveal');
-        productsContainer.appendChild(element);
+        fragment.appendChild(element);
     });
+    productsContainer.appendChild(fragment);
 
     setupScrollAnimations();
 }
@@ -1540,7 +1537,6 @@ async function renderAllProductsSection() {
 async function renderHomePageContent() {
     if (isRenderingHomePage) return;
     
-    // چارەسەری ١: پشکنینی کاش پێش بارکردن
     const cacheKey = 'home_page_' + currentLanguage;
     if (viewCache[cacheKey]) {
         document.getElementById('homePageSectionsContainer').innerHTML = viewCache[cacheKey];
@@ -1590,7 +1586,6 @@ async function renderHomePageContent() {
         
         homeSectionsContainer.appendChild(fragment);
 
-        // چارەسەری ١: خەزنکردنی ئەنجام لە کاشدا
         viewCache[cacheKey] = homeSectionsContainer.innerHTML;
 
     } catch (error) {
@@ -1602,39 +1597,30 @@ async function renderHomePageContent() {
     }
 }
 
+// چارەسەری ٣: نوێکردنەوەی функشنی سکڕۆڵ
 async function searchProductsInFirestore(isNewSearch = false) {
+    const scrollTrigger = document.getElementById('scroll-loader-trigger');
+
     if (isLoadingMoreProducts) return;
-    
-    // چارەسەری ١: دروستکردنی کلیلێکی تایبەت بۆ کاش
-    const { search, category, subcategory, subSubcategory } = currentView;
-    const cacheKey = `${search}-${category}-${subcategory}-${subSubcategory}`;
 
     if (isNewSearch) {
         allProductsLoaded = false;
         lastVisibleProductDoc = null;
         products = [];
-        
-        // پشکنینی کاش
-        if (viewCache[cacheKey]) {
-            products = viewCache[cacheKey].products;
-            lastVisibleProductDoc = viewCache[cacheKey].lastDoc;
-            allProductsLoaded = viewCache[cacheKey].allLoaded;
-            renderProducts(products);
-            productsContainer.style.display = 'grid';
-            skeletonLoader.style.display = 'none';
-            document.getElementById('scroll-loader-trigger').style.display = allProductsLoaded ? 'none' : 'block';
-            return;
-        }
         renderSkeletonLoader();
     }
     
-    if (allProductsLoaded && !isNewSearch) return;
+    if (allProductsLoaded) return; 
 
     isLoadingMoreProducts = true;
     loader.style.display = 'block';
+    
+    // کاتێک دەست بە بارکردن دەکەین، چاودێری ڕادەگرین
+    if (scrollObserver) scrollObserver.unobserve(scrollTrigger);
 
     try {
         let productsQuery = collection(db, "products");
+        const { search, category, subcategory, subSubcategory } = currentView;
 
         if (category && category !== 'all') {
             productsQuery = query(productsQuery, where("categoryId", "==", category));
@@ -1669,33 +1655,25 @@ async function searchProductsInFirestore(isNewSearch = false) {
         const productSnapshot = await getDocs(productsQuery);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        products = isNewSearch ? newProducts : [...products, ...newProducts];
-
-        if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
-            allProductsLoaded = true;
-            document.getElementById('scroll-loader-trigger').style.display = 'none';
+        if (isNewSearch) {
+            products = newProducts;
+            productsContainer.innerHTML = ''; // Clear container for new search
         } else {
-            allProductsLoaded = false;
-            document.getElementById('scroll-loader-trigger').style.display = 'block';
+            products = [...products, ...newProducts];
         }
+        
+        renderProducts(newProducts); // Only render the new products
 
         lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
 
-        // خەزنکردنی ئەنجام لە کاشدا ئەگەر گەڕانێکی نوێ بوو
-        if (isNewSearch) {
-            viewCache[cacheKey] = {
-                products: products,
-                lastDoc: lastVisibleProductDoc,
-                allLoaded: allProductsLoaded
-            };
+        if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
+            allProductsLoaded = true;
+            scrollTrigger.style.display = 'none';
+        } else {
+            allProductsLoaded = false;
+            scrollTrigger.style.display = 'block';
         }
         
-        renderProducts(products);
-
-        if (products.length === 0 && isNewSearch) {
-            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
-        }
-
     } catch (error) {
         console.error("Error fetching content:", error);
         productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
@@ -1704,6 +1682,11 @@ async function searchProductsInFirestore(isNewSearch = false) {
         loader.style.display = 'none';
         skeletonLoader.style.display = 'none';
         productsContainer.style.display = 'grid';
+
+        // ئەگەر هێشتا کاڵای تر مابوو، چاودێرەکە دووبارە چالاک دەکەینەوە
+        if (!allProductsLoaded && scrollObserver) {
+            scrollObserver.observe(scrollTrigger);
+        }
     }
 }
 
@@ -2059,20 +2042,23 @@ function setupGpsButton() {
     }
 }
 
+// چارەسەری ٣: نوێکردنەوەی ئەم функشنە
 function setupScrollObserver() {
     const trigger = document.getElementById('scroll-loader-trigger');
     if (!trigger) return;
 
-    const observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) {
-            searchProductsInFirestore(false); // isNewSearch is false for infinite scroll
-        }
-    }, {
-        root: null,
-        threshold: 0.1
-    });
+    // If an observer already exists, disconnect it before creating a new one
+    if (scrollObserver) {
+        scrollObserver.disconnect();
+    }
 
-    observer.observe(trigger);
+    scrollObserver = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && !isLoadingMoreProducts) {
+             searchProductsInFirestore(false); // Load more data
+        }
+    }, { threshold: 0.1 });
+
+    scrollObserver.observe(trigger);
 }
 
 function updateCategoryDependentUI() {
@@ -2084,9 +2070,7 @@ function updateCategoryDependentUI() {
     }
 }
 
-// چارەسەری ٢: функشنی ناوەندی بۆ گۆڕینی دۆخ و URL
 function navigateToFilter(newFilters, pushState = true) {
-    // Update the global view state
     currentView = { ...currentView, ...newFilters };
 
     if (pushState) {
@@ -2101,7 +2085,6 @@ function navigateToFilter(newFilters, pushState = true) {
         history.pushState(state, '', newUrl);
     }
     
-    // Load the content for the new view
     loadProductsForCurrentView(true);
 }
 
@@ -2109,7 +2092,6 @@ function loadProductsForCurrentView(isNewSearch = true, forceRerender = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
     
-    // Update the UI of category buttons
     renderMainCategories();
     renderSubcategories(currentView.category);
     renderSubSubcategories(currentView.category, currentView.subcategory);
@@ -2311,7 +2293,7 @@ function initializeAppLogic() {
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories];
         updateCategoryDependentUI();
-        setLanguage(currentLanguage); // This will also trigger the initial data load
+        setLanguage(currentLanguage);
     });
 
 
@@ -2327,12 +2309,12 @@ function initializeAppLogic() {
 
     updateCartCount();
     setupEventListeners();
-    setupScrollObserver();
+    setupScrollObserver(); // This now happens once at the beginning
     renderContactLinks();
     checkNewAnnouncements();
     showWelcomeMessage();
     setupGpsButton();
-    handleInitialPageLoad(); // This should be one of the last calls
+    handleInitialPageLoad();
 }
 
 Object.assign(window.globalAdminTools, {
@@ -2435,3 +2417,4 @@ function startPromoRotation() {
         promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
+
