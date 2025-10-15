@@ -579,11 +579,16 @@ window.AdminLogic = {
         document.getElementById('editCategoryOrder').value = category.order || 0;
 
         const iconField = document.getElementById('editIconField');
+        const imageUrlField = document.getElementById('editImageUrlField');
+
         if (level === '1') {
             iconField.style.display = 'block';
+            imageUrlField.style.display = 'none';
             document.getElementById('editCategoryIcon').value = category.icon || '';
         } else {
             iconField.style.display = 'none';
+            imageUrlField.style.display = 'block';
+            document.getElementById('editCategoryImageUrl').value = category.imageUrl || '';
         }
 
         openPopup('editCategoryModal', 'modal');
@@ -789,7 +794,8 @@ window.AdminLogic = {
                     name_ku_sorani: document.getElementById('subcategoryNameKuSorani').value,
                     name_ku_badini: document.getElementById('subcategoryNameKuBadini').value,
                     name_ar: document.getElementById('subcategoryNameAr').value,
-                    order: parseInt(document.getElementById('subcategoryOrder').value) || 0
+                    order: parseInt(document.getElementById('subcategoryOrder').value) || 0,
+                    imageUrl: document.getElementById('subcategoryImageUrl').value.trim() || null
                 };
 
                 try {
@@ -825,7 +831,8 @@ window.AdminLogic = {
                     name_ku_badini: document.getElementById('subSubcategoryNameKuBadini').value,
                     name_ar: document.getElementById('subSubcategoryNameAr').value,
                     order: parseInt(document.getElementById('subSubcategoryOrder').value) || 0,
-                    createdAt: Date.now()
+                    createdAt: Date.now(),
+                    imageUrl: document.getElementById('subSubcategoryImageUrl').value.trim() || null
                 };
 
                 try {
@@ -862,6 +869,10 @@ window.AdminLogic = {
 
                 if (level === '1') {
                     updateData.icon = document.getElementById('editCategoryIcon').value;
+                }
+
+                if (level === '2' || level === '3') {
+                    updateData.imageUrl = document.getElementById('editCategoryImageUrl').value.trim() || null;
                 }
 
                 try {

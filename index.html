@@ -118,9 +118,10 @@
         .subcategories-container::-webkit-scrollbar {
             display: none;
         }
-
+        
+        /* === START: گۆڕانکاری بۆ زیادکردنی وێنە لە جۆرە لاوەکییەکان === */
         .subcategory-btn {
-            padding: 5px 12px;
+            padding: 5px 8px 5px 5px;
             border: 1px solid var(--medium-gray);
             background-color: var(--light-gray);
             color: var(--text-light);
@@ -129,7 +130,21 @@
             font-size: 13px;
             white-space: nowrap;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
+        .subcategory-image {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            object-fit: cover;
+            background-color: #ffffff;
+            border: 1px solid var(--medium-gray);
+            flex-shrink: 0;
+        }
+        /* === END: گۆڕانکارییەکان === */
+        
         .subcategory-btn:hover {
             background-color: var(--medium-gray);
         }
@@ -1345,6 +1360,10 @@
                             <input type="text" id="subcategoryNameAr" required>
                         </div>
                         <div class="form-group">
+                            <label>لینکی وێنە (ئارەزوومەندانە):</label>
+                            <input type="url" id="subcategoryImageUrl">
+                        </div>
+                        <div class="form-group">
                             <label>ژمارەی ڕیزبەندی:</label>
                             <input type="number" id="subcategoryOrder" value="10" required>
                         </div>
@@ -1377,6 +1396,10 @@
                         <div class="form-group">
                             <label>اسم الفئة (عربي):</label>
                             <input type="text" id="subSubcategoryNameAr" required>
+                        </div>
+                        <div class="form-group">
+                            <label>لینکی وێنە (ئارەزوومەندانە):</label>
+                            <input type="url" id="subSubcategoryImageUrl">
                         </div>
                         <div class="form-group">
                             <label>ژمارەی ڕیزبەندی:</label>
@@ -1651,6 +1674,10 @@
                         <label for="editCategoryIcon">ئایکۆن (بۆ نموونە: fas fa-mobile-alt):</label>
                         <input type="text" id="editCategoryIcon">
                     </div>
+                    <div id="editImageUrlField" class="form-group" style="display: none;">
+                       <label for="editCategoryImageUrl">لینکی وێنە (ئارەزوومەندانە):</label>
+                       <input type="url" id="editCategoryImageUrl">
+                   </div>
                     <div class="form-group">
                         <label for="editCategoryOrder">ژمارەی ڕیزبەندی:</label>
                         <input type="number" id="editCategoryOrder" required>
@@ -1766,12 +1793,6 @@
         <button id="update-now-btn" class="update-now-btn">نوێی بکەرەوە</button>
     </div>
 
-    <!-- 
-      گۆڕانکاری گرنگ لێرەدایە:
-      ١. app.js وەک 'module' پێش admin.js دانراوە.
-      ٢. وشەی 'defer' بۆ admin.js زیادکراوە.
-      ئەمە دڵنیایی دەدات کە app.js یەکەمجار کار دەکات، ئینجا admin.js، بۆ ئەوەی هەڵە ڕوونەدات.
-    -->
     <script type="module" src="app.js"></script>
     <script src="admin.js" defer></script>
 </body>

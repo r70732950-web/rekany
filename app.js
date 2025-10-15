@@ -743,7 +743,16 @@ async function renderSubSubcategories(mainCatId, subCatId) {
             const subSubcat = { id: doc.id, ...doc.data() };
             const btn = document.createElement('button');
             btn.className = 'subcategory-btn';
-            btn.textContent = subSubcat['name_' + currentLanguage] || subSubcat.name_ku_sorani;
+
+            const subSubcatName = subSubcat['name_' + currentLanguage] || subSubcat.name_ku_sorani;
+            const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+            const imageUrl = subSubcat.imageUrl || placeholderImg;
+
+            btn.innerHTML = `
+                <img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
+                <span>${subSubcatName}</span>
+            `;
+            
             btn.onclick = () => {
                 currentSubSubcategory = subSubcat.id;
                 document.querySelectorAll('#subSubcategoriesContainer .subcategory-btn').forEach(b => b.classList.remove('active'));
@@ -792,7 +801,16 @@ async function renderSubcategories(categoryId) {
         subcategories.forEach(subcat => {
             const subcatBtn = document.createElement('button');
             subcatBtn.className = `subcategory-btn ${currentSubcategory === subcat.id ? 'active' : ''}`;
-            subcatBtn.textContent = subcat['name_' + currentLanguage] || subcat.name_ku_sorani;
+            
+            const subcatName = subcat['name_' + currentLanguage] || subcat.name_ku_sorani;
+            const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"; // A transparent pixel
+            const imageUrl = subcat.imageUrl || placeholderImg;
+        
+            subcatBtn.innerHTML = `
+                <img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
+                <span>${subcatName}</span>
+            `;
+            
             subcatBtn.onclick = () => {
                 currentSubcategory = subcat.id;
                 currentSubSubcategory = 'all';
