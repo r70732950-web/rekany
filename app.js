@@ -1591,7 +1591,7 @@ async function searchProductsInFirestore(isNewSearch = false) {
         allProductsLoaded = false;
         lastVisibleProductDoc = null;
         products = [];
-        productsContainer.innerHTML = '';
+        productsContainer.innerHTML = ''; 
         renderSkeletonLoader();
     }
     
@@ -1599,41 +1599,38 @@ async function searchProductsInFirestore(isNewSearch = false) {
 
     isLoadingMoreProducts = true;
     loader.style.display = 'block';
-
+    
     try {
-        let productsQuery = collection(db, "products");
+        let queryConstraints = [];
         const { search, category, subcategory, subSubcategory } = currentView;
 
         if (category && category !== 'all') {
-            productsQuery = query(productsQuery, where("categoryId", "==", category));
+            queryConstraints.push(where("categoryId", "==", category));
         }
         if (subcategory && subcategory !== 'all') {
-            productsQuery = query(productsQuery, where("subcategoryId", "==", subcategory));
+            queryConstraints.push(where("subcategoryId", "==", subcategory));
         }
         if (subSubcategory && subSubcategory !== 'all') {
-            productsQuery = query(productsQuery, where("subSubcategoryId", "==", subSubcategory));
+            queryConstraints.push(where("subSubcategoryId", "==", subSubcategory));
         }
 
         const finalSearchTerm = search.trim().toLowerCase();
         if (finalSearchTerm) {
-            productsQuery = query(productsQuery,
-                where('searchableName', '>=', finalSearchTerm),
-                where('searchableName', '<=', finalSearchTerm + '\uf8ff')
-            );
+            queryConstraints.push(where('searchableName', '>=', finalSearchTerm));
+            queryConstraints.push(where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
+            queryConstraints.push(orderBy("searchableName", "asc"));
         }
-
-        if (finalSearchTerm) {
-            productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
-        } else {
-            productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
-        }
+        
+        queryConstraints.push(orderBy("createdAt", "desc"));
 
         if (lastVisibleProductDoc && !isNewSearch) {
-            productsQuery = query(productsQuery, startAfter(lastVisibleProductDoc));
+            queryConstraints.push(startAfter(lastVisibleProductDoc));
         }
 
-        productsQuery = query(productsQuery, limit(PRODUCTS_PER_PAGE));
+        queryConstraints.push(limit(PRODUCTS_PER_PAGE));
 
+        const productsQuery = query(collection(db, "products"), ...queryConstraints);
+        
         const productSnapshot = await getDocs(productsQuery);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -1641,7 +1638,9 @@ async function searchProductsInFirestore(isNewSearch = false) {
         
         renderProducts(newProducts);
 
-        lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
+        if (productSnapshot.docs.length > 0) {
+            lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
+        }
 
         if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
             allProductsLoaded = true;
@@ -2025,7 +2024,7 @@ function setupScrollObserver() {
     }
 
     const observerCallback = (entries) => {
-        if (entries[0].isIntersecting && !isLoadingMoreProducts && !allProductsLoaded) {
+        if (entries[0].isIntersecting) {
             searchProductsInFirestore(false);
         }
     };
