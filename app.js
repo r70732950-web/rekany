@@ -91,7 +91,7 @@ const translations = {
 		manage_contact_methods_title: "بەڕێوەبردنی شێوازەکانی ناردنی داواکاری",
         notifications_title: "ئاگەهدارییەکان",
         no_notifications_found: "هیچ ئاگەهدارییەک نییە",
-        manage_announcements_title: "ناردنی ئاگەهداری گشتی",
+        manage_announcements_title: "ناردنی ئاگەداری گشتی",
         send_new_announcement: "ناردنی ئاگەهداری نوێ",
         send_announcement_button: "ناردنی ئاگەهداری",
         sent_announcements: "ئاگەهدارییە نێردراوەکان",
@@ -175,7 +175,7 @@ const translations = {
 		manage_contact_methods_title: "рێکخستنا رێکێن فرێکرنا داخازیێ",
         notifications_title: "ئاگەهداری",
         no_notifications_found: "چ ئاگەهداری نینن",
-        manage_announcements_title: "رێکخستنا ئاگەهداریان",
+        manage_announcements_title: "рێکخستنا ئاگەهداریان",
         send_new_announcement: "فرێکرنا ئاگەهداریەکا نوو",
         send_announcement_button: "ئاگەهداریێ فرێکە",
         sent_announcements: "ئاگەهداریێن هاتینە فرێکرن",
@@ -440,50 +440,42 @@ function closeCurrentPopup() {
     }
 }
 
-// === START: NEW HISTORY AND STATE MANAGEMENT ===
+// === START: HISTORY AND STATE MANAGEMENT (UPDATED) ===
 
-// Applies a filter state to the view (updates UI, fetches data)
-function applyFilterState(state, fromPopState = false) {
-    // Restore state variables from the provided state object
+async function applyFilterState(state, fromPopState = false) {
     currentCategory = state.category || 'all';
     currentSubcategory = state.subcategory || 'all';
     currentSubSubcategory = state.subSubcategory || 'all';
     currentSearch = state.search || '';
 
-    // Update UI elements to reflect the new state
     searchInput.value = currentSearch;
     clearSearchBtn.style.display = currentSearch ? 'block' : 'none';
-    renderMainCategories(); // This will highlight the active category button
-    renderSubcategories(currentCategory); // This will render the correct subcategories
-    renderSubSubcategories(currentCategory, currentSubcategory); // And sub-subcategories
+    
+    renderMainCategories();
+    // Let renderSubcategories handle its own children
+    await renderSubcategories(currentCategory); 
 
-    // Fetch and render products for the new state. 'true' means it's a new search.
-    searchProductsInFirestore(currentSearch, true);
+    await searchProductsInFirestore(currentSearch, true);
 
-    // Restore scroll position if navigating via back/forward buttons
     if (fromPopState && typeof state.scroll === 'number') {
-        // Use a short timeout to allow content to start rendering before scrolling
         setTimeout(() => window.scrollTo(0, state.scroll), 50);
+    } else if (!fromPopState) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
-// Called by UI elements (buttons, search) to trigger a navigation
-function navigateToFilter(newState) {
+async function navigateToFilter(newState) {
     const currentState = {
         category: currentCategory,
         subcategory: currentSubcategory,
         subSubcategory: currentSubSubcategory,
         search: currentSearch,
-        scroll: window.scrollY // Save current scroll position before navigating
+        scroll: window.scrollY
     };
-
-    // Update the history entry for the *current* page to include its scroll position
     history.replaceState(currentState, '');
 
-    // Create the final new state, merging old and new, and resetting scroll to 0
     const finalState = { ...currentState, ...newState, scroll: 0 };
     
-    // Create a clean URL with query parameters for sharing and bookmarking
     const params = new URLSearchParams();
     if (finalState.category && finalState.category !== 'all') params.set('category', finalState.category);
     if (finalState.subcategory && finalState.subcategory !== 'all') params.set('subcategory', finalState.subcategory);
@@ -492,14 +484,10 @@ function navigateToFilter(newState) {
     
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     
-    // Push the new state to the browser's history
     history.pushState(finalState, '', newUrl);
     
-    // Apply the new state to the view and scroll to the top
-    applyFilterState(finalState);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    await applyFilterState(finalState);
 }
-
 
 window.addEventListener('popstate', (event) => {
     closeAllPopupsUI();
@@ -510,11 +498,9 @@ window.addEventListener('popstate', (event) => {
         } else if (state.type === 'sheet' || state.type === 'modal') {
             openPopup(state.id, state.type);
         } else {
-            // This is our new filter state from back/forward navigation
             applyFilterState(state, true);
         }
     } else {
-        // If there's no state, default to the main page with no filters
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
         applyFilterState(defaultState);
         showPage('mainPage');
@@ -530,7 +516,6 @@ function handleInitialPageLoad() {
         history.replaceState({ type: 'page', id: 'settingsPage' }, '', '#settingsPage');
     } else {
         showPage('mainPage');
-        // Construct initial filter state from URL parameters
         const initialState = {
             category: params.get('category') || 'all',
             subcategory: params.get('subcategory') || 'all',
@@ -538,7 +523,7 @@ function handleInitialPageLoad() {
             search: params.get('search') || '',
             scroll: 0
         };
-        history.replaceState(initialState, ''); // Set the initial state in history
+        history.replaceState(initialState, '');
         applyFilterState(initialState);
     }
     
@@ -556,7 +541,7 @@ function handleInitialPageLoad() {
         setTimeout(() => showProductDetails(productId), 500);
     }
 }
-// === END: NEW HISTORY AND STATE MANAGEMENT ===
+// === END: HISTORY AND STATE MANAGEMENT (UPDATED) ===
 
 
 function t(key, replacements = {}) {
@@ -792,8 +777,8 @@ function renderCategoriesSheet() {
 
         btn.innerHTML = `<i class="${cat.icon}"></i> ${categoryName}`;
 
-        btn.onclick = () => {
-            navigateToFilter({
+        btn.onclick = async () => {
+            await navigateToFilter({
                 category: cat.id,
                 subcategory: 'all',
                 subSubcategory: 'all',
@@ -825,8 +810,8 @@ async function renderSubSubcategories(mainCatId, subCatId) {
             <div class="subcategory-image">${allIconSvg}</div>
             <span>${t('all_categories_label')}</span>
         `;
-        allBtn.onclick = () => {
-             navigateToFilter({ subSubcategory: 'all' });
+        allBtn.onclick = async () => {
+             await navigateToFilter({ subSubcategory: 'all' });
         };
         subSubcategoriesContainer.appendChild(allBtn);
 
@@ -844,8 +829,8 @@ async function renderSubSubcategories(mainCatId, subCatId) {
                 <span>${subSubcatName}</span>
             `;
             
-            btn.onclick = () => {
-                navigateToFilter({ subSubcategory: subSubcat.id });
+            btn.onclick = async () => {
+                await navigateToFilter({ subSubcategory: subSubcat.id });
             };
             subSubcategoriesContainer.appendChild(btn);
         });
@@ -858,6 +843,7 @@ async function renderSubSubcategories(mainCatId, subCatId) {
 async function renderSubcategories(categoryId) {
     const subcategoriesContainer = document.getElementById('subcategoriesContainer');
     subcategoriesContainer.innerHTML = '';
+    // Clear sub-subcategories here explicitly before re-rendering
     subSubcategoriesContainer.innerHTML = '';
 
     if (categoryId === 'all') {
@@ -880,8 +866,8 @@ async function renderSubcategories(categoryId) {
             <div class="subcategory-image">${allIconSvg}</div>
             <span>${t('all_categories_label')}</span>
         `;
-        allBtn.onclick = () => {
-            navigateToFilter({
+        allBtn.onclick = async () => {
+            await navigateToFilter({
                 subcategory: 'all',
                 subSubcategory: 'all'
             });
@@ -901,8 +887,8 @@ async function renderSubcategories(categoryId) {
                 <span>${subcatName}</span>
             `;
             
-            subcatBtn.onclick = () => {
-                 navigateToFilter({
+            subcatBtn.onclick = async () => {
+                 await navigateToFilter({
                     subcategory: subcat.id,
                     subSubcategory: 'all'
                 });
@@ -910,8 +896,9 @@ async function renderSubcategories(categoryId) {
             subcategoriesContainer.appendChild(subcatBtn);
         });
 
+        // This is the crucial part: after rendering subcategories, render their children if one is active.
         if (currentSubcategory && currentSubcategory !== 'all') {
-            renderSubSubcategories(categoryId, currentSubcategory);
+            await renderSubSubcategories(categoryId, currentSubcategory);
         }
     } catch (error) {
         console.error("Error fetching subcategories: ", error);
@@ -939,12 +926,12 @@ function renderMainCategories() {
 
         btn.innerHTML = `<i class="${cat.icon}"></i> <span>${categoryName}</span>`;
 
-        btn.onclick = () => {
-            navigateToFilter({
+        btn.onclick = async () => {
+            await navigateToFilter({
                 category: cat.id,
                 subcategory: 'all',
                 subSubcategory: 'all',
-                search: '' // Reset search when changing main category
+                search: ''
             });
         };
 
@@ -1148,12 +1135,12 @@ function createPromoCardElement(card) {
         <button class="promo-slider-btn next"><i class="fas fa-chevron-right"></i></button>
     `;
 
-    cardElement.addEventListener('click', (e) => {
+    cardElement.addEventListener('click', async (e) => {
         if (!e.target.closest('button')) {
             const targetCategoryId = card.categoryId;
             const categoryExists = categories.some(cat => cat.id === targetCategoryId);
             if (categoryExists) {
-                navigateToFilter({
+                await navigateToFilter({
                     category: targetCategoryId,
                     subcategory: 'all',
                     subSubcategory: 'all',
@@ -1367,8 +1354,8 @@ async function renderShortcutRows() {
                         <div class="shortcut-card-name">${cardName}</div>
                     `;
 
-                    item.onclick = () => {
-                        navigateToFilter({
+                    item.onclick = async () => {
+                        await navigateToFilter({
                             category: cardData.categoryId || 'all',
                             subcategory: cardData.subcategoryId || 'all',
                             subSubcategory: cardData.subSubcategoryId || 'all',
@@ -1419,8 +1406,8 @@ async function renderBrandsSection() {
                 <span>${brandName}</span>
             `;
 
-            item.onclick = () => {
-                navigateToFilter({
+            item.onclick = async () => {
+                await navigateToFilter({
                     category: brand.categoryId || 'all',
                     subcategory: brand.subcategoryId || 'all',
                     subSubcategory: 'all',
@@ -1498,8 +1485,8 @@ async function renderCategorySections() {
         const seeAllLink = document.createElement('a');
         seeAllLink.className = 'see-all-link';
         seeAllLink.textContent = t('see_all');
-        seeAllLink.onclick = () => {
-             navigateToFilter({
+        seeAllLink.onclick = async () => {
+             await navigateToFilter({
                 category: category.id,
                 subcategory: 'all',
                 subSubcategory: 'all',
@@ -1644,7 +1631,6 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         homeSectionsContainer.style.display = 'none';
     }
     
-    // === START: CACHING LOGIC ===
     const cacheKey = `${currentCategory}-${currentSubcategory}-${currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
     if (isNewSearch && productCache[cacheKey]) {
         console.log("Loading from cache for key:", cacheKey);
@@ -1660,7 +1646,6 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         scrollTrigger.style.display = allProductsLoaded ? 'none' : 'block';
         return;
     }
-    // === END: CACHING LOGIC ===
 
     if (isLoadingMoreProducts) return;
 
@@ -1728,7 +1713,6 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
 
         lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
 
-        // === START: CACHING LOGIC (SAVE) ===
         if (isNewSearch) {
              console.log("Saving to cache for key:", cacheKey);
             productCache[cacheKey] = {
@@ -1737,12 +1721,11 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
                 allLoaded: allProductsLoaded
             };
         }
-        // === END: CACHING LOGIC (SAVE) ===
         
         renderProducts();
 
         if (products.length === 0 && isNewSearch) {
-            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ కాڵایەک نەدۆزرایەوە.</p>';
         }
 
     } catch (error) {
@@ -2134,11 +2117,10 @@ function updateCategoryDependentUI() {
 }
 
 function setupEventListeners() {
-    homeBtn.onclick = () => {
+    homeBtn.onclick = async () => {
         history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
         showPage('mainPage');
-        // Reset filters when clicking home button
-        navigateToFilter({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
+        await navigateToFilter({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
     };
 
     settingsBtn.onclick = () => {
@@ -2334,7 +2316,6 @@ Object.assign(window.globalAdminTools, {
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
     productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
     
-    // Function to clear cache, called from admin.js after CUD operations
     clearProductCache: () => {
         console.log("Product cache cleared due to admin action.");
         productCache = {};
@@ -2434,3 +2415,4 @@ function startPromoRotation() {
         promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
+
