@@ -6,7 +6,7 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="styles.css"> <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a365d">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -288,7 +288,6 @@
                 </div>
             </div>
 
-            <!-- Admin Sections Start -->
             <div class="settings-group" id="adminPoliciesManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                     <i class="fas fa-edit"></i> <span data-translate-key="manage_policies_title">بەڕێوەبردنی مەرج و ڕێساکان</span>
@@ -441,34 +440,16 @@
                             <label>لینکی وێنە (عربی):</label>
                             <input type="url" id="promoCardImageAr" required>
                         </div>
-                        
                         <div class="form-group">
-                            <label>شوێنی پیشاندان:</label>
-                            <select id="promoCardDisplayLocation">
-                                <option value="home">پەڕەی سەرەکی (Home)</option>
-                                <option value="category">ناو بەشێکی دیاریکراو (Inside Category)</option>
-                            </select>
-                        </div>
-
-                        <!-- ===== NEW FIELDS ADDED HERE ===== -->
-                        <div class="form-group" id="promoCardCategoryTargetContainer" style="display: none;">
-                            <label>بۆ کام بەشی سەرەکی پیشان بدرێت؟</label>
-                            <select id="promoCardMainCategorySelect">
+                            <label>جۆری کاڵا کە لینک بکرێت بۆی:</label>
+                            <select id="promoCardTargetCategory" required>
                                 <option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>
                             </select>
-                             <!-- Subcategory dropdown starts here -->
-                            <div class="form-group" id="promoCardSubcategoryContainer" style="margin-top: 10px; display: none;">
-                                <label>بۆ کام بەشی لاوەکی پیشان بدرێت؟ (ئارەزوومەندانە)</label>
-                                <select id="promoCardSubcategorySelect">
-                                    <option value="">-- هەموو لاوەکییەکان (تەنها سەرەکی) --</option>
-                                </select>
-                            </div>
                         </div>
-                        <!-- ===== END OF NEW FIELDS ===== -->
-
                         <div class="form-group">
-                            <label>ژمارەی ڕیزبەندی (بۆ پیشاندان):</label>
+                            <label>ژمارەی ڕیزبەندی (بۆ پیشاندان لەناو کاڵاکان):</label>
                             <input type="number" id="promoCardOrder" value="1" required>
+                            <small>ژمارەی بچووکتر لە پێشتر پیشان دەدرێت.</small>
                         </div>
                         <input type="hidden" id="editingPromoCardId">
                         <button type="submit">پاشەکەوتکردن</button>
@@ -529,35 +510,6 @@
                 </div>
             </div>
             
-            <div class="settings-group" id="adminFeaturedRowsManagement" style="display: none;">
-                <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
-                    <i class="fas fa-star"></i> <span>بەڕێوەبردنی ڕیزە تایبەتەکان (پەڕەی سەرەکی)</span>
-                </h3>
-                <div style="padding: 15px;">
-                    <form id="addFeaturedRowForm">
-                        <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی ڕیزی نوێ</h4>
-                        <div class="form-group">
-                            <label>بەشی سەرەکی هەڵبژێرە:</label>
-                            <select id="featuredRowMainCategorySelect" required></select>
-                        </div>
-                        <div class="form-group">
-                            <label>بەشی لاوەکی هەڵبژێرە:</label>
-                            <select id="featuredRowSubcategorySelect" required>
-                                <option value="" disabled selected>-- سەرەتا بەشی سەرەکی هەڵبژێرە --</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>ژمارەی ڕیزبەندی:</label>
-                            <input type="number" id="featuredRowOrder" value="10" required>
-                        </div>
-                        <button type="submit">پاشەکەوتکردنی ڕیز</button>
-                    </form>
-                    <hr style="margin: 25px 0;">
-                    <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">ڕیزە زیادکراوەکان</h4>
-                    <div id="featuredRowsListContainer"></div>
-                </div>
-            </div>
-
             <div class="settings-group" id="adminShortcutRowsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                     <i class="fas fa-layer-group"></i> <span>بەڕێوەبردنی ڕیزی کارتەکان</span>
@@ -782,7 +734,6 @@
                     <div id="announcementsListContainer"></div>
                 </div>
             </div>
-            <!-- Admin Sections End -->
         </div>
         
         <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>

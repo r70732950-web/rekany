@@ -33,15 +33,18 @@ function debounce(func, delay = 500) {
     };
 }
 
+// <<-- START: فەنکشنی نوێ بۆ هەڵگرتنی شوێنی سکڕۆڵ
 function saveCurrentScrollPosition() {
     const currentState = history.state;
+    // تەنها شوێنی سکڕۆڵ هەڵبگرە ئەگەر لە پەڕەی سەرەکیدا بین و ستەیتەکە تایبەت نەبێت بە پۆپئەپ
     if (!document.getElementById('mainPage').classList.contains('page-hidden') && currentState && !currentState.type) {
         history.replaceState({ ...currentState, scroll: window.scrollY }, '');
     }
 }
+// <<-- END: فەنکشنی نوێ
 
 function showPage(pageId) {
-    saveCurrentScrollPosition();
+    saveCurrentScrollPosition(); // هەڵگرتنی سکڕۆڵ پێش گۆڕینی پەڕە
     document.querySelectorAll('.page').forEach(page => {
         page.classList.toggle('page-hidden', page.id !== pageId);
     });
@@ -62,7 +65,7 @@ function closeAllPopupsUI() {
 }
 
 function openPopup(id, type = 'sheet') {
-    saveCurrentScrollPosition();
+    saveCurrentScrollPosition(); // هەڵگرتنی سکڕۆڵ پێش کردنەوەی پۆپئەپ
     const element = document.getElementById(id);
     if (!element) return;
 
@@ -95,6 +98,8 @@ function closeCurrentPopup() {
     }
 }
 
+// === START: HISTORY AND STATE MANAGEMENT (UPDATED) ===
+
 async function applyFilterState(filterState, fromPopState = false) {
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
@@ -110,13 +115,16 @@ async function applyFilterState(filterState, fromPopState = false) {
     await searchProductsInFirestore(state.currentSearch, true);
 
     if (fromPopState && typeof filterState.scroll === 'number') {
+        // گەڕاندنەوەی شوێنی سکڕۆڵ کاتێک بەکارهێنەر دوگمەی 'گەڕانەوە'ی وێبگەڕ بەکاردەهێنێت
         setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
     } else if (!fromPopState) {
+        // گەڕاندنەوەی بۆ سەرەتا کاتێک فلتەرێکی نوێ چالاک دەکرێت
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
 async function navigateToFilter(newState) {
+    // هەڵگرتنی ستەیتی ئێستا لەگەڵ شوێنی سکڕۆڵ پێش گۆڕانکاری
     history.replaceState({
         category: state.currentCategory,
         subcategory: state.currentSubcategory,
@@ -149,6 +157,7 @@ window.addEventListener('popstate', (event) => {
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             openPopup(popState.id, popState.type);
         } else {
+            // کاتێک دەگەڕێیتەوە بۆ ستەیتی فلتەر، شوێنی سکڕۆڵەکەش بگەڕێنەرەوە
             applyFilterState(popState, true); 
         }
     } else {
@@ -192,6 +201,8 @@ function handleInitialPageLoad() {
         setTimeout(() => showProductDetails(productId), 500);
     }
 }
+// === END: HISTORY AND STATE MANAGEMENT (UPDATED) ===
+
 
 function t(key, replacements = {}) {
     let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
@@ -200,6 +211,7 @@ function t(key, replacements = {}) {
     }
     return translation;
 }
+
 
 function setLanguage(lang) {
     state.currentLanguage = lang;
@@ -776,27 +788,32 @@ function showProductDetailsWithData(product) {
     openPopup('productDetailSheet');
 }
 
-// ===== START: NEW AND MODIFIED PROMO CARD FUNCTIONS =====
+function createPromoCardElement(card) {
+    const cardElement = document.createElement('div');
+    cardElement.className = 'product-card promo-card-grid-item';
 
-function setupPromoCardListeners(cardElement) {
+    const imageUrl = card.imageUrls[state.currentLanguage] || card.imageUrls.ku_sorani;
+
+    cardElement.innerHTML = `
+        <div class="product-image-container">
+            <img src="${imageUrl}" class="product-image" loading="lazy" alt="Promotion">
+        </div>
+        <button class="promo-slider-btn prev"><i class="fas fa-chevron-left"></i></button>
+        <button class="promo-slider-btn next"><i class="fas fa-chevron-right"></i></button>
+    `;
+
     cardElement.addEventListener('click', async (e) => {
         if (!e.target.closest('button')) {
-            const cardId = cardElement.dataset.cardId;
-            const card = state.allPromoCards.find(c => c.id === cardId);
-            if (card && card.categoryId) {
-                const targetCategoryId = card.categoryId;
-                const targetSubcategoryId = card.subcategoryId; // Get subcategory ID
-                const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
-                
-                if (categoryExists) {
-                    await navigateToFilter({
-                        category: targetCategoryId,
-                        subcategory: targetSubcategoryId || 'all', // Use subcategory if it exists
-                        subSubcategory: 'all',
-                        search: ''
-                    });
-                    document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
-                }
+            const targetCategoryId = card.categoryId;
+            const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
+            if (categoryExists) {
+                await navigateToFilter({
+                    category: targetCategoryId,
+                    subcategory: 'all',
+                    subSubcategory: 'all',
+                    search: ''
+                });
+                document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
             }
         }
     });
@@ -810,49 +827,9 @@ function setupPromoCardListeners(cardElement) {
         e.stopPropagation();
         changePromoCard(1);
     });
-}
 
-function createPromoCardElement(card) {
-    const cardElement = document.createElement('div');
-    cardElement.className = 'product-card promo-card-grid-item';
-    cardElement.dataset.cardId = card.id;
-
-    const imageUrl = card.imageUrls[state.currentLanguage] || card.imageUrls.ku_sorani;
-
-    cardElement.innerHTML = `
-        <div class="product-image-container">
-            <img src="${imageUrl}" class="product-image" loading="lazy" alt="Promotion">
-        </div>
-        <button class="promo-slider-btn prev"><i class="fas fa-chevron-left"></i></button>
-        <button class="promo-slider-btn next"><i class="fas fa-chevron-right"></i></button>
-    `;
-    setupPromoCardListeners(cardElement);
     return cardElement;
 }
-
-function displayPromoCard(index) {
-    const promoCardSlot = document.querySelector('.promo-card-grid-item');
-    if (!promoCardSlot) {
-        if (state.promoRotationInterval) clearInterval(state.promoRotationInterval);
-        return;
-    }
-
-    const cardData = state.allPromoCards[index];
-    const imageUrl = cardData.imageUrls[state.currentLanguage] || cardData.imageUrls.ku_sorani;
-
-    promoCardSlot.style.opacity = 0;
-    setTimeout(() => {
-        const imgElement = promoCardSlot.querySelector('.product-image');
-        if (imgElement) {
-            imgElement.src = imageUrl;
-        }
-        promoCardSlot.dataset.cardId = cardData.id;
-        promoCardSlot.style.opacity = 1;
-    }, 400); 
-}
-
-// ===== END: NEW AND MODIFIED PROMO CARD FUNCTIONS =====
-
 
 function createProductCardElement(product) {
     const productCard = document.createElement('div');
@@ -1214,64 +1191,6 @@ async function renderCategorySections() {
     return mainContainer;
 }
 
-async function renderFeaturedSubcategoryRows() {
-    const mainContainer = document.createDocumentFragment();
-    const featuredRowsCollection = collection(db, "featured_rows");
-    
-    try {
-        const q = query(featuredRowsCollection, orderBy("order", "asc"));
-        const snapshot = await getDocs(q);
-
-        if (snapshot.empty) return null;
-
-        for (const rowDoc of snapshot.docs) {
-            const row = rowDoc.data();
-            const sectionContainer = document.createElement('div');
-            sectionContainer.className = 'dynamic-section';
-
-            const header = document.createElement('div');
-            header.className = 'section-title-header';
-
-            const title = document.createElement('h3');
-            title.className = 'section-title-main';
-            title.textContent = row.subcategoryName;
-            header.appendChild(title);
-            
-            const seeAllLink = document.createElement('a');
-            seeAllLink.className = 'see-all-link';
-            seeAllLink.textContent = t('see_all');
-            seeAllLink.onclick = () => navigateToFilter({ category: row.mainCategoryId, subcategory: row.subcategoryId, search: '' });
-            header.appendChild(seeAllLink);
-
-            sectionContainer.appendChild(header);
-
-            const productsScroller = document.createElement('div');
-            productsScroller.className = 'horizontal-products-container';
-            sectionContainer.appendChild(productsScroller);
-
-            const productsQuery = query(
-                productsCollection,
-                where('subcategoryId', '==', row.subcategoryId),
-                orderBy('createdAt', 'desc'),
-                limit(10)
-            );
-            const productsSnapshot = await getDocs(productsQuery);
-            if (!productsSnapshot.empty) {
-                productsSnapshot.forEach(doc => {
-                    const product = { id: doc.id, ...doc.data() };
-                    const card = createProductCardElement(product);
-                    productsScroller.appendChild(card);
-                });
-                mainContainer.appendChild(sectionContainer);
-            }
-        }
-        return mainContainer;
-    } catch (error) {
-        console.error("Error fetching featured rows:", error);
-        return null;
-    }
-}
-
 async function renderAllProductsSection() {
     const container = document.createElement('div');
     container.className = 'dynamic-section';
@@ -1321,7 +1240,7 @@ async function renderHomePageContent() {
         homeSectionsContainer.innerHTML = '';
 
         if (state.allPromoCards.length === 0) {
-            const promoQuery = query(promoCardsCollection, where("displayLocation", "==", "home"), orderBy("order", "asc"));
+            const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
             const promoSnapshot = await getDocs(promoQuery);
             state.allPromoCards = promoSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPromoCard: true }));
         }
@@ -1337,17 +1256,9 @@ async function renderHomePageContent() {
             startPromoRotation();
         }
 
-        const [
-            brandsSection, 
-            newestSection, 
-            featuredRows,
-            categorySections, 
-            shortcutRowsFragment, 
-            allProductsSection
-        ] = await Promise.all([
+        const [brandsSection, newestSection, categorySections, shortcutRowsFragment, allProductsSection] = await Promise.all([
             renderBrandsSection(),
             renderNewestProductsSection(),
-            renderFeaturedSubcategoryRows(),
             renderCategorySections(),
             renderShortcutRows(),
             renderAllProductsSection()
@@ -1356,7 +1267,6 @@ async function renderHomePageContent() {
         if (promoGrid) homeSectionsContainer.appendChild(promoGrid);
         if (brandsSection) homeSectionsContainer.appendChild(brandsSection);
         if (newestSection) homeSectionsContainer.appendChild(newestSection);
-        if (featuredRows) homeSectionsContainer.appendChild(featuredRows);
         if (categorySections) homeSectionsContainer.appendChild(categorySections);
         if (shortcutRowsFragment) homeSectionsContainer.appendChild(shortcutRowsFragment);
         if (allProductsSection) homeSectionsContainer.appendChild(allProductsSection);
@@ -1391,31 +1301,6 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         homeSectionsContainer.style.display = 'none';
     }
     
-    if (isNewSearch) {
-        productsContainer.innerHTML = '';
-    }
-
-    if (state.currentCategory !== 'all' && isNewSearch) {
-        try {
-            const promoQuery = query(
-                promoCardsCollection,
-                where("displayLocation", "==", "category"),
-                where("categoryId", "==", state.currentCategory),
-                orderBy("order", "asc")
-            );
-            const promoSnapshot = await getDocs(promoQuery);
-            if (!promoSnapshot.empty) {
-                promoSnapshot.forEach(doc => {
-                    const cardData = { id: doc.id, ...doc.data(), isPromoCard: true };
-                    const cardElement = createPromoCardElement(cardData);
-                    productsContainer.prepend(cardElement);
-                });
-            }
-        } catch (error) {
-            console.error("Error fetching in-category promo cards:", error);
-        }
-    }
-
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
     if (isNewSearch && state.productCache[cacheKey]) {
         state.products = state.productCache[cacheKey].products;
@@ -1507,7 +1392,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         
         renderProducts();
 
-        if (state.products.length === 0 && isNewSearch && productsContainer.children.length === 0) {
+        if (state.products.length === 0 && isNewSearch) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ కాڵایەک نەدۆزرایەوە.</p>';
         }
 
@@ -2157,6 +2042,25 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+function displayPromoCard(index) {
+    const promoCardSlot = document.querySelector('.promo-card-grid-item');
+    if (!promoCardSlot) return;
+
+    const cardData = state.allPromoCards[index];
+    const newCardElement = createPromoCardElement(cardData);
+    newCardElement.classList.add('product-card-reveal');
+
+    promoCardSlot.style.opacity = 0;
+    setTimeout(() => {
+        if (promoCardSlot.parentNode) {
+            promoCardSlot.parentNode.replaceChild(newCardElement, promoCardSlot);
+            setTimeout(() => {
+                newCardElement.classList.add('visible');
+            }, 10);
+        }
+    }, 300);
+}
+
 function rotatePromoCard() {
     if (state.allPromoCards.length <= 1) return;
     state.currentPromoCardIndex = (state.currentPromoCardIndex + 1) % state.allPromoCards.length;
@@ -2183,4 +2087,3 @@ function startPromoRotation() {
         state.promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
-
