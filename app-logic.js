@@ -776,32 +776,27 @@ function showProductDetailsWithData(product) {
     openPopup('productDetailSheet');
 }
 
-function createPromoCardElement(card) {
-    const cardElement = document.createElement('div');
-    cardElement.className = 'product-card promo-card-grid-item';
+// ===== START: NEW AND MODIFIED PROMO CARD FUNCTIONS =====
 
-    const imageUrl = card.imageUrls[state.currentLanguage] || card.imageUrls.ku_sorani;
-
-    cardElement.innerHTML = `
-        <div class="product-image-container">
-            <img src="${imageUrl}" class="product-image" loading="lazy" alt="Promotion">
-        </div>
-        <button class="promo-slider-btn prev"><i class="fas fa-chevron-left"></i></button>
-        <button class="promo-slider-btn next"><i class="fas fa-chevron-right"></i></button>
-    `;
-
+function setupPromoCardListeners(cardElement) {
     cardElement.addEventListener('click', async (e) => {
         if (!e.target.closest('button')) {
-            const targetCategoryId = card.categoryId;
-            const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
-            if (categoryExists) {
-                await navigateToFilter({
-                    category: targetCategoryId,
-                    subcategory: 'all',
-                    subSubcategory: 'all',
-                    search: ''
-                });
-                document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
+            const cardId = cardElement.dataset.cardId;
+            const card = state.allPromoCards.find(c => c.id === cardId);
+            if (card && card.categoryId) {
+                const targetCategoryId = card.categoryId;
+                const targetSubcategoryId = card.subcategoryId; // Get subcategory ID
+                const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
+                
+                if (categoryExists) {
+                    await navigateToFilter({
+                        category: targetCategoryId,
+                        subcategory: targetSubcategoryId || 'all', // Use subcategory if it exists
+                        subSubcategory: 'all',
+                        search: ''
+                    });
+                    document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
+                }
             }
         }
     });
@@ -815,9 +810,49 @@ function createPromoCardElement(card) {
         e.stopPropagation();
         changePromoCard(1);
     });
+}
 
+function createPromoCardElement(card) {
+    const cardElement = document.createElement('div');
+    cardElement.className = 'product-card promo-card-grid-item';
+    cardElement.dataset.cardId = card.id;
+
+    const imageUrl = card.imageUrls[state.currentLanguage] || card.imageUrls.ku_sorani;
+
+    cardElement.innerHTML = `
+        <div class="product-image-container">
+            <img src="${imageUrl}" class="product-image" loading="lazy" alt="Promotion">
+        </div>
+        <button class="promo-slider-btn prev"><i class="fas fa-chevron-left"></i></button>
+        <button class="promo-slider-btn next"><i class="fas fa-chevron-right"></i></button>
+    `;
+    setupPromoCardListeners(cardElement);
     return cardElement;
 }
+
+function displayPromoCard(index) {
+    const promoCardSlot = document.querySelector('.promo-card-grid-item');
+    if (!promoCardSlot) {
+        if (state.promoRotationInterval) clearInterval(state.promoRotationInterval);
+        return;
+    }
+
+    const cardData = state.allPromoCards[index];
+    const imageUrl = cardData.imageUrls[state.currentLanguage] || cardData.imageUrls.ku_sorani;
+
+    promoCardSlot.style.opacity = 0;
+    setTimeout(() => {
+        const imgElement = promoCardSlot.querySelector('.product-image');
+        if (imgElement) {
+            imgElement.src = imageUrl;
+        }
+        promoCardSlot.dataset.cardId = cardData.id;
+        promoCardSlot.style.opacity = 1;
+    }, 400); 
+}
+
+// ===== END: NEW AND MODIFIED PROMO CARD FUNCTIONS =====
+
 
 function createProductCardElement(product) {
     const productCard = document.createElement('div');
@@ -1179,7 +1214,6 @@ async function renderCategorySections() {
     return mainContainer;
 }
 
-// ===== NEW FUNCTION =====
 async function renderFeaturedSubcategoryRows() {
     const mainContainer = document.createDocumentFragment();
     const featuredRowsCollection = collection(db, "featured_rows");
@@ -1237,7 +1271,6 @@ async function renderFeaturedSubcategoryRows() {
         return null;
     }
 }
-// ===== END OF NEW FUNCTION =====
 
 async function renderAllProductsSection() {
     const container = document.createElement('div');
@@ -1359,7 +1392,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     }
     
     if (isNewSearch) {
-        productsContainer.innerHTML = ''; // Clear previous results immediately for new search/filter
+        productsContainer.innerHTML = '';
     }
 
     if (state.currentCategory !== 'all' && isNewSearch) {
@@ -1375,7 +1408,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
                 promoSnapshot.forEach(doc => {
                     const cardData = { id: doc.id, ...doc.data(), isPromoCard: true };
                     const cardElement = createPromoCardElement(cardData);
-                    productsContainer.prepend(cardElement); // Prepend adds it to the beginning
+                    productsContainer.prepend(cardElement);
                 });
             }
         } catch (error) {
@@ -2124,25 +2157,6 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-function displayPromoCard(index) {
-    const promoCardSlot = document.querySelector('.promo-card-grid-item');
-    if (!promoCardSlot) return;
-
-    const cardData = state.allPromoCards[index];
-    const newCardElement = createPromoCardElement(cardData);
-    newCardElement.classList.add('product-card-reveal');
-
-    promoCardSlot.style.opacity = 0;
-    setTimeout(() => {
-        if (promoCardSlot.parentNode) {
-            promoCardSlot.parentNode.replaceChild(newCardElement, promoCardSlot);
-            setTimeout(() => {
-                newCardElement.classList.add('visible');
-            }, 10);
-        }
-    }, 300);
-}
-
 function rotatePromoCard() {
     if (state.allPromoCards.length <= 1) return;
     state.currentPromoCardIndex = (state.currentPromoCardIndex + 1) % state.allPromoCards.length;
@@ -2169,3 +2183,4 @@ function startPromoRotation() {
         state.promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
+
