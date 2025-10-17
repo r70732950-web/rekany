@@ -889,7 +889,9 @@ window.AdminLogic = {
         if (this.listenersAttached) return;
         const self = this;
         
+        // === THE FIX IS HERE ===
         document.getElementById('saveLayoutBtn')?.addEventListener('click', () => self.saveHomeLayout());
+        // =======================
 
         document.getElementById('addProductBtn').onclick = () => {
             setEditingProductId(null);
