@@ -1,7 +1,6 @@
-// BEŞÊ DUYEM: app-logic.js
+// BEŞÊ DUYEM: app-logic.js (Guhertoya Nû ya Dînamîk)
 // Fonksiyon û mentiqê serekî yê bernameyê
 
-// Importkirina sazkarîyan ji faylê yekem
 import {
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
@@ -33,18 +32,15 @@ function debounce(func, delay = 500) {
     };
 }
 
-// <<-- START: فەنکشنی نوێ بۆ هەڵگرتنی شوێنی سکڕۆڵ
 function saveCurrentScrollPosition() {
     const currentState = history.state;
-    // تەنها شوێنی سکڕۆڵ هەڵبگرە ئەگەر لە پەڕەی سەرەکیدا بین و ستەیتەکە تایبەت نەبێت بە پۆپئەپ
     if (!document.getElementById('mainPage').classList.contains('page-hidden') && currentState && !currentState.type) {
         history.replaceState({ ...currentState, scroll: window.scrollY }, '');
     }
 }
-// <<-- END: فەنکشنی نوێ
 
 function showPage(pageId) {
-    saveCurrentScrollPosition(); // هەڵگرتنی سکڕۆڵ پێش گۆڕینی پەڕە
+    saveCurrentScrollPosition();
     document.querySelectorAll('.page').forEach(page => {
         page.classList.toggle('page-hidden', page.id !== pageId);
     });
@@ -65,7 +61,7 @@ function closeAllPopupsUI() {
 }
 
 function openPopup(id, type = 'sheet') {
-    saveCurrentScrollPosition(); // هەڵگرتنی سکڕۆڵ پێش کردنەوەی پۆپئەپ
+    saveCurrentScrollPosition();
     const element = document.getElementById(id);
     if (!element) return;
 
@@ -98,7 +94,6 @@ function closeCurrentPopup() {
     }
 }
 
-// === START: HISTORY AND STATE MANAGEMENT (UPDATED) ===
 
 async function applyFilterState(filterState, fromPopState = false) {
     state.currentCategory = filterState.category || 'all';
@@ -108,43 +103,40 @@ async function applyFilterState(filterState, fromPopState = false) {
 
     searchInput.value = state.currentSearch;
     clearSearchBtn.style.display = state.currentSearch ? 'block' : 'none';
-    
+
     renderMainCategories();
-    await renderSubcategories(state.currentCategory); 
+    await renderSubcategories(state.currentCategory);
 
     await searchProductsInFirestore(state.currentSearch, true);
 
     if (fromPopState && typeof filterState.scroll === 'number') {
-        // گەڕاندنەوەی شوێنی سکڕۆڵ کاتێک بەکارهێنەر دوگمەی 'گەڕانەوە'ی وێبگەڕ بەکاردەهێنێت
         setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
     } else if (!fromPopState) {
-        // گەڕاندنەوەی بۆ سەرەتا کاتێک فلتەرێکی نوێ چالاک دەکرێت
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
 async function navigateToFilter(newState) {
-    // هەڵگرتنی ستەیتی ئێستا لەگەڵ شوێنی سکڕۆڵ پێش گۆڕانکاری
     history.replaceState({
         category: state.currentCategory,
         subcategory: state.currentSubcategory,
         subSubcategory: state.currentSubSubcategory,
         search: state.currentSearch,
-        scroll: window.scrollY 
+        scroll: window.scrollY
     }, '');
 
     const finalState = { ...history.state, ...newState, scroll: 0 };
-    
+
     const params = new URLSearchParams();
     if (finalState.category && finalState.category !== 'all') params.set('category', finalState.category);
     if (finalState.subcategory && finalState.subcategory !== 'all') params.set('subcategory', finalState.subcategory);
     if (finalState.subSubcategory && finalState.subSubcategory !== 'all') params.set('subSubcategory', finalState.subSubcategory);
     if (finalState.search) params.set('search', finalState.search);
-    
+
     const newUrl = `${window.location.pathname}?${params.toString()}`;
-    
+
     history.pushState(finalState, '', newUrl);
-    
+
     await applyFilterState(finalState);
 }
 
@@ -157,8 +149,7 @@ window.addEventListener('popstate', (event) => {
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             openPopup(popState.id, popState.type);
         } else {
-            // کاتێک دەگەڕێیتەوە بۆ ستەیتی فلتەر، شوێنی سکڕۆڵەکەش بگەڕێنەرەوە
-            applyFilterState(popState, true); 
+            applyFilterState(popState, true);
         }
     } else {
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
@@ -186,7 +177,7 @@ function handleInitialPageLoad() {
         history.replaceState(initialState, '');
         applyFilterState(initialState);
     }
-    
+
     const element = document.getElementById(hash);
     if (element) {
         const isSheet = element.classList.contains('bottom-sheet');
@@ -195,14 +186,12 @@ function handleInitialPageLoad() {
             openPopup(hash, isSheet ? 'sheet' : 'modal');
         }
     }
-    
+
     const productId = params.get('product');
     if (productId) {
         setTimeout(() => showProductDetails(productId), 500);
     }
 }
-// === END: HISTORY AND STATE MANAGEMENT (UPDATED) ===
-
 
 function t(key, replacements = {}) {
     let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
@@ -235,58 +224,448 @@ function setLanguage(lang) {
     document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.lang === lang);
     });
-
-    const homeContainer = document.getElementById('homePageSectionsContainer');
-    if (homeContainer) {
-        homeContainer.innerHTML = ''; 
-    }
     
-    const isHomeView = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-    if (isHomeView) {
+    // Refresh content based on current view
+    const isHomeView = document.getElementById('homePageSectionsContainer').style.display !== 'none';
+    if(isHomeView) {
         renderHomePageContent();
     } else {
-        renderProducts();
+        renderProducts(); // Re-render products with new language
     }
-
+    
     renderMainCategories();
     renderCategoriesSheet();
     if (document.getElementById('cartSheet').classList.contains('show')) renderCart();
     if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPage();
 }
 
-async function forceUpdate() {
-    if (confirm(t('update_confirm'))) {
-        try {
-            if ('serviceWorker' in navigator) {
-                const registrations = await navigator.serviceWorker.getRegistrations();
-                for (const registration of registrations) {
-                    await registration.unregister();
-                }
-                console.log('Service Workers unregistered.');
-            }
 
-            if (window.caches) {
-                const keys = await window.caches.keys();
-                await Promise.all(keys.map(key => window.caches.delete(key)));
-                console.log('All caches cleared.');
-            }
+// <<-- START: RENDER HOME PAGE DYNAMICALLY -->>
 
-            showNotification(t('update_success'), 'success');
+/**
+ * Fetches the layout from Firestore and renders each enabled section in order.
+ * This is the new main function for building the home page.
+ */
+async function renderHomePageContent() {
+    if (state.isRenderingHomePage) return;
+    state.isRenderingHomePage = true;
 
-            setTimeout(() => {
-                window.location.reload(true);
-            }, 1500);
+    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
+    const initialSkeleton = document.getElementById('initialHomePageSkeleton');
 
-        } catch (error) {
-            console.error('Error during force update:', error);
-            showNotification(t('error_generic'), 'error');
+    try {
+        // Show initial skeleton while fetching layout, clear previous dynamic content
+        if (initialSkeleton) initialSkeleton.style.display = 'grid';
+        homeSectionsContainer.innerHTML = ''; // Clear previous content
+        homeSectionsContainer.appendChild(initialSkeleton); // Re-append skeleton
+
+        const layoutQuery = query(collection(db, "homePageLayout"), where("enabled", "==", true), orderBy("order", "asc"));
+        const layoutSnapshot = await getDocs(layoutQuery);
+
+        if (layoutSnapshot.empty) {
+            if (initialSkeleton) initialSkeleton.style.display = 'none';
+            homeSectionsContainer.innerHTML = '<p style="text-align: center; padding: 20px;">پەڕەی سەرەکی هێشتا ڕێکنەخراوە.</p>';
+            state.isRenderingHomePage = false;
+            return;
         }
+
+        const sectionPromises = layoutSnapshot.docs.map(doc => {
+            const sectionData = { id: doc.id, ...doc.data() };
+            return renderSection(sectionData); // Helper function to render based on type
+        });
+
+        const renderedSections = await Promise.all(sectionPromises);
+
+        // Clear skeleton and append newly rendered sections
+        homeSectionsContainer.innerHTML = '';
+        renderedSections.forEach(element => {
+            if (element) { // Check if the render function returned a valid element
+                homeSectionsContainer.appendChild(element);
+            }
+        });
+
+    } catch (error) {
+        console.error("Error rendering home page content:", error);
+        homeSectionsContainer.innerHTML = `<p style="text-align: center; padding: 20px;">هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
+    } finally {
+        if (initialSkeleton) initialSkeleton.style.display = 'none';
+        state.isRenderingHomePage = false;
+        setupScrollAnimations(); // Re-run animations for new content
     }
 }
 
-function updateContactLinksUI() {
-    if (!state.contactInfo) return;
+/**
+ * Acts as a router to call the correct rendering function based on the section's type.
+ * @param {object} section - The section data from Firestore.
+ */
+async function renderSection(section) {
+    switch (section.type) {
+        case 'promo_slider':
+            return await renderPromoSliderSection(section);
+        case 'brands':
+            return await renderBrandsSection(section);
+        case 'newest_products':
+            return await renderNewestProductsSection(section);
+        case 'category_products':
+            if (section.config && section.config.categoryId) {
+                return await renderSingleCategorySection(section);
+            }
+            return null; // Don't render if misconfigured
+        case 'shortcut_row':
+            if (section.config && section.config.rowId) {
+                return await renderSingleShortcutRow(section);
+            }
+            return null;
+        case 'all_products':
+             return await renderAllProductsSection(section);
+        default:
+            console.warn(`Unknown section type: ${section.type}`);
+            return null;
+    }
 }
+
+// <<-- END: RENDER HOME PAGE DYNAMICALLY -->>
+
+
+// <<-- START: ADAPTED/NEW SECTION RENDERERS -->>
+
+async function renderPromoSliderSection(section) {
+    const promoCards = await getPromoCards(); // Fetch promo cards
+    if (promoCards.length === 0) return null;
+
+    if (state.currentPromoCardIndex >= promoCards.length) state.currentPromoCardIndex = 0;
+    
+    const promoCardElement = createPromoCardElement(promoCards[state.currentPromoCardIndex], promoCards);
+    const promoGrid = document.createElement('div');
+    promoGrid.className = 'products-container';
+    promoGrid.style.marginBottom = '24px';
+    promoGrid.appendChild(promoCardElement);
+
+    startPromoRotation(promoCards); // Start rotation logic
+    return promoGrid;
+}
+
+async function renderBrandsSection(section) {
+    const sectionContainer = document.createElement('div');
+    sectionContainer.className = 'brands-section';
+
+    const header = document.createElement('div');
+    header.className = 'section-title-header';
+    const title = document.createElement('h3');
+    title.className = 'section-title-main';
+    const sectionTitle = (section.title && (section.title[state.currentLanguage] || section.title.ku_sorani)) || t('brands_title') || 'براندەکان';
+    title.textContent = sectionTitle;
+    header.appendChild(title);
+    sectionContainer.appendChild(header);
+
+    const brandsContainer = document.createElement('div');
+    brandsContainer.className = 'brands-container';
+    sectionContainer.appendChild(brandsContainer);
+
+    try {
+        const q = query(brandsCollection, orderBy("order", "asc"), limit(30));
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) return null;
+
+        snapshot.forEach(doc => {
+            const brand = { id: doc.id, ...doc.data() };
+            const brandName = brand.name[state.currentLanguage] || brand.name.ku_sorani;
+            const item = document.createElement('div');
+            item.className = 'brand-item';
+            item.innerHTML = `
+                <div class="brand-image-wrapper">
+                    <img src="${brand.imageUrl}" alt="${brandName}" loading="lazy" class="brand-image">
+                </div>
+                <span>${brandName}</span>
+            `;
+            item.onclick = async () => {
+                await navigateToFilter({
+                    category: brand.categoryId || 'all',
+                    subcategory: brand.subcategoryId || 'all',
+                    subSubcategory: 'all',
+                    search: ''
+                });
+            };
+            brandsContainer.appendChild(item);
+        });
+
+        return sectionContainer;
+    } catch (error) {
+        console.error("Error fetching brands for section:", error);
+        return null;
+    }
+}
+
+async function renderNewestProductsSection(section) {
+    const container = document.createElement('div');
+    container.className = 'dynamic-section';
+    const header = document.createElement('div');
+    header.className = 'section-title-header';
+    const title = document.createElement('h3');
+    title.className = 'section-title-main';
+    const sectionTitle = (section.title && (section.title[state.currentLanguage] || section.title.ku_sorani)) || t('newest_products');
+    title.textContent = sectionTitle;
+    header.appendChild(title);
+    container.appendChild(header);
+    const productsScroller = document.createElement('div');
+    productsScroller.className = 'horizontal-products-container';
+    container.appendChild(productsScroller);
+
+    try {
+        const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
+        const q = query(productsCollection, where('createdAt', '>=', fifteenDaysAgo), orderBy('createdAt', 'desc'), limit(10));
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) return null;
+
+        snapshot.forEach(doc => {
+            const product = { id: doc.id, ...doc.data() };
+            const card = createProductCardElement(product);
+            productsScroller.appendChild(card);
+        });
+        return container;
+    } catch (error) {
+        console.error("Error fetching newest products:", error);
+        return null;
+    }
+}
+
+async function renderSingleCategorySection(section) {
+    const categoryId = section.config.categoryId;
+    const category = getCategories().find(cat => cat.id === categoryId);
+    if (!category) return null; // Don't render if category doesn't exist
+
+    const sectionContainer = document.createElement('div');
+    sectionContainer.className = 'dynamic-section';
+
+    const header = document.createElement('div');
+    header.className = 'section-title-header';
+
+    const title = document.createElement('h3');
+    title.className = 'section-title-main';
+    const categoryName = category['name_' + state.currentLanguage] || category.name_ku_sorani;
+    const sectionTitle = (section.title && (section.title[state.currentLanguage] || section.title.ku_sorani)) || categoryName;
+    title.innerHTML = `<i class="${category.icon || 'fas fa-tag'}"></i> ${sectionTitle}`;
+    header.appendChild(title);
+
+    const seeAllLink = document.createElement('a');
+    seeAllLink.className = 'see-all-link';
+    seeAllLink.textContent = t('see_all');
+    seeAllLink.onclick = async () => {
+        await navigateToFilter({ category: category.id, subcategory: 'all', subSubcategory: 'all', search: '' });
+    };
+    header.appendChild(seeAllLink);
+    sectionContainer.appendChild(header);
+
+    const productsScroller = document.createElement('div');
+    productsScroller.className = 'horizontal-products-container';
+    sectionContainer.appendChild(productsScroller);
+
+    try {
+        const q = query(productsCollection, where('categoryId', '==', categoryId), orderBy('createdAt', 'desc'), limit(10));
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) return null; // Don't show empty sections
+
+        snapshot.forEach(doc => {
+            const product = { id: doc.id, ...doc.data() };
+            const card = createProductCardElement(product);
+            productsScroller.appendChild(card);
+        });
+        return sectionContainer;
+    } catch (error) {
+        console.error(`Error fetching products for category section ${categoryId}:`, error);
+        return null;
+    }
+}
+
+async function renderSingleShortcutRow(section) {
+     const rowId = section.config.rowId;
+     try {
+        const rowDoc = await getDoc(doc(db, "shortcut_rows", rowId));
+        if (!rowDoc.exists()) return null;
+
+        const rowData = { id: rowDoc.id, ...rowDoc.data() };
+        const rowTitle = (section.title && (section.title[state.currentLanguage] || section.title.ku_sorani)) || (rowData.title[state.currentLanguage] || rowData.title.ku_sorani);
+        
+        const cardsSnapshot = await getDocs(query(collection(db, "shortcut_rows", rowId, "cards"), orderBy("order", "asc")));
+        if (cardsSnapshot.empty) return null;
+
+        const sectionContainer = document.createElement('div');
+        sectionContainer.className = 'shortcut-cards-section';
+        
+        const titleElement = document.createElement('h3');
+        titleElement.className = 'shortcut-row-title';
+        titleElement.textContent = rowTitle;
+        sectionContainer.appendChild(titleElement);
+        
+        const cardsContainer = document.createElement('div');
+        cardsContainer.className = 'shortcut-cards-container';
+        sectionContainer.appendChild(cardsContainer);
+
+        cardsSnapshot.forEach(cardDoc => {
+            const cardData = cardDoc.data();
+            const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
+            const item = document.createElement('div');
+            item.className = 'shortcut-card';
+            item.innerHTML = `
+                <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
+                <div class="shortcut-card-name">${cardName}</div>
+            `;
+            item.onclick = async () => {
+                await navigateToFilter({
+                    category: cardData.categoryId || 'all',
+                    subcategory: cardData.subcategoryId || 'all',
+                    subSubcategory: cardData.subSubcategoryId || 'all',
+                    search: ''
+                });
+            };
+            cardsContainer.appendChild(item);
+        });
+
+        return sectionContainer;
+     } catch (error) {
+         console.error(`Error rendering shortcut row ${rowId}:`, error);
+         return null;
+     }
+}
+
+async function renderAllProductsSection(section) {
+    const container = document.createElement('div');
+    container.className = 'dynamic-section';
+    container.style.marginTop = '20px';
+
+    const header = document.createElement('div');
+    header.className = 'section-title-header';
+    const title = document.createElement('h3');
+    title.className = 'section-title-main';
+    const sectionTitle = (section.title && (section.title[state.currentLanguage] || section.title.ku_sorani)) || t('all_products_section_title');
+    title.textContent = sectionTitle;
+    header.appendChild(title);
+    container.appendChild(header);
+
+    const productsGrid = document.createElement('div');
+    productsGrid.className = 'products-container';
+    container.appendChild(productsGrid);
+
+    try {
+        const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(10));
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) return null;
+
+        snapshot.forEach(doc => {
+            const product = { id: doc.id, ...doc.data() };
+            const card = createProductCardElement(product);
+            productsGrid.appendChild(card);
+        });
+        return container;
+    } catch (error) {
+        console.error("Error fetching all products for home page section:", error);
+        return null;
+    }
+}
+
+// <<-- END: ADAPTED/NEW SECTION RENDERERS -->>
+
+
+async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
+    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
+    const scrollTrigger = document.getElementById('scroll-loader-trigger');
+    const initialSkeleton = document.getElementById('initialHomePageSkeleton');
+
+    const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
+
+    if (shouldShowHomeSections) {
+        productsContainer.style.display = 'none';
+        skeletonLoader.style.display = 'none';
+        scrollTrigger.style.display = 'none';
+        homeSectionsContainer.style.display = 'block';
+        if (initialSkeleton) initialSkeleton.style.display = 'grid'; // Show skeleton before rendering
+        
+        await renderHomePageContent(); // Call the new dynamic renderer
+        return;
+    } else {
+        homeSectionsContainer.style.display = 'none';
+        if (initialSkeleton) initialSkeleton.style.display = 'none';
+    }
+    
+    // Logic for fetching and displaying product lists (search/filter) remains mostly the same
+    if (state.isLoadingMoreProducts) return;
+
+    if (isNewSearch) {
+        state.allProductsLoaded = false;
+        state.lastVisibleProductDoc = null;
+        state.products = [];
+        renderSkeletonLoader();
+        scrollTrigger.style.display = 'block'; // Show trigger for new searches
+    }
+
+    if (state.allProductsLoaded && !isNewSearch) return;
+
+    state.isLoadingMoreProducts = true;
+    loader.style.display = 'block';
+
+    try {
+        let productsQuery = collection(db, "products");
+        const queryConstraints = [];
+
+        if (state.currentCategory && state.currentCategory !== 'all') {
+            queryConstraints.push(where("categoryId", "==", state.currentCategory));
+        }
+        if (state.currentSubcategory && state.currentSubcategory !== 'all') {
+            queryConstraints.push(where("subcategoryId", "==", state.currentSubcategory));
+        }
+        if (state.currentSubSubcategory && state.currentSubSubcategory !== 'all') {
+            queryConstraints.push(where("subSubcategoryId", "==", state.currentSubSubcategory));
+        }
+
+        const finalSearchTerm = searchTerm.trim().toLowerCase();
+        if (finalSearchTerm) {
+            queryConstraints.push(where('searchableName', '>=', finalSearchTerm));
+            queryConstraints.push(where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
+            queryConstraints.push(orderBy("searchableName", "asc"));
+        }
+        
+        queryConstraints.push(orderBy("createdAt", "desc"));
+
+        if (state.lastVisibleProductDoc && !isNewSearch) {
+            queryConstraints.push(startAfter(state.lastVisibleProductDoc));
+        }
+
+        queryConstraints.push(limit(PRODUCTS_PER_PAGE));
+        
+        productsQuery = query(productsQuery, ...queryConstraints);
+
+        const productSnapshot = await getDocs(productsQuery);
+        const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        state.products = isNewSearch ? newProducts : [...state.products, ...newProducts];
+        
+        if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
+            state.allProductsLoaded = true;
+            scrollTrigger.style.display = 'none';
+        }
+
+        state.lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
+        
+        renderProducts();
+
+        if (state.products.length === 0 && isNewSearch) {
+            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ కాڵایەک نەدۆزرایەوە.</p>';
+        }
+
+    } catch (error) {
+        console.error("Error fetching products:", error);
+        productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
+    } finally {
+        state.isLoadingMoreProducts = false;
+        loader.style.display = 'none';
+        skeletonLoader.style.display = 'none';
+        productsContainer.style.display = 'grid';
+    }
+}
+
+
+// --- Functions from here down are mostly unchanged, but reviewed for consistency ---
+// (The full code for the rest of the file would be included here)
 
 function updateActiveNav(activeBtnId) {
     document.querySelectorAll('.bottom-nav-item').forEach(btn => {
@@ -366,12 +745,9 @@ function toggleFavorite(productId) {
     }
     saveFavorites();
 
-    const isHomeView = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
+    // Re-render the current view to update the heart icon
+    const isHomeView = document.getElementById('homePageSectionsContainer').style.display !== 'none';
     if(isHomeView) {
-        const homeContainer = document.getElementById('homePageSectionsContainer');
-        if (homeContainer) {
-            homeContainer.innerHTML = '';
-        }
         renderHomePageContent();
     } else {
         renderProducts();
@@ -384,7 +760,9 @@ function toggleFavorite(productId) {
 
 function renderFavoritesPage() {
     favoritesContainer.innerHTML = '';
-    const favoritedProducts = state.products.filter(p => state.favorites.includes(p.id));
+    // Fetch all products from cache/state to find favorited ones
+    const allProducts = [...state.products];
+    const favoritedProducts = allProducts.filter(p => state.favorites.includes(p.id));
 
     if (favoritedProducts.length === 0) {
         emptyFavoritesMessage.style.display = 'block';
@@ -398,6 +776,7 @@ function renderFavoritesPage() {
         });
     }
 }
+
 
 function saveCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
@@ -420,6 +799,576 @@ function showNotification(message, type = 'success') {
         setTimeout(() => document.body.removeChild(notification), 300);
     }, 3000);
 }
+
+
+// Functions for rendering UI elements like product cards, categories, etc.
+// These are mostly unchanged but are necessary for the app to function.
+
+function renderProducts() {
+    productsContainer.innerHTML = '';
+	if (!state.products || state.products.length === 0) {
+		return;
+	}
+
+    state.products.forEach(item => {
+        let element = createProductCardElement(item);
+        element.classList.add('product-card-reveal');
+        productsContainer.appendChild(element);
+    });
+
+    setupScrollAnimations();
+}
+
+function renderSkeletonLoader() {
+    skeletonLoader.innerHTML = '';
+    for (let i = 0; i < 8; i++) {
+        const skeletonCard = document.createElement('div');
+        skeletonCard.className = 'skeleton-card';
+        skeletonCard.innerHTML = `
+            <div class="skeleton-image shimmer"></div>
+            <div class="skeleton-text shimmer"></div>
+            <div class="skeleton-price shimmer"></div>
+            <div class="skeleton-button shimmer"></div>
+        `;
+        skeletonLoader.appendChild(skeletonCard);
+    }
+    skeletonLoader.style.display = 'grid';
+    productsContainer.style.display = 'none';
+    loader.style.display = 'none';
+}
+
+// ... and so on for the rest of the file...
+// The rest of the functions (createProductCardElement, renderCart, etc.) remain the same
+// as they were in the previous version of app-logic.js you sent.
+// I will just add the full code below.
+
+// The remaining functions from the previous 'app-logic.js' are included below
+// for completeness.
+
+async function forceUpdate() {
+    if (confirm(t('update_confirm'))) {
+        try {
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const registration of registrations) {
+                    await registration.unregister();
+                }
+                console.log('Service Workers unregistered.');
+            }
+
+            if (window.caches) {
+                const keys = await window.caches.keys();
+                await Promise.all(keys.map(key => window.caches.delete(key)));
+                console.log('All caches cleared.');
+            }
+
+            showNotification(t('update_success'), 'success');
+
+            setTimeout(() => {
+                window.location.reload(true);
+            }, 1500);
+
+        } catch (error) {
+            console.error('Error during force update:', error);
+            showNotification(t('error_generic'), 'error');
+        }
+    }
+}
+
+function updateContactLinksUI() {
+    if (!state.contactInfo) return;
+}
+
+async function renderRelatedProducts(currentProduct) {
+    const section = document.getElementById('relatedProductsSection');
+    const container = document.getElementById('relatedProductsContainer');
+    container.innerHTML = '';
+    section.style.display = 'none';
+
+    if (!currentProduct.subcategoryId && !currentProduct.categoryId) {
+        return;
+    }
+
+    let q;
+    const constraints = [where('__name__', '!=', currentProduct.id), limit(6)];
+    if (currentProduct.subSubcategoryId) {
+        q = query(productsCollection, where('subSubcategoryId', '==', currentProduct.subSubcategoryId), ...constraints);
+    } else if (currentProduct.subcategoryId) {
+        q = query(productsCollection, where('subcategoryId', '==', currentProduct.subcategoryId), ...constraints);
+    } else {
+        q = query(productsCollection, where('categoryId', '==', currentProduct.categoryId), ...constraints);
+    }
+
+    try {
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) {
+            console.log("No related products found.");
+            return;
+        }
+
+        snapshot.forEach(doc => {
+            const product = { id: doc.id, ...doc.data() };
+            const card = createProductCardElement(product);
+            container.appendChild(card);
+        });
+
+        section.style.display = 'block';
+
+    } catch (error) {
+        console.error("Error fetching related products:", error);
+    }
+}
+
+function showProductDetailsWithData(product) {
+    const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
+    const descriptionText = (product.description && product.description[state.currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
+    const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
+
+    const imageContainer = document.getElementById('sheetImageContainer');
+    const thumbnailContainer = document.getElementById('sheetThumbnailContainer');
+    imageContainer.innerHTML = '';
+    thumbnailContainer.innerHTML = '';
+
+    if (imageUrls.length > 0) {
+        imageUrls.forEach((url, index) => {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = nameInCurrentLang;
+            if (index === 0) img.classList.add('active');
+            imageContainer.appendChild(img);
+
+            const thumb = document.createElement('img');
+            thumb.src = url;
+            thumb.alt = `Thumbnail of ${nameInCurrentLang}`;
+            thumb.className = 'thumbnail';
+            if (index === 0) thumb.classList.add('active');
+            thumb.dataset.index = index;
+            thumbnailContainer.appendChild(thumb);
+        });
+    }
+
+    let currentIndex = 0;
+    const images = imageContainer.querySelectorAll('img');
+    const thumbnails = thumbnailContainer.querySelectorAll('.thumbnail');
+    const prevBtn = document.getElementById('sheetPrevBtn');
+    const nextBtn = document.getElementById('sheetNextBtn');
+
+    function updateSlider(index) {
+        if (!images[index] || !thumbnails[index]) return;
+        images.forEach(img => img.classList.remove('active'));
+        thumbnails.forEach(thumb => thumb.classList.remove('active'));
+        images[index].classList.add('active');
+        thumbnails[index].classList.add('active');
+        currentIndex = index;
+    }
+
+    if (imageUrls.length > 1) {
+        prevBtn.style.display = 'flex';
+        nextBtn.style.display = 'flex';
+    } else {
+        prevBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
+    }
+
+    prevBtn.onclick = () => updateSlider((currentIndex - 1 + images.length) % images.length);
+    nextBtn.onclick = () => updateSlider((currentIndex + 1) % images.length);
+    thumbnails.forEach(thumb => thumb.onclick = () => updateSlider(parseInt(thumb.dataset.index)));
+
+    document.getElementById('sheetProductName').textContent = nameInCurrentLang;
+    document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText);
+
+    const priceContainer = document.getElementById('sheetProductPrice');
+    if (product.originalPrice && product.originalPrice > product.price) {
+        priceContainer.innerHTML = `<span style="color: var(--accent-color);">${product.price.toLocaleString()} د.ع</span> <del style="color: var(--dark-gray); font-size: 16px; margin-right: 10px;">${product.originalPrice.toLocaleString()} د.ع</del>`;
+    } else {
+        priceContainer.innerHTML = `<span>${product.price.toLocaleString()} د.ع</span>`;
+    }
+
+    const addToCartButton = document.getElementById('sheetAddToCartBtn');
+    addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
+    addToCartButton.onclick = () => {
+        addToCart(product.id);
+        closeCurrentPopup();
+    };
+
+    const shareButton = document.getElementById('sheetShareBtn');
+    shareButton.onclick = async () => {
+        const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani);
+        const productUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
+
+        const shareData = {
+            title: nameInCurrentLang,
+            text: `${t('share_text')}: ${nameInCurrentLang}`,
+            url: productUrl,
+        };
+
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+            } catch (err) {
+                if (err.name !== 'AbortError') showNotification(t('share_error'), 'error');
+            }
+        } else {
+            try {
+                await navigator.clipboard.writeText(productUrl);
+                showNotification('لینکی کاڵا کۆپی کرا!', 'success');
+            } catch (err) {
+                showNotification(t('share_error'), 'error');
+            }
+        }
+    };
+    
+    renderRelatedProducts(product);
+
+    openPopup('productDetailSheet');
+}
+
+function showProductDetails(productId) {
+    const allFetchedProducts = [...state.products];
+    const product = allFetchedProducts.find(p => p.id === productId);
+
+    if (!product) {
+        getDoc(doc(db, "products", productId)).then(docSnap => {
+            if (docSnap.exists()) {
+                const fetchedProduct = { id: docSnap.id, ...docSnap.data() };
+                showProductDetailsWithData(fetchedProduct);
+            } else {
+                showNotification(t('product_not_found_error'), 'error');
+            }
+        });
+        return;
+    }
+    showProductDetailsWithData(product);
+}
+
+// ... the rest of the file continues from here...
+// I will include all the remaining functions as they were.
+
+function createPromoCardElement(card, allPromoCards) {
+    const cardElement = document.createElement('div');
+    cardElement.className = 'product-card promo-card-grid-item';
+
+    const imageUrl = card.imageUrls[state.currentLanguage] || card.imageUrls.ku_sorani;
+
+    cardElement.innerHTML = `
+        <div class="product-image-container">
+            <img src="${imageUrl}" class="product-image" loading="lazy" alt="Promotion">
+        </div>
+        ${allPromoCards.length > 1 ? `
+        <button class="promo-slider-btn prev"><i class="fas fa-chevron-left"></i></button>
+        <button class="promo-slider-btn next"><i class="fas fa-chevron-right"></i></button>
+        ` : ''}
+    `;
+
+    cardElement.addEventListener('click', async (e) => {
+        if (!e.target.closest('button')) {
+            const targetCategoryId = card.categoryId;
+            const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
+            if (categoryExists) {
+                await navigateToFilter({
+                    category: targetCategoryId,
+                    subcategory: 'all',
+                    subSubcategory: 'all',
+                    search: ''
+                });
+                document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+    });
+
+    if (allPromoCards.length > 1) {
+        cardElement.querySelector('.promo-slider-btn.prev').addEventListener('click', (e) => {
+            e.stopPropagation();
+            changePromoCard(-1, allPromoCards);
+        });
+
+        cardElement.querySelector('.promo-slider-btn.next').addEventListener('click', (e) => {
+            e.stopPropagation();
+            changePromoCard(1, allPromoCards);
+        });
+    }
+
+    return cardElement;
+}
+
+function createProductCardElement(product) {
+    const productCard = document.createElement('div');
+    productCard.className = 'product-card';
+    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+
+
+    const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
+    const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || 'https://placehold.co/300x300/e2e8f0/2d3748?text=No+Image');
+
+    let priceHTML = `<div class="product-price-container"><div class="product-price">${product.price.toLocaleString()} د.ع.</div></div>`;
+    let discountBadgeHTML = '';
+    const hasDiscount = product.originalPrice && product.originalPrice > product.price;
+
+    if (hasDiscount) {
+        priceHTML = `<div class="product-price-container"><span class="product-price">${product.price.toLocaleString()} د.ع.</span><del class="original-price">${product.originalPrice.toLocaleString()} د.ع.</del></div>`;
+        const discountPercentage = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+        discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
+    }
+
+    let extraInfoHTML = '';
+    const shippingText = product.shippingInfo && product.shippingInfo[state.currentLanguage] && product.shippingInfo[state.currentLanguage].trim();
+
+    if (shippingText) {
+        extraInfoHTML = `
+            <div class="product-extra-info">
+                <div class="info-badge shipping-badge">
+                    <i class="fas fa-truck"></i>${shippingText}
+                </div>
+            </div>
+        `;
+    }
+
+    const isProdFavorite = isFavorite(product.id);
+    const heartIconClass = isProdFavorite ? 'fas' : 'far';
+    const favoriteBtnClass = isProdFavorite ? 'favorite-btn favorited' : 'favorite-btn';
+
+    productCard.innerHTML = `
+        <div class="product-image-container">
+            <img src="${mainImage}" alt="${nameInCurrentLang}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
+            ${discountBadgeHTML}
+            <button class="${favoriteBtnClass}" aria-label="Add to favorites">
+                <i class="${heartIconClass} fa-heart"></i>
+            </button>
+        </div>
+        <div class="product-info">
+            <div class="product-name">${nameInCurrentLang}</div>
+            ${priceHTML}
+            <button class="add-to-cart-btn-card">
+                <i class="fas fa-cart-plus"></i>
+                <span>${t('add_to_cart')}</span>
+            </button>
+            ${extraInfoHTML}
+        </div>
+        <div class="product-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
+            <button class="edit-btn" aria-label="Edit product"><i class="fas fa-edit"></i></button>
+            <button class="delete-btn" aria-label="Delete product"><i class="fas fa-trash"></i></button>
+        </div>
+    `;
+
+    productCard.addEventListener('click', (event) => {
+        const target = event.target;
+        const addToCartButton = target.closest('.add-to-cart-btn-card');
+        const isAdminNow = sessionStorage.getItem('isAdmin') === 'true';
+
+        if (addToCartButton) {
+            addToCart(product.id);
+            if (!addToCartButton.disabled) {
+                const originalContent = addToCartButton.innerHTML;
+                addToCartButton.disabled = true;
+                addToCartButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
+                setTimeout(() => {
+                    addToCartButton.innerHTML = `<i class="fas fa-check"></i> <span>${t('added_to_cart')}</span>`;
+                    setTimeout(() => {
+                        addToCartButton.innerHTML = originalContent;
+                        addToCartButton.disabled = false;
+                    }, 1500);
+                }, 500);
+            }
+        } else if (isAdminNow && target.closest('.edit-btn')) {
+            window.AdminLogic.editProduct(product.id);
+        } else if (isAdminNow && target.closest('.delete-btn')) {
+            window.AdminLogic.deleteProduct(product.id);
+        } else if (target.closest('.favorite-btn')) {
+            toggleFavorite(product.id);
+        } else if (!target.closest('a')) {
+            showProductDetailsWithData(product);
+        }
+    });
+    return productCard;
+}
+
+function setupScrollAnimations() {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                observer.unobserve(entry.target);
+            }
+        });
+    }, {
+        threshold: 0.1
+    });
+
+    document.querySelectorAll('.product-card-reveal').forEach(card => {
+        observer.observe(card);
+    });
+}
+
+function addToCart(productId) {
+    const allFetchedProducts = [...state.products];
+    let product = allFetchedProducts.find(p => p.id === productId);
+
+    if(!product){
+        console.warn("Product not found in local 'products' array. Fetching from DB...");
+        getDoc(doc(db, "products", productId)).then(docSnap => {
+            if (docSnap.exists()) {
+                const fetchedProduct = { id: docSnap.id, ...docSnap.data() };
+                const mainImage = (fetchedProduct.imageUrls && fetchedProduct.imageUrls.length > 0) ? fetchedProduct.imageUrls[0] : (fetchedProduct.image || '');
+                const existingItem = state.cart.find(item => item.id === productId);
+                if (existingItem) { existingItem.quantity++; }
+                else { state.cart.push({ id: fetchedProduct.id, name: fetchedProduct.name, price: fetchedProduct.price, image: mainImage, quantity: 1 }); }
+                saveCart();
+                showNotification(t('product_added_to_cart'));
+            }
+        });
+        return;
+    }
+
+    const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
+    const existingItem = state.cart.find(item => item.id === productId);
+    if (existingItem) { existingItem.quantity++; }
+    else { state.cart.push({ id: product.id, name: product.name, price: product.price, image: mainImage, quantity: 1 }); }
+    saveCart();
+    showNotification(t('product_added_to_cart'));
+}
+
+function renderCart() {
+    cartItemsContainer.innerHTML = '';
+    if (state.cart.length === 0) {
+        emptyCartMessage.style.display = 'block';
+        cartTotal.style.display = 'none';
+        cartActions.style.display = 'none';
+        return;
+    }
+    emptyCartMessage.style.display = 'none';
+    cartTotal.style.display = 'block';
+    cartActions.style.display = 'block';
+    renderCartActionButtons();
+
+    let total = 0;
+    state.cart.forEach(item => {
+        const itemTotal = item.price * item.quantity;
+        total += itemTotal;
+        const cartItem = document.createElement('div');
+        cartItem.className = 'cart-item';
+
+        const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
+
+        cartItem.innerHTML = `
+            <img src="${item.image}" alt="${itemNameInCurrentLang}" class="cart-item-image">
+            <div class="cart-item-details">
+                <div class="cart-item-title">${itemNameInCurrentLang}</div>
+                <div class="cart-item-price">${item.price.toLocaleString()} د.ع.</div>
+                <div class="cart-item-quantity">
+                    <button class="quantity-btn increase-btn" data-id="${item.id}">+</button>
+                    <span class="quantity-text">${item.quantity}</span>
+                    <button class="quantity-btn decrease-btn" data-id="${item.id}">-</button>
+                </div>
+            </div>
+            <div class="cart-item-subtotal">
+                <div>${t('total_price')}</div>
+                <span>${itemTotal.toLocaleString()} د.ع.</span>
+                <button class="cart-item-remove" data-id="${item.id}"><i class="fas fa-trash"></i></button>
+            </div>
+        `;
+        cartItemsContainer.appendChild(cartItem);
+    });
+    totalAmount.textContent = total.toLocaleString();
+    document.querySelectorAll('.increase-btn').forEach(btn => btn.onclick = (e) => updateQuantity(e.currentTarget.dataset.id, 1));
+    document.querySelectorAll('.decrease-btn').forEach(btn => btn.onclick = (e) => updateQuantity(e.currentTarget.dataset.id, -1));
+    document.querySelectorAll('.cart-item-remove').forEach(btn => btn.onclick = (e) => removeFromCart(e.currentTarget.dataset.id));
+}
+
+function updateQuantity(productId, change) {
+    const cartItem = state.cart.find(item => item.id === productId);
+    if (cartItem) {
+        cartItem.quantity += change;
+        if (cartItem.quantity <= 0) { removeFromCart(productId); }
+        else { saveCart(); renderCart(); }
+    }
+}
+
+function removeFromCart(productId) {
+    state.cart = state.cart.filter(item => item.id !== productId);
+    saveCart();
+    renderCart();
+}
+
+function generateOrderMessage() {
+    if (state.cart.length === 0) return "";
+    let message = t('order_greeting') + "\n\n";
+    state.cart.forEach(item => {
+        const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
+        const itemDetails = t('order_item_details', { price: item.price.toLocaleString(), quantity: item.quantity });
+        message += `- ${itemNameInCurrentLang} | ${itemDetails}\n`;
+    });
+    message += `\n${t('order_total')}: ${totalAmount.textContent} د.ع.\n`;
+
+    if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
+        message += `\n${t('order_user_info')}\n`;
+        message += `${t('order_user_name')}: ${state.userProfile.name}\n`;
+        message += `${t('order_user_address')}: ${state.userProfile.address}\n`;
+        message += `${t('order_user_phone')}: ${state.userProfile.phone}\n`;
+    } else {
+        message += `\n${t('order_prompt_info')}\n`;
+    }
+    return message;
+}
+
+async function renderCartActionButtons() {
+    const container = document.getElementById('cartActions');
+    container.innerHTML = '';
+
+    const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
+    const q = query(methodsCollection, orderBy("createdAt"));
+
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+        container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
+        return;
+    }
+
+    snapshot.forEach(doc => {
+        const method = { id: doc.id, ...doc.data() };
+        const btn = document.createElement('button');
+        btn.className = 'whatsapp-btn'; // Generic class
+        btn.style.backgroundColor = method.color;
+
+        const name = method['name_' + state.currentLanguage] || method.name_ku_sorani;
+        btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
+
+        btn.onclick = () => {
+            const message = generateOrderMessage();
+            if (!message) return;
+
+            let link = '';
+            const encodedMessage = encodeURIComponent(message);
+            const value = method.value;
+
+            switch (method.type) {
+                case 'whatsapp':
+                    link = `https://wa.me/${value}?text=${encodedMessage}`;
+                    break;
+                case 'viber':
+                    link = `viber://chat?number=%2B${value}&text=${encodedMessage}`;
+                    break;
+                case 'telegram':
+                    link = `https://t.me/${value}?text=${encodedMessage}`;
+                    break;
+                case 'phone':
+                    link = `tel:${value}`;
+                    break;
+                case 'url':
+                    link = value;
+                    break;
+            }
+
+            if (link) {
+                window.open(link, '_blank');
+            }
+        };
+
+        container.appendChild(btn);
+    });
+}
+
+// ... the rest of the file continues with setupEventListeners, init, etc.
+// These are included below for completeness.
 
 function populateCategoryDropdown() {
     productCategorySelect.innerHTML = '<option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>';
@@ -556,7 +1505,7 @@ async function renderSubcategories(categoryId) {
             `;
             
             subcatBtn.onclick = async () => {
-                 await navigateToFilter({
+                await navigateToFilter({
                     subcategory: subcat.id,
                     subSubcategory: 'all'
                 });
@@ -571,7 +1520,6 @@ async function renderSubcategories(categoryId) {
         console.error("Error fetching subcategories: ", error);
     }
 }
-
 
 function renderMainCategories() {
     const container = document.getElementById('mainCategoriesContainer');
@@ -600,977 +1548,6 @@ function renderMainCategories() {
                 subSubcategory: 'all',
                 search: ''
             });
-        };
-
-        container.appendChild(btn);
-    });
-}
-
-function showProductDetails(productId) {
-    const allFetchedProducts = [...state.products];
-    const product = allFetchedProducts.find(p => p.id === productId);
-
-    if (!product) {
-        console.log("Product not found for details view. Trying to fetch...");
-        getDoc(doc(db, "products", productId)).then(docSnap => {
-            if (docSnap.exists()) {
-                const fetchedProduct = { id: docSnap.id, ...docSnap.data() };
-                showProductDetailsWithData(fetchedProduct);
-            } else {
-                showNotification(t('product_not_found_error'), 'error');
-            }
-        });
-        return;
-    }
-    showProductDetailsWithData(product);
-}
-
-async function renderRelatedProducts(currentProduct) {
-    const section = document.getElementById('relatedProductsSection');
-    const container = document.getElementById('relatedProductsContainer');
-    container.innerHTML = '';
-    section.style.display = 'none';
-
-    if (!currentProduct.subcategoryId && !currentProduct.categoryId) {
-        return; 
-    }
-
-    let q;
-    if (currentProduct.subSubcategoryId) {
-        q = query(
-            productsCollection,
-            where('subSubcategoryId', '==', currentProduct.subSubcategoryId),
-            where('__name__', '!=', currentProduct.id),
-            limit(6)
-        );
-    } else if (currentProduct.subcategoryId) {
-       q = query(
-            productsCollection,
-            where('subcategoryId', '==', currentProduct.subcategoryId),
-            where('__name__', '!=', currentProduct.id),
-            limit(6)
-        );
-    } else {
-        q = query(
-            productsCollection,
-            where('categoryId', '==', currentProduct.categoryId),
-            where('__name__', '!=', currentProduct.id),
-            limit(6)
-        );
-    }
-
-    try {
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-            console.log("هیچ کاڵایەکی هاوشێوە نەدۆزرایەوە.");
-            return;
-        }
-
-        snapshot.forEach(doc => {
-            const product = { id: doc.id, ...doc.data() };
-            const card = createProductCardElement(product);
-            container.appendChild(card);
-        });
-
-        section.style.display = 'block';
-
-    } catch (error) {
-        console.error("هەڵە لە هێنانی کاڵا هاوشێوەکان:", error);
-    }
-}
-
-function showProductDetailsWithData(product) {
-    const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
-    const descriptionText = (product.description && product.description[state.currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
-    const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
-
-    const imageContainer = document.getElementById('sheetImageContainer');
-    const thumbnailContainer = document.getElementById('sheetThumbnailContainer');
-    imageContainer.innerHTML = '';
-    thumbnailContainer.innerHTML = '';
-
-    if (imageUrls.length > 0) {
-        imageUrls.forEach((url, index) => {
-            const img = document.createElement('img');
-            img.src = url;
-            img.alt = nameInCurrentLang;
-            if (index === 0) img.classList.add('active');
-            imageContainer.appendChild(img);
-
-            const thumb = document.createElement('img');
-            thumb.src = url;
-            thumb.alt = `Thumbnail of ${nameInCurrentLang}`;
-            thumb.className = 'thumbnail';
-            if (index === 0) thumb.classList.add('active');
-            thumb.dataset.index = index;
-            thumbnailContainer.appendChild(thumb);
-        });
-    }
-
-    let currentIndex = 0;
-    const images = imageContainer.querySelectorAll('img');
-    const thumbnails = thumbnailContainer.querySelectorAll('.thumbnail');
-    const prevBtn = document.getElementById('sheetPrevBtn');
-    const nextBtn = document.getElementById('sheetNextBtn');
-
-    function updateSlider(index) {
-        if (!images[index] || !thumbnails[index]) return;
-        images.forEach(img => img.classList.remove('active'));
-        thumbnails.forEach(thumb => thumb.classList.remove('active'));
-        images[index].classList.add('active');
-        thumbnails[index].classList.add('active');
-        currentIndex = index;
-    }
-
-    if (imageUrls.length > 1) {
-        prevBtn.style.display = 'flex';
-        nextBtn.style.display = 'flex';
-    } else {
-        prevBtn.style.display = 'none';
-        nextBtn.style.display = 'none';
-    }
-
-    prevBtn.onclick = () => updateSlider((currentIndex - 1 + images.length) % images.length);
-    nextBtn.onclick = () => updateSlider((currentIndex + 1) % images.length);
-    thumbnails.forEach(thumb => thumb.onclick = () => updateSlider(parseInt(thumb.dataset.index)));
-
-    document.getElementById('sheetProductName').textContent = nameInCurrentLang;
-    document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText);
-
-    const priceContainer = document.getElementById('sheetProductPrice');
-    if (product.originalPrice && product.originalPrice > product.price) {
-        priceContainer.innerHTML = `<span style="color: var(--accent-color);">${product.price.toLocaleString()} د.ع</span> <del style="color: var(--dark-gray); font-size: 16px; margin-right: 10px;">${product.originalPrice.toLocaleString()} د.ع</del>`;
-    } else {
-        priceContainer.innerHTML = `<span>${product.price.toLocaleString()} د.ع</span>`;
-    }
-
-    const addToCartButton = document.getElementById('sheetAddToCartBtn');
-    addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
-    addToCartButton.onclick = () => {
-        addToCart(product.id);
-        closeCurrentPopup();
-    };
-
-    const shareButton = document.getElementById('sheetShareBtn');
-    shareButton.onclick = async () => {
-        const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani);
-        const productUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
-
-        const shareData = {
-            title: nameInCurrentLang,
-            text: `${t('share_text')}: ${nameInCurrentLang}`,
-            url: productUrl,
-        };
-
-        if (navigator.share) {
-            try {
-                await navigator.share(shareData);
-                console.log('Product shared successfully');
-            } catch (err) {
-                console.error('Share error:', err);
-                if (err.name !== 'AbortError') {
-                        showNotification(t('share_error'), 'error');
-                }
-            }
-        } else {
-            try {
-                navigator.clipboard.writeText(productUrl);
-                showNotification('لینکی کاڵا کۆپی کرا!', 'success');
-            } catch (err) {
-                console.error('Fallback share error:', err);
-                showNotification(t('share_error'), 'error');
-            }
-        }
-    };
-    
-    renderRelatedProducts(product);
-
-    openPopup('productDetailSheet');
-}
-
-function createPromoCardElement(card) {
-    const cardElement = document.createElement('div');
-    cardElement.className = 'product-card promo-card-grid-item';
-
-    const imageUrl = card.imageUrls[state.currentLanguage] || card.imageUrls.ku_sorani;
-
-    cardElement.innerHTML = `
-        <div class="product-image-container">
-            <img src="${imageUrl}" class="product-image" loading="lazy" alt="Promotion">
-        </div>
-        <button class="promo-slider-btn prev"><i class="fas fa-chevron-left"></i></button>
-        <button class="promo-slider-btn next"><i class="fas fa-chevron-right"></i></button>
-    `;
-
-    cardElement.addEventListener('click', async (e) => {
-        if (!e.target.closest('button')) {
-            const targetCategoryId = card.categoryId;
-            const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
-            if (categoryExists) {
-                await navigateToFilter({
-                    category: targetCategoryId,
-                    subcategory: 'all',
-                    subSubcategory: 'all',
-                    search: ''
-                });
-                document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
-            }
-        }
-    });
-
-    cardElement.querySelector('.promo-slider-btn.prev').addEventListener('click', (e) => {
-        e.stopPropagation();
-        changePromoCard(-1);
-    });
-
-    cardElement.querySelector('.promo-slider-btn.next').addEventListener('click', (e) => {
-        e.stopPropagation();
-        changePromoCard(1);
-    });
-
-    return cardElement;
-}
-
-function createProductCardElement(product) {
-    const productCard = document.createElement('div');
-    productCard.className = 'product-card';
-    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-
-
-    const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
-    const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || 'https://placehold.co/300x300/e2e8f0/2d3748?text=No+Image');
-
-    let priceHTML = `<div class="product-price-container"><div class="product-price">${product.price.toLocaleString()} د.ع.</div></div>`;
-    let discountBadgeHTML = '';
-    const hasDiscount = product.originalPrice && product.originalPrice > product.price;
-
-    if (hasDiscount) {
-        priceHTML = `<div class="product-price-container"><span class="product-price">${product.price.toLocaleString()} د.ع.</span><del class="original-price">${product.originalPrice.toLocaleString()} د.ع.</del></div>`;
-        const discountPercentage = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
-        discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
-    }
-
-    let extraInfoHTML = '';
-    const shippingText = product.shippingInfo && product.shippingInfo[state.currentLanguage] && product.shippingInfo[state.currentLanguage].trim();
-
-    if (shippingText) {
-        extraInfoHTML = `
-            <div class="product-extra-info">
-                <div class="info-badge shipping-badge">
-                    <i class="fas fa-truck"></i>${shippingText}
-                </div>
-            </div>
-        `;
-    }
-
-    const isProdFavorite = isFavorite(product.id);
-    const heartIconClass = isProdFavorite ? 'fas' : 'far';
-    const favoriteBtnClass = isProdFavorite ? 'favorite-btn favorited' : 'favorite-btn';
-
-    productCard.innerHTML = `
-        <div class="product-image-container">
-            <img src="${mainImage}" alt="${nameInCurrentLang}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
-            ${discountBadgeHTML}
-            <button class="${favoriteBtnClass}" aria-label="Add to favorites">
-                <i class="${heartIconClass} fa-heart"></i>
-            </button>
-        </div>
-        <div class="product-info">
-            <div class="product-name">${nameInCurrentLang}</div>
-            ${priceHTML}
-            <button class="add-to-cart-btn-card">
-                <i class="fas fa-cart-plus"></i>
-                <span>${t('add_to_cart')}</span>
-            </button>
-            ${extraInfoHTML}
-        </div>
-        <div class="product-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
-            <button class="edit-btn" aria-label="Edit product"><i class="fas fa-edit"></i></button>
-            <button class="delete-btn" aria-label="Delete product"><i class="fas fa-trash"></i></button>
-        </div>
-    `;
-
-    productCard.addEventListener('click', (event) => {
-        const target = event.target;
-        const addToCartButton = target.closest('.add-to-cart-btn-card');
-        const isAdminNow = sessionStorage.getItem('isAdmin') === 'true';
-
-        if (addToCartButton) {
-            addToCart(product.id);
-            if (!addToCartButton.disabled) {
-                const originalContent = addToCartButton.innerHTML;
-                addToCartButton.disabled = true;
-                addToCartButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
-                setTimeout(() => {
-                    addToCartButton.innerHTML = `<i class="fas fa-check"></i> <span>${t('added_to_cart')}</span>`;
-                    setTimeout(() => {
-                        addToCartButton.innerHTML = originalContent;
-                        addToCartButton.disabled = false;
-                    }, 1500);
-                }, 500);
-            }
-        } else if (isAdminNow && target.closest('.edit-btn')) {
-            window.AdminLogic.editProduct(product.id);
-        } else if (isAdminNow && target.closest('.delete-btn')) {
-            window.AdminLogic.deleteProduct(product.id);
-        } else if (target.closest('.favorite-btn')) {
-            toggleFavorite(product.id);
-        } else if (!target.closest('a')) {
-            showProductDetailsWithData(product);
-        }
-    });
-    return productCard;
-}
-
-function setupScrollAnimations() {
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-                observer.unobserve(entry.target);
-            }
-        });
-    }, {
-        threshold: 0.1
-    });
-
-    document.querySelectorAll('.product-card-reveal').forEach(card => {
-        observer.observe(card);
-    });
-}
-
-function renderSkeletonLoader() {
-    skeletonLoader.innerHTML = '';
-    for (let i = 0; i < 8; i++) {
-        const skeletonCard = document.createElement('div');
-        skeletonCard.className = 'skeleton-card';
-        skeletonCard.innerHTML = `
-            <div class="skeleton-image shimmer"></div>
-            <div class="skeleton-text shimmer"></div>
-            <div class="skeleton-price shimmer"></div>
-            <div class="skeleton-button shimmer"></div>
-        `;
-        skeletonLoader.appendChild(skeletonCard);
-    }
-    skeletonLoader.style.display = 'grid';
-    productsContainer.style.display = 'none';
-    loader.style.display = 'none';
-}
-
-function renderProducts() {
-    productsContainer.innerHTML = '';
-	if (!state.products || state.products.length === 0) {
-		return;
-	}
-
-    state.products.forEach(item => {
-        let element;
-        if (item.isPromoCard) {
-            element = createPromoCardElement(item);
-        } else {
-            element = createProductCardElement(item);
-        }
-        element.classList.add('product-card-reveal');
-        productsContainer.appendChild(element);
-    });
-
-    setupScrollAnimations();
-}
-
-async function renderShortcutRows() {
-    const mainContainer = document.createDocumentFragment();
-
-    try {
-        const shortcutRowsCollection = collection(db, "shortcut_rows");
-        const rowsQuery = query(shortcutRowsCollection, orderBy("order", "asc"));
-        const rowsSnapshot = await getDocs(rowsQuery);
-
-        if (rowsSnapshot.empty) {
-            return null;
-        }
-        
-        for (const rowDoc of rowsSnapshot.docs) {
-            const rowData = { id: rowDoc.id, ...rowDoc.data() };
-            const rowTitle = rowData.title[state.currentLanguage] || rowData.title.ku_sorani;
-            
-            const cardsCollectionRef = collection(db, "shortcut_rows", rowData.id, "cards");
-            const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
-            const cardsSnapshot = await getDocs(cardsQuery);
-
-            if (!cardsSnapshot.empty) {
-                const sectionContainer = document.createElement('div');
-                sectionContainer.className = 'shortcut-cards-section';
-                
-                const titleElement = document.createElement('h3');
-                titleElement.className = 'shortcut-row-title';
-                titleElement.textContent = rowTitle;
-                sectionContainer.appendChild(titleElement);
-                
-                const cardsContainer = document.createElement('div');
-                cardsContainer.className = 'shortcut-cards-container';
-                sectionContainer.appendChild(cardsContainer);
-
-                cardsSnapshot.forEach(cardDoc => {
-                    const cardData = cardDoc.data();
-                    const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
-
-                    const item = document.createElement('div');
-                    item.className = 'shortcut-card';
-                    item.innerHTML = `
-                        <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
-                        <div class="shortcut-card-name">${cardName}</div>
-                    `;
-
-                    item.onclick = async () => {
-                        await navigateToFilter({
-                            category: cardData.categoryId || 'all',
-                            subcategory: cardData.subcategoryId || 'all',
-                            subSubcategory: cardData.subSubcategoryId || 'all',
-                            search: ''
-                        });
-                    };
-                    cardsContainer.appendChild(item);
-                });
-                
-                mainContainer.appendChild(sectionContainer);
-            }
-        }
-        
-        return mainContainer;
-
-    } catch (error) {
-        console.error("Error fetching shortcut rows:", error);
-        return null;
-    }
-}
-
-async function renderBrandsSection() {
-    const sectionContainer = document.createElement('div');
-    sectionContainer.className = 'brands-section';
-    const brandsContainer = document.createElement('div');
-    brandsContainer.id = 'brandsContainer';
-    brandsContainer.className = 'brands-container';
-    sectionContainer.appendChild(brandsContainer);
-
-    try {
-        const q = query(brandsCollection, orderBy("order", "asc"), limit(30));
-        const snapshot = await getDocs(q);
-
-        if (snapshot.empty) {
-            return null;
-        }
-
-        snapshot.forEach(doc => {
-            const brand = { id: doc.id, ...doc.data() };
-            const brandName = brand.name[state.currentLanguage] || brand.name.ku_sorani;
-
-            const item = document.createElement('div');
-            item.className = 'brand-item';
-            item.innerHTML = `
-                <div class="brand-image-wrapper">
-                    <img src="${brand.imageUrl}" alt="${brandName}" loading="lazy" class="brand-image">
-                </div>
-                <span>${brandName}</span>
-            `;
-
-            item.onclick = async () => {
-                await navigateToFilter({
-                    category: brand.categoryId || 'all',
-                    subcategory: brand.subcategoryId || 'all',
-                    subSubcategory: 'all',
-                    search: ''
-                });
-            };
-
-            brandsContainer.appendChild(item);
-        });
-
-        return sectionContainer;
-    } catch (error) {
-        console.error("Error fetching brands:", error);
-        return null;
-    }
-}
-
-
-async function renderNewestProductsSection() {
-    const container = document.createElement('div');
-    container.className = 'dynamic-section';
-    const header = document.createElement('div');
-    header.className = 'section-title-header';
-    const title = document.createElement('h3');
-    title.className = 'section-title-main';
-    title.textContent = t('newest_products');
-    header.appendChild(title);
-    container.appendChild(header);
-    const productsScroller = document.createElement('div');
-    productsScroller.className = 'horizontal-products-container';
-    container.appendChild(productsScroller);
-
-    try {
-        const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
-        const q = query(
-            productsCollection,
-            where('createdAt', '>=', fifteenDaysAgo),
-            orderBy('createdAt', 'desc')
-        );
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-            return null;
-        }
-
-        snapshot.forEach(doc => {
-            const product = { id: doc.id, ...doc.data() };
-            const card = createProductCardElement(product);
-            productsScroller.appendChild(card);
-        });
-        return container;
-    } catch (error) {
-        console.error("Error fetching newest products:", error);
-        return null;
-    }
-}
-
-async function renderCategorySections() {
-    const mainContainer = document.createElement('div');
-    const categoriesToRender = state.categories.filter(cat => cat.id !== 'all');
-    categoriesToRender.sort((a, b) => (a.order || 99) - (b.order || 99));
-
-    for (const category of categoriesToRender) {
-        const sectionContainer = document.createElement('div');
-        sectionContainer.className = 'dynamic-section';
-
-        const header = document.createElement('div');
-        header.className = 'section-title-header';
-
-        const title = document.createElement('h3');
-        title.className = 'section-title-main';
-        const categoryName = category['name_' + state.currentLanguage] || category.name_ku_sorani;
-        title.innerHTML = `<i class="${category.icon}"></i> ${categoryName}`;
-        header.appendChild(title);
-
-        const seeAllLink = document.createElement('a');
-        seeAllLink.className = 'see-all-link';
-        seeAllLink.textContent = t('see_all');
-        seeAllLink.onclick = async () => {
-             await navigateToFilter({
-                category: category.id,
-                subcategory: 'all',
-                subSubcategory: 'all',
-                search: ''
-            });
-        };
-        header.appendChild(seeAllLink);
-
-        sectionContainer.appendChild(header);
-
-        const productsScroller = document.createElement('div');
-        productsScroller.className = 'horizontal-products-container';
-        sectionContainer.appendChild(productsScroller);
-
-        try {
-            const q = query(
-                productsCollection,
-                where('categoryId', '==', category.id),
-                orderBy('createdAt', 'desc'),
-                limit(10)
-            );
-            const snapshot = await getDocs(q);
-            if (!snapshot.empty) {
-                snapshot.forEach(doc => {
-                    const product = { id: doc.id, ...doc.data() };
-                    const card = createProductCardElement(product);
-                    productsScroller.appendChild(card);
-                });
-                mainContainer.appendChild(sectionContainer);
-            }
-        } catch (error) {
-            console.error(`Error fetching products for category ${category.id}:`, error);
-        }
-    }
-    return mainContainer;
-}
-
-async function renderAllProductsSection() {
-    const container = document.createElement('div');
-    container.className = 'dynamic-section';
-    container.style.marginTop = '20px';
-
-    const header = document.createElement('div');
-    header.className = 'section-title-header';
-    const title = document.createElement('h3');
-    title.className = 'section-title-main';
-    title.textContent = t('all_products_section_title');
-    header.appendChild(title);
-    container.appendChild(header);
-
-    const productsGrid = document.createElement('div');
-    productsGrid.className = 'products-container';
-    container.appendChild(productsGrid);
-
-    try {
-        const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(10));
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-            return null;
-        }
-
-        snapshot.forEach(doc => {
-            const product = { id: doc.id, ...doc.data() };
-            const card = createProductCardElement(product);
-            productsGrid.appendChild(card);
-        });
-        return container;
-    } catch (error) {
-        console.error("Error fetching all products for home page:", error);
-        return null;
-    }
-}
-
-async function renderHomePageContent() {
-    if (state.isRenderingHomePage) {
-        return;
-    }
-    state.isRenderingHomePage = true;
-
-    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
-
-    try {
-        skeletonLoader.style.display = 'grid';
-        homeSectionsContainer.innerHTML = '';
-
-        if (state.allPromoCards.length === 0) {
-            const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
-            const promoSnapshot = await getDocs(promoQuery);
-            state.allPromoCards = promoSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPromoCard: true }));
-        }
-
-        let promoGrid = null;
-        if (state.allPromoCards.length > 0) {
-            if (state.currentPromoCardIndex >= state.allPromoCards.length) state.currentPromoCardIndex = 0;
-            const promoCardElement = createPromoCardElement(state.allPromoCards[state.currentPromoCardIndex]);
-            promoGrid = document.createElement('div');
-            promoGrid.className = 'products-container';
-            promoGrid.style.marginBottom = '24px';
-            promoGrid.appendChild(promoCardElement);
-            startPromoRotation();
-        }
-
-        const [brandsSection, newestSection, categorySections, shortcutRowsFragment, allProductsSection] = await Promise.all([
-            renderBrandsSection(),
-            renderNewestProductsSection(),
-            renderCategorySections(),
-            renderShortcutRows(),
-            renderAllProductsSection()
-        ]);
-
-        if (promoGrid) homeSectionsContainer.appendChild(promoGrid);
-        if (brandsSection) homeSectionsContainer.appendChild(brandsSection);
-        if (newestSection) homeSectionsContainer.appendChild(newestSection);
-        if (categorySections) homeSectionsContainer.appendChild(categorySections);
-        if (shortcutRowsFragment) homeSectionsContainer.appendChild(shortcutRowsFragment);
-        if (allProductsSection) homeSectionsContainer.appendChild(allProductsSection);
-
-    } catch (error) {
-        console.error("Error rendering home page content:", error);
-        homeSectionsContainer.innerHTML = `<p>هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
-    } finally {
-        skeletonLoader.style.display = 'none';
-        state.isRenderingHomePage = false;
-    }
-}
-
-async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
-    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
-    const scrollTrigger = document.getElementById('scroll-loader-trigger');
-    const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-
-    if (shouldShowHomeSections) {
-        productsContainer.style.display = 'none';
-        skeletonLoader.style.display = 'none';
-        scrollTrigger.style.display = 'none';
-        homeSectionsContainer.style.display = 'block';
-
-        if (homeSectionsContainer.innerHTML.trim() === '') {
-             await renderHomePageContent();
-        } else {
-            startPromoRotation();
-        }
-        return;
-    } else {
-        homeSectionsContainer.style.display = 'none';
-    }
-    
-    const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
-    if (isNewSearch && state.productCache[cacheKey]) {
-        state.products = state.productCache[cacheKey].products;
-        state.lastVisibleProductDoc = state.productCache[cacheKey].lastVisible;
-        state.allProductsLoaded = state.productCache[cacheKey].allLoaded;
-        
-        skeletonLoader.style.display = 'none';
-        loader.style.display = 'none';
-        productsContainer.style.display = 'grid';
-        
-        renderProducts();
-        scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
-        return;
-    }
-
-    if (state.isLoadingMoreProducts) return;
-
-    if (isNewSearch) {
-        state.allProductsLoaded = false;
-        state.lastVisibleProductDoc = null;
-        state.products = [];
-        renderSkeletonLoader();
-    }
-
-    if (state.allProductsLoaded && !isNewSearch) return;
-
-    state.isLoadingMoreProducts = true;
-    loader.style.display = 'block';
-
-    try {
-        let productsQuery = collection(db, "products");
-
-        if (state.currentCategory && state.currentCategory !== 'all') {
-            productsQuery = query(productsQuery, where("categoryId", "==", state.currentCategory));
-        }
-        if (state.currentSubcategory && state.currentSubcategory !== 'all') {
-            productsQuery = query(productsQuery, where("subcategoryId", "==", state.currentSubcategory));
-        }
-        if (state.currentSubSubcategory && state.currentSubSubcategory !== 'all') {
-            productsQuery = query(productsQuery, where("subSubcategoryId", "==", state.currentSubSubcategory));
-        }
-
-        const finalSearchTerm = searchTerm.trim().toLowerCase();
-        if (finalSearchTerm) {
-            productsQuery = query(productsQuery,
-                where('searchableName', '>=', finalSearchTerm),
-                where('searchableName', '<=', finalSearchTerm + '\uf8ff')
-            );
-        }
-
-        if (finalSearchTerm) {
-            productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
-        } else {
-            productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
-        }
-
-        if (state.lastVisibleProductDoc && !isNewSearch) {
-            productsQuery = query(productsQuery, startAfter(state.lastVisibleProductDoc));
-        }
-
-        productsQuery = query(productsQuery, limit(PRODUCTS_PER_PAGE));
-
-        const productSnapshot = await getDocs(productsQuery);
-        const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        if (isNewSearch) {
-            state.products = newProducts;
-        } else {
-            state.products = [...state.products, ...newProducts];
-        }
-
-        if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
-            state.allProductsLoaded = true;
-            scrollTrigger.style.display = 'none';
-        } else {
-            state.allProductsLoaded = false;
-            scrollTrigger.style.display = 'block';
-        }
-
-        state.lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
-
-        if (isNewSearch) {
-            state.productCache[cacheKey] = {
-                products: state.products,
-                lastVisible: state.lastVisibleProductDoc,
-                allLoaded: state.allProductsLoaded
-            };
-        }
-        
-        renderProducts();
-
-        if (state.products.length === 0 && isNewSearch) {
-            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ కాڵایەک نەدۆزرایەوە.</p>';
-        }
-
-    } catch (error) {
-        console.error("Error fetching content:", error);
-        productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
-    } finally {
-        state.isLoadingMoreProducts = false;
-        loader.style.display = 'none';
-        skeletonLoader.style.display = 'none';
-        productsContainer.style.display = 'grid';
-    }
-}
-
-
-function addToCart(productId) {
-    const allFetchedProducts = [...state.products];
-    let product = allFetchedProducts.find(p => p.id === productId);
-
-    if(!product){
-        console.warn("Product not found in local 'products' array. Adding with limited data.");
-        getDoc(doc(db, "products", productId)).then(docSnap => {
-            if (docSnap.exists()) {
-                const fetchedProduct = { id: docSnap.id, ...docSnap.data() };
-                const mainImage = (fetchedProduct.imageUrls && fetchedProduct.imageUrls.length > 0) ? fetchedProduct.imageUrls[0] : (fetchedProduct.image || '');
-                const existingItem = state.cart.find(item => item.id === productId);
-                if (existingItem) { existingItem.quantity++; }
-                else { state.cart.push({ id: fetchedProduct.id, name: fetchedProduct.name, price: fetchedProduct.price, image: mainImage, quantity: 1 }); }
-                saveCart();
-                showNotification(t('product_added_to_cart'));
-            }
-        });
-        return;
-    }
-
-    const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
-    const existingItem = state.cart.find(item => item.id === productId);
-    if (existingItem) { existingItem.quantity++; }
-    else { state.cart.push({ id: product.id, name: product.name, price: product.price, image: mainImage, quantity: 1 }); }
-    saveCart();
-    showNotification(t('product_added_to_cart'));
-}
-
-
-function renderCart() {
-    cartItemsContainer.innerHTML = '';
-    if (state.cart.length === 0) {
-        emptyCartMessage.style.display = 'block';
-        cartTotal.style.display = 'none';
-        cartActions.style.display = 'none';
-        return;
-    }
-    emptyCartMessage.style.display = 'none';
-    cartTotal.style.display = 'block';
-    cartActions.style.display = 'block';
-    renderCartActionButtons();
-
-    let total = 0;
-    state.cart.forEach(item => {
-        const itemTotal = item.price * item.quantity;
-        total += itemTotal;
-        const cartItem = document.createElement('div');
-        cartItem.className = 'cart-item';
-
-        const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
-
-        cartItem.innerHTML = `
-            <img src="${item.image}" alt="${itemNameInCurrentLang}" class="cart-item-image">
-            <div class="cart-item-details">
-                <div class="cart-item-title">${itemNameInCurrentLang}</div>
-                <div class="cart-item-price">${item.price.toLocaleString()} د.ع.</div>
-                <div class="cart-item-quantity">
-                    <button class="quantity-btn increase-btn" data-id="${item.id}">+</button>
-                    <span class="quantity-text">${item.quantity}</span>
-                    <button class="quantity-btn decrease-btn" data-id="${item.id}">-</button>
-                </div>
-            </div>
-            <div class="cart-item-subtotal">
-                <div>${t('total_price')}</div>
-                <span>${itemTotal.toLocaleString()} د.ع.</span>
-                <button class="cart-item-remove" data-id="${item.id}"><i class="fas fa-trash"></i></button>
-            </div>
-        `;
-        cartItemsContainer.appendChild(cartItem);
-    });
-    totalAmount.textContent = total.toLocaleString();
-    document.querySelectorAll('.increase-btn').forEach(btn => btn.onclick = (e) => updateQuantity(e.currentTarget.dataset.id, 1));
-    document.querySelectorAll('.decrease-btn').forEach(btn => btn.onclick = (e) => updateQuantity(e.currentTarget.dataset.id, -1));
-    document.querySelectorAll('.cart-item-remove').forEach(btn => btn.onclick = (e) => removeFromCart(e.currentTarget.dataset.id));
-}
-
-function updateQuantity(productId, change) {
-    const cartItem = state.cart.find(item => item.id === productId);
-    if (cartItem) {
-        cartItem.quantity += change;
-        if (cartItem.quantity <= 0) { removeFromCart(productId); }
-        else { saveCart(); renderCart(); }
-    }
-}
-
-function removeFromCart(productId) {
-    state.cart = state.cart.filter(item => item.id !== productId);
-    saveCart();
-    renderCart();
-}
-
-function generateOrderMessage() {
-    if (state.cart.length === 0) return "";
-    let message = t('order_greeting') + "\n\n";
-    state.cart.forEach(item => {
-        const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
-        const itemDetails = t('order_item_details', { price: item.price.toLocaleString(), quantity: item.quantity });
-        message += `- ${itemNameInCurrentLang} | ${itemDetails}\n`;
-    });
-    message += `\n${t('order_total')}: ${totalAmount.textContent} د.ع.\n`;
-
-    if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
-        message += `\n${t('order_user_info')}\n`;
-        message += `${t('order_user_name')}: ${state.userProfile.name}\n`;
-        message += `${t('order_user_address')}: ${state.userProfile.address}\n`;
-        message += `${t('order_user_phone')}: ${state.userProfile.phone}\n`;
-    } else {
-        message += `\n${t('order_prompt_info')}\n`;
-    }
-    return message;
-}
-
-async function renderCartActionButtons() {
-    const container = document.getElementById('cartActions');
-    container.innerHTML = '';
-
-    const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
-    const q = query(methodsCollection, orderBy("createdAt"));
-
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) {
-        container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
-        return;
-    }
-
-    snapshot.forEach(doc => {
-        const method = { id: doc.id, ...doc.data() };
-        const btn = document.createElement('button');
-        btn.className = 'whatsapp-btn';
-        btn.style.backgroundColor = method.color;
-
-        const name = method['name_' + state.currentLanguage] || method.name_ku_sorani;
-        btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
-
-        btn.onclick = () => {
-            const message = generateOrderMessage();
-            if (!message) return;
-
-            let link = '';
-            const encodedMessage = encodeURIComponent(message);
-            const value = method.value;
-
-            switch (method.type) {
-                case 'whatsapp':
-                    link = `https://wa.me/${value}?text=${encodedMessage}`;
-                    break;
-                case 'viber':
-                    link = `viber://chat?number=%2B${value}&text=${encodedMessage}`;
-                    break;
-                case 'telegram':
-                    link = `https://t.me/${value}?text=${encodedMessage}`;
-                    break;
-                case 'phone':
-                    link = `tel:${value}`;
-                    break;
-                case 'url':
-                    link = value;
-                    break;
-            }
-
-            if (link) {
-                window.open(link, '_blank');
-            }
         };
 
         container.appendChild(btn);
@@ -1651,7 +1628,6 @@ async function renderUserNotifications() {
     notificationBadge.style.display = 'none';
 }
 
-
 function renderContactLinks() {
     const contactLinksContainer = document.getElementById('dynamicContactLinksContainer');
     const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
@@ -1711,53 +1687,35 @@ function setupGpsButton() {
         btnSpan.textContent = '...چاوەڕوان بە';
         getLocationBtn.disabled = true;
 
-        navigator.geolocation.getCurrentPosition(successCallback, errorCallback);
-    });
-
-    async function successCallback(position) {
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
-
-        try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`);
-            const data = await response.json();
-
-            if (data && data.display_name) {
-                profileAddressInput.value = data.display_name;
-                showNotification('ناونیشان وەرگیرا', 'success');
-            } else {
-                showNotification('نەتوانرا ناونیشان بدۆزرێتەوە', 'error');
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`);
+                    const data = await response.json();
+                    if (data && data.display_name) {
+                        profileAddressInput.value = data.display_name;
+                        showNotification('ناونیشان وەرگیرا', 'success');
+                    } else {
+                        showNotification('نەتوانرا ناونیشان بدۆزرێتەوە', 'error');
+                    }
+                } catch (error) {
+                    showNotification('هەڵەیەک لە وەرگرتنی ناونیشان ڕوویدا', 'error');
+                } finally {
+                    btnSpan.textContent = originalBtnText;
+                    getLocationBtn.disabled = false;
+                }
+            },
+            (error) => {
+                const messages = { 1: 'ڕێگەت نەدا GPS بەکاربهێنرێت', 2: 'شوێنەکەت نەدۆزرایەوە', 3: 'کاتی داواکارییەکە تەواو بوو' };
+                showNotification(messages[error.code] || 'هەڵەیەکی نادیار ڕوویدا', 'error');
+                btnSpan.textContent = originalBtnText;
+                getLocationBtn.disabled = false;
             }
-        } catch (error) {
-            console.error('Reverse Geocoding Error:', error);
-            showNotification('هەڵەیەک لە وەرگرتنی ناونیشان ڕوویدا', 'error');
-        } finally {
-            btnSpan.textContent = originalBtnText;
-            getLocationBtn.disabled = false;
-        }
-    }
-
-    function errorCallback(error) {
-        let message = '';
-        switch (error.code) {
-            case 1:
-                message = 'ڕێگەت نەدا GPS بەکاربهێنرێت';
-                break;
-            case 2:
-                message = 'شوێنەکەت نەدۆزرایەوە';
-                break;
-            case 3:
-                message = 'کاتی داواکارییەکە تەواو بوو';
-                break;
-            default:
-                message = 'هەڵەیەکی نادیار ڕوویدا';
-                break;
-        }
-        showNotification(message, 'error');
-        btnSpan.textContent = originalBtnText;
-        getLocationBtn.disabled = false;
-    }
+        );
+    });
 }
+
 
 function setupScrollObserver() {
     const trigger = document.getElementById('scroll-loader-trigger');
@@ -1784,6 +1742,7 @@ function updateCategoryDependentUI() {
     }
 }
 
+
 function setupEventListeners() {
     homeBtn.onclick = async () => {
         history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
@@ -1796,30 +1755,13 @@ function setupEventListeners() {
         showPage('settingsPage');
     };
 
-    profileBtn.onclick = () => {
-        openPopup('profileSheet');
-        updateActiveNav('profileBtn');
-    };
+    profileBtn.onclick = () => { openPopup('profileSheet'); updateActiveNav('profileBtn'); };
+    cartBtn.onclick = () => { openPopup('cartSheet'); updateActiveNav('cartBtn'); };
+    categoriesBtn.onclick = () => { openPopup('categoriesSheet'); updateActiveNav('categoriesBtn'); };
+    settingsFavoritesBtn.onclick = () => openPopup('favoritesSheet');
+    settingsAdminLoginBtn.onclick = () => openPopup('loginModal', 'modal');
 
-    cartBtn.onclick = () => {
-        openPopup('cartSheet');
-        updateActiveNav('cartBtn');
-    };
-
-    categoriesBtn.onclick = () => {
-        openPopup('categoriesSheet');
-        updateActiveNav('categoriesBtn');
-    };
-
-    settingsFavoritesBtn.onclick = () => {
-        openPopup('favoritesSheet');
-    };
-
-    settingsAdminLoginBtn.onclick = () => {
-        openPopup('loginModal', 'modal');
-    };
-
-    sheetOverlay.onclick = () => closeCurrentPopup();
+    sheetOverlay.onclick = closeCurrentPopup;
     document.querySelectorAll('.close').forEach(btn => btn.onclick = closeCurrentPopup);
     window.onclick = (e) => { if (e.target.classList.contains('modal')) closeCurrentPopup(); };
 
@@ -1832,9 +1774,7 @@ function setupEventListeners() {
         }
     };
 
-    const debouncedSearch = debounce((term) => {
-        navigateToFilter({ search: term });
-    }, 500);
+    const debouncedSearch = debounce((term) => navigateToFilter({ search: term }), 500);
 
     searchInput.oninput = () => {
         const searchTerm = searchInput.value;
@@ -1869,9 +1809,7 @@ function setupEventListeners() {
     };
 
     document.querySelectorAll('.lang-btn').forEach(btn => {
-        btn.onclick = () => {
-            setLanguage(btn.dataset.lang);
-        };
+        btn.onclick = () => setLanguage(btn.dataset.lang);
     });
 
     const installBtn = document.getElementById('installAppBtn');
@@ -1887,73 +1825,31 @@ function setupEventListeners() {
         });
     }
 
-    notificationBtn.addEventListener('click', () => {
-        openPopup('notificationsSheet');
-    });
-
-    if (termsAndPoliciesBtn) {
-        termsAndPoliciesBtn.addEventListener('click', () => {
-            openPopup('termsSheet');
-        });
-    }
-
+    notificationBtn.addEventListener('click', () => openPopup('notificationsSheet'));
+    if (termsAndPoliciesBtn) termsAndPoliciesBtn.addEventListener('click', () => openPopup('termsSheet'));
     const enableNotificationsBtn = document.getElementById('enableNotificationsBtn');
-    if (enableNotificationsBtn) {
-        enableNotificationsBtn.addEventListener('click', requestNotificationPermission);
-    }
-
+    if (enableNotificationsBtn) enableNotificationsBtn.addEventListener('click', requestNotificationPermission);
     const forceUpdateBtn = document.getElementById('forceUpdateBtn');
-    if (forceUpdateBtn) {
-        forceUpdateBtn.addEventListener('click', forceUpdate);
-    }
+    if (forceUpdateBtn) forceUpdateBtn.addEventListener('click', forceUpdate);
 
     onMessage(messaging, (payload) => {
         console.log('Foreground message received: ', payload);
-        const title = payload.notification.title;
-        const body = payload.notification.body;
+        const { title, body } = payload.notification;
         showNotification(`${title}: ${body}`, 'success');
     });
 }
 
-onAuthStateChanged(auth, async (user) => {
-    const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3";
-    const isAdmin = user && user.uid === adminUID;
-
-    if (isAdmin) {
-        sessionStorage.setItem('isAdmin', 'true');
-        if (window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
-            window.AdminLogic.initialize();
-        }
-    } else {
-        sessionStorage.removeItem('isAdmin');
-        if (user) {
-            await signOut(auth);
-        }
-        if (window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
-            window.AdminLogic.deinitialize();
-        }
-    }
-
-    if (loginModal.style.display === 'block' && isAdmin) {
-        closeCurrentPopup();
-    }
-});
-
 function init() {
-    renderSkeletonLoader();
+    const initialSkeleton = document.getElementById('initialHomePageSkeleton');
+    if(initialSkeleton) initialSkeleton.style.display = 'grid'; // Show skeleton on init
 
     enableIndexedDbPersistence(db)
         .then(() => {
-            console.log("Firestore offline persistence enabled successfully.");
+            console.log("Firestore offline persistence enabled.");
             initializeAppLogic();
         })
         .catch((err) => {
-            if (err.code == 'failed-precondition') {
-                console.warn('Firestore Persistence failed: Multiple tabs open.');
-            } else if (err.code == 'unimplemented') {
-                console.warn('Firestore Persistence failed: Browser not supported.');
-            }
-            console.error("Error enabling persistence, running online mode only:", err);
+            console.warn('Firestore Persistence failed:', err.code);
             initializeAppLogic();
         });
 }
@@ -1965,6 +1861,8 @@ function initializeAppLogic() {
         state.categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories];
         updateCategoryDependentUI();
         setLanguage(state.currentLanguage);
+    }, (error) => {
+        console.error("Error fetching categories:", error);
     });
 
     updateCartCount();
@@ -1978,19 +1876,17 @@ function initializeAppLogic() {
     handleInitialPageLoad();
 }
 
+
 Object.assign(window.globalAdminTools, {
-    db, auth,
-    doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut,
+    db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where,
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
     productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
     
     clearProductCache: () => {
-        console.log("Product cache and home page cleared due to admin action.");
+        console.log("Cache cleared due to admin action.");
         state.productCache = {};
         const homeContainer = document.getElementById('homePageSectionsContainer');
-        if (homeContainer) {
-            homeContainer.innerHTML = '';
-        }
+        if (homeContainer) homeContainer.innerHTML = ''; // Clear home content to force re-render
     },
     
     setEditingProductId: (id) => { state.editingProductId = id; },
@@ -2005,9 +1901,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     state.deferredPrompt = e;
     const installBtn = document.getElementById('installAppBtn');
-    if (installBtn) {
-        installBtn.style.display = 'flex';
-    }
+    if (installBtn) installBtn.style.display = 'flex';
 });
 
 if ('serviceWorker' in navigator) {
@@ -2015,75 +1909,73 @@ if ('serviceWorker' in navigator) {
     const updateNowBtn = document.getElementById('update-now-btn');
 
     navigator.serviceWorker.register('/sw.js').then(registration => {
-        console.log('Service Worker registered successfully.');
-
+        console.log('Service Worker registered.');
         registration.addEventListener('updatefound', () => {
             const newWorker = registration.installing;
-            console.log('New service worker found!', newWorker);
-
             newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                     updateNotification.classList.add('show');
                 }
             });
         });
-
-        updateNowBtn.addEventListener('click', () => {
-            registration.waiting.postMessage({ action: 'skipWaiting' });
-        });
-
-    }).catch(err => {
-        console.log('Service Worker registration failed: ', err);
-    });
+        updateNowBtn.addEventListener('click', () => registration.waiting?.postMessage({ action: 'skipWaiting' }));
+    }).catch(err => console.log('Service Worker registration failed: ', err));
 
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-        console.log('New Service Worker activated. Reloading page...');
+        console.log('New Service Worker activated. Reloading...');
         window.location.reload();
     });
 }
 
-function displayPromoCard(index) {
-    const promoCardSlot = document.querySelector('.promo-card-grid-item');
-    if (!promoCardSlot) return;
+// Promo Card Slider Logic
+async function getPromoCards() {
+    if (state.allPromoCards.length > 0) return state.allPromoCards;
+    try {
+        const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
+        const promoSnapshot = await getDocs(promoQuery);
+        state.allPromoCards = promoSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPromoCard: true }));
+        return state.allPromoCards;
+    } catch (error) {
+        console.error("Error fetching promo cards:", error);
+        return [];
+    }
+}
 
-    const cardData = state.allPromoCards[index];
-    const newCardElement = createPromoCardElement(cardData);
+function displayPromoCard(index, allPromoCards) {
+    const promoCardSlot = document.querySelector('.promo-card-grid-item');
+    if (!promoCardSlot || !allPromoCards[index]) return;
+
+    const cardData = allPromoCards[index];
+    const newCardElement = createPromoCardElement(cardData, allPromoCards);
     newCardElement.classList.add('product-card-reveal');
 
     promoCardSlot.style.opacity = 0;
     setTimeout(() => {
         if (promoCardSlot.parentNode) {
             promoCardSlot.parentNode.replaceChild(newCardElement, promoCardSlot);
-            setTimeout(() => {
-                newCardElement.classList.add('visible');
-            }, 10);
+            setTimeout(() => newCardElement.classList.add('visible'), 10);
         }
     }, 300);
 }
 
-function rotatePromoCard() {
-    if (state.allPromoCards.length <= 1) return;
-    state.currentPromoCardIndex = (state.currentPromoCardIndex + 1) % state.allPromoCards.length;
-    displayPromoCard(state.currentPromoCardIndex);
+function startPromoRotation(allPromoCards) {
+    if (state.promoRotationInterval) clearInterval(state.promoRotationInterval);
+    if (allPromoCards.length > 1) {
+        state.promoRotationInterval = setInterval(() => {
+            state.currentPromoCardIndex = (state.currentPromoCardIndex + 1) % allPromoCards.length;
+            displayPromoCard(state.currentPromoCardIndex, allPromoCards);
+        }, 5000);
+    }
 }
 
-function changePromoCard(direction) {
-    if (state.allPromoCards.length <= 1) return;
+function changePromoCard(direction, allPromoCards) {
+    if (allPromoCards.length <= 1) return;
     state.currentPromoCardIndex += direction;
-    if (state.currentPromoCardIndex >= state.allPromoCards.length) {
+    if (state.currentPromoCardIndex >= allPromoCards.length) {
         state.currentPromoCardIndex = 0;
     } else if (state.currentPromoCardIndex < 0) {
-        state.currentPromoCardIndex = state.allPromoCards.length - 1;
+        state.currentPromoCardIndex = allPromoCards.length - 1;
     }
-    displayPromoCard(state.currentPromoCardIndex);
-    startPromoRotation();
-}
-
-function startPromoRotation() {
-    if (state.promoRotationInterval) {
-        clearInterval(state.promoRotationInterval);
-    }
-    if (state.allPromoCards.length > 1) {
-        state.promoRotationInterval = setInterval(rotatePromoCard, 5000);
-    }
+    displayPromoCard(state.currentPromoCardIndex, allPromoCards);
+    startPromoRotation(allPromoCards); // Reset interval on manual change
 }
