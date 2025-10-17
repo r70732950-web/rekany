@@ -499,7 +499,7 @@ async function renderSubSubcategories(mainCatId, subCatId) {
             `;
             
             btn.onclick = async () => {
-                 await navigateToFilter({ subSubcategory: subSubcat.id });
+                await navigateToFilter({ subSubcategory: subSubcat.id });
             };
             subSubcategoriesContainer.appendChild(btn);
         });
@@ -769,7 +769,7 @@ function showProductDetailsWithData(product) {
             } catch (err) {
                 console.error('Share error:', err);
                 if (err.name !== 'AbortError') {
-                    showNotification(t('share_error'), 'error');
+                        showNotification(t('share_error'), 'error');
                 }
             }
         } else {
@@ -977,6 +977,73 @@ function renderProducts() {
     setupScrollAnimations();
 }
 
+async function renderShortcutRows() {
+    const mainContainer = document.createDocumentFragment();
+
+    try {
+        const shortcutRowsCollection = collection(db, "shortcut_rows");
+        const rowsQuery = query(shortcutRowsCollection, orderBy("order", "asc"));
+        const rowsSnapshot = await getDocs(rowsQuery);
+
+        if (rowsSnapshot.empty) {
+            return null;
+        }
+        
+        for (const rowDoc of rowsSnapshot.docs) {
+            const rowData = { id: rowDoc.id, ...rowDoc.data() };
+            const rowTitle = rowData.title[state.currentLanguage] || rowData.title.ku_sorani;
+            
+            const cardsCollectionRef = collection(db, "shortcut_rows", rowData.id, "cards");
+            const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
+            const cardsSnapshot = await getDocs(cardsQuery);
+
+            if (!cardsSnapshot.empty) {
+                const sectionContainer = document.createElement('div');
+                sectionContainer.className = 'shortcut-cards-section';
+                
+                const titleElement = document.createElement('h3');
+                titleElement.className = 'shortcut-row-title';
+                titleElement.textContent = rowTitle;
+                sectionContainer.appendChild(titleElement);
+                
+                const cardsContainer = document.createElement('div');
+                cardsContainer.className = 'shortcut-cards-container';
+                sectionContainer.appendChild(cardsContainer);
+
+                cardsSnapshot.forEach(cardDoc => {
+                    const cardData = cardDoc.data();
+                    const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
+
+                    const item = document.createElement('div');
+                    item.className = 'shortcut-card';
+                    item.innerHTML = `
+                        <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
+                        <div class="shortcut-card-name">${cardName}</div>
+                    `;
+
+                    item.onclick = async () => {
+                        await navigateToFilter({
+                            category: cardData.categoryId || 'all',
+                            subcategory: cardData.subcategoryId || 'all',
+                            subSubcategory: cardData.subSubcategoryId || 'all',
+                            search: ''
+                        });
+                    };
+                    cardsContainer.appendChild(item);
+                });
+                
+                mainContainer.appendChild(sectionContainer);
+            }
+        }
+        
+        return mainContainer;
+
+    } catch (error) {
+        console.error("Error fetching shortcut rows:", error);
+        return null;
+    }
+}
+
 async function renderBrandsSection() {
     const sectionContainer = document.createElement('div');
     sectionContainer.className = 'brands-section';
@@ -1064,6 +1131,66 @@ async function renderNewestProductsSection() {
     }
 }
 
+async function renderCategorySections() {
+    const mainContainer = document.createElement('div');
+    const categoriesToRender = state.categories.filter(cat => cat.id !== 'all');
+    categoriesToRender.sort((a, b) => (a.order || 99) - (b.order || 99));
+
+    for (const category of categoriesToRender) {
+        const sectionContainer = document.createElement('div');
+        sectionContainer.className = 'dynamic-section';
+
+        const header = document.createElement('div');
+        header.className = 'section-title-header';
+
+        const title = document.createElement('h3');
+        title.className = 'section-title-main';
+        const categoryName = category['name_' + state.currentLanguage] || category.name_ku_sorani;
+        title.innerHTML = `<i class="${category.icon}"></i> ${categoryName}`;
+        header.appendChild(title);
+
+        const seeAllLink = document.createElement('a');
+        seeAllLink.className = 'see-all-link';
+        seeAllLink.textContent = t('see_all');
+        seeAllLink.onclick = async () => {
+             await navigateToFilter({
+                category: category.id,
+                subcategory: 'all',
+                subSubcategory: 'all',
+                search: ''
+            });
+        };
+        header.appendChild(seeAllLink);
+
+        sectionContainer.appendChild(header);
+
+        const productsScroller = document.createElement('div');
+        productsScroller.className = 'horizontal-products-container';
+        sectionContainer.appendChild(productsScroller);
+
+        try {
+            const q = query(
+                productsCollection,
+                where('categoryId', '==', category.id),
+                orderBy('createdAt', 'desc'),
+                limit(10)
+            );
+            const snapshot = await getDocs(q);
+            if (!snapshot.empty) {
+                snapshot.forEach(doc => {
+                    const product = { id: doc.id, ...doc.data() };
+                    const card = createProductCardElement(product);
+                    productsScroller.appendChild(card);
+                });
+                mainContainer.appendChild(sectionContainer);
+            }
+        } catch (error) {
+            console.error(`Error fetching products for category ${category.id}:`, error);
+        }
+    }
+    return mainContainer;
+}
+
 async function renderAllProductsSection() {
     const container = document.createElement('div');
     container.className = 'dynamic-section';
@@ -1097,6 +1224,59 @@ async function renderAllProductsSection() {
     } catch (error) {
         console.error("Error fetching all products for home page:", error);
         return null;
+    }
+}
+
+async function renderHomePageContent() {
+    if (state.isRenderingHomePage) {
+        return;
+    }
+    state.isRenderingHomePage = true;
+
+    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
+
+    try {
+        skeletonLoader.style.display = 'grid';
+        homeSectionsContainer.innerHTML = '';
+
+        if (state.allPromoCards.length === 0) {
+            const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
+            const promoSnapshot = await getDocs(promoQuery);
+            state.allPromoCards = promoSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPromoCard: true }));
+        }
+
+        let promoGrid = null;
+        if (state.allPromoCards.length > 0) {
+            if (state.currentPromoCardIndex >= state.allPromoCards.length) state.currentPromoCardIndex = 0;
+            const promoCardElement = createPromoCardElement(state.allPromoCards[state.currentPromoCardIndex]);
+            promoGrid = document.createElement('div');
+            promoGrid.className = 'products-container';
+            promoGrid.style.marginBottom = '24px';
+            promoGrid.appendChild(promoCardElement);
+            startPromoRotation();
+        }
+
+        const [brandsSection, newestSection, categorySections, shortcutRowsFragment, allProductsSection] = await Promise.all([
+            renderBrandsSection(),
+            renderNewestProductsSection(),
+            renderCategorySections(),
+            renderShortcutRows(),
+            renderAllProductsSection()
+        ]);
+
+        if (promoGrid) homeSectionsContainer.appendChild(promoGrid);
+        if (brandsSection) homeSectionsContainer.appendChild(brandsSection);
+        if (newestSection) homeSectionsContainer.appendChild(newestSection);
+        if (categorySections) homeSectionsContainer.appendChild(categorySections);
+        if (shortcutRowsFragment) homeSectionsContainer.appendChild(shortcutRowsFragment);
+        if (allProductsSection) homeSectionsContainer.appendChild(allProductsSection);
+
+    } catch (error) {
+        console.error("Error rendering home page content:", error);
+        homeSectionsContainer.innerHTML = `<p>هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
+    } finally {
+        skeletonLoader.style.display = 'none';
+        state.isRenderingHomePage = false;
     }
 }
 
@@ -1213,7 +1393,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         renderProducts();
 
         if (state.products.length === 0 && isNewSearch) {
-            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ కాڵایەک نەدۆزرایەوە.</p>';
         }
 
     } catch (error) {
@@ -1907,4 +2087,3 @@ function startPromoRotation() {
         state.promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
-

@@ -1,7 +1,7 @@
-// فایلی admin.js (تەواو و نوێکراوە)
+// فایلی admin.js (نوێکراوە)
 
 // Access the shared tools from app.js
-const {
+const { 
     db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut,
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
     productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
@@ -12,12 +12,12 @@ const {
 const shortcutRowsCollection = collection(db, "shortcut_rows");
 
 window.AdminLogic = {
-    listenersAttached: false, // Flag ji bo pêşîgirtina li girêdana dubare ya listeneran
+    // This object will hold all admin-related functions and logic.
 
     initialize: function() {
         console.log("Admin logic initialized.");
         this.updateAdminUI(true);
-        this.setupAdminEventListeners(); // Pêşî listeneran saz bike
+        this.setupAdminEventListeners();
         this.loadPoliciesForAdmin();
         this.renderCategoryManagementUI();
         this.renderAdminAnnouncementsList();
@@ -25,7 +25,7 @@ window.AdminLogic = {
         this.renderPromoCardsAdminList();
         this.renderBrandsAdminList();
         this.renderContactMethodsAdmin();
-        this.renderShortcutRowsAdminList(); // Paşê lîsteyê çêbike
+        this.renderShortcutRowsAdminList();
         this.updateAdminCategoryDropdowns();
         this.updateShortcutCardCategoryDropdowns();
     },
@@ -33,8 +33,6 @@ window.AdminLogic = {
     deinitialize: function() {
         console.log("Admin logic de-initialized.");
         this.updateAdminUI(false);
-        // Heke listenerên taybet bi admin hebin, divê li vir werin rakirin
-        this.listenersAttached = false; // Reset bike ji bo initialize ya din
     },
 
     updateAdminUI: function(isAdmin) {
@@ -49,7 +47,7 @@ window.AdminLogic = {
             const section = document.getElementById(id);
             if (section) section.style.display = isAdmin ? 'block' : 'none';
         });
-
+        
         const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
         const settingsAdminLoginBtn = document.getElementById('settingsAdminLoginBtn');
         const addProductBtn = document.getElementById('addProductBtn');
@@ -84,7 +82,7 @@ window.AdminLogic = {
             document.getElementById('productNameKuBadini').value = product.name.ku_badini || '';
             document.getElementById('productNameAr').value = product.name.ar || '';
         } else {
-            document.getElementById('productNameKuSorani').value = product.name; // Fallback ji bo daneyên kevn
+            document.getElementById('productNameKuSorani').value = product.name;
             document.getElementById('productNameKuBadini').value = '';
             document.getElementById('productNameAr').value = '';
         }
@@ -92,24 +90,20 @@ window.AdminLogic = {
         document.getElementById('productPrice').value = product.price;
         document.getElementById('productOriginalPrice').value = product.originalPrice || '';
 
-        const categoryId = product.categoryId || product.category; // Lihevhatina paşverû
+        const categoryId = product.categoryId || product.category;
         document.getElementById('productCategoryId').value = categoryId;
 
-        if (product.description && typeof product.description === 'object') {
+        if (product.description) {
             document.getElementById('productDescriptionKuSorani').value = product.description.ku_sorani || '';
             document.getElementById('productDescriptionKuBadini').value = product.description.ku_badini || '';
             document.getElementById('productDescriptionAr').value = product.description.ar || '';
-        } else {
-             document.getElementById('productDescriptionKuSorani').value = product.description || ''; // Fallback
-             document.getElementById('productDescriptionKuBadini').value = '';
-             document.getElementById('productDescriptionAr').value = '';
         }
 
-        const imageUrls = product.imageUrls || (product.image ? [product.image] : []); // Lihevhatina paşverû
+        const imageUrls = product.imageUrls || (product.image ? [product.image] : []);
         this.createProductImageInputs(imageUrls);
         document.getElementById('productExternalLink').value = product.externalLink || '';
 
-        if (product.shippingInfo && typeof product.shippingInfo === 'object') {
+        if (product.shippingInfo) {
             document.getElementById('shippingInfoKuSorani').value = product.shippingInfo.ku_sorani || '';
             document.getElementById('shippingInfoKuBadini').value = product.shippingInfo.ku_badini || '';
             document.getElementById('shippingInfoAr').value = product.shippingInfo.ar || '';
@@ -119,7 +113,6 @@ window.AdminLogic = {
             document.getElementById('shippingInfoAr').value = '';
         }
 
-        // Barkirina dropdownên girêdayî
         await this.populateSubcategoriesDropdown(categoryId, product.subcategoryId);
         await this.populateSubSubcategoriesDropdown(categoryId, product.subcategoryId, product.subSubcategoryId);
 
@@ -132,11 +125,10 @@ window.AdminLogic = {
         try {
             await deleteDoc(doc(db, "products", productId));
             showNotification(t('product_deleted'), 'success');
-            clearProductCache(); // Cache paqij bike
-            searchProductsInFirestore(document.getElementById('searchInput').value, true); // Lîsteyê nû bike
+            clearProductCache(); // پاککردنەوەی کاش
+            searchProductsInFirestore(document.getElementById('searchInput').value, true);
         } catch (error) {
             showNotification(t('product_delete_error'), 'error');
-            console.error("Error deleting product:", error);
         }
     },
 
@@ -161,8 +153,7 @@ window.AdminLogic = {
 
         if (!categoryId) {
             subcategorySelectContainer.style.display = 'none';
-            document.getElementById('subSubcategorySelectContainer').style.display = 'none'; // Veşartina sub-sub jî
-            productSubcategorySelect.innerHTML = '<option value="" disabled selected>-- جۆری لاوەکی هەڵبژێرە --</option>'; // Reset bike
+            document.getElementById('subSubcategorySelectContainer').style.display = 'none';
             return;
         }
 
@@ -175,17 +166,17 @@ window.AdminLogic = {
             const q = query(subcategoriesQuery, orderBy("order", "asc"));
             const querySnapshot = await getDocs(q);
 
-            productSubcategorySelect.innerHTML = '<option value="">-- هیچ (یان هەڵبژێرە) --</option>'; // Vebijarka vala
+            productSubcategorySelect.innerHTML = '<option value="" disabled selected>-- جۆری لاوەکی هەڵبژێرە --</option>';
 
             if (querySnapshot.empty) {
-                // Vebijarka vala jixwe heye
-                 document.getElementById('subSubcategorySelectContainer').style.display = 'none'; // Veşartina sub-sub
+                productSubcategorySelect.innerHTML = '<option value="" disabled selected>هیچ جۆرێکی لاوەکی نییە</option>';
+                document.getElementById('subSubcategorySelectContainer').style.display = 'none';
             } else {
                 querySnapshot.docs.forEach(doc => {
                     const subcat = { id: doc.id, ...doc.data() };
                     const option = document.createElement('option');
                     option.value = subcat.id;
-                    option.textContent = subcat.name_ku_sorani || subcat.id; // Navê kurdî wekî default
+                    option.textContent = subcat.name_ku_sorani || subcat.id;
                     if (subcat.id === selectedSubcategoryId) {
                         option.selected = true;
                     }
@@ -206,7 +197,7 @@ window.AdminLogic = {
 
         if (!mainCategoryId || !subcategoryId) {
             container.style.display = 'none';
-            select.innerHTML = ''; // Valakirin
+            select.innerHTML = '';
             return;
         }
 
@@ -219,13 +210,13 @@ window.AdminLogic = {
             const q = query(ref, orderBy("order", "asc"));
             const snapshot = await getDocs(q);
 
-            select.innerHTML = '<option value="">-- هیچ --</option>'; // Vebijarka vala
+            select.innerHTML = '<option value="">-- هیچ --</option>';
             if (!snapshot.empty) {
                 snapshot.forEach(doc => {
                     const subSubcat = { id: doc.id, ...doc.data() };
                     const option = document.createElement('option');
                     option.value = subSubcat.id;
-                    option.textContent = subSubcat.name_ku_sorani; // Navê kurdî
+                    option.textContent = subSubcat.name_ku_sorani;
                     if (subSubcat.id === selectedSubSubcategoryId) {
                         option.selected = true;
                     }
@@ -261,10 +252,8 @@ window.AdminLogic = {
             try {
                 await deleteDoc(doc(db, "announcements", id));
                 showNotification(t('announcement_deleted_success'), 'success');
-                // Lîste bixweber ji ber onSnapshot nû dibe
             } catch (e) {
                 showNotification(t('error_generic'), 'error');
-                console.error("Error deleting announcement:", e);
             }
         }
     },
@@ -288,22 +277,20 @@ window.AdminLogic = {
                     <div class="admin-notification-details">
                         <div class="notification-title">${title}</div>
                     </div>
-                    <button class="delete-btn small-btn"><i class="fas fa-trash"></i></button>
+                    <button class="delete-btn"><i class="fas fa-trash"></i></button>
                 `;
-                // 'small-btn' class lê zêde bike heke hebe ji bo mezinahiya bişkokê
                 item.querySelector('.delete-btn').addEventListener('click', () => this.deleteAnnouncement(announcement.id));
                 container.appendChild(item);
             });
         });
     },
 
-     deleteSocialMediaLink: async function(linkId) {
+    deleteSocialMediaLink: async function(linkId) {
         if (confirm('دڵنیایت دەتەوێت ئەم لینکە بسڕیتەوە؟')) {
             try {
                 const linkRef = doc(db, 'settings', 'contactInfo', 'socialLinks', linkId);
                 await deleteDoc(linkRef);
                 showNotification('لینکەکە سڕدرایەوە', 'success');
-                // Lîste bixweber ji ber onSnapshot nû dibe
             } catch (error) {
                 console.error("Error deleting social link: ", error);
                 showNotification(t('error_generic'), 'error');
@@ -314,7 +301,7 @@ window.AdminLogic = {
     renderSocialMediaLinks: function() {
         const socialLinksListContainer = document.getElementById('socialLinksListContainer');
         const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
-        const q = query(socialLinksCollection, orderBy("createdAt", "desc")); // Yan jî bê rêzkirin heke createdAt tune be
+        const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
 
         onSnapshot(q, (snapshot) => {
             socialLinksListContainer.innerHTML = '';
@@ -324,10 +311,10 @@ window.AdminLogic = {
             }
             snapshot.forEach(doc => {
                 const link = { id: doc.id, ...doc.data() };
-                const name = link['name_' + getCurrentLanguage()] || link.name_ku_sorani; // Zimanê niha bikar bîne
+                const name = link['name_' + getCurrentLanguage()] || link.name_ku_sorani;
 
                 const item = document.createElement('div');
-                item.className = 'social-link-item'; // Classa CSS ya heyî
+                item.className = 'social-link-item';
                 item.innerHTML = `
                     <div class="item-info">
                         <i class="${link.icon}"></i>
@@ -336,25 +323,24 @@ window.AdminLogic = {
                             <span class="item-value">${link.url}</span>
                         </div>
                     </div>
-                    <button class="delete-btn small-btn"><i class="fas fa-trash"></i></button>
+                    <button class="delete-btn"><i class="fas fa-trash"></i></button>
                 `;
-                // 'small-btn' class lê zêde bike heke hebe
+
                 item.querySelector('.delete-btn').onclick = () => this.deleteSocialMediaLink(link.id);
                 socialLinksListContainer.appendChild(item);
             });
         });
     },
 
-     deleteContactMethod: async function(methodId) {
+    deleteContactMethod: async function(methodId) {
         if (confirm('دڵنیایت دەتەوێت ئەم شێوازە بسڕیتەوە؟')) {
             try {
                 const methodRef = doc(db, 'settings', 'contactInfo', 'contactMethods', methodId);
                 await deleteDoc(methodRef);
                 showNotification('شێوازەکە سڕدرایەوە', 'success');
-                // Lîste bixweber nû dibe
             } catch (error) {
                 console.error("Error deleting contact method: ", error);
-                showNotification('هەڵەیەک لە سڕینەوە ڕوویدا', 'error');
+                showNotification('هەڵەیەک لە сڕینەوە ڕوویدا', 'error');
             }
         }
     },
@@ -362,7 +348,7 @@ window.AdminLogic = {
     renderContactMethodsAdmin: function() {
         const container = document.getElementById('contactMethodsListContainer');
         const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
-        const q = query(methodsCollection, orderBy("createdAt", "desc")); // Yan jî bê rêzkirin
+        const q = query(methodsCollection, orderBy("createdAt", "desc"));
 
         onSnapshot(q, (snapshot) => {
             container.innerHTML = '';
@@ -375,7 +361,7 @@ window.AdminLogic = {
                 const name = method['name_' + getCurrentLanguage()] || method.name_ku_sorani;
 
                 const item = document.createElement('div');
-                item.className = 'social-link-item'; // Heman style wekî social links bikar bîne
+                item.className = 'social-link-item';
                 item.innerHTML = `
                     <div class="item-info">
                         <i class="${method.icon}" style="color: ${method.color};"></i>
@@ -384,14 +370,15 @@ window.AdminLogic = {
                             <span class="item-value">${method.value}</span>
                         </div>
                     </div>
-                    <button class="delete-btn small-btn"><i class="fas fa-trash"></i></button>
+                    <button class="delete-btn"><i class="fas fa-trash"></i></button>
                 `;
+
                 item.querySelector('.delete-btn').onclick = () => this.deleteContactMethod(method.id);
                 container.appendChild(item);
             });
         });
     },
-
+    
     renderPromoCardsAdminList: function() {
         const container = document.getElementById('promoCardsListContainer');
         const q = query(promoCardsCollection, orderBy("order", "asc"));
@@ -439,14 +426,13 @@ window.AdminLogic = {
             try {
                 await deleteDoc(doc(db, "promo_cards", cardId));
                 showNotification('کارتەکە سڕدرایەوە', 'success');
-                clearProductCache(); // Cache paqij bike
+                clearProductCache(); // پاککردنەوەی کاش
             } catch (error) {
                 showNotification('هەڵەیەک ڕوویدا', 'error');
-                console.error("Error deleting promo card:", error);
             }
         }
     },
-
+    
     renderBrandsAdminList: function() {
         const container = document.getElementById('brandsListContainer');
         const q = query(brandsCollection, orderBy("order", "asc"));
@@ -467,8 +453,8 @@ window.AdminLogic = {
                         <div class="notification-title">${brand.name.ku_sorani} (ڕیز: ${brand.order})</div>
                     </div>
                     <div>
-                        <button class="edit-btn small-btn" data-id="${brand.id}"><i class="fas fa-edit"></i></button>
-                        <button class="delete-btn small-btn" data-id="${brand.id}"><i class="fas fa-trash"></i></button>
+                        <button class="edit-btn small-btn"><i class="fas fa-edit"></i></button>
+                        <button class="delete-btn small-btn"><i class="fas fa-trash"></i></button>
                     </div>
                 `;
                 item.querySelector('.edit-btn').onclick = () => this.editBrand(brand);
@@ -489,13 +475,11 @@ window.AdminLogic = {
         const mainCatSelect = document.getElementById('brandTargetMainCategory');
         mainCatSelect.value = brand.categoryId || '';
 
-        // Trigger change event to load subcategories
         mainCatSelect.dispatchEvent(new Event('change'));
 
-        // Delay setting subcategory value until options are loaded
         setTimeout(() => {
             document.getElementById('brandTargetSubcategory').value = brand.subcategoryId || '';
-        }, 500); // Demekê bide ji bo barkirina subcategories
+        }, 500);
 
         document.getElementById('addBrandForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوە';
         document.getElementById('addBrandForm').scrollIntoView({ behavior: 'smooth' });
@@ -506,14 +490,14 @@ window.AdminLogic = {
             try {
                 await deleteDoc(doc(db, "brands", brandId));
                 showNotification('براندەکە سڕدرایەوە', 'success');
-                clearProductCache(); // Cache paqij bike
+                clearProductCache(); // پاککردنەوەی کاش
             } catch (error) {
                 showNotification('هەڵەیەک ڕوویدا', 'error');
                 console.error("Error deleting brand: ", error);
             }
         }
     },
-
+    
     renderCategoryManagementUI: async function() {
         const container = document.getElementById('categoryListContainer');
         if (!container) return;
@@ -573,7 +557,7 @@ window.AdminLogic = {
         }
 
         container.innerHTML = content || '<p>هیچ جۆرێک زیاد نەکراوە.</p>';
-        const self = this; // Ji bo bikaranîna di nav listeneran de
+        const self = this;
         container.querySelectorAll('.edit-btn').forEach(btn => {
             btn.addEventListener('click', () => self.openEditCategoryModal(btn.dataset.path, btn.dataset.level));
         });
@@ -607,7 +591,7 @@ window.AdminLogic = {
             iconField.style.display = 'block';
             imageUrlField.style.display = 'none';
             document.getElementById('editCategoryIcon').value = category.icon || '';
-        } else { // Ast 2 yan 3
+        } else {
             iconField.style.display = 'none';
             imageUrlField.style.display = 'block';
             document.getElementById('editCategoryImageUrl').value = category.imageUrl || '';
@@ -620,58 +604,56 @@ window.AdminLogic = {
         const confirmation = confirm(`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە.`);
         if (confirmation) {
             try {
-                // Têbînî: Jêbirina subcollections pêwîstî bi logic zêdetir an Cloud Function heye.
-                // Niha em tenê belgeyê jê dibin.
+                // In a real app, you'd recursively delete subcollections. 
+                // Firestore doesn't support this directly, so it requires client-side logic or a Cloud Function.
+                // For now, we just delete the document.
                 await deleteDoc(doc(db, docPath));
                 showNotification('جۆرەکە بە سەرکەوتوویی سڕدرایەوە', 'success');
-                clearProductCache(); // Cache paqij bike
-                // Pêwîst e renderCategoryManagementUI dîsa bê gazî kirin an jî rûpel bê nûkirin
-                this.renderCategoryManagementUI(); // Dîsa lîsteyê çêbike
+                clearProductCache(); // پاککردنەوەی کاش
             } catch (error) {
                 console.error("Error deleting category: ", error);
-                showNotification('هەڵەیەک ڕوویدا لە کاتی سڕینەوە', 'error');
+                showNotification('هەڵەیەک ڕوویدا لە کاتی sڕینەوە', 'error');
             }
         }
     },
 
     updateAdminCategoryDropdowns: function() {
-        const categories = getCategories(); // Fetch categories from shared state/function
-        if (categories.length <= 1) return; // Ger tenê 'all' hebe
+        const categories = getCategories();
+        if (categories.length <= 1) return;
         const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
 
         const dropdowns = [
             { id: 'parentCategorySelect', defaultText: '-- جۆرێک هەڵبژێرە --' },
             { id: 'parentMainCategorySelectForSubSub', defaultText: '-- جۆرێک هەڵبژێرە --' },
             { id: 'promoCardTargetCategory', defaultText: '-- جۆرێک هەڵبژێرە --' },
-            { id: 'brandTargetMainCategory', defaultText: '-- هەموو جۆرەکان --' } // Ev yek dikare vala bimîne
+            { id: 'brandTargetMainCategory', defaultText: '-- هەموو جۆرەکان --' }
         ];
 
         dropdowns.forEach(d => {
             const select = document.getElementById(d.id);
             if (select) {
-                const firstOptionValue = (d.id === 'brandTargetMainCategory') ? "" : ""; // Nirxa optiona yekem
-                const firstOptionHTML = `<option value="${firstOptionValue}" ${ (d.id !== 'brandTargetMainCategory') ? 'disabled selected' : 'selected'}>${d.defaultText}</option>`;
+                const firstOptionHTML = `<option value="">${d.defaultText}</option>`;
                 select.innerHTML = firstOptionHTML;
                 categoriesWithoutAll.forEach(cat => {
                     const option = document.createElement('option');
                     option.value = cat.id;
-                    option.textContent = cat.name_ku_sorani || cat.name_ku_badini; // Use Sorani as default display
+                    option.textContent = cat.name_ku_sorani || cat.name_ku_badini;
                     select.appendChild(option);
                 });
             }
         });
     },
 
-     // --- START: Fonksiyonên ji bo Rêzên Shortcut (Bi 'order' hatine nûve kirin) ---
+    // START: Shortcut Rows & Cards Management
     renderShortcutRowsAdminList: function() {
         const container = document.getElementById('shortcutRowsListContainer');
         const rowSelect = document.getElementById('selectRowForCard');
-        const q = query(shortcutRowsCollection, orderBy("order", "asc")); // Êdî li gorî 'order' rêz dike
+        const q = query(shortcutRowsCollection, orderBy("order", "asc"));
 
         onSnapshot(q, (snapshot) => {
             container.innerHTML = '';
             rowSelect.innerHTML = '<option value="" disabled selected>-- سەرەتا ڕیزێک هەڵبژێرە --</option>';
-
+            
             if (snapshot.empty) {
                 container.innerHTML = '<p>هیچ ڕیزێک زیاد نەکراوە.</p>';
                 return;
@@ -679,22 +661,20 @@ window.AdminLogic = {
 
             snapshot.forEach(rowDoc => {
                 const row = { id: rowDoc.id, ...rowDoc.data() };
-
-                // Zêdekirina option bo dropdown-a kartan
+                
                 const option = document.createElement('option');
                 option.value = row.id;
-                option.textContent = `${row.title.ku_sorani} (Order: ${row.order || 0})`; // Nîşandana Order
+                option.textContent = row.title.ku_sorani;
                 rowSelect.appendChild(option);
 
-                // Çêkirina elementa rêzê ji bo lîsteya admin
                 const rowElement = document.createElement('div');
                 rowElement.style.border = '1px solid #ddd';
                 rowElement.style.borderRadius = '6px';
                 rowElement.style.marginBottom = '10px';
-
+                
                 rowElement.innerHTML = `
                     <div style="background: #f0f2f5; padding: 10px; display: flex; justify-content: space-between; align-items: center;">
-                        <strong>${row.title.ku_sorani} (ڕیز: ${row.order || 0})</strong>
+                        <strong>${row.title.ku_sorani} (ڕیز: ${row.order})</strong>
                         <div>
                             <button class="edit-row-btn edit-btn small-btn" data-id="${row.id}"><i class="fas fa-edit"></i></button>
                             <button class="delete-row-btn delete-btn small-btn" data-id="${row.id}"><i class="fas fa-trash"></i></button>
@@ -704,7 +684,6 @@ window.AdminLogic = {
                 `;
                 container.appendChild(rowElement);
 
-                // Barkirina kartên nav rêzê
                 const cardsContainer = rowElement.querySelector('.cards-list-container');
                 const cardsQuery = query(collection(db, "shortcut_rows", row.id, "cards"), orderBy("order", "asc"));
                 onSnapshot(cardsQuery, (cardsSnapshot) => {
@@ -736,7 +715,6 @@ window.AdminLogic = {
     deleteShortcutRow: async function(rowId) {
         if (confirm('دڵنیایت دەتەوێت ئەم ڕیزە بسڕیتەوە؟ هەموو کارتەکانی ناویشی دەسڕێنەوە!')) {
             try {
-                // Pêşî kartên nav rêzê jê bibe
                 const cardsRef = collection(db, "shortcut_rows", rowId, "cards");
                 const cardsSnapshot = await getDocs(cardsRef);
                 const deletePromises = [];
@@ -745,10 +723,9 @@ window.AdminLogic = {
                 });
                 await Promise.all(deletePromises);
 
-                // Paşê rêzê bixwe jê bibe
                 await deleteDoc(doc(db, "shortcut_rows", rowId));
                 showNotification('ڕیزەکە بە تەواوی سڕدرایەوە', 'success');
-                clearProductCache(); // Cache paqij bike ji ber ku rêzkirin dikare biguhere
+                clearProductCache(); // پاککردنەوەی کاش
             } catch (error) {
                 showNotification('هەڵەیەک ڕوویدا', 'error');
                 console.error("Error deleting shortcut row: ", error);
@@ -761,21 +738,21 @@ window.AdminLogic = {
             try {
                 await deleteDoc(doc(db, "shortcut_rows", rowId, "cards", cardId));
                 showNotification('کارتەکە سڕدرایەوە', 'success');
-                clearProductCache(); // Cache paqij bike
+                clearProductCache(); // پاککردنەوەی کاش
             } catch (error) {
                 showNotification('هەڵەیەک ڕوویدا', 'error');
                 console.error("Error deleting shortcut card: ", error);
             }
         }
     },
-
+    
     updateShortcutCardCategoryDropdowns: function() {
         const categories = getCategories();
         if (categories.length <= 1) return;
         const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
         const mainSelect = document.getElementById('shortcutCardMainCategory');
-
-        mainSelect.innerHTML = '<option value="">-- هەموو کاڵاکان --</option>'; // Destpêk
+        
+        mainSelect.innerHTML = '<option value="">-- هەموو کاڵاکان --</option>';
         categoriesWithoutAll.forEach(cat => {
             const option = document.createElement('option');
             option.value = cat.id;
@@ -783,16 +760,15 @@ window.AdminLogic = {
             mainSelect.appendChild(option);
         });
     },
-    // --- END: Fonksiyonên ji bo Rêzên Shortcut ---
+    // END: Shortcut Rows & Cards Management
+
 
     setupAdminEventListeners: function() {
-        if (this.listenersAttached) return; // Prevent attaching multiple times
+        if (this.listenersAttached) return;
 
         const self = this;
 
-        // --- Existing listeners ---
-        const addProductBtnElem = document.getElementById('addProductBtn');
-        if (addProductBtnElem) addProductBtnElem.onclick = () => {
+        document.getElementById('addProductBtn').onclick = () => {
             setEditingProductId(null);
             document.getElementById('productForm').reset();
             self.createProductImageInputs();
@@ -803,28 +779,22 @@ window.AdminLogic = {
             openPopup('productFormModal', 'modal');
         };
 
-        const settingsLogoutBtnElem = document.getElementById('settingsLogoutBtn');
-        if (settingsLogoutBtnElem) settingsLogoutBtnElem.onclick = async () => {
+        document.getElementById('settingsLogoutBtn').onclick = async () => {
             await signOut(auth);
             showNotification(t('logout_success'), 'success');
-            // UI dê bixweber ji hêla onAuthStateChanged ve were nûve kirin
         };
 
-        const productCategoryIdElem = document.getElementById('productCategoryId');
-        if(productCategoryIdElem) productCategoryIdElem.addEventListener('change', (e) => {
+        document.getElementById('productCategoryId').addEventListener('change', (e) => {
             self.populateSubcategoriesDropdown(e.target.value);
-             // Dema ku kategoriya sereke tê guhertin, sub-sub vala bike
             self.populateSubSubcategoriesDropdown(null, null);
         });
 
-        const productSubcategoryIdElem = document.getElementById('productSubcategoryId');
-        if(productSubcategoryIdElem) productSubcategoryIdElem.addEventListener('change', (e) => {
+        document.getElementById('productSubcategoryId').addEventListener('change', (e) => {
             const mainCatId = document.getElementById('productCategoryId').value;
             self.populateSubSubcategoriesDropdown(mainCatId, e.target.value);
         });
 
-        const productFormElem = document.getElementById('productForm');
-        if (productFormElem) productFormElem.onsubmit = async (e) => {
+        document.getElementById('productForm').onsubmit = async (e) => {
             e.preventDefault();
             const submitButton = e.target.querySelector('button[type="submit"]');
             submitButton.disabled = true;
@@ -853,7 +823,7 @@ window.AdminLogic = {
             try {
                 const productData = {
                     name: productNameObject,
-                    searchableName: productNameKuSorani.toLowerCase(), // Ji bo lêgerînê
+                    searchableName: productNameKuSorani.toLowerCase(),
                     price: parseInt(document.getElementById('productPrice').value),
                     originalPrice: parseInt(document.getElementById('productOriginalPrice').value) || null,
                     categoryId: document.getElementById('productCategoryId').value,
@@ -861,39 +831,37 @@ window.AdminLogic = {
                     subSubcategoryId: document.getElementById('productSubSubcategoryId').value || null,
                     description: productDescriptionObject,
                     imageUrls: imageUrls,
-                    // createdAt dê tenê dema zêdekirinê were danîn
+                    createdAt: Date.now(),
                     externalLink: document.getElementById('productExternalLink').value || null,
                     shippingInfo: {
-                        ku_sorani: document.getElementById('shippingInfoKuSorani').value.trim() || null,
-                        ku_badini: document.getElementById('shippingInfoKuBadini').value.trim() || null,
-                        ar: document.getElementById('shippingInfoAr').value.trim() || null
+                        ku_sorani: document.getElementById('shippingInfoKuSorani').value.trim(),
+                        ku_badini: document.getElementById('shippingInfoKuBadini').value.trim(),
+                        ar: document.getElementById('shippingInfoAr').value.trim()
                     }
                 };
                 const editingId = getEditingProductId();
                 if (editingId) {
-                    productData.updatedAt = Date.now(); // Dema nûvekirinê zêde bike
-                    await updateDoc(doc(db, "products", editingId), productData);
+                    const { createdAt, ...updateData } = productData;
+                    await updateDoc(doc(db, "products", editingId), updateData);
                     showNotification('کاڵا نوێکرایەوە', 'success');
                 } else {
-                    productData.createdAt = Date.now(); // Dema çêkirinê zêde bike
                     await addDoc(productsCollection, productData);
                     showNotification('کاڵا زیادکرا', 'success');
                 }
-                clearProductCache(); // Cache paqij bike
+                clearProductCache(); // پاککردنەوەی کاش
                 closeCurrentPopup();
-                searchProductsInFirestore(document.getElementById('searchInput').value, true); // Lîsteyê nû bike
+                searchProductsInFirestore(document.getElementById('searchInput').value, true);
             } catch (error) {
                 showNotification(t('error_generic'), 'error');
                 console.error("Error saving product:", error);
             } finally {
                 submitButton.disabled = false;
                 submitButton.textContent = getEditingProductId() ? 'نوێکردنەوە' : 'پاشەکەوتکردن';
-                setEditingProductId(null); // Reset bike
+                setEditingProductId(null);
             }
         };
 
-        const imageInputsContainerElem = document.getElementById('imageInputsContainer');
-        if(imageInputsContainerElem) imageInputsContainerElem.addEventListener('input', (e) => {
+        document.getElementById('imageInputsContainer').addEventListener('input', (e) => {
             if (e.target.classList.contains('productImageUrl')) {
                 const previewImg = e.target.nextElementSibling;
                 const url = e.target.value;
@@ -905,100 +873,77 @@ window.AdminLogic = {
         });
 
         const addCategoryForm = document.getElementById('addCategoryForm');
-        if (addCategoryForm) addCategoryForm.addEventListener('submit', async (e) => {
-             e.preventDefault();
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-            submitButton.textContent = '...پاشەکەوت دەکرێت';
+        if (addCategoryForm) {
+            addCategoryForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitButton = e.target.querySelector('button[type="submit"]');
+                submitButton.disabled = true;
+                submitButton.textContent = '...پاشەکەوت دەکرێت';
 
-            const categoryData = {
-                name_ku_sorani: document.getElementById('mainCategoryNameKuSorani').value,
-                name_ku_badini: document.getElementById('mainCategoryNameKuBadini').value,
-                name_ar: document.getElementById('mainCategoryNameAr').value,
-                icon: document.getElementById('mainCategoryIcon').value,
-                order: parseInt(document.getElementById('mainCategoryOrder').value) || 0 // Default 0
-            };
+                const categoryData = {
+                    name_ku_sorani: document.getElementById('mainCategoryNameKuSorani').value,
+                    name_ku_badini: document.getElementById('mainCategoryNameKuBadini').value,
+                    name_ar: document.getElementById('mainCategoryNameAr').value,
+                    icon: document.getElementById('mainCategoryIcon').value,
+                    order: parseInt(document.getElementById('mainCategoryOrder').value)
+                };
 
-            try {
-                await addDoc(categoriesCollection, categoryData);
-                showNotification('جۆری سەرەکی بە سەرکەوتوویی زیادکرا', 'success');
-                addCategoryForm.reset();
-                clearProductCache(); // Cache paqij bike
-                // Pêwîst nake lîste were nûkirin ji ber ku onSnapshot heye
-            } catch (error) {
-                console.error("Error adding main category: ", error);
-                showNotification(t('error_generic'), 'error');
-            } finally {
-                submitButton.disabled = false;
-                submitButton.textContent = 'پاشەکەوتکردنی جۆری سەرەکی';
-            }
-        });
+                try {
+                    await addDoc(categoriesCollection, categoryData);
+                    showNotification('جۆری سەرەکی بە سەرکەوتوویی زیادکرا', 'success');
+                    addCategoryForm.reset();
+                    clearProductCache(); // پاککردنەوەی کاش
+                } catch (error) {
+                    console.error("Error adding main category: ", error);
+                    showNotification(t('error_generic'), 'error');
+                } finally {
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'پاشەکەوتکردنی جۆری سەرەکی';
+                }
+            });
+        }
 
         const addSubcategoryForm = document.getElementById('addSubcategoryForm');
-        if (addSubcategoryForm) addSubcategoryForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            const parentCategoryId = document.getElementById('parentCategorySelect').value;
+        if (addSubcategoryForm) {
+            addSubcategoryForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitButton = e.target.querySelector('button[type="submit"]');
+                const parentCategoryId = document.getElementById('parentCategorySelect').value;
 
-            if (!parentCategoryId) {
-                showNotification('تکایە جۆری سەرەکی هەڵبژێرە', 'error');
-                return;
-            }
+                if (!parentCategoryId) {
+                    showNotification('تکایە جۆری سەرەکی هەڵبژێرە', 'error');
+                    return;
+                }
 
-            submitButton.disabled = true;
-            submitButton.textContent = '...پاشەکەوت دەکرێت';
+                submitButton.disabled = true;
+                submitButton.textContent = '...پاشەکەوت دەکرێت';
 
-            const subcategoryData = {
-                name_ku_sorani: document.getElementById('subcategoryNameKuSorani').value,
-                name_ku_badini: document.getElementById('subcategoryNameKuBadini').value,
-                name_ar: document.getElementById('subcategoryNameAr').value,
-                order: parseInt(document.getElementById('subcategoryOrder').value) || 0,
-                imageUrl: document.getElementById('subcategoryImageUrl').value.trim() || null
-            };
+                const subcategoryData = {
+                    name_ku_sorani: document.getElementById('subcategoryNameKuSorani').value,
+                    name_ku_badini: document.getElementById('subcategoryNameKuBadini').value,
+                    name_ar: document.getElementById('subcategoryNameAr').value,
+                    order: parseInt(document.getElementById('subcategoryOrder').value) || 0,
+                    imageUrl: document.getElementById('subcategoryImageUrl').value.trim() || null
+                };
 
-            try {
-                const subcategoriesCollectionRef = collection(db, "categories", parentCategoryId, "subcategories");
-                await addDoc(subcategoriesCollectionRef, subcategoryData);
-                showNotification('جۆری لاوەکی بە سەرکەوتوویی زیادکرا', 'success');
-                addSubcategoryForm.reset();
-                clearProductCache(); // Cache paqij bike
-            } catch (error) {
-                console.error("Error adding subcategory: ", error);
-                showNotification(t('error_generic'), 'error');
-            } finally {
-                submitButton.disabled = false;
-                submitButton.textContent = 'پاشەکەوتکردنی جۆری لاوەکی';
-            }
-        });
+                try {
+                    const subcategoriesCollectionRef = collection(db, "categories", parentCategoryId, "subcategories");
+                    await addDoc(subcategoriesCollectionRef, subcategoryData);
+                    showNotification('جۆری لاوەکی بە سەرکەوتوویی زیادکرا', 'success');
+                    addSubcategoryForm.reset();
+                    clearProductCache(); // پاککردنەوەی کاش
+                } catch (error) {
+                    console.error("Error adding subcategory: ", error);
+                    showNotification(t('error_generic'), 'error');
+                } finally {
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'پاشەکەوتکردنی جۆری لاوەکی';
+                }
+            });
+        }
 
         const addSubSubcategoryForm = document.getElementById('addSubSubcategoryForm');
         if (addSubSubcategoryForm) {
-            // Listener ji bo barkirina subcategories dema main category tê guhertin
-            const parentMainCatSelect = document.getElementById('parentMainCategorySelectForSubSub');
-            if (parentMainCatSelect) parentMainCatSelect.addEventListener('change', async (e) => {
-                const mainCatId = e.target.value;
-                const subCatSelect = document.getElementById('parentSubcategorySelectForSubSub');
-                subCatSelect.innerHTML = '<option value="" disabled selected>...چاوەڕێ بە</option>';
-                if (mainCatId) {
-                    const subCatQuery = query(collection(db, "categories", mainCatId, "subcategories"), orderBy("order", "asc"));
-                    const snapshot = await getDocs(subCatQuery);
-                    subCatSelect.innerHTML = '<option value="" disabled selected>-- جۆری لاوەکی هەڵبژێرە --</option>';
-                    if(!snapshot.empty){
-                        snapshot.forEach(doc => {
-                            const subcat = { id: doc.id, ...doc.data() };
-                            const option = document.createElement('option');
-                            option.value = subcat.id;
-                            option.textContent = subcat.name_ku_sorani;
-                            subCatSelect.appendChild(option);
-                        });
-                    } else {
-                         subCatSelect.innerHTML = '<option value="" disabled selected>-- هیچ جۆرێکی لاوەکی نییە --</option>';
-                    }
-                } else {
-                     subCatSelect.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەکی بە --</option>';
-                }
-            });
-
             addSubSubcategoryForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const mainCatSelect = document.getElementById('parentMainCategorySelectForSubSub');
@@ -1025,9 +970,9 @@ window.AdminLogic = {
                     await addDoc(subSubcategoriesRef, subSubcategoryData);
                     showNotification('جۆری نوێ بە سەرکەوتوویی زیادکرا', 'success');
                     addSubSubcategoryForm.reset();
-                    mainCatSelect.value = ''; // Reset bike
-                    subCatSelect.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەکی بە --</option>'; // Reset bike
-                    clearProductCache(); // Cache paqij bike
+                    mainCatSelect.value = '';
+                    subCatSelect.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەکی بە --</option>';
+                    clearProductCache(); // پاککردنەوەی کاش
                 } catch (error) {
                     console.error("Error adding sub-subcategory: ", error);
                     showNotification('هەڵەیەک ڕوویدا', 'error');
@@ -1036,113 +981,120 @@ window.AdminLogic = {
         }
 
         const editCategoryForm = document.getElementById('editCategoryForm');
-        if (editCategoryForm) editCategoryForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-            submitButton.textContent = '...پاشەکەوت دەکرێت';
+        if (editCategoryForm) {
+            editCategoryForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitButton = e.target.querySelector('button[type="submit"]');
+                submitButton.disabled = true;
+                submitButton.textContent = '...پاشەکەوت دەکرێت';
 
-            const docPath = document.getElementById('editCategoryDocPath').value;
-            const level = document.getElementById('editCategoryLevel').value;
+                const docPath = document.getElementById('editCategoryDocPath').value;
+                const level = document.getElementById('editCategoryLevel').value;
 
-            let updateData = {
-                name_ku_sorani: document.getElementById('editCategoryNameKuSorani').value,
-                name_ku_badini: document.getElementById('editCategoryNameKuBadini').value,
-                name_ar: document.getElementById('editCategoryNameAr').value,
-                order: parseInt(document.getElementById('editCategoryOrder').value) || 0
-            };
+                let updateData = {
+                    name_ku_sorani: document.getElementById('editCategoryNameKuSorani').value,
+                    name_ku_badini: document.getElementById('editCategoryNameKuBadini').value,
+                    name_ar: document.getElementById('editCategoryNameAr').value,
+                    order: parseInt(document.getElementById('editCategoryOrder').value) || 0
+                };
 
-            if (level === '1') {
-                updateData.icon = document.getElementById('editCategoryIcon').value;
-            } else { // Ast 2 yan 3
-                updateData.imageUrl = document.getElementById('editCategoryImageUrl').value.trim() || null;
-            }
+                if (level === '1') {
+                    updateData.icon = document.getElementById('editCategoryIcon').value;
+                }
 
-            try {
-                await updateDoc(doc(db, docPath), updateData);
-                showNotification('گۆڕانکارییەکان پاشەکەوت کران', 'success');
-                closeCurrentPopup(); // Modalê bigire
-                clearProductCache(); // Cache paqij bike
-                // Lîsteya kategoriyan dê bixweber were nûkirin ji ber onSnapshot
-            } catch (error) {
-                console.error("Error updating category: ", error);
-                showNotification('هەڵەیەک ڕوویدا', 'error');
-            } finally {
-                submitButton.disabled = false;
-                submitButton.textContent = 'پاشەکەوتکردنی گۆڕانکاری';
-            }
-        });
+                if (level === '2' || level === '3') {
+                    updateData.imageUrl = document.getElementById('editCategoryImageUrl').value.trim() || null;
+                }
+
+                try {
+                    await updateDoc(doc(db, docPath), updateData);
+                    showNotification('گۆڕانکارییەکان پاشەکەوت کران', 'success');
+                    closeCurrentPopup();
+                    clearProductCache(); // پاککردنەوەی کاش
+                } catch (error) {
+                    console.error("Error updating category: ", error);
+                    showNotification('هەڵەیەک ڕوویدا', 'error');
+                } finally {
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'پاشەکەوتکردنی گۆڕانکاری';
+                }
+            });
+        }
 
         const announcementForm = document.getElementById('announcementForm');
-        if (announcementForm) announcementForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-            submitButton.textContent = '...ناردن';
+        if (announcementForm) {
+            announcementForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitButton = e.target.querySelector('button[type="submit"]');
+                submitButton.disabled = true;
+                submitButton.textContent = '...ناردن';
 
-            const announcementData = {
-                title: {
-                    ku_sorani: document.getElementById('announcementTitleKuSorani').value,
-                    ku_badini: document.getElementById('announcementTitleKuBadini').value,
-                    ar: document.getElementById('announcementTitleAr').value,
-                },
-                content: {
-                    ku_sorani: document.getElementById('announcementContentKuSorani').value,
-                    ku_badini: document.getElementById('announcementContentKuBadini').value,
-                    ar: document.getElementById('announcementContentAr').value,
-                },
-                createdAt: Date.now()
-            };
+                const announcementData = {
+                    title: {
+                        ku_sorani: document.getElementById('announcementTitleKuSorani').value,
+                        ku_badini: document.getElementById('announcementTitleKuBadini').value,
+                        ar: document.getElementById('announcementTitleAr').value,
+                    },
+                    content: {
+                        ku_sorani: document.getElementById('announcementContentKuSorani').value,
+                        ku_badini: document.getElementById('announcementContentKuBadini').value,
+                        ar: document.getElementById('announcementContentAr').value,
+                    },
+                    createdAt: Date.now()
+                };
 
-            try {
-                await addDoc(announcementsCollection, announcementData);
-                showNotification('ئاگەداری بە سەرکەوتوویی نێردرا', 'success');
-                announcementForm.reset();
-            } catch (error) {
-                console.error("Error sending announcement: ", error);
-                showNotification(t('error_generic'), 'error');
-            } finally {
-                submitButton.disabled = false;
-                submitButton.textContent = t('send_announcement_button');
-            }
-        });
-
-        const policiesForm = document.getElementById('policiesForm');
-        if (policiesForm) policiesForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-
-            const policiesData = {
-                content: {
-                    ku_sorani: document.getElementById('policiesContentKuSorani').value,
-                    ku_badini: document.getElementById('policiesContentKuBadini').value,
-                    ar: document.getElementById('policiesContentAr').value,
+                try {
+                    await addDoc(announcementsCollection, announcementData);
+                    showNotification('ئاگەداری بە سەرکەوتوویی نێردرا', 'success');
+                    announcementForm.reset();
+                } catch (error) {
+                    console.error("Error sending announcement: ", error);
+                    showNotification(t('error_generic'), 'error');
+                } finally {
+                    submitButton.disabled = false;
+                    submitButton.textContent = t('send_announcement_button');
                 }
-            };
+            });
+        }
+        
+        const policiesForm = document.getElementById('policiesForm');
+        if (policiesForm) {
+            policiesForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitButton = e.target.querySelector('button[type="submit"]');
+                submitButton.disabled = true;
 
-            try {
-                const docRef = doc(db, "settings", "policies");
-                await setDoc(docRef, policiesData, { merge: true }); // Merge da ku daneyên din neyên jêbirin
-                showNotification(t('policies_saved_success'), 'success');
-            } catch (error) {
-                console.error("Error saving policies:", error);
-                showNotification(t('error_generic'), 'error');
-            } finally {
-                submitButton.disabled = false;
-            }
-        });
+                const policiesData = {
+                    content: {
+                        ku_sorani: document.getElementById('policiesContentKuSorani').value,
+                        ku_badini: document.getElementById('policiesContentKuBadini').value,
+                        ar: document.getElementById('policiesContentAr').value,
+                    }
+                };
 
+                try {
+                    const docRef = doc(db, "settings", "policies");
+                    await setDoc(docRef, policiesData, { merge: true });
+                    showNotification(t('policies_saved_success'), 'success');
+                } catch (error) {
+                    console.error("Error saving policies:", error);
+                    showNotification(t('error_generic'), 'error');
+                } finally {
+                    submitButton.disabled = false;
+                }
+            });
+        }
+        
         const socialMediaToggle = document.getElementById('socialMediaToggle');
-        if(socialMediaToggle) socialMediaToggle.onclick = () => {
+        socialMediaToggle.onclick = () => {
             const container = document.getElementById('adminSocialMediaManagement').querySelector('.contact-links-container');
             const chevron = socialMediaToggle.querySelector('.contact-chevron');
             container.classList.toggle('open');
             chevron.classList.toggle('open');
         };
-
+        
         const addSocialMediaForm = document.getElementById('addSocialMediaForm');
-        if (addSocialMediaForm) addSocialMediaForm.addEventListener('submit', async (e) => {
+        addSocialMediaForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const socialData = {
                 name_ku_sorani: document.getElementById('socialNameKuSorani').value,
@@ -1150,7 +1102,7 @@ window.AdminLogic = {
                 name_ar: document.getElementById('socialNameAr').value,
                 url: document.getElementById('socialUrl').value,
                 icon: document.getElementById('socialIcon').value,
-                createdAt: Date.now() // Ji bo rêzkirinê heke pêwîst be
+                createdAt: Date.now()
             };
             try {
                 const socialLinksRef = collection(db, 'settings', 'contactInfo', 'socialLinks');
@@ -1159,79 +1111,79 @@ window.AdminLogic = {
                 addSocialMediaForm.reset();
             } catch (error) {
                 showNotification(t('error_generic'), 'error');
-                console.error("Error adding social link:", error);
             }
         });
-
+        
         const addContactMethodForm = document.getElementById('addContactMethodForm');
-        if (addContactMethodForm) addContactMethodForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
+        if (addContactMethodForm) {
+            addContactMethodForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitButton = e.target.querySelector('button[type="submit"]');
+                submitButton.disabled = true;
 
-            const methodData = {
-                type: document.getElementById('contactMethodType').value,
-                value: document.getElementById('contactMethodValue').value,
-                name_ku_sorani: document.getElementById('contactMethodNameKuSorani').value,
-                name_ku_badini: document.getElementById('contactMethodNameKuBadini').value,
-                name_ar: document.getElementById('contactMethodNameAr').value,
-                icon: document.getElementById('contactMethodIcon').value,
-                color: document.getElementById('contactMethodColor').value,
-                createdAt: Date.now() // Ji bo rêzkirinê
-            };
+                const methodData = {
+                    type: document.getElementById('contactMethodType').value,
+                    value: document.getElementById('contactMethodValue').value,
+                    name_ku_sorani: document.getElementById('contactMethodNameKuSorani').value,
+                    name_ku_badini: document.getElementById('contactMethodNameKuBadini').value,
+                    name_ar: document.getElementById('contactMethodNameAr').value,
+                    icon: document.getElementById('contactMethodIcon').value,
+                    color: document.getElementById('contactMethodColor').value,
+                    createdAt: Date.now()
+                };
 
-            try {
-                const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
-                await addDoc(methodsCollection, methodData);
-                showNotification('شێوازی نوێ بە سەرکەوتوویی زیادکرا', 'success');
-                addContactMethodForm.reset();
-            } catch (error) {
-                console.error("Error adding contact method: ", error);
-                showNotification(t('error_generic'), 'error');
-            } finally {
-                submitButton.disabled = false;
-            }
-        });
-
-        const addPromoCardForm = document.getElementById('addPromoCardForm');
-        if (addPromoCardForm) addPromoCardForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-
-            const editingId = document.getElementById('editingPromoCardId').value;
-            const cardData = {
-                imageUrls: {
-                    ku_sorani: document.getElementById('promoCardImageKuSorani').value,
-                    ku_badini: document.getElementById('promoCardImageKuBadini').value,
-                    ar: document.getElementById('promoCardImageAr').value,
-                },
-                categoryId: document.getElementById('promoCardTargetCategory').value,
-                order: parseInt(document.getElementById('promoCardOrder').value) || 0, // Default 0
-                // createdAt dê tenê dema çêkirinê were danîn
-            };
-
-            try {
-                if (editingId) {
-                    cardData.updatedAt = Date.now();
-                    await setDoc(doc(db, "promo_cards", editingId), cardData, { merge: true }); // Use setDoc with merge for updates
-                    showNotification('کارتەکە نوێکرایەوە', 'success');
-                } else {
-                    cardData.createdAt = Date.now();
-                    await addDoc(promoCardsCollection, cardData);
-                    showNotification('کارتی نوێ زیادکرا', 'success');
+                try {
+                    const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
+                    await addDoc(methodsCollection, methodData);
+                    showNotification('شێوازی نوێ بە سەرکەوتوویی زیادکرا', 'success');
+                    addContactMethodForm.reset();
+                } catch (error) {
+                    console.error("Error adding contact method: ", error);
+                    showNotification(t('error_generic'), 'error');
+                } finally {
+                    submitButton.disabled = false;
                 }
-                addPromoCardForm.reset();
-                document.getElementById('editingPromoCardId').value = '';
-                submitButton.textContent = 'پاشەکەوتکردن';
-                clearProductCache(); // Cache paqij bike
-            } catch (error) {
-                showNotification('هەڵەیەک ڕوویدا', 'error');
-                console.error("Error saving promo card:", error);
-            } finally {
-                submitButton.disabled = false;
-            }
-        });
+            });
+        }
+        
+        const addPromoCardForm = document.getElementById('addPromoCardForm');
+        if(addPromoCardForm) {
+            addPromoCardForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitButton = e.target.querySelector('button[type="submit"]');
+                submitButton.disabled = true;
+
+                const editingId = document.getElementById('editingPromoCardId').value;
+                const cardData = {
+                    imageUrls: {
+                        ku_sorani: document.getElementById('promoCardImageKuSorani').value,
+                        ku_badini: document.getElementById('promoCardImageKuBadini').value,
+                        ar: document.getElementById('promoCardImageAr').value,
+                    },
+                    categoryId: document.getElementById('promoCardTargetCategory').value,
+                    order: parseInt(document.getElementById('promoCardOrder').value),
+                    createdAt: Date.now()
+                };
+
+                try {
+                    if (editingId) {
+                        await setDoc(doc(db, "promo_cards", editingId), cardData);
+                        showNotification('کارتەکە نوێکرایەوە', 'success');
+                    } else {
+                        await addDoc(promoCardsCollection, cardData);
+                        showNotification('کارتی نوێ زیادکرا', 'success');
+                    }
+                    addPromoCardForm.reset();
+                    document.getElementById('editingPromoCardId').value = '';
+                    submitButton.textContent = 'پاشەکەوتکردن';
+                    clearProductCache(); // پاککردنەوەی کاش
+                } catch (error) {
+                    showNotification('هەڵەیەک ڕوویدا', 'error');
+                } finally {
+                    submitButton.disabled = false;
+                }
+            });
+        }
 
         const addBrandForm = document.getElementById('addBrandForm');
         if (addBrandForm) {
@@ -1250,25 +1202,24 @@ window.AdminLogic = {
                     imageUrl: document.getElementById('brandImageUrl').value,
                     categoryId: document.getElementById('brandTargetMainCategory').value || null,
                     subcategoryId: document.getElementById('brandTargetSubcategory').value || null,
-                    order: parseInt(document.getElementById('brandOrder').value) || 0, // Default 0
-                    // createdAt dê tenê dema çêkirinê were danîn
+                    order: parseInt(document.getElementById('brandOrder').value) || 0,
+                    createdAt: Date.now()
                 };
 
                 try {
                     if (editingId) {
-                         brandData.updatedAt = Date.now();
-                        await setDoc(doc(db, "brands", editingId), brandData, { merge: true }); // Use setDoc with merge for updates
+                        const { createdAt, ...updateData } = brandData;
+                        await setDoc(doc(db, "brands", editingId), updateData, { merge: true });
                         showNotification('براند نوێکرایەوە', 'success');
                     } else {
-                         brandData.createdAt = Date.now();
                         await addDoc(brandsCollection, brandData);
                         showNotification('براندی نوێ زیادکرا', 'success');
                     }
                     addBrandForm.reset();
                     document.getElementById('editingBrandId').value = '';
-                    document.getElementById('brandSubcategoryContainer').style.display = 'none'; // Veşartina subcategory dropdown
+                    document.getElementById('brandSubcategoryContainer').style.display = 'none';
                     submitButton.textContent = 'پاشەکەوتکردن';
-                    clearProductCache(); // Cache paqij bike
+                    clearProductCache(); // پاککردنەوەی کاش
                 } catch (error) {
                     showNotification('هەڵەیەک ڕوویدا', 'error');
                     console.error("Error saving brand:", error);
@@ -1276,282 +1227,233 @@ window.AdminLogic = {
                     submitButton.disabled = false;
                 }
             });
-
-            // Listener ji bo barkirina subcategories dema brand main category tê guhertin
+            
             const brandMainCatSelect = document.getElementById('brandTargetMainCategory');
-            if(brandMainCatSelect) brandMainCatSelect.addEventListener('change', async (e) => {
+            brandMainCatSelect.addEventListener('change', async (e) => {
                 const mainCatId = e.target.value;
                 const brandSubCatContainer = document.getElementById('brandSubcategoryContainer');
                 const brandSubCatSelect = document.getElementById('brandTargetSubcategory');
                 if (mainCatId) {
                     brandSubCatContainer.style.display = 'block';
                     brandSubCatSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
-                    try {
-                        const subCatQuery = query(collection(db, "categories", mainCatId, "subcategories"), orderBy("order", "asc"));
-                        const snapshot = await getDocs(subCatQuery);
-                        brandSubCatSelect.innerHTML = '<option value="">-- هەموو لاوەکییەکان --</option>';
-                        snapshot.forEach(doc => {
-                            const subcat = { id: doc.id, ...doc.data() };
-                            const option = document.createElement('option');
-                            option.value = subcat.id;
-                            option.textContent = subcat.name_ku_sorani;
-                            brandSubCatSelect.appendChild(option);
-                        });
-                    } catch (error) {
-                         console.error("Error loading subcategories for brand form:", error);
-                         brandSubCatSelect.innerHTML = '<option value="">-- هەڵە --</option>';
-                    }
+                    const subCatQuery = query(collection(db, "categories", mainCatId, "subcategories"), orderBy("order", "asc"));
+                    const snapshot = await getDocs(subCatQuery);
+                    brandSubCatSelect.innerHTML = '<option value="">-- هەموو لاوەکییەکان --</option>';
+                    snapshot.forEach(doc => {
+                        const subcat = { id: doc.id, ...doc.data() };
+                        const option = document.createElement('option');
+                        option.value = subcat.id;
+                        option.textContent = subcat.name_ku_sorani;
+                        brandSubCatSelect.appendChild(option);
+                    });
                 } else {
                     brandSubCatContainer.style.display = 'none';
-                    brandSubCatSelect.innerHTML = ''; // Valakirin
+                    brandSubCatSelect.innerHTML = '';
                 }
             });
         }
+        
 
-        // --- START: Listenerên Nû ji bo Rêzên Shortcut ---
+        // START: Shortcut Rows & Cards Listeners
         const addShortcutRowForm = document.getElementById('addShortcutRowForm');
-        if (addShortcutRowForm) {
-            addShortcutRowForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const editingId = document.getElementById('editingShortcutRowId').value;
-                const rowData = {
-                    title: {
-                        ku_sorani: document.getElementById('shortcutRowTitleKuSorani').value,
-                        ku_badini: document.getElementById('shortcutRowTitleKuBadini').value,
-                        ar: document.getElementById('shortcutRowTitleAr').value,
-                    },
-                    order: parseInt(document.getElementById('shortcutRowOrder').value) || 0, // <-- Nirxa 'order' tê xwendin
-                };
+        addShortcutRowForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const editingId = document.getElementById('editingShortcutRowId').value;
+            const rowData = {
+                title: {
+                    ku_sorani: document.getElementById('shortcutRowTitleKuSorani').value,
+                    ku_badini: document.getElementById('shortcutRowTitleKuBadini').value,
+                    ar: document.getElementById('shortcutRowTitleAr').value,
+                },
+                order: parseInt(document.getElementById('shortcutRowOrder').value) || 0,
+            };
 
-                try {
-                    if (editingId) {
-                        await setDoc(doc(db, "shortcut_rows", editingId), rowData, { merge: true }); // Use setDoc with merge
-                        showNotification('ڕیز نوێکرایەوە', 'success');
-                    } else {
-                        rowData.createdAt = Date.now();
-                        await addDoc(shortcutRowsCollection, rowData);
-                        showNotification('ڕیزی نوێ زیادکرا', 'success');
-                    }
-                    addShortcutRowForm.reset();
-                    document.getElementById('editingShortcutRowId').value = '';
-                    document.getElementById('cancelRowEditBtn').style.display = 'none';
-                    clearProductCache(); // Cache paqij bike
-                } catch (error) { console.error("Error saving row:", error); showNotification('هەڵەیەک ڕوویدا', 'error'); }
-            });
-        }
-
-        const addCardToRowForm = document.getElementById('addCardToRowForm');
-        if (addCardToRowForm) {
-            addCardToRowForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const rowId = document.getElementById('selectRowForCard').value;
-                if (!rowId) {
-                    showNotification('تکایە ڕیزێک هەڵبژێرە', 'error');
-                    return;
+            try {
+                if (editingId) {
+                    await setDoc(doc(db, "shortcut_rows", editingId), rowData, { merge: true });
+                    showNotification('ڕیز نوێکرایەوە', 'success');
+                } else {
+                    rowData.createdAt = Date.now();
+                    await addDoc(shortcutRowsCollection, rowData);
+                    showNotification('ڕیزی نوێ زیادکرا', 'success');
                 }
-                const editingId = document.getElementById('editingShortcutCardId').value;
-                const cardData = {
-                     name: {
-                        ku_sorani: document.getElementById('shortcutCardNameKuSorani').value,
-                        ku_badini: document.getElementById('shortcutCardNameKuBadini').value,
-                        ar: document.getElementById('shortcutCardNameAr').value,
-                    },
-                    imageUrl: document.getElementById('shortcutCardImageUrl').value,
-                    categoryId: document.getElementById('shortcutCardMainCategory').value || null,
-                    subcategoryId: document.getElementById('shortcutCardSubcategory').value || null,
-                    subSubcategoryId: document.getElementById('shortcutCardSubSubcategory').value || null,
-                    order: parseInt(document.getElementById('shortcutCardOrder').value) || 0,
-                };
-
-                try {
-                    if (editingId) {
-                        cardData.updatedAt = Date.now();
-                        await setDoc(doc(db, "shortcut_rows", rowId, "cards", editingId), cardData, { merge: true }); // Use setDoc with merge
-                        showNotification('کارت نوێکرایەوە', 'success');
-                    } else {
-                        cardData.createdAt = Date.now();
-                        await addDoc(collection(db, "shortcut_rows", rowId, "cards"), cardData);
-                        showNotification('کارتی نوێ زیادکرا بۆ ڕیزەکە', 'success');
-                    }
-                    addCardToRowForm.reset();
-                    document.getElementById('editingShortcutCardId').value = '';
-                    document.getElementById('selectRowForCard').disabled = false; // Dropdown dîsa çalak bike
-                    document.getElementById('cancelCardEditBtn').style.display = 'none';
-                    document.getElementById('addCardToRowForm').querySelector('button[type="submit"]').textContent = 'زیادکردنی کارت';
-                    // Reset dropdowns
-                    document.getElementById('shortcutCardSubContainer').style.display = 'none';
-                    document.getElementById('shortcutCardSubSubContainer').style.display = 'none';
-                    clearProductCache(); // Cache paqij bike
-                } catch (error) { console.error("Error saving card:", error); showNotification('هەڵەیەک ڕوویدا', 'error'); }
-            });
-        }
-
-        const shortcutRowsListContainer = document.getElementById('shortcutRowsListContainer');
-        if (shortcutRowsListContainer) {
-            shortcutRowsListContainer.addEventListener('click', async (e) => {
-                const editRowBtn = e.target.closest('.edit-row-btn');
-                const deleteRowBtn = e.target.closest('.delete-row-btn');
-                const editCardBtn = e.target.closest('.edit-card-btn');
-                const deleteCardBtn = e.target.closest('.delete-card-btn');
-
-                if (editRowBtn) {
-                    const rowId = editRowBtn.dataset.id;
-                    const rowSnap = await getDoc(doc(db, "shortcut_rows", rowId));
-                    if(rowSnap.exists()) {
-                        const row = rowSnap.data();
-                        document.getElementById('editingShortcutRowId').value = rowId;
-                        document.getElementById('shortcutRowTitleKuSorani').value = row.title.ku_sorani;
-                        document.getElementById('shortcutRowTitleKuBadini').value = row.title.ku_badini;
-                        document.getElementById('shortcutRowTitleAr').value = row.title.ar;
-                        document.getElementById('shortcutRowOrder').value = row.order || 0; // <-- Nirxa 'order' tê dagirtin
-                        document.getElementById('cancelRowEditBtn').style.display = 'block';
-                        addShortcutRowForm.scrollIntoView({ behavior: 'smooth' });
-                    }
-                }
-                if (deleteRowBtn) {
-                    self.deleteShortcutRow(deleteRowBtn.dataset.id);
-                }
-                if (editCardBtn) {
-                    const rowId = editCardBtn.dataset.rowId;
-                    const cardId = editCardBtn.dataset.cardId;
-                    const cardSnap = await getDoc(doc(db, "shortcut_rows", rowId, "cards", cardId));
-                    if(cardSnap.exists()) {
-                        const card = cardSnap.data();
-                        document.getElementById('selectRowForCard').value = rowId;
-                        document.getElementById('selectRowForCard').disabled = true; // Dropdown dema edit neçalak bike
-                        document.getElementById('editingShortcutCardId').value = cardId;
-                        document.getElementById('shortcutCardNameKuSorani').value = card.name.ku_sorani || '';
-                        document.getElementById('shortcutCardNameKuBadini').value = card.name.ku_badini || '';
-                        document.getElementById('shortcutCardNameAr').value = card.name.ar || '';
-                        document.getElementById('shortcutCardImageUrl').value = card.imageUrl || '';
-                        document.getElementById('shortcutCardOrder').value = card.order || 10;
-                        const mainCatSelect = document.getElementById('shortcutCardMainCategory');
-                        mainCatSelect.value = card.categoryId || '';
-                        // Trigger change to load subcategories, then wait to set subcategory, then wait to set sub-subcategory
-                        mainCatSelect.dispatchEvent(new Event('change'));
-                        setTimeout(() => {
-                            const subCatSelect = document.getElementById('shortcutCardSubcategory');
-                            subCatSelect.value = card.subcategoryId || '';
-                            subCatSelect.dispatchEvent(new Event('change'));
-                             setTimeout(() => {
-                                document.getElementById('shortcutCardSubSubcategory').value = card.subSubcategoryId || '';
-                             }, 500); // Dem ji bo barkirina sub-sub
-                        }, 500); // Dem ji bo barkirina sub
-
-                        document.getElementById('addCardToRowForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوەی کارت';
-                        document.getElementById('cancelCardEditBtn').style.display = 'block';
-                        addCardToRowForm.scrollIntoView({ behavior: 'smooth' });
-                    }
-                }
-                if (deleteCardBtn) {
-                    self.deleteShortcutCard(deleteCardBtn.dataset.rowId, deleteCardBtn.dataset.cardId);
-                }
-            });
-        }
-
-        const cancelRowEditBtn = document.getElementById('cancelRowEditBtn');
-        if (cancelRowEditBtn) {
-            cancelRowEditBtn.addEventListener('click', () => {
                 addShortcutRowForm.reset();
                 document.getElementById('editingShortcutRowId').value = '';
-                cancelRowEditBtn.style.display = 'none';
-            });
-        }
-        const cancelCardEditBtn = document.getElementById('cancelCardEditBtn');
-        if (cancelCardEditBtn) {
-            cancelCardEditBtn.addEventListener('click', () => {
+                document.getElementById('cancelRowEditBtn').style.display = 'none';
+                clearProductCache(); // پاککردنەوەی کاش
+            } catch (error) { console.error("Error saving row:", error); showNotification('هەڵەیەک ڕوویدا', 'error'); }
+        });
+
+        const addCardToRowForm = document.getElementById('addCardToRowForm');
+        addCardToRowForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const rowId = document.getElementById('selectRowForCard').value;
+            if (!rowId) {
+                showNotification('تکایە ڕیزێک هەڵبژێرە', 'error');
+                return;
+            }
+            const editingId = document.getElementById('editingShortcutCardId').value;
+            const cardData = {
+                 name: {
+                    ku_sorani: document.getElementById('shortcutCardNameKuSorani').value,
+                    ku_badini: document.getElementById('shortcutCardNameKuBadini').value,
+                    ar: document.getElementById('shortcutCardNameAr').value,
+                },
+                imageUrl: document.getElementById('shortcutCardImageUrl').value,
+                categoryId: document.getElementById('shortcutCardMainCategory').value || null,
+                subcategoryId: document.getElementById('shortcutCardSubcategory').value || null,
+                subSubcategoryId: document.getElementById('shortcutCardSubSubcategory').value || null,
+                order: parseInt(document.getElementById('shortcutCardOrder').value) || 0,
+            };
+
+            try {
+                if (editingId) {
+                    await setDoc(doc(db, "shortcut_rows", rowId, "cards", editingId), cardData, { merge: true });
+                    showNotification('کارت نوێکرایەوە', 'success');
+                } else {
+                    cardData.createdAt = Date.now();
+                    await addDoc(collection(db, "shortcut_rows", rowId, "cards"), cardData);
+                    showNotification('کارتی نوێ زیادکرا بۆ ڕیزەکە', 'success');
+                }
                 addCardToRowForm.reset();
                 document.getElementById('editingShortcutCardId').value = '';
                 document.getElementById('selectRowForCard').disabled = false;
-                cancelCardEditBtn.style.display = 'none';
-                document.getElementById('addCardToRowForm').querySelector('button[type="submit"]').textContent = 'زیادکردنی کارت';
-                 // Reset dropdowns
-                document.getElementById('shortcutCardSubContainer').style.display = 'none';
-                document.getElementById('shortcutCardSubSubContainer').style.display = 'none';
-            });
-        }
+                document.getElementById('cancelCardEditBtn').style.display = 'none';
+                addCardToRowForm.querySelector('button[type="submit"]').textContent = 'زیادکردنی کارت';
+                clearProductCache(); // پاککردنەوەی کاش
+            } catch (error) { console.error("Error saving card:", error); showNotification('هەڵەیەک ڕوویدا', 'error'); }
+        });
+        
+        document.getElementById('shortcutRowsListContainer').addEventListener('click', async (e) => {
+            const editRowBtn = e.target.closest('.edit-row-btn');
+            const deleteRowBtn = e.target.closest('.delete-row-btn');
+            const editCardBtn = e.target.closest('.edit-card-btn');
+            const deleteCardBtn = e.target.closest('.delete-card-btn');
+
+            if (editRowBtn) {
+                const rowId = editRowBtn.dataset.id;
+                const rowSnap = await getDoc(doc(db, "shortcut_rows", rowId));
+                if(rowSnap.exists()) {
+                    const row = rowSnap.data();
+                    document.getElementById('editingShortcutRowId').value = rowId;
+                    document.getElementById('shortcutRowTitleKuSorani').value = row.title.ku_sorani;
+                    document.getElementById('shortcutRowTitleKuBadini').value = row.title.ku_badini;
+                    document.getElementById('shortcutRowTitleAr').value = row.title.ar;
+                    document.getElementById('shortcutRowOrder').value = row.order;
+                    document.getElementById('cancelRowEditBtn').style.display = 'block';
+                    addShortcutRowForm.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+            if (deleteRowBtn) {
+                this.deleteShortcutRow(deleteRowBtn.dataset.id);
+            }
+            if (editCardBtn) {
+                const rowId = editCardBtn.dataset.rowId;
+                const cardId = editCardBtn.dataset.cardId;
+                const cardSnap = await getDoc(doc(db, "shortcut_rows", rowId, "cards", cardId));
+                if(cardSnap.exists()) {
+                    const card = cardSnap.data();
+                    document.getElementById('selectRowForCard').value = rowId;
+                    document.getElementById('selectRowForCard').disabled = true; 
+                    document.getElementById('editingShortcutCardId').value = cardId;
+                    document.getElementById('shortcutCardNameKuSorani').value = card.name.ku_sorani || '';
+                    document.getElementById('shortcutCardNameKuBadini').value = card.name.ku_badini || '';
+                    document.getElementById('shortcutCardNameAr').value = card.name.ar || '';
+                    document.getElementById('shortcutCardImageUrl').value = card.imageUrl || '';
+                    document.getElementById('shortcutCardOrder').value = card.order || 10;
+                    const mainCatSelect = document.getElementById('shortcutCardMainCategory');
+                    mainCatSelect.value = card.categoryId || '';
+                    mainCatSelect.dispatchEvent(new Event('change'));
+                    setTimeout(() => {
+                        const subCatSelect = document.getElementById('shortcutCardSubcategory');
+                        subCatSelect.value = card.subcategoryId || '';
+                        subCatSelect.dispatchEvent(new Event('change'));
+                        setTimeout(() => {
+                            document.getElementById('shortcutCardSubSubcategory').value = card.subSubcategoryId || '';
+                        }, 500);
+                    }, 500);
+                    
+                    document.getElementById('addCardToRowForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوەی کارت';
+                    document.getElementById('cancelCardEditBtn').style.display = 'block';
+                    addCardToRowForm.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+            if (deleteCardBtn) {
+                this.deleteShortcutCard(deleteCardBtn.dataset.rowId, deleteCardBtn.dataset.cardId);
+            }
+        });
+
+        document.getElementById('cancelRowEditBtn').addEventListener('click', () => {
+            addShortcutRowForm.reset();
+            document.getElementById('editingShortcutRowId').value = '';
+            document.getElementById('cancelRowEditBtn').style.display = 'none';
+        });
+
+        document.getElementById('cancelCardEditBtn').addEventListener('click', () => {
+            addCardToRowForm.reset();
+            document.getElementById('editingShortcutCardId').value = '';
+            document.getElementById('selectRowForCard').disabled = false;
+            document.getElementById('cancelCardEditBtn').style.display = 'none';
+            document.getElementById('addCardToRowForm').querySelector('button[type="submit"]').textContent = 'زیادکردنی کارت';
+        });
 
         const shortcutMainCatSelect = document.getElementById('shortcutCardMainCategory');
-        if (shortcutMainCatSelect) {
-            shortcutMainCatSelect.addEventListener('change', async (e) => {
-                const mainCatId = e.target.value;
-                const subContainer = document.getElementById('shortcutCardSubContainer');
-                const subSubContainer = document.getElementById('shortcutCardSubSubContainer');
-                const subSelect = document.getElementById('shortcutCardSubcategory');
-                const subSubSelect = document.getElementById('shortcutCardSubSubcategory');
+        shortcutMainCatSelect.addEventListener('change', async (e) => {
+            const mainCatId = e.target.value;
+            const subContainer = document.getElementById('shortcutCardSubContainer');
+            const subSubContainer = document.getElementById('shortcutCardSubSubContainer');
+            const subSelect = document.getElementById('shortcutCardSubcategory');
+            
+            subSubContainer.style.display = 'none';
+            subSelect.innerHTML = '';
+            
+            if (mainCatId) {
+                subContainer.style.display = 'block';
+                subSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
+                const subCatQuery = query(collection(db, "categories", mainCatId, "subcategories"), orderBy("order", "asc"));
+                const snapshot = await getDocs(subCatQuery);
+                subSelect.innerHTML = '<option value="">-- هەموو جۆرە لاوەکییەکان --</option>';
+                snapshot.forEach(doc => {
+                    const subcat = { id: doc.id, ...doc.data() };
+                    const option = document.createElement('option');
+                    option.value = subcat.id;
+                    option.textContent = subcat.name_ku_sorani;
+                    subSelect.appendChild(option);
+                });
+            } else {
+                subContainer.style.display = 'none';
+            }
+        });
 
-                // Reset sub and sub-sub
-                subSubContainer.style.display = 'none';
-                subSelect.innerHTML = '';
-                subSubSelect.innerHTML = '';
-
-                if (mainCatId) {
-                    subContainer.style.display = 'block';
-                    subSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
-                    try {
-                        const subCatQuery = query(collection(db, "categories", mainCatId, "subcategories"), orderBy("order", "asc"));
-                        const snapshot = await getDocs(subCatQuery);
-                        subSelect.innerHTML = '<option value="">-- هەموو جۆرە لاوەکییەکان --</option>'; // Default option
-                        snapshot.forEach(doc => {
-                            const subcat = { id: doc.id, ...doc.data() };
-                            const option = document.createElement('option');
-                            option.value = subcat.id;
-                            option.textContent = subcat.name_ku_sorani;
-                            subSelect.appendChild(option);
-                        });
-                    } catch (error) {
-                         console.error("Error loading subcategories for shortcut card form:", error);
-                         subSelect.innerHTML = '<option value="">-- هەڵە --</option>';
-                    }
-                } else {
-                    subContainer.style.display = 'none';
-                }
-            });
-        }
         const shortcutSubCatSelect = document.getElementById('shortcutCardSubcategory');
-        if (shortcutSubCatSelect) {
-            shortcutSubCatSelect.addEventListener('change', async(e) => {
-                const mainCatId = document.getElementById('shortcutCardMainCategory').value;
-                const subCatId = e.target.value;
-                const subSubContainer = document.getElementById('shortcutCardSubSubContainer');
-                const subSubSelect = document.getElementById('shortcutCardSubSubcategory');
+        shortcutSubCatSelect.addEventListener('change', async(e) => {
+            const mainCatId = document.getElementById('shortcutCardMainCategory').value;
+            const subCatId = e.target.value;
+            const subSubContainer = document.getElementById('shortcutCardSubSubContainer');
+            const subSubSelect = document.getElementById('shortcutCardSubSubcategory');
 
-                // Reset sub-sub
-                subSubSelect.innerHTML = '';
+            subSubSelect.innerHTML = '';
 
-                if(mainCatId && subCatId) {
-                    subSubContainer.style.display = 'block';
-                    subSubSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
-                    try {
-                        const subSubQuery = query(collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories"), orderBy("order", "asc"));
-                        const snapshot = await getDocs(subSubQuery);
-                        subSubSelect.innerHTML = '<option value="">-- هەموو جۆرەکان --</option>'; // Default option
-                        snapshot.forEach(doc => {
-                            const subSubCat = { id: doc.id, ...doc.data() };
-                            const option = document.createElement('option');
-                            option.value = subSubCat.id;
-                            option.textContent = subSubCat.name_ku_sorani;
-                            subSubSelect.appendChild(option);
-                        });
-                     } catch (error) {
-                         console.error("Error loading sub-subcategories for shortcut card form:", error);
-                         subSubSelect.innerHTML = '<option value="">-- هەڵە --</option>';
-                     }
+            if(mainCatId && subCatId) {
+                subSubContainer.style.display = 'block';
+                subSubSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
+                const subSubQuery = query(collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories"), orderBy("order", "asc"));
+                const snapshot = await getDocs(subSubQuery);
+                subSubSelect.innerHTML = '<option value="">-- هەموو جۆرەکان --</option>';
+                snapshot.forEach(doc => {
+                    const subSubCat = { id: doc.id, ...doc.data() };
+                    const option = document.createElement('option');
+                    option.value = subSubCat.id;
+                    option.textContent = subSubCat.name_ku_sorani;
+                    subSubSelect.appendChild(option);
+                });
 
-                } else {
-                    subSubContainer.style.display = 'none';
-                }
-            });
-        }
-        // --- END: Listenerên Nû ji bo Rêzên Shortcut ---
+            } else {
+                subSubContainer.style.display = 'none';
+            }
+        });
+        // END: Shortcut Rows & Cards Listeners
 
-        this.listenersAttached = true; // Nîşan bide ku listener hatine girêdan
+        this.listenersAttached = true;
     }
 };
-
-// Ger hewce be ku piştî barkirina DOM-ê dest pê bike (lê niha ji app-logic tê gazî kirin)
-// document.addEventListener('DOMContentLoaded', () => {
-//     if (sessionStorage.getItem('isAdmin') === 'true') {
-//         window.AdminLogic.initialize();
-//     }
-// });
