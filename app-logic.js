@@ -33,18 +33,15 @@ function debounce(func, delay = 500) {
     };
 }
 
-// <<-- START: فەنکشنی نوێ بۆ هەڵگرتنی شوێنی سکڕۆڵ
 function saveCurrentScrollPosition() {
     const currentState = history.state;
-    // تەنها شوێنی سکڕۆڵ هەڵبگرە ئەگەر لە پەڕەی سەرەکیدا بین و ستەیتەکە تایبەت نەبێت بە پۆپئەپ
     if (!document.getElementById('mainPage').classList.contains('page-hidden') && currentState && !currentState.type) {
         history.replaceState({ ...currentState, scroll: window.scrollY }, '');
     }
 }
-// <<-- END: فەنکشنی نوێ
 
 function showPage(pageId) {
-    saveCurrentScrollPosition(); // هەڵگرتنی سکڕۆڵ پێش گۆڕینی پەڕە
+    saveCurrentScrollPosition();
     document.querySelectorAll('.page').forEach(page => {
         page.classList.toggle('page-hidden', page.id !== pageId);
     });
@@ -65,7 +62,7 @@ function closeAllPopupsUI() {
 }
 
 function openPopup(id, type = 'sheet') {
-    saveCurrentScrollPosition(); // هەڵگرتنی سکڕۆڵ پێش کردنەوەی پۆپئەپ
+    saveCurrentScrollPosition();
     const element = document.getElementById(id);
     if (!element) return;
 
@@ -98,8 +95,6 @@ function closeCurrentPopup() {
     }
 }
 
-// === START: HISTORY AND STATE MANAGEMENT (UPDATED) ===
-
 async function applyFilterState(filterState, fromPopState = false) {
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
@@ -115,16 +110,13 @@ async function applyFilterState(filterState, fromPopState = false) {
     await searchProductsInFirestore(state.currentSearch, true);
 
     if (fromPopState && typeof filterState.scroll === 'number') {
-        // گەڕاندنەوەی شوێنی سکڕۆڵ کاتێک بەکارهێنەر دوگمەی 'گەڕانەوە'ی وێبگەڕ بەکاردەهێنێت
         setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
     } else if (!fromPopState) {
-        // گەڕاندنەوەی بۆ سەرەتا کاتێک فلتەرێکی نوێ چالاک دەکرێت
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
 async function navigateToFilter(newState) {
-    // هەڵگرتنی ستەیتی ئێستا لەگەڵ شوێنی سکڕۆڵ پێش گۆڕانکاری
     history.replaceState({
         category: state.currentCategory,
         subcategory: state.currentSubcategory,
@@ -157,7 +149,6 @@ window.addEventListener('popstate', (event) => {
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             openPopup(popState.id, popState.type);
         } else {
-            // کاتێک دەگەڕێیتەوە بۆ ستەیتی فلتەر، شوێنی سکڕۆڵەکەش بگەڕێنەرەوە
             applyFilterState(popState, true); 
         }
     } else {
@@ -201,8 +192,6 @@ function handleInitialPageLoad() {
         setTimeout(() => showProductDetails(productId), 500);
     }
 }
-// === END: HISTORY AND STATE MANAGEMENT (UPDATED) ===
-
 
 function t(key, replacements = {}) {
     let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
@@ -557,9 +546,9 @@ async function renderSubcategories(categoryId) {
             
             subcatBtn.onclick = async () => {
                  await navigateToFilter({
-                    subcategory: subcat.id,
-                    subSubcategory: 'all'
-                });
+                     subcategory: subcat.id,
+                     subSubcategory: 'all'
+                 });
             };
             subcategoriesContainer.appendChild(subcatBtn);
         });
@@ -769,7 +758,7 @@ function showProductDetailsWithData(product) {
             } catch (err) {
                 console.error('Share error:', err);
                 if (err.name !== 'AbortError') {
-                        showNotification(t('share_error'), 'error');
+                    showNotification(t('share_error'), 'error');
                 }
             }
         } else {
@@ -1239,41 +1228,73 @@ async function renderHomePageContent() {
         skeletonLoader.style.display = 'grid';
         homeSectionsContainer.innerHTML = '';
 
-        if (state.allPromoCards.length === 0) {
-            const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
-            const promoSnapshot = await getDocs(promoQuery);
-            state.allPromoCards = promoSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPromoCard: true }));
+        // ڕاکێشانی ڕیزبەندییەکە لە فایەربەیس
+        const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
+        const layoutSnapshot = await getDocs(layoutQuery);
+
+        if (layoutSnapshot.empty) {
+            console.warn("Home page layout is not configured. Admin needs to log in to create it.");
+            // ئەگەر ڕیزبەندییەکە نەبوو، بەشەکان بە شێوەی بنەڕەتی پیشان دەدەین
+            const elements = await Promise.all([
+                renderBrandsSection(),
+                renderNewestProductsSection(),
+                renderCategorySections(),
+                renderAllProductsSection()
+            ]);
+            elements.forEach(el => { if (el) homeSectionsContainer.appendChild(el); });
+            return; // Exit here after rendering default
         }
 
-        let promoGrid = null;
-        if (state.allPromoCards.length > 0) {
-            if (state.currentPromoCardIndex >= state.allPromoCards.length) state.currentPromoCardIndex = 0;
-            const promoCardElement = createPromoCardElement(state.allPromoCards[state.currentPromoCardIndex]);
-            promoGrid = document.createElement('div');
-            promoGrid.className = 'products-container';
-            promoGrid.style.marginBottom = '24px';
-            promoGrid.appendChild(promoCardElement);
-            startPromoRotation();
+        // بەپێی ڕیزبەندییەکەی ناو Firestore بەشەکان دادەنێین
+        for (const doc of layoutSnapshot.docs) {
+            const section = doc.data();
+            let sectionElement = null;
+
+            switch (section.type) {
+                case 'promo_slider':
+                    if (state.allPromoCards.length === 0) {
+                        const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
+                        const promoSnapshot = await getDocs(promoQuery);
+                        state.allPromoCards = promoSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPromoCard: true }));
+                    }
+                    if (state.allPromoCards.length > 0) {
+                        if (state.currentPromoCardIndex >= state.allPromoCards.length) state.currentPromoCardIndex = 0;
+                        const promoCardElement = createPromoCardElement(state.allPromoCards[state.currentPromoCardIndex]);
+                        const promoGrid = document.createElement('div');
+                        promoGrid.className = 'products-container';
+                        promoGrid.style.marginBottom = '24px';
+                        promoGrid.appendChild(promoCardElement);
+                        sectionElement = promoGrid;
+                        startPromoRotation();
+                    }
+                    break;
+                case 'brands':
+                    sectionElement = await renderBrandsSection();
+                    break;
+                case 'newest_products':
+                    sectionElement = await renderNewestProductsSection();
+                    break;
+                case 'shortcut_rows':
+                    sectionElement = await renderShortcutRows();
+                    break;
+                case 'category_rows':
+                    sectionElement = await renderCategorySections();
+                    break;
+                case 'all_products':
+                    sectionElement = await renderAllProductsSection();
+                    break;
+                default:
+                    console.warn(`Unknown home layout section type: ${section.type}`);
+            }
+
+            if (sectionElement) {
+                homeSectionsContainer.appendChild(sectionElement);
+            }
         }
-
-        const [brandsSection, newestSection, categorySections, shortcutRowsFragment, allProductsSection] = await Promise.all([
-            renderBrandsSection(),
-            renderNewestProductsSection(),
-            renderCategorySections(),
-            renderShortcutRows(),
-            renderAllProductsSection()
-        ]);
-
-        if (promoGrid) homeSectionsContainer.appendChild(promoGrid);
-        if (brandsSection) homeSectionsContainer.appendChild(brandsSection);
-        if (newestSection) homeSectionsContainer.appendChild(newestSection);
-        if (categorySections) homeSectionsContainer.appendChild(categorySections);
-        if (shortcutRowsFragment) homeSectionsContainer.appendChild(shortcutRowsFragment);
-        if (allProductsSection) homeSectionsContainer.appendChild(allProductsSection);
 
     } catch (error) {
         console.error("Error rendering home page content:", error);
-        homeSectionsContainer.innerHTML = `<p>هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
+        homeSectionsContainer.innerHTML = `<p style="text-align: center; padding: 20px;">هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
     } finally {
         skeletonLoader.style.display = 'none';
         state.isRenderingHomePage = false;
@@ -1980,7 +2001,7 @@ function initializeAppLogic() {
 
 Object.assign(window.globalAdminTools, {
     db, auth,
-    doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut,
+    doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit,
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
     productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
     

@@ -1,5 +1,3 @@
-/* @font-face rules for NRT are removed */
-
 :root {
     --primary-color: #1a365d;
     --primary-light: #2a4365;
@@ -20,7 +18,6 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    /* Guhertî: Vazirmatn êdî tê bikaranîn */
     font-family: 'Vazirmatn', sans-serif;
 }
 
@@ -29,7 +26,6 @@ body {
     color: var(--text-color);
     direction: rtl;
     overflow-x: hidden;
-    /* Piştrast be ku ev rêzik heye yan zêde bike: */
     font-family: 'Vazirmatn', sans-serif;
 }
 body.overlay-active {
@@ -85,17 +81,15 @@ body.overlay-active {
     border-left: none;
 }
 
-/* === START OF CHANGE === */
 .subcategories-container {
     display: flex;
-    flex-direction: row; /* Ensure horizontal layout */
-    flex-wrap: nowrap;    /* Prevent items from wrapping to the next line */
-    overflow-x: auto;   /* Allow horizontal scrolling */
+    flex-direction: row; 
+    flex-wrap: nowrap;   
+    overflow-x: auto;   
     gap: 8px;
     padding: 5px 12px 15px 12px;
     scrollbar-width: none;
 }
-/* === END OF CHANGE === */
 
 .subcategories-container::-webkit-scrollbar {
     display: none;
@@ -745,11 +739,11 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     flex: 1;
 }
 .social-link-item .item-details {
-     display: flex;
-     flex-direction: column;
-     align-items: flex-start;
-     gap: 3px;
-     overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 3px;
+      overflow: hidden;
 }
 .social-link-item .item-name {
     font-weight: bold;
@@ -1005,7 +999,6 @@ body, .bottom-nav-item, .product-card {
     white-space: nowrap;
 }
 
-/* START: ستایلە نوێیەکان بۆ کارتی میانبەر (دیزاینی کۆتایی) */
 .shortcut-cards-section {
     padding: 16px 0;
     background-color: var(--section-bg);
@@ -1071,9 +1064,6 @@ body, .bottom-nav-item, .product-card {
     text-overflow: ellipsis;
     width: 100%;
 }
-/* END: ستایلە نوێیەکان */
-
-/* START: ستایلە نوێیەکان بۆ وەسفی کاڵا */
 .sheet-actions {
     display: flex;
     justify-content: center;
@@ -1114,18 +1104,14 @@ body, .bottom-nav-item, .product-card {
 }
 
 #relatedProductsContainer .product-card {
-    width: 140px; /* Make cards a bit smaller in the sheet */
+    width: 140px; 
     flex-shrink: 0;
 }
-/* END: ستایلە نوێیەکان بۆ وەسفی کاڵا */
-
-/* START: Prevent Image Drag/Preview on Mobile */
 .product-image,
 #sheetImageContainer img,
 .subcategory-image,
 .brand-image-wrapper img,
 .shortcut-card-image {
-    -webkit-touch-callout: none; /* Disables the menu that appears when long-pressing */
-    -webkit-user-drag: none;     /* Disables dragging the image */
+    -webkit-touch-callout: none; 
+    -webkit-user-drag: none;   
 }
-/* END: Prevent Image Drag/Preview on Mobile */
