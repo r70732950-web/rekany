@@ -1,6 +1,6 @@
-// فایلی admin.js (تەواو و نوێکراوە)
+// فایلی admin.js (تەواو و نوێکراوەی کۆتایی)
 
-const {
+const { 
     db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, limit, where,
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
     productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
@@ -15,7 +15,7 @@ window.AdminLogic = {
 
     initialize: function() {
         console.log("Admin logic initialized.");
-        this.setupDefaultHomeLayout(); // ئۆتۆماتیکی ڕیزبەندی دروست دەکات ئەگەر نەبوو
+        this.setupDefaultHomeLayout();
         this.updateAdminUI(true);
         this.setupAdminEventListeners();
         this.loadPoliciesForAdmin();
@@ -65,7 +65,7 @@ window.AdminLogic = {
             console.log("`home_layout` collection already exists.");
         }
     },
-
+    
     updateAdminUI: function(isAdmin) {
         document.querySelectorAll('.product-actions').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
 
@@ -73,13 +73,13 @@ window.AdminLogic = {
             'adminPoliciesManagement', 'adminSocialMediaManagement', 'adminAnnouncementManagement',
             'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
             'adminContactMethodsManagement', 'adminShortcutRowsManagement',
-            'adminHomeLayoutManagement' // زیادکراوە
+            'adminHomeLayoutManagement'
         ];
         adminSections.forEach(id => {
             const section = document.getElementById(id);
             if (section) section.style.display = isAdmin ? 'block' : 'none';
         });
-
+        
         const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
         const settingsAdminLoginBtn = document.getElementById('settingsAdminLoginBtn');
         const addProductBtn = document.getElementById('addProductBtn');
@@ -789,10 +789,107 @@ window.AdminLogic = {
         });
     },
 
+    renderHomeLayoutAdmin: function() {
+        const container = document.getElementById('homeLayoutListContainer');
+        const layoutCollection = collection(db, 'home_layout');
+        const q = query(layoutCollection, orderBy("order", "asc"));
+
+        onSnapshot(q, (snapshot) => {
+            container.innerHTML = '';
+            if (snapshot.empty) {
+                container.innerHTML = '<p>چاوەڕێ بە بۆ دروستکردنی ڕیزبەندی...</p>';
+                return;
+            }
+
+            snapshot.forEach(doc => {
+                const item = { id: doc.id, ...doc.data() };
+                const itemElement = document.createElement('div');
+                itemElement.className = 'layout-item';
+                itemElement.dataset.id = item.id;
+                itemElement.draggable = true;
+
+                itemElement.innerHTML = `
+                    <div class="layout-item-info">
+                        <i class="fas fa-grip-vertical drag-handle"></i>
+                        <span>${item.name || item.type}</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" class="enabled-toggle" ${item.enabled ? 'checked' : ''}>
+                        <span class="slider"></span>
+                    </label>
+                `;
+                container.appendChild(itemElement);
+            });
+
+            const items = container.querySelectorAll('.layout-item');
+            items.forEach(item => {
+                item.addEventListener('dragstart', () => setTimeout(() => item.classList.add('dragging'), 0));
+                item.addEventListener('dragend', () => item.classList.remove('dragging'));
+            });
+
+            container.addEventListener('dragover', e => {
+                e.preventDefault();
+                const afterElement = this.getDragAfterElement(container, e.clientY);
+                const dragging = document.querySelector('.dragging');
+                if (afterElement == null) {
+                    container.appendChild(dragging);
+                } else {
+                    container.insertBefore(dragging, afterElement);
+                }
+            });
+        });
+    },
+
+    getDragAfterElement: function(container, y) {
+        const draggableElements = [...container.querySelectorAll('.layout-item:not(.dragging)')];
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    },
+
+    saveHomeLayout: async function() {
+        const container = document.getElementById('homeLayoutListContainer');
+        const saveBtn = document.getElementById('saveLayoutBtn');
+        const originalText = saveBtn.textContent;
+        saveBtn.disabled = true;
+        saveBtn.textContent = '...پاشەکەوت دەکرێت';
+
+        const items = container.querySelectorAll('.layout-item');
+        const updatePromises = [];
+
+        items.forEach((item, index) => {
+            const docId = item.dataset.id;
+            const isEnabled = item.querySelector('.enabled-toggle').checked;
+            const newOrder = index + 1;
+            
+            const docRef = doc(db, 'home_layout', docId);
+            updatePromises.push(updateDoc(docRef, { order: newOrder, enabled: isEnabled }));
+        });
+
+        try {
+            await Promise.all(updatePromises);
+            showNotification('ڕیزبەندی پەڕەی سەرەکی پاشەکەوت کرا', 'success');
+            clearProductCache();
+        } catch (error) {
+            console.error("Error saving layout:", error);
+            showNotification('هەڵەیەک لە پاشەکەوتکردن ڕوویدا', 'error');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = originalText;
+        }
+    },
+
     setupAdminEventListeners: function() {
         if (this.listenersAttached) return;
-
         const self = this;
+        
+        document.getElementById('saveLayoutBtn')?.addEventListener('click', () => self.saveHomeLayout());
 
         document.getElementById('addProductBtn').onclick = () => {
             setEditingProductId(null);
@@ -1476,11 +1573,6 @@ window.AdminLogic = {
                 subSubContainer.style.display = 'none';
             }
         });
-        
-        const saveLayoutBtn = document.getElementById('saveLayoutBtn');
-        if (saveLayoutBtn) {
-            saveLayoutBtn.addEventListener('click', () => self.saveHomeLayout());
-        }
 
         this.listenersAttached = true;
     }
