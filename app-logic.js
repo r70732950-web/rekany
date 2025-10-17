@@ -1081,7 +1081,6 @@ async function renderBrandsSection() {
     }
 }
 
-
 async function renderNewestProductsSection() {
     const container = document.createElement('div');
     container.className = 'dynamic-section';
@@ -1092,28 +1091,31 @@ async function renderNewestProductsSection() {
     title.textContent = t('newest_products');
     header.appendChild(title);
     container.appendChild(header);
-    const productsScroller = document.createElement('div');
-    productsScroller.className = 'horizontal-products-container';
-    container.appendChild(productsScroller);
-
+    
     try {
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
         const q = query(
             productsCollection,
             where('createdAt', '>=', fifteenDaysAgo),
-            orderBy('createdAt', 'desc')
+            orderBy('createdAt', 'desc'),
+            limit(10)
         );
         const snapshot = await getDocs(q);
+        
+        const productsScroller = document.createElement('div');
         if (snapshot.empty) {
-            return null;
+            productsScroller.innerHTML = `<p style="padding: 10px 12px; color: var(--dark-gray); font-size: 14px;">لەم ماوەیەدا هیچ کاڵایەکی نوێ زیاد نەکراوە.</p>`;
+        } else {
+            productsScroller.className = 'horizontal-products-container';
+            snapshot.forEach(doc => {
+                const product = { id: doc.id, ...doc.data() };
+                const card = createProductCardElement(product);
+                productsScroller.appendChild(card);
+            });
         }
-
-        snapshot.forEach(doc => {
-            const product = { id: doc.id, ...doc.data() };
-            const card = createProductCardElement(product);
-            productsScroller.appendChild(card);
-        });
+        container.appendChild(productsScroller);
         return container;
+
     } catch (error) {
         console.error("Error fetching newest products:", error);
         return null;
