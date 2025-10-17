@@ -884,7 +884,7 @@ window.AdminLogic = {
             saveBtn.textContent = originalText;
         }
     },
-
+    
     setupAdminEventListeners: function() {
         if (this.listenersAttached) return;
         const self = this;
@@ -1573,7 +1573,7 @@ window.AdminLogic = {
                 subSubContainer.style.display = 'none';
             }
         });
-
+        
         this.listenersAttached = true;
     }
 };
