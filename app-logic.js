@@ -1,7 +1,6 @@
-// BEŞÊ DUYEM: app-logic.js
+// BEŞÊ DUYEM: app-logic.js (کۆدی تەواو و نوێکراوە)
 // Fonksiyon û mentiqê serekî yê bernameyê
 
-// Importkirina sazkarîyan ji faylê yekem
 import {
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
@@ -200,7 +199,6 @@ function t(key, replacements = {}) {
     }
     return translation;
 }
-
 
 function setLanguage(lang) {
     state.currentLanguage = lang;
@@ -1122,6 +1120,7 @@ async function renderNewestProductsSection() {
     }
 }
 
+
 async function renderCategorySections() {
     const mainContainer = document.createElement('div');
     const categoriesToRender = state.categories.filter(cat => cat.id !== 'all');
@@ -1230,67 +1229,53 @@ async function renderHomePageContent() {
         skeletonLoader.style.display = 'grid';
         homeSectionsContainer.innerHTML = '';
 
-        // ڕاکێشانی ڕیزبەندییەکە لە فایەربەیس
         const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
         const layoutSnapshot = await getDocs(layoutQuery);
 
         if (layoutSnapshot.empty) {
-            console.warn("Home page layout is not configured. Admin needs to log in to create it.");
-            // ئەگەر ڕیزبەندییەکە نەبوو، بەشەکان بە شێوەی بنەڕەتی پیشان دەدەین
+            console.warn("Home page layout is not configured. Rendering a default layout.");
+            
             const elements = await Promise.all([
+                renderPromoCardsSectionForHome(),
                 renderBrandsSection(),
                 renderNewestProductsSection(),
+                renderShortcutRows(),
                 renderCategorySections(),
                 renderAllProductsSection()
             ]);
             elements.forEach(el => { if (el) homeSectionsContainer.appendChild(el); });
-            return; // Exit here after rendering default
-        }
 
-        // بەپێی ڕیزبەندییەکەی ناو Firestore بەشەکان دادەنێین
-        for (const doc of layoutSnapshot.docs) {
-            const section = doc.data();
-            let sectionElement = null;
+        } else {
+            for (const doc of layoutSnapshot.docs) {
+                const section = doc.data();
+                let sectionElement = null;
 
-            switch (section.type) {
-                case 'promo_slider':
-                    if (state.allPromoCards.length === 0) {
-                        const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
-                        const promoSnapshot = await getDocs(promoQuery);
-                        state.allPromoCards = promoSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPromoCard: true }));
-                    }
-                    if (state.allPromoCards.length > 0) {
-                        if (state.currentPromoCardIndex >= state.allPromoCards.length) state.currentPromoCardIndex = 0;
-                        const promoCardElement = createPromoCardElement(state.allPromoCards[state.currentPromoCardIndex]);
-                        const promoGrid = document.createElement('div');
-                        promoGrid.className = 'products-container';
-                        promoGrid.style.marginBottom = '24px';
-                        promoGrid.appendChild(promoCardElement);
-                        sectionElement = promoGrid;
-                        startPromoRotation();
-                    }
-                    break;
-                case 'brands':
-                    sectionElement = await renderBrandsSection();
-                    break;
-                case 'newest_products':
-                    sectionElement = await renderNewestProductsSection();
-                    break;
-                case 'shortcut_rows':
-                    sectionElement = await renderShortcutRows();
-                    break;
-                case 'category_rows':
-                    sectionElement = await renderCategorySections();
-                    break;
-                case 'all_products':
-                    sectionElement = await renderAllProductsSection();
-                    break;
-                default:
-                    console.warn(`Unknown home layout section type: ${section.type}`);
-            }
+                switch (section.type) {
+                    case 'promo_slider':
+                        sectionElement = await renderPromoCardsSectionForHome();
+                        break;
+                    case 'brands':
+                        sectionElement = await renderBrandsSection();
+                        break;
+                    case 'newest_products':
+                        sectionElement = await renderNewestProductsSection();
+                        break;
+                    case 'shortcut_rows':
+                        sectionElement = await renderShortcutRows();
+                        break;
+                    case 'category_rows':
+                        sectionElement = await renderCategorySections();
+                        break;
+                    case 'all_products':
+                        sectionElement = await renderAllProductsSection();
+                        break;
+                    default:
+                        console.warn(`Unknown home layout section type: ${section.type}`);
+                }
 
-            if (sectionElement) {
-                homeSectionsContainer.appendChild(sectionElement);
+                if (sectionElement) {
+                    homeSectionsContainer.appendChild(sectionElement);
+                }
             }
         }
 
@@ -1301,6 +1286,26 @@ async function renderHomePageContent() {
         skeletonLoader.style.display = 'none';
         state.isRenderingHomePage = false;
     }
+}
+
+async function renderPromoCardsSectionForHome() {
+    if (state.allPromoCards.length === 0) {
+        const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
+        const promoSnapshot = await getDocs(promoQuery);
+        state.allPromoCards = promoSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPromoCard: true }));
+    }
+
+    if (state.allPromoCards.length > 0) {
+        if (state.currentPromoCardIndex >= state.allPromoCards.length) state.currentPromoCardIndex = 0;
+        const promoCardElement = createPromoCardElement(state.allPromoCards[state.currentPromoCardIndex]);
+        const promoGrid = document.createElement('div');
+        promoGrid.className = 'products-container';
+        promoGrid.style.marginBottom = '24px';
+        promoGrid.appendChild(promoCardElement);
+        startPromoRotation();
+        return promoGrid;
+    }
+    return null;
 }
 
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
