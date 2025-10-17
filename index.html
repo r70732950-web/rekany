@@ -420,38 +420,179 @@
                     </div>
                 </div>
             </div>
-
-            <div class="settings-group" id="adminHomepageManager" style="display: none;">
-                <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
-                    <i class="fas fa-columns"></i> <span>بەڕێوەبردنی پەڕەی سەرەکی</span>
-                </h3>
             
+            <div class="settings-group" id="adminPromoCardsManagement" style="display: none;">
+                <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
+                    <i class="fas fa-bullhorn"></i> <span>بەڕێوەبردنی کارتە ڕێنماییەکان</span>
+                </h3>
                 <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
-                    <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی بەشی نوێ</h4>
-                    <form id="addHomepageSectionForm">
+                    <form id="addPromoCardForm">
+                        <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی کارتی نوێ</h4>
                         <div class="form-group">
-                            <label>جۆری بەش:</label>
-                            <select id="newSectionType" required>
+                            <label>لینکی وێنە (سۆرانی):</label>
+                            <input type="url" id="promoCardImageKuSorani" required>
+                        </div>
+                        <div class="form-group">
+                            <label>لینکی وێنە (بادینی):</label>
+                            <input type="url" id="promoCardImageKuBadini" required>
+                        </div>
+                        <div class="form-group">
+                            <label>لینکی وێنە (عربی):</label>
+                            <input type="url" id="promoCardImageAr" required>
+                        </div>
+                        <div class="form-group">
+                            <label>جۆری کاڵا کە لینک بکرێت بۆی:</label>
+                            <select id="promoCardTargetCategory" required>
                                 <option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>
-                                <option value="brands">براندەکان</option>
-                                <option value="newest_products">نوێترین کاڵاکان</option>
-                                <option value="special_offers">ئۆفەری تایبەت (دەستکرد)</option>
-                                <option value="shortcut_row">ڕیزی کارت (Shortcut Row)</option>
-                                <option value="category_row">ڕیزی کاڵا بەپێی جۆر</option>
                             </select>
                         </div>
-                        
-                        <div id="newSectionOptions"></div>
-                        
-                        <button type="submit" style="background-color: var(--primary-color);">زیادکردنی بەش</button>
+                        <div class="form-group">
+                            <label>ژمارەی ڕیزبەندی (بۆ پیشاندان لەناو کاڵاکان):</label>
+                            <input type="number" id="promoCardOrder" value="1" required>
+                            <small>ژمارەی بچووکتر لە پێشتر پیشان دەدرێت.</small>
+                        </div>
+                        <input type="hidden" id="editingPromoCardId">
+                        <button type="submit">پاشەکەوتکردن</button>
                     </form>
                 </div>
-            
                 <div style="padding: 15px;">
-                    <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">ڕێکخستنی بەشەکانی ئێستا</h4>
-                    <div id="homepageSectionsContainerAdmin">
-                        <p>...خەریکی بارکردنی بەشەکانە</p>
-                    </div>
+                    <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">کارتە زیادکراوەکان</h4>
+                    <div id="promoCardsListContainer"></div>
+                </div>
+            </div>
+
+            <div class="settings-group" id="adminBrandsManagement" style="display: none;">
+                <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
+                    <i class="fas fa-tags"></i> <span>بەڕێوەبردنی براند/جۆرە تایبەتەکان</span>
+                </h3>
+                <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
+                    <form id="addBrandForm">
+                        <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی براندی نوێ</h4>
+                        <div class="form-group">
+                            <label>ناوی براند (سۆرانی):</label>
+                            <input type="text" id="brandNameKuSorani" required>
+                        </div>
+                        <div class="form-group">
+                            <label>ناوی براند (بادینی):</label>
+                            <input type="text" id="brandNameKuBadini" required>
+                        </div>
+                        <div class="form-group">
+                            <label>اسم العلامة التجارية (عربي):</label>
+                            <input type="text" id="brandNameAr" required>
+                        </div>
+                        <div class="form-group">
+                            <label>لینکی وێنە (پێویستە بازنەیی یان PNG بێت):</label>
+                            <input type="url" id="brandImageUrl" required>
+                        </div>
+                        <div class="form-group">
+                            <label>لینک بکرێت بۆ کام جۆری سەرەکی:</label>
+                            <select id="brandTargetMainCategory">
+                                <option value="" selected>-- هەموو جۆرەکان --</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="brandSubcategoryContainer" style="display: none;">
+                            <label>لینک بکرێت بۆ کام جۆری لاوەکی:</label>
+                            <select id="brandTargetSubcategory">
+                                <option value="">-- هەموو لاوەکییەکان --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>ژمارەی ڕیزبەندی:</label>
+                            <input type="number" id="brandOrder" value="10" required>
+                        </div>
+                        <input type="hidden" id="editingBrandId">
+                        <button type="submit">پاشەکەوتکردن</button>
+                    </form>
+                </div>
+                <div style="padding: 15px;">
+                    <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">براندە زیادکراوەکان</h4>
+                    <div id="brandsListContainer"></div>
+                </div>
+            </div>
+            
+            <div class="settings-group" id="adminShortcutRowsManagement" style="display: none;">
+                <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
+                    <i class="fas fa-layer-group"></i> <span>بەڕێوەبردنی ڕیزی کارتەکان</span>
+                </h3>
+                
+                <div style="padding: 15px; border-bottom: 1px solid var(--section-border); background-color: #f8f9fa;">
+                    <form id="addShortcutRowForm">
+                        <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردن/دەستکاریکردنی ڕیز</h4>
+                        <div class="form-group">
+                            <label>ناونیشانی ڕیز (سۆرانی):</label>
+                            <input type="text" id="shortcutRowTitleKuSorani" required>
+                        </div>
+                        <div class="form-group">
+                            <label>ناونیشانی ڕیز (بادینی):</label>
+                            <input type="text" id="shortcutRowTitleKuBadini" required>
+                        </div>
+                        <div class="form-group">
+                            <label>عنوان الصف (عربي):</label>
+                            <input type="text" id="shortcutRowTitleAr" required>
+                        </div>
+                        <div class="form-group">
+                            <label>ژمارەی ڕیزبەندی ڕیز:</label>
+                            <input type="number" id="shortcutRowOrder" value="10" required>
+                        </div>
+                        <input type="hidden" id="editingShortcutRowId">
+                        <button type="submit">پاشەکەوتکردنی ڕیز</button>
+                        <button type="button" id="cancelRowEditBtn" style="display:none; margin-top: 8px; background-color: var(--dark-gray);">پاشگەزبوونەوە</button>
+                    </form>
+                </div>
+
+                <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
+                    <form id="addCardToRowForm">
+                        <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی کارت بۆ ڕیز</h4>
+                        <div class="form-group">
+                            <label>ڕیزێک هەڵبژێرە:</label>
+                            <select id="selectRowForCard" required>
+                                <option value="" disabled selected>-- سەرەتا ڕیزێک هەڵبژێرە --</option>
+                            </select>
+                        </div>
+                        <hr>
+                        <div class="form-group">
+                            <label>ناوی کارت (سۆرانی):</label>
+                            <input type="text" id="shortcutCardNameKuSorani" required>
+                        </div>
+                        <div class="form-group">
+                            <label>ناوی کارت (بادینی):</label>
+                            <input type="text" id="shortcutCardNameKuBadini" required>
+                        </div>
+                        <div class="form-group">
+                            <label>اسم البطاقة (عربي):</label>
+                            <input type="text" id="shortcutCardNameAr" required>
+                        </div>
+                         <div class="form-group">
+                            <label>لینکی وێنەی کارت:</label>
+                            <input type="url" id="shortcutCardImageUrl" required>
+                        </div>
+                         <div class="form-group">
+                            <label>جۆری سەرەکی:</label>
+                            <select id="shortcutCardMainCategory">
+                                <option value="">-- هەموو کاڵاکان --</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="shortcutCardSubContainer" style="display: none;">
+                            <label>جۆری لاوەکی:</label>
+                            <select id="shortcutCardSubcategory"></select>
+                        </div>
+                         <div class="form-group" id="shortcutCardSubSubContainer" style="display: none;">
+                            <label>جۆری لاوەکی لاوەکی:</label>
+                            <select id="shortcutCardSubSubcategory"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>ژمارەی ڕیزبەندی کارت:</label>
+                            <input type="number" id="shortcutCardOrder" value="10" required>
+                        </div>
+                        <input type="hidden" id="editingShortcutCardId">
+                        <button type="submit">زیادکردنی کارت</button>
+                         <button type="button" id="cancelCardEditBtn" style="display:none; margin-top: 8px; background-color: var(--dark-gray);">پاشگەزبوونەوە</button>
+                    </form>
+                </div>
+
+                <div style="padding: 15px;">
+                    <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">ڕیزە زیادکراوەکان</h4>
+                    <div id="shortcutRowsListContainer"></div>
                 </div>
             </div>
             <div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
