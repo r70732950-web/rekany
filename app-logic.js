@@ -966,7 +966,7 @@ function renderProducts() {
 
 // ===== ALL NEW FUNCTIONS FOR DYNAMIC HOME PAGE =====
 
-async function renderSingleShortcutRow(rowId, sectionName) {
+async function renderSingleShortcutRow(rowId, sectionNameObj) {
     const sectionContainer = document.createElement('div');
     sectionContainer.className = 'shortcut-cards-section';
     
@@ -975,7 +975,7 @@ async function renderSingleShortcutRow(rowId, sectionName) {
         if (!rowDoc.exists()) return null;
 
         const rowData = { id: rowDoc.id, ...rowDoc.data() };
-        const rowTitle = sectionName || rowData.title[state.currentLanguage] || rowData.title.ku_sorani;
+        const rowTitle = sectionNameObj[state.currentLanguage] || rowData.title[state.currentLanguage] || rowData.title.ku_sorani;
 
         const titleElement = document.createElement('h3');
         titleElement.className = 'shortcut-row-title';
@@ -1023,7 +1023,7 @@ async function renderSingleShortcutRow(rowId, sectionName) {
     }
 }
 
-async function renderSingleCategoryRow(categoryId, sectionName) {
+async function renderSingleCategoryRow(categoryId, sectionNameObj) {
     const category = state.categories.find(c => c.id === categoryId);
     if (!category) return null;
 
@@ -1034,7 +1034,7 @@ async function renderSingleCategoryRow(categoryId, sectionName) {
 
     const title = document.createElement('h3');
     title.className = 'section-title-main';
-    const categoryName = sectionName || category['name_' + state.currentLanguage] || category.name_ku_sorani;
+    const categoryName = sectionNameObj[state.currentLanguage] || category['name_' + state.currentLanguage] || category.name_ku_sorani;
     title.innerHTML = `<i class="${category.icon}"></i> ${categoryName}`;
     header.appendChild(title);
 
@@ -1403,7 +1403,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         renderProducts();
 
         if (state.products.length === 0 && isNewSearch) {
-            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ కాڵایەک نەدۆزرایەوە.</p>';
+            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         }
 
     } catch (error) {

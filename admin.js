@@ -1,4 +1,4 @@
-// فایلی admin.js (تەواو و نوێکراوەی کۆتایی)
+// فایلی admin.js (تەواو و نوێکراوە بۆ سیستەمی پێشکەوتووی ڕیزبەندی)
 
 const { 
     db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, limit, where,
@@ -15,7 +15,7 @@ window.AdminLogic = {
 
     initialize: function() {
         console.log("Admin logic initialized.");
-        this.setupDefaultHomeLayout();
+        this.migrateAndSetupDefaultHomeLayout();
         this.updateAdminUI(true);
         this.setupAdminEventListeners();
         this.loadPoliciesForAdmin();
@@ -36,34 +36,44 @@ window.AdminLogic = {
         this.updateAdminUI(false);
     },
 
-    setupDefaultHomeLayout: async function() {
+    migrateAndSetupDefaultHomeLayout: async function() {
         const layoutCollectionRef = collection(db, 'home_layout');
-        const q = query(layoutCollectionRef, limit(1));
-        const snapshot = await getDocs(q);
-
+        const snapshot = await getDocs(query(layoutCollectionRef, limit(1)));
+    
         if (snapshot.empty) {
-            console.log("`home_layout` collection not found. Creating default layout...");
-            showNotification('دروستکردنی ڕیزبەندی بنەڕەتی بۆ یەکەمجار...', 'success');
-
-            const defaultLayout = [
-                { name: 'کارتی ڕیکلام (سلایدەر)', order: 1, type: 'promo_slider', enabled: true },
-                { name: 'بەشی براندەکان', order: 2, type: 'brands', enabled: true },
-                { name: 'نوێترین کاڵاکان', order: 3, type: 'newest_products', enabled: true },
-                { name: 'ڕیزی کارتی کورتکراوە', order: 4, type: 'shortcut_rows', enabled: true },
-                { name: 'ڕیزی جۆرەکان', order: 5, type: 'category_rows', enabled: true },
-                { name: 'هەموو کاڵاکان', order: 6, type: 'all_products', enabled: true }
-            ];
-
-            try {
-                const addPromises = defaultLayout.map(item => addDoc(layoutCollectionRef, item));
-                await Promise.all(addPromises);
-                console.log("Default home layout created successfully in Firestore.");
-            } catch (error) {
-                console.error("Error creating default home layout:", error);
-            }
-        } else {
-            console.log("`home_layout` collection already exists.");
+            console.log("`home_layout` collection is empty. Creating default layout.");
+            await this.createDefaultHomeLayout(layoutCollectionRef);
+            return;
         }
+    
+        const firstDocData = snapshot.docs[0].data();
+        const isOldStructure = typeof firstDocData.name === 'string' || !firstDocData.hasOwnProperty('name');
+    
+        if (isOldStructure) {
+            console.warn("Old home_layout structure detected. Migrating to new structure...");
+            showNotification('خەریکی نوێکردنەوەی سیستەمی ڕیزبەندییە...', 'success');
+            
+            const allDocsSnapshot = await getDocs(layoutCollectionRef);
+            const deletePromises = allDocsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+            await Promise.all(deletePromises);
+            console.log("Old layout deleted.");
+    
+            await this.createDefaultHomeLayout(layoutCollectionRef);
+            console.log("New default layout created after migration.");
+        } else {
+            console.log("`home_layout` structure is up to date.");
+        }
+    },
+
+    createDefaultHomeLayout: async function(collectionRef) {
+        const defaultLayout = [
+            { name: { ku_sorani: 'سلایدەری ڕێکلام', ku_badini: 'سلایدەرێ ڕێکلاما', ar: 'سلايدر الإعلانات' }, order: 1, type: 'promo_slider', enabled: true },
+            { name: { ku_sorani: 'بەشی براندەکان', ku_badini: 'پشکا براندا', ar: 'قسم الماركات' }, order: 2, type: 'brands', enabled: true },
+            { name: { ku_sorani: 'نوێترین کاڵاکان', ku_badini: 'نووترین کاڵا', ar: 'أحدث المنتجات' }, order: 3, type: 'newest_products', enabled: true },
+            { name: { ku_sorani: 'هەموو کاڵاکان', ku_badini: 'هەمی کاڵا', ar: 'كل المنتجات' }, order: 4, type: 'all_products', enabled: true }
+        ];
+        const addPromises = defaultLayout.map(item => addDoc(collectionRef, item));
+        await Promise.all(addPromises);
     },
     
     updateAdminUI: function(isAdmin) {
@@ -789,7 +799,6 @@ window.AdminLogic = {
         });
     },
 
-    // ===== NEW AND UPDATED FUNCTIONS FOR HOME LAYOUT =====
     renderHomeLayoutAdmin: function() {
         const container = document.getElementById('homeLayoutListContainer');
         const layoutCollection = collection(db, 'home_layout');
@@ -809,10 +818,12 @@ window.AdminLogic = {
                 itemElement.dataset.id = item.id;
                 itemElement.draggable = true;
 
+                const itemName = (item.name && typeof item.name === 'object') ? (item.name[getCurrentLanguage()] || item.name.ku_sorani) : item.name;
+
                 itemElement.innerHTML = `
                     <div class="layout-item-info">
                         <i class="fas fa-grip-vertical drag-handle"></i>
-                        <span>${item.name}</span>
+                        <span>${itemName}</span>
                     </div>
                     <div class="layout-item-actions">
                         <label class="switch">
@@ -937,14 +948,15 @@ window.AdminLogic = {
                     const snapshot = await getDocs(query(shortcutRowsCollection, orderBy('title.ku_sorani')));
                     select.innerHTML = '<option value="" disabled selected>-- ڕیزێک هەڵبژێرە --</option>';
                     snapshot.forEach(doc => {
-                        select.innerHTML += `<option value="${doc.id}">${doc.data().title.ku_sorani}</option>`;
+                        const row = doc.data();
+                        select.innerHTML += `<option value="${doc.id}" data-name-ku-sorani="${row.title.ku_sorani}" data-name-ku-badini="${row.title.ku_badini}" data-name-ar="${row.title.ar}">${row.title.ku_sorani}</option>`;
                     });
                 } else { // single_category_row
                     label.textContent = 'کام جۆری کاڵا؟';
                     const categories = getCategories().filter(c => c.id !== 'all');
                     select.innerHTML = '<option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>';
                     categories.forEach(cat => {
-                        select.innerHTML += `<option value="${cat.id}">${cat.name_ku_sorani}</option>`;
+                        select.innerHTML += `<option value="${cat.id}" data-name-ku-sorani="${cat.name_ku_sorani}" data-name-ku-badini="${cat.name_ku_badini}" data-name-ar="${cat.name_ar}">${cat.name_ku_sorani}</option>`;
                     });
                 }
             } else {
@@ -956,11 +968,25 @@ window.AdminLogic = {
             e.preventDefault();
             const type = document.getElementById('newSectionType').value;
             const name = document.getElementById('newSectionName').value;
-            const specificId = document.getElementById('specificItemId').value;
+            const specificItemId = document.getElementById('specificItemId');
+            
+            const selectedOption = specificItemId.options[specificItemId.selectedIndex];
 
-            if ((type === 'single_shortcut_row' || type === 'single_category_row') && !specificId) {
+            if ((type === 'single_shortcut_row' || type === 'single_category_row') && !specificItemId.value) {
                 showNotification('تکایە بەشێکی دیاریکراو هەڵبژێرە', 'error');
                 return;
+            }
+
+            const sectionNameObject = {
+                ku_sorani: name,
+                ku_badini: name,
+                ar: name
+            };
+        
+            if ((type === 'single_shortcut_row' || type === 'single_category_row') && selectedOption) {
+                sectionNameObject.ku_sorani = selectedOption.dataset.nameKuSorani || name;
+                sectionNameObject.ku_badini = selectedOption.dataset.nameKuBadini || name;
+                sectionNameObject.ar = selectedOption.dataset.nameAr || name;
             }
 
             try {
@@ -970,16 +996,16 @@ window.AdminLogic = {
                 const lastOrder = lastDocSnap.empty ? 0 : lastDocSnap.docs[0].data().order;
                 
                 const newSectionData = {
-                    name,
+                    name: sectionNameObject,
                     type,
                     order: lastOrder + 1,
                     enabled: true
                 };
 
                 if (type === 'single_shortcut_row') {
-                    newSectionData.rowId = specificId;
+                    newSectionData.rowId = specificItemId.value;
                 } else if (type === 'single_category_row') {
-                    newSectionData.categoryId = specificId;
+                    newSectionData.categoryId = specificItemId.value;
                 }
 
                 await addDoc(layoutCollectionRef, newSectionData);
@@ -991,7 +1017,7 @@ window.AdminLogic = {
                 showNotification('هەڵەیەک ڕوویدا', 'error');
             }
         });
-        
+
         document.getElementById('addProductBtn').onclick = () => {
             setEditingProductId(null);
             document.getElementById('productForm').reset();
@@ -1095,7 +1121,8 @@ window.AdminLogic = {
                 }
             }
         });
-
+        
+        // --- The rest of the event listeners ---
         const addCategoryForm = document.getElementById('addCategoryForm');
         if (addCategoryForm) {
             addCategoryForm.addEventListener('submit', async (e) => {
