@@ -1,4 +1,4 @@
-// BEŞÊ DUYEM: app-logic.js (کۆدی تەواو و نوێکراوە)
+// BEŞÊ DUYEM: app-logic.js (کۆدی تەواو و نوێکراوە بۆ سیستەمی پێشکەوتوو)
 // Fonksiyon û mentiqê serekî yê bernameyê
 
 import {
@@ -964,72 +964,122 @@ function renderProducts() {
     setupScrollAnimations();
 }
 
-async function renderShortcutRows() {
-    const mainContainer = document.createDocumentFragment();
+// ===== ALL NEW FUNCTIONS FOR DYNAMIC HOME PAGE =====
 
+async function renderSingleShortcutRow(rowId, sectionName) {
+    const sectionContainer = document.createElement('div');
+    sectionContainer.className = 'shortcut-cards-section';
+    
     try {
-        const shortcutRowsCollection = collection(db, "shortcut_rows");
-        const rowsQuery = query(shortcutRowsCollection, orderBy("order", "asc"));
-        const rowsSnapshot = await getDocs(rowsQuery);
+        const rowDoc = await getDoc(doc(db, "shortcut_rows", rowId));
+        if (!rowDoc.exists()) return null;
 
-        if (rowsSnapshot.empty) {
-            return null;
+        const rowData = { id: rowDoc.id, ...rowDoc.data() };
+        const rowTitle = sectionName || rowData.title[state.currentLanguage] || rowData.title.ku_sorani;
+
+        const titleElement = document.createElement('h3');
+        titleElement.className = 'shortcut-row-title';
+        titleElement.textContent = rowTitle;
+        sectionContainer.appendChild(titleElement);
+
+        const cardsContainer = document.createElement('div');
+        cardsContainer.className = 'shortcut-cards-container';
+        sectionContainer.appendChild(cardsContainer);
+
+        const cardsCollectionRef = collection(db, "shortcut_rows", rowData.id, "cards");
+        const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
+        const cardsSnapshot = await getDocs(cardsQuery);
+
+        if (cardsSnapshot.empty) {
+            return null; // Don't render empty rows
         }
-        
-        for (const rowDoc of rowsSnapshot.docs) {
-            const rowData = { id: rowDoc.id, ...rowDoc.data() };
-            const rowTitle = rowData.title[state.currentLanguage] || rowData.title.ku_sorani;
-            
-            const cardsCollectionRef = collection(db, "shortcut_rows", rowData.id, "cards");
-            const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
-            const cardsSnapshot = await getDocs(cardsQuery);
 
-            if (!cardsSnapshot.empty) {
-                const sectionContainer = document.createElement('div');
-                sectionContainer.className = 'shortcut-cards-section';
-                
-                const titleElement = document.createElement('h3');
-                titleElement.className = 'shortcut-row-title';
-                titleElement.textContent = rowTitle;
-                sectionContainer.appendChild(titleElement);
-                
-                const cardsContainer = document.createElement('div');
-                cardsContainer.className = 'shortcut-cards-container';
-                sectionContainer.appendChild(cardsContainer);
+        cardsSnapshot.forEach(cardDoc => {
+            const cardData = cardDoc.data();
+            const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
 
-                cardsSnapshot.forEach(cardDoc => {
-                    const cardData = cardDoc.data();
-                    const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
+            const item = document.createElement('div');
+            item.className = 'shortcut-card';
+            item.innerHTML = `
+                <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
+                <div class="shortcut-card-name">${cardName}</div>
+            `;
 
-                    const item = document.createElement('div');
-                    item.className = 'shortcut-card';
-                    item.innerHTML = `
-                        <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
-                        <div class="shortcut-card-name">${cardName}</div>
-                    `;
-
-                    item.onclick = async () => {
-                        await navigateToFilter({
-                            category: cardData.categoryId || 'all',
-                            subcategory: cardData.subcategoryId || 'all',
-                            subSubcategory: cardData.subSubcategoryId || 'all',
-                            search: ''
-                        });
-                    };
-                    cardsContainer.appendChild(item);
+            item.onclick = async () => {
+                await navigateToFilter({
+                    category: cardData.categoryId || 'all',
+                    subcategory: cardData.subcategoryId || 'all',
+                    subSubcategory: cardData.subSubcategoryId || 'all',
+                    search: ''
                 });
-                
-                mainContainer.appendChild(sectionContainer);
-            }
-        }
-        
-        return mainContainer;
+            };
+            cardsContainer.appendChild(item);
+        });
 
+        return sectionContainer;
     } catch (error) {
-        console.error("Error fetching shortcut rows:", error);
+        console.error("Error rendering single shortcut row:", error);
         return null;
     }
 }
+
+async function renderSingleCategoryRow(categoryId, sectionName) {
+    const category = state.categories.find(c => c.id === categoryId);
+    if (!category) return null;
+
+    const container = document.createElement('div');
+    container.className = 'dynamic-section';
+    const header = document.createElement('div');
+    header.className = 'section-title-header';
+
+    const title = document.createElement('h3');
+    title.className = 'section-title-main';
+    const categoryName = sectionName || category['name_' + state.currentLanguage] || category.name_ku_sorani;
+    title.innerHTML = `<i class="${category.icon}"></i> ${categoryName}`;
+    header.appendChild(title);
+
+    const seeAllLink = document.createElement('a');
+    seeAllLink.className = 'see-all-link';
+    seeAllLink.textContent = t('see_all');
+    seeAllLink.onclick = async () => {
+        await navigateToFilter({
+            category: category.id,
+            subcategory: 'all',
+            subSubcategory: 'all',
+            search: ''
+        });
+    };
+    header.appendChild(seeAllLink);
+    container.appendChild(header);
+
+    const productsScroller = document.createElement('div');
+    productsScroller.className = 'horizontal-products-container';
+    container.appendChild(productsScroller);
+
+    try {
+        const q = query(
+            productsCollection,
+            where('categoryId', '==', categoryId),
+            orderBy('createdAt', 'desc'),
+            limit(10)
+        );
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) {
+            return null; // Don't render empty sections
+        }
+
+        snapshot.forEach(doc => {
+            const product = { id: doc.id, ...doc.data() };
+            const card = createProductCardElement(product);
+            productsScroller.appendChild(card);
+        });
+        return container;
+    } catch (error) {
+        console.error(`Error fetching products for single category row ${categoryId}:`, error);
+        return null;
+    }
+}
+
 
 async function renderBrandsSection() {
     const sectionContainer = document.createElement('div');
@@ -1102,7 +1152,7 @@ async function renderNewestProductsSection() {
         
         const productsScroller = document.createElement('div');
         if (snapshot.empty) {
-            productsScroller.innerHTML = `<p style="padding: 10px 12px; color: var(--dark-gray); font-size: 14px;">لەم ماوەیەدا هیچ کاڵایەکی نوێ زیاد نەکراوە.</p>`;
+            return null; // Do not render if there are no new products
         } else {
             productsScroller.className = 'horizontal-products-container';
             snapshot.forEach(doc => {
@@ -1118,67 +1168,6 @@ async function renderNewestProductsSection() {
         console.error("Error fetching newest products:", error);
         return null;
     }
-}
-
-
-async function renderCategorySections() {
-    const mainContainer = document.createElement('div');
-    const categoriesToRender = state.categories.filter(cat => cat.id !== 'all');
-    categoriesToRender.sort((a, b) => (a.order || 99) - (b.order || 99));
-
-    for (const category of categoriesToRender) {
-        const sectionContainer = document.createElement('div');
-        sectionContainer.className = 'dynamic-section';
-
-        const header = document.createElement('div');
-        header.className = 'section-title-header';
-
-        const title = document.createElement('h3');
-        title.className = 'section-title-main';
-        const categoryName = category['name_' + state.currentLanguage] || category.name_ku_sorani;
-        title.innerHTML = `<i class="${category.icon}"></i> ${categoryName}`;
-        header.appendChild(title);
-
-        const seeAllLink = document.createElement('a');
-        seeAllLink.className = 'see-all-link';
-        seeAllLink.textContent = t('see_all');
-        seeAllLink.onclick = async () => {
-             await navigateToFilter({
-                category: category.id,
-                subcategory: 'all',
-                subSubcategory: 'all',
-                search: ''
-            });
-        };
-        header.appendChild(seeAllLink);
-
-        sectionContainer.appendChild(header);
-
-        const productsScroller = document.createElement('div');
-        productsScroller.className = 'horizontal-products-container';
-        sectionContainer.appendChild(productsScroller);
-
-        try {
-            const q = query(
-                productsCollection,
-                where('categoryId', '==', category.id),
-                orderBy('createdAt', 'desc'),
-                limit(10)
-            );
-            const snapshot = await getDocs(q);
-            if (!snapshot.empty) {
-                snapshot.forEach(doc => {
-                    const product = { id: doc.id, ...doc.data() };
-                    const card = createProductCardElement(product);
-                    productsScroller.appendChild(card);
-                });
-                mainContainer.appendChild(sectionContainer);
-            }
-        } catch (error) {
-            console.error(`Error fetching products for category ${category.id}:`, error);
-        }
-    }
-    return mainContainer;
 }
 
 async function renderAllProductsSection() {
@@ -1218,9 +1207,7 @@ async function renderAllProductsSection() {
 }
 
 async function renderHomePageContent() {
-    if (state.isRenderingHomePage) {
-        return;
-    }
+    if (state.isRenderingHomePage) return;
     state.isRenderingHomePage = true;
 
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
@@ -1233,18 +1220,7 @@ async function renderHomePageContent() {
         const layoutSnapshot = await getDocs(layoutQuery);
 
         if (layoutSnapshot.empty) {
-            console.warn("Home page layout is not configured. Rendering a default layout.");
-            
-            const elements = await Promise.all([
-                renderPromoCardsSectionForHome(),
-                renderBrandsSection(),
-                renderNewestProductsSection(),
-                renderShortcutRows(),
-                renderCategorySections(),
-                renderAllProductsSection()
-            ]);
-            elements.forEach(el => { if (el) homeSectionsContainer.appendChild(el); });
-
+            console.warn("Home page layout is not configured or all sections are disabled.");
         } else {
             for (const doc of layoutSnapshot.docs) {
                 const section = doc.data();
@@ -1260,11 +1236,15 @@ async function renderHomePageContent() {
                     case 'newest_products':
                         sectionElement = await renderNewestProductsSection();
                         break;
-                    case 'shortcut_rows':
-                        sectionElement = await renderShortcutRows();
+                    case 'single_shortcut_row':
+                        if (section.rowId) {
+                            sectionElement = await renderSingleShortcutRow(section.rowId, section.name);
+                        }
                         break;
-                    case 'category_rows':
-                        sectionElement = await renderCategorySections();
+                    case 'single_category_row':
+                        if (section.categoryId) {
+                            sectionElement = await renderSingleCategoryRow(section.categoryId, section.name);
+                        }
                         break;
                     case 'all_products':
                         sectionElement = await renderAllProductsSection();
@@ -1278,7 +1258,6 @@ async function renderHomePageContent() {
                 }
             }
         }
-
     } catch (error) {
         console.error("Error rendering home page content:", error);
         homeSectionsContainer.innerHTML = `<p style="text-align: center; padding: 20px;">هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
@@ -1287,6 +1266,7 @@ async function renderHomePageContent() {
         state.isRenderingHomePage = false;
     }
 }
+
 
 async function renderPromoCardsSectionForHome() {
     if (state.allPromoCards.length === 0) {
@@ -1307,6 +1287,8 @@ async function renderPromoCardsSectionForHome() {
     }
     return null;
 }
+
+// ===== END OF NEW FUNCTIONS =====
 
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');

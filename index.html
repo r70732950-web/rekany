@@ -602,21 +602,23 @@
                     <div id="shortcutRowsListContainer"></div>
                 </div>
             </div>
-            
+
             <div class="settings-group" id="adminHomeLayoutManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
-                    <i class="fas fa-stream"></i> <span>ڕێکخستنی ڕیزبەندی پەڕەی سەرەki</span>
+                    <i class="fas fa-stream"></i> <span>ڕێکخستنی پەڕەی سەرەکی</span>
                 </h3>
                 <div style="padding: 15px;">
-                    <p style="margin-bottom: 10px; color: var(--text-light); font-size: 14px;">
-                        لێرە دەتوانیت ڕیزبەندی بەشەکانی ناو پەڕەی سەرەکی بگۆڕیت بە ڕاکێشان و دانان (Drag & Drop). هەروەها دەتوانیت هەر بەشێک چالاک یان ناچالاک بکەیت.
-                    </p>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <p style="margin: 0; color: var(--text-light); font-size: 14px;">
+                            ڕیزبەندی بەشەکان بگۆڕە و بەشی نوێ زیاد بکە.
+                        </p>
+                        <button id="addHomeSectionBtn" class="add-section-btn"><i class="fas fa-plus"></i> زیادکردنی بەش</button>
+                    </div>
                     <div id="homeLayoutListContainer" class="layout-list-container">
                         </div>
                     <button id="saveLayoutBtn" style="margin-top: 15px; background-color: var(--primary-color);">پاشەکەوتکردنی ڕیزبەندی</button>
                 </div>
             </div>
-
             <div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;"><i class="fas fa-paper-plane"></i> <span data-translate-key="manage_contact_methods_title">بەڕێوەبردنی شێوازەکانی ناردنی داواکاری</span></h3>
 
@@ -760,6 +762,35 @@
 
         <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
 
+        <div id="addHomeSectionModal" class="modal">
+            <div class="modal-content">
+                <span class="close" aria-label="Close">&times;</span>
+                <h2 style="text-align: center; margin-bottom: 18px;">زیادکردنی بەشی نوێ</h2>
+                <form id="addHomeSectionForm">
+                    <div class="form-group">
+                        <label for="newSectionType">جۆری بەش:</label>
+                        <select id="newSectionType" required>
+                            <option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>
+                            <option value="promo_slider">سلایدەری ڕێکلام</option>
+                            <option value="brands">بەشی براندەکان</option>
+                            <option value="newest_products">نوێترین کاڵاکان</option>
+                            <option value="single_shortcut_row">یەک ڕیزی کارتی کورتکراوە</option>
+                            <option value="single_category_row">یەک ڕیزی کاڵای جۆرێک</option>
+                            <option value="all_products">هەموو کاڵاکان (لە کۆتایی)</option>
+                        </select>
+                    </div>
+                    <div id="specificItemSelectContainer" class="form-group" style="display: none;">
+                        <label for="specificItemId" id="specificItemLabel">دیاریکردن:</label>
+                        <select id="specificItemId" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="newSectionName">ناوی بەش (بۆ ناسینەوەی خۆت):</label>
+                        <input type="text" id="newSectionName" required placeholder="بۆ نموونە: ڕیزی جلوبەرگی پیاوان">
+                    </div>
+                    <button type="submit">زیادکردن</button>
+                </form>
+            </div>
+        </div>
         <div id="editCategoryModal" class="modal">
             <div class="modal-content">
                 <span class="close" aria-label="Close">&times;</span>

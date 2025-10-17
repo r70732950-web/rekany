@@ -789,6 +789,7 @@ window.AdminLogic = {
         });
     },
 
+    // ===== NEW AND UPDATED FUNCTIONS FOR HOME LAYOUT =====
     renderHomeLayoutAdmin: function() {
         const container = document.getElementById('homeLayoutListContainer');
         const layoutCollection = collection(db, 'home_layout');
@@ -797,7 +798,7 @@ window.AdminLogic = {
         onSnapshot(q, (snapshot) => {
             container.innerHTML = '';
             if (snapshot.empty) {
-                container.innerHTML = '<p>چاوەڕێ بە بۆ دروستکردنی ڕیزبەندی...</p>';
+                container.innerHTML = '<p>هیچ بەشێک بۆ لاپەڕەی سەرەکی زیاد نەکراوە. کلیک لە "زیادکردنی بەش" بکە.</p>';
                 return;
             }
 
@@ -811,12 +812,15 @@ window.AdminLogic = {
                 itemElement.innerHTML = `
                     <div class="layout-item-info">
                         <i class="fas fa-grip-vertical drag-handle"></i>
-                        <span>${item.name || item.type}</span>
+                        <span>${item.name}</span>
                     </div>
-                    <label class="switch">
-                        <input type="checkbox" class="enabled-toggle" ${item.enabled ? 'checked' : ''}>
-                        <span class="slider"></span>
-                    </label>
+                    <div class="layout-item-actions">
+                        <label class="switch">
+                            <input type="checkbox" class="enabled-toggle" ${item.enabled ? 'checked' : ''}>
+                            <span class="slider"></span>
+                        </label>
+                        <button class="delete-layout-item-btn delete-btn small-btn"><i class="fas fa-trash"></i></button>
+                    </div>
                 `;
                 container.appendChild(itemElement);
             });
@@ -832,9 +836,9 @@ window.AdminLogic = {
                 const afterElement = this.getDragAfterElement(container, e.clientY);
                 const dragging = document.querySelector('.dragging');
                 if (afterElement == null) {
-                    container.appendChild(dragging);
+                    if (dragging) container.appendChild(dragging);
                 } else {
-                    container.insertBefore(dragging, afterElement);
+                    if (dragging) container.insertBefore(dragging, afterElement);
                 }
             });
         });
@@ -851,6 +855,19 @@ window.AdminLogic = {
                 return closest;
             }
         }, { offset: Number.NEGATIVE_INFINITY }).element;
+    },
+    
+    deleteHomeLayoutItem: async function(itemId) {
+        if (confirm('دڵنیایت دەتەوێت ئەم بەشە لە لاپەڕەی سەرەکی بسڕیتەوە؟')) {
+            try {
+                await deleteDoc(doc(db, 'home_layout', itemId));
+                showNotification('بەشەکە سڕدرایەوە', 'success');
+                clearProductCache();
+            } catch (error) {
+                console.error("Error deleting layout item:", error);
+                showNotification('هەڵەیەک ڕوویدا', 'error');
+            }
+        }
     },
 
     saveHomeLayout: async function() {
@@ -889,10 +906,92 @@ window.AdminLogic = {
         if (this.listenersAttached) return;
         const self = this;
         
-        // === THE FIX IS HERE ===
         document.getElementById('saveLayoutBtn')?.addEventListener('click', () => self.saveHomeLayout());
-        // =======================
+        
+        document.getElementById('addHomeSectionBtn')?.addEventListener('click', () => {
+            document.getElementById('addHomeSectionForm').reset();
+            document.getElementById('specificItemSelectContainer').style.display = 'none';
+            openPopup('addHomeSectionModal', 'modal');
+        });
 
+        document.getElementById('homeLayoutListContainer').addEventListener('click', (e) => {
+            const deleteBtn = e.target.closest('.delete-layout-item-btn');
+            if(deleteBtn) {
+                const itemId = deleteBtn.closest('.layout-item').dataset.id;
+                self.deleteHomeLayoutItem(itemId);
+            }
+        });
+
+        document.getElementById('newSectionType').addEventListener('change', async (e) => {
+            const type = e.target.value;
+            const container = document.getElementById('specificItemSelectContainer');
+            const label = document.getElementById('specificItemLabel');
+            const select = document.getElementById('specificItemId');
+            
+            if (type === 'single_shortcut_row' || type === 'single_category_row') {
+                container.style.display = 'block';
+                select.innerHTML = '<option value="">...بارکردن</option>';
+                
+                if (type === 'single_shortcut_row') {
+                    label.textContent = 'کام ڕیزی کورتکراوە؟';
+                    const snapshot = await getDocs(query(shortcutRowsCollection, orderBy('title.ku_sorani')));
+                    select.innerHTML = '<option value="" disabled selected>-- ڕیزێک هەڵبژێرە --</option>';
+                    snapshot.forEach(doc => {
+                        select.innerHTML += `<option value="${doc.id}">${doc.data().title.ku_sorani}</option>`;
+                    });
+                } else { // single_category_row
+                    label.textContent = 'کام جۆری کاڵا؟';
+                    const categories = getCategories().filter(c => c.id !== 'all');
+                    select.innerHTML = '<option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>';
+                    categories.forEach(cat => {
+                        select.innerHTML += `<option value="${cat.id}">${cat.name_ku_sorani}</option>`;
+                    });
+                }
+            } else {
+                container.style.display = 'none';
+            }
+        });
+
+        document.getElementById('addHomeSectionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const type = document.getElementById('newSectionType').value;
+            const name = document.getElementById('newSectionName').value;
+            const specificId = document.getElementById('specificItemId').value;
+
+            if ((type === 'single_shortcut_row' || type === 'single_category_row') && !specificId) {
+                showNotification('تکایە بەشێکی دیاریکراو هەڵبژێرە', 'error');
+                return;
+            }
+
+            try {
+                const layoutCollectionRef = collection(db, 'home_layout');
+                const q = query(layoutCollectionRef, orderBy('order', 'desc'), limit(1));
+                const lastDocSnap = await getDocs(q);
+                const lastOrder = lastDocSnap.empty ? 0 : lastDocSnap.docs[0].data().order;
+                
+                const newSectionData = {
+                    name,
+                    type,
+                    order: lastOrder + 1,
+                    enabled: true
+                };
+
+                if (type === 'single_shortcut_row') {
+                    newSectionData.rowId = specificId;
+                } else if (type === 'single_category_row') {
+                    newSectionData.categoryId = specificId;
+                }
+
+                await addDoc(layoutCollectionRef, newSectionData);
+                showNotification('بەشی نوێ زیادکرا', 'success');
+                closeCurrentPopup();
+                clearProductCache();
+            } catch (error) {
+                console.error("Error adding new home section:", error);
+                showNotification('هەڵەیەک ڕوویدا', 'error');
+            }
+        });
+        
         document.getElementById('addProductBtn').onclick = () => {
             setEditingProductId(null);
             document.getElementById('productForm').reset();
@@ -908,7 +1007,7 @@ window.AdminLogic = {
             await signOut(auth);
             showNotification(t('logout_success'), 'success');
         };
-
+        
         document.getElementById('productCategoryId').addEventListener('change', (e) => {
             self.populateSubcategoriesDropdown(e.target.value);
             self.populateSubSubcategoriesDropdown(null, null);

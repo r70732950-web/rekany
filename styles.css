@@ -1116,12 +1116,31 @@ body, .bottom-nav-item, .product-card {
     -webkit-user-drag: none;   
 }
 
-/* === NEW CSS FOR ADMIN HOME LAYOUT === */
+/* ===== KODA NUYÊ CSS BO ADMIN LAYOUT ===== */
+.add-section-btn {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s;
+}
+.add-section-btn:hover {
+    background-color: var(--accent-light);
+}
+
 .layout-list-container {
     border: 1px solid var(--section-border);
     border-radius: 6px;
     padding: 10px;
     background-color: #f8f9fa;
+    min-height: 50px;
 }
 
 .layout-item {
@@ -1134,7 +1153,8 @@ body, .bottom-nav-item, .product-card {
     justify-content: space-between;
     align-items: center;
     cursor: grab;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .layout-item:last-child {
@@ -1142,8 +1162,9 @@ body, .bottom-nav-item, .product-card {
 }
 
 .layout-item.dragging {
-    opacity: 0.5;
+    opacity: 0.7;
     background: var(--medium-gray);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 .layout-item-info {
@@ -1156,6 +1177,22 @@ body, .bottom-nav-item, .product-card {
 .drag-handle {
     color: var(--dark-gray);
     cursor: grab;
+}
+
+.layout-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.delete-layout-item-btn {
+    background: none !important; /* Override .delete-btn */
+    border: none;
+    color: var(--danger-color) !important;
+    cursor: pointer;
+    font-size: 16px !important;
+    width: auto !important;
+    height: auto !important;
 }
 
 /* Switch toggle styles */
