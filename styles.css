@@ -83,20 +83,25 @@ body.overlay-active {
     background-color: var(--section-bg);
     border-radius: 0;
     margin: 0 0 16px;
-    padding: 16px 0; /* Changed */
+    padding: 16px 0;
     border: 1px solid var(--section-border);
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     border-right: none;
     border-left: none;
 }
 
+/* === START OF CHANGE === */
 .subcategories-container {
     display: flex;
+    flex-direction: row; /* Ensure horizontal layout */
+    flex-wrap: nowrap;   /* Prevent items from wrapping to the next line */
+    overflow-x: auto;   /* Allow horizontal scrolling */
     gap: 8px;
-    overflow-x: auto;
-    padding: 5px 12px 15px 12px; /* Changed */
+    padding: 5px 12px 15px 12px;
     scrollbar-width: none;
 }
+/* === END OF CHANGE === */
+
 .subcategories-container::-webkit-scrollbar {
     display: none;
 }
@@ -244,7 +249,7 @@ body.overlay-active {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
     gap: 12px;
-    padding: 0 12px; /* Added */
+    padding: 0 12px;
 }
 
 .product-card { 
@@ -681,7 +686,7 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     display: flex;
     gap: 8px;
     overflow-x: auto;
-    padding: 5px 12px 10px 12px; /* Changed */
+    padding: 5px 12px 10px 12px;
     scrollbar-width: none;
 }
 .main-categories-container::-webkit-scrollbar {
@@ -896,7 +901,7 @@ body, .bottom-nav-item, .product-card {
     display: flex;
     gap: 12px;
     overflow-x: auto;
-    padding: 5px 12px 15px 12px; /* Changed */
+    padding: 5px 12px 15px 12px;
     scrollbar-width: none;
 }
 
@@ -914,7 +919,7 @@ body, .bottom-nav-item, .product-card {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 12px;
-    padding: 0 12px; /* Changed */
+    padding: 0 12px;
 }
 
 .section-title-main {
@@ -941,7 +946,7 @@ body, .bottom-nav-item, .product-card {
 }
 
 .brands-section {
-    padding: 16px 0; /* Changed */
+    padding: 16px 0;
     background-color: var(--section-bg);
     margin: 0 0 16px;
     border: 1px solid var(--section-border);
@@ -954,7 +959,7 @@ body, .bottom-nav-item, .product-card {
     display: flex;
     overflow-x: auto;
     gap: 15px;
-    padding: 10px 12px; /* Changed */
+    padding: 10px 12px;
     scrollbar-width: none;
 }
 
@@ -1007,7 +1012,7 @@ body, .bottom-nav-item, .product-card {
 
 /* START: ستایلە نوێیەکان بۆ کارتی میانبەر (دیزاینی کۆتایی) */
 .shortcut-cards-section {
-    padding: 16px 0; /* Changed */
+    padding: 16px 0;
     background-color: var(--section-bg);
     margin: 0 0 16px;
     border: 1px solid var(--section-border);
@@ -1021,14 +1026,14 @@ body, .bottom-nav-item, .product-card {
     font-weight: bold;
     color: var(--primary-color);
     margin-bottom: 12px;
-    padding-right: 12px; /* Changed */
+    padding-right: 12px;
 }
 
 .shortcut-cards-container {
     display: flex;
     overflow-x: auto;
     gap: 12px;
-    padding: 5px 12px 15px 12px; /* Changed */
+    padding: 5px 12px 15px 12px;
     scrollbar-width: none;
 }
 
