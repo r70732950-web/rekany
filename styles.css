@@ -83,7 +83,7 @@ body.overlay-active {
     background-color: var(--section-bg);
     border-radius: 0;
     margin: 0 0 16px;
-    padding: 16px;
+    padding: 16px 0; /* Changed */
     border: 1px solid var(--section-border);
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     border-right: none;
@@ -94,7 +94,7 @@ body.overlay-active {
     display: flex;
     gap: 8px;
     overflow-x: auto;
-    padding: 5px 0 15px 0; 
+    padding: 5px 12px 15px 12px; /* Changed */
     scrollbar-width: none;
 }
 .subcategories-container::-webkit-scrollbar {
@@ -244,6 +244,7 @@ body.overlay-active {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
     gap: 12px;
+    padding: 0 12px; /* Added */
 }
 
 .product-card { 
@@ -680,7 +681,7 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     display: flex;
     gap: 8px;
     overflow-x: auto;
-    padding: 5px 0 10px 0;
+    padding: 5px 12px 10px 12px; /* Changed */
     scrollbar-width: none;
 }
 .main-categories-container::-webkit-scrollbar {
@@ -895,7 +896,7 @@ body, .bottom-nav-item, .product-card {
     display: flex;
     gap: 12px;
     overflow-x: auto;
-    padding: 5px 0 15px 0;
+    padding: 5px 12px 15px 12px; /* Changed */
     scrollbar-width: none;
 }
 
@@ -913,7 +914,7 @@ body, .bottom-nav-item, .product-card {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 12px;
-    padding-right: 5px;
+    padding: 0 12px; /* Changed */
 }
 
 .section-title-main {
@@ -940,7 +941,7 @@ body, .bottom-nav-item, .product-card {
 }
 
 .brands-section {
-    padding: 16px;
+    padding: 16px 0; /* Changed */
     background-color: var(--section-bg);
     margin: 0 0 16px;
     border: 1px solid var(--section-border);
@@ -953,7 +954,7 @@ body, .bottom-nav-item, .product-card {
     display: flex;
     overflow-x: auto;
     gap: 15px;
-    padding: 10px 5px;
+    padding: 10px 12px; /* Changed */
     scrollbar-width: none;
 }
 
@@ -1004,9 +1005,9 @@ body, .bottom-nav-item, .product-card {
     white-space: nowrap;
 }
 
-/* START: ستایلە نوێیەکان بۆ کارتی میانبەر (دیزاینی کۆتایی) - گۆڕانکاری لێرە کراوە */
+/* START: ستایلە نوێیەکان بۆ کارتی میانبەر (دیزاینی کۆتایی) */
 .shortcut-cards-section {
-    padding: 16px;
+    padding: 16px 0; /* Changed */
     background-color: var(--section-bg);
     margin: 0 0 16px;
     border: 1px solid var(--section-border);
@@ -1020,14 +1021,14 @@ body, .bottom-nav-item, .product-card {
     font-weight: bold;
     color: var(--primary-color);
     margin-bottom: 12px;
-    padding-right: 5px;
+    padding-right: 12px; /* Changed */
 }
 
 .shortcut-cards-container {
     display: flex;
     overflow-x: auto;
     gap: 12px;
-    padding: 5px 0 15px 0;
+    padding: 5px 12px 15px 12px; /* Changed */
     scrollbar-width: none;
 }
 
