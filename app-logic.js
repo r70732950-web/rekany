@@ -33,18 +33,15 @@ function debounce(func, delay = 500) {
     };
 }
 
-// <<-- START: فەنکشنی نوێ بۆ هەڵگرتنی شوێنی سکڕۆڵ
 function saveCurrentScrollPosition() {
     const currentState = history.state;
-    // تەنها شوێنی سکڕۆڵ هەڵبگرە ئەگەر لە پەڕەی سەرەکیدا بین و ستەیتەکە تایبەت نەبێت بە پۆپئەپ
     if (!document.getElementById('mainPage').classList.contains('page-hidden') && currentState && !currentState.type) {
         history.replaceState({ ...currentState, scroll: window.scrollY }, '');
     }
 }
-// <<-- END: فەنکشنی نوێ
 
 function showPage(pageId) {
-    saveCurrentScrollPosition(); // هەڵگرتنی سکڕۆڵ پێش گۆڕینی پەڕە
+    saveCurrentScrollPosition();
     document.querySelectorAll('.page').forEach(page => {
         page.classList.toggle('page-hidden', page.id !== pageId);
     });
@@ -65,7 +62,7 @@ function closeAllPopupsUI() {
 }
 
 function openPopup(id, type = 'sheet') {
-    saveCurrentScrollPosition(); // هەڵگرتنی سکڕۆڵ پێش کردنەوەی پۆپئەپ
+    saveCurrentScrollPosition();
     const element = document.getElementById(id);
     if (!element) return;
 
@@ -98,8 +95,6 @@ function closeCurrentPopup() {
     }
 }
 
-// === START: HISTORY AND STATE MANAGEMENT (UPDATED) ===
-
 async function applyFilterState(filterState, fromPopState = false) {
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
@@ -115,16 +110,13 @@ async function applyFilterState(filterState, fromPopState = false) {
     await searchProductsInFirestore(state.currentSearch, true);
 
     if (fromPopState && typeof filterState.scroll === 'number') {
-        // گەڕاندنەوەی شوێنی سکڕۆڵ کاتێک بەکارهێنەر دوگمەی 'گەڕانەوە'ی وێبگەڕ بەکاردەهێنێت
         setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
     } else if (!fromPopState) {
-        // گەڕاندنەوەی بۆ سەرەتا کاتێک فلتەرێکی نوێ چالاک دەکرێت
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
 async function navigateToFilter(newState) {
-    // هەڵگرتنی ستەیتی ئێستا لەگەڵ شوێنی سکڕۆڵ پێش گۆڕانکاری
     history.replaceState({
         category: state.currentCategory,
         subcategory: state.currentSubcategory,
@@ -157,7 +149,6 @@ window.addEventListener('popstate', (event) => {
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             openPopup(popState.id, popState.type);
         } else {
-            // کاتێک دەگەڕێیتەوە بۆ ستەیتی فلتەر، شوێنی سکڕۆڵەکەش بگەڕێنەرەوە
             applyFilterState(popState, true); 
         }
     } else {
@@ -201,8 +192,6 @@ function handleInitialPageLoad() {
         setTimeout(() => showProductDetails(productId), 500);
     }
 }
-// === END: HISTORY AND STATE MANAGEMENT (UPDATED) ===
-
 
 function t(key, replacements = {}) {
     let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
@@ -211,7 +200,6 @@ function t(key, replacements = {}) {
     }
     return translation;
 }
-
 
 function setLanguage(lang) {
     state.currentLanguage = lang;
@@ -977,309 +965,6 @@ function renderProducts() {
     setupScrollAnimations();
 }
 
-async function renderShortcutRows() {
-    const mainContainer = document.createDocumentFragment();
-
-    try {
-        const shortcutRowsCollection = collection(db, "shortcut_rows");
-        const rowsQuery = query(shortcutRowsCollection, orderBy("order", "asc"));
-        const rowsSnapshot = await getDocs(rowsQuery);
-
-        if (rowsSnapshot.empty) {
-            return null;
-        }
-        
-        for (const rowDoc of rowsSnapshot.docs) {
-            const rowData = { id: rowDoc.id, ...rowDoc.data() };
-            const rowTitle = rowData.title[state.currentLanguage] || rowData.title.ku_sorani;
-            
-            const cardsCollectionRef = collection(db, "shortcut_rows", rowData.id, "cards");
-            const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
-            const cardsSnapshot = await getDocs(cardsQuery);
-
-            if (!cardsSnapshot.empty) {
-                const sectionContainer = document.createElement('div');
-                sectionContainer.className = 'shortcut-cards-section';
-                
-                const titleElement = document.createElement('h3');
-                titleElement.className = 'shortcut-row-title';
-                titleElement.textContent = rowTitle;
-                sectionContainer.appendChild(titleElement);
-                
-                const cardsContainer = document.createElement('div');
-                cardsContainer.className = 'shortcut-cards-container';
-                sectionContainer.appendChild(cardsContainer);
-
-                cardsSnapshot.forEach(cardDoc => {
-                    const cardData = cardDoc.data();
-                    const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
-
-                    const item = document.createElement('div');
-                    item.className = 'shortcut-card';
-                    item.innerHTML = `
-                        <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
-                        <div class="shortcut-card-name">${cardName}</div>
-                    `;
-
-                    item.onclick = async () => {
-                        await navigateToFilter({
-                            category: cardData.categoryId || 'all',
-                            subcategory: cardData.subcategoryId || 'all',
-                            subSubcategory: cardData.subSubcategoryId || 'all',
-                            search: ''
-                        });
-                    };
-                    cardsContainer.appendChild(item);
-                });
-                
-                mainContainer.appendChild(sectionContainer);
-            }
-        }
-        
-        return mainContainer;
-
-    } catch (error) {
-        console.error("Error fetching shortcut rows:", error);
-        return null;
-    }
-}
-
-async function renderBrandsSection() {
-    const sectionContainer = document.createElement('div');
-    sectionContainer.className = 'brands-section';
-    const brandsContainer = document.createElement('div');
-    brandsContainer.id = 'brandsContainer';
-    brandsContainer.className = 'brands-container';
-    sectionContainer.appendChild(brandsContainer);
-
-    try {
-        const q = query(brandsCollection, orderBy("order", "asc"), limit(30));
-        const snapshot = await getDocs(q);
-
-        if (snapshot.empty) {
-            return null;
-        }
-
-        snapshot.forEach(doc => {
-            const brand = { id: doc.id, ...doc.data() };
-            const brandName = brand.name[state.currentLanguage] || brand.name.ku_sorani;
-
-            const item = document.createElement('div');
-            item.className = 'brand-item';
-            item.innerHTML = `
-                <div class="brand-image-wrapper">
-                    <img src="${brand.imageUrl}" alt="${brandName}" loading="lazy" class="brand-image">
-                </div>
-                <span>${brandName}</span>
-            `;
-
-            item.onclick = async () => {
-                await navigateToFilter({
-                    category: brand.categoryId || 'all',
-                    subcategory: brand.subcategoryId || 'all',
-                    subSubcategory: 'all',
-                    search: ''
-                });
-            };
-
-            brandsContainer.appendChild(item);
-        });
-
-        return sectionContainer;
-    } catch (error) {
-        console.error("Error fetching brands:", error);
-        return null;
-    }
-}
-
-
-async function renderNewestProductsSection() {
-    const container = document.createElement('div');
-    container.className = 'dynamic-section';
-    const header = document.createElement('div');
-    header.className = 'section-title-header';
-    const title = document.createElement('h3');
-    title.className = 'section-title-main';
-    title.textContent = t('newest_products');
-    header.appendChild(title);
-    container.appendChild(header);
-    const productsScroller = document.createElement('div');
-    productsScroller.className = 'horizontal-products-container';
-    container.appendChild(productsScroller);
-
-    try {
-        const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
-        const q = query(
-            productsCollection,
-            where('createdAt', '>=', fifteenDaysAgo),
-            orderBy('createdAt', 'desc')
-        );
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-            return null;
-        }
-
-        snapshot.forEach(doc => {
-            const product = { id: doc.id, ...doc.data() };
-            const card = createProductCardElement(product);
-            productsScroller.appendChild(card);
-        });
-        return container;
-    } catch (error) {
-        console.error("Error fetching newest products:", error);
-        return null;
-    }
-}
-
-async function renderCategorySections() {
-    const mainContainer = document.createElement('div');
-    const categoriesToRender = state.categories.filter(cat => cat.id !== 'all');
-    categoriesToRender.sort((a, b) => (a.order || 99) - (b.order || 99));
-
-    for (const category of categoriesToRender) {
-        const sectionContainer = document.createElement('div');
-        sectionContainer.className = 'dynamic-section';
-
-        const header = document.createElement('div');
-        header.className = 'section-title-header';
-
-        const title = document.createElement('h3');
-        title.className = 'section-title-main';
-        const categoryName = category['name_' + state.currentLanguage] || category.name_ku_sorani;
-        title.innerHTML = `<i class="${category.icon}"></i> ${categoryName}`;
-        header.appendChild(title);
-
-        const seeAllLink = document.createElement('a');
-        seeAllLink.className = 'see-all-link';
-        seeAllLink.textContent = t('see_all');
-        seeAllLink.onclick = async () => {
-             await navigateToFilter({
-                category: category.id,
-                subcategory: 'all',
-                subSubcategory: 'all',
-                search: ''
-            });
-        };
-        header.appendChild(seeAllLink);
-
-        sectionContainer.appendChild(header);
-
-        const productsScroller = document.createElement('div');
-        productsScroller.className = 'horizontal-products-container';
-        sectionContainer.appendChild(productsScroller);
-
-        try {
-            const q = query(
-                productsCollection,
-                where('categoryId', '==', category.id),
-                orderBy('createdAt', 'desc'),
-                limit(10)
-            );
-            const snapshot = await getDocs(q);
-            if (!snapshot.empty) {
-                snapshot.forEach(doc => {
-                    const product = { id: doc.id, ...doc.data() };
-                    const card = createProductCardElement(product);
-                    productsScroller.appendChild(card);
-                });
-                mainContainer.appendChild(sectionContainer);
-            }
-        } catch (error) {
-            console.error(`Error fetching products for category ${category.id}:`, error);
-        }
-    }
-    return mainContainer;
-}
-
-async function renderAllProductsSection() {
-    const container = document.createElement('div');
-    container.className = 'dynamic-section';
-    container.style.marginTop = '20px';
-
-    const header = document.createElement('div');
-    header.className = 'section-title-header';
-    const title = document.createElement('h3');
-    title.className = 'section-title-main';
-    title.textContent = t('all_products_section_title');
-    header.appendChild(title);
-    container.appendChild(header);
-
-    const productsGrid = document.createElement('div');
-    productsGrid.className = 'products-container';
-    container.appendChild(productsGrid);
-
-    try {
-        const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(10));
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-            return null;
-        }
-
-        snapshot.forEach(doc => {
-            const product = { id: doc.id, ...doc.data() };
-            const card = createProductCardElement(product);
-            productsGrid.appendChild(card);
-        });
-        return container;
-    } catch (error) {
-        console.error("Error fetching all products for home page:", error);
-        return null;
-    }
-}
-
-async function renderHomePageContent() {
-    if (state.isRenderingHomePage) {
-        return;
-    }
-    state.isRenderingHomePage = true;
-
-    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
-
-    try {
-        skeletonLoader.style.display = 'grid';
-        homeSectionsContainer.innerHTML = '';
-
-        if (state.allPromoCards.length === 0) {
-            const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
-            const promoSnapshot = await getDocs(promoQuery);
-            state.allPromoCards = promoSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPromoCard: true }));
-        }
-
-        let promoGrid = null;
-        if (state.allPromoCards.length > 0) {
-            if (state.currentPromoCardIndex >= state.allPromoCards.length) state.currentPromoCardIndex = 0;
-            const promoCardElement = createPromoCardElement(state.allPromoCards[state.currentPromoCardIndex]);
-            promoGrid = document.createElement('div');
-            promoGrid.className = 'products-container';
-            promoGrid.style.marginBottom = '24px';
-            promoGrid.appendChild(promoCardElement);
-            startPromoRotation();
-        }
-
-        const [brandsSection, newestSection, categorySections, shortcutRowsFragment, allProductsSection] = await Promise.all([
-            renderBrandsSection(),
-            renderNewestProductsSection(),
-            renderCategorySections(),
-            renderShortcutRows(),
-            renderAllProductsSection()
-        ]);
-
-        if (promoGrid) homeSectionsContainer.appendChild(promoGrid);
-        if (brandsSection) homeSectionsContainer.appendChild(brandsSection);
-        if (newestSection) homeSectionsContainer.appendChild(newestSection);
-        if (categorySections) homeSectionsContainer.appendChild(categorySections);
-        if (shortcutRowsFragment) homeSectionsContainer.appendChild(shortcutRowsFragment);
-        if (allProductsSection) homeSectionsContainer.appendChild(allProductsSection);
-
-    } catch (error) {
-        console.error("Error rendering home page content:", error);
-        homeSectionsContainer.innerHTML = `<p>هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
-    } finally {
-        skeletonLoader.style.display = 'none';
-        state.isRenderingHomePage = false;
-    }
-}
-
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
@@ -1980,7 +1665,7 @@ function initializeAppLogic() {
 
 Object.assign(window.globalAdminTools, {
     db, auth,
-    doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut,
+    doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit,
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
     productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
     
@@ -2085,5 +1770,193 @@ function startPromoRotation() {
     }
     if (state.allPromoCards.length > 1) {
         state.promoRotationInterval = setInterval(rotatePromoCard, 5000);
+    }
+}
+
+async function renderHomePageContent() {
+    if (state.isRenderingHomePage) return;
+    state.isRenderingHomePage = true;
+
+    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
+    
+    try {
+        skeletonLoader.style.display = 'grid';
+        homeSectionsContainer.innerHTML = '';
+
+        if (state.allPromoCards.length === 0) {
+            const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
+            const promoSnapshot = await getDocs(promoQuery);
+            state.allPromoCards = promoSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPromoCard: true }));
+        }
+        if (state.allPromoCards.length > 0) {
+            if (state.currentPromoCardIndex >= state.allPromoCards.length) state.currentPromoCardIndex = 0;
+            const promoCardElement = createPromoCardElement(state.allPromoCards[state.currentPromoCardIndex]);
+            const promoGrid = document.createElement('div');
+            promoGrid.className = 'products-container';
+            promoGrid.style.marginBottom = '24px';
+            promoGrid.appendChild(promoCardElement);
+            homeSectionsContainer.appendChild(promoGrid);
+            startPromoRotation();
+        }
+
+        const sectionsQuery = query(collection(db, "homepage_sections"), orderBy("order", "asc"));
+        const snapshot = await getDocs(sectionsQuery);
+
+        for (const docSnap of snapshot.docs) {
+            const section = { id: docSnap.id, ...docSnap.data() };
+            let sectionElement = null;
+
+            switch (section.type) {
+                case 'brands':
+                    sectionElement = await createBrandsSection(section);
+                    break;
+                case 'newest_products':
+                    sectionElement = await createHorizontalProductsSection(section, query(productsCollection, orderBy('createdAt', 'desc'), limit(10)));
+                    break;
+                case 'special_offers':
+                    sectionElement = await createHorizontalProductsSection(section, null, section.productIds || []);
+                    break;
+                case 'category_row':
+                    sectionElement = await createHorizontalProductsSection(section, query(productsCollection, where('categoryId', '==', section.categoryId), orderBy('createdAt', 'desc'), limit(10)));
+                    break;
+                case 'shortcut_row':
+                    sectionElement = await createShortcutRowSection(section);
+                    break;
+            }
+
+            if (sectionElement) {
+                homeSectionsContainer.appendChild(sectionElement);
+            }
+        }
+
+    } catch (error) {
+        console.error("Error rendering home page content:", error);
+        homeSectionsContainer.innerHTML = `<p>هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
+    } finally {
+        skeletonLoader.style.display = 'none';
+        state.isRenderingHomePage = false;
+    }
+}
+
+async function createHorizontalProductsSection(sectionData, firestoreQuery, productIds = []) {
+    const container = document.createElement('div');
+    container.className = 'dynamic-section';
+
+    const header = document.createElement('div');
+    header.className = 'section-title-header';
+    const title = document.createElement('h3');
+    title.className = 'section-title-main';
+    title.textContent = sectionData.title[state.currentLanguage] || sectionData.title.ku_sorani;
+    header.appendChild(title);
+    container.appendChild(header);
+
+    const productsScroller = document.createElement('div');
+    productsScroller.className = 'horizontal-products-container';
+    container.appendChild(productsScroller);
+
+    try {
+        let products = [];
+        if (productIds.length > 0) {
+            const promises = productIds.map(id => getDoc(doc(db, "products", id)));
+            const results = await Promise.all(promises);
+            products = results.filter(doc => doc.exists()).map(doc => ({ id: doc.id, ...doc.data() }));
+        } else if (firestoreQuery) {
+            const snapshot = await getDocs(firestoreQuery);
+            products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
+
+        if (products.length === 0) return null;
+
+        products.forEach(product => {
+            const card = createProductCardElement(product);
+            productsScroller.appendChild(card);
+        });
+
+        return container;
+    } catch (error) {
+        console.error(`Error fetching products for section ${sectionData.title.ku_sorani}:`, error);
+        return null;
+    }
+}
+
+async function createBrandsSection(sectionData) {
+    const sectionContainer = document.createElement('div');
+    sectionContainer.className = 'brands-section';
+
+    const header = document.createElement('div');
+    header.className = 'section-title-header';
+    const title = document.createElement('h3');
+    title.className = 'section-title-main';
+    title.textContent = sectionData.title[state.currentLanguage] || sectionData.title.ku_sorani;
+    header.appendChild(title);
+    sectionContainer.appendChild(header);
+
+    const brandsContainer = document.createElement('div');
+    brandsContainer.className = 'brands-container';
+    sectionContainer.appendChild(brandsContainer);
+
+    try {
+        const q = query(brandsCollection, orderBy("order", "asc"), limit(30));
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) return null;
+
+        snapshot.forEach(doc => {
+            const brand = { id: doc.id, ...doc.data() };
+            const brandName = brand.name[state.currentLanguage] || brand.name.ku_sorani;
+            const item = document.createElement('div');
+            item.className = 'brand-item';
+            item.innerHTML = `
+                <div class="brand-image-wrapper">
+                    <img src="${brand.imageUrl}" alt="${brandName}" loading="lazy" class="brand-image">
+                </div>
+                <span>${brandName}</span>
+            `;
+            item.onclick = () => navigateToFilter({ category: brand.categoryId || 'all', subcategory: brand.subcategoryId || 'all' });
+            brandsContainer.appendChild(item);
+        });
+        return sectionContainer;
+    } catch (error) {
+        console.error("Error fetching brands:", error);
+        return null;
+    }
+}
+
+async function createShortcutRowSection(sectionData) {
+    const rowId = sectionData.shortcutRowId;
+    if (!rowId) return null;
+
+    try {
+        const cardsQuery = query(collection(db, "shortcut_rows", rowId, "cards"), orderBy("order", "asc"));
+        const cardsSnapshot = await getDocs(cardsQuery);
+        if (cardsSnapshot.empty) return null;
+        
+        const sectionContainer = document.createElement('div');
+        sectionContainer.className = 'shortcut-cards-section';
+        
+        const titleElement = document.createElement('h3');
+        titleElement.className = 'shortcut-row-title';
+        titleElement.textContent = sectionData.title[state.currentLanguage] || sectionData.title.ku_sorani;
+        sectionContainer.appendChild(titleElement);
+        
+        const cardsContainer = document.createElement('div');
+        cardsContainer.className = 'shortcut-cards-container';
+        sectionContainer.appendChild(cardsContainer);
+
+        cardsSnapshot.forEach(cardDoc => {
+            const cardData = cardDoc.data();
+            const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
+            const item = document.createElement('div');
+            item.className = 'shortcut-card';
+            item.innerHTML = `
+                <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
+                <div class="shortcut-card-name">${cardName}</div>
+            `;
+            item.onclick = () => navigateToFilter({ category: cardData.categoryId || 'all', subcategory: cardData.subcategoryId || 'all', subSubcategory: cardData.subSubcategoryId || 'all' });
+            cardsContainer.appendChild(item);
+        });
+        return sectionContainer;
+    } catch (error) {
+        console.error("Error fetching shortcut row:", error);
+        return null;
     }
 }
