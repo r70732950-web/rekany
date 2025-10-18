@@ -107,9 +107,7 @@ async function applyFilterState(filterState, fromPopState = false) {
     clearSearchBtn.style.display = state.currentSearch ? 'block' : 'none';
     
     renderMainCategories();
-    // Render subcategories on the main page again
     await renderSubcategories(state.currentCategory); 
-    await renderSubSubcategories(state.currentCategory, state.currentSubcategory);
 
     await searchProductsInFirestore(state.currentSearch, true);
 
@@ -144,6 +142,7 @@ async function navigateToFilter(newState) {
     await applyFilterState(finalState);
 }
 
+// *** UPDATED popstate to handle new page ***
 window.addEventListener('popstate', (event) => {
     closeAllPopupsUI();
     const popState = event.state;
@@ -153,44 +152,35 @@ window.addEventListener('popstate', (event) => {
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             openPopup(popState.id, popState.type);
         } else {
+             // This is a main page filter state
+            showPage('mainPage');
             applyFilterState(popState, true); 
         }
     } else {
+        // Default state, go to main page
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
-        applyFilterState(defaultState);
         showPage('mainPage');
+        applyFilterState(defaultState);
     }
 });
 
 
+// *** UPDATED handleInitialPageLoad ***
 function handleInitialPageLoad() {
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(window.location.search);
     
-    const pageId = hash.startsWith('subSubCategoryPage_') ? 'subSubCategoryPage' : hash;
+    const pageId = hash.startsWith('subcategory_') ? 'subcategoryDetailPage' : hash;
 
-    if (pageId === 'settingsPage' || pageId === 'subSubCategoryPage') {
-        showPage(pageId);
-        if(pageId === 'subSubCategoryPage') {
+    if (pageId === 'settingsPage' || pageId === 'subcategoryDetailPage') {
+        if(pageId === 'subcategoryDetailPage') {
             const ids = hash.split('_');
             const mainCatId = ids[1];
             const subCatId = ids[2];
-            
-            const mainCat = state.categories.find(c => c.id === mainCatId);
-            // We need subcategories to be loaded to find the name, this might need a delay
-            setTimeout(async () => {
-                const subCatRef = doc(db, "categories", mainCatId, "subcategories", subCatId);
-                const subCatSnap = await getDoc(subCatRef);
-                if(mainCat && subCatSnap.exists()) {
-                     const subCat = subCatSnap.data();
-                     const subCatName = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani;
-                     showSubSubCategoryPage(mainCatId, subCatId, subCatName, true); // true to skip history push
-                } else {
-                     showPage('mainPage');
-                }
-            }, 500); // Wait for categories to load
+            // The logic to fetch names and show the page will be handled in initializeAppLogic after categories are loaded
         }
-        history.replaceState({ type: 'page', id: pageId }, '', `#${pageId}`);
+        history.replaceState({ type: 'page', id: pageId }, '', `#${hash}`);
+        showPage(pageId);
     } else {
         showPage('mainPage');
         const initialState = {
@@ -476,130 +466,130 @@ function renderCategoriesSheet() {
     });
 }
 
-// *** NEW FUNCTION to open the dedicated sub-subcategory page ***
-async function showSubSubCategoryPage(mainCatId, subCatId, subCatName, fromHistory = false) {
-    if (!fromHistory) {
-         history.pushState({ type: 'page', id: 'subSubCategoryPage', mainCatId, subCatId }, '', `#subSubCategoryPage_${mainCatId}_${subCatId}`);
-    }
-    showPage('subSubCategoryPage');
-    
-    document.getElementById('subSubCategoryPageTitle').textContent = subCatName;
-    const contentContainer = document.getElementById('subSubCategoryPageContent');
-    contentContainer.innerHTML = `<div style="text-align:center; padding: 40px;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
-
-    try {
-        const ref = collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
-        const q = query(ref, orderBy("order", "asc"));
-        const snapshot = await getDocs(q);
-        
-        contentContainer.innerHTML = '';
-
-        // Add "All" button
-        const allBtn = document.createElement('div');
-        allBtn.className = 'subcategory-list-item'; // Use same style
-        allBtn.innerHTML = `
-            <div class="subcategory-list-image all-icon-placeholder"><i class="fas fa-th-large"></i></div>
-            <span class="subcategory-list-name">${t('all_categories_label')}</span>
-            <i class="fas fa-chevron-left subcategory-list-chevron"></i>
-        `;
-        allBtn.onclick = async () => {
-            await navigateToFilter({
-                category: mainCatId,
-                subcategory: subCatId,
-                subSubcategory: 'all',
-                search: ''
-            });
-            history.back();
-        };
-        contentContainer.appendChild(allBtn);
-
-        snapshot.forEach(doc => {
-            const subSubcat = { id: doc.id, ...doc.data() };
-            const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
-            const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-            const imageUrl = subSubcat.imageUrl || placeholderImg;
-            
-            const itemElement = document.createElement('div');
-            itemElement.className = 'subcategory-list-item';
-            itemElement.innerHTML = `
-                <img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-list-image" onerror="this.src='${placeholderImg}';">
-                <span class="subcategory-list-name">${subSubcatName}</span>
-                <i class="fas fa-chevron-left subcategory-list-chevron"></i>
-            `;
-            
-            itemElement.onclick = async () => {
-                await navigateToFilter({
-                    category: mainCatId,
-                    subcategory: subCatId,
-                    subSubcategory: subSubcat.id,
-                    search: ''
-                });
-                history.back();
-            };
-            contentContainer.appendChild(itemElement);
-        });
-
-    } catch (error) {
-        console.error("Error fetching sub-subcategories for new page:", error);
-        contentContainer.innerHTML = `<p style="text-align:center; padding: 20px;">هەڵەیەک ڕوویدا.</p>`;
-    }
+// *** MODIFIED: Logic moved from here to showSubcategoryDetailPage and its helpers ***
+async function renderSubSubcategories(mainCatId, subCatId) {
+   // This function is no longer needed on the main page.
+   subSubcategoriesContainer.innerHTML = '';
 }
 
+// *** NEW FUNCTION to open the dedicated subcategory detail page ***
+async function showSubcategoryDetailPage(mainCatId, subCatId, subCatName, fromHistory = false) {
+    if (!fromHistory) {
+         history.pushState({ type: 'page', id: 'subcategoryDetailPage' }, '', `#subcategory_${mainCatId}_${subCatId}`);
+    }
+    showPage('subcategoryDetailPage');
+    
+    document.getElementById('subcategoryDetailPageTitle').textContent = subCatName;
+    const loader = document.getElementById('detailPageLoader');
+    const productsContainer = document.getElementById('productsContainerOnDetailPage');
+    const subSubContainer = document.getElementById('subSubCategoryContainerOnDetailPage');
+    
+    loader.style.display = 'block';
+    productsContainer.innerHTML = '';
+    subSubContainer.innerHTML = '';
+    
+    // Fetch and render sub-subcategories first
+    await renderSubSubcategoriesOnDetailPage(mainCatId, subCatId);
 
-// *** OLD FUNCTION - Still used for the main page logic ***
-async function renderSubSubcategories(mainCatId, subCatId) {
-    subSubcategoriesContainer.innerHTML = '';
-    if (subCatId === 'all' || !mainCatId) return;
+    // Then fetch and render all products for the main subcategory
+    await renderProductsOnDetailPage(subCatId);
+    
+    loader.style.display = 'none';
+}
 
+// *** NEW HELPER for the detail page: Renders sub-subcategories horizontally ***
+async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
+    const container = document.getElementById('subSubCategoryContainerOnDetailPage');
+    container.innerHTML = '';
+    
     try {
         const ref = collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
         const q = query(ref, orderBy("order", "asc"));
         const snapshot = await getDocs(q);
 
-        if (snapshot.empty) return;
+        if (snapshot.empty) {
+            container.style.display = 'none';
+            return;
+        }
 
+        container.style.display = 'flex';
+        
+        // Add "All" button first
         const allBtn = document.createElement('button');
-        allBtn.className = `subcategory-btn ${state.currentSubSubcategory === 'all' ? 'active' : ''}`;
+        allBtn.className = `subcategory-btn active`; // "All" is active by default
         const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
-        allBtn.innerHTML = `
-            <div class="subcategory-image">${allIconSvg}</div>
-            <span>${t('all_categories_label')}</span>
-        `;
-        allBtn.onclick = async () => {
-             await navigateToFilter({ subSubcategory: 'all' });
+        allBtn.innerHTML = `<div class="subcategory-image">${allIconSvg}</div><span>${t('all_categories_label')}</span>`;
+        allBtn.onclick = () => {
+             // Deactivate other buttons and activate this one
+            container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
+            allBtn.classList.add('active');
+            renderProductsOnDetailPage(subCatId, 'all'); // 'all' is the filter
         };
-        subSubcategoriesContainer.appendChild(allBtn);
+        container.appendChild(allBtn);
 
+        // Add other sub-subcategory buttons
         snapshot.forEach(doc => {
             const subSubcat = { id: doc.id, ...doc.data() };
             const btn = document.createElement('button');
-            btn.className = `subcategory-btn ${state.currentSubSubcategory === subSubcat.id ? 'active' : ''}`;
-
+            btn.className = `subcategory-btn`;
             const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
             const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
             const imageUrl = subSubcat.imageUrl || placeholderImg;
-
-            btn.innerHTML = `
-                <img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
-                <span>${subSubcatName}</span>
-            `;
+            btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
             
-            btn.onclick = async () => {
-                await navigateToFilter({ subSubcategory: subSubcat.id });
+            btn.onclick = () => {
+                // Deactivate other buttons and activate this one
+                container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderProductsOnDetailPage(subCatId, subSubcat.id);
             };
-            subSubcategoriesContainer.appendChild(btn);
+            container.appendChild(btn);
         });
 
     } catch (error) {
-        console.error("Error fetching sub-subcategories:", error);
+        console.error("Error fetching sub-subcategories for detail page:", error);
+        container.style.display = 'none';
     }
 }
 
-// *** MODIFIED renderSubcategories to decide what to do on click ***
+// *** NEW HELPER for the detail page: Renders products for the chosen subcategory/sub-subcategory ***
+async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all') {
+    const productsContainer = document.getElementById('productsContainerOnDetailPage');
+    const loader = document.getElementById('detailPageLoader');
+    loader.style.display = 'block';
+    productsContainer.innerHTML = '';
+    
+    try {
+        let productsQuery;
+        if (subSubCatId === 'all') {
+            productsQuery = query(productsCollection, where("subcategoryId", "==", subCatId), orderBy("createdAt", "desc"));
+        } else {
+            productsQuery = query(productsCollection, where("subSubcategoryId", "==", subSubCatId), orderBy("createdAt", "desc"));
+        }
+
+        const productSnapshot = await getDocs(productsQuery);
+        if (productSnapshot.empty) {
+            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+        } else {
+            productSnapshot.forEach(doc => {
+                const product = { id: doc.id, ...doc.data() };
+                const card = createProductCardElement(product);
+                productsContainer.appendChild(card);
+            });
+        }
+    } catch (error) {
+        console.error("Error fetching products for detail page:", error);
+        productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هەڵەیەک ڕوویدا.</p>';
+    } finally {
+        loader.style.display = 'none';
+    }
+}
+
+
+// *** MODIFIED renderSubcategories to open new page on click ***
 async function renderSubcategories(categoryId) {
     const subcategoriesContainer = document.getElementById('subcategoriesContainer');
     subcategoriesContainer.innerHTML = '';
-    subSubcategoriesContainer.innerHTML = ''; // Clear sub-sub on main category change
 
     if (categoryId === 'all') {
         return;
@@ -629,8 +619,7 @@ async function renderSubcategories(categoryId) {
         };
         subcategoriesContainer.appendChild(allBtn);
 
-        // Loop through subcategories and check if they have children
-        for (const subcat of state.subcategories) {
+        state.subcategories.forEach(subcat => {
             const subcatBtn = document.createElement('button');
             subcatBtn.className = `subcategory-btn ${state.currentSubcategory === subcat.id ? 'active' : ''}`;
             
@@ -643,25 +632,12 @@ async function renderSubcategories(categoryId) {
                 <span>${subcatName}</span>
             `;
             
-            // Check for sub-subcategories
-            const subSubRef = collection(db, "categories", categoryId, "subcategories", subcat.id, "subSubcategories");
-            const subSubSnapshot = await getDocs(query(subSubRef, limit(1)));
-            const hasSubSubcategories = !subSubSnapshot.empty;
-
-            if (hasSubSubcategories) {
-                // If it has children, open the new page on click
-                subcatBtn.onclick = () => showSubSubCategoryPage(categoryId, subcat.id, subcatName);
-            } else {
-                // Otherwise, filter on the main page
-                subcatBtn.onclick = async () => {
-                     await navigateToFilter({
-                         subcategory: subcat.id,
-                         subSubcategory: 'all' // No sub-subcategories exist for this one
-                     });
-                };
-            }
+            // NEW LOGIC: Always open the detail page on click
+            subcatBtn.onclick = () => {
+                showSubcategoryDetailPage(categoryId, subcat.id, subcatName);
+            };
             subcategoriesContainer.appendChild(subcatBtn);
-        }
+        });
 
     } catch (error) {
         console.error("Error fetching subcategories: ", error);
@@ -1917,7 +1893,7 @@ function setupEventListeners() {
         showPage('settingsPage');
     };
 
-    document.getElementById('backToMainFromSubSubBtn').onclick = () => {
+    document.getElementById('backToMainBtn').onclick = () => {
         history.back();
     };
 
@@ -2085,12 +2061,32 @@ function init() {
 
 function initializeAppLogic() {
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
-    onSnapshot(categoriesQuery, (snapshot) => {
+    onSnapshot(categoriesQuery, async (snapshot) => {
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         state.categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories];
         updateCategoryDependentUI();
+        
+        // Handle deep linking for subcategory page only after categories are loaded
+        const hash = window.location.hash.substring(1);
+        if (hash.startsWith('subcategory_')) {
+            const ids = hash.split('_');
+            const mainCatId = ids[1];
+            const subCatId = ids[2];
+            
+            const subCatRef = doc(db, "categories", mainCatId, "subcategories", subCatId);
+            const subCatSnap = await getDoc(subCatRef);
+            if (subCatSnap.exists()) {
+                 const subCat = subCatSnap.data();
+                 const subCatName = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani;
+                 showSubcategoryDetailPage(mainCatId, subCatId, subCatName, true); // true to skip history push
+            } else {
+                 showPage('mainPage');
+            }
+        } else {
+            handleInitialPageLoad();
+        }
+
         setLanguage(state.currentLanguage);
-        handleInitialPageLoad();
     });
 
     updateCartCount();

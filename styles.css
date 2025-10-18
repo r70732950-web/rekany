@@ -54,27 +54,30 @@ body.overlay-active {
 .logo-bottom { font-size: 22px; font-weight: bold; color: var(--primary-color); white-space: nowrap; }
 
 .page {
-    /* Updated for slide transition */
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    transform: translateX(0);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     background-color: var(--light-gray);
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+.page-active {
+    transform: translateX(0);
+    z-index: 10;
 }
 .page-hidden {
-    /* Updated for slide transition */
     transform: translateX(100%);
-    visibility: hidden; /* Keep for accessibility */
+    z-index: 1;
 }
 
 
 .main-content {
     padding-top: 80px;
     padding-bottom: 85px;
-    position: relative; /* Ensure it's treated as a page */
+    position: relative; /* Keep relative for normal flow inside the page */
     height: auto;
     min-height: 100vh;
 }
@@ -561,12 +564,10 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 .image-preview-small { width: 40px; height: 40px; object-fit: contain; border-radius: 4px; background-color: var(--light-gray); border: 1px solid var(--medium-gray); }
 
 .settings-page {
-    /* Updated to be a sliding page */
     padding-top: 80px;
     padding-left: 15px;
     padding-right: 15px;
     padding-bottom: 85px;
-    overflow-y: auto;
 }
 .settings-group {
     background-color: white; border-radius: 8px; margin-bottom: 15px;
@@ -1253,13 +1254,7 @@ input:checked + .slider:before {
     transform: translateX(20px);
 }
 
-/* ========== NEW STYLES FOR SUBCATEGORY PAGE ========== */
-.subcategories-page {
-    background-color: var(--light-gray);
-    overflow-y: auto;
-    z-index: 10; /* Make sure it slides over main page */
-}
-
+/* ========== NEW STYLES FOR SUBCATEGORY DETAIL PAGE ========== */
 .subcategory-page-header {
     background-color: white;
     color: var(--primary-color);
@@ -1276,7 +1271,7 @@ input:checked + .slider:before {
     padding-top: calc(12px + env(safe-area-inset-top));
 }
 
-#backToMainFromSubSubBtn {
+#backToMainBtn {
     font-size: 20px;
     padding-right: 0;
     padding-left: 15px;
@@ -1290,47 +1285,17 @@ input:checked + .slider:before {
     margin-right: -40px; /* Offset for the back button */
 }
 
-.subcategories-page-content {
-    padding-top: 80px; /* Space for header */
+.subcategory-detail-content {
+    padding-top: 80px; /* Space for fixed header */
     padding-bottom: 85px; /* Space for nav */
-    padding-left: 15px;
-    padding-right: 15px;
 }
 
-.subcategory-list-item {
-    display: flex;
-    align-items: center;
+#subSubCategoryContainerOnDetailPage {
     background-color: white;
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    border: 1px solid var(--section-border);
-    transition: background-color 0.2s, transform 0.2s;
+    border-bottom: 1px solid var(--section-border);
 }
 
-.subcategory-list-item:hover {
-    background-color: var(--light-gray);
-    transform: scale(1.02);
-}
-
-.subcategory-list-image {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin-left: 15px;
-    border: 1px solid var(--medium-gray);
-}
-
-.subcategory-list-name {
-    flex-grow: 1;
-    font-weight: bold;
-    color: var(--text-color);
-}
-
-.subcategory-list-chevron {
-    color: var(--dark-gray);
-    font-size: 14px;
+#productsContainerOnDetailPage {
+    padding-top: 16px;
 }
 
