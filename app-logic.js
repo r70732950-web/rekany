@@ -95,6 +95,12 @@ function closeCurrentPopup() {
 }
 
 async function applyFilterState(filterState, fromPopState = false) {
+    const skipProductLoad = filterState.__skipProductLoad;
+    if (skipProductLoad) {
+        delete filterState.__skipProductLoad;
+        history.replaceState(filterState, '');
+    }
+
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
     state.currentSubSubcategory = filterState.subSubcategory || 'all';
@@ -102,18 +108,27 @@ async function applyFilterState(filterState, fromPopState = false) {
 
     searchInput.value = state.currentSearch;
     clearSearchBtn.style.display = state.currentSearch ? 'block' : 'none';
-    
-    renderMainCategories();
-    await renderSubcategories(state.currentCategory); 
 
-    await searchProductsInFirestore(state.currentSearch, true);
+    renderMainCategories();
+    await renderSubcategories(state.currentCategory);
+
+    if (skipProductLoad) {
+        productsContainer.innerHTML = `<p style="text-align:center; padding: 20px; grid-column: 1 / -1; color: var(--dark-gray);">تکایە جۆرێکی وردتر هەڵبژێرە.</p>`;
+        skeletonLoader.style.display = 'none';
+        loader.style.display = 'none';
+        productsContainer.style.display = 'grid';
+        document.getElementById('scroll-loader-trigger').style.display = 'none';
+    } else {
+        await searchProductsInFirestore(state.currentSearch, true);
+    }
 
     if (fromPopState && typeof filterState.scroll === 'number') {
         setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
-    } else if (!fromPopState) {
+    } else if (!fromPopState && !skipProductLoad) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
+
 
 async function navigateToFilter(newState) {
     history.replaceState({
@@ -121,21 +136,21 @@ async function navigateToFilter(newState) {
         subcategory: state.currentSubcategory,
         subSubcategory: state.currentSubSubcategory,
         search: state.currentSearch,
-        scroll: window.scrollY 
+        scroll: window.scrollY
     }, '');
 
     const finalState = { ...history.state, ...newState, scroll: 0 };
-    
+
     const params = new URLSearchParams();
     if (finalState.category && finalState.category !== 'all') params.set('category', finalState.category);
     if (finalState.subcategory && finalState.subcategory !== 'all') params.set('subcategory', finalState.subcategory);
     if (finalState.subSubcategory && finalState.subSubcategory !== 'all') params.set('subSubcategory', finalState.subSubcategory);
     if (finalState.search) params.set('search', finalState.search);
-    
+
     const newUrl = `${window.location.pathname}?${params.toString()}`;
-    
+
     history.pushState(finalState, '', newUrl);
-    
+
     await applyFilterState(finalState);
 }
 
@@ -148,7 +163,7 @@ window.addEventListener('popstate', (event) => {
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             openPopup(popState.id, popState.type);
         } else {
-            applyFilterState(popState, true); 
+            applyFilterState(popState, true);
         }
     } else {
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
@@ -176,7 +191,7 @@ function handleInitialPageLoad() {
         history.replaceState(initialState, '');
         applyFilterState(initialState);
     }
-    
+
     const element = document.getElementById(hash);
     if (element) {
         const isSheet = element.classList.contains('bottom-sheet');
@@ -185,7 +200,7 @@ function handleInitialPageLoad() {
             openPopup(hash, isSheet ? 'sheet' : 'modal');
         }
     }
-    
+
     const productId = params.get('product');
     if (productId) {
         setTimeout(() => showProductDetails(productId), 500);
@@ -225,9 +240,9 @@ function setLanguage(lang) {
 
     const homeContainer = document.getElementById('homePageSectionsContainer');
     if (homeContainer) {
-        homeContainer.innerHTML = ''; 
+        homeContainer.innerHTML = '';
     }
-    
+
     const isHomeView = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
     if (isHomeView) {
         renderHomePageContent();
@@ -354,7 +369,7 @@ function toggleFavorite(productId) {
     saveFavorites();
 
     const isHomeView = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-    if(isHomeView) {
+    if (isHomeView) {
         const homeContainer = document.getElementById('homePageSectionsContainer');
         if (homeContainer) {
             homeContainer.innerHTML = '';
@@ -467,7 +482,7 @@ async function renderSubSubcategories(mainCatId, subCatId) {
             <span>${t('all_categories_label')}</span>
         `;
         allBtn.onclick = async () => {
-             await navigateToFilter({ subSubcategory: 'all' });
+            await navigateToFilter({ subSubcategory: 'all' });
         };
         subSubcategoriesContainer.appendChild(allBtn);
 
@@ -484,7 +499,7 @@ async function renderSubSubcategories(mainCatId, subCatId) {
                 <img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
                 <span>${subSubcatName}</span>
             `;
-            
+
             btn.onclick = async () => {
                 await navigateToFilter({ subSubcategory: subSubcat.id });
             };
@@ -532,21 +547,42 @@ async function renderSubcategories(categoryId) {
         state.subcategories.forEach(subcat => {
             const subcatBtn = document.createElement('button');
             subcatBtn.className = `subcategory-btn ${state.currentSubcategory === subcat.id ? 'active' : ''}`;
-            
+
             const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
             const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
             const imageUrl = subcat.imageUrl || placeholderImg;
-        
+
             subcatBtn.innerHTML = `
                 <img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
                 <span>${subcatName}</span>
             `;
-            
+
             subcatBtn.onclick = async () => {
-                 await navigateToFilter({
-                     subcategory: subcat.id,
-                     subSubcategory: 'all'
-                 });
+                try {
+                    const subSubCheckRef = collection(db, "categories", categoryId, "subcategories", subcat.id, "subSubcategories");
+                    const checkQuery = query(subSubCheckRef, limit(1));
+                    const checkSnapshot = await getDocs(checkQuery);
+                    const hasSubSubs = !checkSnapshot.empty;
+
+                    if (hasSubSubs) {
+                        await navigateToFilter({
+                            subcategory: subcat.id,
+                            subSubcategory: 'all',
+                            __skipProductLoad: true
+                        });
+                    } else {
+                        await navigateToFilter({
+                            subcategory: subcat.id,
+                            subSubcategory: 'all'
+                        });
+                    }
+                } catch (error) {
+                    console.error("Error checking/navigating subcategory:", error);
+                    await navigateToFilter({
+                        subcategory: subcat.id,
+                        subSubcategory: 'all'
+                    });
+                }
             };
             subcategoriesContainer.appendChild(subcatBtn);
         });
@@ -619,7 +655,7 @@ async function renderRelatedProducts(currentProduct) {
     section.style.display = 'none';
 
     if (!currentProduct.subcategoryId && !currentProduct.categoryId) {
-        return; 
+        return;
     }
 
     let q;
@@ -631,7 +667,7 @@ async function renderRelatedProducts(currentProduct) {
             limit(6)
         );
     } else if (currentProduct.subcategoryId) {
-       q = query(
+        q = query(
             productsCollection,
             where('subcategoryId', '==', currentProduct.subcategoryId),
             where('__name__', '!=', currentProduct.id),
@@ -769,7 +805,7 @@ function showProductDetailsWithData(product) {
             }
         }
     };
-    
+
     renderRelatedProducts(product);
 
     openPopup('productDetailSheet');
@@ -946,9 +982,9 @@ function renderSkeletonLoader() {
 
 function renderProducts() {
     productsContainer.innerHTML = '';
-	if (!state.products || state.products.length === 0) {
-		return;
-	}
+    if (!state.products || state.products.length === 0) {
+        return;
+    }
 
     state.products.forEach(item => {
         let element;
@@ -969,7 +1005,7 @@ function renderProducts() {
 async function renderSingleShortcutRow(rowId, sectionNameObj) {
     const sectionContainer = document.createElement('div');
     sectionContainer.className = 'shortcut-cards-section';
-    
+
     try {
         const rowDoc = await getDoc(doc(db, "shortcut_rows", rowId));
         if (!rowDoc.exists()) return null;
@@ -1139,7 +1175,7 @@ async function renderNewestProductsSection() {
     title.textContent = t('newest_products');
     header.appendChild(title);
     container.appendChild(header);
-    
+
     try {
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
         const q = query(
@@ -1149,7 +1185,7 @@ async function renderNewestProductsSection() {
             limit(10)
         );
         const snapshot = await getDocs(q);
-        
+
         const productsScroller = document.createElement('div');
         if (snapshot.empty) {
             return null; // Do not render if there are no new products
@@ -1302,7 +1338,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         homeSectionsContainer.style.display = 'block';
 
         if (homeSectionsContainer.innerHTML.trim() === '') {
-             await renderHomePageContent();
+            await renderHomePageContent();
         } else {
             startPromoRotation();
         }
@@ -1310,17 +1346,17 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     } else {
         homeSectionsContainer.style.display = 'none';
     }
-    
+
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
     if (isNewSearch && state.productCache[cacheKey]) {
         state.products = state.productCache[cacheKey].products;
         state.lastVisibleProductDoc = state.productCache[cacheKey].lastVisible;
         state.allProductsLoaded = state.productCache[cacheKey].allLoaded;
-        
+
         skeletonLoader.style.display = 'none';
         loader.style.display = 'none';
         productsContainer.style.display = 'grid';
-        
+
         renderProducts();
         scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
         return;
@@ -1399,7 +1435,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
                 allLoaded: state.allProductsLoaded
             };
         }
-        
+
         renderProducts();
 
         if (state.products.length === 0 && isNewSearch) {
@@ -1422,7 +1458,7 @@ function addToCart(productId) {
     const allFetchedProducts = [...state.products];
     let product = allFetchedProducts.find(p => p.id === productId);
 
-    if(!product){
+    if (!product) {
         console.warn("Product not found in local 'products' array. Adding with limited data.");
         getDoc(doc(db, "products", productId)).then(docSnap => {
             if (docSnap.exists()) {
@@ -1993,7 +2029,7 @@ Object.assign(window.globalAdminTools, {
     doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit,
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
     productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
-    
+
     clearProductCache: () => {
         console.log("Product cache and home page cleared due to admin action.");
         state.productCache = {};
@@ -2002,7 +2038,7 @@ Object.assign(window.globalAdminTools, {
             homeContainer.innerHTML = '';
         }
     },
-    
+
     setEditingProductId: (id) => { state.editingProductId = id; },
     getEditingProductId: () => state.editingProductId,
     getCategories: () => state.categories,
