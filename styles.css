@@ -85,7 +85,7 @@ body.overlay-active {
     display: flex;
     flex-direction: row;    
     flex-wrap: nowrap;     
-    overflow-x: auto;     
+    overflow-x: auto;      
     gap: 8px;
     padding: 5px 12px 15px 12px;
     scrollbar-width: none;
@@ -1113,7 +1113,7 @@ body, .bottom-nav-item, .product-card {
 .brand-image-wrapper img,
 .shortcut-card-image {
     -webkit-touch-callout: none; 
-    -webkit-user-drag: none;   
+    -webkit-user-drag: none;    
 }
 
 /* ===== KODA NUYÊ CSS BO ADMIN LAYOUT ===== */
@@ -1239,4 +1239,40 @@ input:checked + .slider {
 
 input:checked + .slider:before {
     transform: translateX(20px);
+}
+
+/* ===== ستایلی زیادکراو بۆ بانەرە ناوخۆییەکان ===== */
+.internal-ad-card {
+    grid-column: 1 / -1; /* دڵنیابوونەوە لەوەی پانی تەواو وەردەگرێت */
+    margin-bottom: 16px; /* بۆشایی لە ژێر بانەرەکە لەناو لیستی کاڵاکان */
+    height: auto;
+    aspect-ratio: 4 / 1; /* دەتوانیت ئەم ڕێژەیە بگۆڕیت بەپێی وێنەکانت */
+    max-height: 150px;
+    cursor: default; /* بە شێوەی بنەڕەتی cursorـی نییە */
+}
+
+.internal-ad-card[style*="cursor: pointer;"] {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.internal-ad-card[style*="cursor: pointer;"]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+}
+
+
+.internal-ad-card .product-image-container {
+    aspect-ratio: unset;
+    height: 100%;
+}
+
+.internal-ad-card .product-image {
+    object-fit: cover;
+    padding: 0;
+    background-color: var(--light-gray);
+}
+
+/* ستایل بۆ فۆڕمی ئەدمین */
+#internalAdTargetContainer select {
+    margin-bottom: 10px;
 }

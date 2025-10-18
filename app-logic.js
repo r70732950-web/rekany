@@ -21,6 +21,9 @@ import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https:/
 import { enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, addDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
+// *** زیادکرا: پێناسەکردنی کۆلێکشن بۆ بانەرە ناوخۆییەکان ***
+const internalAdsCollection = collection(db, "internal_ads");
+
 
 function debounce(func, delay = 500) {
     let timeout;
@@ -792,15 +795,17 @@ function createPromoCardElement(card) {
     cardElement.addEventListener('click', async (e) => {
         if (!e.target.closest('button')) {
             const targetCategoryId = card.categoryId;
-            const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
-            if (categoryExists) {
-                await navigateToFilter({
-                    category: targetCategoryId,
-                    subcategory: 'all',
-                    subSubcategory: 'all',
-                    search: ''
-                });
-                document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
+            if (targetCategoryId) { // Check if a category is linked
+                const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
+                if (categoryExists) {
+                    await navigateToFilter({
+                        category: targetCategoryId,
+                        subcategory: 'all',
+                        subSubcategory: 'all',
+                        search: ''
+                    });
+                    document.getElementById('mainCategoriesContainer').scrollIntoView({ behavior: 'smooth' });
+                }
             }
         }
     });
@@ -946,9 +951,9 @@ function renderSkeletonLoader() {
 
 function renderProducts() {
     productsContainer.innerHTML = '';
-	if (!state.products || state.products.length === 0) {
-		return;
-	}
+    if (!state.products || state.products.length === 0) {
+        return;
+    }
 
     state.products.forEach(item => {
         let element;
@@ -965,6 +970,54 @@ function renderProducts() {
 }
 
 // ===== ALL NEW FUNCTIONS FOR DYNAMIC HOME PAGE =====
+
+// *** زیادکرا: فەنکشنی وەرگرتنی بانەرەکان ***
+async function fetchInternalAds() {
+    try {
+        if (state.internalAds.length > 0) return; // Fetch only once
+        const q = query(internalAdsCollection, orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+        state.internalAds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log("Internal ads fetched:", state.internalAds.length);
+    } catch (error) {
+        console.error("Error fetching internal ads:", error);
+        state.internalAds = [];
+    }
+}
+
+// *** زیادکرا: فەنکشنی دروستکردنی HTMLی بانەر ***
+function createInternalAdElement(ad) {
+    const adElement = document.createElement('div');
+    adElement.className = 'product-card promo-card-grid-item internal-ad-card';
+
+    const imageUrl = ad.imageUrls[state.currentLanguage] || ad.imageUrls.ku_sorani;
+    adElement.innerHTML = `
+        <div class="product-image-container">
+            <img src="${imageUrl}" class="product-image" loading="lazy" alt="${ad.name || 'Ad'}">
+        </div>
+    `;
+
+    if (ad.linkType && ad.linkTargetId && ad.linkType !== 'none') {
+        adElement.style.cursor = 'pointer';
+        adElement.addEventListener('click', async () => {
+            let filter = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' };
+            if (ad.linkType === 'mainCategory') {
+                filter.category = ad.linkTargetId;
+            } else if (ad.linkType === 'subSubCategory') {
+                const pathParts = ad.linkTargetId.split('/');
+                if (pathParts.length === 3) {
+                    filter.category = pathParts[0];
+                    filter.subcategory = pathParts[1];
+                    filter.subSubcategory = pathParts[2];
+                }
+            }
+            await navigateToFilter(filter);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+    return adElement;
+}
+
 
 async function renderSingleShortcutRow(rowId, sectionNameObj) {
     const sectionContainer = document.createElement('div');
@@ -1206,9 +1259,15 @@ async function renderAllProductsSection() {
     }
 }
 
+// *** نوێکراوە: بۆ زیادکردنی بانەرەکان ***
 async function renderHomePageContent() {
     if (state.isRenderingHomePage) return;
     state.isRenderingHomePage = true;
+    
+    // *** زیادکرا: دڵنیابە بانەرەکان وەرگیراون ***
+    if (state.internalAds.length === 0) {
+        await fetchInternalAds(); // Fetch if not already loaded
+    }
 
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
 
@@ -1244,6 +1303,22 @@ async function renderHomePageContent() {
                     case 'single_category_row':
                         if (section.categoryId) {
                             sectionElement = await renderSingleCategoryRow(section.categoryId, section.name);
+                        }
+                        break;
+                    // *** زیادکرا: حاڵەتی نوێ بۆ بانەری ناوخۆیی ***
+                    case 'internal_ad':
+                        if (section.adId) {
+                            const adData = state.internalAds.find(ad => ad.id === section.adId && ad.showOnHome);
+                            if (adData) {
+                                sectionElement = createInternalAdElement(adData);
+                                const adContainer = document.createElement('div');
+                                adContainer.className = 'products-container';
+                                adContainer.style.marginBottom = '16px';
+                                adContainer.appendChild(sectionElement);
+                                sectionElement = adContainer;
+                            } else {
+                                console.warn(`Internal ad with ID ${section.adId} not found or not set for home page.`);
+                            }
                         }
                         break;
                     case 'all_products':
@@ -1290,6 +1365,7 @@ async function renderPromoCardsSectionForHome() {
 
 // ===== END OF NEW FUNCTIONS =====
 
+// *** نوێکراوە: بۆ زیادکردنی بانەرەکان ***
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
@@ -1400,10 +1476,27 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
             };
         }
         
-        renderProducts();
+        // *** زیادکرا: بەشی پیشاندانی بانەری ناوخۆیی ***
+        productsContainer.innerHTML = ''; // Clear container before rendering
+        if (isNewSearch && !shouldShowHomeSections) {
+            const relevantAd = state.internalAds.find(ad =>
+                (ad.linkType === 'mainCategory' && ad.linkTargetId === state.currentCategory && state.currentSubcategory === 'all') ||
+                (ad.linkType === 'subSubCategory' && ad.linkTargetId === `${state.currentCategory}/${state.currentSubcategory}/${state.currentSubSubcategory}`)
+            );
+
+            if (relevantAd) {
+                const adElement = createInternalAdElement(relevantAd);
+                productsContainer.appendChild(adElement);
+                adElement.classList.add('product-card-reveal', 'visible');
+            }
+        }
+
+        renderProducts(); // This will now append products after the potential ad
 
         if (state.products.length === 0 && isNewSearch) {
-            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+             if (!productsContainer.querySelector('.internal-ad-card')) {
+                productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+             }
         }
 
     } catch (error) {
@@ -1937,6 +2030,7 @@ onAuthStateChanged(auth, async (user) => {
     } else {
         sessionStorage.removeItem('isAdmin');
         if (user) {
+            // If a non-admin user is somehow signed in, sign them out.
             await signOut(auth);
         }
         if (window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
@@ -1944,10 +2038,14 @@ onAuthStateChanged(auth, async (user) => {
         }
     }
 
+    // Refresh the view to show/hide admin controls
+    searchProductsInFirestore(searchInput.value, true);
+
     if (loginModal.style.display === 'block' && isAdmin) {
         closeCurrentPopup();
     }
 });
+
 
 function init() {
     renderSkeletonLoader();
@@ -1968,6 +2066,7 @@ function init() {
         });
 }
 
+// *** نوێکراوە: بۆ زیادکردنی وەرگرتنی بانەرەکان ***
 function initializeAppLogic() {
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     onSnapshot(categoriesQuery, (snapshot) => {
@@ -1985,6 +2084,7 @@ function initializeAppLogic() {
     checkNewAnnouncements();
     showWelcomeMessage();
     setupGpsButton();
+    fetchInternalAds(); // *** زیادکرا: وەرگرتنی بانەرەکان لە سەرەتادا ***
     handleInitialPageLoad();
 }
 
