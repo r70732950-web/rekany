@@ -21,6 +21,11 @@ import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https:/
 import { enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, addDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
+// =========== NEW: Category Navigation State ===========
+let categoryNavStack = [];
+const categoryNavigationContainer = document.getElementById('category-navigation-container');
+// =======================================================
+
 
 function debounce(func, delay = 500) {
     let timeout;
@@ -71,7 +76,7 @@ function openPopup(id, type = 'sheet') {
         element.classList.add('show');
         if (id === 'cartSheet') renderCart();
         if (id === 'favoritesSheet') renderFavoritesPage();
-        if (id === 'categoriesSheet') renderCategoriesSheet();
+        // The logic for categoriesSheet is now handled differently
         if (id === 'notificationsSheet') renderUserNotifications();
         if (id === 'termsSheet') renderPolicies();
         if (id === 'profileSheet') {
@@ -95,12 +100,6 @@ function closeCurrentPopup() {
 }
 
 async function applyFilterState(filterState, fromPopState = false) {
-    const skipProductLoad = filterState.__skipProductLoad;
-    if (skipProductLoad) {
-        delete filterState.__skipProductLoad;
-        history.replaceState(filterState, '');
-    }
-
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
     state.currentSubSubcategory = filterState.subSubcategory || 'all';
@@ -112,23 +111,14 @@ async function applyFilterState(filterState, fromPopState = false) {
     renderMainCategories();
     await renderSubcategories(state.currentCategory);
 
-    if (skipProductLoad) {
-        productsContainer.innerHTML = `<p style="text-align:center; padding: 20px; grid-column: 1 / -1; color: var(--dark-gray);">تکایە جۆرێکی وردتر هەڵبژێرە.</p>`;
-        skeletonLoader.style.display = 'none';
-        loader.style.display = 'none';
-        productsContainer.style.display = 'grid';
-        document.getElementById('scroll-loader-trigger').style.display = 'none';
-    } else {
-        await searchProductsInFirestore(state.currentSearch, true);
-    }
+    await searchProductsInFirestore(state.currentSearch, true);
 
     if (fromPopState && typeof filterState.scroll === 'number') {
         setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
-    } else if (!fromPopState && !skipProductLoad) {
+    } else if (!fromPopState) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
-
 
 async function navigateToFilter(newState) {
     history.replaceState({
@@ -154,14 +144,141 @@ async function navigateToFilter(newState) {
     await applyFilterState(finalState);
 }
 
+
+// =========== NEW CATEGORY NAVIGATION LOGIC ===========
+
+function createCategoryPage(title, items, level, parentPath) {
+    const page = document.createElement('div');
+    page.className = 'category-page';
+    page.dataset.level = level;
+
+    page.innerHTML = `
+        <div class="category-page-header">
+            <button class="category-back-btn"><i class="fas fa-arrow-right"></i></button>
+            <h3 class="category-page-title">${title}</h3>
+        </div>
+        <div class="category-page-content"></div>
+    `;
+
+    const content = page.querySelector('.category-page-content');
+    items.forEach(item => {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'category-list-item';
+        const itemName = item['name_' + state.currentLanguage] || item.name_ku_sorani || item.id;
+        itemElement.innerHTML = `
+            <span>${itemName}</span>
+            <i class="fas fa-chevron-left"></i>
+        `;
+        itemElement.onclick = () => handleCategoryItemClick(item, level + 1, `${parentPath}/${item.id}`);
+        content.appendChild(itemElement);
+    });
+
+    page.querySelector('.category-back-btn').onclick = () => closeTopCategoryPage();
+
+    return page;
+}
+
+async function openCategoryPage(title, items, level, parentPath) {
+    const newPage = createCategoryPage(title, items, level, parentPath);
+    categoryNavigationContainer.appendChild(newPage);
+
+    // Force reflow to ensure the initial state is applied before transitioning
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    
+    newPage.classList.add('active');
+    categoryNavStack.push(newPage);
+    document.body.classList.add('category-nav-open');
+    history.pushState({ type: 'categoryNav', level }, '', `#cat-level-${level}`);
+}
+
+function closeTopCategoryPage() {
+    const pageToClose = categoryNavStack.pop();
+    if (pageToClose) {
+        pageToClose.classList.remove('active');
+        pageToClose.addEventListener('transitionend', () => {
+            pageToClose.remove();
+        }, { once: true });
+    }
+    if (categoryNavStack.length === 0) {
+        document.body.classList.remove('category-nav-open');
+    }
+}
+
+async function handleCategoryItemClick(item, nextLevel, currentPath) {
+    const pathParts = currentPath.split('/');
+    let collectionRef;
+
+    if (pathParts.length === 2) { // main_cat/sub_cat
+        collectionRef = collection(db, 'categories', pathParts[0], 'subcategories', pathParts[1], 'subSubcategories');
+    } else if (pathParts.length === 1) { // main_cat
+        collectionRef = collection(db, 'categories', pathParts[0], 'subcategories');
+    } else { // It's a sub-subcategory or deeper, no more children
+        collectionRef = null;
+    }
+
+    if (collectionRef) {
+        const q = query(collectionRef, orderBy("order", "asc"));
+        const snapshot = await getDocs(q);
+        const children = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        if (children.length > 0) {
+            const title = item['name_' + state.currentLanguage] || item.name_ku_sorani;
+            openCategoryPage(title, children, nextLevel, currentPath);
+        } else {
+            // No more children, filter products
+            closeAllCategoryPages();
+            const filterState = {};
+            if (pathParts[0]) filterState.category = pathParts[0];
+            if (pathParts[1]) filterState.subcategory = pathParts[1];
+            if (pathParts[2]) filterState.subSubcategory = pathParts[2];
+            navigateToFilter(filterState);
+        }
+    } else {
+        // Final level clicked, filter products
+        closeAllCategoryPages();
+        const filterState = {};
+        if (pathParts[0]) filterState.category = pathParts[0];
+        if (pathParts[1]) filterState.subcategory = pathParts[1];
+        if (pathParts[2]) filterState.subSubcategory = pathParts[2];
+        navigateToFilter(filterState);
+    }
+}
+
+
+function closeAllCategoryPages() {
+    categoryNavStack.forEach(page => {
+        page.classList.remove('active');
+        page.addEventListener('transitionend', () => page.remove(), { once: true });
+    });
+    categoryNavStack = [];
+    document.body.classList.remove('category-nav-open');
+
+    // Remove category states from history
+    while (history.state && history.state.type === 'categoryNav') {
+        history.go(-1);
+    }
+}
+
+// =======================================================
+
+
 window.addEventListener('popstate', (event) => {
-    closeAllPopupsUI();
     const popState = event.state;
+    // Check for category navigation first
+    if (categoryNavStack.length > 0 && (!popState || popState.type !== 'categoryNav' || popState.level < categoryNavStack.length -1)) {
+        closeTopCategoryPage();
+        return;
+    }
+    
+    closeAllPopupsUI();
+
     if (popState) {
         if (popState.type === 'page') {
             showPage(popState.id);
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             openPopup(popState.id, popState.type);
+        } else if (popState.type === 'categoryNav') {
+            // This is handled by the check at the top
         } else {
             applyFilterState(popState, true);
         }
@@ -176,7 +293,7 @@ function handleInitialPageLoad() {
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(window.location.search);
 
-    if (hash === 'settingsPage') {
+    if (hash.startsWith('settings')) {
         showPage('settingsPage');
         history.replaceState({ type: 'page', id: 'settingsPage' }, '', '#settingsPage');
     } else {
@@ -369,7 +486,7 @@ function toggleFavorite(productId) {
     saveFavorites();
 
     const isHomeView = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-    if (isHomeView) {
+    if(isHomeView) {
         const homeContainer = document.getElementById('homePageSectionsContainer');
         if (homeContainer) {
             homeContainer.innerHTML = '';
@@ -440,28 +557,26 @@ function renderCategoriesSheet() {
         const btn = document.createElement('button');
         btn.className = 'sheet-category-btn';
         btn.dataset.category = cat.id;
-        if (state.currentCategory === cat.id) { btn.classList.add('active'); }
-
+        
         const categoryName = cat.id === 'all'
-            ? t('all_categories_label')
+            ? t('all_products')
             : (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
 
         btn.innerHTML = `<i class="${cat.icon}"></i> ${categoryName}`;
 
-        btn.onclick = async () => {
-            await navigateToFilter({
-                category: cat.id,
-                subcategory: 'all',
-                subSubcategory: 'all',
-                search: ''
-            });
+        btn.onclick = () => {
             closeCurrentPopup();
-            showPage('mainPage');
+            if (cat.id === 'all') {
+                navigateToFilter({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
+            } else {
+                handleCategoryItemClick(cat, 1, cat.id);
+            }
         };
 
         sheetCategoriesContainer.appendChild(btn);
     });
 }
+
 
 async function renderSubSubcategories(mainCatId, subCatId) {
     subSubcategoriesContainer.innerHTML = '';
@@ -482,7 +597,7 @@ async function renderSubSubcategories(mainCatId, subCatId) {
             <span>${t('all_categories_label')}</span>
         `;
         allBtn.onclick = async () => {
-            await navigateToFilter({ subSubcategory: 'all' });
+             await navigateToFilter({ subSubcategory: 'all' });
         };
         subSubcategoriesContainer.appendChild(allBtn);
 
@@ -558,31 +673,10 @@ async function renderSubcategories(categoryId) {
             `;
 
             subcatBtn.onclick = async () => {
-                try {
-                    const subSubCheckRef = collection(db, "categories", categoryId, "subcategories", subcat.id, "subSubcategories");
-                    const checkQuery = query(subSubCheckRef, limit(1));
-                    const checkSnapshot = await getDocs(checkQuery);
-                    const hasSubSubs = !checkSnapshot.empty;
-
-                    if (hasSubSubs) {
-                        await navigateToFilter({
-                            subcategory: subcat.id,
-                            subSubcategory: 'all',
-                            __skipProductLoad: true
-                        });
-                    } else {
-                        await navigateToFilter({
-                            subcategory: subcat.id,
-                            subSubcategory: 'all'
-                        });
-                    }
-                } catch (error) {
-                    console.error("Error checking/navigating subcategory:", error);
-                    await navigateToFilter({
-                        subcategory: subcat.id,
-                        subSubcategory: 'all'
-                    });
-                }
+                 await navigateToFilter({
+                     subcategory: subcat.id,
+                     subSubcategory: 'all'
+                 });
             };
             subcategoriesContainer.appendChild(subcatBtn);
         });
@@ -667,7 +761,7 @@ async function renderRelatedProducts(currentProduct) {
             limit(6)
         );
     } else if (currentProduct.subcategoryId) {
-        q = query(
+       q = query(
             productsCollection,
             where('subcategoryId', '==', currentProduct.subcategoryId),
             where('__name__', '!=', currentProduct.id),
@@ -982,9 +1076,9 @@ function renderSkeletonLoader() {
 
 function renderProducts() {
     productsContainer.innerHTML = '';
-    if (!state.products || state.products.length === 0) {
-        return;
-    }
+	if (!state.products || state.products.length === 0) {
+		return;
+	}
 
     state.products.forEach(item => {
         let element;
@@ -1338,7 +1432,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         homeSectionsContainer.style.display = 'block';
 
         if (homeSectionsContainer.innerHTML.trim() === '') {
-            await renderHomePageContent();
+             await renderHomePageContent();
         } else {
             startPromoRotation();
         }
@@ -1458,7 +1552,7 @@ function addToCart(productId) {
     const allFetchedProducts = [...state.products];
     let product = allFetchedProducts.find(p => p.id === productId);
 
-    if (!product) {
+    if(!product){
         console.warn("Product not found in local 'products' array. Adding with limited data.");
         getDoc(doc(db, "products", productId)).then(docSnap => {
             if (docSnap.exists()) {
@@ -1853,6 +1947,7 @@ function setupEventListeners() {
     };
 
     categoriesBtn.onclick = () => {
+        renderCategoriesSheet();
         openPopup('categoriesSheet');
         updateActiveNav('categoriesBtn');
     };
@@ -2133,3 +2228,4 @@ function startPromoRotation() {
         state.promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
+

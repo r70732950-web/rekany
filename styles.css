@@ -28,7 +28,7 @@ body {
     overflow-x: hidden;
     font-family: 'Vazirmatn', sans-serif;
 }
-body.overlay-active {
+body.overlay-active, body.category-nav-open {
     overflow: hidden;
 }
 
@@ -83,9 +83,9 @@ body.overlay-active {
 
 .subcategories-container {
     display: flex;
-    flex-direction: row;    
-    flex-wrap: nowrap;     
-    overflow-x: auto;     
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
     gap: 8px;
     padding: 5px 12px 15px 12px;
     scrollbar-width: none;
@@ -1104,7 +1104,7 @@ body, .bottom-nav-item, .product-card {
 }
 
 #relatedProductsContainer .product-card {
-    width: 140px; 
+    width: 140px;
     flex-shrink: 0;
 }
 .product-image,
@@ -1112,8 +1112,8 @@ body, .bottom-nav-item, .product-card {
 .subcategory-image,
 .brand-image-wrapper img,
 .shortcut-card-image {
-    -webkit-touch-callout: none; 
-    -webkit-user-drag: none;   
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
 }
 
 /* ===== KODA NUYÊ CSS BO ADMIN LAYOUT ===== */
@@ -1239,4 +1239,91 @@ input:checked + .slider {
 
 input:checked + .slider:before {
     transform: translateX(20px);
+}
+
+/* =========== NEW STYLES FOR CATEGORY NAVIGATION =========== */
+#category-navigation-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1700;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.category-page {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--light-gray);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+    pointer-events: auto;
+}
+
+.category-page.active {
+    transform: translateX(0);
+}
+
+.category-page-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: white;
+    border-bottom: 1px solid var(--section-border);
+    flex-shrink: 0;
+    padding-top: calc(12px + env(safe-area-inset-top));
+}
+
+.category-back-btn {
+    background: none;
+    border: none;
+    font-size: 22px;
+    color: var(--text-color);
+    cursor: pointer;
+    padding: 5px;
+    margin-left: 15px;
+}
+
+.category-page-title {
+    font-size: 18px;
+    font-weight: bold;
+    flex-grow: 1;
+    text-align: right;
+}
+
+.category-page-content {
+    overflow-y: auto;
+    flex-grow: 1;
+    background-color: white;
+}
+
+.category-list-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid var(--section-border);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.category-list-item:hover {
+    background-color: var(--light-gray);
+}
+
+.category-list-item span {
+    flex-grow: 1;
+    font-size: 16px;
+}
+
+.category-list-item .fa-chevron-left {
+    color: var(--dark-gray);
+    font-size: 14px;
 }
