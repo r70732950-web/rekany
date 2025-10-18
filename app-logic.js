@@ -34,21 +34,20 @@ function debounce(func, delay = 500) {
 
 function saveCurrentScrollPosition() {
     const currentState = history.state;
-    if (document.getElementById('mainPage').style.transform === 'translateX(0px)' && currentState && !currentState.type) {
+    // Only save scroll position for the main page filter state
+    if (document.getElementById('mainPage').classList.contains('page-active') && currentState && !currentState.type) {
          history.replaceState({ ...currentState, scroll: window.scrollY }, '');
     }
 }
 
 // *** UPDATED showPage FUNCTION FOR SLIDING ANIMATION ***
 function showPage(pageId) {
-    const pages = document.querySelectorAll('.page');
-    pages.forEach(page => {
-        // We add a class to the page we want to show, and remove it from others
-        // The actual transform is handled by CSS
-        page.classList.toggle('page-hidden', page.id !== pageId);
+    document.querySelectorAll('.page').forEach(page => {
+        const isActive = page.id === pageId;
+        page.classList.toggle('page-active', isActive);
+        page.classList.toggle('page-hidden', !isActive);
     });
     
-    // Scroll to top only for new pages, not when returning to main page
     if (pageId !== 'mainPage') {
         window.scrollTo(0, 0);
     }
@@ -56,7 +55,6 @@ function showPage(pageId) {
     const activeBtnId = pageId === 'mainPage' ? 'homeBtn' : 'settingsBtn';
     updateActiveNav(activeBtnId);
 }
-
 
 function closeAllPopupsUI() {
     document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
@@ -109,8 +107,9 @@ async function applyFilterState(filterState, fromPopState = false) {
     clearSearchBtn.style.display = state.currentSearch ? 'block' : 'none';
     
     renderMainCategories();
-    // Subcategories are now on a separate page, no need to render them here.
-    // await renderSubcategories(state.currentCategory); 
+    // Render subcategories on the main page again
+    await renderSubcategories(state.currentCategory); 
+    await renderSubSubcategories(state.currentCategory, state.currentSubcategory);
 
     await searchProductsInFirestore(state.currentSearch, true);
 
@@ -154,11 +153,9 @@ window.addEventListener('popstate', (event) => {
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             openPopup(popState.id, popState.type);
         } else {
-            // This handles back/forward for filters on the main page
             applyFilterState(popState, true); 
         }
     } else {
-        // Default state when history is exhausted
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
         applyFilterState(defaultState);
         showPage('mainPage');
@@ -170,19 +167,28 @@ function handleInitialPageLoad() {
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(window.location.search);
     
-    const pageId = hash.startsWith('subCategoryPage_') ? 'subCategoryPage' : hash;
+    const pageId = hash.startsWith('subSubCategoryPage_') ? 'subSubCategoryPage' : hash;
 
-    if (pageId === 'settingsPage' || pageId === 'subCategoryPage') {
+    if (pageId === 'settingsPage' || pageId === 'subSubCategoryPage') {
         showPage(pageId);
-        if(pageId === 'subCategoryPage') {
-            const catId = hash.split('_')[1];
-            const cat = state.categories.find(c => c.id === catId);
-            if(cat) {
-                 const categoryName = cat['name_' + state.currentLanguage] || cat.name_ku_sorani;
-                 showSubCategoryPage(catId, categoryName, true); // true to skip history push
-            } else {
-                 showPage('mainPage');
-            }
+        if(pageId === 'subSubCategoryPage') {
+            const ids = hash.split('_');
+            const mainCatId = ids[1];
+            const subCatId = ids[2];
+            
+            const mainCat = state.categories.find(c => c.id === mainCatId);
+            // We need subcategories to be loaded to find the name, this might need a delay
+            setTimeout(async () => {
+                const subCatRef = doc(db, "categories", mainCatId, "subcategories", subCatId);
+                const subCatSnap = await getDoc(subCatRef);
+                if(mainCat && subCatSnap.exists()) {
+                     const subCat = subCatSnap.data();
+                     const subCatName = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani;
+                     showSubSubCategoryPage(mainCatId, subCatId, subCatName, true); // true to skip history push
+                } else {
+                     showPage('mainPage');
+                }
+            }, 500); // Wait for categories to load
         }
         history.replaceState({ type: 'page', id: pageId }, '', `#${pageId}`);
     } else {
@@ -470,65 +476,199 @@ function renderCategoriesSheet() {
     });
 }
 
-
-// *** NEW FUNCTION to show the subcategory page ***
-async function showSubCategoryPage(categoryId, categoryName, fromHistory = false) {
+// *** NEW FUNCTION to open the dedicated sub-subcategory page ***
+async function showSubSubCategoryPage(mainCatId, subCatId, subCatName, fromHistory = false) {
     if (!fromHistory) {
-         history.pushState({ type: 'page', id: 'subCategoryPage', categoryId: categoryId }, '', `#subCategoryPage_${categoryId}`);
+         history.pushState({ type: 'page', id: 'subSubCategoryPage', mainCatId, subCatId }, '', `#subSubCategoryPage_${mainCatId}_${subCatId}`);
     }
-    showPage('subCategoryPage');
+    showPage('subSubCategoryPage');
     
-    document.getElementById('subCategoryPageTitle').textContent = categoryName;
-    const contentContainer = document.getElementById('subCategoryPageContent');
+    document.getElementById('subSubCategoryPageTitle').textContent = subCatName;
+    const contentContainer = document.getElementById('subSubCategoryPageContent');
     contentContainer.innerHTML = `<div style="text-align:center; padding: 40px;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
 
     try {
-        const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
-        const q = query(subcategoriesQuery, orderBy("order", "asc"));
-        const querySnapshot = await getDocs(q);
+        const ref = collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
+        const q = query(ref, orderBy("order", "asc"));
+        const snapshot = await getDocs(q);
         
         contentContainer.innerHTML = '';
 
-        if (querySnapshot.empty) {
-            contentContainer.innerHTML = `<p style="text-align:center; padding: 20px;">هیچ جۆرێکی لاوەکی نییە.</p>`;
-            return;
-        }
+        // Add "All" button
+        const allBtn = document.createElement('div');
+        allBtn.className = 'subcategory-list-item'; // Use same style
+        allBtn.innerHTML = `
+            <div class="subcategory-list-image all-icon-placeholder"><i class="fas fa-th-large"></i></div>
+            <span class="subcategory-list-name">${t('all_categories_label')}</span>
+            <i class="fas fa-chevron-left subcategory-list-chevron"></i>
+        `;
+        allBtn.onclick = async () => {
+            await navigateToFilter({
+                category: mainCatId,
+                subcategory: subCatId,
+                subSubcategory: 'all',
+                search: ''
+            });
+            history.back();
+        };
+        contentContainer.appendChild(allBtn);
 
-        querySnapshot.docs.forEach(doc => {
-            const subcat = { id: doc.id, ...doc.data() };
-            const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
+        snapshot.forEach(doc => {
+            const subSubcat = { id: doc.id, ...doc.data() };
+            const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
             const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-            const imageUrl = subcat.imageUrl || placeholderImg;
+            const imageUrl = subSubcat.imageUrl || placeholderImg;
             
             const itemElement = document.createElement('div');
             itemElement.className = 'subcategory-list-item';
             itemElement.innerHTML = `
-                <img src="${imageUrl}" alt="${subcatName}" class="subcategory-list-image" onerror="this.src='${placeholderImg}';">
-                <span class="subcategory-list-name">${subcatName}</span>
+                <img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-list-image" onerror="this.src='${placeholderImg}';">
+                <span class="subcategory-list-name">${subSubcatName}</span>
                 <i class="fas fa-chevron-left subcategory-list-chevron"></i>
             `;
             
             itemElement.onclick = async () => {
                 await navigateToFilter({
-                    category: categoryId,
-                    subcategory: subcat.id,
-                    subSubcategory: 'all', // Reset sub-subcategory
+                    category: mainCatId,
+                    subcategory: subCatId,
+                    subSubcategory: subSubcat.id,
                     search: ''
                 });
-                // Go back to the main page to show the results
                 history.back();
             };
             contentContainer.appendChild(itemElement);
         });
 
     } catch (error) {
-        console.error("Error fetching subcategories for new page:", error);
+        console.error("Error fetching sub-subcategories for new page:", error);
         contentContainer.innerHTML = `<p style="text-align:center; padding: 20px;">هەڵەیەک ڕوویدا.</p>`;
     }
 }
 
 
-// *** UPDATED renderMainCategories to open the new page ***
+// *** OLD FUNCTION - Still used for the main page logic ***
+async function renderSubSubcategories(mainCatId, subCatId) {
+    subSubcategoriesContainer.innerHTML = '';
+    if (subCatId === 'all' || !mainCatId) return;
+
+    try {
+        const ref = collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
+        const q = query(ref, orderBy("order", "asc"));
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) return;
+
+        const allBtn = document.createElement('button');
+        allBtn.className = `subcategory-btn ${state.currentSubSubcategory === 'all' ? 'active' : ''}`;
+        const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
+        allBtn.innerHTML = `
+            <div class="subcategory-image">${allIconSvg}</div>
+            <span>${t('all_categories_label')}</span>
+        `;
+        allBtn.onclick = async () => {
+             await navigateToFilter({ subSubcategory: 'all' });
+        };
+        subSubcategoriesContainer.appendChild(allBtn);
+
+        snapshot.forEach(doc => {
+            const subSubcat = { id: doc.id, ...doc.data() };
+            const btn = document.createElement('button');
+            btn.className = `subcategory-btn ${state.currentSubSubcategory === subSubcat.id ? 'active' : ''}`;
+
+            const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
+            const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+            const imageUrl = subSubcat.imageUrl || placeholderImg;
+
+            btn.innerHTML = `
+                <img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
+                <span>${subSubcatName}</span>
+            `;
+            
+            btn.onclick = async () => {
+                await navigateToFilter({ subSubcategory: subSubcat.id });
+            };
+            subSubcategoriesContainer.appendChild(btn);
+        });
+
+    } catch (error) {
+        console.error("Error fetching sub-subcategories:", error);
+    }
+}
+
+// *** MODIFIED renderSubcategories to decide what to do on click ***
+async function renderSubcategories(categoryId) {
+    const subcategoriesContainer = document.getElementById('subcategoriesContainer');
+    subcategoriesContainer.innerHTML = '';
+    subSubcategoriesContainer.innerHTML = ''; // Clear sub-sub on main category change
+
+    if (categoryId === 'all') {
+        return;
+    }
+
+    try {
+        const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
+        const q = query(subcategoriesQuery, orderBy("order", "asc"));
+        const querySnapshot = await getDocs(q);
+
+        state.subcategories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        if (state.subcategories.length === 0) return;
+
+        const allBtn = document.createElement('button');
+        allBtn.className = `subcategory-btn ${state.currentSubcategory === 'all' ? 'active' : ''}`;
+        const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
+        allBtn.innerHTML = `
+            <div class="subcategory-image">${allIconSvg}</div>
+            <span>${t('all_categories_label')}</span>
+        `;
+        allBtn.onclick = async () => {
+            await navigateToFilter({
+                subcategory: 'all',
+                subSubcategory: 'all'
+            });
+        };
+        subcategoriesContainer.appendChild(allBtn);
+
+        // Loop through subcategories and check if they have children
+        for (const subcat of state.subcategories) {
+            const subcatBtn = document.createElement('button');
+            subcatBtn.className = `subcategory-btn ${state.currentSubcategory === subcat.id ? 'active' : ''}`;
+            
+            const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
+            const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+            const imageUrl = subcat.imageUrl || placeholderImg;
+        
+            subcatBtn.innerHTML = `
+                <img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
+                <span>${subcatName}</span>
+            `;
+            
+            // Check for sub-subcategories
+            const subSubRef = collection(db, "categories", categoryId, "subcategories", subcat.id, "subSubcategories");
+            const subSubSnapshot = await getDocs(query(subSubRef, limit(1)));
+            const hasSubSubcategories = !subSubSnapshot.empty;
+
+            if (hasSubSubcategories) {
+                // If it has children, open the new page on click
+                subcatBtn.onclick = () => showSubSubCategoryPage(categoryId, subcat.id, subcatName);
+            } else {
+                // Otherwise, filter on the main page
+                subcatBtn.onclick = async () => {
+                     await navigateToFilter({
+                         subcategory: subcat.id,
+                         subSubcategory: 'all' // No sub-subcategories exist for this one
+                     });
+                };
+            }
+            subcategoriesContainer.appendChild(subcatBtn);
+        }
+
+    } catch (error) {
+        console.error("Error fetching subcategories: ", error);
+    }
+}
+
+
 function renderMainCategories() {
     const container = document.getElementById('mainCategoriesContainer');
     if (!container) return;
@@ -550,24 +690,17 @@ function renderMainCategories() {
         btn.innerHTML = `<i class="${cat.icon}"></i> <span>${categoryName}</span>`;
 
         btn.onclick = async () => {
-            if (cat.id === 'all') {
-                // If "All" is clicked, just filter on the main page
-                 await navigateToFilter({
-                    category: 'all',
-                    subcategory: 'all',
-                    subSubcategory: 'all',
-                    search: ''
-                });
-            } else {
-                // For any other category, show the new subcategory page
-                showSubCategoryPage(cat.id, categoryName);
-            }
+            await navigateToFilter({
+                category: cat.id,
+                subcategory: 'all',
+                subSubcategory: 'all',
+                search: ''
+            });
         };
 
         container.appendChild(btn);
     });
 }
-
 
 function showProductDetails(productId) {
     const allFetchedProducts = [...state.products];
@@ -1772,7 +1905,7 @@ function updateCategoryDependentUI() {
 
 function setupEventListeners() {
     homeBtn.onclick = async () => {
-        if(document.getElementById('mainPage').classList.contains('page-hidden')) {
+        if(!document.getElementById('mainPage').classList.contains('page-active')) {
              history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
              showPage('mainPage');
         }
@@ -1784,8 +1917,7 @@ function setupEventListeners() {
         showPage('settingsPage');
     };
 
-    // *** ADD EVENT LISTENER FOR NEW BACK BUTTON ***
-    document.getElementById('backToMainBtn').onclick = () => {
+    document.getElementById('backToMainFromSubSubBtn').onclick = () => {
         history.back();
     };
 
@@ -1958,7 +2090,7 @@ function initializeAppLogic() {
         state.categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories];
         updateCategoryDependentUI();
         setLanguage(state.currentLanguage);
-        handleInitialPageLoad(); // Move here to ensure categories are loaded
+        handleInitialPageLoad();
     });
 
     updateCartCount();
@@ -1969,7 +2101,6 @@ function initializeAppLogic() {
     checkNewAnnouncements();
     showWelcomeMessage();
     setupGpsButton();
-    // handleInitialPageLoad is moved up
 }
 
 Object.assign(window.globalAdminTools, {
@@ -2081,3 +2212,4 @@ function startPromoRotation() {
         state.promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
+

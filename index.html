@@ -193,10 +193,8 @@
         <main class="main-content page" id="mainPage">
             <div class="section">
                 <div id="mainCategoriesContainer" class="main-categories-container"></div>
-                
-                <!-- These containers are no longer primary but can be used for other purposes or removed -->
-                <div id="subcategoriesContainer" class="subcategories-container" style="display:none;"></div>
-                <div id="subSubcategoriesContainer" class="subcategories-container" style="display:none; padding-top: 0; padding-bottom: 10px;"></div>
+                <div id="subcategoriesContainer" class="subcategories-container"></div>
+                <div id="subSubcategoriesContainer" class="subcategories-container" style="padding-top: 0; padding-bottom: 10px;"></div>
 
                 <div id="homePageSectionsContainer">
                 </div>
@@ -208,19 +206,18 @@
             </div>
         </main>
         
-        <!-- ========== NEW SUBCATEGORY PAGE ADDED HERE ========== -->
-        <div class="subcategories-page page page-hidden" id="subCategoryPage">
+        <!-- NEW PAGE for showing sub-subcategories -->
+        <div class="subcategories-page page page-hidden" id="subSubCategoryPage">
             <div class="subcategory-page-header">
-                 <button id="backToMainBtn" class="header-icon-btn" aria-label="Go back">
+                 <button id="backToMainFromSubSubBtn" class="header-icon-btn" aria-label="Go back">
                     <i class="fas fa-arrow-right"></i>
                  </button>
-                 <h3 id="subCategoryPageTitle" class="subcategory-page-main-title"></h3>
+                 <h3 id="subSubCategoryPageTitle" class="subcategory-page-main-title"></h3>
             </div>
-            <div id="subCategoryPageContent" class="subcategories-page-content">
-                <!-- Subcategory items will be dynamically inserted here by JavaScript -->
+            <div id="subSubCategoryPageContent" class="subcategories-page-content">
+                <!-- Sub-subcategory items will be dynamically inserted here by JavaScript -->
             </div>
         </div>
-        <!-- ======================================================= -->
 
         <div class="settings-page page page-hidden" id="settingsPage">
             <h3 class="section-title" style="margin: 0; border-radius: 8px 8px 0 0;"><i class="fas fa-cog"></i> <span data-translate-key="settings_title">ڕێکخستنەکان</span></h3>
@@ -956,3 +953,4 @@
     <script src="admin.js" defer></script>
 </body>
 </html>
+
