@@ -107,7 +107,6 @@ async function applyFilterState(filterState, fromPopState = false) {
     clearSearchBtn.style.display = state.currentSearch ? 'block' : 'none';
     
     renderMainCategories();
-    // Render subcategories on the main page again
     await renderSubcategories(state.currentCategory); 
 
     await searchProductsInFirestore(state.currentSearch, true);
@@ -174,8 +173,12 @@ function handleInitialPageLoad() {
     const pageId = hash.startsWith('subcategory_') ? 'subcategoryDetailPage' : hash;
 
     if (pageId === 'settingsPage' || pageId === 'subcategoryDetailPage') {
-        // The logic to fetch names and show the subcategory page is now handled in initializeAppLogic
-        // This is to make sure categories are loaded first.
+        if(pageId === 'subcategoryDetailPage') {
+            const ids = hash.split('_');
+            const mainCatId = ids[1];
+            const subCatId = ids[2];
+            // The logic to fetch names and show the page will be handled in initializeAppLogic after categories are loaded
+        }
         history.replaceState({ type: 'page', id: pageId }, '', `#${hash}`);
         showPage(pageId);
     } else {
@@ -463,21 +466,20 @@ function renderCategoriesSheet() {
     });
 }
 
-// This function is no longer used for the main page
-function renderSubSubcategories(mainCatId, subCatId) {
+// *** MODIFIED: Logic moved from here to showSubcategoryDetailPage and its helpers ***
+async function renderSubSubcategories(mainCatId, subCatId) {
+   // This function is no longer needed on the main page.
    subSubcategoriesContainer.innerHTML = '';
 }
 
-// *** NEW: Handles opening the detail page ***
+// *** NEW FUNCTION to open the dedicated subcategory detail page ***
 async function showSubcategoryDetailPage(mainCatId, subCatId, subCatName, fromHistory = false) {
     if (!fromHistory) {
          history.pushState({ type: 'page', id: 'subcategoryDetailPage' }, '', `#subcategory_${mainCatId}_${subCatId}`);
     }
     showPage('subcategoryDetailPage');
     
-    // ** FIX: Ensure the title is set correctly based on current language **
     document.getElementById('subcategoryDetailPageTitle').textContent = subCatName;
-    
     const loader = document.getElementById('detailPageLoader');
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const subSubContainer = document.getElementById('subSubCategoryContainerOnDetailPage');
@@ -486,13 +488,16 @@ async function showSubcategoryDetailPage(mainCatId, subCatId, subCatName, fromHi
     productsContainer.innerHTML = '';
     subSubContainer.innerHTML = '';
     
+    // Fetch and render sub-subcategories first
     await renderSubSubcategoriesOnDetailPage(mainCatId, subCatId);
+
+    // Then fetch and render all products for the main subcategory
     await renderProductsOnDetailPage(subCatId);
     
     loader.style.display = 'none';
 }
 
-// *** NEW: Renders sub-subcategories on the detail page ***
+// *** NEW HELPER for the detail page: Renders sub-subcategories horizontally ***
 async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
     const container = document.getElementById('subSubCategoryContainerOnDetailPage');
     container.innerHTML = '';
@@ -509,17 +514,20 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
 
         container.style.display = 'flex';
         
+        // Add "All" button first
         const allBtn = document.createElement('button');
-        allBtn.className = `subcategory-btn active`;
+        allBtn.className = `subcategory-btn active`; // "All" is active by default
         const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
         allBtn.innerHTML = `<div class="subcategory-image">${allIconSvg}</div><span>${t('all_categories_label')}</span>`;
         allBtn.onclick = () => {
+             // Deactivate other buttons and activate this one
             container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
             allBtn.classList.add('active');
-            renderProductsOnDetailPage(subCatId, 'all');
+            renderProductsOnDetailPage(subCatId, 'all'); // 'all' is the filter
         };
         container.appendChild(allBtn);
 
+        // Add other sub-subcategory buttons
         snapshot.forEach(doc => {
             const subSubcat = { id: doc.id, ...doc.data() };
             const btn = document.createElement('button');
@@ -530,6 +538,7 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
             btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
             
             btn.onclick = () => {
+                // Deactivate other buttons and activate this one
                 container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 renderProductsOnDetailPage(subCatId, subSubcat.id);
@@ -543,7 +552,7 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
     }
 }
 
-// *** NEW: Renders products on the detail page ***
+// *** NEW HELPER for the detail page: Renders products for the chosen subcategory/sub-subcategory ***
 async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all') {
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const loader = document.getElementById('detailPageLoader');
@@ -577,7 +586,7 @@ async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all') {
 }
 
 
-// *** MODIFIED: Renders subcategories on the main page, opens detail page on click ***
+// *** MODIFIED renderSubcategories to open new page on click ***
 async function renderSubcategories(categoryId) {
     const subcategoriesContainer = document.getElementById('subcategoriesContainer');
     subcategoriesContainer.innerHTML = '';
@@ -623,7 +632,7 @@ async function renderSubcategories(categoryId) {
                 <span>${subcatName}</span>
             `;
             
-            // On click, always open the new detail page
+            // NEW LOGIC: Always open the detail page on click
             subcatBtn.onclick = () => {
                 showSubcategoryDetailPage(categoryId, subcat.id, subcatName);
             };
@@ -2057,6 +2066,7 @@ function initializeAppLogic() {
         state.categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories];
         updateCategoryDependentUI();
         
+        // Handle deep linking for subcategory page only after categories are loaded
         const hash = window.location.hash.substring(1);
         if (hash.startsWith('subcategory_')) {
             const ids = hash.split('_');
@@ -2068,7 +2078,7 @@ function initializeAppLogic() {
             if (subCatSnap.exists()) {
                  const subCat = subCatSnap.data();
                  const subCatName = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani;
-                 showSubcategoryDetailPage(mainCatId, subCatId, subCatName, true);
+                 showSubcategoryDetailPage(mainCatId, subCatId, subCatName, true); // true to skip history push
             } else {
                  showPage('mainPage');
             }
