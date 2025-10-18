@@ -174,21 +174,21 @@
             </div>
         </div>
 
-        <div id="termsSheet" class="bottom-sheet">
-            <div class="sheet-header">
-                <span class="sheet-handle"></span>
-                <h2 class="sheet-title">
-                    <i class="fas fa-file-contract"></i>
-                    <span data-translate-key="terms_policies_title">مەرج و ڕێساکان</span>
-                </h2>
-                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
-            </div>
-            <div class="sheet-content">
-                <div id="termsContentContainer" style="line-height: 1.8; color: var(--text-light);">
-                    <p data-translate-key="loading_policies">...خەریکی بارکردنی ڕێساکانە</p>
-                </div>
-            </div>
-        </div>
+		<div id="termsSheet" class="bottom-sheet">
+			<div class="sheet-header">
+				<span class="sheet-handle"></span>
+				<h2 class="sheet-title">
+					<i class="fas fa-file-contract"></i>
+					<span data-translate-key="terms_policies_title">مەرج و ڕێساکان</span>
+				</h2>
+				<span class="close" style="top: 20px;" aria-label="Close">&times;</span>
+			</div>
+			<div class="sheet-content">
+				<div id="termsContentContainer" style="line-height: 1.8; color: var(--text-light);">
+					<p data-translate-key="loading_policies">...خەریکی بارکردنی ڕێساکانە</p>
+				</div>
+			</div>
+		</div>
 
         <main class="main-content page" id="mainPage">
             <div class="section">
@@ -197,7 +197,7 @@
                 <div id="subSubcategoriesContainer" class="subcategories-container" style="padding-top: 0; padding-bottom: 10px;"></div>
 
                 <div id="homePageSectionsContainer">
-                    </div>
+                </div>
                 <div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;" data-translate-key="loading_products">...خەریکی بارکردنی کاڵاکانە</p></div>
                 <div id="skeletonLoader" class="products-container"></div>
                 <div class="products-container" id="productsContainer" style="display: none;"></div>
@@ -276,6 +276,23 @@
                     <i class="fas fa-chevron-down contact-chevron"></i>
                 </div>
                 <div class="contact-links-container" id="dynamicContactLinksContainer"></div>
+            </div>
+
+            <div class="settings-group">
+                <div class="settings-item" id="settingsAdminLoginBtn">
+                    <div>
+                        <i class="fas fa-user-shield" style="margin-left: 10px;"></i>
+                        <span data-translate-key="admin_login_nav">چوونەژوورەوەی بەڕێوەبەر</span>
+                    </div>
+                    <i class="fas fa-chevron-left"></i>
+                </div>
+                <div class="settings-item" id="settingsLogoutBtn" style="display: none;">
+                    <div>
+                        <i class="fas fa-sign-out-alt" style="margin-left: 10px;"></i>
+                        <span data-translate-key="logout_nav">چوونەدەرەوە</span>
+                    </div>
+                    <i class="fas fa-chevron-left"></i>
+                </div>
             </div>
 
             <div class="settings-group" id="adminPoliciesManagement" style="display: none;">
@@ -413,10 +430,11 @@
 
             <div class="settings-group" id="adminPromoCardsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
-                    <i class="fas fa-bullhorn"></i> <span>بەڕێوەبردنی سلایدەری ڕێکلام</span> </h3>
+                    <i class="fas fa-bullhorn"></i> <span>بەڕێوەبردنی کارتە ڕێنماییەکان</span>
+                </h3>
                 <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
                     <form id="addPromoCardForm">
-                        <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی سلایدی نوێ</h4>
+                        <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی کارتی نوێ</h4>
                         <div class="form-group">
                             <label>لینکی وێنە (سۆرانی):</label>
                             <input type="url" id="promoCardImageKuSorani" required>
@@ -430,10 +448,14 @@
                             <input type="url" id="promoCardImageAr" required>
                         </div>
                         <div class="form-group">
-                            <label>لینک بکرێت بۆ کام جۆری سەرەکی (ئارەزوومەندانە):</label> <select id="promoCardTargetCategory"> <option value="" selected>-- هیچ --</option> </select>
+                            <label>جۆری کاڵا کە لینک بکرێت بۆی:</label>
+                            <select id="promoCardTargetCategory" required>
+                                <option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label>ژمارەی ڕیزبەندی (بۆ سلایدەر):</label> <input type="number" id="promoCardOrder" value="1" required>
+                            <label>ژمارەی ڕیزبەندی (بۆ پیشاندان لەناو کاڵاکان):</label>
+                            <input type="number" id="promoCardOrder" value="1" required>
                             <small>ژمارەی بچووکتر لە پێشتر پیشان دەدرێت.</small>
                         </div>
                         <input type="hidden" id="editingPromoCardId">
@@ -441,7 +463,7 @@
                     </form>
                 </div>
                 <div style="padding: 15px;">
-                    <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">سلایدە زیادکراوەکان</h4>
+                    <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">کارتە زیادکراوەکان</h4>
                     <div id="promoCardsListContainer"></div>
                 </div>
             </div>
@@ -597,76 +619,6 @@
                     <button id="saveLayoutBtn" style="margin-top: 15px; background-color: var(--primary-color);">پاشەکەوتکردنی ڕیزبەندی</button>
                 </div>
             </div>
-
-            <div class="settings-group" id="adminInternalAdsManagement" style="display: none;">
-                <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
-                    <i class="fas fa-ad"></i> <span>بەڕێوەبردنی بانەرە ناوخۆییەکان</span>
-                </h3>
-
-                <div style="padding: 15px; border-bottom: 1px solid var(--section-border); background-color: #f8f9fa;">
-                    <form id="addInternalAdForm">
-                        <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردن/دەستکاریکردنی بانەر</h4>
-                        <input type="hidden" id="editingInternalAdId">
-
-                        <div class="form-group">
-                            <label>ناوی ناسێنەری بانەر (بۆ ئەدمین):</label>
-                            <input type="text" id="internalAdName" required placeholder="بۆ نموونە: داشکاندنی جلی زستانە">
-                        </div>
-
-                        <div class="form-group">
-                            <label>لینکی وێنە (سۆرانی):</label>
-                            <input type="url" id="internalAdImageKuSorani" required>
-                        </div>
-                        <div class="form-group">
-                            <label>لینکی وێنە (بادینی):</label>
-                            <input type="url" id="internalAdImageKuBadini" required>
-                        </div>
-                        <div class="form-group">
-                            <label>لینکی وێنە (عربی):</label>
-                            <input type="url" id="internalAdImageAr" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label>جۆری بەستنەوە:</label>
-                            <select id="internalAdLinkType" required>
-                                <option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>
-                                <option value="mainCategory">بەستنەوە بە جۆری سەرەکی</option>
-                                <option value="subSubCategory">بەستنەوە بە جۆری لاوەکی لاوەکی</option>
-                                <option value="none">بە هیچ جۆرێکەوە نەبەسترێتەوە (تەنها بۆ پەڕەی سەرەکی)</option>
-                            </select>
-                        </div>
-
-                        <div id="internalAdTargetContainer" class="form-group" style="display: none;">
-                            <label id="internalAdTargetLabel">دیاریکردنی جۆر:</label>
-                            <select id="internalAdLinkTargetId" required>
-                                <option value="" disabled selected>-- سەرەتا جۆری بەستنەوە هەڵبژێرە --</option>
-                            </select>
-                            <select id="internalAdLinkTargetIdSubSub" style="display: none; margin-top: 10px;">
-                                <option value="" disabled selected>-- جۆری لاوەکی لاوەکی هەڵبژێرە --</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
-                            <input type="checkbox" id="internalAdShowOnHome" style="width: auto;">
-                            <label for="internalAdShowOnHome" style="margin-bottom: 0;">لە پەڕەی سەرەکیش پیشان بدرێت؟</label>
-                        </div>
-
-                        <div class="form-group">
-                            <label>ژمارەی ڕیزبەندی (بۆ پەڕەی سەرەکی):</label>
-                            <input type="number" id="internalAdOrder" value="10" required>
-                            <small>بۆ ڕێکخستنی لە پەڕەی سەرەکی</small>
-                        </div>
-
-                        <button type="submit">پاشەکەوتکردنی بانەر</button>
-                        <button type="button" id="cancelInternalAdEditBtn" style="display:none; margin-top: 8px; background-color: var(--dark-gray);">پاشگەزبوونەوە</button>
-                    </form>
-                </div>
-
-                <div style="padding: 15px;">
-                    <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">بانەرە زیادکراوەکان</h4>
-                    <div id="internalAdsListContainer"><p>...خەریکی بارکردنی بانەرەکانە</p></div>
-                </div>
-            </div>
             <div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;"><i class="fas fa-paper-plane"></i> <span data-translate-key="manage_contact_methods_title">بەڕێوەبردنی شێوازەکانی ناردنی داواکاری</span></h3>
 
@@ -806,25 +758,9 @@
                     <div id="announcementsListContainer"></div>
                 </div>
             </div>
+        </div>
 
-            <div class="settings-group">
-                <div class="settings-item" id="settingsAdminLoginBtn">
-                    <div>
-                        <i class="fas fa-user-shield" style="margin-left: 10px;"></i>
-                        <span data-translate-key="admin_login_nav">چوونەژوورەوەی بەڕێوەبەر</span>
-                    </div>
-                    <i class="fas fa-chevron-left"></i>
-                </div>
-                <div class="settings-item" id="settingsLogoutBtn" style="display: none;">
-                    <div>
-                        <i class="fas fa-sign-out-alt" style="margin-left: 10px;"></i>
-                        <span data-translate-key="logout_nav">چوونەدەرەوە</span>
-                    </div>
-                    <i class="fas fa-chevron-left"></i>
-                </div>
-            </div>
-
-        </div> <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
+        <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
 
         <div id="addHomeSectionModal" class="modal">
             <div class="modal-content">
@@ -840,7 +776,7 @@
                             <option value="newest_products">نوێترین کاڵاکان</option>
                             <option value="single_shortcut_row">یەک ڕیزی کارتی کورتکراوە</option>
                             <option value="single_category_row">یەک ڕیزی کاڵای جۆرێک</option>
-                            <option value="internal_ad">بانەری ناوخۆیی دیاریکراو</option> <option value="all_products">هەموو کاڵاکان (لە کۆتایی)</option>
+                            <option value="all_products">هەموو کاڵاکان (لە کۆتایی)</option>
                         </select>
                     </div>
                     <div id="specificItemSelectContainer" class="form-group" style="display: none;">
@@ -855,7 +791,6 @@
                 </form>
             </div>
         </div>
-
         <div id="editCategoryModal" class="modal">
             <div class="modal-content">
                 <span class="close" aria-label="Close">&times;</span>
