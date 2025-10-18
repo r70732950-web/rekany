@@ -21,11 +21,6 @@ import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https:/
 import { enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, addDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
-// =========== NEW: Category Navigation State ===========
-let categoryNavStack = [];
-const categoryNavigationContainer = document.getElementById('category-navigation-container');
-// =======================================================
-
 
 function debounce(func, delay = 500) {
     let timeout;
@@ -39,17 +34,21 @@ function debounce(func, delay = 500) {
 
 function saveCurrentScrollPosition() {
     const currentState = history.state;
-    if (!document.getElementById('mainPage').classList.contains('page-hidden') && currentState && !currentState.type) {
-        history.replaceState({ ...currentState, scroll: window.scrollY }, '');
+    if (document.getElementById('mainPage').style.transform === 'translateX(0px)' && currentState && !currentState.type) {
+         history.replaceState({ ...currentState, scroll: window.scrollY }, '');
     }
 }
 
+// *** UPDATED showPage FUNCTION FOR SLIDING ANIMATION ***
 function showPage(pageId) {
-    saveCurrentScrollPosition();
-    document.querySelectorAll('.page').forEach(page => {
+    const pages = document.querySelectorAll('.page');
+    pages.forEach(page => {
+        // We add a class to the page we want to show, and remove it from others
+        // The actual transform is handled by CSS
         page.classList.toggle('page-hidden', page.id !== pageId);
     });
-
+    
+    // Scroll to top only for new pages, not when returning to main page
     if (pageId !== 'mainPage') {
         window.scrollTo(0, 0);
     }
@@ -57,6 +56,7 @@ function showPage(pageId) {
     const activeBtnId = pageId === 'mainPage' ? 'homeBtn' : 'settingsBtn';
     updateActiveNav(activeBtnId);
 }
+
 
 function closeAllPopupsUI() {
     document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
@@ -76,7 +76,7 @@ function openPopup(id, type = 'sheet') {
         element.classList.add('show');
         if (id === 'cartSheet') renderCart();
         if (id === 'favoritesSheet') renderFavoritesPage();
-        // The logic for categoriesSheet is now handled differently
+        if (id === 'categoriesSheet') renderCategoriesSheet();
         if (id === 'notificationsSheet') renderUserNotifications();
         if (id === 'termsSheet') renderPolicies();
         if (id === 'profileSheet') {
@@ -107,9 +107,10 @@ async function applyFilterState(filterState, fromPopState = false) {
 
     searchInput.value = state.currentSearch;
     clearSearchBtn.style.display = state.currentSearch ? 'block' : 'none';
-
+    
     renderMainCategories();
-    await renderSubcategories(state.currentCategory);
+    // Subcategories are now on a separate page, no need to render them here.
+    // await renderSubcategories(state.currentCategory); 
 
     await searchProductsInFirestore(state.currentSearch, true);
 
@@ -126,176 +127,64 @@ async function navigateToFilter(newState) {
         subcategory: state.currentSubcategory,
         subSubcategory: state.currentSubSubcategory,
         search: state.currentSearch,
-        scroll: window.scrollY
+        scroll: window.scrollY 
     }, '');
 
     const finalState = { ...history.state, ...newState, scroll: 0 };
-
+    
     const params = new URLSearchParams();
     if (finalState.category && finalState.category !== 'all') params.set('category', finalState.category);
     if (finalState.subcategory && finalState.subcategory !== 'all') params.set('subcategory', finalState.subcategory);
     if (finalState.subSubcategory && finalState.subSubcategory !== 'all') params.set('subSubcategory', finalState.subSubcategory);
     if (finalState.search) params.set('search', finalState.search);
-
+    
     const newUrl = `${window.location.pathname}?${params.toString()}`;
-
+    
     history.pushState(finalState, '', newUrl);
-
+    
     await applyFilterState(finalState);
 }
 
-
-// =========== NEW CATEGORY NAVIGATION LOGIC ===========
-
-function createCategoryPage(title, items, level, parentPath) {
-    const page = document.createElement('div');
-    page.className = 'category-page';
-    page.dataset.level = level;
-
-    page.innerHTML = `
-        <div class="category-page-header">
-            <button class="category-back-btn"><i class="fas fa-arrow-right"></i></button>
-            <h3 class="category-page-title">${title}</h3>
-        </div>
-        <div class="category-page-content"></div>
-    `;
-
-    const content = page.querySelector('.category-page-content');
-    items.forEach(item => {
-        const itemElement = document.createElement('div');
-        itemElement.className = 'category-list-item';
-        const itemName = item['name_' + state.currentLanguage] || item.name_ku_sorani || item.id;
-        itemElement.innerHTML = `
-            <span>${itemName}</span>
-            <i class="fas fa-chevron-left"></i>
-        `;
-        itemElement.onclick = () => handleCategoryItemClick(item, level + 1, `${parentPath}/${item.id}`);
-        content.appendChild(itemElement);
-    });
-
-    page.querySelector('.category-back-btn').onclick = () => closeTopCategoryPage();
-
-    return page;
-}
-
-async function openCategoryPage(title, items, level, parentPath) {
-    const newPage = createCategoryPage(title, items, level, parentPath);
-    categoryNavigationContainer.appendChild(newPage);
-
-    // Force reflow to ensure the initial state is applied before transitioning
-    await new Promise(resolve => requestAnimationFrame(resolve));
-    
-    newPage.classList.add('active');
-    categoryNavStack.push(newPage);
-    document.body.classList.add('category-nav-open');
-    history.pushState({ type: 'categoryNav', level }, '', `#cat-level-${level}`);
-}
-
-function closeTopCategoryPage() {
-    const pageToClose = categoryNavStack.pop();
-    if (pageToClose) {
-        pageToClose.classList.remove('active');
-        pageToClose.addEventListener('transitionend', () => {
-            pageToClose.remove();
-        }, { once: true });
-    }
-    if (categoryNavStack.length === 0) {
-        document.body.classList.remove('category-nav-open');
-    }
-}
-
-async function handleCategoryItemClick(item, nextLevel, currentPath) {
-    const pathParts = currentPath.split('/');
-    let collectionRef;
-
-    if (pathParts.length === 2) { // main_cat/sub_cat
-        collectionRef = collection(db, 'categories', pathParts[0], 'subcategories', pathParts[1], 'subSubcategories');
-    } else if (pathParts.length === 1) { // main_cat
-        collectionRef = collection(db, 'categories', pathParts[0], 'subcategories');
-    } else { // It's a sub-subcategory or deeper, no more children
-        collectionRef = null;
-    }
-
-    if (collectionRef) {
-        const q = query(collectionRef, orderBy("order", "asc"));
-        const snapshot = await getDocs(q);
-        const children = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        if (children.length > 0) {
-            const title = item['name_' + state.currentLanguage] || item.name_ku_sorani;
-            openCategoryPage(title, children, nextLevel, currentPath);
-        } else {
-            // No more children, filter products
-            closeAllCategoryPages();
-            const filterState = {};
-            if (pathParts[0]) filterState.category = pathParts[0];
-            if (pathParts[1]) filterState.subcategory = pathParts[1];
-            if (pathParts[2]) filterState.subSubcategory = pathParts[2];
-            navigateToFilter(filterState);
-        }
-    } else {
-        // Final level clicked, filter products
-        closeAllCategoryPages();
-        const filterState = {};
-        if (pathParts[0]) filterState.category = pathParts[0];
-        if (pathParts[1]) filterState.subcategory = pathParts[1];
-        if (pathParts[2]) filterState.subSubcategory = pathParts[2];
-        navigateToFilter(filterState);
-    }
-}
-
-
-function closeAllCategoryPages() {
-    categoryNavStack.forEach(page => {
-        page.classList.remove('active');
-        page.addEventListener('transitionend', () => page.remove(), { once: true });
-    });
-    categoryNavStack = [];
-    document.body.classList.remove('category-nav-open');
-
-    // Remove category states from history
-    while (history.state && history.state.type === 'categoryNav') {
-        history.go(-1);
-    }
-}
-
-// =======================================================
-
-
 window.addEventListener('popstate', (event) => {
-    const popState = event.state;
-    // Check for category navigation first
-    if (categoryNavStack.length > 0 && (!popState || popState.type !== 'categoryNav' || popState.level < categoryNavStack.length -1)) {
-        closeTopCategoryPage();
-        return;
-    }
-    
     closeAllPopupsUI();
-
+    const popState = event.state;
     if (popState) {
         if (popState.type === 'page') {
             showPage(popState.id);
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             openPopup(popState.id, popState.type);
-        } else if (popState.type === 'categoryNav') {
-            // This is handled by the check at the top
         } else {
-            applyFilterState(popState, true);
+            // This handles back/forward for filters on the main page
+            applyFilterState(popState, true); 
         }
     } else {
+        // Default state when history is exhausted
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
         applyFilterState(defaultState);
         showPage('mainPage');
     }
 });
 
+
 function handleInitialPageLoad() {
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(window.location.search);
+    
+    const pageId = hash.startsWith('subCategoryPage_') ? 'subCategoryPage' : hash;
 
-    if (hash.startsWith('settings')) {
-        showPage('settingsPage');
-        history.replaceState({ type: 'page', id: 'settingsPage' }, '', '#settingsPage');
+    if (pageId === 'settingsPage' || pageId === 'subCategoryPage') {
+        showPage(pageId);
+        if(pageId === 'subCategoryPage') {
+            const catId = hash.split('_')[1];
+            const cat = state.categories.find(c => c.id === catId);
+            if(cat) {
+                 const categoryName = cat['name_' + state.currentLanguage] || cat.name_ku_sorani;
+                 showSubCategoryPage(catId, categoryName, true); // true to skip history push
+            } else {
+                 showPage('mainPage');
+            }
+        }
+        history.replaceState({ type: 'page', id: pageId }, '', `#${pageId}`);
     } else {
         showPage('mainPage');
         const initialState = {
@@ -308,21 +197,22 @@ function handleInitialPageLoad() {
         history.replaceState(initialState, '');
         applyFilterState(initialState);
     }
-
+    
     const element = document.getElementById(hash);
-    if (element) {
+    if (element && !pageId) {
         const isSheet = element.classList.contains('bottom-sheet');
         const isModal = element.classList.contains('modal');
         if (isSheet || isModal) {
             openPopup(hash, isSheet ? 'sheet' : 'modal');
         }
     }
-
+    
     const productId = params.get('product');
     if (productId) {
         setTimeout(() => showProductDetails(productId), 500);
     }
 }
+
 
 function t(key, replacements = {}) {
     let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
@@ -357,9 +247,9 @@ function setLanguage(lang) {
 
     const homeContainer = document.getElementById('homePageSectionsContainer');
     if (homeContainer) {
-        homeContainer.innerHTML = '';
+        homeContainer.innerHTML = ''; 
     }
-
+    
     const isHomeView = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
     if (isHomeView) {
         renderHomePageContent();
@@ -557,20 +447,23 @@ function renderCategoriesSheet() {
         const btn = document.createElement('button');
         btn.className = 'sheet-category-btn';
         btn.dataset.category = cat.id;
-        
+        if (state.currentCategory === cat.id) { btn.classList.add('active'); }
+
         const categoryName = cat.id === 'all'
-            ? t('all_products')
+            ? t('all_categories_label')
             : (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
 
         btn.innerHTML = `<i class="${cat.icon}"></i> ${categoryName}`;
 
-        btn.onclick = () => {
+        btn.onclick = async () => {
+            await navigateToFilter({
+                category: cat.id,
+                subcategory: 'all',
+                subSubcategory: 'all',
+                search: ''
+            });
             closeCurrentPopup();
-            if (cat.id === 'all') {
-                navigateToFilter({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-            } else {
-                handleCategoryItemClick(cat, 1, cat.id);
-            }
+            showPage('mainPage');
         };
 
         sheetCategoriesContainer.appendChild(btn);
@@ -578,118 +471,64 @@ function renderCategoriesSheet() {
 }
 
 
-async function renderSubSubcategories(mainCatId, subCatId) {
-    subSubcategoriesContainer.innerHTML = '';
-    if (subCatId === 'all' || !mainCatId) return;
-
-    try {
-        const ref = collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
-        const q = query(ref, orderBy("order", "asc"));
-        const snapshot = await getDocs(q);
-
-        if (snapshot.empty) return;
-
-        const allBtn = document.createElement('button');
-        allBtn.className = `subcategory-btn ${state.currentSubSubcategory === 'all' ? 'active' : ''}`;
-        const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
-        allBtn.innerHTML = `
-            <div class="subcategory-image">${allIconSvg}</div>
-            <span>${t('all_categories_label')}</span>
-        `;
-        allBtn.onclick = async () => {
-             await navigateToFilter({ subSubcategory: 'all' });
-        };
-        subSubcategoriesContainer.appendChild(allBtn);
-
-        snapshot.forEach(doc => {
-            const subSubcat = { id: doc.id, ...doc.data() };
-            const btn = document.createElement('button');
-            btn.className = `subcategory-btn ${state.currentSubSubcategory === subSubcat.id ? 'active' : ''}`;
-
-            const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
-            const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-            const imageUrl = subSubcat.imageUrl || placeholderImg;
-
-            btn.innerHTML = `
-                <img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
-                <span>${subSubcatName}</span>
-            `;
-
-            btn.onclick = async () => {
-                await navigateToFilter({ subSubcategory: subSubcat.id });
-            };
-            subSubcategoriesContainer.appendChild(btn);
-        });
-
-    } catch (error) {
-        console.error("Error fetching sub-subcategories:", error);
+// *** NEW FUNCTION to show the subcategory page ***
+async function showSubCategoryPage(categoryId, categoryName, fromHistory = false) {
+    if (!fromHistory) {
+         history.pushState({ type: 'page', id: 'subCategoryPage', categoryId: categoryId }, '', `#subCategoryPage_${categoryId}`);
     }
-}
-
-async function renderSubcategories(categoryId) {
-    const subcategoriesContainer = document.getElementById('subcategoriesContainer');
-    subcategoriesContainer.innerHTML = '';
-    subSubcategoriesContainer.innerHTML = '';
-
-    if (categoryId === 'all') {
-        return;
-    }
+    showPage('subCategoryPage');
+    
+    document.getElementById('subCategoryPageTitle').textContent = categoryName;
+    const contentContainer = document.getElementById('subCategoryPageContent');
+    contentContainer.innerHTML = `<div style="text-align:center; padding: 40px;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
 
     try {
         const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
         const q = query(subcategoriesQuery, orderBy("order", "asc"));
         const querySnapshot = await getDocs(q);
+        
+        contentContainer.innerHTML = '';
 
-        state.subcategories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (querySnapshot.empty) {
+            contentContainer.innerHTML = `<p style="text-align:center; padding: 20px;">هیچ جۆرێکی لاوەکی نییە.</p>`;
+            return;
+        }
 
-        if (state.subcategories.length === 0) return;
-
-        const allBtn = document.createElement('button');
-        allBtn.className = `subcategory-btn ${state.currentSubcategory === 'all' ? 'active' : ''}`;
-        const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
-        allBtn.innerHTML = `
-            <div class="subcategory-image">${allIconSvg}</div>
-            <span>${t('all_categories_label')}</span>
-        `;
-        allBtn.onclick = async () => {
-            await navigateToFilter({
-                subcategory: 'all',
-                subSubcategory: 'all'
-            });
-        };
-        subcategoriesContainer.appendChild(allBtn);
-
-        state.subcategories.forEach(subcat => {
-            const subcatBtn = document.createElement('button');
-            subcatBtn.className = `subcategory-btn ${state.currentSubcategory === subcat.id ? 'active' : ''}`;
-
+        querySnapshot.docs.forEach(doc => {
+            const subcat = { id: doc.id, ...doc.data() };
             const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
             const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
             const imageUrl = subcat.imageUrl || placeholderImg;
-
-            subcatBtn.innerHTML = `
-                <img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
-                <span>${subcatName}</span>
+            
+            const itemElement = document.createElement('div');
+            itemElement.className = 'subcategory-list-item';
+            itemElement.innerHTML = `
+                <img src="${imageUrl}" alt="${subcatName}" class="subcategory-list-image" onerror="this.src='${placeholderImg}';">
+                <span class="subcategory-list-name">${subcatName}</span>
+                <i class="fas fa-chevron-left subcategory-list-chevron"></i>
             `;
-
-            subcatBtn.onclick = async () => {
-                 await navigateToFilter({
-                     subcategory: subcat.id,
-                     subSubcategory: 'all'
-                 });
+            
+            itemElement.onclick = async () => {
+                await navigateToFilter({
+                    category: categoryId,
+                    subcategory: subcat.id,
+                    subSubcategory: 'all', // Reset sub-subcategory
+                    search: ''
+                });
+                // Go back to the main page to show the results
+                history.back();
             };
-            subcategoriesContainer.appendChild(subcatBtn);
+            contentContainer.appendChild(itemElement);
         });
 
-        if (state.currentSubcategory && state.currentSubcategory !== 'all') {
-            await renderSubSubcategories(categoryId, state.currentSubcategory);
-        }
     } catch (error) {
-        console.error("Error fetching subcategories: ", error);
+        console.error("Error fetching subcategories for new page:", error);
+        contentContainer.innerHTML = `<p style="text-align:center; padding: 20px;">هەڵەیەک ڕوویدا.</p>`;
     }
 }
 
 
+// *** UPDATED renderMainCategories to open the new page ***
 function renderMainCategories() {
     const container = document.getElementById('mainCategoriesContainer');
     if (!container) return;
@@ -711,17 +550,24 @@ function renderMainCategories() {
         btn.innerHTML = `<i class="${cat.icon}"></i> <span>${categoryName}</span>`;
 
         btn.onclick = async () => {
-            await navigateToFilter({
-                category: cat.id,
-                subcategory: 'all',
-                subSubcategory: 'all',
-                search: ''
-            });
+            if (cat.id === 'all') {
+                // If "All" is clicked, just filter on the main page
+                 await navigateToFilter({
+                    category: 'all',
+                    subcategory: 'all',
+                    subSubcategory: 'all',
+                    search: ''
+                });
+            } else {
+                // For any other category, show the new subcategory page
+                showSubCategoryPage(cat.id, categoryName);
+            }
         };
 
         container.appendChild(btn);
     });
 }
+
 
 function showProductDetails(productId) {
     const allFetchedProducts = [...state.products];
@@ -749,7 +595,7 @@ async function renderRelatedProducts(currentProduct) {
     section.style.display = 'none';
 
     if (!currentProduct.subcategoryId && !currentProduct.categoryId) {
-        return;
+        return; 
     }
 
     let q;
@@ -899,7 +745,7 @@ function showProductDetailsWithData(product) {
             }
         }
     };
-
+    
     renderRelatedProducts(product);
 
     openPopup('productDetailSheet');
@@ -1099,7 +945,7 @@ function renderProducts() {
 async function renderSingleShortcutRow(rowId, sectionNameObj) {
     const sectionContainer = document.createElement('div');
     sectionContainer.className = 'shortcut-cards-section';
-
+    
     try {
         const rowDoc = await getDoc(doc(db, "shortcut_rows", rowId));
         if (!rowDoc.exists()) return null;
@@ -1269,7 +1115,7 @@ async function renderNewestProductsSection() {
     title.textContent = t('newest_products');
     header.appendChild(title);
     container.appendChild(header);
-
+    
     try {
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
         const q = query(
@@ -1279,7 +1125,7 @@ async function renderNewestProductsSection() {
             limit(10)
         );
         const snapshot = await getDocs(q);
-
+        
         const productsScroller = document.createElement('div');
         if (snapshot.empty) {
             return null; // Do not render if there are no new products
@@ -1440,17 +1286,17 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     } else {
         homeSectionsContainer.style.display = 'none';
     }
-
+    
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
     if (isNewSearch && state.productCache[cacheKey]) {
         state.products = state.productCache[cacheKey].products;
         state.lastVisibleProductDoc = state.productCache[cacheKey].lastVisible;
         state.allProductsLoaded = state.productCache[cacheKey].allLoaded;
-
+        
         skeletonLoader.style.display = 'none';
         loader.style.display = 'none';
         productsContainer.style.display = 'grid';
-
+        
         renderProducts();
         scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
         return;
@@ -1529,7 +1375,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
                 allLoaded: state.allProductsLoaded
             };
         }
-
+        
         renderProducts();
 
         if (state.products.length === 0 && isNewSearch) {
@@ -1926,14 +1772,21 @@ function updateCategoryDependentUI() {
 
 function setupEventListeners() {
     homeBtn.onclick = async () => {
-        history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
-        showPage('mainPage');
+        if(document.getElementById('mainPage').classList.contains('page-hidden')) {
+             history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
+             showPage('mainPage');
+        }
         await navigateToFilter({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
     };
 
     settingsBtn.onclick = () => {
         history.pushState({ type: 'page', id: 'settingsPage' }, '', '#settingsPage');
         showPage('settingsPage');
+    };
+
+    // *** ADD EVENT LISTENER FOR NEW BACK BUTTON ***
+    document.getElementById('backToMainBtn').onclick = () => {
+        history.back();
     };
 
     profileBtn.onclick = () => {
@@ -1947,7 +1800,6 @@ function setupEventListeners() {
     };
 
     categoriesBtn.onclick = () => {
-        renderCategoriesSheet();
         openPopup('categoriesSheet');
         updateActiveNav('categoriesBtn');
     };
@@ -2106,6 +1958,7 @@ function initializeAppLogic() {
         state.categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories];
         updateCategoryDependentUI();
         setLanguage(state.currentLanguage);
+        handleInitialPageLoad(); // Move here to ensure categories are loaded
     });
 
     updateCartCount();
@@ -2116,7 +1969,7 @@ function initializeAppLogic() {
     checkNewAnnouncements();
     showWelcomeMessage();
     setupGpsButton();
-    handleInitialPageLoad();
+    // handleInitialPageLoad is moved up
 }
 
 Object.assign(window.globalAdminTools, {
@@ -2124,7 +1977,7 @@ Object.assign(window.globalAdminTools, {
     doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit,
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
     productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
-
+    
     clearProductCache: () => {
         console.log("Product cache and home page cleared due to admin action.");
         state.productCache = {};
@@ -2133,7 +1986,7 @@ Object.assign(window.globalAdminTools, {
             homeContainer.innerHTML = '';
         }
     },
-
+    
     setEditingProductId: (id) => { state.editingProductId = id; },
     getEditingProductId: () => state.editingProductId,
     getCategories: () => state.categories,
@@ -2228,4 +2081,3 @@ function startPromoRotation() {
         state.promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
-
