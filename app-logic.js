@@ -673,6 +673,44 @@ function renderMainCategories() {
     });
 }
 
+// Fonksiyona nû ji bo parvekirinê
+async function handleShare(product) {
+    const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani);
+    const productUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
+
+    const shareData = {
+        title: nameInCurrentLang,
+        text: `${t('share_text')}: ${nameInCurrentLang}`,
+        url: productUrl,
+    };
+
+    if (navigator.share) {
+        try {
+            await navigator.share(shareData);
+            console.log('Product shared successfully');
+        } catch (err) {
+            console.error('Share error:', err);
+            if (err.name !== 'AbortError') {
+                showNotification(t('share_error'), 'error');
+            }
+        }
+    } else {
+        // Fallback ji bo kopîkirinê
+        const textArea = document.createElement("textarea");
+        textArea.value = productUrl;
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showNotification('لینکی کاڵا کۆپی کرا!', 'success');
+        } catch (err) {
+            showNotification(t('share_error'), 'error');
+        }
+        document.body.removeChild(textArea);
+    }
+}
+
 function showProductDetails(productId) {
     const allFetchedProducts = [...state.products];
     const product = allFetchedProducts.find(p => p.id === productId);
@@ -747,14 +785,10 @@ async function renderRelatedProducts(currentProduct) {
 }
 
 function showProductDetailsWithData(product) {
-    // >>> KODA NÛ LI VIR ZÊDE BÛYE <<<
-    // Her carê ku ev sheet vedibe, skrolê vedigerîne serî
-    // ئەم کۆدە هەر جارێک شیتەکە بکرێتەوە، سکڕۆڵەکەی دەباتەوە سەرەوە
     const sheetContent = document.querySelector('#productDetailSheet .sheet-content');
     if (sheetContent) {
         sheetContent.scrollTop = 0;
     }
-    // >>> KOTAYIYA KODA NÛ <<<
     
     const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
     const descriptionText = (product.description && product.description[state.currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
@@ -825,38 +859,6 @@ function showProductDetailsWithData(product) {
     addToCartButton.onclick = () => {
         addToCart(product.id);
         closeCurrentPopup();
-    };
-
-    const shareButton = document.getElementById('sheetShareBtn');
-    shareButton.onclick = async () => {
-        const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani);
-        const productUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
-
-        const shareData = {
-            title: nameInCurrentLang,
-            text: `${t('share_text')}: ${nameInCurrentLang}`,
-            url: productUrl,
-        };
-
-        if (navigator.share) {
-            try {
-                await navigator.share(shareData);
-                console.log('Product shared successfully');
-            } catch (err) {
-                console.error('Share error:', err);
-                if (err.name !== 'AbortError') {
-                    showNotification(t('share_error'), 'error');
-                }
-            }
-        } else {
-            try {
-                navigator.clipboard.writeText(productUrl);
-                showNotification('لینکی کاڵا کۆپی کرا!', 'success');
-            } catch (err) {
-                console.error('Fallback share error:', err);
-                showNotification(t('share_error'), 'error');
-            }
-        }
     };
 
     renderRelatedProducts(product);
@@ -950,6 +952,10 @@ function createProductCardElement(product) {
             <button class="${favoriteBtnClass}" aria-label="Add to favorites">
                 <i class="${heartIconClass} fa-heart"></i>
             </button>
+            <!-- BIŞKOJA PARVEKIRINÊ YA NÛ -->
+            <button class="share-btn-card" aria-label="Share product">
+                <i class="fas fa-share-alt"></i>
+            </button>
         </div>
         <div class="product-info">
             <div class="product-name">${nameInCurrentLang}</div>
@@ -991,6 +997,9 @@ function createProductCardElement(product) {
             window.AdminLogic.deleteProduct(product.id);
         } else if (target.closest('.favorite-btn')) {
             toggleFavorite(product.id);
+        } else if (target.closest('.share-btn-card')) { // <<< GUHERTINA NÛ
+            event.stopPropagation(); // Pêşî lê digire ku rûpela hûragahiyan vebe
+            handleShare(product);
         } else if (!target.closest('a')) {
             showProductDetailsWithData(product);
         }
@@ -2204,3 +2213,4 @@ function startPromoRotation() {
         state.promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
+

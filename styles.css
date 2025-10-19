@@ -73,7 +73,6 @@ body.overlay-active {
     z-index: 1;
 }
 
-
 .main-content {
     padding-top: 80px;
     padding-bottom: 85px;
@@ -81,7 +80,6 @@ body.overlay-active {
     height: auto;
     min-height: 100vh;
 }
-
 
 .section {
     background-color: var(--section-bg);
@@ -138,7 +136,7 @@ body.overlay-active {
 }
 
 .subcategory-btn.active span {
-     color: var(--primary-color);
+    color: var(--primary-color);
 }
 
 .subcategory-image {
@@ -1278,17 +1276,8 @@ input:checked + .slider:before {
     padding-left: 15px;
 }
 
-/* Style for title removed */
-/* .subcategory-page-main-title {
-    flex-grow: 1;
-    text-align: center;
-    font-size: 18px;
-    font-weight: bold;
-    margin-right: -40px; /* Offset for the back button - Removed */
-/* } */
-
 .subcategory-detail-content {
-    padding-top: 80px; /* Space for fixed header */
+    /* padding-top is now set by JavaScript */
     padding-bottom: 85px; /* Space for nav */
 }
 
@@ -1299,4 +1288,42 @@ input:checked + .slider:before {
 
 #productsContainerOnDetailPage {
     padding-top: 16px;
+}
+
+/* ============ KODÊ NÛ JI BO ÇARESERKIRINA ARÎŞÊ ============ */
+.subcategory-page-header #backToMainBtn {
+    position: relative;
+    top: 2px;
+}
+
+/* --- KODÊ NÛ JI BO BIŞKOJA PARVEKIRINÊ --- */
+/* --- کۆدی نوێ بۆ دوگمەی هاوبەشیپێکردن --- */
+.share-btn-card {
+    position: absolute;
+    top: 8px;
+    left: 48px; /* Li tenişta bişkoja favorit */
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid var(--medium-gray);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 15px;
+    color: var(--dark-gray);
+    transition: color 0.2s, transform 0.2s;
+    z-index: 5;
+}
+
+.share-btn-card:hover {
+    transform: scale(1.1);
+    color: var(--primary-color);
+}
+
+/* Veşartina bişkoja parvekirinê ya kevin di nav sheet de */
+/* شاردنەوەی دوگمەی شەیری کۆن لەناو شیتەکەدا */
+.sheet-actions {
+    display: none;
 }
