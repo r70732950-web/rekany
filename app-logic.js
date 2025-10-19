@@ -1,4 +1,4 @@
-// BEŞÊ DUYEM: app-logic.js (کۆدی تەواو و نوێکراوە بۆ سیستەمی پێشکەوتوو)
+// BEŞÊ DUYEM: app-logic.js (کۆدی تەواو و نوێکراوە بۆ چارەسەرکردنی کێشەی دیزاین)
 // Fonksiyon û mentiqê serekî yê bernameyê
 
 import {
@@ -32,22 +32,31 @@ function debounce(func, delay = 500) {
     };
 }
 
+// *** FENKŞENA NU ***
+function adjustSubcategoryDetailPadding() {
+    const header = document.querySelector('.subcategory-page-header');
+    const content = document.querySelector('.subcategory-detail-content');
+    if (header && content) {
+        const headerHeight = header.offsetHeight; // پێوانی بەرزی هێڵی سەرەوە
+        content.style.paddingTop = `${headerHeight}px`; // دانانی بەرزییەکە وەک بۆشایی
+    }
+}
+
 function saveCurrentScrollPosition() {
     const currentState = history.state;
     // Only save scroll position for the main page filter state
     if (document.getElementById('mainPage').classList.contains('page-active') && currentState && !currentState.type) {
-         history.replaceState({ ...currentState, scroll: window.scrollY }, '');
+        history.replaceState({ ...currentState, scroll: window.scrollY }, '');
     }
 }
 
-// *** UPDATED showPage FUNCTION FOR SLIDING ANIMATION ***
 function showPage(pageId) {
     document.querySelectorAll('.page').forEach(page => {
         const isActive = page.id === pageId;
         page.classList.toggle('page-active', isActive);
         page.classList.toggle('page-hidden', !isActive);
     });
-    
+
     if (pageId !== 'mainPage') {
         window.scrollTo(0, 0);
     }
@@ -105,9 +114,9 @@ async function applyFilterState(filterState, fromPopState = false) {
 
     searchInput.value = state.currentSearch;
     clearSearchBtn.style.display = state.currentSearch ? 'block' : 'none';
-    
+
     renderMainCategories();
-    await renderSubcategories(state.currentCategory); 
+    await renderSubcategories(state.currentCategory);
 
     await searchProductsInFirestore(state.currentSearch, true);
 
@@ -124,37 +133,39 @@ async function navigateToFilter(newState) {
         subcategory: state.currentSubcategory,
         subSubcategory: state.currentSubSubcategory,
         search: state.currentSearch,
-        scroll: window.scrollY 
+        scroll: window.scrollY
     }, '');
 
     const finalState = { ...history.state, ...newState, scroll: 0 };
-    
+
     const params = new URLSearchParams();
     if (finalState.category && finalState.category !== 'all') params.set('category', finalState.category);
     if (finalState.subcategory && finalState.subcategory !== 'all') params.set('subcategory', finalState.subcategory);
     if (finalState.subSubcategory && finalState.subSubcategory !== 'all') params.set('subSubcategory', finalState.subSubcategory);
     if (finalState.search) params.set('search', finalState.search);
-    
+
     const newUrl = `${window.location.pathname}?${params.toString()}`;
-    
+
     history.pushState(finalState, '', newUrl);
-    
+
     await applyFilterState(finalState);
 }
 
-// *** UPDATED popstate to handle new page ***
 window.addEventListener('popstate', (event) => {
     closeAllPopupsUI();
     const popState = event.state;
     if (popState) {
         if (popState.type === 'page') {
             showPage(popState.id);
+            if (popState.id === 'subcategoryDetailPage') {
+                adjustSubcategoryDetailPadding();
+            }
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             openPopup(popState.id, popState.type);
         } else {
-             // This is a main page filter state
+            // This is a main page filter state
             showPage('mainPage');
-            applyFilterState(popState, true); 
+            applyFilterState(popState, true);
         }
     } else {
         // Default state, go to main page
@@ -164,20 +175,17 @@ window.addEventListener('popstate', (event) => {
     }
 });
 
-
-// *** UPDATED handleInitialPageLoad ***
 function handleInitialPageLoad() {
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(window.location.search);
-    
+
     const pageId = hash.startsWith('subcategory_') ? 'subcategoryDetailPage' : hash;
 
     if (pageId === 'settingsPage' || pageId === 'subcategoryDetailPage') {
-        if(pageId === 'subcategoryDetailPage') {
+        if (pageId === 'subcategoryDetailPage') {
             const ids = hash.split('_');
             const mainCatId = ids[1];
             const subCatId = ids[2];
-            // The logic to fetch names and show the page will be handled in initializeAppLogic after categories are loaded
         }
         history.replaceState({ type: 'page', id: pageId }, '', `#${hash}`);
         showPage(pageId);
@@ -193,7 +201,7 @@ function handleInitialPageLoad() {
         history.replaceState(initialState, '');
         applyFilterState(initialState);
     }
-    
+
     const element = document.getElementById(hash);
     if (element && !pageId) {
         const isSheet = element.classList.contains('bottom-sheet');
@@ -202,13 +210,12 @@ function handleInitialPageLoad() {
             openPopup(hash, isSheet ? 'sheet' : 'modal');
         }
     }
-    
+
     const productId = params.get('product');
     if (productId) {
         setTimeout(() => showProductDetails(productId), 500);
     }
 }
-
 
 function t(key, replacements = {}) {
     let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
@@ -243,9 +250,9 @@ function setLanguage(lang) {
 
     const homeContainer = document.getElementById('homePageSectionsContainer');
     if (homeContainer) {
-        homeContainer.innerHTML = ''; 
+        homeContainer.innerHTML = '';
     }
-    
+
     const isHomeView = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
     if (isHomeView) {
         renderHomePageContent();
@@ -372,7 +379,7 @@ function toggleFavorite(productId) {
     saveFavorites();
 
     const isHomeView = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-    if(isHomeView) {
+    if (isHomeView) {
         const homeContainer = document.getElementById('homePageSectionsContainer');
         if (homeContainer) {
             homeContainer.innerHTML = '';
@@ -466,44 +473,39 @@ function renderCategoriesSheet() {
     });
 }
 
-// *** MODIFIED: Logic moved from here to showSubcategoryDetailPage and its helpers ***
 async function renderSubSubcategories(mainCatId, subCatId) {
-   // This function is no longer needed on the main page.
-  subSubcategoriesContainer.innerHTML = '';
+    // This function is no longer needed on the main page.
+    subSubcategoriesContainer.innerHTML = '';
 }
 
-// *** NEW FUNCTION to open the dedicated subcategory detail page ***
+// *** FENKŞENA GOHARTÎ ***
 async function showSubcategoryDetailPage(mainCatId, subCatId, subCatName, fromHistory = false) {
     if (!fromHistory) {
-         history.pushState({ type: 'page', id: 'subcategoryDetailPage' }, '', `#subcategory_${mainCatId}_${subCatId}`);
+        history.pushState({ type: 'page', id: 'subcategoryDetailPage' }, '', `#subcategory_${mainCatId}_${subCatId}`);
     }
     showPage('subcategoryDetailPage');
     
-    // This line is the cause of the error and has been commented out.
-    // document.getElementById('subcategoryDetailPageTitle').textContent = subCatName;
-    
+    // *** EV RÊZ ZÊDE BÛYE ***
+    adjustSubcategoryDetailPadding(); // بانگکردنی فەنکشنی ڕێکخستنی بۆشایی
+
     const loader = document.getElementById('detailPageLoader');
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const subSubContainer = document.getElementById('subSubCategoryContainerOnDetailPage');
-    
+
     loader.style.display = 'block';
     productsContainer.innerHTML = '';
     subSubContainer.innerHTML = '';
-    
-    // Fetch and render sub-subcategories first
-    await renderSubSubcategoriesOnDetailPage(mainCatId, subCatId);
 
-    // Then fetch and render all products for the main subcategory
+    await renderSubSubcategoriesOnDetailPage(mainCatId, subCatId);
     await renderProductsOnDetailPage(subCatId);
-    
+
     loader.style.display = 'none';
 }
 
-// *** NEW HELPER for the detail page: Renders sub-subcategories horizontally ***
 async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
     const container = document.getElementById('subSubCategoryContainerOnDetailPage');
     container.innerHTML = '';
-    
+
     try {
         const ref = collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
         const q = query(ref, orderBy("order", "asc"));
@@ -515,21 +517,18 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
         }
 
         container.style.display = 'flex';
-        
-        // Add "All" button first
+
         const allBtn = document.createElement('button');
-        allBtn.className = `subcategory-btn active`; // "All" is active by default
+        allBtn.className = `subcategory-btn active`;
         const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
         allBtn.innerHTML = `<div class="subcategory-image">${allIconSvg}</div><span>${t('all_categories_label')}</span>`;
         allBtn.onclick = () => {
-             // Deactivate other buttons and activate this one
             container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
             allBtn.classList.add('active');
-            renderProductsOnDetailPage(subCatId, 'all'); // 'all' is the filter
+            renderProductsOnDetailPage(subCatId, 'all');
         };
         container.appendChild(allBtn);
 
-        // Add other sub-subcategory buttons
         snapshot.forEach(doc => {
             const subSubcat = { id: doc.id, ...doc.data() };
             const btn = document.createElement('button');
@@ -538,9 +537,8 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
             const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
             const imageUrl = subSubcat.imageUrl || placeholderImg;
             btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
-            
+
             btn.onclick = () => {
-                // Deactivate other buttons and activate this one
                 container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 renderProductsOnDetailPage(subCatId, subSubcat.id);
@@ -554,13 +552,12 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
     }
 }
 
-// *** NEW HELPER for the detail page: Renders products for the chosen subcategory/sub-subcategory ***
 async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all') {
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const loader = document.getElementById('detailPageLoader');
     loader.style.display = 'block';
     productsContainer.innerHTML = '';
-    
+
     try {
         let productsQuery;
         if (subSubCatId === 'all') {
@@ -587,8 +584,6 @@ async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all') {
     }
 }
 
-
-// *** MODIFIED renderSubcategories to open new page on click ***
 async function renderSubcategories(categoryId) {
     const subcategoriesContainer = document.getElementById('subcategoriesContainer');
     subcategoriesContainer.innerHTML = '';
@@ -624,17 +619,16 @@ async function renderSubcategories(categoryId) {
         state.subcategories.forEach(subcat => {
             const subcatBtn = document.createElement('button');
             subcatBtn.className = `subcategory-btn ${state.currentSubcategory === subcat.id ? 'active' : ''}`;
-            
+
             const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
             const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
             const imageUrl = subcat.imageUrl || placeholderImg;
-        
+
             subcatBtn.innerHTML = `
                 <img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
                 <span>${subcatName}</span>
             `;
-            
-            // NEW LOGIC: Always open the detail page on click
+
             subcatBtn.onclick = () => {
                 showSubcategoryDetailPage(categoryId, subcat.id, subcatName);
             };
@@ -645,7 +639,6 @@ async function renderSubcategories(categoryId) {
         console.error("Error fetching subcategories: ", error);
     }
 }
-
 
 function renderMainCategories() {
     const container = document.getElementById('mainCategoriesContainer');
@@ -706,7 +699,7 @@ async function renderRelatedProducts(currentProduct) {
     section.style.display = 'none';
 
     if (!currentProduct.subcategoryId && !currentProduct.categoryId) {
-        return; 
+        return;
     }
 
     let q;
@@ -718,7 +711,7 @@ async function renderRelatedProducts(currentProduct) {
             limit(6)
         );
     } else if (currentProduct.subcategoryId) {
-       q = query(
+        q = query(
             productsCollection,
             where('subcategoryId', '==', currentProduct.subcategoryId),
             where('__name__', '!=', currentProduct.id),
@@ -856,7 +849,7 @@ function showProductDetailsWithData(product) {
             }
         }
     };
-    
+
     renderRelatedProducts(product);
 
     openPopup('productDetailSheet');
@@ -1033,9 +1026,9 @@ function renderSkeletonLoader() {
 
 function renderProducts() {
     productsContainer.innerHTML = '';
-	if (!state.products || state.products.length === 0) {
-		return;
-	}
+    if (!state.products || state.products.length === 0) {
+        return;
+    }
 
     state.products.forEach(item => {
         let element;
@@ -1051,12 +1044,10 @@ function renderProducts() {
     setupScrollAnimations();
 }
 
-// ===== ALL NEW FUNCTIONS FOR DYNAMIC HOME PAGE =====
-
 async function renderSingleShortcutRow(rowId, sectionNameObj) {
     const sectionContainer = document.createElement('div');
     sectionContainer.className = 'shortcut-cards-section';
-    
+
     try {
         const rowDoc = await getDoc(doc(db, "shortcut_rows", rowId));
         if (!rowDoc.exists()) return null;
@@ -1167,7 +1158,6 @@ async function renderSingleCategoryRow(categoryId, sectionNameObj) {
     }
 }
 
-
 async function renderBrandsSection() {
     const sectionContainer = document.createElement('div');
     sectionContainer.className = 'brands-section';
@@ -1226,7 +1216,7 @@ async function renderNewestProductsSection() {
     title.textContent = t('newest_products');
     header.appendChild(title);
     container.appendChild(header);
-    
+
     try {
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
         const q = query(
@@ -1236,7 +1226,7 @@ async function renderNewestProductsSection() {
             limit(10)
         );
         const snapshot = await getDocs(q);
-        
+
         const productsScroller = document.createElement('div');
         if (snapshot.empty) {
             return null; // Do not render if there are no new products
@@ -1354,7 +1344,6 @@ async function renderHomePageContent() {
     }
 }
 
-
 async function renderPromoCardsSectionForHome() {
     if (state.allPromoCards.length === 0) {
         const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
@@ -1375,8 +1364,6 @@ async function renderPromoCardsSectionForHome() {
     return null;
 }
 
-// ===== END OF NEW FUNCTIONS =====
-
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
@@ -1389,7 +1376,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         homeSectionsContainer.style.display = 'block';
 
         if (homeSectionsContainer.innerHTML.trim() === '') {
-             await renderHomePageContent();
+            await renderHomePageContent();
         } else {
             startPromoRotation();
         }
@@ -1397,17 +1384,17 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     } else {
         homeSectionsContainer.style.display = 'none';
     }
-    
+
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
     if (isNewSearch && state.productCache[cacheKey]) {
         state.products = state.productCache[cacheKey].products;
         state.lastVisibleProductDoc = state.productCache[cacheKey].lastVisible;
         state.allProductsLoaded = state.productCache[cacheKey].allLoaded;
-        
+
         skeletonLoader.style.display = 'none';
         loader.style.display = 'none';
         productsContainer.style.display = 'grid';
-        
+
         renderProducts();
         scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
         return;
@@ -1486,7 +1473,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
                 allLoaded: state.allProductsLoaded
             };
         }
-        
+
         renderProducts();
 
         if (state.products.length === 0 && isNewSearch) {
@@ -1504,12 +1491,11 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     }
 }
 
-
 function addToCart(productId) {
     const allFetchedProducts = [...state.products];
     let product = allFetchedProducts.find(p => p.id === productId);
 
-    if(!product){
+    if (!product) {
         console.warn("Product not found in local 'products' array. Adding with limited data.");
         getDoc(doc(db, "products", productId)).then(docSnap => {
             if (docSnap.exists()) {
@@ -1532,7 +1518,6 @@ function addToCart(productId) {
     saveCart();
     showNotification(t('product_added_to_cart'));
 }
-
 
 function renderCart() {
     cartItemsContainer.innerHTML = '';
@@ -1748,7 +1733,6 @@ async function renderUserNotifications() {
     notificationBadge.style.display = 'none';
 }
 
-
 function renderContactLinks() {
     const contactLinksContainer = document.getElementById('dynamicContactLinksContainer');
     const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
@@ -1883,9 +1867,9 @@ function updateCategoryDependentUI() {
 
 function setupEventListeners() {
     homeBtn.onclick = async () => {
-        if(!document.getElementById('mainPage').classList.contains('page-active')) {
-             history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
-             showPage('mainPage');
+        if (!document.getElementById('mainPage').classList.contains('page-active')) {
+            history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
+            showPage('mainPage');
         }
         await navigateToFilter({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
     };
@@ -1951,7 +1935,6 @@ function setupEventListeners() {
         navigateToFilter({ search: '' });
     };
 
-
     contactToggle.onclick = () => {
         const container = document.getElementById('dynamicContactLinksContainer');
         const chevron = contactToggle.querySelector('.contact-chevron');
@@ -2016,6 +1999,9 @@ function setupEventListeners() {
         const body = payload.notification.body;
         showNotification(`${title}: ${body}`, 'success');
     });
+
+    // *** EV RÊZ ZÊDE BÛYE ***
+    window.addEventListener('resize', debounce(adjustSubcategoryDetailPadding, 100));
 }
 
 onAuthStateChanged(auth, async (user) => {
@@ -2067,22 +2053,21 @@ function initializeAppLogic() {
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         state.categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories];
         updateCategoryDependentUI();
-        
-        // Handle deep linking for subcategory page only after categories are loaded
+
         const hash = window.location.hash.substring(1);
         if (hash.startsWith('subcategory_')) {
             const ids = hash.split('_');
             const mainCatId = ids[1];
             const subCatId = ids[2];
-            
+
             const subCatRef = doc(db, "categories", mainCatId, "subcategories", subCatId);
             const subCatSnap = await getDoc(subCatRef);
             if (subCatSnap.exists()) {
-                 const subCat = subCatSnap.data();
-                 const subCatName = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani;
-                 showSubcategoryDetailPage(mainCatId, subCatId, subCatName, true); // true to skip history push
+                const subCat = subCatSnap.data();
+                const subCatName = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani;
+                showSubcategoryDetailPage(mainCatId, subCatId, subCatName, true); // true to skip history push
             } else {
-                 showPage('mainPage');
+                showPage('mainPage');
             }
         } else {
             handleInitialPageLoad();
@@ -2106,7 +2091,7 @@ Object.assign(window.globalAdminTools, {
     doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit,
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
     productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
-    
+
     clearProductCache: () => {
         console.log("Product cache and home page cleared due to admin action.");
         state.productCache = {};
@@ -2115,7 +2100,7 @@ Object.assign(window.globalAdminTools, {
             homeContainer.innerHTML = '';
         }
     },
-    
+
     setEditingProductId: (id) => { state.editingProductId = id; },
     getEditingProductId: () => state.editingProductId,
     getCategories: () => state.categories,
