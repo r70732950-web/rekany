@@ -96,9 +96,9 @@ body.overlay-active {
 
 .subcategories-container {
     display: flex;
-    flex-direction: row;    
-    flex-wrap: nowrap;      
-    overflow-x: auto;       
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
     gap: 8px;
     padding: 5px 12px 15px 12px;
     scrollbar-width: none;
@@ -1117,7 +1117,7 @@ body, .bottom-nav-item, .product-card {
 }
 
 #relatedProductsContainer .product-card {
-    width: 140px; 
+    width: 140px;
     flex-shrink: 0;
 }
 .product-image,
@@ -1125,8 +1125,8 @@ body, .bottom-nav-item, .product-card {
 .subcategory-image,
 .brand-image-wrapper img,
 .shortcut-card-image {
-    -webkit-touch-callout: none; 
-    -webkit-user-drag: none;   
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
 }
 
 /* ===== KODA NUYÊ CSS BO ADMIN LAYOUT ===== */
@@ -1282,7 +1282,10 @@ input:checked + .slider:before {
     text-align: center;
     font-size: 18px;
     font-weight: bold;
-    margin-right: -40px; /* Offset for the back button */
+    /* margin-right: -40px; */ /* <-- لادرا */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .subcategory-detail-content {
@@ -1298,4 +1301,3 @@ input:checked + .slider:before {
 #productsContainerOnDetailPage {
     padding-top: 16px;
 }
-
