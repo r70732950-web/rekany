@@ -117,7 +117,7 @@ body.overlay-active {
 
 /* Page Transitions */
 .page {
-    position: absolute; /* Changed from absolute for better height handling? No, keep absolute */
+    position: absolute;
     top: 0;
     left: 0;
     width: 100%;
@@ -133,12 +133,11 @@ body.overlay-active {
     z-index: 10;
 }
 .page-hidden {
-    transform: translateX(100%); /* Changed from 100% to -100% for slide-in from right? No, 100% is correct for hiding to the right */
+    transform: translateX(100%);
     z-index: 1;
 }
 .main-content { /* Specific styles for main page content area */
     padding-top: 80px; /* Space for fixed header */
-    /* Removed fixed height/min-height, let .page handle it */
 }
 
 
@@ -606,7 +605,7 @@ button[type="submit"]:disabled { background-color: var(--dark-gray); cursor: not
 .contact-links-container.open { max-height: 1000px; transition: max-height 0.4s ease-in; }
 .contact-links-container .settings-item { padding-right: 30px; } /* Indent links */
 .contact-chevron { transition: transform 0.3s ease; }
-.contact-chevron.open { transform: rotate(-90deg); } /* Changed from -90 to 180? No, -90 for RTL */
+.contact-chevron.open { transform: rotate(-90deg); }
 .location-btn {
     width: 100%; margin-top: 8px; padding: 8px; background-color: var(--primary-light);
     color: white; border: none; border-radius: 6px; cursor: pointer;
@@ -707,51 +706,61 @@ button[type="submit"]:disabled { background-color: var(--dark-gray); cursor: not
 input:checked + .slider { background-color: var(--accent-color); }
 input:checked + .slider:before { transform: translateX(20px); }
 
-/* ========== NEW/MODIFIED STYLES FOR SUBCATEGORY DETAIL PAGE HEADER ========== */
+/* ========== REVISED STYLES FOR SUBCATEGORY DETAIL PAGE HEADER ========== */
 .subcategory-page-header {
-    background-color: white;
+    background-color: white; /* Keep background */
     color: var(--primary-color);
-    padding: 12px 15px; /* Consistent padding */
+    padding: 12px 15px;
     display: flex;
-    align-items: center;
-    justify-content: space-between; /* MODIFIED: For proper centering */
+    align-items: center; /* Vertically align items */
+    justify-content: space-between; /* Space out: button, title, placeholder */
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    z-index: 101; /* Above main header */
+    z-index: 101;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     border-bottom: 1px solid var(--medium-gray);
-    padding-top: calc(12px + env(safe-area-inset-top)); /* Safe area */
-    gap: 10px; /* Optional: Add some gap */
+    padding-top: calc(12px + env(safe-area-inset-top));
+    gap: 10px;
+    min-height: 60px; /* **ADDED: Ensure header has some height** */
+    /* background-color: lightblue; */ /* **TEMP: Add for debugging visibility** */
 }
+
 #backToMainBtn {
     font-size: 20px;
-    padding: 0;        /* MODIFIED: Remove extra padding */
-    width: 40px;       /* MODIFIED: Set fixed width */
-    text-align: center;/* MODIFIED: Center icon */
+    padding: 5px;      /* **ADDED: Ensure button has clickable area** */
+    width: 40px;       /* Keep fixed width */
+    height: 40px;      /* **ADDED: Ensure button has height** */
+    display: flex;     /* **ADDED: For centering icon inside button** */
+    align-items: center;/* **ADDED: For centering icon inside button** */
+    justify-content: center;/* **ADDED: For centering icon inside button** */
     flex-shrink: 0;    /* Keep size */
     border: none;
     background: none;
     color: var(--primary-color);
     cursor: pointer;
+    /* background-color: lightcoral; */ /* **TEMP: Add for debugging visibility** */
 }
+
 .subcategory-page-main-title {
-    flex-grow: 1; /* MODIFIED: Takes up center space */
+    flex-grow: 1; /* Takes up center space */
     text-align: center;
     font-size: 18px;
     font-weight: bold;
-    /* margin-right: -40px; */ /* REMOVED/COMMENTED OUT */
-    white-space: nowrap;      /* ADDED: Prevent wrapping */
-    overflow: hidden;         /* ADDED: Hide overflow */
-    text-overflow: ellipsis;  /* ADDED: Show ellipsis (...) */
-    margin: 0;                /* ADDED: Ensure no extra margins */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
+    color: var(--primary-color); /* **ADDED: Ensure text color is set** */
+    display: block; /* **ADDED: Ensure it's treated as a block** */
+    line-height: normal; /* **ADDED: Ensure line height doesn't hide it** */
+    /* background-color: lightgreen; */ /* **TEMP: Add for debugging visibility** */
 }
 /* No explicit style needed for .header-placeholder if using inline style */
 
 .subcategory-detail-content {
-    padding-top: 80px; /* Space for fixed header, adjust if header height changed */
-    /* Removed padding-bottom, handled by .page */
+    padding-top: 80px; /* Adjust if header height changed significantly */
 }
 #subSubCategoryContainerOnDetailPage {
     background-color: white;
@@ -760,6 +769,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 #productsContainerOnDetailPage {
     padding-top: 16px; /* Space below sub-subcategories */
 }
+/* ========== END OF REVISED STYLES ========== */
 
 /* Admin Category Management Items */
 .category-manage-item { font-size: 14px; }
