@@ -706,14 +706,14 @@ button[type="submit"]:disabled { background-color: var(--dark-gray); cursor: not
 input:checked + .slider { background-color: var(--accent-color); }
 input:checked + .slider:before { transform: translateX(20px); }
 
-/* ========== REVISED STYLES FOR SUBCATEGORY DETAIL PAGE HEADER ========== */
+/* ========== STYLES TO HIDE SUBCATEGORY DETAIL PAGE TITLE ========== */
 .subcategory-page-header {
-    background-color: white; /* Keep background */
+    background-color: white;
     color: var(--primary-color);
     padding: 12px 15px;
     display: flex;
-    align-items: center; /* Vertically align items */
-    justify-content: space-between; /* Space out: button, title, placeholder */
+    align-items: center;
+    justify-content: space-between; /* This keeps the back button aligned */
     position: fixed;
     top: 0;
     left: 0;
@@ -722,42 +722,28 @@ input:checked + .slider:before { transform: translateX(20px); }
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     border-bottom: 1px solid var(--medium-gray);
     padding-top: calc(12px + env(safe-area-inset-top));
-    gap: 10px;
-    min-height: 60px; /* **ADDED: Ensure header has some height** */
-    /* background-color: lightblue; */ /* **TEMP: Add for debugging visibility** */
+    min-height: 60px; /* Keep header height */
 }
 
 #backToMainBtn {
     font-size: 20px;
-    padding: 5px;      /* **ADDED: Ensure button has clickable area** */
-    width: 40px;       /* Keep fixed width */
-    height: 40px;      /* **ADDED: Ensure button has height** */
-    display: flex;     /* **ADDED: For centering icon inside button** */
-    align-items: center;/* **ADDED: For centering icon inside button** */
-    justify-content: center;/* **ADDED: For centering icon inside button** */
-    flex-shrink: 0;    /* Keep size */
+    padding: 5px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
     border: none;
     background: none;
     color: var(--primary-color);
     cursor: pointer;
-    /* background-color: lightcoral; */ /* **TEMP: Add for debugging visibility** */
 }
 
 .subcategory-page-main-title {
-    flex-grow: 1; /* Takes up center space */
-    text-align: center;
-    font-size: 18px;
-    font-weight: bold;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin: 0;
-    color: var(--primary-color); /* **ADDED: Ensure text color is set** */
-    display: block; /* **ADDED: Ensure it's treated as a block** */
-    line-height: normal; /* **ADDED: Ensure line height doesn't hide it** */
-    /* background-color: lightgreen; */ /* **TEMP: Add for debugging visibility** */
+    display: none !important; /* **** THIS LINE HIDES THE TITLE COMPLETELY **** */
 }
-/* No explicit style needed for .header-placeholder if using inline style */
+/* The placeholder div in HTML (if you added it) will still provide balance */
 
 .subcategory-detail-content {
     padding-top: 80px; /* Adjust if header height changed significantly */
@@ -769,7 +755,7 @@ input:checked + .slider:before { transform: translateX(20px); }
 #productsContainerOnDetailPage {
     padding-top: 16px; /* Space below sub-subcategories */
 }
-/* ========== END OF REVISED STYLES ========== */
+/* ========== END OF HIDE STYLES ========== */
 
 /* Admin Category Management Items */
 .category-manage-item { font-size: 14px; }
