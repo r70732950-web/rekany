@@ -469,7 +469,7 @@ function renderCategoriesSheet() {
 // *** MODIFIED: Logic moved from here to showSubcategoryDetailPage and its helpers ***
 async function renderSubSubcategories(mainCatId, subCatId) {
    // This function is no longer needed on the main page.
-   subSubcategoriesContainer.innerHTML = '';
+  subSubcategoriesContainer.innerHTML = '';
 }
 
 // *** NEW FUNCTION to open the dedicated subcategory detail page ***
@@ -479,7 +479,9 @@ async function showSubcategoryDetailPage(mainCatId, subCatId, subCatName, fromHi
     }
     showPage('subcategoryDetailPage');
     
-    document.getElementById('subcategoryDetailPageTitle').textContent = subCatName;
+    // This line is the cause of the error and has been commented out.
+    // document.getElementById('subcategoryDetailPageTitle').textContent = subCatName;
+    
     const loader = document.getElementById('detailPageLoader');
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const subSubContainer = document.getElementById('subSubCategoryContainerOnDetailPage');
@@ -2208,4 +2210,3 @@ function startPromoRotation() {
         state.promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
-
