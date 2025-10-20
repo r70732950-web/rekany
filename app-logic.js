@@ -2033,6 +2033,7 @@ function setupEventListeners() {
         const body = payload.notification.body;
         showNotification(`${title}: ${body}`, 'success');
     });
+
 }
 
 onAuthStateChanged(auth, async (user) => {
