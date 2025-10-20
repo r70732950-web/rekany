@@ -58,7 +58,7 @@ body.overlay-active {
     display: flex;
     align-items: center;
     width: 100%;
-    gap: 15px;
+    gap: 10px; /* Kêmkirina valahiyê */
 }
 
 .header-title {
@@ -68,16 +68,20 @@ body.overlay-active {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    flex-shrink: 1; /* Nehiştina mezinbûna zêde */
-    margin-left: 10px; /* Cihê vala li tenişta qutiya lêgerînê */
+    flex-grow: 1; /* Destûrê dide ku mezin bibe */
+    flex-shrink: 1; /* Destûrê dide ku piçûk bibe */
+    min-width: 0; /* Pir girîng e ji bo ku text-overflow kar bike */
+    text-align: right; /* Piştrastkirina ku nivîs li rastê ye */
 }
 
 .subpage-search {
-    flex-grow: 1;
+    flex-grow: 0; /* Nehiştina mezinbûna otomatîk */
+    flex-shrink: 0; /* Nehiştina piçûkbûnê */
+    width: 150px; /* Firehiyek maqûl */
 }
 
 #headerBackBtn {
-    flex-shrink: 0; /* Nehiştina piçûkbûna bişkojê */
+    flex-shrink: 0;
 }
 /* DAWÎYA KODA NÛ */
 
