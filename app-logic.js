@@ -629,25 +629,22 @@ async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchT
     productsContainer.innerHTML = '';
 
     try {
-        let initialQuery;
+        let productsQuery;
         if (subSubCatId === 'all') {
-            initialQuery = query(productsCollection, where("subcategoryId", "==", subCatId));
+            productsQuery = query(productsCollection, where("subcategoryId", "==", subCatId));
         } else {
-            initialQuery = query(productsCollection, where("subSubcategoryId", "==", subSubCatId));
+            productsQuery = query(productsCollection, where("subSubcategoryId", "==", subSubCatId));
         }
         
-        let productsQuery;
         const finalSearchTerm = searchTerm.trim().toLowerCase();
         if (finalSearchTerm) {
-            productsQuery = query(initialQuery,
+            productsQuery = query(productsQuery,
                 where('searchableName', '>=', finalSearchTerm),
-                where('searchableName', '<=', finalSearchTerm + '\uf8ff'),
-                orderBy('searchableName', 'asc') // ÇARESERIYA HELA FIRESTORE
+                where('searchableName', '<=', finalSearchTerm + '\uf8ff')
             );
-        } else {
-            productsQuery = query(initialQuery, orderBy("createdAt", "desc"));
         }
 
+        productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         const productSnapshot = await getDocs(productsQuery);
         
         if (productSnapshot.empty) {
@@ -661,7 +658,7 @@ async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchT
         }
     } catch (error) {
         console.error("Error fetching products for detail page:", error);
-        productsContainer.innerHTML = `<p style="text-align:center; padding: 20px;">هەڵەیەک ڕوویدا: ${error.message}</p>`;
+        productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هەڵەیەک ڕوویدا.</p>';
     } finally {
         loader.style.display = 'none';
     }
@@ -977,17 +974,8 @@ function createProductCardElement(product) {
 
     let extraInfoHTML = '';
     const shippingText = product.shippingInfo && product.shippingInfo[state.currentLanguage] && product.shippingInfo[state.currentLanguage].trim();
-    
-    // ÇARESERIYA NÎŞANA DAŞKANDINÊ
-    if (hasDiscount) {
-        extraInfoHTML = `
-            <div class="product-extra-info">
-                <div class="info-badge" style="background-color: rgba(254, 242, 242, 0.9); color: #c53030;">
-                    <i class="fas fa-tag"></i>${t('has_discount_badge')}
-                </div>
-            </div>
-        `;
-    } else if (shippingText) {
+
+    if (shippingText) {
         extraInfoHTML = `
             <div class="product-extra-info">
                 <div class="info-badge shipping-badge">
