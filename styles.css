@@ -1256,7 +1256,7 @@ input:checked + .slider:before {
     background-color: white;
     color: var(--primary-color);
     display: flex;
-    align-items: center;
+    align-items: center; /* Vertically center the button */
     position: fixed;
     top: 0;
     left: 0;
@@ -1266,7 +1266,7 @@ input:checked + .slider:before {
     border-bottom: 1px solid var(--medium-gray);
     /* Set a consistent height. This is crucial. */
     height: calc(55px + env(safe-area-inset-top));
-    padding-top: env(safe-area-inset-top);
+    padding-top: env(safe-area-inset-top); /* Push content inside header down on iPhones with notch */
     padding-right: 15px; /* Padding for RTL */
     padding-left: 15px;
 }
