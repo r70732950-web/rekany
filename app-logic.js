@@ -1462,31 +1462,28 @@ async function renderPromoCardsSectionForHome() {
  * @param {string} mainCategoryId The ID of the main category.
  */
 async function renderGroupedProductsView(mainCategoryId) {
-    const productsContainer = document.getElementById('productsContainer');
-    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
-    
-    homeSectionsContainer.style.display = 'none';
-    productsContainer.innerHTML = '';
-    productsContainer.style.display = 'block'; // Change to block to hold sections vertically
-    
-    renderSkeletonLoader(productsContainer); // Show loading state
+    const mainContainer = document.getElementById('productsContainer');
+    const scrollTrigger = document.getElementById('scroll-loader-trigger');
+
+    // Setup for this view
+    mainContainer.innerHTML = '';
+    mainContainer.style.display = 'block'; // This container will hold vertical sections
+    scrollTrigger.style.display = 'none'; // No infinite scroll for this special view
+    renderSkeletonLoader(mainContainer, 4); // Show a simple loader
 
     try {
-        // Fetch sub-categories first
         const subcategoriesRef = collection(db, "categories", mainCategoryId, "subcategories");
         const q = query(subcategoriesRef, orderBy("order", "asc"));
         const subcategoriesSnapshot = await getDocs(q);
 
-        // If no subcategories, fall back to the standard grid view by calling the main function again with a flag
         if (subcategoriesSnapshot.empty) {
-             await searchProductsInFirestore(state.currentSearch, true, true);
+             // If there are no sub-categories, just show all products in a grid.
+             await renderPaginatedProductsView(state.currentSearch, true);
              return;
         }
 
-        const groupedViewContainer = document.createElement('div');
-        groupedViewContainer.className = 'grouped-products-view';
+        const sectionsFragment = document.createDocumentFragment();
 
-        // Loop through each sub-category to create its horizontal row
         for (const subDoc of subcategoriesSnapshot.docs) {
             const subCategory = { id: subDoc.id, ...subDoc.data() };
             const subCategoryName = subCategory['name_' + state.currentLanguage] || subCategory.name_ku_sorani;
@@ -1499,7 +1496,6 @@ async function renderGroupedProductsView(mainCategoryId) {
             );
             const productsSnapshot = await getDocs(productsQuery);
 
-            // Only create the section if there are products in it
             if (!productsSnapshot.empty) {
                 const section = document.createElement('div');
                 section.className = 'subcategory-group-section';
@@ -1523,29 +1519,30 @@ async function renderGroupedProductsView(mainCategoryId) {
 
                 section.appendChild(titleHeader);
                 section.appendChild(productsScroller);
-                groupedViewContainer.appendChild(section);
+                sectionsFragment.appendChild(section);
             }
         }
 
-        // Clear loader and append the grouped rows.
-        productsContainer.innerHTML = ''; 
-        productsContainer.appendChild(groupedViewContainer);
+        mainContainer.innerHTML = ''; 
+        mainContainer.appendChild(sectionsFragment);
 
-        // NOW add the "All Products" section title.
+        const allProductsSection = document.createElement('div');
+        allProductsSection.className = 'dynamic-section';
+        
         const allProductsTitle = document.createElement('h3');
         allProductsTitle.className = 'section-title-main';
         allProductsTitle.style.padding = '20px 12px 15px 12px';
         allProductsTitle.style.borderTop = '1px solid var(--section-border)';
         allProductsTitle.style.marginTop = '20px';
         allProductsTitle.textContent = t('all_products_section_title');
-        productsContainer.appendChild(allProductsTitle);
+        allProductsSection.appendChild(allProductsTitle);
 
-        // Create the final grid container and append it.
         const gridContainer = document.createElement('div');
-        gridContainer.className = 'products-container'; // This class provides the grid layout
-        productsContainer.appendChild(gridContainer);
+        gridContainer.className = 'products-container'; 
+        allProductsSection.appendChild(gridContainer);
         
-        // Fetch ALL products for the main category and populate the gridContainer.
+        mainContainer.appendChild(allProductsSection);
+
         const allProductsQuery = query(
             productsCollection,
             where("categoryId", "==", mainCategoryId),
@@ -1575,18 +1572,19 @@ async function renderGroupedProductsView(mainCategoryId) {
 
 /**
  * Main function to fetch and display products based on current filters.
- * It now handles the new grouped view for main categories.
+ * It now decides which view to render.
  * @param {string} searchTerm The text to search for.
- * @param {boolean} isNewSearch If true, clears previous results and starts from scratch.
- * @param {boolean} forceGrid A new parameter to force grid view, even for "All" subcategory.
+ * @param {boolean} isNewSearch If true, clears previous results.
  */
-async function searchProductsInFirestore(searchTerm = '', isNewSearch = false, forceGrid = false) {
+async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
+    
+    // Stop animations and hide home sections if we're not on the home page
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
 
     if (shouldShowHomeSections) {
-        productsContainer.innerHTML = ''; // Clear any previous grouped view
+        productsContainer.innerHTML = '';
         productsContainer.style.display = 'none';
         skeletonLoader.style.display = 'none';
         scrollTrigger.style.display = 'none';
@@ -1598,41 +1596,42 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false, f
             startPromoRotation();
         }
         return;
-    } else {
-        homeSectionsContainer.style.display = 'none';
-        stopPromoRotation();
-    }
+    } 
     
-    // **NEW LOGIC**: Check if we should show the grouped view
-    const shouldShowGroupedView = isNewSearch && !searchTerm && state.currentCategory !== 'all' && state.currentSubcategory === 'all' && !forceGrid;
+    // If not showing home page, stop animations and hide its container
+    homeSectionsContainer.style.display = 'none';
+    stopPromoRotation();
+    
+    // Check if we should show the new grouped view
+    const shouldShowGroupedView = isNewSearch && !searchTerm && state.currentCategory !== 'all' && state.currentSubcategory === 'all';
 
     if (shouldShowGroupedView) {
         await renderGroupedProductsView(state.currentCategory);
-        scrollTrigger.style.display = 'none'; // No infinite scroll in this view
         return;
     }
 
-    const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
-    if (isNewSearch && state.productCache[cacheKey]) {
-        state.products = state.productCache[cacheKey].products;
-        state.lastVisibleProductDoc = state.productCache[cacheKey].lastVisible;
-        state.allProductsLoaded = state.productCache[cacheKey].allLoaded;
+    // Default: Show the standard paginated grid view
+    await renderPaginatedProductsView(searchTerm, isNewSearch);
+}
 
-        skeletonLoader.style.display = 'none';
-        loader.style.display = 'none';
-        productsContainer.style.display = 'grid';
 
-        renderProducts();
-        scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
-        return;
-    }
+/**
+ * Renders the standard, paginated grid view for products.
+ * This contains the logic previously in searchProductsInFirestore.
+ * @param {string} searchTerm The text to search for.
+ * @param {boolean} isNewSearch If true, clears previous results.
+ */
+async function renderPaginatedProductsView(searchTerm = '', isNewSearch = false) {
+    const scrollTrigger = document.getElementById('scroll-loader-trigger');
 
-    if (state.isLoadingMoreProducts) return;
+    if (state.isLoadingMoreProducts && !isNewSearch) return;
 
     if (isNewSearch) {
         state.allProductsLoaded = false;
         state.lastVisibleProductDoc = null;
         state.products = [];
+        productsContainer.innerHTML = '';
+        productsContainer.style.display = 'grid'; // Ensure it's a grid
         renderSkeletonLoader();
     }
 
@@ -1642,8 +1641,9 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false, f
     loader.style.display = 'block';
 
     try {
-        let productsQuery = collection(db, "products");
+        let productsQuery = productsCollection; // Start with the base collection
 
+        // Apply filters
         if (state.currentCategory && state.currentCategory !== 'all') {
             productsQuery = query(productsQuery, where("categoryId", "==", state.currentCategory));
         }
@@ -1662,12 +1662,14 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false, f
             );
         }
 
+        // Apply ordering
         if (finalSearchTerm) {
             productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
         } else {
             productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         }
 
+        // Apply pagination
         if (state.lastVisibleProductDoc && !isNewSearch) {
             productsQuery = query(productsQuery, startAfter(state.lastVisibleProductDoc));
         }
@@ -1676,11 +1678,13 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false, f
 
         const productSnapshot = await getDocs(productsQuery);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        if (isNewSearch) {
+        
+        // Append new products and update state
+        if(isNewSearch) {
+            productsContainer.innerHTML = '';
             state.products = newProducts;
         } else {
-            state.products = [...state.products, ...newProducts];
+            state.products.push(...newProducts);
         }
 
         if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
@@ -1690,31 +1694,27 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false, f
             state.allProductsLoaded = false;
             scrollTrigger.style.display = 'block';
         }
-
+        
         state.lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
 
-        if (isNewSearch) {
-            state.productCache[cacheKey] = {
-                products: state.products,
-                lastVisible: state.lastVisibleProductDoc,
-                allLoaded: state.allProductsLoaded
-            };
-        }
-
-        renderProducts();
+        // Render the newly fetched products
+        newProducts.forEach(product => {
+            const card = createProductCardElement(product);
+            productsContainer.appendChild(card);
+        });
 
         if (state.products.length === 0 && isNewSearch) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         }
 
     } catch (error) {
-        console.error("Error fetching content:", error);
-        productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
+        console.error("Error fetching paginated products:", error);
+        productsContainer.innerHTML = `<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">${t('error_generic')}</p>`;
     } finally {
         state.isLoadingMoreProducts = false;
         loader.style.display = 'none';
         skeletonLoader.style.display = 'none';
-        productsContainer.style.display = 'grid'; // Ensure it's always grid for this function
+        productsContainer.style.display = 'grid'; // Always ensure it's a grid here
     }
 }
 // ======================================================================
@@ -2077,7 +2077,7 @@ function setupScrollObserver() {
 
     const observer = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting) {
-            searchProductsInFirestore(state.currentSearch, false);
+            renderPaginatedProductsView(state.currentSearch, false);
         }
     }, {
         root: null,
