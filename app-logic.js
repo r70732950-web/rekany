@@ -393,10 +393,13 @@ function isFavorite(productId) {
     return state.favorites.includes(productId);
 }
 
-function toggleFavorite(productId) {
-    const productIndex = state.favorites.indexOf(productId);
-    if (productIndex > -1) {
-        state.favorites.splice(productIndex, 1);
+function toggleFavorite(productId, event) {
+    if(event) event.stopPropagation();
+
+    const isCurrentlyFavorite = isFavorite(productId);
+    
+    if (isCurrentlyFavorite) {
+        state.favorites = state.favorites.filter(id => id !== productId);
         showNotification(t('product_removed_from_favorites'), 'error');
     } else {
         state.favorites.push(productId);
@@ -404,16 +407,18 @@ function toggleFavorite(productId) {
     }
     saveFavorites();
 
-    const isHomeView = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-    if (isHomeView) {
-        const homeContainer = document.getElementById('homePageSectionsContainer');
-        if (homeContainer) {
-            homeContainer.innerHTML = '';
+    // Tenê UI-ya bişkojên têkildar nûve bike
+    const allProductCards = document.querySelectorAll(`[data-product-id="${productId}"]`);
+    allProductCards.forEach(card => {
+        const favButton = card.querySelector('.favorite-btn');
+        const heartIcon = card.querySelector('.fa-heart');
+        if (favButton && heartIcon) {
+            const isNowFavorite = !isCurrentlyFavorite;
+            favButton.classList.toggle('favorited', isNowFavorite);
+            heartIcon.classList.toggle('fas', isNowFavorite);
+            heartIcon.classList.toggle('far', !isNowFavorite);
         }
-        renderHomePageContent();
-    } else {
-        renderProducts();
-    }
+    });
 
     if (document.getElementById('favoritesSheet').classList.contains('show')) {
         renderFavoritesPage();
@@ -432,14 +437,13 @@ async function renderFavoritesPage() {
     emptyFavoritesMessage.style.display = 'none';
     favoritesContainer.style.display = 'grid';
 
-    // Pêşî skeleton loader nîşan bide
     renderSkeletonLoader(favoritesContainer, 4); 
 
     try {
         const fetchPromises = state.favorites.map(id => getDoc(doc(db, "products", id)));
         const productSnaps = await Promise.all(fetchPromises);
         
-        favoritesContainer.innerHTML = ''; // Skeleton loaderê paqij bike
+        favoritesContainer.innerHTML = ''; 
 
         const favoritedProducts = productSnaps
             .filter(snap => snap.exists())
@@ -528,7 +532,6 @@ async function renderSubSubcategories(mainCatId, subCatId) {
     subSubcategoriesContainer.innerHTML = '';
 }
 
-// *** FENKŞENA GOHARTÎ ***
 async function showSubcategoryDetailPage(mainCatId, subCatId, fromHistory = false) {
     let subCatName = '';
     try {
@@ -536,7 +539,6 @@ async function showSubcategoryDetailPage(mainCatId, subCatId, fromHistory = fals
         const subCatSnap = await getDoc(subCatRef);
         if (subCatSnap.exists()) {
             const subCat = subCatSnap.data();
-            // Guhertina sereke: Navê li gorî zimanê heyî bistîne
             subCatName = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
         }
     } catch (e) {
@@ -953,6 +955,7 @@ function createPromoCardElement(card) {
 function createProductCardElement(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
+    productCard.dataset.productId = product.id; // Ev rêz girîng e
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
 
 
@@ -1060,7 +1063,7 @@ function createProductCardElement(product) {
         } else if (isAdminNow && target.closest('.delete-btn')) {
             window.AdminLogic.deleteProduct(product.id);
         } else if (target.closest('.favorite-btn')) {
-            toggleFavorite(product.id);
+            toggleFavorite(product.id, event);
         } else if (target.closest('.share-btn-card')) {
              // Jixwe event listenerê xwe heye, tiştek neke
         } else if (!target.closest('a')) {
