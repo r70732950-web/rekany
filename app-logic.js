@@ -32,16 +32,6 @@ function debounce(func, delay = 500) {
     };
 }
 
-// *** FENKŞENA NU ***
-function adjustSubcategoryDetailPadding() {
-    const header = document.querySelector('.subcategory-page-header');
-    const content = document.querySelector('.subcategory-detail-content');
-    if (header && content) {
-        const headerHeight = header.offsetHeight; // پێوانی بەرزی هێڵی سەرەوە
-        content.style.paddingTop = `${headerHeight}px`; // دانانی بەرزییەکە وەک بۆشایی
-    }
-}
-
 function saveCurrentScrollPosition() {
     const currentState = history.state;
     // Only save scroll position for the main page filter state
@@ -157,9 +147,6 @@ window.addEventListener('popstate', (event) => {
     if (popState) {
         if (popState.type === 'page') {
             showPage(popState.id);
-            if (popState.id === 'subcategoryDetailPage') {
-                adjustSubcategoryDetailPadding();
-            }
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             openPopup(popState.id, popState.type);
         } else {
@@ -511,15 +498,11 @@ async function renderSubSubcategories(mainCatId, subCatId) {
     subSubcategoriesContainer.innerHTML = '';
 }
 
-// *** FENKŞENA GOHARTÎ ***
 async function showSubcategoryDetailPage(mainCatId, subCatId, subCatName, fromHistory = false) {
     if (!fromHistory) {
         history.pushState({ type: 'page', id: 'subcategoryDetailPage' }, '', `#subcategory_${mainCatId}_${subCatId}`);
     }
     showPage('subcategoryDetailPage');
-    
-    // *** EV RÊZ ZÊDE BÛYE ***
-    adjustSubcategoryDetailPadding(); // بانگکردنی فەنکشنی ڕێکخستنی بۆشایی
 
     const loader = document.getElementById('detailPageLoader');
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
@@ -2050,9 +2033,6 @@ function setupEventListeners() {
         const body = payload.notification.body;
         showNotification(`${title}: ${body}`, 'success');
     });
-
-    // *** EV RÊZ ZÊDE BÛYE ***
-    window.addEventListener('resize', debounce(adjustSubcategoryDetailPadding, 100));
 }
 
 onAuthStateChanged(auth, async (user) => {

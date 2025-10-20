@@ -1249,14 +1249,14 @@ input:checked + .slider:before {
     transform: translateX(20px);
 }
 
-/* ========== STYLES FOR SUBCATEGORY DETAIL PAGE (FIXED) ========== */
-/* ========== ستایلی نوێ بۆ پەڕەی جۆری لاوەکی (چاککراو) ========== */
+
+/* ========== STYLES FOR SUBCATEGORY DETAIL PAGE (FINAL FIX) ========== */
+/* ========== ستایلی نوێ بۆ پەڕەی جۆری لاوەکی (چارەسەری کۆتایی) ========== */
 .subcategory-page-header {
     background-color: white;
     color: var(--primary-color);
-    padding: 0 15px; /* Padding for the container */
-    display: flex; /* Use flexbox for alignment */
-    align-items: center; /* Vertically center content */
+    display: flex;
+    align-items: center;
     position: fixed;
     top: 0;
     left: 0;
@@ -1264,35 +1264,25 @@ input:checked + .slider:before {
     z-index: 101;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     border-bottom: 1px solid var(--medium-gray);
-    /* Set a consistent height */
-    height: calc(55px + env(safe-area-inset-top)); 
+    /* Set a consistent height. This is crucial. */
+    height: calc(55px + env(safe-area-inset-top));
     padding-top: env(safe-area-inset-top);
+    padding-right: 15px; /* Padding for RTL */
+    padding-left: 15px;
 }
 
 #backToMainBtn {
-    /* Remove absolute positioning, let flexbox handle it */
-    position: relative; 
-    top: 0;
-    transform: none;
-    /* Ensure it has enough space and is clickable */
+    /* Let flexbox handle positioning. No need for absolute positioning. */
     font-size: 20px;
-    padding: 5px; 
+    padding: 5px; /* Consistent clickable area */
 }
 
-
 .subcategory-detail-content {
-    /* padding-top is set by JavaScript and MUST remain */
+    /* This padding MUST match the header's height to push content down */
+    padding-top: calc(55px + env(safe-area-inset-top));
     padding-bottom: 85px; /* Space for nav */
 }
 
-#subSubCategoryContainerOnDetailPage {
-    background-color: white;
-    border-bottom: 1px solid var(--section-border);
-}
-
-#productsContainerOnDetailPage {
-    padding-top: 16px;
-}
 
 /* --- KODÊ NÛ JI BO BIŞKOJA PARVEKIRINÊ --- */
 /* --- کۆدی نوێ بۆ دوگمەی هاوبەشیپێکردن --- */
