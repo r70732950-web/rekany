@@ -494,6 +494,12 @@ async function showSubcategoryDetailPage(mainCatId, subCatId, subCatName, fromHi
         history.pushState({ type: 'page', id: 'subcategoryDetailPage' }, '', `#subcategory_${mainCatId}_${subCatId}`);
     }
     showPage('subcategoryDetailPage');
+    
+    // *** KODA NÛ YA JI BO DANÎNA SERNAVÊ ***
+    const pageTitleElement = document.getElementById('subcategoryPageTitle');
+    if (pageTitleElement) {
+        pageTitleElement.textContent = subCatName;
+    }
 
     const loader = document.getElementById('detailPageLoader');
     const productsContainer = document.getElementById('productsContainerOnDetailPage');

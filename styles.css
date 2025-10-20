@@ -76,7 +76,7 @@ body.overlay-active {
 .main-content {
     padding-top: 80px;
     padding-bottom: 85px;
-    position: relative; /* Keep relative for normal flow inside the page */
+    position: relative; 
     height: auto;
     min-height: 100vh;
 }
@@ -1250,45 +1250,50 @@ input:checked + .slider:before {
 }
 
 
-/* ========== STYLES FOR SUBCATEGORY DETAIL PAGE (NEW & RELIABLE FIX) ========== */
-/* ========== ستایلی نوێ بۆ پەڕەی جۆری لاوەکی (چارەسەری جێگیر) ========== */
+/* ========== STYLES FOR SUBCATEGORY DETAIL PAGE (FINAL FIX) ========== */
+/* ========== ستایلی نوێ بۆ پەڕەی جۆری لاوەکی (چارەسەری کۆتایی) ========== */
 
 .subcategory-page-header {
-    /* Use position sticky to stick to the top of its scrolling container (.page) */
     position: sticky;
     top: 0;
-    
-    /* Ensure it's on top of other content within the page */
     z-index: 101; 
     
-    /* Visual styles */
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Boşahî di navbera bişkok û sernavê de */
+
     background-color: white;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     border-bottom: 1px solid var(--medium-gray);
     
-    /* Sizing and alignment */
-    display: flex;
-    align-items: center;
     width: 100%;
-    min-height: 60px; /* Set a consistent height */
-    padding: 0 15px; /* Vertical and horizontal padding */
-
-    /* Handle iPhone notch area by adding padding only to the top */
-    padding-top: env(safe-area-inset-top);
+    min-height: 60px; 
+    padding: 10px 15px; 
+    padding-top: calc(10px + env(safe-area-inset-top)); /* Handle iPhone notch */
 }
 
 #backToMainBtn {
-    /* Simple styling, flexbox will handle positioning */
+    flex-shrink: 0; /* Nehiştina piçûkbûna bişkokê */
     font-size: 20px;
-    padding: 5px; /* Consistent clickable area */
-    position: static; /* Reset any previous positioning */
-    transform: none; /* Reset any previous transforms */
+}
+
+.subcategory-page-title {
+    flex-grow: 1; /* Sernav hemî cîhê mayî digire */
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--primary-color);
+    text-align: right;
+    
+    /* Pêşîlêgirtina derketina nivîsê */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .subcategory-detail-content {
-    /* No padding-top needed anymore, as the sticky header creates the necessary space */
+    /* Padding êdî ne pêwîst e ji ber ku header "sticky" ye */
     padding-top: 0; 
-    padding-bottom: 85px; /* Space for nav */
+    padding-bottom: 85px; 
 }
 
 
