@@ -1250,50 +1250,41 @@ input:checked + .slider:before {
 }
 
 
-/* ========== STYLES FOR SUBCATEGORY DETAIL PAGE (FINAL FIX) ========== */
+/* ========== STYLES FOR SUBCATEGORY DETAIL PAGE (FINAL GUARANTEED FIX) ========== */
 /* ========== ستایلی نوێ بۆ پەڕەی جۆری لاوەکی (چارەسەری کۆتایی) ========== */
 
 .subcategory-page-header {
-    position: sticky;
-    top: 0;
-    z-index: 101; 
-    
+    /* Header êdî ne 'fixed' an 'sticky' ye, ew bi rûpelê re diherike */
+    /* هێڵی سەرەوە چیتر جێگیر نییە، لەگەڵ پەڕەکەدا سکڕۆڵ دەبێت */
     display: flex;
     align-items: center;
-    gap: 10px; /* Boşahî di navbera bişkok û sernavê de */
-
+    gap: 10px;
     background-color: white;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     border-bottom: 1px solid var(--medium-gray);
-    
     width: 100%;
-    min-height: 60px; 
-    padding: 10px 15px; 
+    padding: 10px 15px;
     padding-top: calc(10px + env(safe-area-inset-top)); /* Handle iPhone notch */
 }
 
 #backToMainBtn {
-    flex-shrink: 0; /* Nehiştina piçûkbûna bişkokê */
+    flex-shrink: 0;
     font-size: 20px;
 }
 
 .subcategory-page-title {
-    flex-grow: 1; /* Sernav hemî cîhê mayî digire */
+    flex-grow: 1;
     font-size: 18px;
     font-weight: bold;
     color: var(--primary-color);
     text-align: right;
-    
-    /* Pêşîlêgirtina derketina nivîsê */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .subcategory-detail-content {
-    /* Padding êdî ne pêwîst e ji ber ku header "sticky" ye */
-    padding-top: 0; 
-    padding-bottom: 85px; 
+    padding: 0; /* Padding êdî ne pêwîst e */
 }
 
 
