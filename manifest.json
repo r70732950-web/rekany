@@ -22,8 +22,8 @@
     }
   ],
   "scope_extensions": [
-    { "origin": "*.matenrekany.netlify.app" },
-    { "origin": "matenrekany.netlify.app" }
+    { "origin": "*.https://r70732950-web.github.io/rekany/" },
+    { "origin": "https://r70732950-web.github.io/rekany/" }
   ],
   "protocol_handlers": [
     {
