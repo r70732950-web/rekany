@@ -1042,7 +1042,7 @@ function createProductCardElement(product) {
         } catch (err) {
             console.error('Share error:', err);
              if (err.name !== 'AbortError') {
-                  showNotification(t('share_error'), 'error');
+                 showNotification(t('share_error'), 'error');
              }
         }
     });
@@ -1459,7 +1459,132 @@ async function renderPromoCardsSectionForHome() {
     return null;
 }
 
-async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
+// ======================================================================
+// ===== START OF MODIFIED SECTION / دەستپێکی بەشی دەستکاریکراو =====
+// ======================================================================
+
+/**
+ * Renders a grouped view of products for the main category's "All" section.
+ * It shows horizontal rows for each sub-category, followed by a grid of all products.
+ * @param {string} mainCategoryId The ID of the main category.
+ */
+async function renderGroupedProductsView(mainCategoryId) {
+    const productsContainer = document.getElementById('productsContainer');
+    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
+    
+    homeSectionsContainer.style.display = 'none';
+    productsContainer.innerHTML = '';
+    productsContainer.style.display = 'block'; // Change from grid to block to hold sections
+    
+    renderSkeletonLoader(productsContainer); // Show loading state inside the main container
+
+    try {
+        const groupedViewContainer = document.createElement('div');
+        groupedViewContainer.className = 'grouped-products-view';
+
+        const subcategoriesRef = collection(db, "categories", mainCategoryId, "subcategories");
+        const q = query(subcategoriesRef, orderBy("order", "asc"));
+        const subcategoriesSnapshot = await getDocs(q);
+
+        if (subcategoriesSnapshot.empty) {
+             // If there are no sub-categories, just show all products in a grid.
+             // We will let the normal search function handle this by calling it again.
+             await searchProductsInFirestore(state.currentSearch, true, true);
+             return;
+        }
+
+        // Loop through each sub-category to create its horizontal row
+        for (const subDoc of subcategoriesSnapshot.docs) {
+            const subCategory = { id: subDoc.id, ...subDoc.data() };
+            const subCategoryName = subCategory['name_' + state.currentLanguage] || subCategory.name_ku_sorani;
+
+            const productsQuery = query(
+                productsCollection,
+                where("subcategoryId", "==", subCategory.id),
+                orderBy("createdAt", "desc"),
+                limit(10)
+            );
+            const productsSnapshot = await getDocs(productsQuery);
+
+            // Only create the section if there are products in it
+            if (!productsSnapshot.empty) {
+                const section = document.createElement('div');
+                section.className = 'subcategory-group-section';
+
+                const titleHeader = document.createElement('div');
+                titleHeader.className = 'subcategory-group-title';
+                titleHeader.innerHTML = `<span>${subCategoryName}</span><a class="see-all-link">${t('see_all')}</a>`;
+
+                titleHeader.querySelector('.see-all-link').onclick = () => {
+                    showSubcategoryDetailPage(mainCategoryId, subCategory.id);
+                };
+
+                const productsScroller = document.createElement('div');
+                productsScroller.className = 'horizontal-products-container';
+
+                productsSnapshot.forEach(prodDoc => {
+                    const product = { id: prodDoc.id, ...prodDoc.data() };
+                    const card = createProductCardElement(product);
+                    productsScroller.appendChild(card);
+                });
+
+                section.appendChild(titleHeader);
+                section.appendChild(productsScroller);
+                groupedViewContainer.appendChild(section);
+            }
+        }
+
+        // Now, prepare to show all products below the grouped view
+        productsContainer.innerHTML = ''; // Clear the skeleton loader
+        productsContainer.appendChild(groupedViewContainer);
+
+        const allProductsTitle = document.createElement('h3');
+        allProductsTitle.className = 'section-title-main';
+        allProductsTitle.style.padding = '20px 12px 15px 12px';
+        allProductsTitle.style.borderTop = '1px solid var(--section-border)';
+        allProductsTitle.style.marginTop = '20px';
+        allProductsTitle.textContent = t('all_products_section_title');
+        productsContainer.appendChild(allProductsTitle);
+
+        const gridContainer = document.createElement('div');
+        gridContainer.className = 'products-container'; // This will be our grid
+        productsContainer.appendChild(gridContainer);
+        
+        const allProductsQuery = query(
+            productsCollection,
+            where("categoryId", "==", mainCategoryId),
+            orderBy("createdAt", "desc")
+        );
+        const allProductsSnapshot = await getDocs(allProductsQuery);
+
+        if (allProductsSnapshot.empty) {
+            gridContainer.innerHTML = `<p style="text-align:center;">${t('no_products_found')}</p>`;
+        } else {
+            allProductsSnapshot.forEach(doc => {
+                const product = { id: doc.id, ...doc.data() };
+                const card = createProductCardElement(product);
+                gridContainer.appendChild(card);
+            });
+        }
+
+    } catch (error) {
+        console.error("Error building grouped product view:", error);
+        productsContainer.innerHTML = `<p style="text-align:center;">${t('error_generic')}</p>`;
+    } finally {
+        loader.style.display = 'none';
+        skeletonLoader.style.display = 'none';
+    }
+}
+
+
+/**
+ * Main function to fetch and display products based on current filters.
+ * It now handles the new grouped view for main categories.
+ * @param {string} searchTerm The text to search for.
+ * @param {boolean} isNewSearch If true, clears previous results and starts from scratch.
+ * @param {boolean} forceGrid Wekheviyek nû ji bo zorê li dîtina torê bike, hetta ji bo kategoriya "Hemî".
+ */
+async function searchProductsInFirestore(searchTerm = '', isNewSearch = false, forceGrid = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
@@ -1478,6 +1603,16 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         return;
     } else {
         homeSectionsContainer.style.display = 'none';
+        stopPromoRotation();
+    }
+    
+    // **NEW LOGIC**: Check if we should show the grouped view
+    const shouldShowGroupedView = isNewSearch && !searchTerm && state.currentCategory !== 'all' && state.currentSubcategory === 'all' && !forceGrid;
+
+    if (shouldShowGroupedView) {
+        await renderGroupedProductsView(state.currentCategory);
+        // We return here because renderGroupedProductsView handles the entire display for this case.
+        return;
     }
 
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
@@ -1585,6 +1720,10 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         productsContainer.style.display = 'grid';
     }
 }
+// ======================================================================
+// ===== END OF MODIFIED SECTION / کۆتایی بەشی دەستکاریکراو =====
+// ======================================================================
+
 
 function addToCart(productId) {
     const allFetchedProducts = [...state.products];
@@ -2303,5 +2442,12 @@ function startPromoRotation() {
     }
     if (state.allPromoCards.length > 1) {
         state.promoRotationInterval = setInterval(rotatePromoCard, 5000);
+    }
+}
+
+function stopPromoRotation() {
+    if (state.promoRotationInterval) {
+        clearInterval(state.promoRotationInterval);
+        state.promoRotationInterval = null;
     }
 }
