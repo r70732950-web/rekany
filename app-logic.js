@@ -394,20 +394,53 @@ function toggleFavorite(productId) {
     }
 }
 
-function renderFavoritesPage() {
-    favoritesContainer.innerHTML = '';
-    const favoritedProducts = state.products.filter(p => state.favorites.includes(p.id));
+// ==========================================================
+// ===== FENKŞENA GOHARTÎ JI BO ÇARESERKIRINA ARÎŞÊ =====
+// ===== فەنکشنی گۆڕاو بۆ چارەسەرکردنی کێشەکە =====
+// ==========================================================
+async function renderFavoritesPage() {
+    // Pêşî, peyamek barkirinê nîşan bide
+    favoritesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--dark-gray);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
+    emptyFavoritesMessage.style.display = 'none';
+    favoritesContainer.style.display = 'grid';
 
-    if (favoritedProducts.length === 0) {
+    // Kontrol bike ka tiştek di lîsteya hezkiriyan de heye yan na
+    if (state.favorites.length === 0) {
+        favoritesContainer.innerHTML = '';
         emptyFavoritesMessage.style.display = 'block';
         favoritesContainer.style.display = 'none';
-    } else {
-        emptyFavoritesMessage.style.display = 'none';
-        favoritesContainer.style.display = 'grid';
-        favoritedProducts.forEach(product => {
-            const productCard = createProductCardElement(product);
-            favoritesContainer.appendChild(productCard);
-        });
+        return;
+    }
+
+    try {
+        // Ji bo her ID'yek di lîsteya hezkiriyan de, daxwazek bişîne Firestore
+        const favoriteProductPromises = state.favorites.map(id => getDoc(doc(db, "products", id)));
+        
+        // Li benda hemî daxwazan be ku biqedin
+        const productDocs = await Promise.all(favoriteProductPromises);
+        
+        // Tenê berhemên ku hatine dîtin fîlter bike û daneyên wan derxe
+        const favoritedProducts = productDocs
+            .filter(docSnap => docSnap.exists())
+            .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+
+        favoritesContainer.innerHTML = ''; // Peyama barkirinê jê bibe
+
+        if (favoritedProducts.length === 0) {
+             emptyFavoritesMessage.style.display = 'block';
+             favoritesContainer.style.display = 'none';
+        } else {
+             emptyFavoritesMessage.style.display = 'none';
+             favoritesContainer.style.display = 'grid';
+             favoritedProducts.forEach(product => {
+                const productCard = createProductCardElement(product);
+                favoritesContainer.appendChild(productCard);
+            });
+        }
+
+    } catch (error) {
+        console.error("Error fetching favorite products:", error);
+        favoritesContainer.innerHTML = '<p style="text-align:center; color: var(--danger-color);">هەڵەیەک لە هێنانی دڵخوازەکان ڕوویدا.</p>';
     }
 }
 
