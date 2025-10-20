@@ -532,8 +532,12 @@ async function showSubcategoryDetailPage(mainCatId, subCatId, subCatName, fromHi
     productsContainer.innerHTML = '';
     subSubContainer.innerHTML = '';
 
+    // Piştrastkirina ku qutiya lêgerînê vala ye
+    document.getElementById('subpageSearchInput').value = '';
+    document.getElementById('subpageClearSearchBtn').style.display = 'none';
+
     await renderSubSubcategoriesOnDetailPage(mainCatId, subCatId);
-    await renderProductsOnDetailPage(subCatId);
+    await renderProductsOnDetailPage(subCatId, 'all', ''); // Lêgerîna destpêkê vala ye
 
     loader.style.display = 'none';
 }
@@ -558,10 +562,12 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
         allBtn.className = `subcategory-btn active`;
         const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
         allBtn.innerHTML = `<div class="subcategory-image">${allIconSvg}</div><span>${t('all_categories_label')}</span>`;
+        allBtn.dataset.id = 'all'; // Ji bo nasîna bişkojê
         allBtn.onclick = () => {
             container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
             allBtn.classList.add('active');
-            renderProductsOnDetailPage(subCatId, 'all');
+            const currentSearch = document.getElementById('subpageSearchInput').value;
+            renderProductsOnDetailPage(subCatId, 'all', currentSearch);
         };
         container.appendChild(allBtn);
 
@@ -569,6 +575,7 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
             const subSubcat = { id: doc.id, ...doc.data() };
             const btn = document.createElement('button');
             btn.className = `subcategory-btn`;
+            btn.dataset.id = subSubcat.id; // Ji bo nasîna bişkojê
             const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
             const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
             const imageUrl = subSubcat.imageUrl || placeholderImg;
@@ -577,7 +584,8 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
             btn.onclick = () => {
                 container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                renderProductsOnDetailPage(subCatId, subSubcat.id);
+                const currentSearch = document.getElementById('subpageSearchInput').value;
+                renderProductsOnDetailPage(subCatId, subSubcat.id, currentSearch);
             };
             container.appendChild(btn);
         });
@@ -588,7 +596,7 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
     }
 }
 
-async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all') {
+async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchTerm = '') {
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const loader = document.getElementById('detailPageLoader');
     loader.style.display = 'block';
@@ -597,12 +605,22 @@ async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all') {
     try {
         let productsQuery;
         if (subSubCatId === 'all') {
-            productsQuery = query(productsCollection, where("subcategoryId", "==", subCatId), orderBy("createdAt", "desc"));
+            productsQuery = query(productsCollection, where("subcategoryId", "==", subCatId));
         } else {
-            productsQuery = query(productsCollection, where("subSubcategoryId", "==", subSubCatId), orderBy("createdAt", "desc"));
+            productsQuery = query(productsCollection, where("subSubcategoryId", "==", subSubCatId));
+        }
+        
+        const finalSearchTerm = searchTerm.trim().toLowerCase();
+        if (finalSearchTerm) {
+            productsQuery = query(productsQuery,
+                where('searchableName', '>=', finalSearchTerm),
+                where('searchableName', '<=', finalSearchTerm + '\uf8ff')
+            );
         }
 
+        productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         const productSnapshot = await getDocs(productsQuery);
+        
         if (productSnapshot.empty) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         } else {
@@ -619,6 +637,7 @@ async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all') {
         loader.style.display = 'none';
     }
 }
+
 
 async function renderSubcategories(categoryId) {
     const subcategoriesContainer = document.getElementById('subcategoriesContainer');
@@ -1973,6 +1992,34 @@ function setupEventListeners() {
         searchInput.value = '';
         clearSearchBtn.style.display = 'none';
         navigateToFilter({ search: '' });
+    };
+
+    const subpageSearchInput = document.getElementById('subpageSearchInput');
+    const subpageClearSearchBtn = document.getElementById('subpageClearSearchBtn');
+
+    const debouncedSubpageSearch = debounce(async (term) => {
+        const hash = window.location.hash.substring(1);
+        if (hash.startsWith('subcategory_')) {
+            const ids = hash.split('_');
+            const subCatId = ids[2];
+            
+            const activeSubSubBtn = document.querySelector('#subSubCategoryContainerOnDetailPage .subcategory-btn.active');
+            const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.id || 'all') : 'all';
+
+            await renderProductsOnDetailPage(subCatId, subSubCatId, term);
+        }
+    }, 500);
+
+    subpageSearchInput.oninput = () => {
+        const searchTerm = subpageSearchInput.value;
+        subpageClearSearchBtn.style.display = searchTerm ? 'block' : 'none';
+        debouncedSubpageSearch(searchTerm);
+    };
+
+    subpageClearSearchBtn.onclick = () => {
+        subpageSearchInput.value = '';
+        subpageClearSearchBtn.style.display = 'none';
+        debouncedSubpageSearch('');
     };
 
     contactToggle.onclick = () => {
