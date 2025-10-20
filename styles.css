@@ -1314,31 +1314,3 @@ input:checked + .slider:before {
     color: var(--primary-color);
 }
 
-/* ===== KODA NÛ / کۆدی نوێ ===== */
-/* Styles for Featured Rows section / ستایل بۆ بەشی ڕیزە تایبەتەکان */
-#featuredRowsContainer, #featuredRowsContainerOnDetailPage {
-    padding-top: 10px;
-}
-
-.featured-row-section {
-    background-color: var(--section-bg);
-    margin-bottom: 16px;
-    padding-top: 16px; /* Space for the title */
-    border-top: 1px solid var(--section-border);
-    border-bottom: 1px solid var(--section-border);
-}
-
-.featured-row-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 12px;
-    margin-bottom: 12px;
-}
-
-.featured-row-title {
-    font-size: 18px;
-    font-weight: bold;
-    color: var(--primary-color);
-}
-/* ===== DAWÎYA KODA NÛ / کۆتایی کۆدی نوێ ===== */

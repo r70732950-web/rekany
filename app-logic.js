@@ -563,7 +563,7 @@ async function showSubcategoryDetailPage(mainCatId, subCatId, fromHistory = fals
     document.getElementById('subpageClearSearchBtn').style.display = 'none';
 
     await renderSubSubcategoriesOnDetailPage(mainCatId, subCatId);
-    await renderProductsOnDetailPage(mainCatId, subCatId, 'all', '');
+    await renderProductsOnDetailPage(subCatId, 'all', '');
 
     loader.style.display = 'none';
 }
@@ -593,7 +593,7 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
             container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
             allBtn.classList.add('active');
             const currentSearch = document.getElementById('subpageSearchInput').value;
-            renderProductsOnDetailPage(mainCatId, subCatId, 'all', currentSearch);
+            renderProductsOnDetailPage(subCatId, 'all', currentSearch);
         };
         container.appendChild(allBtn);
 
@@ -611,7 +611,7 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
                 container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 const currentSearch = document.getElementById('subpageSearchInput').value;
-                renderProductsOnDetailPage(mainCatId, subCatId, subSubcat.id, currentSearch);
+                renderProductsOnDetailPage(subCatId, subSubcat.id, currentSearch);
             };
             container.appendChild(btn);
         });
@@ -622,27 +622,17 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
     }
 }
 
-async function renderProductsOnDetailPage(mainCatId, subCatId, subSubCatId = 'all', searchTerm = '') {
+// =======================================================
+// == ** THE FIX IS HERE / چارەسەری لێرەیە ** ==
+// =======================================================
+async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchTerm = '') {
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
-    const featuredRowsContainer = document.getElementById('featuredRowsContainerOnDetailPage');
     const loader = document.getElementById('detailPageLoader');
-    
     loader.style.display = 'block';
     productsContainer.innerHTML = '';
-    featuredRowsContainer.innerHTML = '';
 
-    // If we're in the "all" view for sub-subcategories and not searching, render featured rows for sub-subcategories
-    if (subSubCatId === 'all' && !searchTerm) {
-        await renderFeaturedProductRows(
-            featuredRowsContainer, 
-            ['categories', mainCatId, 'subcategories', subCatId, 'subSubcategories'],
-            'subSubcategoryId'
-        );
-    }
-    
     try {
         let productsQuery;
-        // This is the main query for the page products
         if (subSubCatId === 'all') {
             productsQuery = query(productsCollection, where("subcategoryId", "==", subCatId));
         } else {
@@ -656,15 +646,17 @@ async function renderProductsOnDetailPage(mainCatId, subCatId, subSubCatId = 'al
                 where('searchableName', '<=', finalSearchTerm + '\uf8ff')
             );
             // If searching, first orderBy must match inequality field
+            // ئەگەر گەڕان هەبوو، سەرەتا بەپێی 'searchableName' ڕیز بکە
             productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
         } else {
             // If not searching, use the original orderBy
+            // ئەگەر گەڕان نەبوو، بەپێی 'createdAt' ڕیز بکە
             productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         }
 
         const productSnapshot = await getDocs(productsQuery);
         
-        if (productSnapshot.empty && featuredRowsContainer.innerHTML === '') {
+        if (productSnapshot.empty) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         } else {
             productSnapshot.forEach(doc => {
@@ -1147,114 +1139,330 @@ function renderProducts() {
     setupScrollAnimations();
 }
 
-async function renderFeaturedProductRows(container, categoryCollectionPath, productQueryField, maxRows = 5, productsPerRow = 8) {
-    container.innerHTML = ''; // Clear previous content
+async function renderSingleShortcutRow(rowId, sectionNameObj) {
+    const sectionContainer = document.createElement('div');
+    sectionContainer.className = 'shortcut-cards-section';
 
     try {
-        const itemsQuery = query(collection(db, ...categoryCollectionPath), orderBy("order", "asc"), limit(maxRows));
-        const itemsSnapshot = await getDocs(itemsQuery);
+        const rowDoc = await getDoc(doc(db, "shortcut_rows", rowId));
+        if (!rowDoc.exists()) return null;
 
-        if (itemsSnapshot.empty) {
-            return; // No items to feature
+        const rowData = { id: rowDoc.id, ...rowDoc.data() };
+        const rowTitle = sectionNameObj[state.currentLanguage] || rowData.title[state.currentLanguage] || rowData.title.ku_sorani;
+
+        const titleElement = document.createElement('h3');
+        titleElement.className = 'shortcut-row-title';
+        titleElement.textContent = rowTitle;
+        sectionContainer.appendChild(titleElement);
+
+        const cardsContainer = document.createElement('div');
+        cardsContainer.className = 'shortcut-cards-container';
+        sectionContainer.appendChild(cardsContainer);
+
+        const cardsCollectionRef = collection(db, "shortcut_rows", rowData.id, "cards");
+        const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
+        const cardsSnapshot = await getDocs(cardsQuery);
+
+        if (cardsSnapshot.empty) {
+            return null; // Don't render empty rows
         }
 
-        for (const itemDoc of itemsSnapshot.docs) {
-            const item = { id: itemDoc.id, ...itemDoc.data() };
-            const itemName = item['name_' + state.currentLanguage] || item.name_ku_sorani;
+        cardsSnapshot.forEach(cardDoc => {
+            const cardData = cardDoc.data();
+            const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
 
-            const section = document.createElement('div');
-            section.className = 'featured-row-section';
+            const item = document.createElement('div');
+            item.className = 'shortcut-card';
+            item.innerHTML = `
+                <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
+                <div class="shortcut-card-name">${cardName}</div>
+            `;
 
-            const header = document.createElement('div');
-            header.className = 'featured-row-header';
-            header.innerHTML = `<h3 class="featured-row-title">${itemName}</h3>`;
-            section.appendChild(header);
-
-            const productsScroller = document.createElement('div');
-            productsScroller.className = 'horizontal-products-container';
-            section.appendChild(productsScroller);
-            
-            container.appendChild(section);
-            
-            const productsQuery = query(
-                productsCollection,
-                where(productQueryField, '==', item.id),
-                orderBy('createdAt', 'desc'),
-                limit(productsPerRow)
-            );
-            const productsSnapshot = await getDocs(productsQuery);
-            
-            if (!productsSnapshot.empty) {
-                productsSnapshot.forEach(productDoc => {
-                    const product = { id: productDoc.id, ...productDoc.data() };
-                    const card = createProductCardElement(product);
-                    productsScroller.appendChild(card);
+            item.onclick = async () => {
+                await navigateToFilter({
+                    category: cardData.categoryId || 'all',
+                    subcategory: cardData.subcategoryId || 'all',
+                    subSubcategory: cardData.subSubcategoryId || 'all',
+                    search: ''
                 });
-            } else {
-                 section.remove();
-            }
-        }
+            };
+            cardsContainer.appendChild(item);
+        });
+
+        return sectionContainer;
     } catch (error) {
-        console.error("Error rendering featured rows:", error);
+        console.error("Error rendering single shortcut row:", error);
+        return null;
     }
 }
 
-async function renderMainPageFeaturedRows(container, maxRows = 5) {
-    container.innerHTML = '';
-    const mainCategories = state.categories.filter(c => c.id !== 'all');
-    if (mainCategories.length === 0) return;
+async function renderSingleCategoryRow(categoryId, sectionNameObj) {
+    const category = state.categories.find(c => c.id === categoryId);
+    if (!category) return null;
 
-    const featuredSubcatsPromises = mainCategories.slice(0, maxRows).map(async (mainCat) => {
-        try {
-            const subcatsQuery = query(collection(db, 'categories', mainCat.id, 'subcategories'), orderBy('order', 'asc'), limit(1));
-            const subcatsSnapshot = await getDocs(subcatsQuery);
-            if (!subcatsSnapshot.empty) {
-                const subcatDoc = subcatsSnapshot.docs[0];
-                return { id: subcatDoc.id, ...subcatDoc.data() };
-            }
-        } catch (e) {
-            console.error(`Could not fetch subcategory for ${mainCat.id}`, e);
+    const container = document.createElement('div');
+    container.className = 'dynamic-section';
+    const header = document.createElement('div');
+    header.className = 'section-title-header';
+
+    const title = document.createElement('h3');
+    title.className = 'section-title-main';
+    const categoryName = sectionNameObj[state.currentLanguage] || category['name_' + state.currentLanguage] || category.name_ku_sorani;
+    title.innerHTML = `<i class="${category.icon}"></i> ${categoryName}`;
+    header.appendChild(title);
+
+    const seeAllLink = document.createElement('a');
+    seeAllLink.className = 'see-all-link';
+    seeAllLink.textContent = t('see_all');
+    seeAllLink.onclick = async () => {
+        await navigateToFilter({
+            category: category.id,
+            subcategory: 'all',
+            subSubcategory: 'all',
+            search: ''
+        });
+    };
+    header.appendChild(seeAllLink);
+    container.appendChild(header);
+
+    const productsScroller = document.createElement('div');
+    productsScroller.className = 'horizontal-products-container';
+    container.appendChild(productsScroller);
+
+    try {
+        const q = query(
+            productsCollection,
+            where('categoryId', '==', categoryId),
+            orderBy('createdAt', 'desc'),
+            limit(10)
+        );
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) {
+            return null; // Don't render empty sections
         }
+
+        snapshot.forEach(doc => {
+            const product = { id: doc.id, ...doc.data() };
+            const card = createProductCardElement(product);
+            productsScroller.appendChild(card);
+        });
+        return container;
+    } catch (error) {
+        console.error(`Error fetching products for single category row ${categoryId}:`, error);
         return null;
-    });
-
-    const featuredSubcats = (await Promise.all(featuredSubcatsPromises)).filter(Boolean);
-
-    for (const subcat of featuredSubcats) {
-        const itemName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
-        const section = document.createElement('div');
-        section.className = 'featured-row-section';
-        section.innerHTML = `
-            <div class="featured-row-header">
-                <h3 class="featured-row-title">${itemName}</h3>
-            </div>
-            <div class="horizontal-products-container"></div>
-        `;
-        container.appendChild(section);
-
-        const productsScroller = section.querySelector('.horizontal-products-container');
-        const productsQuery = query(productsCollection, where('subcategoryId', '==', subcat.id), orderBy('createdAt', 'desc'), limit(8));
-        const productsSnapshot = await getDocs(productsQuery);
-
-        if (!productsSnapshot.empty) {
-            productsSnapshot.forEach(productDoc => {
-                const product = { id: productDoc.id, ...productDoc.data() };
-                productsScroller.appendChild(createProductCardElement(product));
-            });
-        } else {
-            section.remove();
-        }
     }
+}
+
+async function renderBrandsSection() {
+    const sectionContainer = document.createElement('div');
+    sectionContainer.className = 'brands-section';
+    const brandsContainer = document.createElement('div');
+    brandsContainer.id = 'brandsContainer';
+    brandsContainer.className = 'brands-container';
+    sectionContainer.appendChild(brandsContainer);
+
+    try {
+        const q = query(brandsCollection, orderBy("order", "asc"), limit(30));
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+            return null;
+        }
+
+        snapshot.forEach(doc => {
+            const brand = { id: doc.id, ...doc.data() };
+            const brandName = brand.name[state.currentLanguage] || brand.name.ku_sorani;
+
+            const item = document.createElement('div');
+            item.className = 'brand-item';
+            item.innerHTML = `
+                <div class="brand-image-wrapper">
+                    <img src="${brand.imageUrl}" alt="${brandName}" loading="lazy" class="brand-image">
+                </div>
+                <span>${brandName}</span>
+            `;
+
+            item.onclick = async () => {
+                await navigateToFilter({
+                    category: brand.categoryId || 'all',
+                    subcategory: brand.subcategoryId || 'all',
+                    subSubcategory: 'all',
+                    search: ''
+                });
+            };
+
+            brandsContainer.appendChild(item);
+        });
+
+        return sectionContainer;
+    } catch (error) {
+        console.error("Error fetching brands:", error);
+        return null;
+    }
+}
+
+async function renderNewestProductsSection() {
+    const container = document.createElement('div');
+    container.className = 'dynamic-section';
+    const header = document.createElement('div');
+    header.className = 'section-title-header';
+    const title = document.createElement('h3');
+    title.className = 'section-title-main';
+    title.textContent = t('newest_products');
+    header.appendChild(title);
+    container.appendChild(header);
+
+    try {
+        const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
+        const q = query(
+            productsCollection,
+            where('createdAt', '>=', fifteenDaysAgo),
+            orderBy('createdAt', 'desc'),
+            limit(10)
+        );
+        const snapshot = await getDocs(q);
+
+        const productsScroller = document.createElement('div');
+        if (snapshot.empty) {
+            return null; // Do not render if there are no new products
+        } else {
+            productsScroller.className = 'horizontal-products-container';
+            snapshot.forEach(doc => {
+                const product = { id: doc.id, ...doc.data() };
+                const card = createProductCardElement(product);
+                productsScroller.appendChild(card);
+            });
+        }
+        container.appendChild(productsScroller);
+        return container;
+
+    } catch (error) {
+        console.error("Error fetching newest products:", error);
+        return null;
+    }
+}
+
+async function renderAllProductsSection() {
+    const container = document.createElement('div');
+    container.className = 'dynamic-section';
+    container.style.marginTop = '20px';
+
+    const header = document.createElement('div');
+    header.className = 'section-title-header';
+    const title = document.createElement('h3');
+    title.className = 'section-title-main';
+    title.textContent = t('all_products_section_title');
+    header.appendChild(title);
+    container.appendChild(header);
+
+    const productsGrid = document.createElement('div');
+    productsGrid.className = 'products-container';
+    container.appendChild(productsGrid);
+
+    try {
+        const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(10));
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) {
+            return null;
+        }
+
+        snapshot.forEach(doc => {
+            const product = { id: doc.id, ...doc.data() };
+            const card = createProductCardElement(product);
+            productsGrid.appendChild(card);
+        });
+        return container;
+    } catch (error) {
+        console.error("Error fetching all products for home page:", error);
+        return null;
+    }
+}
+
+async function renderHomePageContent() {
+    if (state.isRenderingHomePage) return;
+    state.isRenderingHomePage = true;
+
+    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
+
+    try {
+        renderSkeletonLoader(homeSectionsContainer, 4);
+        homeSectionsContainer.innerHTML = '';
+
+        const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
+        const layoutSnapshot = await getDocs(layoutQuery);
+
+        if (layoutSnapshot.empty) {
+            console.warn("Home page layout is not configured or all sections are disabled.");
+        } else {
+            for (const doc of layoutSnapshot.docs) {
+                const section = doc.data();
+                let sectionElement = null;
+
+                switch (section.type) {
+                    case 'promo_slider':
+                        sectionElement = await renderPromoCardsSectionForHome();
+                        break;
+                    case 'brands':
+                        sectionElement = await renderBrandsSection();
+                        break;
+                    case 'newest_products':
+                        sectionElement = await renderNewestProductsSection();
+                        break;
+                    case 'single_shortcut_row':
+                        if (section.rowId) {
+                            sectionElement = await renderSingleShortcutRow(section.rowId, section.name);
+                        }
+                        break;
+                    case 'single_category_row':
+                        if (section.categoryId) {
+                            sectionElement = await renderSingleCategoryRow(section.categoryId, section.name);
+                        }
+                        break;
+                    case 'all_products':
+                        sectionElement = await renderAllProductsSection();
+                        break;
+                    default:
+                        console.warn(`Unknown home layout section type: ${section.type}`);
+                }
+
+                if (sectionElement) {
+                    homeSectionsContainer.appendChild(sectionElement);
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Error rendering home page content:", error);
+        homeSectionsContainer.innerHTML = `<p style="text-align: center; padding: 20px;">هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
+    } finally {
+        // skeletonLoader.style.display = 'none';
+        state.isRenderingHomePage = false;
+    }
+}
+
+async function renderPromoCardsSectionForHome() {
+    if (state.allPromoCards.length === 0) {
+        const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
+        const promoSnapshot = await getDocs(promoQuery);
+        state.allPromoCards = promoSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPromoCard: true }));
+    }
+
+    if (state.allPromoCards.length > 0) {
+        if (state.currentPromoCardIndex >= state.allPromoCards.length) state.currentPromoCardIndex = 0;
+        const promoCardElement = createPromoCardElement(state.allPromoCards[state.currentPromoCardIndex]);
+        const promoGrid = document.createElement('div');
+        promoGrid.className = 'products-container';
+        promoGrid.style.marginBottom = '24px';
+        promoGrid.appendChild(promoCardElement);
+        startPromoRotation();
+        return promoGrid;
+    }
+    return null;
 }
 
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
-    const featuredRowsContainer = document.getElementById('featuredRowsContainer');
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
-    
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-
-    featuredRowsContainer.innerHTML = '';
 
     if (shouldShowHomeSections) {
         productsContainer.style.display = 'none';
@@ -1270,10 +1478,6 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         return;
     } else {
         homeSectionsContainer.style.display = 'none';
-    }
-
-    if (state.currentCategory === 'all' && !searchTerm) {
-        await renderMainPageFeaturedRows(featuredRowsContainer);
     }
 
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
@@ -1367,7 +1571,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
 
         renderProducts();
 
-        if (state.products.length === 0 && isNewSearch && featuredRowsContainer.innerHTML === '') {
+        if (state.products.length === 0 && isNewSearch) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         }
 
@@ -1833,13 +2037,12 @@ function setupEventListeners() {
         const hash = window.location.hash.substring(1);
         if (hash.startsWith('subcategory_')) {
             const ids = hash.split('_');
-            const mainCatId = ids[1];
             const subCatId = ids[2];
             
             const activeSubSubBtn = document.querySelector('#subSubCategoryContainerOnDetailPage .subcategory-btn.active');
             const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.id || 'all') : 'all';
 
-            await renderProductsOnDetailPage(mainCatId, subCatId, subSubCatId, term);
+            await renderProductsOnDetailPage(subCatId, subSubCatId, term);
         }
     }, 500);
 
@@ -2102,4 +2305,3 @@ function startPromoRotation() {
         state.promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
-
