@@ -1249,12 +1249,14 @@ input:checked + .slider:before {
     transform: translateX(20px);
 }
 
-/* ========== NEW STYLES FOR SUBCATEGORY DETAIL PAGE (FIXED) ========== */
+/* ========== STYLES FOR SUBCATEGORY DETAIL PAGE (FIXED) ========== */
 /* ========== ستایلی نوێ بۆ پەڕەی جۆری لاوەکی (چاککراو) ========== */
 .subcategory-page-header {
     background-color: white;
     color: var(--primary-color);
-    padding: 12px 15px;
+    padding: 0 15px; /* Padding for the container */
+    display: flex; /* Use flexbox for alignment */
+    align-items: center; /* Vertically center content */
     position: fixed;
     top: 0;
     left: 0;
@@ -1262,29 +1264,24 @@ input:checked + .slider:before {
     z-index: 101;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     border-bottom: 1px solid var(--medium-gray);
-    padding-top: calc(12px + env(safe-area-inset-top));
-    /* Set height to reliably center the button vertically */
-    height: calc(55px + env(safe-area-inset-top));
+    /* Set a consistent height */
+    height: calc(55px + env(safe-area-inset-top)); 
+    padding-top: env(safe-area-inset-top);
 }
 
 #backToMainBtn {
-    /* These rules position the button absolutely within the header */
-    position: absolute;
-    right: 15px; /* Positioned from the right for RTL */
-    top: 50%;
-    transform: translateY(-50%);
+    /* Remove absolute positioning, let flexbox handle it */
+    position: relative; 
+    top: 0;
+    transform: none;
+    /* Ensure it has enough space and is clickable */
     font-size: 20px;
-    padding: 5px; /* Consistent clickable area */
-}
-
-/* This old rule is no longer needed */
-.subcategory-page-header #backToMainBtn {
-    /* Rules are now handled by #backToMainBtn directly */
+    padding: 5px; 
 }
 
 
 .subcategory-detail-content {
-    /* padding-top is now set by JavaScript */
+    /* padding-top is set by JavaScript and MUST remain */
     padding-bottom: 85px; /* Space for nav */
 }
 
