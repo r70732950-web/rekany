@@ -25,7 +25,7 @@
 <body>
     <div class="app-container">
         <header class="app-header">
-            <!-- Beşa sereke ya headerê (ji bo rûpela malê) -->
+            <!-- Beşa ji bo rûpela serekî -->
             <div class="main-header-content">
                 <div class="logo">
                     <i class="fas fa-store" style="color: var(--accent-color); font-size: 24px;"></i>
@@ -43,14 +43,15 @@
                     </button>
                 </div>
             </div>
-            <!-- Beşa headerê ya rûpelên din (veşartî ye) -->
+
+            <!-- Beşa ji bo rûpelên din (bi veşartî) -->
             <div class="subpage-header-content" style="display: none;">
-                <button id="headerBackBtn" class="header-icon-btn">
+                <button id="headerBackBtn" class="header-icon-btn" aria-label="Go back">
                     <i class="fas fa-arrow-right"></i>
                 </button>
                 <h2 id="headerTitle" class="header-title"></h2>
                 <div class="search-container subpage-search">
-                    <input type="text" id="subpageSearchInput" class="search-input" placeholder="گەڕان لەم بەشەدا...">
+                    <input type="text" id="subpageSearchInput" class="search-input" placeholder="گەڕان..." data-translate-key="search_placeholder">
                     <i class="fas fa-search search-icon"></i>
                     <button id="subpageClearSearchBtn" class="clear-search-btn" style="display: none;">&times;</button>
                 </div>
@@ -172,7 +173,7 @@
                 <div id="sheetThumbnailContainer"></div>
                 <div id="sheetProductPrice" style="font-size: 22px; font-weight: bold; color: var(--accent-color); margin: 15px 0; text-align:center;"></div>
                 <p id="sheetProductDescription" style="color: #4a5568; margin-bottom: 20px; text-align:right; line-height: 1.7;"></p>
-
+                
                 <button id="sheetAddToCartBtn" class="add-to-cart-btn" style="padding: 12px; font-size: 16px;"></button>
 
                 <div id="relatedProductsSection" class="related-products-section" style="display: none;">
@@ -216,7 +217,7 @@
         </main>
         
         <div class="page page-hidden" id="subcategoryDetailPage">
-            <div class="subcategory-detail-content">
+             <div class="subcategory-detail-content">
                 <div id="subSubCategoryContainerOnDetailPage" class="subcategories-container">
                 </div>
                 <div id="productsContainerOnDetailPage" class="products-container">
@@ -925,7 +926,7 @@
         </div>
 
         <div class="bottom-nav">
-              <button id="homeBtn" class="bottom-nav-item">
+             <button id="homeBtn" class="bottom-nav-item">
                 <i class="fas fa-home"></i>
                 <span data-translate-key="nav_home">سەرەکی</span>
             </button>
@@ -942,7 +943,7 @@
                 <i class="fas fa-user"></i>
                 <span data-translate-key="nav_profile">پڕۆفایل</span>
             </button>
-              <button id="settingsBtn" class="bottom-nav-item">
+             <button id="settingsBtn" class="bottom-nav-item">
                 <i class="fas fa-cog"></i>
                 <span data-translate-key="nav_settings">ڕێکخستن</span>
             </button>
