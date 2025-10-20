@@ -169,12 +169,23 @@ async function navigateToFilter(newState) {
     await applyFilterState(finalState);
 }
 
-window.addEventListener('popstate', (event) => {
+window.addEventListener('popstate', async (event) => { // Guhertin bo async
     closeAllPopupsUI();
     const popState = event.state;
     if (popState) {
         if (popState.type === 'page') {
-            const pageTitle = popState.title || (popState.id === 'settingsPage' ? t('settings_title') : '');
+            let pageTitle = popState.title;
+            // Eger ew rûpela jêr-kategoriyê be û sernav tune be, ji nû ve bistîne
+            if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
+                 try {
+                    const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
+                    const subCatSnap = await getDoc(subCatRef);
+                    if (subCatSnap.exists()) {
+                        const subCat = subCatSnap.data();
+                        pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
+                    }
+                } catch(e) { console.error("Could not refetch title on popstate", e) }
+            }
             showPage(popState.id, pageTitle);
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             openPopup(popState.id, popState.type);
@@ -518,9 +529,23 @@ async function renderSubSubcategories(mainCatId, subCatId) {
 }
 
 // *** FENKŞENA GOHARTÎ ***
-async function showSubcategoryDetailPage(mainCatId, subCatId, subCatName, fromHistory = false) {
+async function showSubcategoryDetailPage(mainCatId, subCatId, fromHistory = false) {
+    let subCatName = '';
+    try {
+        const subCatRef = doc(db, "categories", mainCatId, "subcategories", subCatId);
+        const subCatSnap = await getDoc(subCatRef);
+        if (subCatSnap.exists()) {
+            const subCat = subCatSnap.data();
+            // Guhertina sereke: Navê li gorî zimanê heyî bistîne
+            subCatName = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
+        }
+    } catch (e) {
+        console.error("Could not fetch subcategory name:", e);
+        subCatName = 'Details';
+    }
+
     if (!fromHistory) {
-        history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName }, '', `#subcategory_${mainCatId}_${subCatId}`);
+        history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
     }
     showPage('subcategoryDetailPage', subCatName);
 
@@ -532,12 +557,11 @@ async function showSubcategoryDetailPage(mainCatId, subCatId, subCatName, fromHi
     productsContainer.innerHTML = '';
     subSubContainer.innerHTML = '';
 
-    // Piştrastkirina ku qutiya lêgerînê vala ye
     document.getElementById('subpageSearchInput').value = '';
     document.getElementById('subpageClearSearchBtn').style.display = 'none';
 
     await renderSubSubcategoriesOnDetailPage(mainCatId, subCatId);
-    await renderProductsOnDetailPage(subCatId, 'all', ''); // Lêgerîna destpêkê vala ye
+    await renderProductsOnDetailPage(subCatId, 'all', '');
 
     loader.style.display = 'none';
 }
@@ -685,7 +709,7 @@ async function renderSubcategories(categoryId) {
             `;
 
             subcatBtn.onclick = () => {
-                showSubcategoryDetailPage(categoryId, subcat.id, subcatName);
+                showSubcategoryDetailPage(categoryId, subcat.id);
             };
             subcategoriesContainer.appendChild(subcatBtn);
         });
@@ -2143,16 +2167,7 @@ function initializeAppLogic() {
             const ids = hash.split('_');
             const mainCatId = ids[1];
             const subCatId = ids[2];
-
-            const subCatRef = doc(db, "categories", mainCatId, "subcategories", subCatId);
-            const subCatSnap = await getDoc(subCatRef);
-            if (subCatSnap.exists()) {
-                const subCat = subCatSnap.data();
-                const subCatName = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani;
-                showSubcategoryDetailPage(mainCatId, subCatId, subCatName, true); // true to skip history push
-            } else {
-                showPage('mainPage');
-            }
+            showSubcategoryDetailPage(mainCatId, subCatId, true);
         } else {
             handleInitialPageLoad();
         }
