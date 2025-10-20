@@ -381,17 +381,11 @@ function toggleFavorite(productId) {
     }
 }
 
-// ==========================================================
-// ===== FENKŞENA GOHARTÎ JI BO ÇARESERKIRINA ARÎŞÊ =====
-// ===== فەنکشنی گۆڕاو بۆ چارەسەرکردنی کێشەکە =====
-// ==========================================================
 async function renderFavoritesPage() {
-    // Pêşî, peyamek barkirinê nîşan bide
     favoritesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--dark-gray);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
     emptyFavoritesMessage.style.display = 'none';
     favoritesContainer.style.display = 'grid';
 
-    // Kontrol bike ka tiştek di lîsteya hezkiriyan de heye yan na
     if (state.favorites.length === 0) {
         favoritesContainer.innerHTML = '';
         emptyFavoritesMessage.style.display = 'block';
@@ -400,18 +394,15 @@ async function renderFavoritesPage() {
     }
 
     try {
-        // Ji bo her ID'yek di lîsteya hezkiriyan de, daxwazek bişîne Firestore
         const favoriteProductPromises = state.favorites.map(id => getDoc(doc(db, "products", id)));
         
-        // Li benda hemî daxwazan be ku biqedin
         const productDocs = await Promise.all(favoriteProductPromises);
         
-        // Tenê berhemên ku hatine dîtin fîlter bike û daneyên wan derxe
         const favoritedProducts = productDocs
             .filter(docSnap => docSnap.exists())
             .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
 
-        favoritesContainer.innerHTML = ''; // Peyama barkirinê jê bibe
+        favoritesContainer.innerHTML = '';
 
         if (favoritedProducts.length === 0) {
              emptyFavoritesMessage.style.display = 'block';
@@ -2033,7 +2024,6 @@ function setupEventListeners() {
         const body = payload.notification.body;
         showNotification(`${title}: ${body}`, 'success');
     });
-
 }
 
 onAuthStateChanged(auth, async (user) => {

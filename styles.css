@@ -1250,36 +1250,44 @@ input:checked + .slider:before {
 }
 
 
-/* ========== STYLES FOR SUBCATEGORY DETAIL PAGE (FINAL FIX) ========== */
-/* ========== ستایلی نوێ بۆ پەڕەی جۆری لاوەکی (چارەسەری کۆتایی) ========== */
+/* ========== STYLES FOR SUBCATEGORY DETAIL PAGE (NEW & RELIABLE FIX) ========== */
+/* ========== ستایلی نوێ بۆ پەڕەی جۆری لاوەکی (چارەسەری جێگیر) ========== */
+
 .subcategory-page-header {
-    background-color: white;
-    color: var(--primary-color);
-    display: flex;
-    align-items: center; /* Vertically center the button */
-    position: fixed;
+    /* Use position sticky to stick to the top of its scrolling container (.page) */
+    position: sticky;
     top: 0;
-    left: 0;
-    right: 0;
-    z-index: 101;
+    
+    /* Ensure it's on top of other content within the page */
+    z-index: 101; 
+    
+    /* Visual styles */
+    background-color: white;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     border-bottom: 1px solid var(--medium-gray);
-    /* Set a consistent height. This is crucial. */
-    height: calc(55px + env(safe-area-inset-top));
-    padding-top: env(safe-area-inset-top); /* Push content inside header down on iPhones with notch */
-    padding-right: 15px; /* Padding for RTL */
-    padding-left: 15px;
+    
+    /* Sizing and alignment */
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 60px; /* Set a consistent height */
+    padding: 0 15px; /* Vertical and horizontal padding */
+
+    /* Handle iPhone notch area by adding padding only to the top */
+    padding-top: env(safe-area-inset-top);
 }
 
 #backToMainBtn {
-    /* Let flexbox handle positioning. No need for absolute positioning. */
+    /* Simple styling, flexbox will handle positioning */
     font-size: 20px;
     padding: 5px; /* Consistent clickable area */
+    position: static; /* Reset any previous positioning */
+    transform: none; /* Reset any previous transforms */
 }
 
 .subcategory-detail-content {
-    /* This padding MUST match the header's height to push content down */
-    padding-top: calc(55px + env(safe-area-inset-top));
+    /* No padding-top needed anymore, as the sticky header creates the necessary space */
+    padding-top: 0; 
     padding-bottom: 85px; /* Space for nav */
 }
 
