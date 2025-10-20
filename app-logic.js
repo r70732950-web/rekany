@@ -35,6 +35,7 @@ function debounce(func, delay = 500) {
 
 function saveCurrentScrollPosition() {
     const currentState = history.state;
+    // Only save scroll position for the main page filter state
     if (document.getElementById('mainPage').classList.contains('page-active') && currentState && !currentState.type) {
         history.replaceState({ ...currentState, scroll: window.scrollY }, '');
     }
@@ -66,6 +67,7 @@ function showPage(pageId, pageTitle = '') {
         window.scrollTo(0, 0);
     }
     
+    // Nûvekirina headerê li gorî rûpelê
     if (pageId === 'settingsPage') {
         updateHeaderView('settingsPage', t('settings_title'));
     } else if (pageId === 'subcategoryDetailPage') {
@@ -132,7 +134,8 @@ async function applyFilterState(filterState, fromPopState = false) {
     clearSearchBtn.style.display = state.currentSearch ? 'block' : 'none';
 
     renderMainCategories();
-    await renderSubcategories(state.currentCategory);
+    // renderSubcategories is no longer needed here as it's part of the new detail view or the subcategory page
+    document.getElementById('subcategoriesContainer').innerHTML = ''; // Clear old subcategories
 
     await searchProductsInFirestore(state.currentSearch, true);
 
@@ -167,12 +170,13 @@ async function navigateToFilter(newState) {
     await applyFilterState(finalState);
 }
 
-window.addEventListener('popstate', async (event) => {
+window.addEventListener('popstate', async (event) => { // Guhertin bo async
     closeAllPopupsUI();
     const popState = event.state;
     if (popState) {
         if (popState.type === 'page') {
             let pageTitle = popState.title;
+            // Eger ew rûpela jêr-kategoriyê be û sernav tune be, ji nû ve bistîne
             if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
                  try {
                     const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
@@ -207,6 +211,7 @@ function handleInitialPageLoad() {
         const ids = hash.split('_');
         const mainCatId = ids[1];
         const subCatId = ids[2];
+        // The actual rendering will be triggered by onSnapshot in initializeAppLogic
     } else if (pageId === 'settingsPage') {
          history.replaceState({ type: 'page', id: pageId, title: t('settings_title') }, '', `#${hash}`);
          showPage(pageId, t('settings_title'));
@@ -275,12 +280,8 @@ function setLanguage(lang) {
         homeContainer.innerHTML = '';
     }
 
-    const isHomeView = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-    if (isHomeView) {
-        renderHomePageContent();
-    } else {
-        searchProductsInFirestore(state.currentSearch, true);
-    }
+    // Re-render the current view with the new language
+    searchProductsInFirestore(state.currentSearch, true);
 
     renderMainCategories();
     renderCategoriesSheet();
@@ -403,6 +404,7 @@ function toggleFavorite(productId, event) {
     }
     saveFavorites();
 
+    // Tenê UI-ya bişkojên têkildar nûve bike
     const allProductCards = document.querySelectorAll(`[data-product-id="${productId}"]`);
     allProductCards.forEach(card => {
         const favButton = card.querySelector('.favorite-btn');
@@ -522,10 +524,6 @@ function renderCategoriesSheet() {
     });
 }
 
-async function renderSubSubcategories(mainCatId, subCatId) {
-    subSubcategoriesContainer.innerHTML = '';
-}
-
 async function showSubcategoryDetailPage(mainCatId, subCatId, fromHistory = false) {
     let subCatName = '';
     try {
@@ -546,11 +544,11 @@ async function showSubcategoryDetailPage(mainCatId, subCatId, fromHistory = fals
     showPage('subcategoryDetailPage', subCatName);
 
     const loader = document.getElementById('detailPageLoader');
-    const productsContainer = document.getElementById('productsContainerOnDetailPage');
+    const productsContainerDetail = document.getElementById('productsContainerOnDetailPage');
     const subSubContainer = document.getElementById('subSubCategoryContainerOnDetailPage');
 
     loader.style.display = 'block';
-    productsContainer.innerHTML = '';
+    productsContainerDetail.innerHTML = '';
     subSubContainer.innerHTML = '';
 
     document.getElementById('subpageSearchInput').value = '';
@@ -582,7 +580,7 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
         allBtn.className = `subcategory-btn active`;
         const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
         allBtn.innerHTML = `<div class="subcategory-image">${allIconSvg}</div><span>${t('all_categories_label')}</span>`;
-        allBtn.dataset.id = 'all';
+        allBtn.dataset.id = 'all'; // Ji bo nasîna bişkojê
         allBtn.onclick = () => {
             container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
             allBtn.classList.add('active');
@@ -595,7 +593,7 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
             const subSubcat = { id: doc.id, ...doc.data() };
             const btn = document.createElement('button');
             btn.className = `subcategory-btn`;
-            btn.dataset.id = subSubcat.id;
+            btn.dataset.id = subSubcat.id; // Ji bo nasîna bişkojê
             const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
             const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
             const imageUrl = subSubcat.imageUrl || placeholderImg;
@@ -617,10 +615,10 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
 }
 
 async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchTerm = '') {
-    const productsContainer = document.getElementById('productsContainerOnDetailPage');
-    const loader = document.getElementById('detailPageLoader');
-    loader.style.display = 'block';
-    productsContainer.innerHTML = '';
+    const productsContainerDetail = document.getElementById('productsContainerOnDetailPage');
+    const loaderDetail = document.getElementById('detailPageLoader');
+    loaderDetail.style.display = 'block';
+    productsContainerDetail.innerHTML = '';
 
     try {
         let productsQuery;
@@ -644,78 +642,22 @@ async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchT
         const productSnapshot = await getDocs(productsQuery);
         
         if (productSnapshot.empty) {
-            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+            productsContainerDetail.innerHTML = '<p style="text-align:center; padding: 20px;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         } else {
             productSnapshot.forEach(doc => {
                 const product = { id: doc.id, ...doc.data() };
                 const card = createProductCardElement(product);
-                productsContainer.appendChild(card);
+                productsContainerDetail.appendChild(card);
             });
         }
     } catch (error) {
         console.error(`Error fetching products for detail page (subCatId: ${subCatId}, subSubCatId: ${subSubCatId}, searchTerm: "${searchTerm}"):`, error);
-        productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هەڵەیەک ڕوویدا.</p>';
+        productsContainerDetail.innerHTML = '<p style="text-align:center; padding: 20px;">هەڵەیەک ڕوویدا.</p>';
     } finally {
-        loader.style.display = 'none';
+        loaderDetail.style.display = 'none';
     }
 }
 
-
-async function renderSubcategories(categoryId) {
-    const subcategoriesContainer = document.getElementById('subcategoriesContainer');
-    subcategoriesContainer.innerHTML = '';
-
-    if (categoryId === 'all') {
-        return;
-    }
-
-    try {
-        const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
-        const q = query(subcategoriesQuery, orderBy("order", "asc"));
-        const querySnapshot = await getDocs(q);
-
-        state.subcategories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        if (state.subcategories.length === 0) return;
-
-        const allBtn = document.createElement('button');
-        allBtn.className = `subcategory-btn ${state.currentSubcategory === 'all' ? 'active' : ''}`;
-        const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
-        allBtn.innerHTML = `
-            <div class="subcategory-image">${allIconSvg}</div>
-            <span>${t('all_categories_label')}</span>
-        `;
-        allBtn.onclick = async () => {
-            await navigateToFilter({
-                subcategory: 'all',
-                subSubcategory: 'all'
-            });
-        };
-        subcategoriesContainer.appendChild(allBtn);
-
-        state.subcategories.forEach(subcat => {
-            const subcatBtn = document.createElement('button');
-            subcatBtn.className = `subcategory-btn ${state.currentSubcategory === subcat.id ? 'active' : ''}`;
-
-            const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
-            const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-            const imageUrl = subcat.imageUrl || placeholderImg;
-
-            subcatBtn.innerHTML = `
-                <img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
-                <span>${subcatName}</span>
-            `;
-
-            subcatBtn.onclick = () => {
-                showSubcategoryDetailPage(categoryId, subcat.id);
-            };
-            subcategoriesContainer.appendChild(subcatBtn);
-        });
-
-    } catch (error) {
-        console.error("Error fetching subcategories: ", error);
-    }
-}
 
 function renderMainCategories() {
     const container = document.getElementById('mainCategoriesContainer');
@@ -751,8 +693,9 @@ function renderMainCategories() {
 }
 
 function showProductDetails(productId) {
-    const allFetchedProducts = [...state.products];
-    const product = allFetchedProducts.find(p => p.id === productId);
+    // We check all products, including those in the main list and home page sections
+    const allFetchedProducts = [...state.products, ...Object.values(state.homePageProducts).flat()];
+    const product = allFetchedProducts.find(p => p && p.id === productId);
 
     if (!product) {
         console.log("Product not found for details view. Trying to fetch...");
@@ -954,6 +897,7 @@ function createProductCardElement(product) {
     productCard.dataset.productId = product.id;
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
 
+
     const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || 'https://placehold.co/300x300/e2e8f0/2d3748?text=No+Image');
 
@@ -1033,6 +977,7 @@ function createProductCardElement(product) {
         }
     });
 
+
     productCard.addEventListener('click', (event) => {
         const target = event.target;
         const addToCartButton = target.closest('.add-to-cart-btn-card');
@@ -1059,6 +1004,7 @@ function createProductCardElement(product) {
         } else if (target.closest('.favorite-btn')) {
             toggleFavorite(product.id, event);
         } else if (target.closest('.share-btn-card')) {
+            // Jixwe event listenerê xwe heye, tiştek neke
         } else if (!target.closest('a')) {
             showProductDetailsWithData(product);
         }
@@ -1103,19 +1049,17 @@ function renderSkeletonLoader(container = skeletonLoader, count = 8) {
     }
 }
 
-function renderProducts() {
-    const gridContainer = document.getElementById('main-grid-container') || productsContainer;
+function renderProducts(productsToRender = state.products, container = productsContainer, append = false) {
+    if (!append) {
+        container.innerHTML = '';
+    }
 
-    if (state.products.length === 0) {
-        if (gridContainer.innerHTML.trim() === '') {
-            // Only show "no products" if the grid is truly empty (not just loading more)
-            gridContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
-        }
+    if (!productsToRender || productsToRender.length === 0) {
+        if (!append) container.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         return;
     }
-    
-    const fragment = document.createDocumentFragment();
-    state.products.forEach(item => {
+
+    productsToRender.forEach(item => {
         let element;
         if (item.isPromoCard) {
             element = createPromoCardElement(item);
@@ -1123,11 +1067,8 @@ function renderProducts() {
             element = createProductCardElement(item);
         }
         element.classList.add('product-card-reveal');
-        fragment.appendChild(element);
+        container.appendChild(element);
     });
-    
-    gridContainer.innerHTML = '';
-    gridContainer.appendChild(fragment);
 
     setupScrollAnimations();
 }
@@ -1158,7 +1099,7 @@ async function renderSingleShortcutRow(rowId, sectionNameObj) {
         const cardsSnapshot = await getDocs(cardsQuery);
 
         if (cardsSnapshot.empty) {
-            return null;
+            return null; // Don't render empty rows
         }
 
         cardsSnapshot.forEach(cardDoc => {
@@ -1232,11 +1173,12 @@ async function renderSingleCategoryRow(categoryId, sectionNameObj) {
         );
         const snapshot = await getDocs(q);
         if (snapshot.empty) {
-            return null;
+            return null; // Don't render empty sections
         }
 
-        snapshot.forEach(doc => {
-            const product = { id: doc.id, ...doc.data() };
+        const newProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        state.homePageProducts[categoryId] = newProducts;
+        newProducts.forEach(product => {
             const card = createProductCardElement(product);
             productsScroller.appendChild(card);
         });
@@ -1246,6 +1188,7 @@ async function renderSingleCategoryRow(categoryId, sectionNameObj) {
         return null;
     }
 }
+
 
 async function renderBrandsSection() {
     const sectionContainer = document.createElement('div');
@@ -1318,11 +1261,12 @@ async function renderNewestProductsSection() {
 
         const productsScroller = document.createElement('div');
         if (snapshot.empty) {
-            return null;
+            return null; // Do not render if there are no new products
         } else {
             productsScroller.className = 'horizontal-products-container';
-            snapshot.forEach(doc => {
-                const product = { id: doc.id, ...doc.data() };
+            const newProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            state.homePageProducts['newest'] = newProducts;
+            newProducts.forEach(product => {
                 const card = createProductCardElement(product);
                 productsScroller.appendChild(card);
             });
@@ -1359,9 +1303,9 @@ async function renderAllProductsSection() {
         if (snapshot.empty) {
             return null;
         }
-
-        snapshot.forEach(doc => {
-            const product = { id: doc.id, ...doc.data() };
+        const newProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        state.homePageProducts['all'] = newProducts;
+        newProducts.forEach(product => {
             const card = createProductCardElement(product);
             productsGrid.appendChild(card);
         });
@@ -1377,6 +1321,7 @@ async function renderHomePageContent() {
     state.isRenderingHomePage = true;
 
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
+    state.homePageProducts = {}; // Reset home page product cache
 
     try {
         renderSkeletonLoader(homeSectionsContainer, 4);
@@ -1428,6 +1373,7 @@ async function renderHomePageContent() {
         console.error("Error rendering home page content:", error);
         homeSectionsContainer.innerHTML = `<p style="text-align: center; padding: 20px;">هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
     } finally {
+        // skeletonLoader.style.display = 'none';
         state.isRenderingHomePage = false;
     }
 }
@@ -1453,226 +1399,246 @@ async function renderPromoCardsSectionForHome() {
 }
 
 // =======================================================
-// == ** GORANKARI LI VÊRÊ YE / گۆڕانکاری لێرەیە ** ==
+// == ** THE FIX IS HERE / چارەسەری لێرەیە ** ==
 // =======================================================
-
-async function renderCategoryRows(categoryId, mainContainer) {
-    const subcategoriesQuery = query(collection(db, "categories", categoryId, "subcategories"), orderBy("order", "asc"));
-    const subcategoriesSnapshot = await getDocs(subcategoriesQuery);
-    const subcategories = subcategoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-    if (subcategories.length === 0) {
-        return false;
-    }
-
-    const productPromises = subcategories.map(subcat => {
-        const productsQuery = query(
-            productsCollection,
-            where("subcategoryId", "==", subcat.id),
-            orderBy("createdAt", "desc"),
-            limit(10)
-        );
-        return getDocs(productsQuery);
-    });
-
-    const productSnapshots = await Promise.all(productPromises);
-
-    mainContainer.innerHTML = '';
-
-    subcategories.forEach((subcat, index) => {
-        const productsSnapshot = productSnapshots[index];
-        if (productsSnapshot.empty) return;
-
-        const header = document.createElement('div');
-        header.className = 'section-title-header';
-        const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
-        header.innerHTML = `
-            <h3 class="section-title-main">${subcatName}</h3>
-            <a class="see-all-link" data-main-cat-id="${categoryId}" data-sub-cat-id="${subcat.id}">${t('see_all')}</a>
-        `;
-        mainContainer.appendChild(header);
-        
-        const productsScroller = document.createElement('div');
-        productsScroller.className = 'horizontal-products-container';
-        
-        productsSnapshot.forEach(doc => {
-            const product = { id: doc.id, ...doc.data() };
-            const card = createProductCardElement(product);
-            productsScroller.appendChild(card);
-        });
-
-        mainContainer.appendChild(productsScroller);
-    });
-    
-    mainContainer.querySelectorAll('.see-all-link').forEach(link => {
-        link.onclick = () => showSubcategoryDetailPage(link.dataset.mainCatId, link.dataset.subCatId);
-    });
-
-    return true;
-}
-
+// Fûnkswyona nû ji bo nîşandana hûrguliyên kategoriyê
 async function renderCategoryDetailView(categoryId) {
-    const mainContainer = document.getElementById('productsContainer');
-    const scrollTrigger = document.getElementById('scroll-loader-trigger');
-    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
+    const scrollTrigger = document.getElementById('scroll-loader-trigger');
+    productsContainer.innerHTML = ''; // Konteynırê paqij bike
+    renderSkeletonLoader(productsContainer, 4); // Skeleton nîşan bide
+    productsContainer.style.display = 'grid';
+    scrollTrigger.style.display = 'none';
 
-    homeSectionsContainer.style.display = 'none';
-    mainContainer.style.display = 'block'; // Make sure it's block for rows
-    renderSkeletonLoader(mainContainer, 12);
+    try {
+        // Bin-kategoriyan ji Firestore bistîne
+        const subcategoriesQuery = query(collection(db, "categories", categoryId, "subcategories"), orderBy("order", "asc"));
+        const querySnapshot = await getDocs(subcategoriesQuery);
+        const subcategories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    const rowsRendered = await renderCategoryRows(categoryId, mainContainer);
+        productsContainer.innerHTML = ''; // Skeleton paqij bike
 
-    if (!rowsRendered) {
-        state.products = [];
-        state.lastVisibleProductDoc = null;
-        state.allProductsLoaded = false;
-        await searchProductsInFirestore('', true);
-        return;
-    }
-    
-    const allProductsHeader = document.createElement('div');
-    allProductsHeader.className = 'section-title-header';
-    allProductsHeader.style.marginTop = '20px';
-    allProductsHeader.style.marginBottom = '16px';
-    allProductsHeader.innerHTML = `<h3 class="section-title-main">${t('all_products_section_title')}</h3>`;
-    mainContainer.appendChild(allProductsHeader);
+        // Ji bo her bin-kategoriyê rêzek horizontî çêbike
+        for (const subcat of subcategories) {
+            const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
 
-    const gridContainer = document.createElement('div');
-    gridContainer.id = 'main-grid-container';
-    gridContainer.className = 'products-container';
-    mainContainer.appendChild(gridContainer);
-    
-    state.products = [];
-    state.lastVisibleProductDoc = null;
-    state.allProductsLoaded = false;
-    
-    mainContainer.appendChild(scrollTrigger);
-    scrollTrigger.style.display = 'block';
+            // Berhemên ji bo vê bin-kategoriyê bistîne (limit 10)
+            const productsQuery = query(productsCollection, where("subcategoryId", "==", subcat.id), orderBy("createdAt", "desc"), limit(10));
+            const productsSnapshot = await getDocs(productsQuery);
 
-    await searchProductsInFirestore('', false);
+            if (!productsSnapshot.empty) {
+                // Konteynira beşê çêbike
+                const sectionContainer = document.createElement('div');
+                sectionContainer.className = 'dynamic-section';
+
+                // Sernavê beşê bi bişkoja "Hemûyan Bibîne" çêbike
+                const header = document.createElement('div');
+                header.className = 'section-title-header';
+                const title = document.createElement('h3');
+                title.className = 'section-title-main';
+                title.textContent = subcatName;
+                header.appendChild(title);
+
+                const seeAllLink = document.createElement('a');
+                seeAllLink.className = 'see-all-link';
+                seeAllLink.textContent = t('see_all');
+                seeAllLink.onclick = () => showSubcategoryDetailPage(categoryId, subcat.id);
+                header.appendChild(seeAllLink);
+                sectionContainer.appendChild(header);
+
+                // Konteynira horizontî ya berheman çêbike
+                const productsScroller = document.createElement('div');
+                productsScroller.className = 'horizontal-products-container';
+                productsSnapshot.docs.forEach(doc => {
+                    const product = { id: doc.id, ...doc.data() };
+                    const card = createProductCardElement(product);
+                    productsScroller.appendChild(card);
+                });
+                sectionContainer.appendChild(productsScroller);
+                productsContainer.appendChild(sectionContainer);
+            }
+        }
+
+        // Beşa "Hemû Berhem" li jêr zêde bike
+        const allProductsSection = document.createElement('div');
+        allProductsSection.className = 'dynamic-section';
+        allProductsSection.innerHTML = `<div class="section-title-header"><h3 class="section-title-main">${t('all_products_section_title')}</h3></div>`;
+        
+        const allProductsGrid = document.createElement('div');
+        allProductsGrid.id = 'category-detail-grid';
+        allProductsGrid.className = 'products-container'; // Heman stîlê grîda serekî bi kar bîne
+        allProductsSection.appendChild(allProductsGrid);
+        productsContainer.appendChild(allProductsSection);
+
+        // Dest bi barkirina berhemên ji bo grîda bêdawî bike
+        state.isLoadingMoreProducts = false;
+        state.allProductsLoaded = false;
+        state.lastVisibleProductDoc = null;
+        await loadMoreProductsForCategoryDetail(categoryId);
+
+    } catch (error) {
+        console.error("Error rendering category detail view:", error);
+        productsContainer.innerHTML = `<p style="text-align:center; padding: 20px;">${t('error_generic')}</p>`;
+    }
 }
 
-async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
-    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
-    const scrollTrigger = document.getElementById('scroll-loader-trigger');
 
-    const isHomeView = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-    if (isHomeView) {
-        productsContainer.style.display = 'none';
-        skeletonLoader.style.display = 'none';
-        scrollTrigger.style.display = 'none';
-        homeSectionsContainer.style.display = 'block';
-        if (homeSectionsContainer.innerHTML.trim() === '') {
-            await renderHomePageContent();
-        } else {
-            startPromoRotation();
-        }
-        return;
-    }
+async function loadMoreProductsForCategoryDetail(categoryId) {
+    if (state.isLoadingMoreProducts || state.allProductsLoaded) return;
 
-    const isCategoryDrillDown = isNewSearch && !searchTerm && state.currentCategory !== 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-    if (isCategoryDrillDown) {
-        await renderCategoryDetailView(state.currentCategory);
-        return;
-    }
-
-    const gridContainer = document.getElementById('main-grid-container') || productsContainer;
-
-    if (state.isLoadingMoreProducts) return;
-    if (state.allProductsLoaded && !isNewSearch) return;
-
-    if (isNewSearch) {
-        state.allProductsLoaded = false;
-        state.lastVisibleProductDoc = null;
-        state.products = [];
-        gridContainer.innerHTML = '';
-        renderSkeletonLoader(gridContainer === productsContainer ? skeletonLoader : gridContainer);
-    }
-    
     state.isLoadingMoreProducts = true;
     loader.style.display = 'block';
+    const scrollTrigger = document.getElementById('scroll-loader-trigger');
+    scrollTrigger.style.display = 'block';
+
+    const gridContainer = document.getElementById('category-detail-grid');
 
     try {
-        let productsQuery = collection(db, "products");
-        if (state.currentCategory && state.currentCategory !== 'all') {
-            productsQuery = query(productsQuery, where("categoryId", "==", state.currentCategory));
-        }
-        if (state.currentSubcategory && state.currentSubcategory !== 'all') {
-            productsQuery = query(productsQuery, where("subcategoryId", "==", state.currentSubcategory));
-        }
-        if (state.currentSubSubcategory && state.currentSubSubcategory !== 'all') {
-            productsQuery = query(productsQuery, where("subSubcategoryId", "==", state.currentSubSubcategory));
+        let q = query(
+            productsCollection,
+            where("categoryId", "==", categoryId),
+            orderBy("createdAt", "desc"),
+            limit(PRODUCTS_PER_PAGE)
+        );
+
+        if (state.lastVisibleProductDoc) {
+            q = query(q, startAfter(state.lastVisibleProductDoc));
         }
 
-        const finalSearchTerm = searchTerm.trim().toLowerCase();
-        if (finalSearchTerm) {
-            productsQuery = query(productsQuery, where('searchableName', '>=', finalSearchTerm), where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
-        }
-
-        if (finalSearchTerm) {
-            productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
-        } else {
-            productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
-        }
-
-        if (state.lastVisibleProductDoc && !isNewSearch) {
-            productsQuery = query(productsQuery, startAfter(state.lastVisibleProductDoc));
-        }
-
-        productsQuery = query(productsQuery, limit(PRODUCTS_PER_PAGE));
-
-        const productSnapshot = await getDocs(productsQuery);
+        const productSnapshot = await getDocs(q);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        if (isNewSearch) {
-            state.products = newProducts;
-        } else {
-            state.products = [...state.products, ...newProducts];
-        }
+
+        renderProducts(newProducts, gridContainer, true); // `true` ji bo appendkirinê
+
+        state.lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
 
         if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
             state.allProductsLoaded = true;
             scrollTrigger.style.display = 'none';
-        } else {
-            state.allProductsLoaded = false;
-            scrollTrigger.style.display = 'block';
         }
-
-        state.lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
-
-        const fragment = document.createDocumentFragment();
-        newProducts.forEach(product => {
-            const card = createProductCardElement(product);
-            fragment.appendChild(card);
-        });
-
-        if (isNewSearch) {
-            gridContainer.innerHTML = ''; // Clear skeleton
-        }
-        gridContainer.appendChild(fragment);
-
-        if (state.products.length === 0 && isNewSearch) {
-            gridContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
-        }
-
     } catch (error) {
-        console.error("Error fetching grid content:", error);
-        gridContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
+        console.error("Error loading more products for category detail:", error);
     } finally {
         state.isLoadingMoreProducts = false;
         loader.style.display = 'none';
-        skeletonLoader.style.display = 'none';
-        productsContainer.style.display = 'block';
     }
 }
 
 
+async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
+    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
+    const scrollTrigger = document.getElementById('scroll-loader-trigger');
+    document.getElementById('subcategoriesContainer').innerHTML = ''; // Subcategories paqij bike ji ber ku êdî ne hewce ne
+
+    // Şert 1: Nîşandana rûpela malê
+    const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all';
+    if (shouldShowHomeSections) {
+        state.currentView = 'home';
+        productsContainer.style.display = 'none';
+        skeletonLoader.style.display = 'none';
+        scrollTrigger.style.display = 'none';
+        homeSectionsContainer.style.display = 'block';
+        if (homeSectionsContainer.innerHTML.trim() === '') {
+            await renderHomePageContent();
+        }
+        return;
+    }
+
+    // Şert 2: Nîşandana dîtina hûrguliyên kategoriyê ya nû
+    const isCategoryDetailTrigger = isNewSearch && state.currentCategory !== 'all' && !state.currentSubcategory_is_set && !searchTerm;
+    if (isCategoryDetailTrigger) {
+        state.currentView = 'category-detail';
+        homeSectionsContainer.style.display = 'none';
+        await renderCategoryDetailView(state.currentCategory);
+        return;
+    }
+
+    // Şert 3: Nîşandana grîda standard (lêgerîn an fîlterkirina bin-kategoriyê)
+    homeSectionsContainer.style.display = 'none';
+    state.currentView = 'grid';
+
+    if (state.isLoadingMoreProducts && !isNewSearch) return;
+
+    if (isNewSearch) {
+        state.allProductsLoaded = false;
+        state.lastVisibleProductDoc = null;
+        state.products = [];
+        renderSkeletonLoader();
+    } else {
+        if (state.allProductsLoaded) return;
+    }
+
+    state.isLoadingMoreProducts = true;
+    loader.style.display = 'block';
+    scrollTrigger.style.display = 'block';
+
+
+    try {
+        let productsQuery = collection(db, "products");
+        
+        if (state.currentCategory && state.currentCategory !== 'all') {
+            productsQuery = query(productsQuery, where("categoryId", "==", state.currentCategory));
+        }
+        // Note: subcategory filters will now navigate to a dedicated page, so this part is less used for the main page.
+        
+        const finalSearchTerm = searchTerm.trim().toLowerCase();
+        if (finalSearchTerm) {
+            productsQuery = query(productsQuery,
+                where('searchableName', '>=', finalSearchTerm),
+                where('searchableName', '<=', finalSearchTerm + '\uf8ff')
+            );
+        }
+
+        if (finalSearchTerm) {
+            productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
+        } else {
+            productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
+        }
+
+        if (state.lastVisibleProductDoc && !isNewSearch) {
+            productsQuery = query(productsQuery, startAfter(state.lastVisibleProductDoc));
+        }
+
+        productsQuery = query(productsQuery, limit(PRODUCTS_PER_PAGE));
+
+        const productSnapshot = await getDocs(productsQuery);
+        const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        if (isNewSearch) {
+            state.products = newProducts;
+            renderProducts(state.products);
+        } else {
+            state.products.push(...newProducts);
+            renderProducts(newProducts, productsContainer, true); // Append
+        }
+
+        if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
+            state.allProductsLoaded = true;
+            scrollTrigger.style.display = 'none';
+        }
+
+        state.lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
+
+    } catch (error) {
+        console.error("Error fetching content:", error);
+        productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
+    } finally {
+        state.isLoadingMoreProducts = false;
+        loader.style.display = 'none';
+        skeletonLoader.style.display = 'none';
+        productsContainer.style.display = 'grid';
+    }
+}
+
+
 function addToCart(productId) {
-    const allFetchedProducts = [...state.products];
-    let product = allFetchedProducts.find(p => p.id === productId);
+    const allFetchedProducts = [
+        ...state.products,
+        ...Object.values(state.homePageProducts).flat()
+    ].filter(p => p); // filter out any potential null/undefined values
+    let product = allFetchedProducts.find(p => p.id === productId);
 
     if (!product) {
-        console.warn("Product not found in local 'products' array. Adding with limited data.");
+        console.warn("Product not found in local cache. Fetching from DB...");
         getDoc(doc(db, "products", productId)).then(docSnap => {
             if (docSnap.exists()) {
                 const fetchedProduct = { id: docSnap.id, ...docSnap.data() };
@@ -1997,10 +1963,18 @@ function setupGpsButton() {
     function errorCallback(error) {
         let message = '';
         switch (error.code) {
-            case 1: message = 'ڕێگەت نەدا GPS بەکاربهێنرێت'; break;
-            case 2: message = 'شوێنەکەت نەدۆزرایەوە'; break;
-            case 3: message = 'کاتی داواکارییەکە تەواو بوو'; break;
-            default: message = 'هەڵەیەکی نادیار ڕوویدا'; break;
+            case 1:
+                message = 'ڕێگەت نەدا GPS بەکاربهێنرێت';
+                break;
+            case 2:
+                message = 'شوێنەکەت نەدۆزرایەوە';
+                break;
+            case 3:
+                message = 'کاتی داواکارییەکە تەواو بوو';
+                break;
+            default:
+                message = 'هەڵەیەکی نادیار ڕوویدا';
+                break;
         }
         showNotification(message, 'error');
         btnSpan.textContent = originalBtnText;
@@ -2009,19 +1983,24 @@ function setupGpsButton() {
 }
 
 function setupScrollObserver() {
-    const trigger = document.getElementById('scroll-loader-trigger');
-    if (!trigger) return;
+    const trigger = document.getElementById('scroll-loader-trigger');
+    if (!trigger) return;
 
-    const observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) {
-            searchProductsInFirestore(state.currentSearch, false);
-        }
-    }, {
-        root: null,
-        threshold: 0.1
-    });
+    const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+            // Li gorî dîtina heyî fonksiyona rast bang bike
+            if (state.currentView === 'category-detail') {
+                loadMoreProductsForCategoryDetail(state.currentCategory);
+            } else if (state.currentView === 'grid') {
+                searchProductsInFirestore(state.currentSearch, false);
+            }
+        }
+    }, {
+        root: null,
+        threshold: 0.1
+    });
 
-    observer.observe(trigger);
+    observer.observe(trigger);
 }
 
 function updateCategoryDependentUI() {
@@ -2088,7 +2067,7 @@ function setupEventListeners() {
     };
 
     const debouncedSearch = debounce((term) => {
-        navigateToFilter({ search: term });
+        navigateToFilter({ search: term, category: 'all' }); // Reset category on new search
     }, 500);
 
     searchInput.oninput = () => {
