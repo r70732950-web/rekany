@@ -18,7 +18,7 @@ import {
 } from './app-setup.js';
 
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, addDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, addDoc, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
 
@@ -32,6 +32,7 @@ function debounce(func, delay = 500) {
     };
 }
 
+
 function saveCurrentScrollPosition() {
     const currentState = history.state;
     // Only save scroll position for the main page filter state
@@ -40,7 +41,22 @@ function saveCurrentScrollPosition() {
     }
 }
 
-function showPage(pageId) {
+function updateHeaderView(pageId, title = '') {
+    const mainHeader = document.querySelector('.main-header-content');
+    const subpageHeader = document.querySelector('.subpage-header-content');
+    const headerTitle = document.getElementById('headerTitle');
+
+    if (pageId === 'mainPage') {
+        mainHeader.style.display = 'flex';
+        subpageHeader.style.display = 'none';
+    } else {
+        mainHeader.style.display = 'none';
+        subpageHeader.style.display = 'flex';
+        headerTitle.textContent = title;
+    }
+}
+
+function showPage(pageId, pageTitle = '') {
     document.querySelectorAll('.page').forEach(page => {
         const isActive = page.id === pageId;
         page.classList.toggle('page-active', isActive);
@@ -50,10 +66,22 @@ function showPage(pageId) {
     if (pageId !== 'mainPage') {
         window.scrollTo(0, 0);
     }
+    
+    // Nûvekirina headerê li gorî rûpelê
+    if (pageId === 'settingsPage') {
+        updateHeaderView('settingsPage', t('settings_title'));
+    } else if (pageId === 'subcategoryDetailPage') {
+        updateHeaderView('subcategoryDetailPage', pageTitle);
+    } else {
+        updateHeaderView('mainPage');
+    }
 
-    const activeBtnId = pageId === 'mainPage' ? 'homeBtn' : 'settingsBtn';
-    updateActiveNav(activeBtnId);
+    const activeBtnId = pageId === 'mainPage' ? 'homeBtn' : (pageId === 'settingsPage' ? 'settingsBtn' : null);
+    if (activeBtnId) {
+       updateActiveNav(activeBtnId);
+    }
 }
+
 
 function closeAllPopupsUI() {
     document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
@@ -146,16 +174,15 @@ window.addEventListener('popstate', (event) => {
     const popState = event.state;
     if (popState) {
         if (popState.type === 'page') {
-            showPage(popState.id);
+            const pageTitle = popState.title || (popState.id === 'settingsPage' ? t('settings_title') : '');
+            showPage(popState.id, pageTitle);
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             openPopup(popState.id, popState.type);
         } else {
-            // This is a main page filter state
             showPage('mainPage');
             applyFilterState(popState, true);
         }
     } else {
-        // Default state, go to main page
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
         showPage('mainPage');
         applyFilterState(defaultState);
@@ -166,16 +193,16 @@ function handleInitialPageLoad() {
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(window.location.search);
 
-    const pageId = hash.startsWith('subcategory_') ? 'subcategoryDetailPage' : hash;
-
-    if (pageId === 'settingsPage' || pageId === 'subcategoryDetailPage') {
-        if (pageId === 'subcategoryDetailPage') {
-            const ids = hash.split('_');
-            const mainCatId = ids[1];
-            const subCatId = ids[2];
-        }
-        history.replaceState({ type: 'page', id: pageId }, '', `#${hash}`);
-        showPage(pageId);
+    const pageId = hash.startsWith('subcategory_') ? 'subcategoryDetailPage' : (hash === 'settingsPage' ? 'settingsPage' : 'mainPage');
+    
+    if (pageId === 'subcategoryDetailPage') {
+        const ids = hash.split('_');
+        const mainCatId = ids[1];
+        const subCatId = ids[2];
+        // The actual rendering will be triggered by onSnapshot in initializeAppLogic
+    } else if (pageId === 'settingsPage') {
+         history.replaceState({ type: 'page', id: pageId, title: t('settings_title') }, '', `#${hash}`);
+         showPage(pageId, t('settings_title'));
     } else {
         showPage('mainPage');
         const initialState = {
@@ -190,7 +217,7 @@ function handleInitialPageLoad() {
     }
 
     const element = document.getElementById(hash);
-    if (element && !pageId) {
+    if (element && pageId === 'mainPage') {
         const isSheet = element.classList.contains('bottom-sheet');
         const isModal = element.classList.contains('modal');
         if (isSheet || isModal) {
@@ -203,6 +230,7 @@ function handleInitialPageLoad() {
         setTimeout(() => showProductDetails(productId), 500);
     }
 }
+
 
 function t(key, replacements = {}) {
     let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
@@ -382,45 +410,45 @@ function toggleFavorite(productId) {
 }
 
 async function renderFavoritesPage() {
-    favoritesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--dark-gray);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
-    emptyFavoritesMessage.style.display = 'none';
-    favoritesContainer.style.display = 'grid';
-
+    favoritesContainer.innerHTML = '';
+    
     if (state.favorites.length === 0) {
-        favoritesContainer.innerHTML = '';
         emptyFavoritesMessage.style.display = 'block';
         favoritesContainer.style.display = 'none';
         return;
     }
 
-    try {
-        const favoriteProductPromises = state.favorites.map(id => getDoc(doc(db, "products", id)));
-        
-        const productDocs = await Promise.all(favoriteProductPromises);
-        
-        const favoritedProducts = productDocs
-            .filter(docSnap => docSnap.exists())
-            .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+    emptyFavoritesMessage.style.display = 'none';
+    favoritesContainer.style.display = 'grid';
 
-        favoritesContainer.innerHTML = '';
+    // Pêşî skeleton loader nîşan bide
+    renderSkeletonLoader(favoritesContainer, 4); 
+
+    try {
+        const fetchPromises = state.favorites.map(id => getDoc(doc(db, "products", id)));
+        const productSnaps = await Promise.all(fetchPromises);
+        
+        favoritesContainer.innerHTML = ''; // Skeleton loaderê paqij bike
+
+        const favoritedProducts = productSnaps
+            .filter(snap => snap.exists())
+            .map(snap => ({ id: snap.id, ...snap.data() }));
 
         if (favoritedProducts.length === 0) {
-             emptyFavoritesMessage.style.display = 'block';
-             favoritesContainer.style.display = 'none';
+            emptyFavoritesMessage.style.display = 'block';
+            favoritesContainer.style.display = 'none';
         } else {
-             emptyFavoritesMessage.style.display = 'none';
-             favoritesContainer.style.display = 'grid';
-             favoritedProducts.forEach(product => {
+            favoritedProducts.forEach(product => {
                 const productCard = createProductCardElement(product);
                 favoritesContainer.appendChild(productCard);
             });
         }
-
     } catch (error) {
-        console.error("Error fetching favorite products:", error);
-        favoritesContainer.innerHTML = '<p style="text-align:center; color: var(--danger-color);">هەڵەیەک لە هێنانی دڵخوازەکان ڕوویدا.</p>';
+        console.error("Error fetching favorites:", error);
+        favoritesContainer.innerHTML = `<p style="text-align:center;">${t('error_generic')}</p>`;
     }
 }
+
 
 function saveCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
@@ -489,17 +517,12 @@ async function renderSubSubcategories(mainCatId, subCatId) {
     subSubcategoriesContainer.innerHTML = '';
 }
 
+// *** FENKŞENA GOHARTÎ ***
 async function showSubcategoryDetailPage(mainCatId, subCatId, subCatName, fromHistory = false) {
     if (!fromHistory) {
-        history.pushState({ type: 'page', id: 'subcategoryDetailPage' }, '', `#subcategory_${mainCatId}_${subCatId}`);
+        history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName }, '', `#subcategory_${mainCatId}_${subCatId}`);
     }
-    showPage('subcategoryDetailPage');
-    
-    // *** KODA NÛ YA JI BO DANÎNA SERNAVÊ ***
-    const pageTitleElement = document.getElementById('subcategoryPageTitle');
-    if (pageTitleElement) {
-        pageTitleElement.textContent = subCatName;
-    }
+    showPage('subcategoryDetailPage', subCatName);
 
     const loader = document.getElementById('detailPageLoader');
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
@@ -686,44 +709,6 @@ function renderMainCategories() {
     });
 }
 
-// Fonksiyona nû ji bo parvekirinê
-async function handleShare(product) {
-    const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani);
-    const productUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
-
-    const shareData = {
-        title: nameInCurrentLang,
-        text: `${t('share_text')}: ${nameInCurrentLang}`,
-        url: productUrl,
-    };
-
-    if (navigator.share) {
-        try {
-            await navigator.share(shareData);
-            console.log('Product shared successfully');
-        } catch (err) {
-            console.error('Share error:', err);
-            if (err.name !== 'AbortError') {
-                showNotification(t('share_error'), 'error');
-            }
-        }
-    } else {
-        // Fallback ji bo kopîkirinê
-        const textArea = document.createElement("textarea");
-        textArea.value = productUrl;
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        try {
-            document.execCommand('copy');
-            showNotification('لینکی کاڵا کۆپی کرا!', 'success');
-        } catch (err) {
-            showNotification(t('share_error'), 'error');
-        }
-        document.body.removeChild(textArea);
-    }
-}
-
 function showProductDetails(productId) {
     const allFetchedProducts = [...state.products];
     const product = allFetchedProducts.find(p => p.id === productId);
@@ -873,7 +858,7 @@ function showProductDetailsWithData(product) {
         addToCart(product.id);
         closeCurrentPopup();
     };
-
+    
     renderRelatedProducts(product);
 
     openPopup('productDetailSheet');
@@ -962,10 +947,9 @@ function createProductCardElement(product) {
         <div class="product-image-container">
             <img src="${mainImage}" alt="${nameInCurrentLang}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
             ${discountBadgeHTML}
-            <button class="${favoriteBtnClass}" aria-label="Add to favorites">
+             <button class="${favoriteBtnClass}" aria-label="Add to favorites">
                 <i class="${heartIconClass} fa-heart"></i>
             </button>
-            <!-- BIŞKOJA PARVEKIRINÊ YA NÛ -->
             <button class="share-btn-card" aria-label="Share product">
                 <i class="fas fa-share-alt"></i>
             </button>
@@ -984,6 +968,30 @@ function createProductCardElement(product) {
             <button class="delete-btn" aria-label="Delete product"><i class="fas fa-trash"></i></button>
         </div>
     `;
+    
+    productCard.querySelector('.share-btn-card').addEventListener('click', async (event) => {
+        event.stopPropagation(); // Nehiştina vekirina hûrguliyên hilberê
+        const productUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
+        const shareData = {
+            title: nameInCurrentLang,
+            text: `${t('share_text')}: ${nameInCurrentLang}`,
+            url: productUrl,
+        };
+        try {
+            if (navigator.share) {
+                await navigator.share(shareData);
+            } else {
+                navigator.clipboard.writeText(productUrl);
+                showNotification('لينكى کاڵا کۆپى کرا!', 'success');
+            }
+        } catch (err) {
+            console.error('Share error:', err);
+             if (err.name !== 'AbortError') {
+                 showNotification(t('share_error'), 'error');
+             }
+        }
+    });
+
 
     productCard.addEventListener('click', (event) => {
         const target = event.target;
@@ -1010,9 +1018,8 @@ function createProductCardElement(product) {
             window.AdminLogic.deleteProduct(product.id);
         } else if (target.closest('.favorite-btn')) {
             toggleFavorite(product.id);
-        } else if (target.closest('.share-btn-card')) { // <<< GUHERTINA NÛ
-            event.stopPropagation(); // Pêşî lê digire ku rûpela hûragahiyan vebe
-            handleShare(product);
+        } else if (target.closest('.share-btn-card')) {
+             // Jixwe event listenerê xwe heye, tiştek neke
         } else if (!target.closest('a')) {
             showProductDetailsWithData(product);
         }
@@ -1037,9 +1044,9 @@ function setupScrollAnimations() {
     });
 }
 
-function renderSkeletonLoader() {
-    skeletonLoader.innerHTML = '';
-    for (let i = 0; i < 8; i++) {
+function renderSkeletonLoader(container = skeletonLoader, count = 8) {
+    container.innerHTML = '';
+    for (let i = 0; i < count; i++) {
         const skeletonCard = document.createElement('div');
         skeletonCard.className = 'skeleton-card';
         skeletonCard.innerHTML = `
@@ -1048,11 +1055,13 @@ function renderSkeletonLoader() {
             <div class="skeleton-price shimmer"></div>
             <div class="skeleton-button shimmer"></div>
         `;
-        skeletonLoader.appendChild(skeletonCard);
+        container.appendChild(skeletonCard);
     }
-    skeletonLoader.style.display = 'grid';
-    productsContainer.style.display = 'none';
-    loader.style.display = 'none';
+    container.style.display = 'grid';
+    if (container === skeletonLoader) {
+      productsContainer.style.display = 'none';
+      loader.style.display = 'none';
+    }
 }
 
 function renderProducts() {
@@ -1321,7 +1330,7 @@ async function renderHomePageContent() {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
 
     try {
-        skeletonLoader.style.display = 'grid';
+        renderSkeletonLoader(homeSectionsContainer, 4);
         homeSectionsContainer.innerHTML = '';
 
         const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
@@ -1370,7 +1379,7 @@ async function renderHomePageContent() {
         console.error("Error rendering home page content:", error);
         homeSectionsContainer.innerHTML = `<p style="text-align: center; padding: 20px;">هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
     } finally {
-        skeletonLoader.style.display = 'none';
+        // skeletonLoader.style.display = 'none';
         state.isRenderingHomePage = false;
     }
 }
@@ -1906,11 +1915,11 @@ function setupEventListeners() {
     };
 
     settingsBtn.onclick = () => {
-        history.pushState({ type: 'page', id: 'settingsPage' }, '', '#settingsPage');
-        showPage('settingsPage');
+        history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
+        showPage('settingsPage', t('settings_title'));
     };
 
-    document.getElementById('backToMainBtn').onclick = () => {
+    document.getElementById('headerBackBtn').onclick = () => {
         history.back();
     };
 
@@ -2115,8 +2124,7 @@ function initializeAppLogic() {
 }
 
 Object.assign(window.globalAdminTools, {
-    db, auth,
-    doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit,
+    db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
     productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
 

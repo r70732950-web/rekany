@@ -53,6 +53,27 @@ body.overlay-active {
 .logo { display: flex; align-items: center; gap: 10px; }
 .logo-bottom { font-size: 22px; font-weight: bold; color: var(--primary-color); white-space: nowrap; }
 
+/* KODA NÛ JI BO KONTROLKIRINA HEADERÊ */
+.main-header-content, .subpage-header-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 15px;
+}
+
+.header-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--primary-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-grow: 1;
+    text-align: right;
+}
+/* DAWÎYA KODA NÛ */
+
+
 .page {
     position: absolute;
     top: 0;
@@ -74,12 +95,16 @@ body.overlay-active {
 }
 
 .main-content {
-    padding-top: 80px;
-    padding-bottom: 85px;
-    position: relative; 
-    height: auto;
-    min-height: 100vh;
+    padding-top: 80px; /* Cih ji bo headerê */
+    padding-bottom: 85px; /* Cih ji bo navîgasyona jêrîn */
 }
+
+/* Ji ber ku êdî headerê taybet tune ye, em vê yekê li ser tevahiya rûpelê bicîh tînin */
+#subcategoryDetailPage {
+    padding-top: 80px; /* Cih ji bo headerê */
+    padding-bottom: 85px; /* Cih ji bo navîgasyona jêrîn */
+}
+
 
 .section {
     background-color: var(--section-bg);
@@ -793,7 +818,7 @@ body {
     padding-bottom: env(safe-area-inset-bottom);
     height: calc(65px + env(safe-area-inset-bottom));
 }
-.main-content {
+.main-content, #subcategoryDetailPage {
     padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
 .bottom-sheet {
@@ -1249,42 +1274,13 @@ input:checked + .slider:before {
     transform: translateX(20px);
 }
 
-
-/* ========== STYLES FOR SUBCATEGORY DETAIL PAGE (FINAL GUARANTEED FIX) ========== */
-/* ========== ستایلی نوێ بۆ پەڕەی جۆری لاوەکی (چارەسەری کۆتایی) ========== */
-
-.subcategory-page-header {
-    /* Header êdî ne 'fixed' an 'sticky' ye, ew bi rûpelê re diherike */
-    /* هێڵی سەرەوە چیتر جێگیر نییە، لەگەڵ پەڕەکەدا سکڕۆڵ دەبێت */
-    display: flex;
-    align-items: center;
-    gap: 10px;
+#subSubCategoryContainerOnDetailPage {
     background-color: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    border-bottom: 1px solid var(--medium-gray);
-    width: 100%;
-    padding: 10px 15px;
-    padding-top: calc(10px + env(safe-area-inset-top)); /* Handle iPhone notch */
+    border-bottom: 1px solid var(--section-border);
 }
 
-#backToMainBtn {
-    flex-shrink: 0;
-    font-size: 20px;
-}
-
-.subcategory-page-title {
-    flex-grow: 1;
-    font-size: 18px;
-    font-weight: bold;
-    color: var(--primary-color);
-    text-align: right;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.subcategory-detail-content {
-    padding: 0; /* Padding êdî ne pêwîst e */
+#productsContainerOnDetailPage {
+    padding-top: 16px;
 }
 
 
