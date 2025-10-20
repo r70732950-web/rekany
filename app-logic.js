@@ -622,6 +622,9 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
     }
 }
 
+// =======================================================
+// == ** THE FIX IS HERE / چارەسەری لێرەیە ** ==
+// =======================================================
 async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchTerm = '') {
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const loader = document.getElementById('detailPageLoader');
@@ -642,9 +645,15 @@ async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchT
                 where('searchableName', '>=', finalSearchTerm),
                 where('searchableName', '<=', finalSearchTerm + '\uf8ff')
             );
+            // If searching, first orderBy must match inequality field
+            // ئەگەر گەڕان هەبوو، سەرەتا بەپێی 'searchableName' ڕیز بکە
+            productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
+        } else {
+            // If not searching, use the original orderBy
+            // ئەگەر گەڕان نەبوو، بەپێی 'createdAt' ڕیز بکە
+            productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         }
 
-        productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         const productSnapshot = await getDocs(productsQuery);
         
         if (productSnapshot.empty) {
@@ -657,7 +666,7 @@ async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchT
             });
         }
     } catch (error) {
-        console.error("Error fetching products for detail page:", error);
+        console.error(`Error fetching products for detail page (subCatId: ${subCatId}, subSubCatId: ${subSubCatId}, searchTerm: "${searchTerm}"):`, error);
         productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هەڵەیەک ڕوویدا.</p>';
     } finally {
         loader.style.display = 'none';
@@ -1033,7 +1042,7 @@ function createProductCardElement(product) {
         } catch (err) {
             console.error('Share error:', err);
              if (err.name !== 'AbortError') {
-                 showNotification(t('share_error'), 'error');
+                  showNotification(t('share_error'), 'error');
              }
         }
     });
@@ -1065,7 +1074,7 @@ function createProductCardElement(product) {
         } else if (target.closest('.favorite-btn')) {
             toggleFavorite(product.id, event);
         } else if (target.closest('.share-btn-card')) {
-             // Jixwe event listenerê xwe heye, tiştek neke
+            // Jixwe event listenerê xwe heye, tiştek neke
         } else if (!target.closest('a')) {
             showProductDetailsWithData(product);
         }
@@ -2296,4 +2305,3 @@ function startPromoRotation() {
         state.promoRotationInterval = setInterval(rotatePromoCard, 5000);
     }
 }
-
