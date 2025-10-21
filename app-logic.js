@@ -4,6 +4,9 @@
 import {
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
+    // ====== کۆدی زیادکراو بۆ چارەسەرکردنی هەڵە ======
+    promoGroupsCollection, brandGroupsCollection,
+    // ===============================================
     translations, state,
     CART_KEY, FAVORITES_KEY, PROFILE_KEY, PRODUCTS_PER_PAGE,
     loginModal, addProductBtn, productFormModal, productsContainer, skeletonLoader, searchInput,
@@ -1517,7 +1520,6 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         return;
     } else {
         homeSectionsContainer.style.display = 'none';
-        // Stop any promo rotations if we navigate away from home
         document.querySelectorAll('[id^="promoSliderState_"]').forEach(el => {
             const intervalId = parseInt(el.dataset.interval, 10);
             if(intervalId) clearInterval(intervalId);
@@ -2241,14 +2243,16 @@ function initializeAppLogic() {
     setupGpsButton();
 }
 
+// ====== کۆدی نوێکراوە بۆ چارەسەرکردنی هەڵە ======
 Object.assign(window.globalAdminTools, {
     db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit,
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
     productsCollection, categoriesCollection, announcementsCollection, 
-    promoGroupsCollection, brandGroupsCollection, // Added new collections
+    promoGroupsCollection, brandGroupsCollection, // زیادکراون
     setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage,
     clearProductCache
 });
+// ===============================================
 
 document.addEventListener('DOMContentLoaded', init);
 
@@ -2292,14 +2296,4 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
-```
 
-ئێستا لۆجیکی پیشاندانی پەڕەی سەرەکی بە تەواوی پشتگیری لە سیستەمی گرووپەکان و ئاستی جۆرەکان دەکات.
-
-تکایە ئاگاداربە کە پێویستە گۆڕانکارییەک لە فایلی `app-setup.js` بکەیت بۆ زیادکردنی ئەم دوو دێڕە، تاکو کۆدەکە بێ کێشە کار بکات:
-
-```javascript
-// ... (لەسەرەوەی کۆدەکانی تر)
-export const promoGroupsCollection = collection(db, "promo_groups");
-export const brandGroupsCollection = collection(db, "brand_groups");
-// ... (کۆدەکانی تری ناو app-setup.js)
