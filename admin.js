@@ -3,11 +3,14 @@
 const { 
     db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, limit, where,
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
-    productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
+    productsCollection, categoriesCollection, announcementsCollection,
     setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage,
     clearProductCache
 } = window.globalAdminTools;
 
+// Firebase Collections for new group features
+const promoGroupsCollection = collection(db, "promo_groups");
+const brandGroupsCollection = collection(db, "brand_groups");
 const shortcutRowsCollection = collection(db, "shortcut_rows");
 
 window.AdminLogic = {
@@ -22,13 +25,15 @@ window.AdminLogic = {
         this.renderCategoryManagementUI();
         this.renderAdminAnnouncementsList();
         this.renderSocialMediaLinks();
-        this.renderPromoCardsAdminList();
-        this.renderBrandsAdminList();
         this.renderContactMethodsAdmin();
         this.renderShortcutRowsAdminList();
         this.updateAdminCategoryDropdowns();
         this.updateShortcutCardCategoryDropdowns();
         this.renderHomeLayoutAdmin();
+        
+        // New group-based rendering
+        this.renderPromoGroupsAdminList();
+        this.renderBrandGroupsAdminList();
     },
 
     deinitialize: function() {
@@ -67,12 +72,17 @@ window.AdminLogic = {
 
     createDefaultHomeLayout: async function(collectionRef) {
         const defaultLayout = [
-            { name: { ku_sorani: 'سلایدەری ڕێکلام', ku_badini: 'سلایدەرێ ڕێکلاما', ar: 'سلايدر الإعلانات' }, order: 1, type: 'promo_slider', enabled: true },
-            { name: { ku_sorani: 'بەشی براندەکان', ku_badini: 'پشکا براندا', ar: 'قسم الماركات' }, order: 2, type: 'brands', enabled: true },
+            { name: { ku_sorani: 'سلایدەری ڕێکلام', ku_badini: 'سلایدەرێ ڕێکلاما', ar: 'سلايدر الإعلانات' }, order: 1, type: 'promo_slider', enabled: true, groupId: 'default' },
+            { name: { ku_sorani: 'بەشی براندەکان', ku_badini: 'پشکا براندا', ar: 'قسم الماركات' }, order: 2, type: 'brands', enabled: true, groupId: 'default' },
             { name: { ku_sorani: 'نوێترین کاڵاکان', ku_badini: 'نووترین کاڵا', ar: 'أحدث المنتجات' }, order: 3, type: 'newest_products', enabled: true },
             { name: { ku_sorani: 'هەموو کاڵاکان', ku_badini: 'هەمی کاڵا', ar: 'كل المنتجات' }, order: 4, type: 'all_products', enabled: true }
         ];
         const addPromises = defaultLayout.map(item => addDoc(collectionRef, item));
+        
+        // Create default groups
+        await setDoc(doc(promoGroupsCollection, 'default'), { name: 'گرووپی سەرەکی', createdAt: Date.now() });
+        await setDoc(doc(brandGroupsCollection, 'default'), { name: 'گرووپی سەرەکی', createdAt: Date.now() });
+
         await Promise.all(addPromises);
     },
     
@@ -420,126 +430,7 @@ window.AdminLogic = {
             });
         });
     },
-    
-    renderPromoCardsAdminList: function() {
-        const container = document.getElementById('promoCardsListContainer');
-        const q = query(promoCardsCollection, orderBy("order", "asc"));
 
-        onSnapshot(q, (snapshot) => {
-            container.innerHTML = '';
-            if (snapshot.empty) {
-                container.innerHTML = '<p>هیچ کاردێک زیاد نەکراوە.</p>';
-                return;
-            }
-            snapshot.forEach(doc => {
-                const card = { id: doc.id, ...doc.data() };
-                const item = document.createElement('div');
-                item.className = 'admin-notification-item';
-                item.innerHTML = `
-                    <div class="admin-notification-details" style="align-items: center; display: flex;">
-                        <img src="${card.imageUrls.ku_sorani}" style="width: 40px; height: 40px; object-fit: cover; margin-left: 10px; border-radius: 4px;">
-                        <div class="notification-title">کارتی ڕیزبەندی: ${card.order}</div>
-                    </div>
-                    <div>
-                        <button class="edit-btn small-btn" data-id="${card.id}"><i class="fas fa-edit"></i></button>
-                        <button class="delete-btn small-btn" data-id="${card.id}"><i class="fas fa-trash"></i></button>
-                    </div>
-                `;
-                item.querySelector('.edit-btn').onclick = () => this.editPromoCard(card);
-                item.querySelector('.delete-btn').onclick = () => this.deletePromoCard(card.id);
-                container.appendChild(item);
-            });
-        });
-    },
-
-    editPromoCard: function(card) {
-        document.getElementById('editingPromoCardId').value = card.id;
-        document.getElementById('promoCardImageKuSorani').value = card.imageUrls.ku_sorani;
-        document.getElementById('promoCardImageKuBadini').value = card.imageUrls.ku_badini;
-        document.getElementById('promoCardImageAr').value = card.imageUrls.ar;
-        document.getElementById('promoCardTargetCategory').value = card.categoryId;
-        document.getElementById('promoCardOrder').value = card.order;
-        document.getElementById('addPromoCardForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوە';
-        document.getElementById('addPromoCardForm').scrollIntoView({ behavior: 'smooth' });
-    },
-
-    deletePromoCard: async function(cardId) {
-        if (confirm('دڵنیایت دەتەوێت ئەم کارتە بسڕیتەوە؟')) {
-            try {
-                await deleteDoc(doc(db, "promo_cards", cardId));
-                showNotification('کارتەکە سڕدرایەوە', 'success');
-                clearProductCache();
-            } catch (error) {
-                showNotification('هەڵەیەک ڕوویدا', 'error');
-            }
-        }
-    },
-    
-    renderBrandsAdminList: function() {
-        const container = document.getElementById('brandsListContainer');
-        const q = query(brandsCollection, orderBy("order", "asc"));
-
-        onSnapshot(q, (snapshot) => {
-            container.innerHTML = '';
-            if (snapshot.empty) {
-                container.innerHTML = '<p>هیچ براندێک زیاد نەکراوە.</p>';
-                return;
-            }
-            snapshot.forEach(doc => {
-                const brand = { id: doc.id, ...doc.data() };
-                const item = document.createElement('div');
-                item.className = 'admin-notification-item';
-                item.innerHTML = `
-                    <div class="admin-notification-details" style="align-items: center; display: flex;">
-                        <img src="${brand.imageUrl}" style="width: 40px; height: 40px; object-fit: contain; margin-left: 10px; border-radius: 50%; background: #fff;">
-                        <div class="notification-title">${brand.name.ku_sorani} (ڕیز: ${brand.order})</div>
-                    </div>
-                    <div>
-                        <button class="edit-btn small-btn"><i class="fas fa-edit"></i></button>
-                        <button class="delete-btn small-btn"><i class="fas fa-trash"></i></button>
-                    </div>
-                `;
-                item.querySelector('.edit-btn').onclick = () => this.editBrand(brand);
-                item.querySelector('.delete-btn').onclick = () => this.deleteBrand(brand.id);
-                container.appendChild(item);
-            });
-        });
-    },
-
-    editBrand: function(brand) {
-        document.getElementById('editingBrandId').value = brand.id;
-        document.getElementById('brandNameKuSorani').value = brand.name.ku_sorani || '';
-        document.getElementById('brandNameKuBadini').value = brand.name.ku_badini || '';
-        document.getElementById('brandNameAr').value = brand.name.ar || '';
-        document.getElementById('brandImageUrl').value = brand.imageUrl || '';
-        document.getElementById('brandOrder').value = brand.order || 10;
-
-        const mainCatSelect = document.getElementById('brandTargetMainCategory');
-        mainCatSelect.value = brand.categoryId || '';
-
-        mainCatSelect.dispatchEvent(new Event('change'));
-
-        setTimeout(() => {
-            document.getElementById('brandTargetSubcategory').value = brand.subcategoryId || '';
-        }, 500);
-
-        document.getElementById('addBrandForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوە';
-        document.getElementById('addBrandForm').scrollIntoView({ behavior: 'smooth' });
-    },
-
-    deleteBrand: async function(brandId) {
-        if (confirm('دڵنیایت دەتەوێت ئەم براندە بسڕیتەوە؟')) {
-            try {
-                await deleteDoc(doc(db, "brands", brandId));
-                showNotification('براندەکە سڕدرایەوە', 'success');
-                clearProductCache();
-            } catch (error) {
-                showNotification('هەڵەیەک ڕوویدا', 'error');
-                console.error("Error deleting brand: ", error);
-            }
-        }
-    },
-    
     renderCategoryManagementUI: async function() {
         const container = document.getElementById('categoryListContainer');
         if (!container) return;
@@ -646,6 +537,7 @@ window.AdminLogic = {
         const confirmation = confirm(`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە.`);
         if (confirmation) {
             try {
+                // This is a simplified delete. For production, a Cloud Function for recursive delete is better.
                 await deleteDoc(doc(db, docPath));
                 showNotification('جۆرەکە بە سەرکەوتوویی سڕدرایەوە', 'success');
                 clearProductCache();
@@ -683,6 +575,238 @@ window.AdminLogic = {
         });
     },
 
+    // --- PROMO SLIDER GROUP MANAGEMENT ---
+    renderPromoGroupsAdminList: function() {
+        const container = document.getElementById('promoGroupsListContainer');
+        const groupSelect = document.getElementById('promoCardGroupSelect');
+        const q = query(promoGroupsCollection, orderBy("createdAt", "desc"));
+
+        onSnapshot(q, (snapshot) => {
+            container.innerHTML = '';
+            groupSelect.innerHTML = '<option value="" disabled selected>-- گرووپێک هەڵبژێرە --</option>';
+
+            if (snapshot.empty) {
+                container.innerHTML = '<p>هیچ گرووپێکی سلایدەر زیاد نەکراوە.</p>';
+                return;
+            }
+
+            snapshot.forEach(groupDoc => {
+                const group = { id: groupDoc.id, ...groupDoc.data() };
+                const option = document.createElement('option');
+                option.value = group.id;
+                option.textContent = group.name;
+                groupSelect.appendChild(option);
+
+                const groupElement = document.createElement('div');
+                groupElement.className = 'admin-list-group';
+                groupElement.innerHTML = `
+                    <div class="admin-list-group-header">
+                        <strong><i class="fas fa-images"></i> ${group.name}</strong>
+                        <div>
+                            <button class="edit-btn small-btn edit-promo-group-btn" data-id="${group.id}"><i class="fas fa-edit"></i></button>
+                            <button class="delete-btn small-btn delete-promo-group-btn" data-id="${group.id}"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="cards-list-container" style="padding: 10px;">...</div>
+                `;
+                container.appendChild(groupElement);
+
+                const cardsContainer = groupElement.querySelector('.cards-list-container');
+                const cardsQuery = query(collection(db, "promo_groups", group.id, "cards"), orderBy("order", "asc"));
+                onSnapshot(cardsQuery, (cardsSnapshot) => {
+                    cardsContainer.innerHTML = '';
+                    if (cardsSnapshot.empty) {
+                        cardsContainer.innerHTML = '<p class="empty-list-text">هیچ کاردێک بۆ ئەم گرووپە زیاد نەکراوە.</p>';
+                    } else {
+                        cardsSnapshot.forEach(cardDoc => {
+                            const card = { id: cardDoc.id, ...cardDoc.data() };
+                            const cardElement = document.createElement('div');
+                            cardElement.className = 'admin-list-item';
+                            cardElement.innerHTML = `
+                                <span>- کارت (ڕیز: ${card.order})</span>
+                                <div>
+                                    <button class="edit-btn small-btn edit-promo-card-btn" data-group-id="${group.id}" data-card-id="${card.id}"><i class="fas fa-edit"></i></button>
+                                    <button class="delete-btn small-btn delete-promo-card-btn" data-group-id="${group.id}" data-card-id="${card.id}"><i class="fas fa-trash"></i></button>
+                                </div>`;
+                            cardsContainer.appendChild(cardElement);
+                        });
+                    }
+                });
+            });
+        });
+    },
+
+    editPromoGroup: async function(groupId) {
+        const groupRef = doc(promoGroupsCollection, groupId);
+        const groupSnap = await getDoc(groupRef);
+        const currentName = groupSnap.data().name;
+        const newName = prompt('ناوی نوێی گرووپ بنووسە:', currentName);
+        if (newName && newName.trim() !== '') {
+            await updateDoc(groupRef, { name: newName.trim() });
+            showNotification('ناوی گرووپ نوێکرایەوە', 'success');
+            clearProductCache();
+        }
+    },
+
+    deletePromoGroup: async function(groupId) {
+        if (confirm('دڵنیایت دەتەوێت ئەم گرووپە و هەموو کارتەکانی بسڕیتەوە؟')) {
+            try {
+                const cardsRef = collection(db, "promo_groups", groupId, "cards");
+                const cardsSnapshot = await getDocs(cardsRef);
+                const deletePromises = cardsSnapshot.docs.map(d => deleteDoc(d.ref));
+                await Promise.all(deletePromises);
+                await deleteDoc(doc(promoGroupsCollection, groupId));
+                showNotification('گرووپ بە تەواوی سڕدرایەوە', 'success');
+                clearProductCache();
+            } catch (error) { showNotification('هەڵەیەک ڕوویدا', 'error'); }
+        }
+    },
+    
+    editPromoCard: async function(groupId, cardId) {
+        const cardSnap = await getDoc(doc(db, "promo_groups", groupId, "cards", cardId));
+        if (cardSnap.exists()) {
+            const card = cardSnap.data();
+            document.getElementById('editingPromoCardId').value = cardId;
+            document.getElementById('promoCardGroupSelect').value = groupId;
+            document.getElementById('promoCardImageKuSorani').value = card.imageUrls.ku_sorani;
+            document.getElementById('promoCardImageKuBadini').value = card.imageUrls.ku_badini;
+            document.getElementById('promoCardImageAr').value = card.imageUrls.ar;
+            document.getElementById('promoCardTargetCategory').value = card.categoryId;
+            document.getElementById('promoCardOrder').value = card.order;
+            document.getElementById('addPromoCardForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوە';
+            document.getElementById('addPromoCardForm').scrollIntoView({ behavior: 'smooth' });
+        }
+    },
+
+    deletePromoCard: async function(groupId, cardId) {
+        if (confirm('دڵنیایت دەتەوێت ئەم کارتە بسڕیتەوە؟')) {
+            try {
+                await deleteDoc(doc(db, "promo_groups", groupId, "cards", cardId));
+                showNotification('کارتەکە سڕدرایەوە', 'success');
+                clearProductCache();
+            } catch (error) { showNotification('هەڵەیەک ڕوویدا', 'error'); }
+        }
+    },
+
+    // --- BRAND GROUP MANAGEMENT ---
+    renderBrandGroupsAdminList: function() {
+        const container = document.getElementById('brandGroupsListContainer');
+        const groupSelect = document.getElementById('brandGroupSelect');
+        const q = query(brandGroupsCollection, orderBy("createdAt", "desc"));
+
+        onSnapshot(q, (snapshot) => {
+            container.innerHTML = '';
+            groupSelect.innerHTML = '<option value="" disabled selected>-- گرووپێک هەڵبژێرە --</option>';
+
+            if (snapshot.empty) {
+                container.innerHTML = '<p>هیچ گرووپێکی براند زیاد نەکراوە.</p>';
+                return;
+            }
+
+            snapshot.forEach(groupDoc => {
+                const group = { id: groupDoc.id, ...groupDoc.data() };
+                const option = document.createElement('option');
+                option.value = group.id;
+                option.textContent = group.name;
+                groupSelect.appendChild(option);
+
+                const groupElement = document.createElement('div');
+                groupElement.className = 'admin-list-group';
+                groupElement.innerHTML = `
+                    <div class="admin-list-group-header">
+                        <strong><i class="fas fa-tags"></i> ${group.name}</strong>
+                        <div>
+                            <button class="edit-btn small-btn edit-brand-group-btn" data-id="${group.id}"><i class="fas fa-edit"></i></button>
+                            <button class="delete-btn small-btn delete-brand-group-btn" data-id="${group.id}"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="brands-list-container" style="padding: 10px;">...</div>
+                `;
+                container.appendChild(groupElement);
+
+                const brandsContainer = groupElement.querySelector('.brands-list-container');
+                const brandsQuery = query(collection(db, "brand_groups", group.id, "brands"), orderBy("order", "asc"));
+                onSnapshot(brandsQuery, (brandsSnapshot) => {
+                    brandsContainer.innerHTML = '';
+                    if (brandsSnapshot.empty) {
+                        brandsContainer.innerHTML = '<p class="empty-list-text">هیچ براندێک بۆ ئەم گرووپە زیاد نەکراوە.</p>';
+                    } else {
+                        brandsSnapshot.forEach(brandDoc => {
+                            const brand = { id: brandDoc.id, ...brandDoc.data() };
+                            const brandElement = document.createElement('div');
+                            brandElement.className = 'admin-list-item';
+                            brandElement.innerHTML = `
+                                <span>- ${brand.name.ku_sorani} (ڕیز: ${brand.order})</span>
+                                <div>
+                                    <button class="edit-btn small-btn edit-brand-btn" data-group-id="${group.id}" data-brand-id="${brand.id}"><i class="fas fa-edit"></i></button>
+                                    <button class="delete-btn small-btn delete-brand-btn" data-group-id="${group.id}" data-brand-id="${brand.id}"><i class="fas fa-trash"></i></button>
+                                </div>`;
+                            brandsContainer.appendChild(brandElement);
+                        });
+                    }
+                });
+            });
+        });
+    },
+    
+    editBrandGroup: async function(groupId) {
+        const groupRef = doc(brandGroupsCollection, groupId);
+        const groupSnap = await getDoc(groupRef);
+        const currentName = groupSnap.data().name;
+        const newName = prompt('ناوی نوێی گرووپی براند بنووسە:', currentName);
+        if (newName && newName.trim() !== '') {
+            await updateDoc(groupRef, { name: newName.trim() });
+            showNotification('ناوی گرووپ نوێکرایەوە', 'success');
+            clearProductCache();
+        }
+    },
+
+    deleteBrandGroup: async function(groupId) {
+        if (confirm('دڵنیایت دەتەوێت ئەم گرووپە و هەموو براندەکانی بسڕیتەوە؟')) {
+            try {
+                const brandsRef = collection(db, "brand_groups", groupId, "brands");
+                const brandsSnapshot = await getDocs(brandsRef);
+                const deletePromises = brandsSnapshot.docs.map(d => deleteDoc(d.ref));
+                await Promise.all(deletePromises);
+                await deleteDoc(doc(brandGroupsCollection, groupId));
+                showNotification('گرووپی براند بە تەواوی سڕدرایەوە', 'success');
+                clearProductCache();
+            } catch (error) { showNotification('هەڵەیەک ڕوویدا', 'error'); }
+        }
+    },
+
+    editBrand: async function(groupId, brandId) {
+        const brandSnap = await getDoc(doc(db, "brand_groups", groupId, "brands", brandId));
+        if (brandSnap.exists()) {
+            const brand = brandSnap.data();
+            document.getElementById('editingBrandId').value = brandId;
+            document.getElementById('brandGroupSelect').value = groupId;
+            document.getElementById('brandNameKuSorani').value = brand.name.ku_sorani || '';
+            document.getElementById('brandNameKuBadini').value = brand.name.ku_badini || '';
+            document.getElementById('brandNameAr').value = brand.name.ar || '';
+            document.getElementById('brandImageUrl').value = brand.imageUrl || '';
+            document.getElementById('brandOrder').value = brand.order || 10;
+            const mainCatSelect = document.getElementById('brandTargetMainCategory');
+            mainCatSelect.value = brand.categoryId || '';
+            mainCatSelect.dispatchEvent(new Event('change'));
+            setTimeout(() => {
+                document.getElementById('brandTargetSubcategory').value = brand.subcategoryId || '';
+            }, 500);
+            document.getElementById('addBrandForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوە';
+            document.getElementById('addBrandForm').scrollIntoView({ behavior: 'smooth' });
+        }
+    },
+    
+    deleteBrand: async function(groupId, brandId) {
+        if (confirm('دڵنیایت دەتەوێت ئەم براندە بسڕیتەوە؟')) {
+            try {
+                await deleteDoc(doc(db, "brand_groups", groupId, "brands", brandId));
+                showNotification('براندەکە سڕدرایەوە', 'success');
+                clearProductCache();
+            } catch (error) { showNotification('هەڵەیەک ڕوویدا', 'error'); }
+        }
+    },
+    
     renderShortcutRowsAdminList: function() {
         const container = document.getElementById('shortcutRowsListContainer');
         const rowSelect = document.getElementById('selectRowForCard');
@@ -706,13 +830,11 @@ window.AdminLogic = {
                 rowSelect.appendChild(option);
 
                 const rowElement = document.createElement('div');
-                rowElement.style.border = '1px solid #ddd';
-                rowElement.style.borderRadius = '6px';
-                rowElement.style.marginBottom = '10px';
+                rowElement.className = 'admin-list-group';
                 
                 rowElement.innerHTML = `
-                    <div style="background: #f0f2f5; padding: 10px; display: flex; justify-content: space-between; align-items: center;">
-                        <strong>${row.title.ku_sorani} (ڕیز: ${row.order})</strong>
+                    <div class="admin-list-group-header">
+                        <strong><i class="fas fa-layer-group"></i> ${row.title.ku_sorani} (ڕیز: ${row.order})</strong>
                         <div>
                             <button class="edit-row-btn edit-btn small-btn" data-id="${row.id}"><i class="fas fa-edit"></i></button>
                             <button class="delete-row-btn delete-btn small-btn" data-id="${row.id}"><i class="fas fa-trash"></i></button>
@@ -727,14 +849,12 @@ window.AdminLogic = {
                 onSnapshot(cardsQuery, (cardsSnapshot) => {
                     cardsContainer.innerHTML = '';
                     if(cardsSnapshot.empty) {
-                        cardsContainer.innerHTML = '<p style="font-size: 12px; color: gray;">هیچ کارتێک بۆ ئەم ڕیزە زیاد نەکراوە.</p>';
+                        cardsContainer.innerHTML = '<p class="empty-list-text">هیچ کارتێک بۆ ئەم ڕیزە زیاد نەکراوە.</p>';
                     } else {
                         cardsSnapshot.forEach(cardDoc => {
                             const card = { id: cardDoc.id, ...cardDoc.data() };
                             const cardElement = document.createElement('div');
-                            cardElement.style.display = 'flex';
-                            cardElement.style.justifyContent = 'space-between';
-                            cardElement.style.padding = '5px 0';
+                            cardElement.className = 'admin-list-item';
                             cardElement.innerHTML = `
                                 <span>- ${card.name.ku_sorani} (ڕیز: ${card.order})</span>
                                 <div>
@@ -755,10 +875,7 @@ window.AdminLogic = {
             try {
                 const cardsRef = collection(db, "shortcut_rows", rowId, "cards");
                 const cardsSnapshot = await getDocs(cardsRef);
-                const deletePromises = [];
-                cardsSnapshot.forEach(doc => {
-                    deletePromises.push(deleteDoc(doc.ref));
-                });
+                const deletePromises = cardsSnapshot.docs.map(d => deleteDoc(d.ref));
                 await Promise.all(deletePromises);
 
                 await deleteDoc(doc(db, "shortcut_rows", rowId));
@@ -921,7 +1038,8 @@ window.AdminLogic = {
         
         document.getElementById('addHomeSectionBtn')?.addEventListener('click', () => {
             document.getElementById('addHomeSectionForm').reset();
-            document.getElementById('specificItemSelectContainer').style.display = 'none';
+            document.getElementById('specificItemGroupSelectContainer').style.display = 'none';
+            document.getElementById('specificCategorySelectContainer').style.display = 'none';
             openPopup('addHomeSectionModal', 'modal');
         });
 
@@ -933,60 +1051,56 @@ window.AdminLogic = {
             }
         });
 
+        // Event listener for the "Add Section" modal form
         document.getElementById('newSectionType').addEventListener('change', async (e) => {
             const type = e.target.value;
-            const container = document.getElementById('specificItemSelectContainer');
-            const label = document.getElementById('specificItemLabel');
-            const select = document.getElementById('specificItemId');
-            
-            if (type === 'single_shortcut_row' || type === 'single_category_row') {
-                container.style.display = 'block';
-                select.innerHTML = '<option value="">...بارکردن</option>';
+            const groupContainer = document.getElementById('specificItemGroupSelectContainer');
+            const categoryContainer = document.getElementById('specificCategorySelectContainer');
+            const groupLabel = document.getElementById('specificItemGroupLabel');
+            const groupSelect = document.getElementById('specificItemGroupId');
+
+            groupContainer.style.display = 'none';
+            categoryContainer.style.display = 'none';
+
+            if (type === 'promo_slider' || type === 'brands') {
+                groupContainer.style.display = 'block';
+                groupSelect.innerHTML = '<option value="">...بارکردن</option>';
+                const collectionRef = type === 'promo_slider' ? promoGroupsCollection : brandGroupsCollection;
+                groupLabel.textContent = type === 'promo_slider' ? 'کام گرووپی سلایدەر؟' : 'کام گرووپی براند؟';
                 
-                if (type === 'single_shortcut_row') {
-                    label.textContent = 'کام ڕیزی کورتکراوە؟';
-                    const snapshot = await getDocs(query(shortcutRowsCollection, orderBy('title.ku_sorani')));
-                    select.innerHTML = '<option value="" disabled selected>-- ڕیزێک هەڵبژێرە --</option>';
-                    snapshot.forEach(doc => {
-                        const row = doc.data();
-                        select.innerHTML += `<option value="${doc.id}" data-name-ku-sorani="${row.title.ku_sorani}" data-name-ku-badini="${row.title.ku_badini}" data-name-ar="${row.title.ar}">${row.title.ku_sorani}</option>`;
-                    });
-                } else { // single_category_row
-                    label.textContent = 'کام جۆری کاڵا؟';
-                    const categories = getCategories().filter(c => c.id !== 'all');
-                    select.innerHTML = '<option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>';
-                    categories.forEach(cat => {
-                        select.innerHTML += `<option value="${cat.id}" data-name-ku-sorani="${cat.name_ku_sorani}" data-name-ku-badini="${cat.name_ku_badini}" data-name-ar="${cat.name_ar}">${cat.name_ku_sorani}</option>`;
-                    });
-                }
-            } else {
-                container.style.display = 'none';
+                const snapshot = await getDocs(query(collectionRef, orderBy('name')));
+                groupSelect.innerHTML = `<option value="" disabled selected>-- گرووپێک هەڵبژێرە --</option>`;
+                snapshot.forEach(doc => {
+                    groupSelect.innerHTML += `<option value="${doc.id}">${doc.data().name}</option>`;
+                });
+            } else if (type === 'single_category_row') {
+                categoryContainer.style.display = 'block';
+                const mainSelect = document.getElementById('newSectionMainCategory');
+                mainSelect.innerHTML = '<option value="">-- جۆری سەرەکی هەڵبژێرە (پێویستە) --</option>';
+                getCategories().filter(c => c.id !== 'all').forEach(cat => {
+                     mainSelect.innerHTML += `<option value="${cat.id}">${cat.name_ku_sorani}</option>`;
+                });
             }
         });
-
+        
         document.getElementById('addHomeSectionForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const type = document.getElementById('newSectionType').value;
-            const name = document.getElementById('newSectionName').value;
-            const specificItemId = document.getElementById('specificItemId');
+            const nameInput = document.getElementById('newSectionName').value;
             
-            const selectedOption = specificItemId.options[specificItemId.selectedIndex];
-
-            if ((type === 'single_shortcut_row' || type === 'single_category_row') && !specificItemId.value) {
-                showNotification('تکایە بەشێکی دیاریکراو هەڵبژێرە', 'error');
-                return;
-            }
-
-            const sectionNameObject = {
-                ku_sorani: name,
-                ku_badini: name,
-                ar: name
-            };
-        
-            if ((type === 'single_shortcut_row' || type === 'single_category_row') && selectedOption) {
-                sectionNameObject.ku_sorani = selectedOption.dataset.nameKuSorani || name;
-                sectionNameObject.ku_badini = selectedOption.dataset.nameKuBadini || name;
-                sectionNameObject.ar = selectedOption.dataset.nameAr || name;
+            let nameObj = { ku_sorani: nameInput, ku_badini: nameInput, ar: nameInput };
+            let specificIdData = {};
+            
+            if (type === 'promo_slider' || type === 'brands') {
+                const groupId = document.getElementById('specificItemGroupId').value;
+                if (!groupId) { showNotification('تکایە گرووپێک هەڵبژێرە', 'error'); return; }
+                specificIdData = { groupId };
+            } else if (type === 'single_category_row') {
+                const catId = document.getElementById('newSectionMainCategory').value;
+                const subCatId = document.getElementById('newSectionSubcategory').value;
+                const subSubCatId = document.getElementById('newSectionSubSubcategory').value;
+                if (!catId) { showNotification('تکایە جۆری سەرەکی هەڵبژێرە', 'error'); return; }
+                specificIdData = { categoryId: catId, subcategoryId: subCatId || null, subSubcategoryId: subSubCatId || null };
             }
 
             try {
@@ -996,17 +1110,12 @@ window.AdminLogic = {
                 const lastOrder = lastDocSnap.empty ? 0 : lastDocSnap.docs[0].data().order;
                 
                 const newSectionData = {
-                    name: sectionNameObject,
+                    name: nameObj,
                     type,
                     order: lastOrder + 1,
-                    enabled: true
+                    enabled: true,
+                    ...specificIdData
                 };
-
-                if (type === 'single_shortcut_row') {
-                    newSectionData.rowId = specificItemId.value;
-                } else if (type === 'single_category_row') {
-                    newSectionData.categoryId = specificItemId.value;
-                }
 
                 await addDoc(layoutCollectionRef, newSectionData);
                 showNotification('بەشی نوێ زیادکرا', 'success');
@@ -1018,6 +1127,54 @@ window.AdminLogic = {
             }
         });
 
+        document.getElementById('newSectionMainCategory').addEventListener('change', async (e) => {
+            const mainCatId = e.target.value;
+            const subContainer = document.getElementById('newSectionSubcategoryContainer');
+            const subSubContainer = document.getElementById('newSectionSubSubcategoryContainer');
+            const subSelect = document.getElementById('newSectionSubcategory');
+            
+            subSubContainer.style.display = 'none';
+            subSelect.innerHTML = '';
+            
+            if (mainCatId) {
+                subContainer.style.display = 'block';
+                subSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
+                const q = query(collection(db, `categories/${mainCatId}/subcategories`), orderBy('order'));
+                const snapshot = await getDocs(q);
+                subSelect.innerHTML = '<option value="">-- هەموو (یان هەڵبژێرە) --</option>';
+                snapshot.forEach(doc => {
+                    subSelect.innerHTML += `<option value="${doc.id}">${doc.data().name_ku_sorani}</option>`;
+                });
+            } else {
+                subContainer.style.display = 'none';
+            }
+        });
+        
+        document.getElementById('newSectionSubcategory').addEventListener('change', async (e) => {
+            const mainCatId = document.getElementById('newSectionMainCategory').value;
+            const subCatId = e.target.value;
+            const subSubContainer = document.getElementById('newSectionSubSubcategoryContainer');
+            const subSubSelect = document.getElementById('newSectionSubSubcategory');
+            
+            subSubSelect.innerHTML = '';
+
+            if (mainCatId && subCatId) {
+                subSubContainer.style.display = 'block';
+                subSubSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
+                const q = query(collection(db, `categories/${mainCatId}/subcategories/${subCatId}/subSubcategories`), orderBy('order'));
+                const snapshot = await getDocs(q);
+                subSubSelect.innerHTML = '<option value="">-- هەموو (یان هەڵبژێرە) --</option>';
+                snapshot.forEach(doc => {
+                    subSubSelect.innerHTML += `<option value="${doc.id}">${doc.data().name_ku_sorani}</option>`;
+                });
+            } else {
+                subSubContainer.style.display = 'none';
+            }
+        });
+
+
+        // --- Other listeners ---
+        
         document.getElementById('addProductBtn').onclick = () => {
             setEditingProductId(null);
             document.getElementById('productForm').reset();
@@ -1397,311 +1554,159 @@ window.AdminLogic = {
             });
         }
         
-        const addPromoCardForm = document.getElementById('addPromoCardForm');
-        if(addPromoCardForm) {
-            addPromoCardForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const submitButton = e.target.querySelector('button[type="submit"]');
-                submitButton.disabled = true;
+        // --- NEW EVENT LISTENERS FOR GROUPS ---
 
-                const editingId = document.getElementById('editingPromoCardId').value;
-                const cardData = {
-                    imageUrls: {
-                        ku_sorani: document.getElementById('promoCardImageKuSorani').value,
-                        ku_badini: document.getElementById('promoCardImageKuBadini').value,
-                        ar: document.getElementById('promoCardImageAr').value,
-                    },
-                    categoryId: document.getElementById('promoCardTargetCategory').value,
-                    order: parseInt(document.getElementById('promoCardOrder').value),
-                    createdAt: Date.now()
-                };
-
-                try {
-                    if (editingId) {
-                        await setDoc(doc(db, "promo_cards", editingId), cardData);
-                        showNotification('کارتەکە نوێکرایەوە', 'success');
-                    } else {
-                        await addDoc(promoCardsCollection, cardData);
-                        showNotification('کارتی نوێ زیادکرا', 'success');
-                    }
-                    addPromoCardForm.reset();
-                    document.getElementById('editingPromoCardId').value = '';
-                    submitButton.textContent = 'پاشەکەوتکردن';
-                    clearProductCache();
-                } catch (error) {
-                    showNotification('هەڵەیەک ڕوویدا', 'error');
-                } finally {
-                    submitButton.disabled = false;
-                }
-            });
-        }
-
-        const addBrandForm = document.getElementById('addBrandForm');
-        if (addBrandForm) {
-            addBrandForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const submitButton = e.target.querySelector('button[type="submit"]');
-                submitButton.disabled = true;
-
-                const editingId = document.getElementById('editingBrandId').value;
-                const brandData = {
-                    name: {
-                        ku_sorani: document.getElementById('brandNameKuSorani').value,
-                        ku_badini: document.getElementById('brandNameKuBadini').value,
-                        ar: document.getElementById('brandNameAr').value,
-                    },
-                    imageUrl: document.getElementById('brandImageUrl').value,
-                    categoryId: document.getElementById('brandTargetMainCategory').value || null,
-                    subcategoryId: document.getElementById('brandTargetSubcategory').value || null,
-                    order: parseInt(document.getElementById('brandOrder').value) || 0,
-                    createdAt: Date.now()
-                };
-
-                try {
-                    if (editingId) {
-                        const { createdAt, ...updateData } = brandData;
-                        await setDoc(doc(db, "brands", editingId), updateData, { merge: true });
-                        showNotification('براند نوێکرایەوە', 'success');
-                    } else {
-                        await addDoc(brandsCollection, brandData);
-                        showNotification('براندی نوێ زیادکرا', 'success');
-                    }
-                    addBrandForm.reset();
-                    document.getElementById('editingBrandId').value = '';
-                    document.getElementById('brandSubcategoryContainer').style.display = 'none';
-                    submitButton.textContent = 'پاشەکەوتکردن';
-                    clearProductCache();
-                } catch (error) {
-                    showNotification('هەڵەیەک ڕوویدا', 'error');
-                    console.error("Error saving brand:", error);
-                } finally {
-                    submitButton.disabled = false;
-                }
-            });
-            
-            const brandMainCatSelect = document.getElementById('brandTargetMainCategory');
-            brandMainCatSelect.addEventListener('change', async (e) => {
-                const mainCatId = e.target.value;
-                const brandSubCatContainer = document.getElementById('brandSubcategoryContainer');
-                const brandSubCatSelect = document.getElementById('brandTargetSubcategory');
-                if (mainCatId) {
-                    brandSubCatContainer.style.display = 'block';
-                    brandSubCatSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
-                    const subCatQuery = query(collection(db, "categories", mainCatId, "subcategories"), orderBy("order", "asc"));
-                    const snapshot = await getDocs(subCatQuery);
-                    brandSubCatSelect.innerHTML = '<option value="">-- هەموو لاوەکییەکان --</option>';
-                    snapshot.forEach(doc => {
-                        const subcat = { id: doc.id, ...doc.data() };
-                        const option = document.createElement('option');
-                        option.value = subcat.id;
-                        option.textContent = subcat.name_ku_sorani;
-                        brandSubCatSelect.appendChild(option);
-                    });
-                } else {
-                    brandSubCatContainer.style.display = 'none';
-                    brandSubCatSelect.innerHTML = '';
-                }
-            });
-        }
-        
-        const addShortcutRowForm = document.getElementById('addShortcutRowForm');
-        addShortcutRowForm.addEventListener('submit', async (e) => {
+        // PROMO
+        document.getElementById('addPromoGroupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const editingId = document.getElementById('editingShortcutRowId').value;
-            const rowData = {
-                title: {
-                    ku_sorani: document.getElementById('shortcutRowTitleKuSorani').value,
-                    ku_badini: document.getElementById('shortcutRowTitleKuBadini').value,
-                    ar: document.getElementById('shortcutRowTitleAr').value,
-                },
-                order: parseInt(document.getElementById('shortcutRowOrder').value) || 0,
-            };
-
-            try {
-                if (editingId) {
-                    await setDoc(doc(db, "shortcut_rows", editingId), rowData, { merge: true });
-                    showNotification('ڕیز نوێکرایەوە', 'success');
-                } else {
-                    rowData.createdAt = Date.now();
-                    await addDoc(shortcutRowsCollection, rowData);
-                    showNotification('ڕیزی نوێ زیادکرا', 'success');
-                }
-                addShortcutRowForm.reset();
-                document.getElementById('editingShortcutRowId').value = '';
-                document.getElementById('cancelRowEditBtn').style.display = 'none';
-                clearProductCache();
-            } catch (error) { console.error("Error saving row:", error); showNotification('هەڵەیەک ڕوویدا', 'error'); }
+            const name = document.getElementById('promoGroupName').value;
+            if (name.trim()) {
+                await addDoc(promoGroupsCollection, { name: name.trim(), createdAt: Date.now() });
+                showNotification('گرووپی سلایدەر زیادکرا', 'success');
+                e.target.reset();
+            }
         });
 
-        const addCardToRowForm = document.getElementById('addCardToRowForm');
-        addCardToRowForm.addEventListener('submit', async (e) => {
+        document.getElementById('addPromoCardForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const rowId = document.getElementById('selectRowForCard').value;
-            if (!rowId) {
-                showNotification('تکایە ڕیزێک هەڵبژێرە', 'error');
-                return;
-            }
-            const editingId = document.getElementById('editingShortcutCardId').value;
+            const groupId = document.getElementById('promoCardGroupSelect').value;
+            if (!groupId) { showNotification('تکایە گرووپێک هەڵبژێرە', 'error'); return; }
+
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+
+            const editingId = document.getElementById('editingPromoCardId').value;
             const cardData = {
-                name: {
-                    ku_sorani: document.getElementById('shortcutCardNameKuSorani').value,
-                    ku_badini: document.getElementById('shortcutCardNameKuBadini').value,
-                    ar: document.getElementById('shortcutCardNameAr').value,
+                imageUrls: {
+                    ku_sorani: document.getElementById('promoCardImageKuSorani').value,
+                    ku_badini: document.getElementById('promoCardImageKuBadini').value,
+                    ar: document.getElementById('promoCardImageAr').value,
                 },
-                imageUrl: document.getElementById('shortcutCardImageUrl').value,
-                categoryId: document.getElementById('shortcutCardMainCategory').value || null,
-                subcategoryId: document.getElementById('shortcutCardSubcategory').value || null,
-                subSubcategoryId: document.getElementById('shortcutCardSubSubcategory').value || null,
-                order: parseInt(document.getElementById('shortcutCardOrder').value) || 0,
+                categoryId: document.getElementById('promoCardTargetCategory').value,
+                order: parseInt(document.getElementById('promoCardOrder').value),
             };
 
             try {
+                const cardsCollectionRef = collection(db, "promo_groups", groupId, "cards");
                 if (editingId) {
-                    await setDoc(doc(db, "shortcut_rows", rowId, "cards", editingId), cardData, { merge: true });
-                    showNotification('کارت نوێکرایەوە', 'success');
+                    await setDoc(doc(cardsCollectionRef, editingId), cardData, { merge: true });
+                    showNotification('کارتەکە نوێکرایەوە', 'success');
                 } else {
                     cardData.createdAt = Date.now();
-                    await addDoc(collection(db, "shortcut_rows", rowId, "cards"), cardData);
-                    showNotification('کارتی نوێ زیادکرا بۆ ڕیزەکە', 'success');
+                    await addDoc(cardsCollectionRef, cardData);
+                    showNotification('کارتی نوێ زیادکرا', 'success');
                 }
-                addCardToRowForm.reset();
-                document.getElementById('editingShortcutCardId').value = '';
-                document.getElementById('selectRowForCard').disabled = false;
-                document.getElementById('cancelCardEditBtn').style.display = 'none';
-                addCardToRowForm.querySelector('button[type="submit"]').textContent = 'زیادکردنی کارت';
+                e.target.reset();
+                document.getElementById('editingPromoCardId').value = '';
+                submitButton.textContent = 'پاشەکەوتکردنی کارت';
                 clearProductCache();
-            } catch (error) { console.error("Error saving card:", error); showNotification('هەڵەیەک ڕوویدا', 'error'); }
+            } catch (error) { showNotification('هەڵەیەک ڕوویدا', 'error'); } 
+            finally { submitButton.disabled = false; }
+        });
+
+        document.getElementById('promoGroupsListContainer').addEventListener('click', (e) => {
+            if (e.target.closest('.edit-promo-group-btn')) self.editPromoGroup(e.target.closest('.edit-promo-group-btn').dataset.id);
+            if (e.target.closest('.delete-promo-group-btn')) self.deletePromoGroup(e.target.closest('.delete-promo-group-btn').dataset.id);
+            if (e.target.closest('.edit-promo-card-btn')) {
+                const btn = e.target.closest('.edit-promo-card-btn');
+                self.editPromoCard(btn.dataset.groupId, btn.dataset.cardId);
+            }
+            if (e.target.closest('.delete-promo-card-btn')) {
+                const btn = e.target.closest('.delete-promo-card-btn');
+                self.deletePromoCard(btn.dataset.groupId, btn.dataset.cardId);
+            }
         });
         
-        document.getElementById('shortcutRowsListContainer').addEventListener('click', async (e) => {
-            const editRowBtn = e.target.closest('.edit-row-btn');
-            const deleteRowBtn = e.target.closest('.delete-row-btn');
-            const editCardBtn = e.target.closest('.edit-card-btn');
-            const deleteCardBtn = e.target.closest('.delete-card-btn');
+        // BRAND
+        document.getElementById('addBrandGroupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('brandGroupName').value;
+            if (name.trim()) {
+                await addDoc(brandGroupsCollection, { name: name.trim(), createdAt: Date.now() });
+                showNotification('گرووپی براند زیادکرا', 'success');
+                e.target.reset();
+            }
+        });
 
-            if (editRowBtn) {
-                const rowId = editRowBtn.dataset.id;
-                const rowSnap = await getDoc(doc(db, "shortcut_rows", rowId));
-                if(rowSnap.exists()) {
-                    const row = rowSnap.data();
-                    document.getElementById('editingShortcutRowId').value = rowId;
-                    document.getElementById('shortcutRowTitleKuSorani').value = row.title.ku_sorani;
-                    document.getElementById('shortcutRowTitleKuBadini').value = row.title.ku_badini;
-                    document.getElementById('shortcutRowTitleAr').value = row.title.ar;
-                    document.getElementById('shortcutRowOrder').value = row.order;
-                    document.getElementById('cancelRowEditBtn').style.display = 'block';
-                    addShortcutRowForm.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('addBrandForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const groupId = document.getElementById('brandGroupSelect').value;
+            if (!groupId) { showNotification('تکایە گرووپێک هەڵبژێرە', 'error'); return; }
+
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+
+            const editingId = document.getElementById('editingBrandId').value;
+            const brandData = {
+                name: {
+                    ku_sorani: document.getElementById('brandNameKuSorani').value,
+                    ku_badini: document.getElementById('brandNameKuBadini').value,
+                    ar: document.getElementById('brandNameAr').value,
+                },
+                imageUrl: document.getElementById('brandImageUrl').value,
+                categoryId: document.getElementById('brandTargetMainCategory').value || null,
+                subcategoryId: document.getElementById('brandTargetSubcategory').value || null,
+                order: parseInt(document.getElementById('brandOrder').value) || 0,
+            };
+
+            try {
+                const brandsCollectionRef = collection(db, "brand_groups", groupId, "brands");
+                if (editingId) {
+                    await setDoc(doc(brandsCollectionRef, editingId), brandData, { merge: true });
+                    showNotification('براند نوێکرایەوە', 'success');
+                } else {
+                    brandData.createdAt = Date.now();
+                    await addDoc(brandsCollectionRef, brandData);
+                    showNotification('براندی نوێ زیادکرا', 'success');
                 }
-            }
-            if (deleteRowBtn) {
-                this.deleteShortcutRow(deleteRowBtn.dataset.id);
-            }
-            if (editCardBtn) {
-                const rowId = editCardBtn.dataset.rowId;
-                const cardId = editCardBtn.dataset.cardId;
-                const cardSnap = await getDoc(doc(db, "shortcut_rows", rowId, "cards", cardId));
-                if(cardSnap.exists()) {
-                    const card = cardSnap.data();
-                    document.getElementById('selectRowForCard').value = rowId;
-                    document.getElementById('selectRowForCard').disabled = true; 
-                    document.getElementById('editingShortcutCardId').value = cardId;
-                    document.getElementById('shortcutCardNameKuSorani').value = card.name.ku_sorani || '';
-                    document.getElementById('shortcutCardNameKuBadini').value = card.name.ku_badini || '';
-                    document.getElementById('shortcutCardNameAr').value = card.name.ar || '';
-                    document.getElementById('shortcutCardImageUrl').value = card.imageUrl || '';
-                    document.getElementById('shortcutCardOrder').value = card.order || 10;
-                    const mainCatSelect = document.getElementById('shortcutCardMainCategory');
-                    mainCatSelect.value = card.categoryId || '';
-                    mainCatSelect.dispatchEvent(new Event('change'));
-                    setTimeout(() => {
-                        const subCatSelect = document.getElementById('shortcutCardSubcategory');
-                        subCatSelect.value = card.subcategoryId || '';
-                        subCatSelect.dispatchEvent(new Event('change'));
-                        setTimeout(() => {
-                            document.getElementById('shortcutCardSubSubcategory').value = card.subSubcategoryId || '';
-                        }, 500);
-                    }, 500);
-                    
-                    document.getElementById('addCardToRowForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوەی کارت';
-                    document.getElementById('cancelCardEditBtn').style.display = 'block';
-                    addCardToRowForm.scrollIntoView({ behavior: 'smooth' });
-                }
-            }
-            if (deleteCardBtn) {
-                this.deleteShortcutCard(deleteCardBtn.dataset.rowId, deleteCardBtn.dataset.cardId);
-            }
+                e.target.reset();
+                document.getElementById('editingBrandId').value = '';
+                document.getElementById('brandSubcategoryContainer').style.display = 'none';
+                submitButton.textContent = 'پاشەکەوتکردنی براند';
+                clearProductCache();
+            } catch (error) { console.error("Error saving brand:", error); showNotification('هەڵەیەک ڕوویدا', 'error'); } 
+            finally { submitButton.disabled = false; }
         });
 
-        document.getElementById('cancelRowEditBtn').addEventListener('click', () => {
-            addShortcutRowForm.reset();
-            document.getElementById('editingShortcutRowId').value = '';
-            document.getElementById('cancelRowEditBtn').style.display = 'none';
+        document.getElementById('brandGroupsListContainer').addEventListener('click', (e) => {
+            if (e.target.closest('.edit-brand-group-btn')) self.editBrandGroup(e.target.closest('.edit-brand-group-btn').dataset.id);
+            if (e.target.closest('.delete-brand-group-btn')) self.deleteBrandGroup(e.target.closest('.delete-brand-group-btn').dataset.id);
+            if (e.target.closest('.edit-brand-btn')) {
+                const btn = e.target.closest('.edit-brand-btn');
+                self.editBrand(btn.dataset.groupId, btn.dataset.brandId);
+            }
+            if (e.target.closest('.delete-brand-btn')) {
+                const btn = e.target.closest('.delete-brand-btn');
+                self.deleteBrand(btn.dataset.groupId, btn.dataset.brandId);
+            }
         });
-
-        document.getElementById('cancelCardEditBtn').addEventListener('click', () => {
-            addCardToRowForm.reset();
-            document.getElementById('editingShortcutCardId').value = '';
-            document.getElementById('selectRowForCard').disabled = false;
-            document.getElementById('cancelCardEditBtn').style.display = 'none';
-            document.getElementById('addCardToRowForm').querySelector('button[type="submit"]').textContent = 'زیادکردنی کارت';
-        });
-
-        const shortcutMainCatSelect = document.getElementById('shortcutCardMainCategory');
-        shortcutMainCatSelect.addEventListener('change', async (e) => {
+        
+        const brandMainCatSelect = document.getElementById('brandTargetMainCategory');
+        brandMainCatSelect.addEventListener('change', async (e) => {
             const mainCatId = e.target.value;
-            const subContainer = document.getElementById('shortcutCardSubContainer');
-            const subSubContainer = document.getElementById('shortcutCardSubSubContainer');
-            const subSelect = document.getElementById('shortcutCardSubcategory');
-            
-            subSubContainer.style.display = 'none';
-            subSelect.innerHTML = '';
-            
+            const brandSubCatContainer = document.getElementById('brandSubcategoryContainer');
+            const brandSubCatSelect = document.getElementById('brandTargetSubcategory');
             if (mainCatId) {
-                subContainer.style.display = 'block';
-                subSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
+                brandSubCatContainer.style.display = 'block';
+                brandSubCatSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
                 const subCatQuery = query(collection(db, "categories", mainCatId, "subcategories"), orderBy("order", "asc"));
                 const snapshot = await getDocs(subCatQuery);
-                subSelect.innerHTML = '<option value="">-- هەموو جۆرە لاوەکییەکان --</option>';
+                brandSubCatSelect.innerHTML = '<option value="">-- هەموو لاوەکییەکان --</option>';
                 snapshot.forEach(doc => {
                     const subcat = { id: doc.id, ...doc.data() };
                     const option = document.createElement('option');
                     option.value = subcat.id;
                     option.textContent = subcat.name_ku_sorani;
-                    subSelect.appendChild(option);
+                    brandSubCatSelect.appendChild(option);
                 });
             } else {
-                subContainer.style.display = 'none';
-            }
-        });
-
-        const shortcutSubCatSelect = document.getElementById('shortcutCardSubcategory');
-        shortcutSubCatSelect.addEventListener('change', async(e) => {
-            const mainCatId = document.getElementById('shortcutCardMainCategory').value;
-            const subCatId = e.target.value;
-            const subSubContainer = document.getElementById('shortcutCardSubSubContainer');
-            const subSubSelect = document.getElementById('shortcutCardSubSubcategory');
-
-            subSubSelect.innerHTML = '';
-
-            if(mainCatId && subCatId) {
-                subSubContainer.style.display = 'block';
-                subSubSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
-                const subSubQuery = query(collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories"), orderBy("order", "asc"));
-                const snapshot = await getDocs(subSubQuery);
-                subSubSelect.innerHTML = '<option value="">-- هەموو جۆرەکان --</option>';
-                snapshot.forEach(doc => {
-                    const subSubCat = { id: doc.id, ...doc.data() };
-                    const option = document.createElement('option');
-                    option.value = subSubCat.id;
-                    option.textContent = subSubCat.name_ku_sorani;
-                    subSubSelect.appendChild(option);
-                });
-
-            } else {
-                subSubContainer.style.display = 'none';
+                brandSubCatContainer.style.display = 'none';
+                brandSubCatSelect.innerHTML = '';
             }
         });
         
+        // --- End of new event listeners ---
+
         this.listenersAttached = true;
     }
 };

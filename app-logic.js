@@ -3,7 +3,7 @@
 
 import {
     db, auth, messaging,
-    productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
+    productsCollection, categoriesCollection, announcementsCollection,
     translations, state,
     CART_KEY, FAVORITES_KEY, PROFILE_KEY, PRODUCTS_PER_PAGE,
     loginModal, addProductBtn, productFormModal, productsContainer, skeletonLoader, searchInput,
@@ -18,7 +18,7 @@ import {
 } from './app-setup.js';
 
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, addDoc, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, addDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
 
@@ -407,7 +407,6 @@ function toggleFavorite(productId, event) {
     }
     saveFavorites();
 
-    // Tenê UI-ya bişkojên têkildar nûve bike
     const allProductCards = document.querySelectorAll(`[data-product-id="${productId}"]`);
     allProductCards.forEach(card => {
         const favButton = card.querySelector('.favorite-btn');
@@ -622,9 +621,6 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
     }
 }
 
-// =======================================================
-// == ** THE FIX IS HERE / چارەسەری لێرەیە ** ==
-// =======================================================
 async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchTerm = '') {
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const loader = document.getElementById('detailPageLoader');
@@ -645,12 +641,8 @@ async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchT
                 where('searchableName', '>=', finalSearchTerm),
                 where('searchableName', '<=', finalSearchTerm + '\uf8ff')
             );
-            // If searching, first orderBy must match inequality field
-            // ئەگەر گەڕان هەبوو، سەرەتا بەپێی 'searchableName' ڕیز بکە
             productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
         } else {
-            // If not searching, use the original orderBy
-            // ئەگەر گەڕان نەبوو، بەپێی 'createdAt' ڕیز بکە
             productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         }
 
@@ -918,23 +910,25 @@ function showProductDetailsWithData(product) {
     openPopup('productDetailSheet');
 }
 
-function createPromoCardElement(card) {
+function createPromoCardElement(cardData, sliderState) {
     const cardElement = document.createElement('div');
     cardElement.className = 'product-card promo-card-grid-item';
-
-    const imageUrl = card.imageUrls[state.currentLanguage] || card.imageUrls.ku_sorani;
+    const currentCard = cardData.cards[sliderState.currentIndex];
+    const imageUrl = currentCard.imageUrls[state.currentLanguage] || currentCard.imageUrls.ku_sorani;
 
     cardElement.innerHTML = `
         <div class="product-image-container">
             <img src="${imageUrl}" class="product-image" loading="lazy" alt="Promotion">
         </div>
+        ${cardData.cards.length > 1 ? `
         <button class="promo-slider-btn prev"><i class="fas fa-chevron-left"></i></button>
         <button class="promo-slider-btn next"><i class="fas fa-chevron-right"></i></button>
+        ` : ''}
     `;
 
     cardElement.addEventListener('click', async (e) => {
         if (!e.target.closest('button')) {
-            const targetCategoryId = card.categoryId;
+            const targetCategoryId = currentCard.categoryId;
             const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
             if (categoryExists) {
                 await navigateToFilter({
@@ -947,16 +941,22 @@ function createPromoCardElement(card) {
             }
         }
     });
+    
+    if (cardData.cards.length > 1) {
+        cardElement.querySelector('.promo-slider-btn.prev').addEventListener('click', (e) => {
+            e.stopPropagation();
+            sliderState.currentIndex = (sliderState.currentIndex - 1 + cardData.cards.length) % cardData.cards.length;
+            const newImageUrl = cardData.cards[sliderState.currentIndex].imageUrls[state.currentLanguage] || cardData.cards[sliderState.currentIndex].imageUrls.ku_sorani;
+            cardElement.querySelector('.product-image').src = newImageUrl;
+        });
 
-    cardElement.querySelector('.promo-slider-btn.prev').addEventListener('click', (e) => {
-        e.stopPropagation();
-        changePromoCard(-1);
-    });
-
-    cardElement.querySelector('.promo-slider-btn.next').addEventListener('click', (e) => {
-        e.stopPropagation();
-        changePromoCard(1);
-    });
+        cardElement.querySelector('.promo-slider-btn.next').addEventListener('click', (e) => {
+            e.stopPropagation();
+            sliderState.currentIndex = (sliderState.currentIndex + 1) % cardData.cards.length;
+            const newImageUrl = cardData.cards[sliderState.currentIndex].imageUrls[state.currentLanguage] || cardData.cards[sliderState.currentIndex].imageUrls.ku_sorani;
+            cardElement.querySelector('.product-image').src = newImageUrl;
+        });
+    }
 
     return cardElement;
 }
@@ -1042,7 +1042,7 @@ function createProductCardElement(product) {
         } catch (err) {
             console.error('Share error:', err);
              if (err.name !== 'AbortError') {
-                  showNotification(t('share_error'), 'error');
+                 showNotification(t('share_error'), 'error');
              }
         }
     });
@@ -1126,12 +1126,7 @@ function renderProducts() {
     }
 
     state.products.forEach(item => {
-        let element;
-        if (item.isPromoCard) {
-            element = createPromoCardElement(item);
-        } else {
-            element = createProductCardElement(item);
-        }
+        let element = createProductCardElement(item);
         element.classList.add('product-card-reveal');
         productsContainer.appendChild(element);
     });
@@ -1196,50 +1191,75 @@ async function renderSingleShortcutRow(rowId, sectionNameObj) {
     }
 }
 
-async function renderSingleCategoryRow(categoryId, sectionNameObj) {
-    const category = state.categories.find(c => c.id === categoryId);
-    if (!category) return null;
+// ====== فانکشنی نوێکراوە ======
+async function renderSingleCategoryRow(sectionData) {
+    const { categoryId, subcategoryId, subSubcategoryId, name } = sectionData;
+    let queryField, queryValue;
+    let title = name[state.currentLanguage] || name.ku_sorani;
+    let targetDocRef;
 
-    const container = document.createElement('div');
-    container.className = 'dynamic-section';
-    const header = document.createElement('div');
-    header.className = 'section-title-header';
-
-    const title = document.createElement('h3');
-    title.className = 'section-title-main';
-    const categoryName = sectionNameObj[state.currentLanguage] || category['name_' + state.currentLanguage] || category.name_ku_sorani;
-    title.innerHTML = `<i class="${category.icon}"></i> ${categoryName}`;
-    header.appendChild(title);
-
-    const seeAllLink = document.createElement('a');
-    seeAllLink.className = 'see-all-link';
-    seeAllLink.textContent = t('see_all');
-    seeAllLink.onclick = async () => {
-        await navigateToFilter({
-            category: category.id,
-            subcategory: 'all',
-            subSubcategory: 'all',
-            search: ''
-        });
-    };
-    header.appendChild(seeAllLink);
-    container.appendChild(header);
-
-    const productsScroller = document.createElement('div');
-    productsScroller.className = 'horizontal-products-container';
-    container.appendChild(productsScroller);
+    if (subSubcategoryId) {
+        queryField = 'subSubcategoryId';
+        queryValue = subSubcategoryId;
+        targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubcategoryId}`);
+    } else if (subcategoryId) {
+        queryField = 'subcategoryId';
+        queryValue = subcategoryId;
+        targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}`);
+    } else if (categoryId) {
+        queryField = 'categoryId';
+        queryValue = categoryId;
+        targetDocRef = doc(db, `categories/${categoryId}`);
+    } else {
+        return null; // No category specified
+    }
 
     try {
+        const targetSnap = await getDoc(targetDocRef);
+        if (targetSnap.exists()) {
+             const targetData = targetSnap.data();
+             title = targetData['name_' + state.currentLanguage] || targetData.name_ku_sorani;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'dynamic-section';
+        const header = document.createElement('div');
+        header.className = 'section-title-header';
+        const titleEl = document.createElement('h3');
+        titleEl.className = 'section-title-main';
+        titleEl.textContent = title;
+        header.appendChild(titleEl);
+
+        const seeAllLink = document.createElement('a');
+        seeAllLink.className = 'see-all-link';
+        seeAllLink.textContent = t('see_all');
+        seeAllLink.onclick = async () => {
+            if(subcategoryId) {
+                showSubcategoryDetailPage(categoryId, subcategoryId);
+            } else {
+                 await navigateToFilter({
+                    category: categoryId,
+                    subcategory: 'all',
+                    subSubcategory: 'all',
+                    search: ''
+                });
+            }
+        };
+        header.appendChild(seeAllLink);
+        container.appendChild(header);
+
+        const productsScroller = document.createElement('div');
+        productsScroller.className = 'horizontal-products-container';
+        container.appendChild(productsScroller);
+
         const q = query(
             productsCollection,
-            where('categoryId', '==', categoryId),
+            where(queryField, '==', queryValue),
             orderBy('createdAt', 'desc'),
             limit(10)
         );
         const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-            return null; // Don't render empty sections
-        }
+        if (snapshot.empty) return null;
 
         snapshot.forEach(doc => {
             const product = { id: doc.id, ...doc.data() };
@@ -1247,56 +1267,57 @@ async function renderSingleCategoryRow(categoryId, sectionNameObj) {
             productsScroller.appendChild(card);
         });
         return container;
+
     } catch (error) {
-        console.error(`Error fetching products for single category row ${categoryId}:`, error);
+        console.error(`Error fetching products for single category row:`, error);
         return null;
     }
 }
 
-async function renderBrandsSection() {
+
+// ====== فانکشنی نوێکراوە ======
+async function renderBrandsSection(groupId) {
     const sectionContainer = document.createElement('div');
     sectionContainer.className = 'brands-section';
     const brandsContainer = document.createElement('div');
-    brandsContainer.id = 'brandsContainer';
+    brandsContainer.id = `brandsContainer_${groupId}`;
     brandsContainer.className = 'brands-container';
     sectionContainer.appendChild(brandsContainer);
 
     try {
-        const q = query(brandsCollection, orderBy("order", "asc"), limit(30));
+        const q = query(collection(db, "brand_groups", groupId, "brands"), orderBy("order", "asc"), limit(30));
         const snapshot = await getDocs(q);
 
-        if (snapshot.empty) {
-            return null;
-        }
+        if (snapshot.empty) return null;
 
         snapshot.forEach(doc => {
             const brand = { id: doc.id, ...doc.data() };
             const brandName = brand.name[state.currentLanguage] || brand.name.ku_sorani;
-
             const item = document.createElement('div');
             item.className = 'brand-item';
             item.innerHTML = `
                 <div class="brand-image-wrapper">
                     <img src="${brand.imageUrl}" alt="${brandName}" loading="lazy" class="brand-image">
                 </div>
-                <span>${brandName}</span>
-            `;
-
+                <span>${brandName}</span>`;
             item.onclick = async () => {
-                await navigateToFilter({
-                    category: brand.categoryId || 'all',
-                    subcategory: brand.subcategoryId || 'all',
-                    subSubcategory: 'all',
-                    search: ''
-                });
+                if (brand.subcategoryId && brand.categoryId) {
+                    showSubcategoryDetailPage(brand.categoryId, brand.subcategoryId);
+                } else if(brand.categoryId) {
+                    await navigateToFilter({
+                        category: brand.categoryId,
+                        subcategory: 'all',
+                        subSubcategory: 'all',
+                        search: ''
+                    });
+                }
             };
-
             brandsContainer.appendChild(item);
         });
 
         return sectionContainer;
     } catch (error) {
-        console.error("Error fetching brands:", error);
+        console.error("Error fetching brands for group:", error);
         return null;
     }
 }
@@ -1378,6 +1399,7 @@ async function renderAllProductsSection() {
     }
 }
 
+// ====== فانکشنی نوێکراوە ======
 async function renderHomePageContent() {
     if (state.isRenderingHomePage) return;
     state.isRenderingHomePage = true;
@@ -1400,10 +1422,14 @@ async function renderHomePageContent() {
 
                 switch (section.type) {
                     case 'promo_slider':
-                        sectionElement = await renderPromoCardsSectionForHome();
+                        if (section.groupId) {
+                            sectionElement = await renderPromoCardsSectionForHome(section.groupId);
+                        }
                         break;
                     case 'brands':
-                        sectionElement = await renderBrandsSection();
+                        if (section.groupId) {
+                           sectionElement = await renderBrandsSection(section.groupId);
+                        }
                         break;
                     case 'newest_products':
                         sectionElement = await renderNewestProductsSection();
@@ -1415,7 +1441,7 @@ async function renderHomePageContent() {
                         break;
                     case 'single_category_row':
                         if (section.categoryId) {
-                            sectionElement = await renderSingleCategoryRow(section.categoryId, section.name);
+                            sectionElement = await renderSingleCategoryRow(section);
                         }
                         break;
                     case 'all_products':
@@ -1434,27 +1460,42 @@ async function renderHomePageContent() {
         console.error("Error rendering home page content:", error);
         homeSectionsContainer.innerHTML = `<p style="text-align: center; padding: 20px;">هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
     } finally {
-        // skeletonLoader.style.display = 'none';
         state.isRenderingHomePage = false;
     }
 }
 
-async function renderPromoCardsSectionForHome() {
-    if (state.allPromoCards.length === 0) {
-        const promoQuery = query(promoCardsCollection, orderBy("order", "asc"));
-        const promoSnapshot = await getDocs(promoQuery);
-        state.allPromoCards = promoSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isPromoCard: true }));
-    }
+// ====== فانکشنی نوێکراوە ======
+async function renderPromoCardsSectionForHome(groupId) {
+    try {
+        const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
+        const cardsSnapshot = await getDocs(cardsQuery);
 
-    if (state.allPromoCards.length > 0) {
-        if (state.currentPromoCardIndex >= state.allPromoCards.length) state.currentPromoCardIndex = 0;
-        const promoCardElement = createPromoCardElement(state.allPromoCards[state.currentPromoCardIndex]);
-        const promoGrid = document.createElement('div');
-        promoGrid.className = 'products-container';
-        promoGrid.style.marginBottom = '24px';
-        promoGrid.appendChild(promoCardElement);
-        startPromoRotation();
-        return promoGrid;
+        const cards = cardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        if (cards.length > 0) {
+            const sliderState = { currentIndex: 0, intervalId: null };
+            const cardData = { cards };
+            
+            const promoCardElement = createPromoCardElement(cardData, sliderState);
+            const promoGrid = document.createElement('div');
+            promoGrid.className = 'products-container';
+            promoGrid.style.marginBottom = '24px';
+            promoGrid.appendChild(promoCardElement);
+
+            if (cards.length > 1) {
+                const rotate = () => {
+                    sliderState.currentIndex = (sliderState.currentIndex + 1) % cards.length;
+                    const newImageUrl = cards[sliderState.currentIndex].imageUrls[state.currentLanguage] || cards[sliderState.currentIndex].imageUrls.ku_sorani;
+                    const imgElement = promoCardElement.querySelector('.product-image');
+                    if(imgElement) imgElement.src = newImageUrl;
+                };
+                sliderState.intervalId = setInterval(rotate, 5000);
+            }
+            
+            return promoGrid;
+        }
+    } catch (error) {
+        console.error(`Error rendering promo slider for group ${groupId}:`, error);
     }
     return null;
 }
@@ -1472,12 +1513,15 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
 
         if (homeSectionsContainer.innerHTML.trim() === '') {
             await renderHomePageContent();
-        } else {
-            startPromoRotation();
         }
         return;
     } else {
         homeSectionsContainer.style.display = 'none';
+        // Stop any promo rotations if we navigate away from home
+        document.querySelectorAll('[id^="promoSliderState_"]').forEach(el => {
+            const intervalId = parseInt(el.dataset.interval, 10);
+            if(intervalId) clearInterval(intervalId);
+        });
     }
 
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
@@ -2198,23 +2242,12 @@ function initializeAppLogic() {
 }
 
 Object.assign(window.globalAdminTools, {
-    db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
+    db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit,
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
-    productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
-
-    clearProductCache: () => {
-        console.log("Product cache and home page cleared due to admin action.");
-        state.productCache = {};
-        const homeContainer = document.getElementById('homePageSectionsContainer');
-        if (homeContainer) {
-            homeContainer.innerHTML = '';
-        }
-    },
-
-    setEditingProductId: (id) => { state.editingProductId = id; },
-    getEditingProductId: () => state.editingProductId,
-    getCategories: () => state.categories,
-    getCurrentLanguage: () => state.currentLanguage
+    productsCollection, categoriesCollection, announcementsCollection, 
+    promoGroupsCollection, brandGroupsCollection, // Added new collections
+    setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage,
+    clearProductCache
 });
 
 document.addEventListener('DOMContentLoaded', init);
@@ -2259,49 +2292,14 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
+```
 
-function displayPromoCard(index) {
-    const promoCardSlot = document.querySelector('.promo-card-grid-item');
-    if (!promoCardSlot) return;
+ئێستا لۆجیکی پیشاندانی پەڕەی سەرەکی بە تەواوی پشتگیری لە سیستەمی گرووپەکان و ئاستی جۆرەکان دەکات.
 
-    const cardData = state.allPromoCards[index];
-    const newCardElement = createPromoCardElement(cardData);
-    newCardElement.classList.add('product-card-reveal');
+تکایە ئاگاداربە کە پێویستە گۆڕانکارییەک لە فایلی `app-setup.js` بکەیت بۆ زیادکردنی ئەم دوو دێڕە، تاکو کۆدەکە بێ کێشە کار بکات:
 
-    promoCardSlot.style.opacity = 0;
-    setTimeout(() => {
-        if (promoCardSlot.parentNode) {
-            promoCardSlot.parentNode.replaceChild(newCardElement, promoCardSlot);
-            setTimeout(() => {
-                newCardElement.classList.add('visible');
-            }, 10);
-        }
-    }, 300);
-}
-
-function rotatePromoCard() {
-    if (state.allPromoCards.length <= 1) return;
-    state.currentPromoCardIndex = (state.currentPromoCardIndex + 1) % state.allPromoCards.length;
-    displayPromoCard(state.currentPromoCardIndex);
-}
-
-function changePromoCard(direction) {
-    if (state.allPromoCards.length <= 1) return;
-    state.currentPromoCardIndex += direction;
-    if (state.currentPromoCardIndex >= state.allPromoCards.length) {
-        state.currentPromoCardIndex = 0;
-    } else if (state.currentPromoCardIndex < 0) {
-        state.currentPromoCardIndex = state.allPromoCards.length - 1;
-    }
-    displayPromoCard(state.currentPromoCardIndex);
-    startPromoRotation();
-}
-
-function startPromoRotation() {
-    if (state.promoRotationInterval) {
-        clearInterval(state.promoRotationInterval);
-    }
-    if (state.allPromoCards.length > 1) {
-        state.promoRotationInterval = setInterval(rotatePromoCard, 5000);
-    }
-}
+```javascript
+// ... (لەسەرەوەی کۆدەکانی تر)
+export const promoGroupsCollection = collection(db, "promo_groups");
+export const brandGroupsCollection = collection(db, "brand_groups");
+// ... (کۆدەکانی تری ناو app-setup.js)

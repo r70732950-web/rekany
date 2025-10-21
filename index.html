@@ -447,14 +447,33 @@
                     </div>
                 </div>
             </div>
-
+            
+            <!-- ====== بەشی نوێکراوەی سلایدەری ڕێکلام ====== -->
             <div class="settings-group" id="adminPromoCardsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
-                    <i class="fas fa-bullhorn"></i> <span>بەڕێوەبردنی کارتە ڕێنماییەکان</span>
+                    <i class="fas fa-images"></i> <span>بەڕێوەبردنی سلایدەری ڕێکلام</span>
                 </h3>
+                <!-- زیادکردنی گرووپی نوێی سلایدەر -->
+                <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
+                    <form id="addPromoGroupForm">
+                        <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">دروستکردنی گرووپی سلایدەری نوێ</h4>
+                        <div class="form-group">
+                            <label>ناوی گرووپ:</label>
+                            <input type="text" id="promoGroupName" placeholder="بۆ نموونە: سلایدەری جەژن" required>
+                        </div>
+                        <button type="submit">دروستکردنی گرووپ</button>
+                    </form>
+                </div>
+                <!-- زیادکردنی کارتی نوێ بۆ گرووپێک -->
                 <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
                     <form id="addPromoCardForm">
                         <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی کارتی نوێ</h4>
+                        <div class="form-group">
+                            <label>گرووپ هەڵبژێرە:</label>
+                            <select id="promoCardGroupSelect" required>
+                                <option value="" disabled selected>-- گرووپێک هەڵبژێرە --</option>
+                            </select>
+                        </div>
                         <div class="form-group">
                             <label>لینکی وێنە (سۆرانی):</label>
                             <input type="url" id="promoCardImageKuSorani" required>
@@ -474,27 +493,46 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>ژمارەی ڕیزبەندی (بۆ پیشاندان لەناو کاڵاکان):</label>
+                            <label>ژمارەی ڕیزبەندی کارت (لەناو گرووپ):</label>
                             <input type="number" id="promoCardOrder" value="1" required>
-                            <small>ژمارەی بچووکتر لە پێشتر پیشان دەدرێت.</small>
                         </div>
                         <input type="hidden" id="editingPromoCardId">
-                        <button type="submit">پاشەکەوتکردن</button>
+                        <button type="submit">پاشەکەوتکردنی کارت</button>
                     </form>
                 </div>
+                <!-- لیستی گرووپ و کارتەکان -->
                 <div style="padding: 15px;">
-                    <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">کارتە زیادکراوەکان</h4>
-                    <div id="promoCardsListContainer"></div>
+                    <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">گرووپ و کارتە زیادکراوەکان</h4>
+                    <div id="promoGroupsListContainer"></div>
                 </div>
             </div>
 
+            <!-- ====== بەشی نوێکراوەی براندەکان ====== -->
             <div class="settings-group" id="adminBrandsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
-                    <i class="fas fa-tags"></i> <span>بەڕێوەبردنی براند/جۆرە تایبەتەکان</span>
+                    <i class="fas fa-tags"></i> <span>بەڕێوەبردنی براندەکان</span>
                 </h3>
+                 <!-- زیادکردنی گرووپی نوێی براند -->
+                <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
+                    <form id="addBrandGroupForm">
+                        <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">دروستکردنی گرووپی براندی نوێ</h4>
+                        <div class="form-group">
+                            <label>ناوی گرووپ:</label>
+                            <input type="text" id="brandGroupName" placeholder="بۆ نموونە: براندە ئەلیکترۆنییەکان" required>
+                        </div>
+                        <button type="submit">دروستکردنی گرووپ</button>
+                    </form>
+                </div>
+                <!-- زیادکردنی براندی نوێ بۆ گرووپێک -->
                 <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
                     <form id="addBrandForm">
                         <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی براندی نوێ</h4>
+                        <div class="form-group">
+                            <label>گرووپ هەڵبژێرە:</label>
+                            <select id="brandGroupSelect" required>
+                                <option value="" disabled selected>-- گرووپێک هەڵبژێرە --</option>
+                            </select>
+                        </div>
                         <div class="form-group">
                             <label>ناوی براند (سۆرانی):</label>
                             <input type="text" id="brandNameKuSorani" required>
@@ -524,16 +562,17 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>ژمارەی ڕیزبەندی:</label>
+                            <label>ژمارەی ڕیزبەندی (لەناو گرووپ):</label>
                             <input type="number" id="brandOrder" value="10" required>
                         </div>
                         <input type="hidden" id="editingBrandId">
-                        <button type="submit">پاشەکەوتکردن</button>
+                        <button type="submit">پاشەکەوتکردنی براند</button>
                     </form>
                 </div>
+                <!-- لیستی گرووپ و براندەکان -->
                 <div style="padding: 15px;">
-                    <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">براندە زیادکراوەکان</h4>
-                    <div id="brandsListContainer"></div>
+                    <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">گرووپ و براندە زیادکراوەکان</h4>
+                    <div id="brandGroupsListContainer"></div>
                 </div>
             </div>
 
@@ -782,6 +821,7 @@
 
         <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
 
+        <!-- ====== مۆداڵی نوێکراوەی زیادکردنی بەش بۆ پەڕەی سەرەکی ====== -->
         <div id="addHomeSectionModal" class="modal">
             <div class="modal-content">
                 <span class="close" aria-label="Close">&times;</span>
@@ -799,18 +839,35 @@
                             <option value="all_products">هەموو کاڵاکان (لە کۆتایی)</option>
                         </select>
                     </div>
-                    <div id="specificItemSelectContainer" class="form-group" style="display: none;">
-                        <label for="specificItemId" id="specificItemLabel">دیاریکردن:</label>
-                        <select id="specificItemId" required></select>
+                    <!-- بۆ هەڵبژاردنی گرووپی سلایدەر یان براند -->
+                    <div id="specificItemGroupSelectContainer" class="form-group" style="display: none;">
+                        <label for="specificItemGroupId" id="specificItemGroupLabel">گرووپ هەڵبژێرە:</label>
+                        <select id="specificItemGroupId" required></select>
+                    </div>
+                    <!-- بۆ هەڵبژاردنی وردی جۆرەکان -->
+                    <div id="specificCategorySelectContainer" class="form-group" style="display: none;">
+                        <div class="form-group">
+                            <label for="newSectionMainCategory">جۆری سەرەکی:</label>
+                            <select id="newSectionMainCategory"></select>
+                        </div>
+                        <div class="form-group" id="newSectionSubcategoryContainer" style="display:none;">
+                            <label for="newSectionSubcategory">جۆری لاوەکی (ئارەزوومەندانە):</label>
+                            <select id="newSectionSubcategory"></select>
+                        </div>
+                        <div class="form-group" id="newSectionSubSubcategoryContainer" style="display:none;">
+                            <label for="newSectionSubSubcategory">جۆری لاوەکی لاوەکی (ئارەزوومەندانە):</label>
+                            <select id="newSectionSubSubcategory"></select>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label for="newSectionName">ناوی بەش (بۆ ناسینەوەی خۆت):</label>
+                        <label for="newSectionName">ناوی بەش (بۆ ناسینەوەی خۆت لە لیستی ڕێکخستن):</label>
                         <input type="text" id="newSectionName" required placeholder="بۆ نموونە: ڕیزی جلوبەرگی پیاوان">
                     </div>
                     <button type="submit">زیادکردن</button>
                 </form>
             </div>
         </div>
+        
         <div id="editCategoryModal" class="modal">
             <div class="modal-content">
                 <span class="close" aria-label="Close">&times;</span>
@@ -960,4 +1017,3 @@
     <script src="admin.js" defer></script>
 </body>
 </html>
-
