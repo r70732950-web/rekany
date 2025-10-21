@@ -9,14 +9,15 @@ import {
     signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import {
-    enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, addDoc, runTransaction
-} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+    enableIndexedDbPersistence, collection as firestoreCollection, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, addDoc, runTransaction
+} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js"; // Import collection as firestoreCollection
 import {
     getToken, onMessage
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
-// Import UI functions needed by data logic (e.g., for notifications or UI updates after data change)
-import { showNotification, t, renderCart, updateCartCount, renderFavoritesPage } from './ui-logic.js'; // Assuming ui-logic.js exports these
+// Import UI functions needed by data logic
+// *** چاککراو: renderFavoritesPage زیادکرا ***
+import { showNotification, t, renderCart, updateCartCount, renderFavoritesPage, updateActiveNav, showPage, closeCurrentPopup, openPopup, updateHeaderView, setLanguage as uiSetLanguage, handleHomeVsProductView, renderProductListFromCache, showSkeleton, showLoadMoreIndicator, renderProductListAndUpdateUI, showProductFetchError, hideLoadIndicators, clearHomePageContainer, updateAdminStatusUI, populateCategoryDropdown as uiPopulateCategoryDropdown, renderMainCategories as uiRenderMainCategories, renderCategoriesSheet as uiRenderCategoriesSheet, renderSubcategories as uiRenderSubcategories, renderContactLinks as uiRenderContactLinks, checkNewAnnouncements as uiCheckNewAnnouncements, showWelcomeMessage as uiShowWelcomeMessage, setupGpsButton as uiSetupGpsButton, updateFavoriteButtonsUI, handleInitialPageLoad as uiHandleInitialPageLoad, setupUIEventListeners as uiSetupEventListeners, setupScrollObserver as uiSetupScrollObserver } from './ui-logic.js';
 
 // --- State Management Functions ---
 
@@ -140,12 +141,11 @@ export function toggleFavorite(productId) {
     saveFavorites();
 
     // Call UI function to update favorite buttons visually
-    // Note: We need to define updateFavoriteButtonsUI in ui-logic.js
-    // updateFavoriteButtonsUI(productId, !isCurrentlyFavorite);
+    updateFavoriteButtonsUI(productId, !isCurrentlyFavorite); // Defined in ui-logic.js
 
     // If the favorites sheet is open, re-render it
     if (document.getElementById('favoritesSheet')?.classList.contains('show')) {
-         renderFavoritesPage(); // This function likely needs access to createProductCardElement, so keep it in ui-logic.js or pass dependencies
+         renderFavoritesPage(); // Call the imported UI function
     }
 }
 
@@ -179,7 +179,7 @@ export async function fetchSubcategories(categoryId) {
         return [];
     }
     try {
-        const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
+        const subcategoriesQuery = firestoreCollection(db, "categories", categoryId, "subcategories"); // Use firestoreCollection
         const q = query(subcategoriesQuery, orderBy("order", "asc"));
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -194,7 +194,7 @@ export async function fetchSubSubcategories(mainCatId, subCatId) {
          return [];
      }
      try {
-         const ref = collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
+         const ref = firestoreCollection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories"); // Use firestoreCollection
          const q = query(ref, orderBy("order", "asc"));
          const snapshot = await getDocs(q);
          return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -209,8 +209,7 @@ export async function searchProductsInFirestore(searchTerm = '', isNewSearch = f
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
 
     // Call UI function to handle showing/hiding home sections vs product list
-    // Note: We need to define handleHomeVsProductView in ui-logic.js
-    // handleHomeVsProductView(shouldShowHomeSections);
+    handleHomeVsProductView(shouldShowHomeSections);
 
     if (shouldShowHomeSections) {
         // Trigger rendering home content if needed (handled in ui-logic.js)
@@ -224,8 +223,7 @@ export async function searchProductsInFirestore(searchTerm = '', isNewSearch = f
         state.lastVisibleProductDoc = state.productCache[cacheKey].lastVisible;
         state.allProductsLoaded = state.productCache[cacheKey].allLoaded;
         // Call UI function to render cached products and update UI state
-        // Note: We need to define renderProductListFromCache in ui-logic.js
-        // renderProductListFromCache();
+        renderProductListFromCache();
         return;
     }
 
@@ -239,17 +237,15 @@ export async function searchProductsInFirestore(searchTerm = '', isNewSearch = f
         state.lastVisibleProductDoc = null;
         state.products = [];
          // Call UI function to show skeleton loader
-         // Note: We need to define showSkeleton in ui-logic.js
-         // showSkeleton();
+         showSkeleton();
     } else {
         // Call UI function to show loading indicator
-        // Note: We need to define showLoadMoreIndicator in ui-logic.js
-        // showLoadMoreIndicator(true);
+        showLoadMoreIndicator(true);
     }
 
 
     try {
-        let productsQuery = collection(db, "products");
+        let productsQuery = firestoreCollection(db, "products"); // Use firestoreCollection
 
         // Apply filters
         if (state.currentCategory && state.currentCategory !== 'all') {
@@ -307,18 +303,16 @@ export async function searchProductsInFirestore(searchTerm = '', isNewSearch = f
         }
 
         // Call UI function to render the updated product list and hide loaders
-        // Note: We need to define renderProductListAndUpdateUI in ui-logic.js
-        // renderProductListAndUpdateUI(isNewSearch);
+        renderProductListAndUpdateUI(isNewSearch);
 
     } catch (error) {
         console.error("Error fetching/searching products:", error);
          // Call UI function to show an error message
-         // Note: We need to define showProductFetchError in ui-logic.js
-         // showProductFetchError();
+         showProductFetchError();
     } finally {
         state.isLoadingMoreProducts = false;
          // Call UI function to hide loading indicators if they weren't hidden by renderProductListAndUpdateUI
-         // hideLoadIndicators();
+         hideLoadIndicators();
     }
 }
 
@@ -374,7 +368,7 @@ export async function requestNotificationPermission() {
 
 async function saveTokenToFirestore(token) {
      try {
-         const tokensCollection = collection(db, 'device_tokens');
+         const tokensCollection = firestoreCollection(db, 'device_tokens'); // Use firestoreCollection
          // Use the token itself as the document ID to prevent duplicates
          await setDoc(doc(tokensCollection, token), {
              createdAt: Date.now()
@@ -385,6 +379,23 @@ async function saveTokenToFirestore(token) {
          console.error('Error saving token to Firestore: ', error);
      }
  }
+
+ export function checkNewAnnouncements() {
+    const q = query(announcementsCollection, orderBy("createdAt", "desc"), limit(1));
+    onSnapshot(q, (snapshot) => {
+        if (!snapshot.empty) {
+            const latestAnnouncement = snapshot.docs[0].data();
+            const lastSeenTimestamp = localStorage.getItem('lastSeenAnnouncementTimestamp') || 0;
+            // Call UI function to show/hide badge
+            uiCheckNewAnnouncements(latestAnnouncement.createdAt > lastSeenTimestamp);
+        } else {
+            // Call UI function to hide badge if no announcements exist
+            uiCheckNewAnnouncements(false);
+        }
+    }, (error) => {
+        console.error("Error checking new announcements:", error);
+    });
+}
 
 
 // --- Initialization ---
@@ -406,7 +417,11 @@ export function setupAuthListener(adminInitializationCallback, adminDeinitializa
              if (adminDeinitializationCallback) adminDeinitializationCallback();
          }
          // Optionally trigger a general UI update based on admin status
-         // updateAdminStatusUI(isAdmin); // Define this in ui-logic.js
+          updateAdminStatusUI(isAdmin); // Defined in ui-logic.js
+          // Close login modal if it was open and sign-in was successful
+          if (isAdmin && document.getElementById('loginModal')?.style.display === 'block') {
+             closeCurrentPopup();
+          }
      });
 }
 
@@ -415,11 +430,12 @@ export async function loadInitialData() {
      await fetchCategories();
      // Fetch contact info or other settings if needed on load
      // await fetchContactInfo();
+     checkNewAnnouncements(); // Initial check for notification badge
 }
 
 export function init() {
      // Call UI function to show initial skeleton
-     // showSkeleton(); // Assume this is defined in ui-logic.js
+     showSkeleton(); // Defined in ui-logic.js
 
      enableIndexedDbPersistence(db)
          .then(() => {
@@ -439,7 +455,7 @@ export function init() {
 
 // Main initialization logic coordinating data loading and UI setup
 async function initializeAppLogic() {
-     await loadInitialData(); // Fetch categories first
+     await loadInitialData(); // Fetch categories and check notifications first
 
      // Setup auth listener, passing AdminLogic callbacks
      setupAuthListener(
@@ -448,16 +464,14 @@ async function initializeAppLogic() {
      );
 
      // Call UI setup functions now that categories are loaded
-     // Note: These functions need to be defined in ui-logic.js
-     // setupUIEventListeners(); // Setup general UI listeners
-     // setupScrollObserver(); // Setup infinite scroll
-     // updateCategoryDependentUI(); // Populate dropdowns, main categories etc.
-     // renderContactLinks(); // Render contact links in settings
-     // checkNewAnnouncements(); // Check for notification badge
-     // handleInitialPageLoad(); // Determine initial view based on URL
-     // showWelcomeMessage(); // Show welcome popup on first visit
-     // setupGpsButton(); // Enable GPS functionality
-     // setLanguage(state.currentLanguage); // Apply initial language
+     uiSetupEventListeners(); // Setup general UI listeners
+     uiSetupScrollObserver(); // Setup infinite scroll
+     // updateCategoryDependentUI(); // Populate dropdowns, main categories etc. - Called by fetchCategories now
+     uiRenderContactLinks(); // Render contact links in settings
+     uiHandleInitialPageLoad(); // Determine initial view based on URL
+     uiShowWelcomeMessage(); // Show welcome popup on first visit
+     uiSetupGpsButton(); // Enable GPS functionality
+     uiSetLanguage(state.currentLanguage); // Apply initial language
 
     // Set up Firebase messaging listener
     onMessage(messaging, (payload) => {
@@ -472,25 +486,32 @@ async function initializeAppLogic() {
 
 // Expose necessary functions for admin.js (if still needed via global)
 // Consider refactoring admin.js to use imports if possible
+// *** چاککراو: collection زیادکرا، هەروەها فانکشنەکانی UIش ***
 Object.assign(window.globalAdminTools, {
     // Keep essential Firestore/Auth refs if admin.js needs direct access
-    db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
+    db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
+    collection: firestoreCollection, // *** لێرە زیادی بکە ***
     productsCollection, categoriesCollection, announcementsCollection, promoCardsCollection, brandsCollection,
     // Add data/logic functions needed by admin.js
-    searchProductsInFirestore, // Example
-    fetchCategories, // Example
-    fetchSubcategories, // Example
-     fetchSubSubcategories, // Example
+    searchProductsInFirestore,
+    fetchCategories,
+    fetchSubcategories,
+    fetchSubSubcategories,
     clearProductCache: () => {
          console.log("Product cache and home page cleared due to admin action.");
          state.productCache = {};
          // Call UI function to clear home container
-         // clearHomePageContainer(); // Define in ui-logic.js
+          clearHomePageContainer(); // Defined in ui-logic.js
      },
     setEditingProductId: (id) => { state.editingProductId = id; },
     getEditingProductId: () => state.editingProductId,
     getCategories: () => state.categories,
-     getCurrentLanguage: () => state.currentLanguage
+    getCurrentLanguage: () => state.currentLanguage,
+     // Add UI functions needed by admin.js that are now in ui-logic.js
+     showNotification, // *** زیادکرا ***
+     t,             // *** زیادکرا ***
+     openPopup,     // *** زیادکرا ***
+     closeCurrentPopup // *** زیادکرا ***
 });
 
 // Start initialization on DOMContentLoaded
