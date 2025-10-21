@@ -32,6 +32,8 @@ window.globalAdminTools = {};
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
+export const promoCardsCollection = collection(db, "promo_cards"); // Needed for old logic if any
+export const brandsCollection = collection(db, "brands"); // Needed for old logic if any
 // ====== کۆدی زیادکراو بۆ چارەسەرکردنی کێشە ======
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
@@ -382,3 +384,4 @@ export const policiesForm = document.getElementById('policiesForm');
 export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
 export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
 export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
+
