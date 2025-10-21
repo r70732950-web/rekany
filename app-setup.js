@@ -32,8 +32,10 @@ window.globalAdminTools = {};
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
-export const promoCardsCollection = collection(db, "promo_cards");
-export const brandsCollection = collection(db, "brands");
+// ====== کۆدی زیادکراو بۆ چارەسەرکردنی کێشە ======
+export const promoGroupsCollection = collection(db, "promo_groups");
+export const brandGroupsCollection = collection(db, "brand_groups");
+// ===============================================
 
 // Translations Export
 export const translations = {
