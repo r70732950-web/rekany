@@ -1,4 +1,4 @@
-// BEŞÊ DUYEM: app-logic.js (کۆدی تەواو و نوێکراوە بۆ چارەسەرکردنی کێشەی دیزاین)
+// BEŞÊ DUYEM: app-logic.js
 // Fonksiyon û mentiqê serekî yê bernameyê
 
 import {
@@ -177,14 +177,14 @@ window.addEventListener('popstate', async (event) => { // Guhertin bo async
             let pageTitle = popState.title;
             // Eger ew rûpela jêr-kategoriyê be û sernav tune be, ji nû ve bistîne
             if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
-                 try {
-                    const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
-                    const subCatSnap = await getDoc(subCatRef);
-                    if (subCatSnap.exists()) {
-                        const subCat = subCatSnap.data();
-                        pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
-                    }
-                } catch(e) { console.error("Could not refetch title on popstate", e) }
+               try {
+                  const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
+                  const subCatSnap = await getDoc(subCatRef);
+                  if (subCatSnap.exists()) {
+                      const subCat = subCatSnap.data();
+                      pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
+                  }
+               } catch(e) { console.error("Could not refetch title on popstate", e) }
             }
             showPage(popState.id, pageTitle);
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
@@ -2246,8 +2246,11 @@ Object.assign(window.globalAdminTools, {
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
     productsCollection, categoriesCollection, announcementsCollection, 
     promoGroupsCollection, brandGroupsCollection, // Added new collections
-    setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage,
-    clearProductCache
+    setEditingProductId: (id) => { state.editingProductId = id; },
+    getEditingProductId: () => state.editingProductId,
+    getCategories: () => state.categories,
+    getCurrentLanguage: () => state.currentLanguage,
+    clearProductCache: () => { state.productCache = {}; }
 });
 
 document.addEventListener('DOMContentLoaded', init);
@@ -2292,14 +2295,3 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
-```
-
-ئێستا لۆجیکی پیشاندانی پەڕەی سەرەکی بە تەواوی پشتگیری لە سیستەمی گرووپەکان و ئاستی جۆرەکان دەکات.
-
-تکایە ئاگاداربە کە پێویستە گۆڕانکارییەک لە فایلی `app-setup.js` بکەیت بۆ زیادکردنی ئەم دوو دێڕە، تاکو کۆدەکە بێ کێشە کار بکات:
-
-```javascript
-// ... (لەسەرەوەی کۆدەکانی تر)
-export const promoGroupsCollection = collection(db, "promo_groups");
-export const brandGroupsCollection = collection(db, "brand_groups");
-// ... (کۆدەکانی تری ناو app-setup.js)
