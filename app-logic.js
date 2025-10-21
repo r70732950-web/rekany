@@ -134,16 +134,37 @@ async function applyFilterState(filterState, fromPopState = false) {
     clearSearchBtn.style.display = state.currentSearch ? 'block' : 'none';
 
     renderMainCategories();
-    await renderSubcategories(state.currentCategory);
+    
+    // --- Destpêka Guhertinê ---
+    const isMainCategorySelectedOnly = state.currentCategory !== 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all' && !state.currentSearch;
 
-    await searchProductsInFirestore(state.currentSearch, true);
+    // Paqijkirina konteyniran
+    homePageSectionsContainer.style.display = 'none'; // Veşartina beşên rûpela serekî
+    productsContainer.style.display = 'block'; // Piştraskirina ku qada gridê xuya ye
+    document.getElementById('subcategoriesContainer').innerHTML = ''; // Paqijkirina cîhê jêr-kategoriyan ê normal
+    document.getElementById('subcategoriesContainer').style.display = 'none'; // Veşartina wê
+
+    if (isMainCategorySelectedOnly) {
+        // Rêzika nû: Pêşî rêzên asoyî yên jêr-kategoriyan, paşê grida giştî
+        await renderMainCategorySpecificLayout(state.currentCategory);
+    } else {
+        // Rêzika kevn: Tenê grida fîlterkirî nîşan bide
+        if (state.currentCategory === 'all' && !state.currentSearch) {
+             await renderHomePageContent();
+        } else {
+            await searchProductsInFirestore(state.currentSearch, true); 
+        }
+    }
+    // --- Dawiya Guhertinê ---
+
 
     if (fromPopState && typeof filterState.scroll === 'number') {
-        setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
-    } else if (!fromPopState) {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+       setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
+    } else if (!fromPopState && !isMainCategorySelectedOnly) { // Ji bo layouta nû scroll neke jor
+       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
+
 
 async function navigateToFilter(newState) {
     history.replaceState({
@@ -279,12 +300,8 @@ function setLanguage(lang) {
         homeContainer.innerHTML = '';
     }
 
-    const isHomeView = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-    if (isHomeView) {
-        renderHomePageContent();
-    } else {
-        renderProducts();
-    }
+    const currentState = history.state || {};
+    applyFilterState(currentState);
 
     renderMainCategories();
     renderCategoriesSheet();
@@ -527,11 +544,6 @@ function renderCategoriesSheet() {
     });
 }
 
-async function renderSubSubcategories(mainCatId, subCatId) {
-    // This function is no longer needed on the main page.
-    subSubcategoriesContainer.innerHTML = '';
-}
-
 async function showSubcategoryDetailPage(mainCatId, subCatId, fromHistory = false) {
     let subCatName = '';
     try {
@@ -551,12 +563,12 @@ async function showSubcategoryDetailPage(mainCatId, subCatId, fromHistory = fals
     }
     showPage('subcategoryDetailPage', subCatName);
 
-    const loader = document.getElementById('detailPageLoader');
-    const productsContainer = document.getElementById('productsContainerOnDetailPage');
+    const loaderEl = document.getElementById('detailPageLoader');
+    const productsContainerEl = document.getElementById('productsContainerOnDetailPage');
     const subSubContainer = document.getElementById('subSubCategoryContainerOnDetailPage');
 
-    loader.style.display = 'block';
-    productsContainer.innerHTML = '';
+    loaderEl.style.display = 'block';
+    productsContainerEl.innerHTML = '';
     subSubContainer.innerHTML = '';
 
     document.getElementById('subpageSearchInput').value = '';
@@ -565,7 +577,7 @@ async function showSubcategoryDetailPage(mainCatId, subCatId, fromHistory = fals
     await renderSubSubcategoriesOnDetailPage(mainCatId, subCatId);
     await renderProductsOnDetailPage(subCatId, 'all', '');
 
-    loader.style.display = 'none';
+    loaderEl.style.display = 'none';
 }
 
 async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
@@ -622,14 +634,11 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
     }
 }
 
-// =======================================================
-// == ** THE FIX IS HERE / چارەسەری لێرەیە ** ==
-// =======================================================
 async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchTerm = '') {
-    const productsContainer = document.getElementById('productsContainerOnDetailPage');
-    const loader = document.getElementById('detailPageLoader');
-    loader.style.display = 'block';
-    productsContainer.innerHTML = '';
+    const productsContainerEl = document.getElementById('productsContainerOnDetailPage');
+    const loaderEl = document.getElementById('detailPageLoader');
+    loaderEl.style.display = 'block';
+    productsContainerEl.innerHTML = '';
 
     try {
         let productsQuery;
@@ -645,90 +654,105 @@ async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchT
                 where('searchableName', '>=', finalSearchTerm),
                 where('searchableName', '<=', finalSearchTerm + '\uf8ff')
             );
-            // If searching, first orderBy must match inequality field
-            // ئەگەر گەڕان هەبوو، سەرەتا بەپێی 'searchableName' ڕیز بکە
             productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
         } else {
-            // If not searching, use the original orderBy
-            // ئەگەر گەڕان نەبوو، بەپێی 'createdAt' ڕیز بکە
             productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         }
 
         const productSnapshot = await getDocs(productsQuery);
         
         if (productSnapshot.empty) {
-            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+            productsContainerEl.innerHTML = '<p style="text-align:center; padding: 20px;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         } else {
             productSnapshot.forEach(doc => {
                 const product = { id: doc.id, ...doc.data() };
                 const card = createProductCardElement(product);
-                productsContainer.appendChild(card);
+                productsContainerEl.appendChild(card);
             });
         }
     } catch (error) {
         console.error(`Error fetching products for detail page (subCatId: ${subCatId}, subSubCatId: ${subSubCatId}, searchTerm: "${searchTerm}"):`, error);
-        productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هەڵەیەک ڕوویدا.</p>';
+        productsContainerEl.innerHTML = '<p style="text-align:center; padding: 20px;">هەڵەیەک ڕوویدا.</p>';
     } finally {
-        loader.style.display = 'none';
+        loaderEl.style.display = 'none';
     }
 }
 
-
-async function renderSubcategories(categoryId) {
-    const subcategoriesContainer = document.getElementById('subcategoriesContainer');
-    subcategoriesContainer.innerHTML = '';
-
-    if (categoryId === 'all') {
-        return;
-    }
+async function renderMainCategorySpecificLayout(categoryId) {
+    console.log(`Rendering specific layout for main category: ${categoryId}`);
+    const mainContainer = productsContainer; // Use the main products container
+    renderSkeletonLoader(mainContainer, 8);
 
     try {
+        // 1. Fetch subcategories
         const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
         const q = query(subcategoriesQuery, orderBy("order", "asc"));
-        const querySnapshot = await getDocs(q);
+        const subcategoriesSnapshot = await getDocs(q);
+        const subcategories = subcategoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        state.subcategories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        mainContainer.innerHTML = ''; // Clear skeleton loader
 
-        if (state.subcategories.length === 0) return;
+        // 2. For each subcategory, create a horizontal row
+        for (const subcat of subcategories) {
+            const productsQuery = query(
+                productsCollection,
+                where("subcategoryId", "==", subcat.id),
+                orderBy("createdAt", "desc"),
+                limit(10) // Fetch only first 10 products
+            );
+            const productsSnapshot = await getDocs(productsQuery);
 
-        const allBtn = document.createElement('button');
-        allBtn.className = `subcategory-btn ${state.currentSubcategory === 'all' ? 'active' : ''}`;
-        const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
-        allBtn.innerHTML = `
-            <div class="subcategory-image">${allIconSvg}</div>
-            <span>${t('all_categories_label')}</span>
-        `;
-        allBtn.onclick = async () => {
-            await navigateToFilter({
-                subcategory: 'all',
-                subSubcategory: 'all'
-            });
-        };
-        subcategoriesContainer.appendChild(allBtn);
+            if (!productsSnapshot.empty) {
+                const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
+                let productsHTML = '';
+                productsSnapshot.forEach(doc => {
+                    const product = { id: doc.id, ...doc.data() };
+                    const cardElement = createProductCardElement(product);
+                    productsHTML += cardElement.outerHTML;
+                });
 
-        state.subcategories.forEach(subcat => {
-            const subcatBtn = document.createElement('button');
-            subcatBtn.className = `subcategory-btn ${state.currentSubcategory === subcat.id ? 'active' : ''}`;
+                const seeAllOnClick = `window.globalAdminTools.showSubcategoryDetailPageWrapper('${categoryId}', '${subcat.id}')`;
 
-            const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
-            const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-            const imageUrl = subcat.imageUrl || placeholderImg;
+                const sectionHTML = `
+                    <div class="dynamic-section">
+                        <div class="section-title-header">
+                            <h3 class="section-title-main">${subcatName}</h3>
+                            <a class="see-all-link" onclick="${seeAllOnClick}">${t('see_all')}</a>
+                        </div>
+                        <div class="horizontal-products-container">
+                            ${productsHTML}
+                        </div>
+                    </div>`;
+                mainContainer.innerHTML += sectionHTML;
+            }
+        }
 
-            subcatBtn.innerHTML = `
-                <img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
-                <span>${subcatName}</span>
-            `;
+        // 3. Add container for the main grid of all products
+        const gridTitle = document.createElement('h3');
+        gridTitle.className = 'section-title-main';
+        gridTitle.style.padding = '16px 12px 12px 12px';
+        gridTitle.textContent = t('all_products_section_title');
+        mainContainer.appendChild(gridTitle);
+        
+        const mainGridContainer = document.createElement('div');
+        mainGridContainer.id = 'mainCategoryGridContainer';
+        mainGridContainer.className = 'products-container';
+        mainContainer.appendChild(mainGridContainer);
 
-            subcatBtn.onclick = () => {
-                showSubcategoryDetailPage(categoryId, subcat.id);
-            };
-            subcategoriesContainer.appendChild(subcatBtn);
-        });
+        // 4. Start loading the first page of the main grid
+        state.lastVisibleProductDoc = null;
+        state.allProductsLoaded = false;
+        await searchProductsInFirestore(state.currentSearch, true); // This will now call the grid renderer
 
     } catch (error) {
-        console.error("Error fetching subcategories: ", error);
+        console.error("Error rendering main category specific layout:", error);
+        mainContainer.innerHTML = '<p style="text-align:center;">Error loading products.</p>';
     }
 }
+
+window.globalAdminTools.showSubcategoryDetailPageWrapper = (mainCatId, subCatId) => {
+    showSubcategoryDetailPage(mainCatId, subCatId);
+};
 
 function renderMainCategories() {
     const container = document.getElementById('mainCategoriesContainer');
@@ -1119,8 +1143,11 @@ function renderSkeletonLoader(container = skeletonLoader, count = 8) {
     }
 }
 
-function renderProducts() {
-    productsContainer.innerHTML = '';
+function renderProducts(targetContainerId = 'productsContainer') {
+    const container = document.getElementById(targetContainerId);
+    if (!container) return;
+
+    container.innerHTML = '';
     if (!state.products || state.products.length === 0) {
         return;
     }
@@ -1133,7 +1160,7 @@ function renderProducts() {
             element = createProductCardElement(item);
         }
         element.classList.add('product-card-reveal');
-        productsContainer.appendChild(element);
+        container.appendChild(element);
     });
 
     setupScrollAnimations();
@@ -1383,6 +1410,9 @@ async function renderHomePageContent() {
     state.isRenderingHomePage = true;
 
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
+    homeSectionsContainer.style.display = 'block';
+    productsContainer.style.display = 'none';
+    document.getElementById('scroll-loader-trigger').style.display = 'none';
 
     try {
         renderSkeletonLoader(homeSectionsContainer, 4);
@@ -1459,12 +1489,16 @@ async function renderPromoCardsSectionForHome() {
     return null;
 }
 
-async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
+async function searchProductsInFirestore(searchTerm = '', isNewSearch = false, specificCategoryId = null) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
-    const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
+    const isMainCategoryLayout = !!document.getElementById('mainCategoryGridContainer');
+    const targetContainerId = isMainCategoryLayout ? 'mainCategoryGridContainer' : 'productsContainer';
+    const targetContainer = document.getElementById(targetContainerId);
 
-    if (shouldShowHomeSections) {
+    const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all';
+
+    if (shouldShowHomeSections && !isMainCategoryLayout) {
         productsContainer.style.display = 'none';
         skeletonLoader.style.display = 'none';
         scrollTrigger.style.display = 'none';
@@ -1480,28 +1514,13 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         homeSectionsContainer.style.display = 'none';
     }
 
-    const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
-    if (isNewSearch && state.productCache[cacheKey]) {
-        state.products = state.productCache[cacheKey].products;
-        state.lastVisibleProductDoc = state.productCache[cacheKey].lastVisible;
-        state.allProductsLoaded = state.productCache[cacheKey].allLoaded;
-
-        skeletonLoader.style.display = 'none';
-        loader.style.display = 'none';
-        productsContainer.style.display = 'grid';
-
-        renderProducts();
-        scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
-        return;
-    }
-
     if (state.isLoadingMoreProducts) return;
 
     if (isNewSearch) {
         state.allProductsLoaded = false;
         state.lastVisibleProductDoc = null;
         state.products = [];
-        renderSkeletonLoader();
+        if (targetContainer) renderSkeletonLoader(targetContainer);
     }
 
     if (state.allProductsLoaded && !isNewSearch) return;
@@ -1511,15 +1530,20 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
 
     try {
         let productsQuery = collection(db, "products");
+        
+        const categoryIdToQuery = specificCategoryId || (state.currentCategory !== 'all' ? state.currentCategory : null);
 
-        if (state.currentCategory && state.currentCategory !== 'all') {
-            productsQuery = query(productsQuery, where("categoryId", "==", state.currentCategory));
+        if (categoryIdToQuery) {
+            productsQuery = query(productsQuery, where("categoryId", "==", categoryIdToQuery));
         }
-        if (state.currentSubcategory && state.currentSubcategory !== 'all') {
-            productsQuery = query(productsQuery, where("subcategoryId", "==", state.currentSubcategory));
-        }
-        if (state.currentSubSubcategory && state.currentSubSubcategory !== 'all') {
-            productsQuery = query(productsQuery, where("subSubcategoryId", "==", state.currentSubSubcategory));
+
+        if (!specificCategoryId) { // Don't apply sub-filters when rendering main category grid
+            if (state.currentSubcategory && state.currentSubcategory !== 'all') {
+                productsQuery = query(productsQuery, where("subcategoryId", "==", state.currentSubcategory));
+            }
+            if (state.currentSubSubcategory && state.currentSubSubcategory !== 'all') {
+                productsQuery = query(productsQuery, where("subSubcategoryId", "==", state.currentSubSubcategory));
+            }
         }
 
         const finalSearchTerm = searchTerm.trim().toLowerCase();
@@ -1547,9 +1571,20 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
 
         if (isNewSearch) {
             state.products = newProducts;
+            if(targetContainer) targetContainer.innerHTML = '';
         } else {
             state.products = [...state.products, ...newProducts];
         }
+
+        if(targetContainer){
+            newProducts.forEach(product => {
+                const card = createProductCardElement(product);
+                card.classList.add('product-card-reveal');
+                targetContainer.appendChild(card);
+            });
+        }
+        
+        setupScrollAnimations();
 
         if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
             state.allProductsLoaded = true;
@@ -1561,30 +1596,22 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
 
         state.lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
 
-        if (isNewSearch) {
-            state.productCache[cacheKey] = {
-                products: state.products,
-                lastVisible: state.lastVisibleProductDoc,
-                allLoaded: state.allProductsLoaded
-            };
-        }
-
-        renderProducts();
-
-        if (state.products.length === 0 && isNewSearch) {
-            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+        if (state.products.length === 0 && isNewSearch && targetContainer) {
+            targetContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         }
 
     } catch (error) {
         console.error("Error fetching content:", error);
-        productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
+        if(targetContainer) targetContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
     } finally {
         state.isLoadingMoreProducts = false;
         loader.style.display = 'none';
         skeletonLoader.style.display = 'none';
-        productsContainer.style.display = 'grid';
+        if(targetContainer) targetContainer.style.display = 'grid';
+        if(!isMainCategoryLayout && !shouldShowHomeSections) productsContainer.style.display = 'grid';
     }
 }
+
 
 function addToCart(productId) {
     const allFetchedProducts = [...state.products];
@@ -1940,8 +1967,11 @@ function setupScrollObserver() {
     if (!trigger) return;
 
     const observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) {
-            searchProductsInFirestore(state.currentSearch, false);
+        if (entries[0].isIntersecting && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
+            console.log("Scroll trigger intersected, loading more products...");
+            const isMainCategoryLayout = !!document.getElementById('mainCategoryGridContainer');
+            const categoryIdForPagination = isMainCategoryLayout ? state.currentCategory : null;
+            searchProductsInFirestore(state.currentSearch, false, categoryIdForPagination);
         }
     }, {
         root: null,
@@ -1950,6 +1980,7 @@ function setupScrollObserver() {
 
     observer.observe(trigger);
 }
+
 
 function updateCategoryDependentUI() {
     if (state.categories.length === 0) return;
