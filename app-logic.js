@@ -1,5 +1,5 @@
 // BEŞÊ DUYEM: app-logic.js
-// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی ونبوونی سکڕۆڵ)
+// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo başkirina گەڕانەوەی پەڕەی سەرەکی)
 
 import {
     db, auth, messaging,
@@ -38,9 +38,18 @@ function saveCurrentScrollPosition() {
     const currentState = history.state;
     // Only save scroll position for the main page filter state
     if (document.getElementById('mainPage').classList.contains('page-active') && currentState && !currentState.type) {
-        history.replaceState({ ...currentState, scroll: window.scrollY }, '');
+        // Debounce saving scroll position slightly to catch final position after scroll stops
+        debounce(() => {
+             // Re-check current state in case it changed during debounce
+             const latestState = history.state;
+              if (document.getElementById('mainPage').classList.contains('page-active') && latestState && !latestState.type) {
+                history.replaceState({ ...latestState, scroll: window.scrollY }, '');
+                // console.log("Saved scroll:", window.scrollY);
+              }
+        }, 100)();
     }
 }
+
 
 function updateHeaderView(pageId, title = '') {
     const mainHeader = document.querySelector('.main-header-content');
@@ -64,9 +73,11 @@ function showPage(pageId, pageTitle = '') {
         page.classList.toggle('page-hidden', !isActive);
     });
 
-    if (pageId !== 'mainPage') {
-        window.scrollTo(0, 0);
+    // Scroll to top only when navigating to a *different* page type
+    if (pageId !== 'mainPage' && !document.getElementById(pageId).classList.contains('page-active-previous')) {
+         window.scrollTo(0, 0);
     }
+    // Add a class to track previously active page if needed, maybe not necessary here.
 
     // Nûvekirina headerê li gorî rûpelê
     if (pageId === 'settingsPage') {
@@ -92,14 +103,15 @@ function closeAllPopupsUI() {
 }
 
 function openPopup(id, type = 'sheet') {
-    saveCurrentScrollPosition();
+    saveCurrentScrollPosition(); // Save scroll *before* opening popup
     const element = document.getElementById(id);
     if (!element) return;
 
-    closeAllPopupsUI();
+    closeAllPopupsUI(); // Close any other popups first
     if (type === 'sheet') {
         sheetOverlay.classList.add('show');
         element.classList.add('show');
+        // Lazy load content for sheets if needed
         if (id === 'cartSheet') renderCart();
         if (id === 'favoritesSheet') renderFavoritesPage();
         if (id === 'categoriesSheet') renderCategoriesSheet();
@@ -110,14 +122,15 @@ function openPopup(id, type = 'sheet') {
             document.getElementById('profileAddress').value = state.userProfile.address || '';
             document.getElementById('profilePhone').value = state.userProfile.phone || '';
         }
-    } else {
+    } else { // Modal
         element.style.display = 'block';
     }
-    document.body.classList.add('overlay-active');
-    history.pushState({ type: type, id: id }, '', `#${id}`);
+    document.body.classList.add('overlay-active'); // Prevent body scroll
+    history.pushState({ type: type, id: id }, '', `#${id}`); // Add popup state to history
 }
 
 function closeCurrentPopup() {
+    // Go back in history if the current state is a popup, otherwise close all
     if (history.state && (history.state.type === 'sheet' || history.state.type === 'modal')) {
         history.back();
     } else {
@@ -125,66 +138,71 @@ function closeCurrentPopup() {
     }
 }
 
-// ** CHAKKIRÎ: Fonksiyon hate guhertin da ku scrollToCheck bişîne searchProductsInFirestore **
+// Apply filter state (called by navigateToFilter and popstate)
 async function applyFilterState(filterState, fromPopState = false) {
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
     state.currentSubSubcategory = filterState.subSubcategory || 'all';
     state.currentSearch = filterState.search || '';
 
+    // Update search input UI
     searchInput.value = state.currentSearch;
     clearSearchBtn.style.display = state.currentSearch ? 'block' : 'none';
 
-    // Render category UI first
+    // Render category UI elements
     renderMainCategories();
     await renderSubcategories(state.currentCategory); // Render subcategories based on the main category
 
-    // !! LÊZÊDEKIRÎ: Nirxa scrollê ya pêwîst destnîşan bike !!
+    // Determine the scroll position to restore (if coming from popstate)
     const scrollToCheck = (fromPopState && typeof filterState.scroll === 'number') ? filterState.scroll : null;
 
-    // Trigger product search/rendering, passing the scroll value
-    // !! CHAKKIRÎ: scrollToCheck wekî argument hate zêdekirin !!
-    await searchProductsInFirestore(state.currentSearch, true, scrollToCheck);
+    // Trigger product search/rendering, passing the potential scroll position
+    await searchProductsInFirestore(state.currentSearch, true, scrollToCheck); // isNewSearch = true to reset pagination etc.
 
-    // !! CHAKKIRÎ: Bloka if ji bo scrollTo hate rakirin/guhertin !!
-    // Scroll to top only for *new* filter actions, not when coming back via popstate
+    // Scroll to top only for *new* filter actions (not popstate)
     if (!fromPopState) {
          window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
-
+// Navigate to a new filter state (called by UI interactions)
 async function navigateToFilter(newState) {
+    // Save current scroll position before changing state
     history.replaceState({
         category: state.currentCategory,
         subcategory: state.currentSubcategory,
         subSubcategory: state.currentSubSubcategory,
         search: state.currentSearch,
-        scroll: window.scrollY // Save current scroll before navigating
+        scroll: window.scrollY
     }, '');
 
-    const finalState = { ...history.state, ...newState, scroll: 0 }; // New state scroll is 0 initially
+    // Prepare the new state object (merge new filters, reset scroll for new navigation)
+    const finalState = { ...history.state, ...newState, scroll: 0 };
 
+    // Update URL query parameters based on the new state
     const params = new URLSearchParams();
     if (finalState.category && finalState.category !== 'all') params.set('category', finalState.category);
     if (finalState.subcategory && finalState.subcategory !== 'all') params.set('subcategory', finalState.subcategory);
     if (finalState.subSubcategory && finalState.subSubcategory !== 'all') params.set('subSubcategory', finalState.subSubcategory);
     if (finalState.search) params.set('search', finalState.search);
-
     const newUrl = `${window.location.pathname}?${params.toString()}`;
 
-    history.pushState(finalState, '', newUrl); // Push the new filter state
+    // Push the new state onto the history stack
+    history.pushState(finalState, '', newUrl);
 
-    await applyFilterState(finalState, false); // Apply the new filter state (not from popstate)
+    // Apply the new filter state (not from popstate)
+    await applyFilterState(finalState, false);
 }
 
-window.addEventListener('popstate', async (event) => { // Guhertin bo async
-    closeAllPopupsUI();
+// Handle browser back/forward navigation
+window.addEventListener('popstate', async (event) => {
+    closeAllPopupsUI(); // Close any open popups when navigating history
     const popState = event.state;
     if (popState) {
-        if (popState.type === 'page') {
+        // Restore previous state based on type
+        if (popState.type === 'page') { // Navigating between page views (Main, Settings, Detail)
             let pageTitle = popState.title;
-            // Eger ew rûpela jêr-kategoriyê be û sernav tune be, ji nû ve bistîne
+            // Refetch title for detail page if missing (e.g., after reload)
             if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
                try {
                    const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
@@ -196,65 +214,65 @@ window.addEventListener('popstate', async (event) => { // Guhertin bo async
                } catch(e) { console.error("Could not refetch title on popstate", e) }
             }
             showPage(popState.id, pageTitle);
-        } else if (popState.type === 'sheet' || popState.type === 'modal') {
+        } else if (popState.type === 'sheet' || popState.type === 'modal') { // Opening a previously opened popup
             openPopup(popState.id, popState.type);
-        } else { // Filter state on main page
-            showPage('mainPage');
-            applyFilterState(popState, true); // Apply the popped state, indicating it's from history
+        } else { // Restoring a filter state on the main page
+            showPage('mainPage'); // Ensure main page is visible
+            applyFilterState(popState, true); // Apply the popped filter state, indicating it's from history
         }
-    } else { // No state, likely initial load or going back beyond app history
+    } else { // No state found (e.g., initial load, navigating beyond app history)
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
         showPage('mainPage');
         applyFilterState(defaultState); // Apply default state
     }
 });
 
+// Handle initial page load based on URL
 function handleInitialPageLoad() {
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(window.location.search);
 
+    // Determine initial page view based on hash
     const pageId = hash.startsWith('subcategory_') ? 'subcategoryDetailPage' : (hash === 'settingsPage' ? 'settingsPage' : 'mainPage');
 
     if (pageId === 'subcategoryDetailPage') {
-        const ids = hash.split('_');
-        const mainCatId = ids[1];
-        const subCatId = ids[2];
-        // The actual rendering will be triggered by onSnapshot in initializeAppLogic AFTER categories load
+        // Don't render yet, wait for categories in initializeAppLogic
     } else if (pageId === 'settingsPage') {
          history.replaceState({ type: 'page', id: pageId, title: t('settings_title') }, '', `#${hash}`);
          showPage(pageId, t('settings_title'));
     } else { // mainPage
         showPage('mainPage');
+        // Set initial filter state from URL params
         const initialState = {
             category: params.get('category') || 'all',
             subcategory: params.get('subcategory') || 'all',
             subSubcategory: params.get('subSubcategory') || 'all',
             search: params.get('search') || '',
-            scroll: 0 // Initial scroll is 0
+            scroll: 0 // Initial scroll is always 0
         };
         history.replaceState(initialState, ''); // Replace history, don't push
-        // Apply filter state will be called after categories load in initializeAppLogic
+        // applyFilterState will be called after categories load
     }
 
-    // Handle opening popups from hash, only if on main page initially
+    // Handle opening popups from hash on initial load (if on main page)
     const element = document.getElementById(hash);
     if (element && pageId === 'mainPage') {
         const isSheet = element.classList.contains('bottom-sheet');
         const isModal = element.classList.contains('modal');
         if (isSheet || isModal) {
-            // Delay slightly to ensure main page content is rendering
-            setTimeout(() => openPopup(hash, isSheet ? 'sheet' : 'modal'), 100);
+            // Delay slightly to ensure main page starts rendering
+            setTimeout(() => openPopup(hash, isSheet ? 'sheet' : 'modal'), 150);
         }
     }
 
     // Handle opening product detail from query param
     const productId = params.get('product');
     if (productId) {
-        setTimeout(() => showProductDetails(productId), 500); // Delay to allow initial rendering
+        setTimeout(() => showProductDetails(productId), 500); // Delay slightly
     }
 }
 
-
+// --- Utility Functions (t, setLanguage, forceUpdate, etc. - unchanged) ---
 function t(key, replacements = {}) {
     let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
     for (const placeholder in replacements) {
@@ -262,8 +280,7 @@ function t(key, replacements = {}) {
     }
     return translation;
 }
-
-function setLanguage(lang) {
+async function setLanguage(lang) {
     state.currentLanguage = lang;
     localStorage.setItem('language', lang);
 
@@ -295,24 +312,24 @@ function setLanguage(lang) {
     // Check current view and re-render appropriate content
     const isHomeView = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
     if (isHomeView) {
-        renderHomePageContent(); // Re-render home content
+        await renderHomePageContent(); // Use await here
     } else {
-        renderProducts(); // Re-render product list (assuming state.products is still correct)
+        renderProducts(); // Re-render product list
     }
 
     renderMainCategories(); // Update main category buttons
+    await renderSubcategories(state.currentCategory); // Update subcategories if needed
     renderCategoriesSheet(); // Update categories sheet
     if (document.getElementById('cartSheet').classList.contains('show')) renderCart(); // Update cart if open
     if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPage(); // Update favorites if open
-    // Admin dropdowns might also need updating if admin panel is visible
+    // Update admin UI if admin
     if (sessionStorage.getItem('isAdmin') === 'true' && window.AdminLogic) {
         window.AdminLogic.updateAdminCategoryDropdowns();
         window.AdminLogic.updateShortcutCardCategoryDropdowns();
     }
 }
 
-
-async function forceUpdate() {
+async function forceUpdate() { /* ... (unchanged) ... */
     if (confirm(t('update_confirm'))) {
         try {
             if ('serviceWorker' in navigator) {
@@ -341,13 +358,8 @@ async function forceUpdate() {
         }
     }
 }
-
-function updateContactLinksUI() {
-    // This function seems unused currently, might be for future use.
-    if (!state.contactInfo) return;
-}
-
-function updateActiveNav(activeBtnId) {
+function updateContactLinksUI() { /* ... (unchanged, seems unused) ... */ }
+function updateActiveNav(activeBtnId) { /* ... (unchanged) ... */
     document.querySelectorAll('.bottom-nav-item').forEach(btn => {
         btn.classList.remove('active');
     });
@@ -356,8 +368,7 @@ function updateActiveNav(activeBtnId) {
         activeBtn.classList.add('active');
     }
 }
-
-function formatDescription(text) {
+function formatDescription(text) { /* ... (unchanged) ... */
     if (!text) return '';
     let escapedText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
@@ -367,8 +378,7 @@ function formatDescription(text) {
     });
     return textWithLinks.replace(/\n/g, '<br>');
 }
-
-async function requestNotificationPermission() {
+async function requestNotificationPermission() { /* ... (unchanged) ... */
     console.log('Requesting notification permission...');
     try {
         const permission = await Notification.requestPermission();
@@ -393,11 +403,9 @@ async function requestNotificationPermission() {
         console.error('An error occurred while requesting permission: ', error);
     }
 }
-
-async function saveTokenToFirestore(token) {
+async function saveTokenToFirestore(token) { /* ... (unchanged) ... */
     try {
         const tokensCollection = collection(db, 'device_tokens');
-        // Use the token itself as the document ID to prevent duplicates
         await setDoc(doc(tokensCollection, token), {
             createdAt: Date.now()
         });
@@ -407,15 +415,11 @@ async function saveTokenToFirestore(token) {
     }
 }
 
-function saveFavorites() {
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify(state.favorites));
-}
 
-function isFavorite(productId) {
-    return state.favorites.includes(productId);
-}
-
-function toggleFavorite(productId, event) {
+// --- Favorites Functions (unchanged) ---
+function saveFavorites() { localStorage.setItem(FAVORITES_KEY, JSON.stringify(state.favorites)); }
+function isFavorite(productId) { return state.favorites.includes(productId); }
+function toggleFavorite(productId, event) { /* ... (unchanged) ... */
     if(event) event.stopPropagation(); // Prevent card click
 
     const isCurrentlyFavorite = isFavorite(productId);
@@ -447,9 +451,7 @@ function toggleFavorite(productId, event) {
         renderFavoritesPage();
     }
 }
-
-
-async function renderFavoritesPage() {
+async function renderFavoritesPage() { /* ... (unchanged) ... */
     favoritesContainer.innerHTML = ''; // Clear previous content
 
     if (state.favorites.length === 0) {
@@ -490,86 +492,64 @@ async function renderFavoritesPage() {
     }
 }
 
-
-function saveCart() {
-    localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
-    updateCartCount();
-}
-
-function updateCartCount() {
+// --- Cart Functions (unchanged) ---
+function saveCart() { localStorage.setItem(CART_KEY, JSON.stringify(state.cart)); updateCartCount(); }
+function updateCartCount() { /* ... (unchanged) ... */
     const totalItems = state.cart.reduce((total, item) => total + item.quantity, 0);
     document.querySelectorAll('.cart-count').forEach(el => { el.textContent = totalItems; });
 }
-
-function showNotification(message, type = 'success') {
+function showNotification(message, type = 'success') { /* ... (unchanged) ... */
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     notification.textContent = message;
     document.body.appendChild(notification);
-    // Trigger animation
     setTimeout(() => notification.classList.add('show'), 10);
-    // Remove after duration
     setTimeout(() => {
         notification.classList.remove('show');
-        // Remove from DOM after transition
         setTimeout(() => document.body.removeChild(notification), 300);
     }, 3000);
 }
-
-function populateCategoryDropdown() {
-    // Populate the dropdown in the 'Add/Edit Product' modal
+function populateCategoryDropdown() { /* ... (unchanged) ... */
     productCategorySelect.innerHTML = '<option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>'; // Default option
     const categoriesWithoutAll = state.categories.filter(cat => cat.id !== 'all'); // Exclude 'All'
     categoriesWithoutAll.forEach(cat => {
         const option = document.createElement('option');
         option.value = cat.id;
-        // Use name in current language, fallback to Sorani
         option.textContent = cat['name_' + state.currentLanguage] || cat.name_ku_sorani;
         productCategorySelect.appendChild(option);
     });
 }
-
-function renderCategoriesSheet() {
-    // Render the category list in the bottom sheet popup
+function renderCategoriesSheet() { /* ... (unchanged) ... */
     sheetCategoriesContainer.innerHTML = '';
     state.categories.forEach(cat => {
         const btn = document.createElement('button');
         btn.className = 'sheet-category-btn';
         btn.dataset.category = cat.id;
-        // Highlight the currently active category
         if (state.currentCategory === cat.id) { btn.classList.add('active'); }
 
         const categoryName = cat.id === 'all'
-            ? t('all_categories_label') // Translate 'All'
-            : (cat['name_' + state.currentLanguage] || cat.name_ku_sorani); // Use current lang name
+            ? t('all_categories_label')
+            : (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
 
         btn.innerHTML = `<i class="${cat.icon}"></i> ${categoryName}`;
 
         btn.onclick = async () => {
-             // Navigate to the selected category filter
              await navigateToFilter({
                  category: cat.id,
-                 subcategory: 'all', // Reset subcategory when main category changes
-                 subSubcategory: 'all', // Reset sub-subcategory
-                 search: '' // Clear search
+                 subcategory: 'all',
+                 subSubcategory: 'all',
+                 search: ''
              });
-             closeCurrentPopup(); // Close the sheet after selection
-             showPage('mainPage'); // Ensure main page is shown
+             closeCurrentPopup();
+             showPage('mainPage');
         };
 
         sheetCategoriesContainer.appendChild(btn);
     });
 }
-
-// This function is no longer needed on the main page, handled by detail page logic.
-// async function renderSubSubcategories(mainCatId, subCatId) {
-//     subSubcategoriesContainer.innerHTML = '';
-// }
-
-async function showSubcategoryDetailPage(mainCatId, subCatId, fromHistory = false) {
+async function showSubcategoryDetailPage(mainCatId, subCatId, fromHistory = false) { /* ... (unchanged) ... */
     let subCatName = 'Details'; // Default title
     try {
-        // Fetch the subcategory name for the header title
         const subCatRef = doc(db, "categories", mainCatId, "subcategories", subCatId);
         const subCatSnap = await getDoc(subCatRef);
         if (subCatSnap.exists()) {
@@ -580,7 +560,6 @@ async function showSubcategoryDetailPage(mainCatId, subCatId, fromHistory = fals
         console.error("Could not fetch subcategory name:", e);
     }
 
-    // Push state only if navigating forward, not when coming back from history
     if (!fromHistory) {
         history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
     }
@@ -590,23 +569,19 @@ async function showSubcategoryDetailPage(mainCatId, subCatId, fromHistory = fals
     const productsContainerDetail = document.getElementById('productsContainerOnDetailPage');
     const subSubContainer = document.getElementById('subSubCategoryContainerOnDetailPage');
 
-    // Show loader and clear previous content
     loader.style.display = 'block';
     productsContainerDetail.innerHTML = '';
     subSubContainer.innerHTML = '';
 
-    // Clear the search input specific to this page
     document.getElementById('subpageSearchInput').value = '';
     document.getElementById('subpageClearSearchBtn').style.display = 'none';
 
-    // Render the sub-subcategories and products for this subcategory
     await renderSubSubcategoriesOnDetailPage(mainCatId, subCatId);
     await renderProductsOnDetailPage(subCatId, 'all', ''); // Initially show all products for this subcategory
 
     loader.style.display = 'none'; // Hide loader after content is loaded
 }
-
-async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
+async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) { /* ... (unchanged) ... */
     const container = document.getElementById('subSubCategoryContainerOnDetailPage');
     container.innerHTML = ''; // Clear previous
 
@@ -615,7 +590,6 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
         const q = query(ref, orderBy("order", "asc"));
         const snapshot = await getDocs(q);
 
-        // If no sub-subcategories exist, hide the container
         if (snapshot.empty) {
             container.style.display = 'none';
             return;
@@ -623,23 +597,19 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
 
         container.style.display = 'flex'; // Show the container
 
-        // Create and add the 'All' button
         const allBtn = document.createElement('button');
         allBtn.className = `subcategory-btn active`; // 'All' is active initially
         const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
         allBtn.innerHTML = `<div class="subcategory-image">${allIconSvg}</div><span>${t('all_categories_label')}</span>`;
         allBtn.dataset.id = 'all'; // Identifier for the 'All' button
         allBtn.onclick = () => {
-            // Deactivate other buttons, activate 'All'
             container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
             allBtn.classList.add('active');
             const currentSearch = document.getElementById('subpageSearchInput').value;
-            // Re-render products for the parent subcategory ('all' sub-sub)
             renderProductsOnDetailPage(subCatId, 'all', currentSearch);
         };
         container.appendChild(allBtn);
 
-        // Create buttons for each sub-subcategory
         snapshot.forEach(doc => {
             const subSubcat = { id: doc.id, ...doc.data() };
             const btn = document.createElement('button');
@@ -651,11 +621,9 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
             btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
 
             btn.onclick = () => {
-                // Deactivate other buttons, activate this one
                 container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 const currentSearch = document.getElementById('subpageSearchInput').value;
-                // Re-render products filtered by this sub-subcategory
                 renderProductsOnDetailPage(subCatId, subSubcat.id, currentSearch);
             };
             container.appendChild(btn);
@@ -666,8 +634,7 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
         container.style.display = 'none'; // Hide if error occurs
     }
 }
-
-async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchTerm = '') {
+async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchTerm = '') { /* ... (unchanged) ... */
     const productsContainerDetail = document.getElementById('productsContainerOnDetailPage');
     const loader = document.getElementById('detailPageLoader');
     loader.style.display = 'block'; // Show loader
@@ -675,24 +642,20 @@ async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchT
 
     try {
         let productsQuery;
-        // Base query: Filter by parent subcategory OR specific sub-subcategory
         if (subSubCatId === 'all') {
             productsQuery = query(productsCollection, where("subcategoryId", "==", subCatId));
         } else {
             productsQuery = query(productsCollection, where("subSubcategoryId", "==", subSubCatId));
         }
 
-        // Apply search term if provided
         const finalSearchTerm = searchTerm.trim().toLowerCase();
         if (finalSearchTerm) {
             productsQuery = query(productsQuery,
                 where('searchableName', '>=', finalSearchTerm),
                 where('searchableName', '<=', finalSearchTerm + '\uf8ff')
             );
-            // If searching, first orderBy must match inequality field
             productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
         } else {
-            // If not searching, order by creation date
             productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         }
 
@@ -714,13 +677,10 @@ async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchT
         loader.style.display = 'none'; // Hide loader
     }
 }
-
-
-async function renderSubcategories(categoryId) {
+async function renderSubcategories(categoryId) { /* ... (unchanged) ... */
     const subcategoriesContainer = document.getElementById('subcategoriesContainer');
     subcategoriesContainer.innerHTML = ''; // Clear previous
 
-    // Don't render subcategories if 'All' main categories is selected
     if (categoryId === 'all') {
         subcategoriesContainer.style.display = 'none'; // Hide the container
         return;
@@ -734,19 +694,16 @@ async function renderSubcategories(categoryId) {
 
         state.subcategories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // If no subcategories, hide the container
         if (state.subcategories.length === 0) {
             subcategoriesContainer.style.display = 'none';
             return;
         }
 
-        // Create 'All' button for subcategories (navigates to the subcategory detail page for the parent category)
         const allBtn = document.createElement('button');
         allBtn.className = `subcategory-btn ${state.currentSubcategory === 'all' ? 'active' : ''}`;
         const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
         allBtn.innerHTML = `<div class="subcategory-image">${allIconSvg}</div><span>${t('all_categories_label')}</span>`;
         allBtn.onclick = async () => {
-             // Navigate back to the parent category view on the main page
              await navigateToFilter({
                  subcategory: 'all',
                  subSubcategory: 'all'
@@ -754,7 +711,6 @@ async function renderSubcategories(categoryId) {
         };
         subcategoriesContainer.appendChild(allBtn);
 
-        // Create buttons for each subcategory
         state.subcategories.forEach(subcat => {
             const subcatBtn = document.createElement('button');
             subcatBtn.className = `subcategory-btn ${state.currentSubcategory === subcat.id ? 'active' : ''}`;
@@ -763,7 +719,6 @@ async function renderSubcategories(categoryId) {
             const imageUrl = subcat.imageUrl || placeholderImg;
             subcatBtn.innerHTML = `<img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subcatName}</span>`;
             subcatBtn.onclick = () => {
-                 // Navigate to the detail page for this subcategory
                  showSubcategoryDetailPage(categoryId, subcat.id);
             };
             subcategoriesContainer.appendChild(subcatBtn);
@@ -774,9 +729,7 @@ async function renderSubcategories(categoryId) {
         subcategoriesContainer.style.display = 'none'; // Hide if error
     }
 }
-
-
-function renderMainCategories() {
+function renderMainCategories() { /* ... (unchanged) ... */
     const container = document.getElementById('mainCategoriesContainer');
     if (!container) return;
     container.innerHTML = ''; // Clear previous
@@ -786,38 +739,34 @@ function renderMainCategories() {
         btn.className = 'main-category-btn';
         btn.dataset.category = cat.id;
 
-        // Highlight the active main category
         if (state.currentCategory === cat.id) {
             btn.classList.add('active');
         }
 
         const categoryName = cat.id === 'all'
-            ? t('all_categories_label') // Translate 'All'
-            : (cat['name_' + state.currentLanguage] || cat.name_ku_sorani); // Use current lang name
+            ? t('all_categories_label')
+            : (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
 
         btn.innerHTML = `<i class="${cat.icon}"></i> <span>${categoryName}</span>`;
 
         btn.onclick = async () => {
-             // Navigate to filter by this main category
              await navigateToFilter({
                  category: cat.id,
-                 subcategory: 'all', // Reset subcategory
-                 subSubcategory: 'all', // Reset sub-subcategory
-                 search: '' // Clear search
+                 subcategory: 'all',
+                 subSubcategory: 'all',
+                 search: ''
              });
         };
 
         container.appendChild(btn);
     });
 }
-
-function showProductDetails(productId) {
+function showProductDetails(productId) { /* ... (unchanged) ... */
     const allFetchedProducts = [...state.products]; // Combine initial and potentially loaded more products
     const product = allFetchedProducts.find(p => p.id === productId);
 
     if (!product) {
         console.log("Product not found locally. Fetching from Firestore...");
-        // Fetch from Firestore if not found locally
         getDoc(doc(db, "products", productId)).then(docSnap => {
             if (docSnap.exists()) {
                 const fetchedProduct = { id: docSnap.id, ...docSnap.data() };
@@ -830,22 +779,18 @@ function showProductDetails(productId) {
     }
     showProductDetailsWithData(product); // Show details with locally found data
 }
-
-
-async function renderRelatedProducts(currentProduct) {
+async function renderRelatedProducts(currentProduct) { /* ... (unchanged) ... */
     const section = document.getElementById('relatedProductsSection');
     const container = document.getElementById('relatedProductsContainer');
     container.innerHTML = ''; // Clear previous
     section.style.display = 'none'; // Hide initially
 
-    // Determine the most specific category to query by
     if (!currentProduct.subcategoryId && !currentProduct.categoryId) {
         return; // Cannot find related if no category info
     }
 
     let q;
     if (currentProduct.subSubcategoryId) {
-        // Query by sub-subcategory, excluding the current product
         q = query(
             productsCollection,
             where('subSubcategoryId', '==', currentProduct.subSubcategoryId),
@@ -853,7 +798,6 @@ async function renderRelatedProducts(currentProduct) {
             limit(6) // Limit results
         );
     } else if (currentProduct.subcategoryId) {
-        // Query by subcategory
         q = query(
             productsCollection,
             where('subcategoryId', '==', currentProduct.subcategoryId),
@@ -861,7 +805,6 @@ async function renderRelatedProducts(currentProduct) {
             limit(6)
         );
     } else {
-        // Query by main category
         q = query(
             productsCollection,
             where('categoryId', '==', currentProduct.categoryId),
@@ -877,7 +820,6 @@ async function renderRelatedProducts(currentProduct) {
             return; // Don't show the section if no related products
         }
 
-        // Render each related product
         snapshot.forEach(doc => {
             const product = { id: doc.id, ...doc.data() };
             const card = createProductCardElement(product);
@@ -890,19 +832,14 @@ async function renderRelatedProducts(currentProduct) {
         console.error("Error fetching related products:", error);
     }
 }
-
-
-function showProductDetailsWithData(product) {
-    // Scroll sheet content to top
+function showProductDetailsWithData(product) { /* ... (unchanged) ... */
     const sheetContent = document.querySelector('#productDetailSheet .sheet-content');
     if (sheetContent) {
         sheetContent.scrollTop = 0;
     }
 
-    // Get product name and description in the current language (fallback to Sorani)
     const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
     const descriptionText = (product.description && product.description[state.currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
-    // Get image URLs, handle older structure (single image field)
     const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
 
     const imageContainer = document.getElementById('sheetImageContainer');
@@ -910,17 +847,14 @@ function showProductDetailsWithData(product) {
     imageContainer.innerHTML = ''; // Clear previous images
     thumbnailContainer.innerHTML = ''; // Clear previous thumbnails
 
-    // Populate image slider and thumbnails
     if (imageUrls.length > 0) {
         imageUrls.forEach((url, index) => {
-            // Create main image element
             const img = document.createElement('img');
             img.src = url;
             img.alt = nameInCurrentLang;
             if (index === 0) img.classList.add('active'); // Activate first image
             imageContainer.appendChild(img);
 
-            // Create thumbnail element
             const thumb = document.createElement('img');
             thumb.src = url;
             thumb.alt = `Thumbnail of ${nameInCurrentLang}`;
@@ -931,7 +865,6 @@ function showProductDetailsWithData(product) {
         });
     }
 
-    // Setup slider controls
     let currentIndex = 0;
     const images = imageContainer.querySelectorAll('img');
     const thumbnails = thumbnailContainer.querySelectorAll('.thumbnail');
@@ -940,16 +873,13 @@ function showProductDetailsWithData(product) {
 
     function updateSlider(index) {
         if (!images[index] || !thumbnails[index]) return; // Boundary check
-        // Deactivate all images/thumbnails
         images.forEach(img => img.classList.remove('active'));
         thumbnails.forEach(thumb => thumb.classList.remove('active'));
-        // Activate the selected one
         images[index].classList.add('active');
         thumbnails[index].classList.add('active');
         currentIndex = index; // Update current index
     }
 
-    // Show/hide slider buttons based on image count
     if (imageUrls.length > 1) {
         prevBtn.style.display = 'flex';
         nextBtn.style.display = 'flex';
@@ -958,26 +888,20 @@ function showProductDetailsWithData(product) {
         nextBtn.style.display = 'none';
     }
 
-    // Add event listeners for slider controls
     prevBtn.onclick = () => updateSlider((currentIndex - 1 + images.length) % images.length); // Previous (wrap around)
     nextBtn.onclick = () => updateSlider((currentIndex + 1) % images.length); // Next (wrap around)
     thumbnails.forEach(thumb => thumb.onclick = () => updateSlider(parseInt(thumb.dataset.index))); // Click thumbnail
 
-    // Populate product details
     document.getElementById('sheetProductName').textContent = nameInCurrentLang;
     document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText); // Format description (links, line breaks)
 
-    // Populate price (handle discounts)
     const priceContainer = document.getElementById('sheetProductPrice');
     if (product.originalPrice && product.originalPrice > product.price) {
-        // Show discounted price and original price (strikethrough)
         priceContainer.innerHTML = `<span style="color: var(--accent-color);">${product.price.toLocaleString()} د.ع</span> <del style="color: var(--dark-gray); font-size: 16px; margin-right: 10px;">${product.originalPrice.toLocaleString()} د.ع</del>`;
     } else {
-        // Show regular price
         priceContainer.innerHTML = `<span>${product.price.toLocaleString()} د.ع</span>`;
     }
 
-    // Setup "Add to Cart" button
     const addToCartButton = document.getElementById('sheetAddToCartBtn');
     addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
     addToCartButton.onclick = () => {
@@ -985,15 +909,11 @@ function showProductDetailsWithData(product) {
         closeCurrentPopup(); // Close sheet after adding
     };
 
-    // Render related products based on the current product
     renderRelatedProducts(product);
 
-    // Open the product detail sheet
     openPopup('productDetailSheet');
 }
-
-// Function to create promo card element (now takes sliderState)
-function createPromoCardElement(cardData, sliderState) {
+function createPromoCardElement(cardData, sliderState) { /* ... (unchanged) ... */
     const cardElement = document.createElement('div');
     cardElement.className = 'product-card promo-card-grid-item';
     const currentCard = cardData.cards[sliderState.currentIndex];
@@ -1010,19 +930,16 @@ function createPromoCardElement(cardData, sliderState) {
     `;
 
     cardElement.addEventListener('click', async (e) => {
-        // Use currentCard from the closure
         if (!e.target.closest('button')) { // Ignore clicks on slider buttons
             const targetCategoryId = currentCard.categoryId;
             const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
             if (categoryExists) {
-                // Navigate to the linked category
                 await navigateToFilter({
                     category: targetCategoryId,
                     subcategory: 'all',
                     subSubcategory: 'all',
                     search: ''
                 });
-                // Optionally scroll to the category section
                 document.getElementById('mainCategoriesContainer')?.scrollIntoView({ behavior: 'smooth' });
             }
         }
@@ -1030,37 +947,34 @@ function createPromoCardElement(cardData, sliderState) {
 
     if (cardData.cards.length > 1) {
         cardElement.querySelector('.promo-slider-btn.prev').addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent card click
+            e.stopPropagation();
             sliderState.currentIndex = (sliderState.currentIndex - 1 + cardData.cards.length) % cardData.cards.length;
             const newImageUrl = cardData.cards[sliderState.currentIndex].imageUrls[state.currentLanguage] || cardData.cards[sliderState.currentIndex].imageUrls.ku_sorani;
             const imgElement = cardElement.querySelector('.product-image');
-            if(imgElement) imgElement.src = newImageUrl; // Update image source
+            if(imgElement) imgElement.src = newImageUrl;
         });
 
         cardElement.querySelector('.promo-slider-btn.next').addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent card click
+            e.stopPropagation();
             sliderState.currentIndex = (sliderState.currentIndex + 1) % cardData.cards.length;
             const newImageUrl = cardData.cards[sliderState.currentIndex].imageUrls[state.currentLanguage] || cardData.cards[sliderState.currentIndex].imageUrls.ku_sorani;
             const imgElement = cardElement.querySelector('.product-image');
-            if(imgElement) imgElement.src = newImageUrl; // Update image source
+            if(imgElement) imgElement.src = newImageUrl;
         });
     }
 
     return cardElement;
 }
-
-
-function createProductCardElement(product) {
+function createProductCardElement(product) { /* ... (unchanged) ... */
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
     productCard.dataset.productId = product.id;
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
 
-    // Get name and image, with fallbacks
+
     const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || 'https://placehold.co/300x300/e2e8f0/2d3748?text=No+Image');
 
-    // Prepare price and discount badge HTML
     let priceHTML = `<div class="product-price-container"><div class="product-price">${product.price.toLocaleString()} د.ع.</div></div>`;
     let discountBadgeHTML = '';
     const hasDiscount = product.originalPrice && product.originalPrice > product.price;
@@ -1071,9 +985,9 @@ function createProductCardElement(product) {
         discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
     }
 
-    // Prepare shipping info badge HTML
     let extraInfoHTML = '';
     const shippingText = product.shippingInfo && product.shippingInfo[state.currentLanguage] && product.shippingInfo[state.currentLanguage].trim();
+
     if (shippingText) {
         extraInfoHTML = `
             <div class="product-extra-info">
@@ -1084,12 +998,10 @@ function createProductCardElement(product) {
         `;
     }
 
-    // Prepare favorite button state
     const isProdFavorite = isFavorite(product.id);
-    const heartIconClass = isProdFavorite ? 'fas' : 'far'; // Solid or outline heart
+    const heartIconClass = isProdFavorite ? 'fas' : 'far';
     const favoriteBtnClass = isProdFavorite ? 'favorite-btn favorited' : 'favorite-btn';
 
-    // Construct the card HTML
     productCard.innerHTML = `
         <div class="product-image-container">
             <img src="${mainImage}" alt="${nameInCurrentLang}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
@@ -1116,9 +1028,8 @@ function createProductCardElement(product) {
         </div>
     `;
 
-    // Add event listener for the share button
     productCard.querySelector('.share-btn-card').addEventListener('click', async (event) => {
-        event.stopPropagation(); // Prevent card click
+        event.stopPropagation();
         const productUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
         const shareData = {
             title: nameInCurrentLang,
@@ -1127,73 +1038,63 @@ function createProductCardElement(product) {
         };
         try {
             if (navigator.share) {
-                await navigator.share(shareData); // Use Web Share API if available
+                await navigator.share(shareData);
             } else {
-                // Fallback: Copy URL to clipboard
-                const textArea = document.createElement('textarea');
-                textArea.value = productUrl;
-                document.body.appendChild(textArea);
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    showNotification('لينكى کاڵا کۆپى کرا!', 'success');
-                } catch (err) {
-                    showNotification('کۆپیکردن سەرکەوتوو نەبوو!', 'error');
-                }
-                document.body.removeChild(textArea);
+                 const textArea = document.createElement('textarea');
+                 textArea.value = productUrl;
+                 document.body.appendChild(textArea);
+                 textArea.select();
+                 try {
+                     document.execCommand('copy');
+                     showNotification('لينكى کاڵا کۆپى کرا!', 'success');
+                 } catch (err) {
+                     showNotification('کۆپیکردن سەرکەوتوو نەبوو!', 'error');
+                 }
+                 document.body.removeChild(textArea);
             }
         } catch (err) {
             console.error('Share error:', err);
-             if (err.name !== 'AbortError') { // Don't show error if user cancelled
+             if (err.name !== 'AbortError') { // Don't show error if user cancelled share
                  showNotification(t('share_error'), 'error');
              }
         }
     });
 
 
-    // Add event listener for the entire card (delegates actions)
     productCard.addEventListener('click', (event) => {
         const target = event.target;
         const addToCartButton = target.closest('.add-to-cart-btn-card');
-        const isAdminNow = sessionStorage.getItem('isAdmin') === 'true'; // Check current admin status
+        const isAdminNow = sessionStorage.getItem('isAdmin') === 'true';
 
         if (addToCartButton) {
-            // Handle add to cart with feedback animation
             addToCart(product.id);
-            if (!addToCartButton.disabled) { // Prevent multiple clicks during animation
+            if (!addToCartButton.disabled) {
                 const originalContent = addToCartButton.innerHTML;
                 addToCartButton.disabled = true;
-                addToCartButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`; // Loading state
+                addToCartButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
                 setTimeout(() => {
-                    addToCartButton.innerHTML = `<i class="fas fa-check"></i> <span>${t('added_to_cart')}</span>`; // Success state
+                    addToCartButton.innerHTML = `<i class="fas fa-check"></i> <span>${t('added_to_cart')}</span>`;
                     setTimeout(() => {
-                        addToCartButton.innerHTML = originalContent; // Revert to original
+                        addToCartButton.innerHTML = originalContent;
                         addToCartButton.disabled = false;
-                    }, 1500); // Duration of success state
-                }, 500); // Duration of loading state
+                    }, 1500);
+                }, 500);
             }
         } else if (isAdminNow && target.closest('.edit-btn')) {
-            // Handle edit action (call admin logic)
             window.AdminLogic.editProduct(product.id);
         } else if (isAdminNow && target.closest('.delete-btn')) {
-            // Handle delete action (call admin logic)
             window.AdminLogic.deleteProduct(product.id);
         } else if (target.closest('.favorite-btn')) {
-            // Handle favorite toggle
             toggleFavorite(product.id, event);
         } else if (target.closest('.share-btn-card')) {
-            // Share handled by its own listener above
-        } else if (!target.closest('a')) { // Prevent triggering if clicking a link in description (if any)
-            // Default action: Show product details
+            // Event listener is already attached
+        } else if (!target.closest('a')) { // Prevent triggering if clicking a link in description
             showProductDetailsWithData(product);
         }
     });
     return productCard;
 }
-
-
-function setupScrollAnimations() {
-    // Use Intersection Observer to add 'visible' class for reveal animation
+function setupScrollAnimations() { /* ... (unchanged) ... */
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -1204,15 +1105,11 @@ function setupScrollAnimations() {
     }, {
         threshold: 0.1 // Trigger when 10% is visible
     });
-
-    // Observe all elements with the reveal class
     document.querySelectorAll('.product-card-reveal').forEach(card => {
         observer.observe(card);
     });
 }
-
-function renderSkeletonLoader(container = skeletonLoader, count = 8) {
-    // Render placeholder skeleton cards while data is loading
+function renderSkeletonLoader(container = skeletonLoader, count = 8) { /* ... (unchanged) ... */
     container.innerHTML = ''; // Clear previous
     for (let i = 0; i < count; i++) {
         const skeletonCard = document.createElement('div');
@@ -1226,33 +1123,24 @@ function renderSkeletonLoader(container = skeletonLoader, count = 8) {
         container.appendChild(skeletonCard);
     }
     container.style.display = 'grid'; // Ensure grid layout
-    // Hide actual product container and loader if rendering the main skeleton
     if (container === skeletonLoader) {
       productsContainer.style.display = 'none';
       loader.style.display = 'none';
     }
 }
-
-function renderProducts() {
-    // Render the current list of products in state.products
+function renderProducts() { /* ... (unchanged) ... */
     productsContainer.innerHTML = ''; // Clear previous
     if (!state.products || state.products.length === 0) {
-        // If no products, might display a message (handled in searchProductsInFirestore)
         return;
     }
-
-    // Create and append card elements for each product
     state.products.forEach(item => {
         let element = createProductCardElement(item);
         element.classList.add('product-card-reveal'); // Add class for scroll animation
         productsContainer.appendChild(element);
     });
-
     setupScrollAnimations(); // Set up animations for newly added cards
 }
-
-
-async function renderSingleShortcutRow(rowId, sectionNameObj) {
+async function renderSingleShortcutRow(rowId, sectionNameObj) { /* ... (unchanged) ... */
     const sectionContainer = document.createElement('div');
     sectionContainer.className = 'shortcut-cards-section';
 
@@ -1261,21 +1149,17 @@ async function renderSingleShortcutRow(rowId, sectionNameObj) {
         if (!rowDoc.exists()) return null; // Row not found
 
         const rowData = { id: rowDoc.id, ...rowDoc.data() };
-        // Use name from layout config first, fallback to row data
         const rowTitle = sectionNameObj[state.currentLanguage] || rowData.title[state.currentLanguage] || rowData.title.ku_sorani;
 
-        // Create section title
         const titleElement = document.createElement('h3');
         titleElement.className = 'shortcut-row-title';
         titleElement.textContent = rowTitle;
         sectionContainer.appendChild(titleElement);
 
-        // Create container for cards
         const cardsContainer = document.createElement('div');
         cardsContainer.className = 'shortcut-cards-container';
         sectionContainer.appendChild(cardsContainer);
 
-        // Fetch cards for this row
         const cardsCollectionRef = collection(db, "shortcut_rows", rowData.id, "cards");
         const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
@@ -1284,7 +1168,6 @@ async function renderSingleShortcutRow(rowId, sectionNameObj) {
             return null; // Don't render empty rows
         }
 
-        // Create and add each card element
         cardsSnapshot.forEach(cardDoc => {
             const cardData = cardDoc.data();
             const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
@@ -1296,7 +1179,6 @@ async function renderSingleShortcutRow(rowId, sectionNameObj) {
                 <div class="shortcut-card-name">${cardName}</div>
             `;
 
-            // Add click listener to navigate to the linked category/subcategories
             item.onclick = async () => {
                 await navigateToFilter({
                     category: cardData.categoryId || 'all',
@@ -1314,15 +1196,12 @@ async function renderSingleShortcutRow(rowId, sectionNameObj) {
         return null;
     }
 }
-
-// Function updated to handle sub and sub-sub categories
-async function renderSingleCategoryRow(sectionData) {
+async function renderSingleCategoryRow(sectionData) { /* ... (unchanged) ... */
     const { categoryId, subcategoryId, subSubcategoryId, name } = sectionData;
     let queryField, queryValue;
     let title = name[state.currentLanguage] || name.ku_sorani; // Default title from layout
     let targetDocRef; // Firestore reference for fetching the category name
 
-    // Determine the query field and value based on the most specific ID provided
     if (subSubcategoryId) {
         queryField = 'subSubcategoryId';
         queryValue = subSubcategoryId;
@@ -1340,11 +1219,9 @@ async function renderSingleCategoryRow(sectionData) {
     }
 
     try {
-        // Fetch the name of the category/subcategory/subsubcategory for a more accurate title
         const targetSnap = await getDoc(targetDocRef);
         if (targetSnap.exists()) {
              const targetData = targetSnap.data();
-             // Use the fetched name if available, otherwise fallback to the name from layout data
              title = targetData['name_' + state.currentLanguage] || targetData.name_ku_sorani || title;
         }
 
@@ -1357,17 +1234,13 @@ async function renderSingleCategoryRow(sectionData) {
         titleEl.textContent = title; // Use the potentially updated title
         header.appendChild(titleEl);
 
-        // Add "See All" link
         const seeAllLink = document.createElement('a');
         seeAllLink.className = 'see-all-link';
         seeAllLink.textContent = t('see_all');
         seeAllLink.onclick = async () => {
-            // Navigate based on the most specific category ID
             if(subcategoryId) {
-                // If subcategory or subsubcategory is linked, go to the subcategory detail page
                 showSubcategoryDetailPage(categoryId, subcategoryId);
             } else {
-                 // If only main category is linked, filter on the main page
                  await navigateToFilter({
                      category: categoryId,
                      subcategory: 'all',
@@ -1379,12 +1252,10 @@ async function renderSingleCategoryRow(sectionData) {
         header.appendChild(seeAllLink);
         container.appendChild(header);
 
-        // Create horizontal scroller for products
         const productsScroller = document.createElement('div');
         productsScroller.className = 'horizontal-products-container';
         container.appendChild(productsScroller);
 
-        // Query products based on the determined category level
         const q = query(
             productsCollection,
             where(queryField, '==', queryValue), // Use the determined field and value
@@ -1394,7 +1265,6 @@ async function renderSingleCategoryRow(sectionData) {
         const snapshot = await getDocs(q);
         if (snapshot.empty) return null; // Don't render if no products found
 
-        // Render product cards
         snapshot.forEach(doc => {
             const product = { id: doc.id, ...doc.data() };
             const card = createProductCardElement(product);
@@ -1407,10 +1277,7 @@ async function renderSingleCategoryRow(sectionData) {
         return null;
     }
 }
-
-
-// Function updated to take groupId
-async function renderBrandsSection(groupId) {
+async function renderBrandsSection(groupId) { /* ... (unchanged) ... */
     const sectionContainer = document.createElement('div');
     sectionContainer.className = 'brands-section';
     const brandsContainer = document.createElement('div');
@@ -1419,13 +1286,11 @@ async function renderBrandsSection(groupId) {
     sectionContainer.appendChild(brandsContainer);
 
     try {
-        // Query brands within the specified group
         const q = query(collection(db, "brand_groups", groupId, "brands"), orderBy("order", "asc"), limit(30));
         const snapshot = await getDocs(q);
 
         if (snapshot.empty) return null; // Don't render empty brand sections
 
-        // Render each brand item
         snapshot.forEach(doc => {
             const brand = { id: doc.id, ...doc.data() };
             const brandName = brand.name[state.currentLanguage] || brand.name.ku_sorani;
@@ -1439,13 +1304,10 @@ async function renderBrandsSection(groupId) {
                 <span>${brandName}</span>
             `;
 
-            // Add click listener to navigate to linked category
             item.onclick = async () => {
                 if (brand.subcategoryId && brand.categoryId) {
-                    // Navigate to subcategory detail page
                     showSubcategoryDetailPage(brand.categoryId, brand.subcategoryId);
                 } else if(brand.categoryId) {
-                     // Navigate to main category filter on home page
                      await navigateToFilter({
                          category: brand.categoryId,
                          subcategory: 'all',
@@ -1453,7 +1315,6 @@ async function renderBrandsSection(groupId) {
                          search: ''
                      });
                 }
-                // If no category linked, clicking does nothing
             };
 
             brandsContainer.appendChild(item);
@@ -1465,8 +1326,7 @@ async function renderBrandsSection(groupId) {
         return null;
     }
 }
-
-async function renderNewestProductsSection() {
+async function renderNewestProductsSection() { /* ... (unchanged) ... */
     const container = document.createElement('div');
     container.className = 'dynamic-section';
     const header = document.createElement('div');
@@ -1478,7 +1338,6 @@ async function renderNewestProductsSection() {
     container.appendChild(header);
 
     try {
-        // Query products created within the last 15 days
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
         const q = query(
             productsCollection,
@@ -1492,7 +1351,6 @@ async function renderNewestProductsSection() {
         if (snapshot.empty) {
             return null; // Do not render if there are no new products
         } else {
-            // Render products in a horizontal scroller
             productsScroller.className = 'horizontal-products-container';
             snapshot.forEach(doc => {
                 const product = { id: doc.id, ...doc.data() };
@@ -1508,8 +1366,7 @@ async function renderNewestProductsSection() {
         return null;
     }
 }
-
-async function renderAllProductsSection() {
+async function renderAllProductsSection() { /* ... (unchanged) ... */
     const container = document.createElement('div');
     container.className = 'dynamic-section';
     container.style.marginTop = '20px'; // Add space
@@ -1527,14 +1384,12 @@ async function renderAllProductsSection() {
     container.appendChild(productsGrid);
 
     try {
-        // Fetch only a few products initially for the home page section preview
         const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(10));
         const snapshot = await getDocs(q);
         if (snapshot.empty) {
             return null; // Don't render if no products exist
         }
 
-        // Render product cards in the grid
         snapshot.forEach(doc => {
             const product = { id: doc.id, ...doc.data() };
             const card = createProductCardElement(product);
@@ -1547,7 +1402,6 @@ async function renderAllProductsSection() {
     }
 }
 
-
 // ** CHAKKIRÎ: Fonksiyon hate guhertin da ku scrollToPosition qebûl bike **
 async function renderHomePageContent(scrollToPosition = null) { // scrollToPosition hate zêdekirin
     if (state.isRenderingHomePage) return;
@@ -1556,8 +1410,9 @@ async function renderHomePageContent(scrollToPosition = null) { // scrollToPosit
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
 
     try {
-        renderSkeletonLoader(homeSectionsContainer, 4); // Show skeleton
-        homeSectionsContainer.innerHTML = ''; // Clear previous content
+        // Show skeleton immediately while content loads
+        renderSkeletonLoader(homeSectionsContainer, 4);
+        homeSectionsContainer.innerHTML = ''; // Clear previous content AFTER showing skeleton
 
         // Clean up any existing slider intervals
         Object.keys(state.sliderIntervals || {}).forEach(layoutId => {
@@ -1573,7 +1428,9 @@ async function renderHomePageContent(scrollToPosition = null) { // scrollToPosit
 
         if (layoutSnapshot.empty) {
             console.warn("Home page layout is not configured or all sections are disabled.");
+             homeSectionsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">پەڕەی سەرەکی ڕێکنەخراوە.</p>'; // Show message if empty
         } else {
+            homeSectionsContainer.innerHTML = ''; // Clear skeleton before adding actual sections
             for (const doc of layoutSnapshot.docs) {
                 const section = doc.data();
                 let sectionElement = null;
@@ -1618,10 +1475,11 @@ async function renderHomePageContent(scrollToPosition = null) { // scrollToPosit
 
         // !! LÊZÊDEKIRÎ: Scroll bike eger pêwîst be piştî renderkirinê !!
         if (scrollToPosition !== null) {
+            // Use a slightly longer delay here to ensure all images/sections have potentially loaded and caused layout shifts
             setTimeout(() => {
                 console.log("Restoring scroll from renderHomePageContent:", scrollToPosition);
                 window.scrollTo(0, scrollToPosition);
-            }, 50); // Small delay to allow layout shifts
+            }, 100); // Increased delay to 100ms
         }
 
     } catch (error) {
@@ -1629,19 +1487,18 @@ async function renderHomePageContent(scrollToPosition = null) { // scrollToPosit
         homeSectionsContainer.innerHTML = `<p style="text-align: center; padding: 20px;">هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
     } finally {
         state.isRenderingHomePage = false;
-        // Skeleton is cleared automatically when content is added
+        // Skeleton is cleared automatically when content is added or error message shown
     }
 }
 
 
-async function renderPromoCardsSectionForHome(groupId, layoutId) { // layoutId added
+async function renderPromoCardsSectionForHome(groupId, layoutId) { /* ... (unchanged) ... */
     const promoGrid = document.createElement('div');
     promoGrid.className = 'products-container'; // Use grid for layout consistency
     promoGrid.style.marginBottom = '24px';
     promoGrid.id = `promoSliderLayout_${layoutId}`; // Unique ID using layoutId
 
     try {
-        // Fetch cards for the specified group
         const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
         const cards = cardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1650,37 +1507,30 @@ async function renderPromoCardsSectionForHome(groupId, layoutId) { // layoutId a
             const sliderState = { currentIndex: 0, intervalId: null }; // State local to this slider instance
             const cardData = { cards }; // Data structure expected by createPromoCardElement
 
-            // Create the slider element
             const promoCardElement = createPromoCardElement(cardData, sliderState);
             promoGrid.appendChild(promoCardElement);
 
-            // Setup auto-rotation if more than one card
             if (cards.length > 1) {
                 const rotate = () => {
-                    // Check if the element still exists and the interval is still tracked
                     if (!document.getElementById(promoGrid.id) || !state.sliderIntervals || !state.sliderIntervals[layoutId]) {
                         if (sliderState.intervalId) {
                             clearInterval(sliderState.intervalId); // Clear this specific interval
-                            // Also remove from global state if it exists there
                             if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
                                 delete state.sliderIntervals[layoutId];
                             }
                         }
                         return; // Stop rotation if element removed or interval cleared globally
                     }
-                    // Rotate to the next card
                     sliderState.currentIndex = (sliderState.currentIndex + 1) % cards.length;
                     const newImageUrl = cards[sliderState.currentIndex].imageUrls[state.currentLanguage] || cards[sliderState.currentIndex].imageUrls.ku_sorani;
                     const imgElement = promoCardElement.querySelector('.product-image');
                     if(imgElement) imgElement.src = newImageUrl; // Update image source
                 };
 
-                // Clear any previous interval for this specific layoutId
                 if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
                     clearInterval(state.sliderIntervals[layoutId]);
                 }
 
-                // Start new interval and store its ID globally using layoutId
                 sliderState.intervalId = setInterval(rotate, 5000); // 5-second rotation
                 if (!state.sliderIntervals) state.sliderIntervals = {}; // Initialize global store if needed
                 state.sliderIntervals[layoutId] = sliderState.intervalId;
@@ -1694,139 +1544,97 @@ async function renderPromoCardsSectionForHome(groupId, layoutId) { // layoutId a
     return null; // Return null if error or no cards
 }
 
-
-// ** CHAKKIRÎ: Fonksiyon hate guhertin da ku scrollToPosition qebûl bike û bi kar bîne **
+// ** CHAKKIRÎ: Fonksiyon hate guhertin da ku scrollToPosition qebûl bike û bi kar bîne, û pêşî li renderkirina malê bigire **
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false, scrollToPosition = null) { // scrollToPosition hate zêdekirin
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
-    // Determine if the home page sections should be shown instead of the product list
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
 
     if (shouldShowHomeSections) {
-        // Show home sections, hide product list/loader
         productsContainer.style.display = 'none';
         skeletonLoader.style.display = 'none';
+        loader.style.display = 'none'; // Hide bottom loader too
         scrollTrigger.style.display = 'none';
         homeSectionsContainer.style.display = 'block';
 
-        // Render home content if empty or if it's a new "search" (meaning filters cleared)
-        // Pass scrollToPosition to restore scroll after rendering home content
-        if (homeSectionsContainer.innerHTML.trim() === '' || isNewSearch) {
-             await renderHomePageContent(scrollToPosition); // scrollToPosition hate şandin
+        // ** GORRANKARIYA NÛ: Pêşî li renderkirina malê bigire eger naverok hebe û em vedigerin **
+        // Tenê render bike eger konteynir vala be YAN ew lêgeran/filterek nû be (ne ji popstate)
+        const needsRender = homeSectionsContainer.innerHTML.trim() === '' || !scrollToPosition;
+        if (needsRender) {
+             await renderHomePageContent(scrollToPosition); // scrollToPosition bişîne ji bo restorekirinê piştî renderkirinê
         } else {
-             // If home content already exists, restore scroll directly
-             if (scrollToPosition !== null) {
-                 setTimeout(() => {
-                     console.log("Restoring scroll from searchProductsInFirestore (home exists):", scrollToPosition);
-                     window.scrollTo(0, scrollToPosition);
-                 }, 0); // Minimal delay
-             }
-             // Restart slider rotations if needed (handled within renderHomePageContent logic now)
+             // Eger naverok hebe û em vedigerin (scrollToPosition heye), tenê scrollê restore bike
+             console.log("Home content exists, restoring scroll without re-render:", scrollToPosition);
+             setTimeout(() => {
+                 window.scrollTo(0, scrollToPosition);
+             }, 100); // Zêdekirina derengiyê ji bo piştrastbûnê
+             // Make sure sliders restart if needed - renderHomePageContent handles this now
+             // Maybe restart sliders manually here if needed? Check renderHomePageContent logic.
         }
-        // Clear product state as we are showing home page
+
+        // Pakkirina rewşa hilberê ji ber ku em rûpela malê nîşan didin
         state.products = [];
         state.lastVisibleProductDoc = null;
-        state.allProductsLoaded = true; // No more products to load in this view
-        return; // Stop execution, home page is shown
+        state.allProductsLoaded = true;
+        return; // Derkeve ji fonksiyonê
     } else {
-        // Show product list view, hide home sections
+        // Nîşandana dîmena lîsteya hilberê, veşartina beşa malê
         homeSectionsContainer.style.display = 'none';
-        // Stop all promo slider rotations when leaving the home view
+        // Rawestandina hemû rotasyonên promo slider dema ku ji dîmena malê derdikevin
         Object.keys(state.sliderIntervals || {}).forEach(layoutId => {
             if (state.sliderIntervals[layoutId]) {
                 clearInterval(state.sliderIntervals[layoutId]);
             }
         });
-        state.sliderIntervals = {}; // Reset intervals object
+        state.sliderIntervals = {}; // Resetkirina objecta intervalan
     }
 
-    // --- Product List Logic ---
-
-    // Check cache (currently disabled, can be re-enabled if needed)
-    // const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
-    // if (isNewSearch && state.productCache[cacheKey]) { ... return; }
-
-    if (state.isLoadingMoreProducts) return; // Prevent concurrent loading
+    // --- Mantiqa Lîsteya Hilberê ---
+    if (state.isLoadingMoreProducts) return;
 
     if (isNewSearch) {
-        // Reset state for a new search/filter
         state.allProductsLoaded = false;
         state.lastVisibleProductDoc = null;
         state.products = [];
-        renderSkeletonLoader(); // Show skeleton for new search
+        renderSkeletonLoader();
     }
 
-    if (state.allProductsLoaded && !isNewSearch) return; // All loaded, nothing more to fetch
+    if (state.allProductsLoaded && !isNewSearch) return;
 
     state.isLoadingMoreProducts = true;
-    loader.style.display = 'block'; // Show bottom loader
+    loader.style.display = 'block';
 
     try {
-        // Build Firestore query based on current filters and search term
         let productsQuery = collection(db, "products");
 
-        // Apply category filters
-        if (state.currentCategory && state.currentCategory !== 'all') {
-            productsQuery = query(productsQuery, where("categoryId", "==", state.currentCategory));
-        }
-        if (state.currentSubcategory && state.currentSubcategory !== 'all') {
-            productsQuery = query(productsQuery, where("subcategoryId", "==", state.currentSubcategory));
-        }
-        if (state.currentSubSubcategory && state.currentSubSubcategory !== 'all') {
-            productsQuery = query(productsQuery, where("subSubcategoryId", "==", state.currentSubSubcategory));
-        }
+        // Fîlterên kategoriyê bicîh bîne
+        if (state.currentCategory && state.currentCategory !== 'all') { productsQuery = query(productsQuery, where("categoryId", "==", state.currentCategory)); }
+        if (state.currentSubcategory && state.currentSubcategory !== 'all') { productsQuery = query(productsQuery, where("subcategoryId", "==", state.currentSubcategory)); }
+        if (state.currentSubSubcategory && state.currentSubSubcategory !== 'all') { productsQuery = query(productsQuery, where("subSubcategoryId", "==", state.currentSubSubcategory)); }
 
-        // Apply search term filter
+        // Fîltera termê lêgerînê bicîh bîne
         const finalSearchTerm = searchTerm.trim().toLowerCase();
-        if (finalSearchTerm) {
-            productsQuery = query(productsQuery,
-                where('searchableName', '>=', finalSearchTerm),
-                where('searchableName', '<=', finalSearchTerm + '\uf8ff')
-            );
-        }
+        if (finalSearchTerm) { productsQuery = query(productsQuery, where('searchableName', '>=', finalSearchTerm), where('searchableName', '<=', finalSearchTerm + '\uf8ff')); }
 
-        // Apply ordering (different if searching vs. just filtering)
-        if (finalSearchTerm) {
-            // Order by relevance (searchableName) then date when searching
-            productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
-        } else {
-            // Order by date when just filtering
-            productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
-        }
+        // Rêzkirinê bicîh bîne
+        if (finalSearchTerm) { productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc")); }
+        else { productsQuery = query(productsQuery, orderBy("createdAt", "desc")); }
 
-        // Apply pagination (start after last visible doc if loading more)
-        if (state.lastVisibleProductDoc && !isNewSearch) {
-            productsQuery = query(productsQuery, startAfter(state.lastVisibleProductDoc));
-        }
-
-        // Limit results per page
+        // Pagingê bicîh bîne
+        if (state.lastVisibleProductDoc && !isNewSearch) { productsQuery = query(productsQuery, startAfter(state.lastVisibleProductDoc)); }
         productsQuery = query(productsQuery, limit(PRODUCTS_PER_PAGE));
 
-        // Execute query
         const productSnapshot = await getDocs(productsQuery);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Append or replace products in state
-        if (isNewSearch) {
-            state.products = newProducts;
-        } else {
-            state.products = [...state.products, ...newProducts];
-        }
+        if (isNewSearch) { state.products = newProducts; }
+        else { state.products = [...state.products, ...newProducts]; }
 
-        // Update pagination state
-        if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
-            state.allProductsLoaded = true;
-            scrollTrigger.style.display = 'none'; // Hide trigger if all loaded
-        } else {
-            state.allProductsLoaded = false;
-            scrollTrigger.style.display = 'block'; // Show trigger to load more
-        }
-        state.lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1]; // Update last doc reference
+        if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) { state.allProductsLoaded = true; scrollTrigger.style.display = 'none'; }
+        else { state.allProductsLoaded = false; scrollTrigger.style.display = 'block'; }
+        state.lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
 
-        // Update cache (optional)
-        // if (isNewSearch) { state.productCache[cacheKey] = { ... }; }
-
-        // Render the updated product list
+        // Hilberên nûvekirî render bike
         renderProducts();
 
         // !! LÊZÊDEKIRÎ: Scroll bike piştî renderkirinê eger scrollToPosition hebe !!
@@ -1834,10 +1642,9 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false, s
             setTimeout(() => {
                 console.log("Restoring scroll from searchProductsInFirestore (products):", scrollToPosition);
                 window.scrollTo(0, scrollToPosition);
-            }, 0); // Minimal delay after rendering
+            }, 50); // Derengiyek kêmtir li vir baş e
         }
 
-        // Show message if no products found on a new search
         if (state.products.length === 0 && isNewSearch) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         }
@@ -1846,23 +1653,21 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false, s
         console.error("Error fetching content:", error);
         productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
     } finally {
-        // Clean up UI state
         state.isLoadingMoreProducts = false;
         loader.style.display = 'none';
         skeletonLoader.style.display = 'none';
-        // Ensure products container is visible only if not showing home sections
-        if (!shouldShowHomeSections) {
+        if (!shouldShowHomeSections) { // Piştrast be konteynirê hilberê xuya ye eger ne li malê be
            productsContainer.style.display = 'grid';
         }
     }
 }
 
 
-function addToCart(productId) {
+// --- Cart, Product Detail, Categories, etc. Functions (mostly unchanged) ---
+function addToCart(productId) { /* ... (unchanged) ... */
     const allFetchedProducts = [...state.products]; // Use current products list
     let product = allFetchedProducts.find(p => p.id === productId);
 
-    // If product not found locally, fetch its details first
     if (!product) {
         console.warn("Product not found locally. Fetching details before adding to cart.");
         getDoc(doc(db, "products", productId)).then(docSnap => {
@@ -1873,7 +1678,6 @@ function addToCart(productId) {
                 if (existingItem) {
                     existingItem.quantity++; // Increment quantity
                 } else {
-                    // Add new item to cart
                     state.cart.push({
                         id: fetchedProduct.id,
                         name: fetchedProduct.name, // Store the name object
@@ -1882,22 +1686,20 @@ function addToCart(productId) {
                         quantity: 1
                     });
                 }
-                saveCart(); // Save updated cart to localStorage
-                showNotification(t('product_added_to_cart')); // Show confirmation
+                saveCart();
+                showNotification(t('product_added_to_cart'));
             } else {
-                showNotification(t('product_not_found_error'), 'error'); // Product deleted?
+                showNotification(t('product_not_found_error'), 'error');
             }
         });
-        return; // Exit function, cart update will happen asynchronously
+        return;
     }
 
-    // Product found locally, add to cart directly
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
     const existingItem = state.cart.find(item => item.id === productId);
     if (existingItem) {
         existingItem.quantity++; // Increment quantity
     } else {
-        // Add new item to cart
         state.cart.push({
             id: product.id,
             name: product.name, // Store the name object
@@ -1906,37 +1708,31 @@ function addToCart(productId) {
             quantity: 1
         });
     }
-    saveCart(); // Save updated cart
-    showNotification(t('product_added_to_cart')); // Show confirmation
+    saveCart();
+    showNotification(t('product_added_to_cart'));
 }
-
-function renderCart() {
+function renderCart() { /* ... (unchanged) ... */
     cartItemsContainer.innerHTML = ''; // Clear previous items
-    // Show empty message and hide total/actions if cart is empty
     if (state.cart.length === 0) {
         emptyCartMessage.style.display = 'block';
         cartTotal.style.display = 'none';
         cartActions.style.display = 'none';
         return;
     }
-    // Show total/actions if cart has items
     emptyCartMessage.style.display = 'none';
     cartTotal.style.display = 'block';
     cartActions.style.display = 'block';
     renderCartActionButtons(); // Render WhatsApp/Viber buttons etc.
 
     let total = 0;
-    // Create and append elements for each cart item
     state.cart.forEach(item => {
         const itemTotal = item.price * item.quantity;
         total += itemTotal;
         const cartItem = document.createElement('div');
         cartItem.className = 'cart-item';
 
-        // Get item name in current language
         const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
 
-        // Populate cart item HTML
         cartItem.innerHTML = `
             <img src="${item.image || 'https://placehold.co/60x60/e2e8f0/2d3748?text=?'}" alt="${itemNameInCurrentLang}" class="cart-item-image">
             <div class="cart-item-details">
@@ -1956,16 +1752,12 @@ function renderCart() {
         `;
         cartItemsContainer.appendChild(cartItem);
     });
-    // Update total amount display
     totalAmount.textContent = total.toLocaleString();
-    // Add event listeners for quantity buttons and remove button
     document.querySelectorAll('.increase-btn').forEach(btn => btn.onclick = (e) => updateQuantity(e.currentTarget.dataset.id, 1));
     document.querySelectorAll('.decrease-btn').forEach(btn => btn.onclick = (e) => updateQuantity(e.currentTarget.dataset.id, -1));
     document.querySelectorAll('.cart-item-remove').forEach(btn => btn.onclick = (e) => removeFromCart(e.currentTarget.dataset.id));
 }
-
-
-function updateQuantity(productId, change) {
+function updateQuantity(productId, change) { /* ... (unchanged) ... */
     const cartItem = state.cart.find(item => item.id === productId);
     if (cartItem) {
         cartItem.quantity += change;
@@ -1977,46 +1769,36 @@ function updateQuantity(productId, change) {
         }
     }
 }
-
-function removeFromCart(productId) {
+function removeFromCart(productId) { /* ... (unchanged) ... */
     state.cart = state.cart.filter(item => item.id !== productId); // Filter out the item
     saveCart(); // Save changes
     renderCart(); // Re-render the cart UI
 }
-
-function generateOrderMessage() {
-    // Generate the order message text for sharing via WhatsApp, etc.
+function generateOrderMessage() { /* ... (unchanged) ... */
     if (state.cart.length === 0) return ""; // No message if cart is empty
     let message = t('order_greeting') + "\n\n"; // Start with greeting
-    // Add details for each item
     state.cart.forEach(item => {
         const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
         const itemDetails = t('order_item_details', { price: item.price.toLocaleString(), quantity: item.quantity });
         message += `- ${itemNameInCurrentLang} | ${itemDetails}\n`;
     });
-    // Add total price
     message += `\n${t('order_total')}: ${totalAmount.textContent} د.ع.\n`;
 
-    // Add user profile info if available
     if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
         message += `\n${t('order_user_info')}\n`;
         message += `${t('order_user_name')}: ${state.userProfile.name}\n`;
         message += `${t('order_user_address')}: ${state.userProfile.address}\n`;
         message += `${t('order_user_phone')}: ${state.userProfile.phone}\n`;
     } else {
-        // Prompt user to add info if missing
         message += `\n${t('order_prompt_info')}\n`;
     }
     return message;
 }
-
-async function renderCartActionButtons() {
-    // Render buttons (WhatsApp, Viber, etc.) for sending the order
+async function renderCartActionButtons() { /* ... (unchanged) ... */
     const container = document.getElementById('cartActions');
     container.innerHTML = ''; // Clear previous
 
     try {
-        // Fetch available contact methods from Firestore
         const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
         const q = query(methodsCollection, orderBy("createdAt")); // Order might need adjustment
         const snapshot = await getDocs(q);
@@ -2026,7 +1808,6 @@ async function renderCartActionButtons() {
             return;
         }
 
-        // Create a button for each method
         snapshot.forEach(doc => {
             const method = { id: doc.id, ...doc.data() };
             const btn = document.createElement('button');
@@ -2036,7 +1817,6 @@ async function renderCartActionButtons() {
             const name = method['name_' + state.currentLanguage] || method.name_ku_sorani;
             btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`; // Set icon and text
 
-            // Add click listener to generate message and open link
             btn.onclick = () => {
                 const message = generateOrderMessage();
                 if (!message) return; // Don't proceed if message generation failed
@@ -2045,29 +1825,15 @@ async function renderCartActionButtons() {
                 const encodedMessage = encodeURIComponent(message);
                 const value = method.value; // Phone number, username, or URL
 
-                // Construct link based on method type
                 switch (method.type) {
-                    case 'whatsapp':
-                        link = `https://wa.me/${value}?text=${encodedMessage}`;
-                        break;
-                    case 'viber':
-                        // Viber links might need '+' prefix for international numbers
-                        link = `viber://chat?number=%2B${value}&text=${encodedMessage}`;
-                        break;
-                    case 'telegram':
-                        link = `https://t.me/${value}?text=${encodedMessage}`;
-                        break;
-                    case 'phone':
-                        link = `tel:${value}`; // Opens phone dialer
-                        break;
-                    case 'url': // For custom URLs (e.g., forms, APIs)
-                        link = value; // Assume the value is the full URL
-                        break;
+                    case 'whatsapp': link = `https://wa.me/${value}?text=${encodedMessage}`; break;
+                    case 'viber': link = `viber://chat?number=%2B${value}&text=${encodedMessage}`; break;
+                    case 'telegram': link = `https://t.me/${value}?text=${encodedMessage}`; break;
+                    case 'phone': link = `tel:${value}`; break;
+                    case 'url': link = value; break;
                 }
 
-                if (link) {
-                    window.open(link, '_blank'); // Open the generated link
-                }
+                if (link) { window.open(link, '_blank'); }
             };
 
             container.appendChild(btn); // Add button to the container
@@ -2077,10 +1843,7 @@ async function renderCartActionButtons() {
         container.innerHTML = '<p>هەڵە لە هێنانی ڕێگاکانی ناردن.</p>';
     }
 }
-
-
-async function renderPolicies() {
-    // Render terms and policies content in the bottom sheet
+async function renderPolicies() { /* ... (unchanged) ... */
     termsContentContainer.innerHTML = `<p>${t('loading_policies')}</p>`; // Show loading text
     try {
         const docRef = doc(db, "settings", "policies"); // Document path
@@ -2088,9 +1851,7 @@ async function renderPolicies() {
 
         if (docSnap.exists() && docSnap.data().content) {
             const policies = docSnap.data().content;
-            // Get content in current language, fallback to Sorani
             const content = policies[state.currentLanguage] || policies.ku_sorani || '';
-            // Display content (replace newlines with <br>) or 'not found' message
             termsContentContainer.innerHTML = content ? content.replace(/\n/g, '<br>') : `<p>${t('no_policies_found')}</p>`;
         } else {
             termsContentContainer.innerHTML = `<p>${t('no_policies_found')}</p>`; // Show 'not found'
@@ -2100,17 +1861,12 @@ async function renderPolicies() {
         termsContentContainer.innerHTML = `<p>${t('error_generic')}</p>`; // Show error
     }
 }
-
-function checkNewAnnouncements() {
-    // Check for new announcements and show notification badge if needed
+function checkNewAnnouncements() { /* ... (unchanged) ... */
     const q = query(announcementsCollection, orderBy("createdAt", "desc"), limit(1)); // Get latest
     onSnapshot(q, (snapshot) => { // Listen for real-time updates
         if (!snapshot.empty) {
             const latestAnnouncement = snapshot.docs[0].data();
-            // Get timestamp of last seen announcement from localStorage
             const lastSeenTimestamp = localStorage.getItem('lastSeenAnnouncementTimestamp') || 0;
-
-            // Show badge if latest announcement is newer than last seen
             if (latestAnnouncement.createdAt > lastSeenTimestamp) {
                 notificationBadge.style.display = 'block';
             } else {
@@ -2119,36 +1875,26 @@ function checkNewAnnouncements() {
         }
     });
 }
-
-async function renderUserNotifications() {
-    // Render the list of announcements in the notification sheet
+async function renderUserNotifications() { /* ... (unchanged) ... */
     const q = query(announcementsCollection, orderBy("createdAt", "desc")); // Get all, newest first
     const snapshot = await getDocs(q);
 
     notificationsListContainer.innerHTML = ''; // Clear previous
     if (snapshot.empty) {
-        // Show 'no notifications' message
         notificationsListContainer.innerHTML = `<div class="cart-empty"><i class="fas fa-bell-slash"></i><p>${t('no_notifications_found')}</p></div>`;
         return;
     }
 
     let latestTimestamp = 0;
-    // Create and append elements for each announcement
     snapshot.forEach(doc => {
         const announcement = doc.data();
-        // Keep track of the latest timestamp to update localStorage
         if (announcement.createdAt > latestTimestamp) {
             latestTimestamp = announcement.createdAt;
         }
-
         const date = new Date(announcement.createdAt);
         const formattedDate = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
-
-        // Get title and content in current language
         const title = (announcement.title && announcement.title[state.currentLanguage]) || (announcement.title && announcement.title.ku_sorani) || '';
         const content = (announcement.content && announcement.content[state.currentLanguage]) || (announcement.content && announcement.content.ku_sorani) || '';
-
-        // Create item element
         const item = document.createElement('div');
         item.className = 'notification-item';
         item.innerHTML = `
@@ -2161,19 +1907,14 @@ async function renderUserNotifications() {
         notificationsListContainer.appendChild(item);
     });
 
-    // Update last seen timestamp and hide badge after opening the sheet
     localStorage.setItem('lastSeenAnnouncementTimestamp', latestTimestamp);
     notificationBadge.style.display = 'none';
 }
-
-
-function renderContactLinks() {
-    // Render social media links in the settings page
+function renderContactLinks() { /* ... (unchanged) ... */
     const contactLinksContainer = document.getElementById('dynamicContactLinksContainer');
     const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
     const q = query(socialLinksCollection, orderBy("createdAt", "desc")); // Order might need change
 
-    // Listen for real-time updates
     onSnapshot(q, (snapshot) => {
         contactLinksContainer.innerHTML = ''; // Clear previous
 
@@ -2182,7 +1923,6 @@ function renderContactLinks() {
             return;
         }
 
-        // Create and append link elements
         snapshot.forEach(doc => {
             const link = doc.data();
             const name = link['name_' + state.currentLanguage] || link.name_ku_sorani;
@@ -2204,17 +1944,13 @@ function renderContactLinks() {
         });
     });
 }
-
-function showWelcomeMessage() {
-    // Show welcome modal only on the very first visit
+function showWelcomeMessage() { /* ... (unchanged) ... */
     if (!localStorage.getItem('hasVisited')) {
         openPopup('welcomeModal', 'modal');
         localStorage.setItem('hasVisited', 'true'); // Mark as visited
     }
 }
-
-function setupGpsButton() {
-    // Add functionality to the GPS button in the profile sheet
+function setupGpsButton() { /* ... (unchanged) ... */
     const getLocationBtn = document.getElementById('getLocationBtn');
     const profileAddressInput = document.getElementById('profileAddress');
     const btnSpan = getLocationBtn.querySelector('span');
@@ -2223,32 +1959,23 @@ function setupGpsButton() {
     if (!getLocationBtn) return; // Exit if button not found
 
     getLocationBtn.addEventListener('click', () => {
-        // Check if geolocation is supported
         if (!('geolocation' in navigator)) {
             showNotification('وێبگەڕەکەت پشتگیری GPS ناکات', 'error');
             return;
         }
 
-        // Update button state to loading
         btnSpan.textContent = '...چاوەڕوان بە';
         getLocationBtn.disabled = true;
 
-        // Request current position
         navigator.geolocation.getCurrentPosition(successCallback, errorCallback);
     });
 
-    async function successCallback(position) {
-        // Handle successful location retrieval
+    async function successCallback(position) { /* ... (unchanged) ... */
         const latitude = position.coords.latitude;
         const longitude = position.coords.longitude;
-
         try {
-            // Use Nominatim (OpenStreetMap) for reverse geocoding (lat/lon -> address)
-            // Request address in Kurdish or English
             const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`);
             const data = await response.json();
-
-            // Update address input if address found
             if (data && data.display_name) {
                 profileAddressInput.value = data.display_name;
                 showNotification('ناونیشان وەرگیرا', 'success');
@@ -2259,14 +1986,12 @@ function setupGpsButton() {
             console.error('Reverse Geocoding Error:', error);
             showNotification('هەڵەیەک لە وەرگرتنی ناونیشان ڕوویدا', 'error');
         } finally {
-            // Reset button state
             btnSpan.textContent = originalBtnText;
             getLocationBtn.disabled = false;
         }
     }
 
-    function errorCallback(error) {
-        // Handle geolocation errors
+    function errorCallback(error) { /* ... (unchanged) ... */
         let message = '';
         switch (error.code) {
             case 1: message = 'ڕێگەت نەدا GPS بەکاربهێنرێت'; break;
@@ -2275,22 +2000,16 @@ function setupGpsButton() {
             default: message = 'هەڵەیەکی نادیار ڕوویدا'; break;
         }
         showNotification(message, 'error');
-        // Reset button state
         btnSpan.textContent = originalBtnText;
         getLocationBtn.disabled = false;
     }
 }
-
-
-function setupScrollObserver() {
-    // Setup Intersection Observer for infinite scrolling
+function setupScrollObserver() { /* ... (unchanged) ... */
     const trigger = document.getElementById('scroll-loader-trigger');
     if (!trigger) return;
 
     const observer = new IntersectionObserver((entries) => {
-        // If the trigger element is intersecting (visible)
         if (entries[0].isIntersecting) {
-            // Load more products if not already loading and not all loaded
             if (!state.isLoadingMoreProducts && !state.allProductsLoaded) {
                  searchProductsInFirestore(state.currentSearch, false); // Fetch next page (isNewSearch = false)
             }
@@ -2302,77 +2021,87 @@ function setupScrollObserver() {
 
     observer.observe(trigger); // Start observing the trigger element
 }
-
-function updateCategoryDependentUI() {
-    // Update UI elements that depend on the category list (dropdowns, buttons)
+function updateCategoryDependentUI() { /* ... (unchanged) ... */
     if (state.categories.length === 0) return; // Wait until categories are loaded
-
     populateCategoryDropdown(); // Update 'Add/Edit Product' modal dropdown
     renderMainCategories(); // Update main category buttons on home page
-
-    // Update admin dropdowns only if admin logic is loaded and user is admin
     if (sessionStorage.getItem('isAdmin') === 'true' && window.AdminLogic) {
         window.AdminLogic.updateAdminCategoryDropdowns();
         window.AdminLogic.updateShortcutCardCategoryDropdowns();
     }
 }
 
-
+// --- Event Listeners Setup (mostly unchanged, minor adjustments for search/navigation) ---
 function setupEventListeners() {
-    // --- Navigation ---
     homeBtn.onclick = async () => {
-        // Navigate to home page and reset filters
         if (!document.getElementById('mainPage').classList.contains('page-active')) {
-            history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]); // Push state for main page view
+            history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
             showPage('mainPage');
         }
-        // Reset filters by navigating to the default state
         await navigateToFilter({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
     };
-
-    settingsBtn.onclick = () => {
-        // Navigate to settings page
+    settingsBtn.onclick = () => { /* ... (unchanged) ... */
         history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
         showPage('settingsPage', t('settings_title'));
     };
-
-    document.getElementById('headerBackBtn').onclick = () => {
-        history.back(); // Go back in browser history
-    };
-
-    // --- Bottom Sheet Triggers ---
+    document.getElementById('headerBackBtn').onclick = () => history.back();
     profileBtn.onclick = () => { openPopup('profileSheet'); updateActiveNav('profileBtn'); };
     cartBtn.onclick = () => { openPopup('cartSheet'); updateActiveNav('cartBtn'); };
     categoriesBtn.onclick = () => { openPopup('categoriesSheet'); updateActiveNav('categoriesBtn'); };
     settingsFavoritesBtn.onclick = () => openPopup('favoritesSheet');
-    notificationBtn.addEventListener('click', () => openPopup('notificationsSheet'));
-    if (termsAndPoliciesBtn) {
-        termsAndPoliciesBtn.addEventListener('click', () => openPopup('termsSheet'));
-    }
-
-    // --- Modal Triggers ---
     settingsAdminLoginBtn.onclick = () => openPopup('loginModal', 'modal');
-
-    // --- Closing Popups ---
-    sheetOverlay.onclick = () => closeCurrentPopup(); // Click outside sheet
-    document.querySelectorAll('.close').forEach(btn => btn.onclick = closeCurrentPopup); // Click close button
-    window.onclick = (e) => { if (e.target.classList.contains('modal')) closeCurrentPopup(); }; // Click outside modal content
-
-    // --- Forms ---
-    loginForm.onsubmit = async (e) => {
+    sheetOverlay.onclick = () => closeCurrentPopup();
+    document.querySelectorAll('.close').forEach(btn => btn.onclick = closeCurrentPopup);
+    window.onclick = (e) => { if (e.target.classList.contains('modal')) closeCurrentPopup(); };
+    loginForm.onsubmit = async (e) => { /* ... (unchanged) ... */
         e.preventDefault();
         try {
-            // Attempt admin login
             await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
-            // Success handled by onAuthStateChanged
         } catch (error) {
-            showNotification(t('login_error'), 'error'); // Show login error
+            showNotification(t('login_error'), 'error');
         }
     };
-
-    profileForm.onsubmit = (e) => {
+    const debouncedSearch = debounce((term) => navigateToFilter({ search: term }), 500);
+    searchInput.oninput = () => { /* ... (unchanged) ... */
+        const searchTerm = searchInput.value;
+        clearSearchBtn.style.display = searchTerm ? 'block' : 'none';
+        debouncedSearch(searchTerm);
+    };
+    clearSearchBtn.onclick = () => { /* ... (unchanged) ... */
+        searchInput.value = '';
+        clearSearchBtn.style.display = 'none';
+        navigateToFilter({ search: '' });
+    };
+    const subpageSearchInput = document.getElementById('subpageSearchInput');
+    const subpageClearSearchBtn = document.getElementById('subpageClearSearchBtn');
+    const debouncedSubpageSearch = debounce(async (term) => { /* ... (unchanged) ... */
+        const hash = window.location.hash.substring(1);
+        if (hash.startsWith('subcategory_')) {
+            const ids = hash.split('_');
+            const subCatId = ids[2];
+            const activeSubSubBtn = document.querySelector('#subSubCategoryContainerOnDetailPage .subcategory-btn.active');
+            const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.id || 'all') : 'all';
+            await renderProductsOnDetailPage(subCatId, subSubCatId, term);
+        }
+    }, 500);
+    subpageSearchInput.oninput = () => { /* ... (unchanged) ... */
+        const searchTerm = subpageSearchInput.value;
+        subpageClearSearchBtn.style.display = searchTerm ? 'block' : 'none';
+        debouncedSubpageSearch(searchTerm);
+    };
+    subpageClearSearchBtn.onclick = () => { /* ... (unchanged) ... */
+        subpageSearchInput.value = '';
+        subpageClearSearchBtn.style.display = 'none';
+        debouncedSubpageSearch(''); // Trigger search with empty term
+    };
+    contactToggle.onclick = () => { /* ... (unchanged) ... */
+        const container = document.getElementById('dynamicContactLinksContainer');
+        const chevron = contactToggle.querySelector('.contact-chevron');
+        container.classList.toggle('open');
+        chevron.classList.toggle('open'); // Rotate chevron
+    };
+    profileForm.onsubmit = (e) => { /* ... (unchanged) ... */
         e.preventDefault();
-        // Save profile data to state and localStorage
         state.userProfile = {
             name: document.getElementById('profileName').value,
             address: document.getElementById('profileAddress').value,
@@ -2382,75 +2111,9 @@ function setupEventListeners() {
         showNotification(t('profile_saved'), 'success');
         closeCurrentPopup(); // Close profile sheet
     };
-
-    // --- Search ---
-    const debouncedSearch = debounce((term) => {
-        navigateToFilter({ search: term }); // Navigate with search term
-    }, 500); // 500ms delay
-
-    searchInput.oninput = () => {
-        const searchTerm = searchInput.value;
-        clearSearchBtn.style.display = searchTerm ? 'block' : 'none'; // Show/hide clear button
-        debouncedSearch(searchTerm); // Trigger debounced search
-    };
-
-    clearSearchBtn.onclick = () => {
-        searchInput.value = ''; // Clear input
-        clearSearchBtn.style.display = 'none'; // Hide button
-        navigateToFilter({ search: '' }); // Navigate with empty search
-    };
-
-    // Subpage search logic (for subcategory detail page)
-    const subpageSearchInput = document.getElementById('subpageSearchInput');
-    const subpageClearSearchBtn = document.getElementById('subpageClearSearchBtn');
-    const debouncedSubpageSearch = debounce(async (term) => {
-        const hash = window.location.hash.substring(1);
-        // Only run if on the subcategory detail page
-        if (hash.startsWith('subcategory_')) {
-            const ids = hash.split('_');
-            // const mainCatId = ids[1]; // Not needed directly here
-            const subCatId = ids[2];
-
-            // Find the currently active sub-subcategory button on the detail page
-            const activeSubSubBtn = document.querySelector('#subSubCategoryContainerOnDetailPage .subcategory-btn.active');
-            const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.id || 'all') : 'all'; // Default to 'all'
-
-            // Re-render products on the detail page with the search term
-            await renderProductsOnDetailPage(subCatId, subSubCatId, term);
-        }
-    }, 500);
-
-    subpageSearchInput.oninput = () => {
-        const searchTerm = subpageSearchInput.value;
-        subpageClearSearchBtn.style.display = searchTerm ? 'block' : 'none';
-        debouncedSubpageSearch(searchTerm);
-    };
-
-    subpageClearSearchBtn.onclick = () => {
-        subpageSearchInput.value = '';
-        subpageClearSearchBtn.style.display = 'none';
-        debouncedSubpageSearch(''); // Trigger search with empty term
-    };
-
-
-    // --- Settings Toggles ---
-    contactToggle.onclick = () => {
-        const container = document.getElementById('dynamicContactLinksContainer');
-        const chevron = contactToggle.querySelector('.contact-chevron');
-        container.classList.toggle('open');
-        chevron.classList.toggle('open'); // Rotate chevron
-    };
-
-    // --- Language Selection ---
-    document.querySelectorAll('.lang-btn').forEach(btn => {
-        btn.onclick = () => {
-            setLanguage(btn.dataset.lang); // Change language on button click
-        };
-    });
-
-    // --- PWA Install Button ---
+    document.querySelectorAll('.lang-btn').forEach(btn => btn.onclick = () => setLanguage(btn.dataset.lang));
     const installBtn = document.getElementById('installAppBtn');
-    if (installBtn) {
+    if (installBtn) { /* ... (unchanged PWA logic) ... */
         installBtn.addEventListener('click', async () => {
             if (state.deferredPrompt) {
                 installBtn.style.display = 'none'; // Hide button after prompt
@@ -2461,85 +2124,65 @@ function setupEventListeners() {
             }
         });
     }
-
-    // --- Other Settings Buttons ---
+    notificationBtn.addEventListener('click', () => openPopup('notificationsSheet'));
+    if (termsAndPoliciesBtn) { termsAndPoliciesBtn.addEventListener('click', () => openPopup('termsSheet')); }
     const enableNotificationsBtn = document.getElementById('enableNotificationsBtn');
-    if (enableNotificationsBtn) {
-        enableNotificationsBtn.addEventListener('click', requestNotificationPermission);
-    }
+    if (enableNotificationsBtn) { enableNotificationsBtn.addEventListener('click', requestNotificationPermission); }
     const forceUpdateBtn = document.getElementById('forceUpdateBtn');
-    if (forceUpdateBtn) {
-        forceUpdateBtn.addEventListener('click', forceUpdate);
-    }
-
-    // --- Firebase Messaging Foreground Listener ---
-    onMessage(messaging, (payload) => {
+    if (forceUpdateBtn) { forceUpdateBtn.addEventListener('click', forceUpdate); }
+    onMessage(messaging, (payload) => { /* ... (unchanged FCM logic) ... */
         console.log('Foreground message received: ', payload);
-        // Display notification using app's system
         const title = payload.notification.title;
         const body = payload.notification.body;
         showNotification(`${title}: ${body}`, 'success');
-        notificationBadge.style.display = 'block'; // Show badge immediately
+        notificationBadge.style.display = 'block';
     });
 }
 
-onAuthStateChanged(auth, async (user) => {
-    // Handle changes in admin authentication state
+// --- Auth State Change (unchanged) ---
+onAuthStateChanged(auth, async (user) => { /* ... (unchanged) ... */
     const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3"; // !! IMPORTANT: Replace with your actual Admin UID !!
     const isAdmin = user && user.uid === adminUID;
 
     if (isAdmin) {
         sessionStorage.setItem('isAdmin', 'true'); // Store admin status in session
-        // Initialize admin logic if available
         if (window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
-            // Ensure DOM is ready before initializing admin UI
-             if (document.readyState === 'complete') {
+             if (document.readyState === 'complete' || document.readyState === 'interactive') { // Check if DOM ready
                  window.AdminLogic.initialize();
              } else {
-                 window.addEventListener('load', window.AdminLogic.initialize);
+                 window.addEventListener('DOMContentLoaded', window.AdminLogic.initialize); // Wait for DOM if not ready
              }
         } else {
             console.warn("AdminLogic not found or initialize not a function.");
         }
     } else {
         sessionStorage.removeItem('isAdmin'); // Remove admin status
-        // If a non-admin user is somehow signed in, sign them out
         if (user) {
             await signOut(auth);
             console.log("Non-admin user signed out.");
         }
-        // Deinitialize admin UI elements if admin logic is available
         if (window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
-            window.AdminLogic.deinitialize();
+            window.AdminLogic.deinitialize(); // Clean up admin UI elements
         }
     }
 
-    // Close login modal automatically if login was successful
     if (loginModal.style.display === 'block' && isAdmin) {
         closeCurrentPopup();
     }
 });
 
 
+// --- Initialization ---
 function init() {
-    renderSkeletonLoader(); // Show skeleton loader immediately
-
+    renderSkeletonLoader(); // Show skeleton immediately
     // Attempt to enable Firestore offline persistence
     enableIndexedDbPersistence(db)
-        .then(() => {
-            console.log("Firestore offline persistence enabled.");
-            initializeAppLogic(); // Initialize app after persistence setup
-        })
+        .then(() => { console.log("Firestore offline persistence enabled."); initializeAppLogic(); })
         .catch((err) => {
-            // Handle persistence errors (multiple tabs, browser support)
-            if (err.code == 'failed-precondition') {
-                console.warn('Persistence failed: Multiple tabs open.');
-            } else if (err.code == 'unimplemented') {
-                console.warn('Persistence failed: Browser not supported.');
-            } else {
-                console.error("Error enabling persistence:", err);
-            }
-            initializeAppLogic(); // Initialize app even if persistence fails
+            if (err.code == 'failed-precondition') { console.warn('Persistence failed: Multiple tabs open.'); }
+            else if (err.code == 'unimplemented') { console.warn('Persistence failed: Browser not supported.'); }
+            else { console.error("Error enabling persistence:", err); }
+            initializeAppLogic(); // Initialize anyway
         });
 }
 
@@ -2549,21 +2192,22 @@ function initializeAppLogic() {
         state.sliderIntervals = {};
     }
 
-    // Fetch categories and then initialize UI based on URL/state
+    // Fetch categories first, then initialize UI based on URL/state
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
-    onSnapshot(categoriesQuery, async (snapshot) => { // Use async here
+    onSnapshot(categoriesQuery, async (snapshot) => {
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         state.categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories]; // Add 'All'
-        updateCategoryDependentUI(); // Update dropdowns, category buttons
+        updateCategoryDependentUI(); // Update dropdowns, category buttons etc.
 
-        // Handle initial page load/filter state *after* categories are loaded
+        // Handle initial page load state *after* categories are available
         handleInitialPageLoad();
 
         // Apply language *after* categories and initial state are processed
+        // Needs await if setLanguage becomes async, but it's okay for now
         setLanguage(state.currentLanguage);
     });
 
-    // Setup other parts of the app that don't depend strictly on categories being loaded first
+    // Setup other parts that don't depend strictly on categories being loaded first
     updateCartCount();
     setupEventListeners(); // Setup general event listeners
     setupScrollObserver(); // Setup infinite scroll
@@ -2573,15 +2217,12 @@ function initializeAppLogic() {
     setupGpsButton(); // Add GPS functionality
 }
 
-
-// Expose necessary functions/variables for admin.js via a global object
-Object.assign(window.globalAdminTools, {
+// Expose necessary functions/variables for admin.js
+Object.assign(window.globalAdminTools, { /* ... (unchanged) ... */
     db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
     productsCollection, categoriesCollection, announcementsCollection, promoGroupsCollection, brandGroupsCollection, // Pass new collections
     shortcutRowsCollection, // Pass shortcut rows collection
-
-    // Helper functions for admin logic
     clearProductCache: () => {
         console.log("Product cache and home page cleared due to admin action.");
         state.productCache = {}; // Clear the cache
@@ -2589,8 +2230,6 @@ Object.assign(window.globalAdminTools, {
         if (homeContainer) {
             homeContainer.innerHTML = ''; // Clear home page to force re-render
         }
-        // Optionally trigger a re-render if the user is on the home page
-        // searchProductsInFirestore(state.currentSearch, true);
     },
     setEditingProductId: (id) => { state.editingProductId = id; },
     getEditingProductId: () => state.editingProductId,
@@ -2602,7 +2241,7 @@ Object.assign(window.globalAdminTools, {
 document.addEventListener('DOMContentLoaded', init);
 
 // PWA install prompt handling
-window.addEventListener('beforeinstallprompt', (e) => {
+window.addEventListener('beforeinstallprompt', (e) => { /* ... (unchanged) ... */
     e.preventDefault(); // Prevent default browser prompt
     state.deferredPrompt = e; // Save the event
     const installBtn = document.getElementById('installAppBtn');
@@ -2614,29 +2253,24 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
 
 // Service Worker update handling
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator) { /* ... (unchanged) ... */
     const updateNotification = document.getElementById('update-notification');
     const updateNowBtn = document.getElementById('update-now-btn');
 
     navigator.serviceWorker.register('/sw.js').then(registration => {
         console.log('Service Worker registered.');
 
-        // Listen for updates found
         registration.addEventListener('updatefound', () => {
             const newWorker = registration.installing;
             console.log('New service worker found!', newWorker);
-
             newWorker.addEventListener('statechange', () => {
-                // If new worker is installed and waiting
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                     updateNotification.classList.add('show'); // Show update bar
                 }
             });
         });
 
-        // Button to activate the new worker
         updateNowBtn.addEventListener('click', () => {
-            // Send message to SW to skip waiting
             registration.waiting?.postMessage({ action: 'skipWaiting' });
             updateNotification.classList.remove('show'); // Hide bar
         });
@@ -2645,9 +2279,9 @@ if ('serviceWorker' in navigator) {
         console.log('Service Worker registration failed: ', err);
     });
 
-    // Reload page when controller changes (new SW activates)
     navigator.serviceWorker.addEventListener('controllerchange', () => {
         console.log('New Service Worker activated. Reloading...');
         window.location.reload();
     });
 }
+
