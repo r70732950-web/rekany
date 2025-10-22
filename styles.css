@@ -1313,4 +1313,148 @@ input:checked + .slider:before {
     transform: scale(1.1);
     color: var(--primary-color);
 }
+/* === START: KODÊN NÛ JI BO DÎZAYNA BEŞÊ ADMIN === */
+
+/* 1. Stîla Giştî ya Beşên Admin */
+.settings-group[id^="admin"] {
+    background-color: #f7fafc; /* Rengek cuda ji bo beşên admin */
+    border: 1px solid #e2e8f0;
+    margin-bottom: 25px; /* Zêdekirina valahiyê di navbera beşan de */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* 2. Cuwantir kirina Sernivîsan (Titles) */
+.settings-group[id^="admin"] .section-title,
+.settings-group[id^="admin"] h3,
+.settings-group[id^="admin"] h4 {
+    background-color: #edf2f7;
+    color: var(--primary-color);
+    padding: 12px 15px;
+    margin: 0;
+    border-bottom: 1px solid var(--section-border);
+    font-size: 16px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-group[id^="admin"] h4 {
+    background-color: #e2e8f0;
+    font-size: 14px;
+}
+
+/* 3. Rêkxistina Ferman (Forms) */
+.settings-group[id^="admin"] form {
+    padding: 15px;
+    background-color: #ffffff;
+    border-bottom: 1px solid var(--section-border);
+}
+.settings-group[id^="admin"] form:last-of-type {
+    border-bottom: none;
+}
+
+/* Zêdekirina valahiyê di navbera forman de */
+#adminCategoryManagement > div {
+    padding: 0 !important;
+}
+#adminCategoryManagement > div:not(:last-child) {
+     border-bottom: 8px solid #f7fafc;
+}
+
+
+/* 4. Cuwantir kirina Input û Select */
+.settings-group[id^="admin"] .form-group input,
+.settings-group[id^="admin"] .form-group select,
+.settings-group[id^="admin"] .form-group textarea {
+    background-color: #f7fafc;
+    border: 1px solid #cbd5e0;
+    transition: all 0.2s ease-in-out;
+}
+
+.settings-group[id^="admin"] .form-group input:focus,
+.settings-group[id^="admin"] .form-group select:focus,
+.settings-group[id^="admin"] .form-group textarea:focus {
+    background-color: #ffffff;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(26, 54, 93, 0.2);
+}
+
+/* 5. Stîla bişkokan (Buttons) */
+.settings-group[id^="admin"] form button[type="submit"] {
+    background-color: var(--primary-light);
+    font-size: 15px;
+    transition: background-color 0.2s;
+}
+
+.settings-group[id^="admin"] form button[type="submit"]:hover {
+    background-color: var(--primary-color);
+}
+
+/* 6. Stîla Listan (bo nimûne, lista kategoriyan) */
+.admin-list-group {
+    border: 1px solid var(--section-border);
+    border-radius: 6px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    background-color: #fff;
+}
+
+.admin-list-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid var(--section-border);
+}
+.admin-list-group-header strong {
+    font-size: 14px;
+}
+
+.admin-list-item, .social-link-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #f1f1f1;
+}
+.admin-list-item:last-child {
+    border-bottom: none;
+}
+.admin-list-item:hover {
+    background-color: #f7fafc;
+}
+
+.empty-list-text {
+    padding: 15px;
+    text-align: center;
+    color: var(--dark-gray);
+    font-size: 14px;
+}
+
+.small-btn {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 12px !important;
+}
+
+/* Zêdekirina hejmarekê li tenişta her rêzekê */
+#homeLayoutListContainer {
+    counter-reset: layout-item-counter;
+}
+
+.layout-item-info::before {
+    counter-increment: layout-item-counter;
+    content: counter(layout-item-counter);
+    background-color: var(--medium-gray);
+    color: var(--text-light);
+    font-weight: bold;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-right: 8px;
+}
+
+/* === END: KODÊN NÛ JI BO DÎZAYNA BEŞÊ ADMIN === */
 
