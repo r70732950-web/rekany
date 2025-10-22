@@ -1,5 +1,4 @@
-// BEŞÊ DUYEM: app-logic.js
-// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر - وەشانی 2)
+// BEŞÊ DUYEM: app-logic.js (ڕاستکراو بۆ کێشەی Scroll)
 
 import {
     db, auth, messaging,
@@ -140,7 +139,9 @@ async function applyFilterState(filterState, fromPopState = false) {
     await searchProductsInFirestore(state.currentSearch, true);
 
     if (fromPopState && typeof filterState.scroll === 'number') {
-        setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
+        // <-- لێرە گۆڕانکارییەکە کراوە
+        // زیادکردنی کات بۆ ئەوەی دڵنیا بین هەموو بەشەکانی پەیجی سەرەکی باربوونە پێش scroll کردن
+        setTimeout(() => window.scrollTo(0, filterState.scroll), 150);
     } else if (!fromPopState) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -179,12 +180,12 @@ window.addEventListener('popstate', async (event) => { // Guhertin bo async
             // Eger ew rûpela jêr-kategoriyê be û sernav tune be, ji nû ve bistîne
             if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
                try {
-                  const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
-                  const subCatSnap = await getDoc(subCatRef);
-                  if (subCatSnap.exists()) {
-                      const subCat = subCatSnap.data();
-                      pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
-                  }
+                 const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
+                 const subCatSnap = await getDoc(subCatRef);
+                 if (subCatSnap.exists()) {
+                     const subCat = subCatSnap.data();
+                     pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
+                 }
                } catch(e) { console.error("Could not refetch title on popstate", e) }
             }
             showPage(popState.id, pageTitle);
@@ -1133,8 +1134,8 @@ function renderSkeletonLoader(container = skeletonLoader, count = 8) {
     }
     container.style.display = 'grid';
     if (container === skeletonLoader) {
-      productsContainer.style.display = 'none';
-      loader.style.display = 'none';
+        productsContainer.style.display = 'none';
+        loader.style.display = 'none';
     }
 }
 
@@ -1263,11 +1264,11 @@ async function renderSingleCategoryRow(sectionData) {
             } else {
                  // If only main category is selected, filter on the main page
                  await navigateToFilter({
-                    category: categoryId,
-                    subcategory: 'all',
-                    subSubcategory: 'all',
-                    search: ''
-                });
+                     category: categoryId,
+                     subcategory: 'all',
+                     subSubcategory: 'all',
+                     search: ''
+                 });
             }
         };
         header.appendChild(seeAllLink);
@@ -1431,9 +1432,6 @@ async function renderAllProductsSection() {
     }
 }
 
-// ======================================
-// ===== START: GORRANKARIYA 1 / CHANGE 1 (Slider Fix v2) =====
-// ======================================
 // Function updated to accept layoutId and pass it to renderPromoCardsSectionForHome
 async function renderHomePageContent() {
     if (state.isRenderingHomePage) return;
@@ -1445,7 +1443,6 @@ async function renderHomePageContent() {
         renderSkeletonLoader(homeSectionsContainer, 4);
         homeSectionsContainer.innerHTML = ''; // Clear previous content first
 
-        // === START: Interval Cleanup Code ===
         // Clean up any existing intervals before rendering new ones
         Object.keys(state.sliderIntervals || {}).forEach(layoutId => {
             if (state.sliderIntervals[layoutId]) {
@@ -1453,7 +1450,6 @@ async function renderHomePageContent() {
             }
         });
         state.sliderIntervals = {};
-        // === END: Interval Cleanup Code ===
 
         const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
         const layoutSnapshot = await getDocs(layoutQuery);
@@ -1468,7 +1464,6 @@ async function renderHomePageContent() {
                 switch (section.type) {
                     case 'promo_slider':
                         if (section.groupId) {
-                            // CHAKKIRÎ: Nardina `doc.id` wekî `layoutId`
                             sectionElement = await renderPromoCardsSectionForHome(section.groupId, doc.id);
                         } else { console.warn("Promo slider section is missing groupId in layout config."); }
                         break;
@@ -1506,24 +1501,15 @@ async function renderHomePageContent() {
         console.error("Error rendering home page content:", error);
         homeSectionsContainer.innerHTML = `<p style="text-align: center; padding: 20px;">هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
     } finally {
-        // Interval cleanup is now handled at the beginning and when navigating away
         state.isRenderingHomePage = false;
     }
 }
-// ======================================
-// ===== END: GORRANKARIYA 1 / CHANGE 1 (Slider Fix v2) =====
-// ======================================
 
-
-// ======================================
-// ===== START: GORRANKARIYA 2 / CHANGE 2 (Slider Fix v2) =====
-// ======================================
 // Function updated to accept layoutId, create unique ID, and manage its interval in state.sliderIntervals
 async function renderPromoCardsSectionForHome(groupId, layoutId) { // ZÊDEKIRÎ: layoutId
     const promoGrid = document.createElement('div');
     promoGrid.className = 'products-container';
     promoGrid.style.marginBottom = '24px';
-    // CHAKKIRÎ: Bikaranîna layoutId ji bo çêkirina IDyek bêhempa
     promoGrid.id = `promoSliderLayout_${layoutId}`;
 
     try {
@@ -1541,11 +1527,9 @@ async function renderPromoCardsSectionForHome(groupId, layoutId) { // ZÊDEKIRÎ
 
             if (cards.length > 1) {
                 const rotate = () => {
-                    // CHAKKIRÎ: Check if interval still exists in state before clearing
                     if (!document.getElementById(promoGrid.id) || !state.sliderIntervals || !state.sliderIntervals[layoutId]) {
                         if (sliderState.intervalId) {
-                            clearInterval(sliderState.intervalId); // Clear this specific interval
-                            // Also remove from global state if it exists there
+                            clearInterval(sliderState.intervalId);
                             if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
                                 delete state.sliderIntervals[layoutId];
                             }
@@ -1558,17 +1542,13 @@ async function renderPromoCardsSectionForHome(groupId, layoutId) { // ZÊDEKIRÎ
                     if(imgElement) imgElement.src = newImageUrl;
                 };
 
-                // Clear previous interval for this specific layoutId if it exists
                 if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
                     clearInterval(state.sliderIntervals[layoutId]);
                 }
 
                 sliderState.intervalId = setInterval(rotate, 5000);
-                // CHAKKIRÎ: Store interval ID in the global state object using layoutId as key
-                if (!state.sliderIntervals) state.sliderIntervals = {}; // Initialize if doesn't exist
+                if (!state.sliderIntervals) state.sliderIntervals = {};
                 state.sliderIntervals[layoutId] = sliderState.intervalId;
-                // CHAKKIRÎ: Remove storing interval ID on dataset
-                // promoGrid.dataset.interval = sliderState.intervalId;
             }
 
             return promoGrid;
@@ -1578,10 +1558,6 @@ async function renderPromoCardsSectionForHome(groupId, layoutId) { // ZÊDEKIRÎ
     }
     return null;
 }
-// ======================================
-// ===== END: GORRANKARIYA 2 / CHANGE 2 (Slider Fix v2) =====
-// ======================================
-
 
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
@@ -1596,26 +1572,16 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
 
         if (homeSectionsContainer.innerHTML.trim() === '') {
             await renderHomePageContent();
-        } else {
-            // Re-start rotations are implicitly handled by renderHomePageContent now
         }
         return;
     } else {
         homeSectionsContainer.style.display = 'none';
-        // ======================================
-        // ===== START: GORRANKARIYA 3 / CHANGE 3 (Slider Fix v2) =====
-        // ======================================
-        // Stop all promo rotations when navigating away from the full home view
-        // CHAKKIRÎ: Use state.sliderIntervals for cleanup
         Object.keys(state.sliderIntervals || {}).forEach(layoutId => {
             if (state.sliderIntervals[layoutId]) {
                 clearInterval(state.sliderIntervals[layoutId]);
             }
         });
-        state.sliderIntervals = {}; // Reset the intervals object
-        // ======================================
-        // ===== END: GORRANKARIYA 3 / CHANGE 3 (Slider Fix v2) =====
-        // ======================================
+        state.sliderIntervals = {};
     }
 
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
@@ -2288,9 +2254,9 @@ onAuthStateChanged(auth, async (user) => {
         if (window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
              // Ensure admin logic is loaded before initializing
              if (document.readyState === 'complete') {
-                  window.AdminLogic.initialize();
+                   window.AdminLogic.initialize();
              } else {
-                  window.addEventListener('load', window.AdminLogic.initialize);
+                   window.addEventListener('load', window.AdminLogic.initialize);
              }
         } else {
              console.warn("AdminLogic not found or initialize not a function.");
@@ -2395,8 +2361,6 @@ Object.assign(window.globalAdminTools, {
         if (homeContainer) {
             homeContainer.innerHTML = ''; // Clear home page to force re-render
         }
-        // Optionally trigger a re-render if the user is on the home page
-        // searchProductsInFirestore(state.currentSearch, true);
     },
     setEditingProductId: (id) => { state.editingProductId = id; },
     getEditingProductId: () => state.editingProductId,
@@ -2463,4 +2427,3 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
-
