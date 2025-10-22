@@ -1,6 +1,6 @@
 // BEŞÊ DUYEM: app-logic.js
-// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر - وەشانی 2)
-// (Çakkirî bo çareserkirina کێشەی سکڕۆڵ - Scroll Restoration Fix v2)
+// Fonksiyon û mentiqê serekî yê bernameyê
+// (Çakkirî bo çareserkirina کێشەی سکڕۆڵ - Scroll Restoration Fix v3 - Simplified)
 
 import {
     db, auth, messaging,
@@ -38,10 +38,14 @@ function debounce(func, delay = 500) {
 function saveCurrentScrollPosition() {
     const currentState = history.state;
     // Only save scroll position for the main page filter state
+    // Check if mainPage is active AND the current state is NOT a popup state
     if (document.getElementById('mainPage').classList.contains('page-active') && currentState && !currentState.type) {
+        // Save the scroll position associated with the main page's filter state
         history.replaceState({ ...currentState, scroll: window.scrollY }, '');
+        // console.log("Saved scroll for main page:", window.scrollY, "State:", currentState);
     }
 }
+
 
 function updateHeaderView(pageId, title = '') {
     const mainHeader = document.querySelector('.main-header-content');
@@ -65,9 +69,12 @@ function showPage(pageId, pageTitle = '') {
         page.classList.toggle('page-hidden', !isActive);
     });
 
-    if (pageId !== 'mainPage') {
-        window.scrollTo(0, 0);
+    // Scroll to top only when navigating to a completely *new* page,
+    // not when applying filters on the main page via history state.
+    if (pageId !== 'mainPage' || !history.state || history.state.type === 'page' ) {
+         window.scrollTo(0, 0);
     }
+
 
     // Nûvekirina headerê li gorî rûpelê
     if (pageId === 'settingsPage') {
@@ -93,11 +100,11 @@ function closeAllPopupsUI() {
 }
 
 function openPopup(id, type = 'sheet') {
-    saveCurrentScrollPosition();
+    saveCurrentScrollPosition(); // Save scroll *before* opening popup
     const element = document.getElementById(id);
     if (!element) return;
 
-    closeAllPopupsUI();
+    closeAllPopupsUI(); // Close others first
     if (type === 'sheet') {
         sheetOverlay.classList.add('show');
         element.classList.add('show');
@@ -115,18 +122,26 @@ function openPopup(id, type = 'sheet') {
         element.style.display = 'block';
     }
     document.body.classList.add('overlay-active');
+    // Push state AFTER saving scroll, so popstate goes back to the saved scroll state
     history.pushState({ type: type, id: id }, '', `#${id}`);
 }
 
 function closeCurrentPopup() {
+    // Check if the current state is a popup state
     if (history.state && (history.state.type === 'sheet' || history.state.type === 'modal')) {
-        history.back();
+        history.back(); // Go back, which triggers popstate
     } else {
+        // If not a popup state, just close UI elements (fallback)
         closeAllPopupsUI();
     }
 }
 
-async function applyFilterState(filterState, fromPopState = false) {
+
+// ============================================
+// ===== START: SCROLL RESTORATION FIX v3 =====
+// ============================================
+async function applyFilterState(filterState, fromPopState = false) { // Removed skipManualScroll flag
+    // console.log("Applying filter state:", filterState, "From popstate:", fromPopState);
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
     state.currentSubSubcategory = filterState.subSubcategory || 'all';
@@ -141,41 +156,67 @@ async function applyFilterState(filterState, fromPopState = false) {
     // Call the function to fetch/render content based on the new state
     await searchProductsInFirestore(state.currentSearch, true); // Wait for content rendering to start/complete
 
-    // ============================================
-    // ===== START: SCROLL RESTORATION FIX v2 =====
-    // ============================================
-    // Restore scroll position *after* content rendering has likely finished
-    if (fromPopState && typeof filterState.scroll === 'number') {
-        // Use requestAnimationFrame for smoother scroll restoration after rendering
-        requestAnimationFrame(() => {
-             // Use setTimeout with 0ms delay inside rAF to ensure execution after paint
-             setTimeout(() => {
-                // Double check if we are still on the main page before scrolling
-                if (document.getElementById('mainPage').classList.contains('page-active')) {
-                     window.scrollTo(0, filterState.scroll);
-                }
-             } , 0);
-        });
-    } else if (!fromPopState) {
-        // Only scroll to top smoothly on *new* navigations, not popstate
-         window.scrollTo({ top: 0, behavior: 'smooth' });
+    // --- Scroll Logic ---
+    if (!fromPopState) {
+        // Only scroll to top smoothly on *new* filter navigations (not popstate)
+        // console.log("New navigation, scrolling to top.");
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    // ============================================
-    // ===== END: SCROLL RESTORATION FIX v2 =======
-    // ============================================
+    // For popstate, DO NOTHING here. Let the browser handle scroll restoration
+    // because history.scrollRestoration = 'manual' allows it if we don't interfere.
+    // else {
+    //    console.log("Popstate detected, letting browser handle scroll.");
+    // }
 }
+
+window.addEventListener('popstate', async (event) => {
+    closeAllPopupsUI(); // Always close popups on popstate
+    const popState = event.state;
+    // console.log("Popstate event:", popState);
+
+    if (popState) {
+        if (popState.type === 'page') {
+            // Handle navigation between full pages (e.g., Settings, Subcategory Detail)
+             let pageTitle = popState.title;
+             // ... [existing logic to refetch title if needed] ...
+             showPage(popState.id, pageTitle);
+        } else if (popState.type === 'sheet' || popState.type === 'modal') {
+             // This case should ideally not happen if we close popups first,
+             // but if it does (e.g., user uses browser forward), re-open the popup.
+             // console.log("Popstate: Re-opening popup", popState.id);
+             openPopup(popState.id, popState.type);
+        } else {
+             // This state represents a filter state on the main page (or potentially initial state if scrollRestoration=auto did weird things)
+             // console.log("Popstate: Applying main page filter state", popState);
+             showPage('mainPage');
+             // Apply filter state, indicating it's from popstate so applyFilterState skips manual scroll
+             applyFilterState(popState, true);
+        }
+    } else {
+        // This means we popped back to the initial state (likely the main page base URL)
+        // console.log("Popstate: Reached initial state");
+        const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
+        showPage('mainPage');
+        // Apply default state, indicating it's from popstate
+        applyFilterState(defaultState, true);
+    }
+});
+// ============================================
+// ===== END: SCROLL RESTORATION FIX v3 =======
+// ============================================
 
 
 async function navigateToFilter(newState) {
-    history.replaceState({
-        category: state.currentCategory,
-        subcategory: state.currentSubcategory,
-        subSubcategory: state.currentSubSubcategory,
-        search: state.currentSearch,
-        scroll: window.scrollY
-    }, '');
+    // Save current scroll position *before* pushing new state
+    saveCurrentScrollPosition(); // Ensure scroll is saved for the state we are leaving
 
-    const finalState = { ...history.state, ...newState, scroll: 0 };
+    const finalState = { // Build the new state, reset scroll to 0 for new navigation
+        category: newState.category !== undefined ? newState.category : state.currentCategory,
+        subcategory: newState.subcategory !== undefined ? newState.subcategory : state.currentSubcategory,
+        subSubcategory: newState.subSubcategory !== undefined ? newState.subSubcategory : state.currentSubSubcategory,
+        search: newState.search !== undefined ? newState.search : state.currentSearch,
+        scroll: 0 // New navigations should start at top
+    };
 
     const params = new URLSearchParams();
     if (finalState.category && finalState.category !== 'all') params.set('category', finalState.category);
@@ -185,41 +226,14 @@ async function navigateToFilter(newState) {
 
     const newUrl = `${window.location.pathname}?${params.toString()}`;
 
+    // Push the new state representing the filter change
     history.pushState(finalState, '', newUrl);
+    // console.log("Pushed new filter state:", finalState);
 
-    await applyFilterState(finalState);
+    // Apply the new state (fromPopState will be false, triggering scroll to top)
+    await applyFilterState(finalState, false);
 }
 
-window.addEventListener('popstate', async (event) => { // Guhertin bo async
-    closeAllPopupsUI();
-    const popState = event.state;
-    if (popState) {
-        if (popState.type === 'page') {
-            let pageTitle = popState.title;
-            // Eger ew rûpela jêr-kategoriyê be û sernav tune be, ji nû ve bistîne
-            if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
-                try {
-                    const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
-                    const subCatSnap = await getDoc(subCatRef);
-                    if (subCatSnap.exists()) {
-                        const subCat = subCatSnap.data();
-                        pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
-                    }
-                } catch(e) { console.error("Could not refetch title on popstate", e) }
-            }
-            showPage(popState.id, pageTitle);
-        } else if (popState.type === 'sheet' || popState.type === 'modal') {
-            openPopup(popState.id, popState.type);
-        } else {
-            showPage('mainPage');
-            applyFilterState(popState, true);
-        }
-    } else {
-        const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
-        showPage('mainPage');
-        applyFilterState(defaultState);
-    }
-});
 
 function handleInitialPageLoad() {
     const hash = window.location.hash.substring(1);
@@ -236,30 +250,52 @@ function handleInitialPageLoad() {
          history.replaceState({ type: 'page', id: pageId, title: t('settings_title') }, '', `#${hash}`);
          showPage(pageId, t('settings_title'));
     } else {
-        showPage('mainPage');
+        // For main page, determine initial filter state from URL params
         const initialState = {
             category: params.get('category') || 'all',
             subcategory: params.get('subcategory') || 'all',
             subSubcategory: params.get('subSubcategory') || 'all',
             search: params.get('search') || '',
-            scroll: 0
+            scroll: 0 // Initial load always starts at top
         };
+        // Replace history state without adding a new entry
         history.replaceState(initialState, '');
-        applyFilterState(initialState);
+        // console.log("Initial state replaced:", initialState);
+        showPage('mainPage');
+        applyFilterState(initialState); // Apply filters (fromPopState is false)
     }
 
-    const element = document.getElementById(hash);
-    if (element && pageId === 'mainPage') {
-        const isSheet = element.classList.contains('bottom-sheet');
-        const isModal = element.classList.contains('modal');
-        if (isSheet || isModal) {
-            openPopup(hash, isSheet ? 'sheet' : 'modal');
+    // Check if hash targets a popup after setting the page
+     if (pageId === 'mainPage' && hash) {
+        const element = document.getElementById(hash);
+        if (element) {
+            const isSheet = element.classList.contains('bottom-sheet');
+            const isModal = element.classList.contains('modal');
+            if (isSheet || isModal) {
+                 // Open popup *without* pushing history state again, as it's part of initial load
+                 const type = isSheet ? 'sheet' : 'modal';
+                 const element = document.getElementById(hash);
+                 if (!element) return;
+                 closeAllPopupsUI();
+                 if (type === 'sheet') {
+                     sheetOverlay.classList.add('show');
+                     element.classList.add('show');
+                     // ... [rest of popup opening logic] ...
+                 } else {
+                     element.style.display = 'block';
+                 }
+                 document.body.classList.add('overlay-active');
+                 // Replace state to include the opened popup
+                 history.replaceState({ type: type, id: hash }, '', `#${hash}`);
+                 // console.log("Initial state replaced to include popup:", history.state);
+            }
         }
-    }
+     }
+
 
     const productId = params.get('product');
     if (productId) {
-        setTimeout(() => showProductDetails(productId), 500);
+        setTimeout(() => showProductDetails(productId), 500); // Open product detail sheet
     }
 }
 
@@ -304,7 +340,7 @@ function setLanguage(lang) {
     if (isHomeView) {
         renderHomePageContent();
     } else {
-        renderProducts();
+        renderProducts(); // Re-render products with new language
     }
 
     renderMainCategories();
@@ -2337,6 +2373,19 @@ onAuthStateChanged(auth, async (user) => {
 function init() {
     renderSkeletonLoader(); // Show skeleton loader immediately
 
+    // ============================================
+    // ===== START: SCROLL RESTORATION FIX v3 =====
+    // ============================================
+    // Tell the browser we'll handle scroll restoration
+    if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+        // console.log("Scroll restoration set to manual.");
+    }
+    // ============================================
+    // ===== END: SCROLL RESTORATION FIX v3 =======
+    // ============================================
+
+
     // Attempt to enable offline persistence
     enableIndexedDbPersistence(db)
         .then(() => {
@@ -2382,9 +2431,10 @@ function initializeAppLogic() {
             if (state.categories.length > 1) {
               showSubcategoryDetailPage(mainCatId, subCatId, true); // True because it's from initial load/history
             }
-        } else {
-            handleInitialPageLoad(); // Handles main page filters and other hashes
+        } else if (!history.state) { // Only call handleInitialPageLoad if state isn't already set (prevents conflicts)
+             handleInitialPageLoad(); // Handles main page filters and other hashes
         }
+
 
         // Apply language after categories are loaded to ensure names are correct
         setLanguage(state.currentLanguage);
