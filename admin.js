@@ -1,16 +1,14 @@
 // فایلی admin.js (تەواو و نوێکراوە بۆ سیستەمی پێشکەوتووی ڕیزبەندی)
 
 const { 
-    db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, limit, where,
+    db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit,
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
-    productsCollection, categoriesCollection, announcementsCollection,
+    productsCollection, categoriesCollection, announcementsCollection, 
+    promoGroupsCollection, brandGroupsCollection, // Ensure these are from app-setup
     setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage,
     clearProductCache
 } = window.globalAdminTools;
 
-// Firebase Collections for new group features
-const promoGroupsCollection = collection(db, "promo_groups");
-const brandGroupsCollection = collection(db, "brand_groups");
 const shortcutRowsCollection = collection(db, "shortcut_rows");
 
 window.AdminLogic = {
@@ -52,17 +50,20 @@ window.AdminLogic = {
         }
     
         const firstDocData = snapshot.docs[0].data();
+        // Check if the 'name' field is a string, which indicates the old structure
         const isOldStructure = typeof firstDocData.name === 'string' || !firstDocData.hasOwnProperty('name');
     
         if (isOldStructure) {
             console.warn("Old home_layout structure detected. Migrating to new structure...");
             showNotification('خەریکی نوێکردنەوەی سیستەمی ڕیزبەندییە...', 'success');
             
+            // Delete all old documents
             const allDocsSnapshot = await getDocs(layoutCollectionRef);
             const deletePromises = allDocsSnapshot.docs.map(doc => deleteDoc(doc.ref));
             await Promise.all(deletePromises);
             console.log("Old layout deleted.");
     
+            // Create the new default layout
             await this.createDefaultHomeLayout(layoutCollectionRef);
             console.log("New default layout created after migration.");
         } else {
@@ -79,7 +80,7 @@ window.AdminLogic = {
         ];
         const addPromises = defaultLayout.map(item => addDoc(collectionRef, item));
         
-        // Create default groups
+        // Create default groups if they don't exist
         await setDoc(doc(promoGroupsCollection, 'default'), { name: 'گرووپی سەرەکی', createdAt: Date.now() });
         await setDoc(doc(brandGroupsCollection, 'default'), { name: 'گرووپی سەرەکی', createdAt: Date.now() });
 
@@ -1143,7 +1144,7 @@ window.AdminLogic = {
                 const snapshot = await getDocs(q);
                 subSelect.innerHTML = '<option value="">-- هەموو (یان هەڵبژێرە) --</option>';
                 snapshot.forEach(doc => {
-                    subSelect.innerHTML += `<option value="${doc.id}">${doc.data().name_ku_sorani}</option>`;
+                     subSelect.innerHTML += `<option value="${doc.id}">${doc.data().name_ku_sorani}</option>`;
                 });
             } else {
                 subContainer.style.display = 'none';

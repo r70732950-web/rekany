@@ -6,7 +6,7 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,7 +25,6 @@
 <body>
     <div class="app-container">
         <header class="app-header">
-            <!-- Beşa ji bo rûpela serekî -->
             <div class="main-header-content">
                 <div class="logo">
                     <i class="fas fa-store" style="color: var(--accent-color); font-size: 24px;"></i>
@@ -44,7 +43,6 @@
                 </div>
             </div>
 
-            <!-- Beşa ji bo rûpelên din (bi veşartî) -->
             <div class="subpage-header-content" style="display: none;">
                 <button id="headerBackBtn" class="header-icon-btn" aria-label="Go back">
                     <i class="fas fa-arrow-right"></i>
@@ -448,12 +446,10 @@
                 </div>
             </div>
             
-            <!-- ====== بەشی نوێکراوەی سلایدەری ڕێکلام ====== -->
             <div class="settings-group" id="adminPromoCardsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                     <i class="fas fa-images"></i> <span>بەڕێوەبردنی سلایدەری ڕێکلام</span>
                 </h3>
-                <!-- زیادکردنی گرووپی نوێی سلایدەر -->
                 <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
                     <form id="addPromoGroupForm">
                         <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">دروستکردنی گرووپی سلایدەری نوێ</h4>
@@ -464,7 +460,6 @@
                         <button type="submit">دروستکردنی گرووپ</button>
                     </form>
                 </div>
-                <!-- زیادکردنی کارتی نوێ بۆ گرووپێک -->
                 <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
                     <form id="addPromoCardForm">
                         <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی کارتی نوێ</h4>
@@ -500,20 +495,17 @@
                         <button type="submit">پاشەکەوتکردنی کارت</button>
                     </form>
                 </div>
-                <!-- لیستی گرووپ و کارتەکان -->
                 <div style="padding: 15px;">
                     <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">گرووپ و کارتە زیادکراوەکان</h4>
                     <div id="promoGroupsListContainer"></div>
                 </div>
             </div>
 
-            <!-- ====== بەشی نوێکراوەی براندەکان ====== -->
             <div class="settings-group" id="adminBrandsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                     <i class="fas fa-tags"></i> <span>بەڕێوەبردنی براندەکان</span>
                 </h3>
-                 <!-- زیادکردنی گرووپی نوێی براند -->
-                <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
+                 <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
                     <form id="addBrandGroupForm">
                         <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">دروستکردنی گرووپی براندی نوێ</h4>
                         <div class="form-group">
@@ -523,7 +515,6 @@
                         <button type="submit">دروستکردنی گرووپ</button>
                     </form>
                 </div>
-                <!-- زیادکردنی براندی نوێ بۆ گرووپێک -->
                 <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
                     <form id="addBrandForm">
                         <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی براندی نوێ</h4>
@@ -569,7 +560,6 @@
                         <button type="submit">پاشەکەوتکردنی براند</button>
                     </form>
                 </div>
-                <!-- لیستی گرووپ و براندەکان -->
                 <div style="padding: 15px;">
                     <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">گرووپ و براندە زیادکراوەکان</h4>
                     <div id="brandGroupsListContainer"></div>
@@ -821,7 +811,6 @@
 
         <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
 
-        <!-- ====== مۆداڵی نوێکراوەی زیادکردنی بەش بۆ پەڕەی سەرەکی ====== -->
         <div id="addHomeSectionModal" class="modal">
             <div class="modal-content">
                 <span class="close" aria-label="Close">&times;</span>
@@ -839,12 +828,10 @@
                             <option value="all_products">هەموو کاڵاکان (لە کۆتایی)</option>
                         </select>
                     </div>
-                    <!-- بۆ هەڵبژاردنی گرووپی سلایدەر یان براند -->
                     <div id="specificItemGroupSelectContainer" class="form-group" style="display: none;">
                         <label for="specificItemGroupId" id="specificItemGroupLabel">گرووپ هەڵبژێرە:</label>
                         <select id="specificItemGroupId" required></select>
                     </div>
-                    <!-- بۆ هەڵبژاردنی وردی جۆرەکان -->
                     <div id="specificCategorySelectContainer" class="form-group" style="display: none;">
                         <div class="form-group">
                             <label for="newSectionMainCategory">جۆری سەرەکی:</label>
