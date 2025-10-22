@@ -142,7 +142,7 @@ async function applyFilterState(filterState, fromPopState = false) {
     if (fromPopState && typeof filterState.scroll === 'number') {
         setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
     } else if (!fromPopState) {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+         
     }
 }
 
