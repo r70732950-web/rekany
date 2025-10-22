@@ -1,11 +1,11 @@
 // BEŞÊ DUYEM: app-logic.js
-// Fonksiyon û mentiqê serekî yê bernameyê (Hewldana 3yem ji bo çareserkirina scroll position bi sessionStorage)
+// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر - وەشانی 2)
 
 import {
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
-    promoGroupsCollection, brandGroupsCollection,
-    translations, state,
+    promoGroupsCollection, brandGroupsCollection, // Ensure these are imported from app-setup
+    translations, state, // state object needs sliderIntervals: {} added in app-setup.js
     CART_KEY, FAVORITES_KEY, PROFILE_KEY, PRODUCTS_PER_PAGE,
     loginModal, addProductBtn, productFormModal, productsContainer, skeletonLoader, searchInput,
     clearSearchBtn, loginForm, productForm, formTitle, imageInputsContainer, loader,
@@ -22,11 +22,6 @@ import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https:/
 import { enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, addDoc, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
-// --- GORRANKARIYA 1: Destpêkirin ---
-// Guhêrbeliya cîhanî ji bo hilanîna scrollê ya li bendê
-state.pendingScrollRestore = null;
-const MAIN_PAGE_SCROLL_KEY = 'mainPageScrollPos';
-// --- Dawiya Gorrankariyê 1 ---
 
 function debounce(func, delay = 500) {
     let timeout;
@@ -38,22 +33,11 @@ function debounce(func, delay = 500) {
     };
 }
 
-// --- GORRANKARIYA 2: Fonksiyona nû ji bo tomarkirina scrollê ---
-function saveMainPageScrollPosition() {
-    // Tenê dema ku li ser rûpela sereke be û popup venekirî be tomar bike
-    if (document.getElementById('mainPage').classList.contains('page-active') &&
-        !document.body.classList.contains('overlay-active')) {
-        const currentScroll = window.scrollY;
-        // console.log(`Saving scroll ${currentScroll} to sessionStorage`); // Ji bo debugê
-        sessionStorage.setItem(MAIN_PAGE_SCROLL_KEY, currentScroll);
-    }
-}
-// --- Dawiya Gorrankariyê 2 ---
 
-// Fonksiyona saveCurrentScrollPosition êdî ne pêwîst e, lê em dikarin wê bihêlin heke ji bo tiştekî din were bikaranîn
 function saveCurrentScrollPosition() {
     const currentState = history.state;
-    if (currentState && !currentState.type) { // Dema ku rewşek fîlterê ye
+    // Only save scroll position for the main page filter state
+    if (document.getElementById('mainPage').classList.contains('page-active') && currentState && !currentState.type) {
         history.replaceState({ ...currentState, scroll: window.scrollY }, '');
     }
 }
@@ -74,12 +58,6 @@ function updateHeaderView(pageId, title = '') {
 }
 
 function showPage(pageId, pageTitle = '') {
-    // --- GORRANKARIYA 3: Tomarkirina scrollê berî guhertina rûpelê ---
-    if (document.getElementById('mainPage').classList.contains('page-active')) {
-         saveMainPageScrollPosition(); // Tomar bike eger ji rûpela sereke derkeve
-    }
-    // --- Dawiya Gorrankariyê 3 ---
-
     document.querySelectorAll('.page').forEach(page => {
         const isActive = page.id === pageId;
         page.classList.toggle('page-active', isActive);
@@ -87,9 +65,10 @@ function showPage(pageId, pageTitle = '') {
     });
 
     if (pageId !== 'mainPage') {
-        window.scrollTo(0, 0); // Scroll to top for new pages
+        window.scrollTo(0, 0);
     }
 
+    // Nûvekirina headerê li gorî rûpelê
     if (pageId === 'settingsPage') {
         updateHeaderView('settingsPage', t('settings_title'));
     } else if (pageId === 'subcategoryDetailPage') {
@@ -112,60 +91,45 @@ function closeAllPopupsUI() {
     document.body.classList.remove('overlay-active');
 }
 
-// =======================================================
-// ===== GORRANKARIYA 4: Nûvekirina openPopup ======
-// =======================================================
 function openPopup(id, type = 'sheet') {
-    // --- Destpêka Guhertinê ---
-    // Scrollê tomar bike berî ku popup vebe
-    saveMainPageScrollPosition();
-    // Em ê êdî `scroll`ê di `history.state` de bi awayekî serekî bikar neynin ji bo vegerandinê
-    // --- Dawiya Guhertinê ---
-
+    saveCurrentScrollPosition();
     const element = document.getElementById(id);
     if (!element) return;
 
+    closeAllPopupsUI();
     if (type === 'sheet') {
         sheetOverlay.classList.add('show');
         element.classList.add('show');
         if (id === 'cartSheet') renderCart();
-        else if (id === 'favoritesSheet') renderFavoritesPage();
-        else if (id === 'categoriesSheet') renderCategoriesSheet();
-        else if (id === 'notificationsSheet') renderUserNotifications();
-        else if (id === 'termsSheet') renderPolicies();
-        else if (id === 'profileSheet') {
+        if (id === 'favoritesSheet') renderFavoritesPage();
+        if (id === 'categoriesSheet') renderCategoriesSheet();
+        if (id === 'notificationsSheet') renderUserNotifications();
+        if (id === 'termsSheet') renderPolicies();
+        if (id === 'profileSheet') {
             document.getElementById('profileName').value = state.userProfile.name || '';
             document.getElementById('profileAddress').value = state.userProfile.address || '';
             document.getElementById('profilePhone').value = state.userProfile.phone || '';
         }
-    } else { // type === 'modal'
+    } else {
         element.style.display = 'block';
     }
     document.body.classList.add('overlay-active');
-    history.pushState({ type: type, id: id }, '', `#${id}`); // Hêj stateê ji bo popupê push bike
+    history.pushState({ type: type, id: id }, '', `#${id}`);
 }
-// =====================================================
-// ===== Dawiya Gorrankariyê 4: Nûvekirina openPopup =====
-// =====================================================
-
 
 function closeCurrentPopup() {
     if (history.state && (history.state.type === 'sheet' || history.state.type === 'modal')) {
-        history.back(); // Trigger popstate to close
+        history.back();
     } else {
-        closeAllPopupsUI(); // Fallback
+        closeAllPopupsUI();
     }
 }
 
-// ==============================================================
-// ===== GORRANKARIYA 5: Nûvekirina applyFilterState ======
-// ==============================================================
 async function applyFilterState(filterState, fromPopState = false) {
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
     state.currentSubSubcategory = filterState.subSubcategory || 'all';
     state.currentSearch = filterState.search || '';
-    state.pendingScrollRestore = null; // Reset bike
 
     searchInput.value = state.currentSearch;
     clearSearchBtn.style.display = state.currentSearch ? 'block' : 'none';
@@ -173,133 +137,67 @@ async function applyFilterState(filterState, fromPopState = false) {
     renderMainCategories();
     await renderSubcategories(state.currentCategory);
 
-    // --- Destpêka Guhertina Nû ---
-    // Scrollê ji sessionStorage bistîne eger ji popstate vegeriyaye
-    if (fromPopState) {
-        const savedScroll = sessionStorage.getItem(MAIN_PAGE_SCROLL_KEY);
-        if (savedScroll !== null) {
-            state.pendingScrollRestore = parseInt(savedScroll, 10);
-            sessionStorage.removeItem(MAIN_PAGE_SCROLL_KEY); // Piştî xwendinê jê bibe
-            // console.log(`Retrieved scroll ${state.pendingScrollRestore} from sessionStorage`); // Ji bo debugê
-        } else {
-             // Ger ji sessionStorage tiştek nehatibe, dîsa jî hewl bide ji history.state bistîne wekî fallback
-             if (filterState && typeof filterState.scroll === 'number' && filterState.scroll > 0) {
-                 state.pendingScrollRestore = filterState.scroll;
-                 // console.log(`Retrieved scroll ${state.pendingScrollRestore} from history state (fallback)`); // Ji bo debugê
-             }
-        }
-    }
-    // --- Dawiya Guhertina Nû ---
-
-    // Barkirin û nîşandana naverokê
     await searchProductsInFirestore(state.currentSearch, true);
 
-    // --- Destpêka Guhertina Nû ---
-    // Vegerandina scrollê piştî barkirina naverokê
-    if (state.pendingScrollRestore !== null && state.pendingScrollRestore > 0) {
-        // Dema derengmayînê zêdetir bike da ku piştrast be naveroka dînamîk hatiye barkirin
-        setTimeout(() => {
-             console.log(`Attempting to restore scroll to: ${state.pendingScrollRestore}`); // Ji bo debugê
-             window.scrollTo({ top: state.pendingScrollRestore, behavior: 'auto' });
-             // Hewldana duyemîn piştî demekê din
-             setTimeout(() => {
-                 if (Math.abs(window.scrollY - state.pendingScrollRestore) > 50) { // Ger hê jî dûr be
-                     console.log(`Second attempt restore scroll: ${state.pendingScrollRestore}`);
-                     window.scrollTo({ top: state.pendingScrollRestore, behavior: 'auto' });
-                 }
-                 state.pendingScrollRestore = null; // Reset bike piştî hewldanê
-             }, 150); // Derengmayîna zêde
-        }, 300); // Derengmayîna serekî 300ms
+    if (fromPopState && typeof filterState.scroll === 'number') {
+        setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
     } else if (!fromPopState) {
-        // Ji bo fîlterên nû, here serî
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        state.pendingScrollRestore = null; // Reset bike
-    } else {
-        // Ji popstate vegeriya lê scroll tune bû (yan 0 bû)
-        state.pendingScrollRestore = null; // Reset bike
     }
-    // --- Dawiya Guhertina Nû ---
 }
-// ============================================================
-// ===== Dawiya Gorrankariyê 5: Nûvekirina applyFilterState =====
-// ============================================================
 
-
-// ==============================================================
-// ===== GORRANKARIYA 6: Nûvekirina navigateToFilter ======
-// ==============================================================
 async function navigateToFilter(newState) {
-    // --- Destpêka Guhertinê ---
-    // Scrollê tomar bike berî ku here fîlterek nû
-    saveMainPageScrollPosition(); // Fonksiyona nû bikar bîne
-    // --- Dawiya Guhertinê ---
+    history.replaceState({
+        category: state.currentCategory,
+        subcategory: state.currentSubcategory,
+        subSubcategory: state.currentSubSubcategory,
+        search: state.currentSearch,
+        scroll: window.scrollY
+    }, '');
 
-    // Rewşa heyî ya berî navîgasyonê bistîne (bêyî `scroll`ê ji sessionStorage)
-    const currentStateBeforeNavigation = {
-         category: state.currentCategory,
-         subcategory: state.currentSubcategory,
-         subSubcategory: state.currentSubSubcategory,
-         search: state.currentSearch
-         // Scroll êdî li vir nayê bikaranîn ji bo hilanînê
-    };
-
-    const finalState = { ...currentStateBeforeNavigation, ...newState, scroll: 0 }; // `scroll: 0` ji bo cihê nû
+    const finalState = { ...history.state, ...newState, scroll: 0 };
 
     const params = new URLSearchParams();
     if (finalState.category && finalState.category !== 'all') params.set('category', finalState.category);
     if (finalState.subcategory && finalState.subcategory !== 'all') params.set('subcategory', finalState.subcategory);
     if (finalState.subSubcategory && finalState.subSubcategory !== 'all') params.set('subSubcategory', finalState.subSubcategory);
     if (finalState.search) params.set('search', finalState.search);
+
     const newUrl = `${window.location.pathname}?${params.toString()}`;
 
-    // Rewşa nû push bike
     history.pushState(finalState, '', newUrl);
 
-    // Fîlterê bi cih bîne (ev ê scroll bike serî ji ber ku fromPopState = false ye)
-    await applyFilterState(finalState, false);
+    await applyFilterState(finalState);
 }
-// ============================================================
-// ===== Dawiya Gorrankariyê 6: Nûvekirina navigateToFilter =====
-// ============================================================
 
-
-window.addEventListener('popstate', async (event) => {
-    // console.log("Popstate triggered. State:", event.state); // Ji bo debugê
-    closeAllPopupsUI(); // Her popup an sheetê bigire
+window.addEventListener('popstate', async (event) => { // Guhertin bo async
+    closeAllPopupsUI();
     const popState = event.state;
-
     if (popState) {
         if (popState.type === 'page') {
             let pageTitle = popState.title;
+            // Eger ew rûpela jêr-kategoriyê be û sernav tune be, ji nû ve bistîne
             if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
                try {
-                   const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
-                   const subCatSnap = await getDoc(subCatRef);
-                   if (subCatSnap.exists()) {
-                       const subCat = subCatSnap.data();
-                       pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
-                   }
+                  const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
+                  const subCatSnap = await getDoc(subCatRef);
+                  if (subCatSnap.exists()) {
+                      const subCat = subCatSnap.data();
+                      pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
+                  }
                } catch(e) { console.error("Could not refetch title on popstate", e) }
             }
             showPage(popState.id, pageTitle);
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
-             // Bi gelemperî dive ev neqewime, lê wekî parastin
-             console.warn("Popstate with popup type detected, closing UI only.");
-             // Tenê UI bigire, ji ber ku veger bi gelemperî popupê digire
-        }
-        // --- GORRANKARIYA 7: Ji bo popstateê ---
-        // Ger state type tune be (yanî rewşa fîlterê ya rûpela sereke ye)
-        else if (!popState.type) {
-            showPage('mainPage'); // Piştrast bike ku rûpela sereke tê nîşandan
-            // applyFilterState bang bike û bihêle ew scrollê ji sessionStorage bistîne
+            openPopup(popState.id, popState.type);
+        } else {
+            showPage('mainPage');
             applyFilterState(popState, true);
         }
-        // --- Dawiya Gorrankariyê 7 ---
     } else {
-         // Rewş tune, vegere rewşa destpêkê ya rûpela sereke
-         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
-         showPage('mainPage');
-         applyFilterState(defaultState, false); // Fîlterên destpêkê, scroll bike serî
+        const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
+        showPage('mainPage');
+        applyFilterState(defaultState);
     }
 });
 
@@ -309,38 +207,33 @@ function handleInitialPageLoad() {
 
     const pageId = hash.startsWith('subcategory_') ? 'subcategoryDetailPage' : (hash === 'settingsPage' ? 'settingsPage' : 'mainPage');
 
-    let initialState;
-    if (pageId === 'mainPage') {
-        initialState = {
+    if (pageId === 'subcategoryDetailPage') {
+        const ids = hash.split('_');
+        const mainCatId = ids[1];
+        const subCatId = ids[2];
+        // The actual rendering will be triggered by onSnapshot in initializeAppLogic
+    } else if (pageId === 'settingsPage') {
+         history.replaceState({ type: 'page', id: pageId, title: t('settings_title') }, '', `#${hash}`);
+         showPage(pageId, t('settings_title'));
+    } else {
+        showPage('mainPage');
+        const initialState = {
             category: params.get('category') || 'all',
             subcategory: params.get('subcategory') || 'all',
             subSubcategory: params.get('subSubcategory') || 'all',
             search: params.get('search') || '',
-            // Scroll ji bo barkirina destpêkê girîng nîne
+            scroll: 0
         };
-        history.replaceState(initialState, ''); // Rewşa destpêkê saz bike
-    } else if (pageId === 'settingsPage') {
-        history.replaceState({ type: 'page', id: pageId, title: t('settings_title') }, '', `#${hash}`);
-        showPage(pageId, t('settings_title'));
-    } else if (pageId === 'subcategoryDetailPage') {
-        const ids = hash.split('_');
-        const mainCatId = ids[1];
-        const subCatId = ids[2];
-        history.replaceState({ type: 'page', id: pageId, mainCatId: mainCatId, subCatId: subCatId }, '', `#${hash}`);
-        // showPage ne li vir, li initializeAppLogic piştî barkirina kategoriyan
-    } else {
-         initialState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' };
-         history.replaceState(initialState, '');
-         showPage('mainPage');
+        history.replaceState(initialState, '');
+        applyFilterState(initialState);
     }
 
-    // Handle Popups/Product Detail from URL
     const element = document.getElementById(hash);
-    if (pageId === 'mainPage' && element) {
+    if (element && pageId === 'mainPage') {
         const isSheet = element.classList.contains('bottom-sheet');
         const isModal = element.classList.contains('modal');
         if (isSheet || isModal) {
-            setTimeout(() => openPopup(hash, isSheet ? 'sheet' : 'modal'), 50);
+            openPopup(hash, isSheet ? 'sheet' : 'modal');
         }
     }
 
@@ -350,26 +243,6 @@ function handleInitialPageLoad() {
     }
 }
 
-
-// ... (کۆدی فەنکشنەکانی تر لێرەدا وەک خۆی دەمێنێتەوە) ...
-// ... (t, setLanguage, forceUpdate, ...) ...
-
-// === COPY & PASTE ALL UNCHANGED FUNCTIONS FROM THE PREVIOUS `app-logic.js` HERE ===
-// (Paste functions: t, setLanguage, forceUpdate, updateContactLinksUI, updateActiveNav, formatDescription,
-// requestNotificationPermission, saveTokenToFirestore, saveFavorites, isFavorite, toggleFavorite, renderFavoritesPage,
-// saveCart, updateCartCount, showNotification, populateCategoryDropdown, renderCategoriesSheet,
-// renderSubSubcategories, showSubcategoryDetailPage, renderSubSubcategoriesOnDetailPage, renderProductsOnDetailPage,
-// renderSubcategories, renderMainCategories, showProductDetails, renderRelatedProducts, showProductDetailsWithData,
-// createPromoCardElement, createProductCardElement, setupScrollAnimations, renderSkeletonLoader, renderProducts,
-// renderSingleShortcutRow, renderSingleCategoryRow, renderBrandsSection, renderNewestProductsSection, renderAllProductsSection,
-// renderHomePageContent, renderPromoCardsSectionForHome, searchProductsInFirestore, addToCart, renderCart, updateQuantity,
-// removeFromCart, generateOrderMessage, renderCartActionButtons, renderPolicies, checkNewAnnouncements,
-// renderUserNotifications, renderContactLinks, showWelcomeMessage, setupGpsButton, setupScrollObserver,
-// updateCategoryDependentUI, setupEventListeners, onAuthStateChanged)
-// NOTE: init() function is modified below.
-// ====================================================================================
-
-// PASTE UNCHANGED FUNCTIONS HERE
 
 function t(key, replacements = {}) {
     let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
@@ -404,26 +277,20 @@ function setLanguage(lang) {
 
     const homeContainer = document.getElementById('homePageSectionsContainer');
     if (homeContainer) {
-        homeContainer.innerHTML = ''; // Clear home content to force re-render with new language
+        homeContainer.innerHTML = '';
     }
 
-    // Re-apply filter state which will trigger re-render
-    const currentState = history.state || { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: window.scrollY };
-    applyFilterState(currentState, false); // Apply current filters, scroll to top usually
+    const isHomeView = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
+    if (isHomeView) {
+        renderHomePageContent();
+    } else {
+        renderProducts();
+    }
 
-
-    // Re-render dynamic elements that depend on language
     renderMainCategories();
     renderCategoriesSheet();
     if (document.getElementById('cartSheet').classList.contains('show')) renderCart();
     if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPage();
-    if (document.getElementById('termsSheet').classList.contains('show')) renderPolicies();
-    renderContactLinks(); // Update contact link names
-    // Re-render admin category dropdowns if applicable
-    if (sessionStorage.getItem('isAdmin') === 'true' && window.AdminLogic) {
-        window.AdminLogic.updateAdminCategoryDropdowns();
-        window.AdminLogic.updateShortcutCardCategoryDropdowns(); // Also update shortcut card dropdowns
-    }
 }
 
 async function forceUpdate() {
@@ -457,7 +324,6 @@ async function forceUpdate() {
 }
 
 function updateContactLinksUI() {
-    // This function seems unused, renderContactLinks handles UI updates. Keeping for now.
     if (!state.contactInfo) return;
 }
 
@@ -490,7 +356,7 @@ async function requestNotificationPermission() {
             console.log('Notification permission granted.');
             showNotification('مۆڵەتی ناردنی ئاگەداری درا', 'success');
             const currentToken = await getToken(messaging, {
-                vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ' // Your VAPID key
+                vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ'
             });
 
             if (currentToken) {
@@ -511,12 +377,10 @@ async function requestNotificationPermission() {
 async function saveTokenToFirestore(token) {
     try {
         const tokensCollection = collection(db, 'device_tokens');
-        // Use the token itself as the document ID to prevent duplicates
         await setDoc(doc(tokensCollection, token), {
-            createdAt: Date.now(),
-            // You could add more info like user agent, last updated time etc.
+            createdAt: Date.now()
         });
-        console.log('Token saved/updated in Firestore.');
+        console.log('Token saved to Firestore.');
     } catch (error) {
         console.error('Error saving token to Firestore: ', error);
     }
@@ -531,42 +395,38 @@ function isFavorite(productId) {
 }
 
 function toggleFavorite(productId, event) {
-    if(event) event.stopPropagation(); // Prevent card click when clicking button
+    if(event) event.stopPropagation();
 
     const isCurrentlyFavorite = isFavorite(productId);
 
     if (isCurrentlyFavorite) {
-        // Remove from favorites
         state.favorites = state.favorites.filter(id => id !== productId);
         showNotification(t('product_removed_from_favorites'), 'error');
     } else {
-        // Add to favorites
         state.favorites.push(productId);
         showNotification(t('product_added_to_favorites'), 'success');
     }
-    saveFavorites(); // Save the updated list to local storage
+    saveFavorites();
 
-    // Update heart icon on all cards with this product ID (main page, favorites page, etc.)
     const allProductCards = document.querySelectorAll(`[data-product-id="${productId}"]`);
     allProductCards.forEach(card => {
         const favButton = card.querySelector('.favorite-btn');
-        const heartIcon = card.querySelector('.fa-heart'); // Assuming Font Awesome class
+        const heartIcon = card.querySelector('.fa-heart');
         if (favButton && heartIcon) {
             const isNowFavorite = !isCurrentlyFavorite;
             favButton.classList.toggle('favorited', isNowFavorite);
-            heartIcon.classList.toggle('fas', isNowFavorite); // Solid heart if favorited
-            heartIcon.classList.toggle('far', !isNowFavorite); // Regular heart if not
+            heartIcon.classList.toggle('fas', isNowFavorite);
+            heartIcon.classList.toggle('far', !isNowFavorite);
         }
     });
 
-    // If the favorites sheet is currently open, re-render it
     if (document.getElementById('favoritesSheet').classList.contains('show')) {
         renderFavoritesPage();
     }
 }
 
 async function renderFavoritesPage() {
-    favoritesContainer.innerHTML = ''; // Clear previous content
+    favoritesContainer.innerHTML = '';
 
     if (state.favorites.length === 0) {
         emptyFavoritesMessage.style.display = 'block';
@@ -575,30 +435,23 @@ async function renderFavoritesPage() {
     }
 
     emptyFavoritesMessage.style.display = 'none';
-    favoritesContainer.style.display = 'grid'; // Use grid layout
+    favoritesContainer.style.display = 'grid';
 
-    renderSkeletonLoader(favoritesContainer, 4); // Show skeleton while loading
+    renderSkeletonLoader(favoritesContainer, 4);
 
     try {
-        // Fetch details for all favorited products
-        // Note: For a very large number of favorites, fetching individually might be slow.
-        // Consider alternatives like querying with 'in' operator if performance becomes an issue.
         const fetchPromises = state.favorites.map(id => getDoc(doc(db, "products", id)));
         const productSnaps = await Promise.all(fetchPromises);
 
-        favoritesContainer.innerHTML = ''; // Clear skeleton
+        favoritesContainer.innerHTML = '';
 
         const favoritedProducts = productSnaps
-            .filter(snap => snap.exists()) // Only include products that still exist
+            .filter(snap => snap.exists())
             .map(snap => ({ id: snap.id, ...snap.data() }));
 
         if (favoritedProducts.length === 0) {
-            // If all favorited products were deleted
             emptyFavoritesMessage.style.display = 'block';
             favoritesContainer.style.display = 'none';
-            // Optionally clear the favorites list if all were invalid
-            // state.favorites = [];
-            // saveFavorites();
         } else {
             favoritedProducts.forEach(product => {
                 const productCard = createProductCardElement(product);
@@ -607,7 +460,7 @@ async function renderFavoritesPage() {
         }
     } catch (error) {
         console.error("Error fetching favorites:", error);
-        favoritesContainer.innerHTML = `<p style="text-align:center;">${t('error_generic')}</p>`; // Show error message
+        favoritesContainer.innerHTML = `<p style="text-align:center;">${t('error_generic')}</p>`;
     }
 }
 
@@ -627,18 +480,11 @@ function showNotification(message, type = 'success') {
     notification.className = `notification ${type}`;
     notification.textContent = message;
     document.body.appendChild(notification);
-    // Trigger CSS transition
     setTimeout(() => notification.classList.add('show'), 10);
-    // Remove after duration
     setTimeout(() => {
         notification.classList.remove('show');
-        // Remove from DOM after transition finishes
-        setTimeout(() => {
-            if (document.body.contains(notification)) {
-                 document.body.removeChild(notification);
-            }
-        }, 300); // Should match CSS transition duration
-    }, 3000); // Notification visible duration
+        setTimeout(() => document.body.removeChild(notification), 300);
+    }, 3000);
 }
 
 function populateCategoryDropdown() {
@@ -647,39 +493,34 @@ function populateCategoryDropdown() {
     categoriesWithoutAll.forEach(cat => {
         const option = document.createElement('option');
         option.value = cat.id;
-        // Use current language, fallback to Sorani
         option.textContent = cat['name_' + state.currentLanguage] || cat.name_ku_sorani;
         productCategorySelect.appendChild(option);
     });
 }
 
 function renderCategoriesSheet() {
-    sheetCategoriesContainer.innerHTML = ''; // Clear previous buttons
+    sheetCategoriesContainer.innerHTML = '';
     state.categories.forEach(cat => {
         const btn = document.createElement('button');
         btn.className = 'sheet-category-btn';
-        btn.dataset.category = cat.id; // Store category ID
-        if (state.currentCategory === cat.id) {
-            btn.classList.add('active'); // Highlight active category
-        }
+        btn.dataset.category = cat.id;
+        if (state.currentCategory === cat.id) { btn.classList.add('active'); }
 
         const categoryName = cat.id === 'all'
-            ? t('all_categories_label') // Translate "All"
-            : (cat['name_' + state.currentLanguage] || cat.name_ku_sorani); // Use current lang or fallback
+            ? t('all_categories_label')
+            : (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
 
-        // Use icon if available
-        btn.innerHTML = `<i class="${cat.icon || 'fas fa-tag'}"></i> ${categoryName}`; // Default icon if missing
+        btn.innerHTML = `<i class="${cat.icon}"></i> ${categoryName}`;
 
         btn.onclick = async () => {
-            // Navigate to the selected main category
             await navigateToFilter({
                 category: cat.id,
-                subcategory: 'all', // Reset subcategory
-                subSubcategory: 'all', // Reset sub-subcategory
-                search: '' // Clear search
+                subcategory: 'all',
+                subSubcategory: 'all',
+                search: ''
             });
-            closeCurrentPopup(); // Close the sheet
-            showPage('mainPage'); // Ensure main page is shown
+            closeCurrentPopup();
+            showPage('mainPage');
         };
 
         sheetCategoriesContainer.appendChild(btn);
@@ -687,57 +528,49 @@ function renderCategoriesSheet() {
 }
 
 async function renderSubSubcategories(mainCatId, subCatId) {
-    // This function is intended for the main page, which is now handled differently
-    // Sub-subcategories are primarily shown on the detail page now.
-    // Keeping it potentially for future use, but clearing the container.
+    // This function is no longer needed on the main page.
     subSubcategoriesContainer.innerHTML = '';
-    subSubcategoriesContainer.style.display = 'none'; // Ensure it's hidden
 }
 
 async function showSubcategoryDetailPage(mainCatId, subCatId, fromHistory = false) {
-    let subCatName = 'Details'; // Default title
+    let subCatName = '';
     try {
         const subCatRef = doc(db, "categories", mainCatId, "subcategories", subCatId);
         const subCatSnap = await getDoc(subCatRef);
         if (subCatSnap.exists()) {
             const subCat = subCatSnap.data();
-            subCatName = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || subCatName;
+            subCatName = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
         }
     } catch (e) {
         console.error("Could not fetch subcategory name:", e);
+        subCatName = 'Details';
     }
 
     if (!fromHistory) {
-         // --- GORRANKARIYA 8: Tomarkirina scrollê berî ku here rûpelek din ---
-         saveMainPageScrollPosition(); // Tomar bike berî pushState
-         // --- Dawiya Gorrankariyê 8 ---
         history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
     }
-    showPage('subcategoryDetailPage', subCatName); // Show the page and set header title
+    showPage('subcategoryDetailPage', subCatName);
 
     const loader = document.getElementById('detailPageLoader');
-    const productsContainerDetail = document.getElementById('productsContainerOnDetailPage');
-    const subSubContainerDetail = document.getElementById('subSubCategoryContainerOnDetailPage');
+    const productsContainer = document.getElementById('productsContainerOnDetailPage');
+    const subSubContainer = document.getElementById('subSubCategoryContainerOnDetailPage');
 
-    // Show loader and clear previous content
     loader.style.display = 'block';
-    productsContainerDetail.innerHTML = '';
-    subSubContainerDetail.innerHTML = '';
+    productsContainer.innerHTML = '';
+    subSubContainer.innerHTML = '';
 
-    // Reset search for the detail page
     document.getElementById('subpageSearchInput').value = '';
     document.getElementById('subpageClearSearchBtn').style.display = 'none';
 
-    // Load content for the detail page
-    await renderSubSubcategoriesOnDetailPage(mainCatId, subCatId); // Load sub-subcategories first
-    await renderProductsOnDetailPage(subCatId, 'all', ''); // Load products for the main subcategory initially
+    await renderSubSubcategoriesOnDetailPage(mainCatId, subCatId);
+    await renderProductsOnDetailPage(subCatId, 'all', '');
 
-    loader.style.display = 'none'; // Hide loader after content is loaded
+    loader.style.display = 'none';
 }
 
 async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
     const container = document.getElementById('subSubCategoryContainerOnDetailPage');
-    container.innerHTML = ''; // Clear previous
+    container.innerHTML = '';
 
     try {
         const ref = collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
@@ -745,129 +578,114 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
         const snapshot = await getDocs(q);
 
         if (snapshot.empty) {
-            container.style.display = 'none'; // Hide if no sub-subcategories
+            container.style.display = 'none';
             return;
         }
 
-        container.style.display = 'flex'; // Show the container
+        container.style.display = 'flex';
 
-        // Create "All" button for this subcategory
         const allBtn = document.createElement('button');
-        allBtn.className = `subcategory-btn active`; // Active by default
+        allBtn.className = `subcategory-btn active`;
         const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
         allBtn.innerHTML = `<div class="subcategory-image">${allIconSvg}</div><span>${t('all_categories_label')}</span>`;
-        allBtn.dataset.id = 'all';
+        allBtn.dataset.id = 'all'; // Ji bo nasîna bişkojê
         allBtn.onclick = () => {
-            // Handle click on "All"
             container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
             allBtn.classList.add('active');
             const currentSearch = document.getElementById('subpageSearchInput').value;
-            renderProductsOnDetailPage(subCatId, 'all', currentSearch); // Load products for parent subcategory
+            renderProductsOnDetailPage(subCatId, 'all', currentSearch);
         };
         container.appendChild(allBtn);
 
-        // Create buttons for each sub-subcategory
         snapshot.forEach(doc => {
             const subSubcat = { id: doc.id, ...doc.data() };
             const btn = document.createElement('button');
             btn.className = `subcategory-btn`;
-            btn.dataset.id = subSubcat.id;
+            btn.dataset.id = subSubcat.id; // Ji bo nasîna bişkojê
             const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
             const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
             const imageUrl = subSubcat.imageUrl || placeholderImg;
             btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
 
             btn.onclick = () => {
-                // Handle click on specific sub-subcategory
                 container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 const currentSearch = document.getElementById('subpageSearchInput').value;
-                renderProductsOnDetailPage(subCatId, subSubcat.id, currentSearch); // Load products for this sub-subcategory
+                renderProductsOnDetailPage(subCatId, subSubcat.id, currentSearch);
             };
             container.appendChild(btn);
         });
 
     } catch (error) {
         console.error("Error fetching sub-subcategories for detail page:", error);
-        container.style.display = 'none'; // Hide on error
+        container.style.display = 'none';
     }
 }
 
 async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchTerm = '') {
-    const productsContainerDetail = document.getElementById('productsContainerOnDetailPage');
-    const loaderDetail = document.getElementById('detailPageLoader');
-    loaderDetail.style.display = 'block';
-    productsContainerDetail.innerHTML = ''; // Clear previous products
+    const productsContainer = document.getElementById('productsContainerOnDetailPage');
+    const loader = document.getElementById('detailPageLoader');
+    loader.style.display = 'block';
+    productsContainer.innerHTML = '';
 
     try {
         let productsQuery;
-        // Base query depending on whether "All" or a specific sub-subcategory is selected
         if (subSubCatId === 'all') {
-            // Query for products directly under the parent subcategory
             productsQuery = query(productsCollection, where("subcategoryId", "==", subCatId));
         } else {
-            // Query for products under the specific sub-subcategory
             productsQuery = query(productsCollection, where("subSubcategoryId", "==", subSubCatId));
         }
 
-        // Apply search term if provided
         const finalSearchTerm = searchTerm.trim().toLowerCase();
         if (finalSearchTerm) {
             productsQuery = query(productsQuery,
                 where('searchableName', '>=', finalSearchTerm),
                 where('searchableName', '<=', finalSearchTerm + '\uf8ff')
             );
-            // When searching, orderBy must match the inequality field first
+            // If searching, first orderBy must match inequality field
             productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
         } else {
-            // Default ordering when not searching
+            // If not searching, use the original orderBy
             productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         }
-
-        // We are loading all products for the detail page, no pagination needed here
-        // productsQuery = query(productsQuery, limit(SOME_LIMIT)); // Remove limit if showing all
 
         const productSnapshot = await getDocs(productsQuery);
 
         if (productSnapshot.empty) {
-            productsContainerDetail.innerHTML = '<p style="text-align:center; padding: 20px;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         } else {
             productSnapshot.forEach(doc => {
                 const product = { id: doc.id, ...doc.data() };
-                const card = createProductCardElement(product); // Reuse the card creation function
-                productsContainerDetail.appendChild(card);
+                const card = createProductCardElement(product);
+                productsContainer.appendChild(card);
             });
         }
     } catch (error) {
         console.error(`Error fetching products for detail page (subCatId: ${subCatId}, subSubCatId: ${subSubCatId}, searchTerm: "${searchTerm}"):`, error);
-        productsContainerDetail.innerHTML = '<p style="text-align:center; padding: 20px;">هەڵەیەک ڕوویدا.</p>';
+        productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هەڵەیەک ڕوویدا.</p>';
     } finally {
-        loaderDetail.style.display = 'none'; // Hide loader
+        loader.style.display = 'none';
     }
 }
 
 
 async function renderSubcategories(categoryId) {
     const subcategoriesContainer = document.getElementById('subcategoriesContainer');
-    subcategoriesContainer.innerHTML = ''; // Clear previous
-    subcategoriesContainer.style.display = 'none'; // Hide by default
+    subcategoriesContainer.innerHTML = '';
 
-    if (!categoryId || categoryId === 'all') {
-        return; // Don't show subcategories if 'All' is selected or no category
+    if (categoryId === 'all') {
+        return;
     }
 
     try {
-        const subcategoriesQueryRef = collection(db, "categories", categoryId, "subcategories");
-        const q = query(subcategoriesQueryRef, orderBy("order", "asc"));
+        const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
+        const q = query(subcategoriesQuery, orderBy("order", "asc"));
         const querySnapshot = await getDocs(q);
 
-        const fetchedSubcategories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        state.subcategories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        if (fetchedSubcategories.length === 0) return; // Don't show if empty
+        if (state.subcategories.length === 0) return;
 
-        subcategoriesContainer.style.display = 'flex'; // Show the container
-
-        // Create "All" button for the current main category
         const allBtn = document.createElement('button');
         allBtn.className = `subcategory-btn ${state.currentSubcategory === 'all' ? 'active' : ''}`;
         const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
@@ -876,20 +694,16 @@ async function renderSubcategories(categoryId) {
             <span>${t('all_categories_label')}</span>
         `;
         allBtn.onclick = async () => {
-            // Navigate to show all products under the current main category
             await navigateToFilter({
                 subcategory: 'all',
                 subSubcategory: 'all'
-                // category remains the same
             });
         };
         subcategoriesContainer.appendChild(allBtn);
 
-        // Create buttons for each subcategory
-        fetchedSubcategories.forEach(subcat => {
+        state.subcategories.forEach(subcat => {
             const subcatBtn = document.createElement('button');
-            // Subcategory buttons now navigate to the detail page
-            subcatBtn.className = `subcategory-btn`; // No 'active' state needed here anymore
+            subcatBtn.className = `subcategory-btn ${state.currentSubcategory === subcat.id ? 'active' : ''}`;
 
             const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
             const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
@@ -901,7 +715,6 @@ async function renderSubcategories(categoryId) {
             `;
 
             subcatBtn.onclick = () => {
-                // Navigate to the detail page for this subcategory
                 showSubcategoryDetailPage(categoryId, subcat.id);
             };
             subcategoriesContainer.appendChild(subcatBtn);
@@ -909,7 +722,6 @@ async function renderSubcategories(categoryId) {
 
     } catch (error) {
         console.error("Error fetching subcategories: ", error);
-        subcategoriesContainer.style.display = 'none'; // Hide on error
     }
 }
 
@@ -924,22 +736,21 @@ function renderMainCategories() {
         btn.dataset.category = cat.id;
 
         if (state.currentCategory === cat.id) {
-            btn.classList.add('active'); // Highlight the active main category
+            btn.classList.add('active');
         }
 
         const categoryName = cat.id === 'all'
             ? t('all_categories_label')
             : (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
 
-        btn.innerHTML = `<i class="${cat.icon || 'fas fa-th'}"></i> <span>${categoryName}</span>`; // Default icon
+        btn.innerHTML = `<i class="${cat.icon}"></i> <span>${categoryName}</span>`;
 
         btn.onclick = async () => {
-            // Apply filter for this main category
             await navigateToFilter({
                 category: cat.id,
-                subcategory: 'all', // Reset subcategory when changing main category
-                subSubcategory: 'all', // Reset sub-subcategory
-                search: '' // Clear search when changing category
+                subcategory: 'all',
+                subSubcategory: 'all',
+                search: ''
             });
         };
 
@@ -947,158 +758,142 @@ function renderMainCategories() {
     });
 }
 
-// Shows product detail in a bottom sheet
 function showProductDetails(productId) {
-    // Find product in already loaded products (state.products)
-    // If not found, fetch it individually from Firestore
-    // Populate the #productDetailSheet elements
-    // Open the sheet using openPopup('productDetailSheet')
-
-    const allFetchedProducts = [...state.products]; // Combine initial and potentially loaded more products
-    let product = allFetchedProducts.find(p => p.id === productId);
+    const allFetchedProducts = [...state.products];
+    const product = allFetchedProducts.find(p => p.id === productId);
 
     if (!product) {
-        // If not found in current list (e.g., accessed via direct link or search result from non-visible page)
-        console.log("Product not found in local state for details view. Fetching...");
+        console.log("Product not found for details view. Trying to fetch...");
         getDoc(doc(db, "products", productId)).then(docSnap => {
             if (docSnap.exists()) {
                 const fetchedProduct = { id: docSnap.id, ...docSnap.data() };
-                showProductDetailsWithData(fetchedProduct); // Call helper function with fetched data
+                showProductDetailsWithData(fetchedProduct);
             } else {
                 showNotification(t('product_not_found_error'), 'error');
             }
-        }).catch(error => {
-             console.error("Error fetching single product:", error);
-             showNotification(t('error_generic'), 'error');
         });
         return;
     }
-    // Product found in state, show details directly
     showProductDetailsWithData(product);
 }
 
 async function renderRelatedProducts(currentProduct) {
     const section = document.getElementById('relatedProductsSection');
     const container = document.getElementById('relatedProductsContainer');
-    container.innerHTML = ''; // Clear previous related products
-    section.style.display = 'none'; // Hide section initially
+    container.innerHTML = '';
+    section.style.display = 'none';
 
-    // Determine the most specific category to query by
-    let queryField, queryValue;
-    if (currentProduct.subSubcategoryId) {
-        queryField = 'subSubcategoryId';
-        queryValue = currentProduct.subSubcategoryId;
-    } else if (currentProduct.subcategoryId) {
-        queryField = 'subcategoryId';
-        queryValue = currentProduct.subcategoryId;
-    } else if (currentProduct.categoryId) {
-        queryField = 'categoryId';
-        queryValue = currentProduct.categoryId;
-    } else {
-        return; // Cannot find related products if no category info
+    if (!currentProduct.subcategoryId && !currentProduct.categoryId) {
+        return;
     }
 
-    const q = query(
-        productsCollection,
-        where(queryField, '==', queryValue),
-        where('__name__', '!=', currentProduct.id), // Exclude the current product itself
-        limit(6) // Limit the number of related products shown
-        // Potential improvement: Add orderBy('random') or fetch more and pick randomly if needed
-    );
+    let q;
+    if (currentProduct.subSubcategoryId) {
+        q = query(
+            productsCollection,
+            where('subSubcategoryId', '==', currentProduct.subSubcategoryId),
+            where('__name__', '!=', currentProduct.id),
+            limit(6)
+        );
+    } else if (currentProduct.subcategoryId) {
+        q = query(
+            productsCollection,
+            where('subcategoryId', '==', currentProduct.subcategoryId),
+            where('__name__', '!=', currentProduct.id),
+            limit(6)
+        );
+    } else {
+        q = query(
+            productsCollection,
+            where('categoryId', '==', currentProduct.categoryId),
+            where('__name__', '!=', currentProduct.id),
+            limit(6)
+        );
+    }
 
     try {
         const snapshot = await getDocs(q);
         if (snapshot.empty) {
-            console.log("No related products found.");
-            return; // Don't show the section if no related products
+            console.log("هیچ کاڵایەکی هاوشێوە نەدۆزرایەوە.");
+            return;
         }
 
         snapshot.forEach(doc => {
             const product = { id: doc.id, ...doc.data() };
-            const card = createProductCardElement(product); // Reuse card creation logic
+            const card = createProductCardElement(product);
             container.appendChild(card);
         });
 
-        section.style.display = 'block'; // Show the section
+        section.style.display = 'block';
 
     } catch (error) {
-        console.error("Error fetching related products:", error);
+        console.error("هەڵە لە هێنانی کاڵا هاوشێوەکان:", error);
     }
 }
 
-// Helper function to populate the product detail sheet with data
 function showProductDetailsWithData(product) {
     const sheetContent = document.querySelector('#productDetailSheet .sheet-content');
     if (sheetContent) {
-        sheetContent.scrollTop = 0; // Scroll sheet content to top
+        sheetContent.scrollTop = 0;
     }
 
-    // Get localized name and description
     const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
     const descriptionText = (product.description && product.description[state.currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
-    const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []); // Handle legacy single image
+    const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
 
-    // Image Slider Setup
     const imageContainer = document.getElementById('sheetImageContainer');
     const thumbnailContainer = document.getElementById('sheetThumbnailContainer');
-    const prevBtn = document.getElementById('sheetPrevBtn');
-    const nextBtn = document.getElementById('sheetNextBtn');
     imageContainer.innerHTML = '';
     thumbnailContainer.innerHTML = '';
 
     if (imageUrls.length > 0) {
         imageUrls.forEach((url, index) => {
-            // Main image
             const img = document.createElement('img');
             img.src = url;
             img.alt = nameInCurrentLang;
-            if (index === 0) img.classList.add('active'); // Show first image initially
+            if (index === 0) img.classList.add('active');
             imageContainer.appendChild(img);
 
-            // Thumbnail image
             const thumb = document.createElement('img');
             thumb.src = url;
-            thumb.alt = `Thumbnail ${index + 1}`;
+            thumb.alt = `Thumbnail of ${nameInCurrentLang}`;
             thumb.className = 'thumbnail';
-            if (index === 0) thumb.classList.add('active'); // Highlight first thumbnail
+            if (index === 0) thumb.classList.add('active');
             thumb.dataset.index = index;
             thumbnailContainer.appendChild(thumb);
         });
-    } else {
-         // Show placeholder if no images
-         imageContainer.innerHTML = `<img src="https://placehold.co/400x400/e2e8f0/2d3748?text=No+Image" alt="No Image">`;
     }
 
     let currentIndex = 0;
     const images = imageContainer.querySelectorAll('img');
     const thumbnails = thumbnailContainer.querySelectorAll('.thumbnail');
+    const prevBtn = document.getElementById('sheetPrevBtn');
+    const nextBtn = document.getElementById('sheetNextBtn');
 
-    function updateSlider(newIndex) {
-        if (!images[newIndex] || !thumbnails[newIndex]) return;
-        images[currentIndex].classList.remove('active');
-        thumbnails[currentIndex].classList.remove('active');
-        images[newIndex].classList.add('active');
-        thumbnails[newIndex].classList.add('active');
-        currentIndex = newIndex;
+    function updateSlider(index) {
+        if (!images[index] || !thumbnails[index]) return;
+        images.forEach(img => img.classList.remove('active'));
+        thumbnails.forEach(thumb => thumb.classList.remove('active'));
+        images[index].classList.add('active');
+        thumbnails[index].classList.add('active');
+        currentIndex = index;
     }
 
-    // Show/hide slider buttons based on image count
-    const showSliderButtons = images.length > 1;
-    prevBtn.style.display = showSliderButtons ? 'flex' : 'none';
-    nextBtn.style.display = showSliderButtons ? 'flex' : 'none';
+    if (imageUrls.length > 1) {
+        prevBtn.style.display = 'flex';
+        nextBtn.style.display = 'flex';
+    } else {
+        prevBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
+    }
 
-    // Add event listeners for slider controls
     prevBtn.onclick = () => updateSlider((currentIndex - 1 + images.length) % images.length);
     nextBtn.onclick = () => updateSlider((currentIndex + 1) % images.length);
-    thumbnails.forEach(thumb => {
-        thumb.onclick = () => updateSlider(parseInt(thumb.dataset.index));
-    });
+    thumbnails.forEach(thumb => thumb.onclick = () => updateSlider(parseInt(thumb.dataset.index)));
 
-    // Populate other details
     document.getElementById('sheetProductName').textContent = nameInCurrentLang;
-    document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText); // Use formatter for links/newlines
+    document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText);
 
-    // Price display (handle original price for discount)
     const priceContainer = document.getElementById('sheetProductPrice');
     if (product.originalPrice && product.originalPrice > product.price) {
         priceContainer.innerHTML = `<span style="color: var(--accent-color);">${product.price.toLocaleString()} د.ع</span> <del style="color: var(--dark-gray); font-size: 16px; margin-right: 10px;">${product.originalPrice.toLocaleString()} د.ع</del>`;
@@ -1106,25 +901,19 @@ function showProductDetailsWithData(product) {
         priceContainer.innerHTML = `<span>${product.price.toLocaleString()} د.ع</span>`;
     }
 
-    // Add to Cart button
     const addToCartButton = document.getElementById('sheetAddToCartBtn');
     addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
     addToCartButton.onclick = () => {
         addToCart(product.id);
-        closeCurrentPopup(); // Close sheet after adding to cart
+        closeCurrentPopup();
     };
 
-    // Render related products section
     renderRelatedProducts(product);
 
-    // Open the sheet
-    // --- GORRANKARIYA 9: Tomarkirina scrollê berî vekirina popupê ---
-    saveMainPageScrollPosition(); // Tomar bike berî ku hûragahiyan nîşan bide
-    // --- Dawiya Gorrankariyê 9 ---
     openPopup('productDetailSheet');
 }
 
-// ... (Paste createPromoCardElement unchanged) ...
+// Function to create promo card element (now takes sliderState)
 function createPromoCardElement(cardData, sliderState) {
     const cardElement = document.createElement('div');
     cardElement.className = 'product-card promo-card-grid-item';
@@ -1142,15 +931,16 @@ function createPromoCardElement(cardData, sliderState) {
     `;
 
     cardElement.addEventListener('click', async (e) => {
+        // Use currentCard from the closure
         if (!e.target.closest('button')) {
             const targetCategoryId = currentCard.categoryId;
             const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
             if (categoryExists) {
-                // --- GORRANKARIYA 10: Tomarkirina scrollê berî navîgasyonê ---
-                saveMainPageScrollPosition();
-                // --- Dawiya Gorrankariyê 10 ---
                 await navigateToFilter({
-                    category: targetCategoryId, subcategory: 'all', subSubcategory: 'all', search: ''
+                    category: targetCategoryId,
+                    subcategory: 'all',
+                    subSubcategory: 'all',
+                    search: ''
                 });
                 document.getElementById('mainCategoriesContainer')?.scrollIntoView({ behavior: 'smooth' });
             }
@@ -1174,11 +964,11 @@ function createPromoCardElement(cardData, sliderState) {
             if(imgElement) imgElement.src = newImageUrl;
         });
     }
+
     return cardElement;
 }
 
 
-// ... (Paste createProductCardElement unchanged - make sure event listeners inside call showProductDetailsWithData) ...
 function createProductCardElement(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
@@ -1221,7 +1011,7 @@ function createProductCardElement(product) {
             <img src="${mainImage}" alt="${nameInCurrentLang}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
             ${discountBadgeHTML}
              <button class="${favoriteBtnClass}" aria-label="Add to favorites">
-                 <i class="${heartIconClass} fa-heart"></i>
+                <i class="${heartIconClass} fa-heart"></i>
             </button>
             <button class="share-btn-card" aria-label="Share product">
                 <i class="fas fa-share-alt"></i>
@@ -1254,6 +1044,8 @@ function createProductCardElement(product) {
             if (navigator.share) {
                 await navigator.share(shareData);
             } else {
+                // Fallback for browsers that don't support navigator.share
+                 // Use the old execCommand method for broader compatibility
                  const textArea = document.createElement('textarea');
                  textArea.value = productUrl;
                  document.body.appendChild(textArea);
@@ -1268,7 +1060,7 @@ function createProductCardElement(product) {
             }
         } catch (err) {
             console.error('Share error:', err);
-             if (err.name !== 'AbortError') {
+             if (err.name !== 'AbortError') { // Don't show error if user cancelled share
                  showNotification(t('share_error'), 'error');
              }
         }
@@ -1301,17 +1093,14 @@ function createProductCardElement(product) {
         } else if (target.closest('.favorite-btn')) {
             toggleFavorite(product.id, event);
         } else if (target.closest('.share-btn-card')) {
-            // Handled above
-        } else if (!target.closest('a')) {
-            // Call showProductDetailsWithData instead of showProductDetails
-            // to avoid unnecessary fetching if data is already available
+            // Event listener is already attached
+        } else if (!target.closest('a')) { // Prevent triggering if clicking a link in description
             showProductDetailsWithData(product);
         }
     });
     return productCard;
 }
 
-// ... (Paste setupScrollAnimations, renderSkeletonLoader, renderProducts unchanged) ...
 function setupScrollAnimations() {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -1321,18 +1110,16 @@ function setupScrollAnimations() {
             }
         });
     }, {
-        threshold: 0.1 // Trigger when 10% of the element is visible
+        threshold: 0.1
     });
 
-    // Re-query the elements each time renderProducts is called might be safer
-    // if elements are completely replaced.
     document.querySelectorAll('.product-card-reveal').forEach(card => {
         observer.observe(card);
     });
 }
 
 function renderSkeletonLoader(container = skeletonLoader, count = 8) {
-    container.innerHTML = ''; // Clear previous skeletons
+    container.innerHTML = '';
     for (let i = 0; i < count; i++) {
         const skeletonCard = document.createElement('div');
         skeletonCard.className = 'skeleton-card';
@@ -1344,39 +1131,28 @@ function renderSkeletonLoader(container = skeletonLoader, count = 8) {
         `;
         container.appendChild(skeletonCard);
     }
-    container.style.display = 'grid'; // Ensure grid layout
-    // If rendering the main skeleton loader, hide the actual products container
+    container.style.display = 'grid';
     if (container === skeletonLoader) {
       productsContainer.style.display = 'none';
-      loader.style.display = 'none'; // Also hide the bottom loader if showing skeleton
+      loader.style.display = 'none';
     }
 }
 
 function renderProducts() {
-    // If state.products is empty (e.g., after initial load or failed fetch),
-    // productsContainer might remain empty or show a "no products" message
-    // added by searchProductsInFirestore.
-    productsContainer.innerHTML = ''; // Clear previous products first
-
+    productsContainer.innerHTML = '';
     if (!state.products || state.products.length === 0) {
-        // If searchProductsInFirestore didn't add a message, maybe add one here?
-        // Or let searchProductsInFirestore handle the empty state message.
         return;
     }
 
-    // Append new product cards
     state.products.forEach(item => {
         let element = createProductCardElement(item);
-        element.classList.add('product-card-reveal'); // Add class for animation
+        element.classList.add('product-card-reveal');
         productsContainer.appendChild(element);
     });
 
-    // Re-setup scroll animations for newly added cards
     setupScrollAnimations();
 }
 
-
-// ... (Paste renderSingleShortcutRow, renderSingleCategoryRow, renderBrandsSection, renderNewestProductsSection, renderAllProductsSection unchanged) ...
 async function renderSingleShortcutRow(rowId, sectionNameObj) {
     const sectionContainer = document.createElement('div');
     sectionContainer.className = 'shortcut-cards-section';
@@ -1386,7 +1162,6 @@ async function renderSingleShortcutRow(rowId, sectionNameObj) {
         if (!rowDoc.exists()) return null;
 
         const rowData = { id: rowDoc.id, ...rowDoc.data() };
-        // Use provided section name first, fallback to row title
         const rowTitle = sectionNameObj[state.currentLanguage] || rowData.title[state.currentLanguage] || rowData.title.ku_sorani;
 
         const titleElement = document.createElement('h3');
@@ -1418,9 +1193,6 @@ async function renderSingleShortcutRow(rowId, sectionNameObj) {
             `;
 
             item.onclick = async () => {
-                 // --- GORRANKARIYA 11: Tomarkirina scrollê berî navîgasyonê ---
-                 saveMainPageScrollPosition();
-                 // --- Dawiya Gorrankariyê 11 ---
                 await navigateToFilter({
                     category: cardData.categoryId || 'all',
                     subcategory: cardData.subcategoryId || 'all',
@@ -1438,12 +1210,14 @@ async function renderSingleShortcutRow(rowId, sectionNameObj) {
     }
 }
 
+// Function updated to handle sub and sub-sub categories
 async function renderSingleCategoryRow(sectionData) {
     const { categoryId, subcategoryId, subSubcategoryId, name } = sectionData;
     let queryField, queryValue;
     let title = name[state.currentLanguage] || name.ku_sorani;
     let targetDocRef;
 
+    // Determine the query field and value based on the most specific ID provided
     if (subSubcategoryId) {
         queryField = 'subSubcategoryId';
         queryValue = subSubcategoryId;
@@ -1457,13 +1231,15 @@ async function renderSingleCategoryRow(sectionData) {
         queryValue = categoryId;
         targetDocRef = doc(db, `categories/${categoryId}`);
     } else {
-        return null;
+        return null; // No category specified, cannot render
     }
 
     try {
+        // Fetch the name of the category/subcategory/subsubcategory for the title
         const targetSnap = await getDoc(targetDocRef);
         if (targetSnap.exists()) {
              const targetData = targetSnap.data();
+             // Use the fetched name if available, otherwise fallback to the name from layout data
              title = targetData['name_' + state.currentLanguage] || targetData.name_ku_sorani || title;
         }
 
@@ -1473,22 +1249,25 @@ async function renderSingleCategoryRow(sectionData) {
         header.className = 'section-title-header';
         const titleEl = document.createElement('h3');
         titleEl.className = 'section-title-main';
-        titleEl.textContent = title;
+        titleEl.textContent = title; // Use the potentially updated title
         header.appendChild(titleEl);
 
         const seeAllLink = document.createElement('a');
         seeAllLink.className = 'see-all-link';
         seeAllLink.textContent = t('see_all');
         seeAllLink.onclick = async () => {
-             // --- GORRANKARIYA 12: Tomarkirina scrollê berî navîgasyonê ---
-             saveMainPageScrollPosition();
-             // --- Dawiya Gorrankariyê 12 ---
+            // Navigate based on the most specific category ID
             if(subcategoryId) {
+                // If subcategory or subsubcategory is selected, go to the subcategory detail page
                 showSubcategoryDetailPage(categoryId, subcategoryId);
             } else {
+                 // If only main category is selected, filter on the main page
                  await navigateToFilter({
-                     category: categoryId, subcategory: 'all', subSubcategory: 'all', search: ''
-                 });
+                    category: categoryId,
+                    subcategory: 'all',
+                    subSubcategory: 'all',
+                    search: ''
+                });
             }
         };
         header.appendChild(seeAllLink);
@@ -1500,12 +1279,12 @@ async function renderSingleCategoryRow(sectionData) {
 
         const q = query(
             productsCollection,
-            where(queryField, '==', queryValue),
+            where(queryField, '==', queryValue), // Use the determined field and value
             orderBy('createdAt', 'desc'),
             limit(10)
         );
         const snapshot = await getDocs(q);
-        if (snapshot.empty) return null;
+        if (snapshot.empty) return null; // Don't render if no products found
 
         snapshot.forEach(doc => {
             const product = { id: doc.id, ...doc.data() };
@@ -1520,11 +1299,13 @@ async function renderSingleCategoryRow(sectionData) {
     }
 }
 
+
+// Function updated to take groupId
 async function renderBrandsSection(groupId) {
     const sectionContainer = document.createElement('div');
     sectionContainer.className = 'brands-section';
     const brandsContainer = document.createElement('div');
-    brandsContainer.id = `brandsContainer_${groupId}`;
+    brandsContainer.id = `brandsContainer_${groupId}`; // Unique ID per group
     brandsContainer.className = 'brands-container';
     sectionContainer.appendChild(brandsContainer);
 
@@ -1532,7 +1313,7 @@ async function renderBrandsSection(groupId) {
         const q = query(collection(db, "brand_groups", groupId, "brands"), orderBy("order", "asc"), limit(30));
         const snapshot = await getDocs(q);
 
-        if (snapshot.empty) return null;
+        if (snapshot.empty) return null; // Don't render empty brand sections
 
         snapshot.forEach(doc => {
             const brand = { id: doc.id, ...doc.data() };
@@ -1548,16 +1329,18 @@ async function renderBrandsSection(groupId) {
             `;
 
             item.onclick = async () => {
-                 // --- GORRANKARIYA 13: Tomarkirina scrollê berî navîgasyonê ---
-                 saveMainPageScrollPosition();
-                 // --- Dawiya Gorrankariyê 13 ---
+                // Navigate based on linked category/subcategory
                 if (brand.subcategoryId && brand.categoryId) {
                     showSubcategoryDetailPage(brand.categoryId, brand.subcategoryId);
                 } else if(brand.categoryId) {
                     await navigateToFilter({
-                        category: brand.categoryId, subcategory: 'all', subSubcategory: 'all', search: ''
+                        category: brand.categoryId,
+                        subcategory: 'all',
+                        subSubcategory: 'all',
+                        search: ''
                     });
                 }
+                // If no category linked, clicking does nothing for now
             };
 
             brandsContainer.appendChild(item);
@@ -1587,7 +1370,7 @@ async function renderNewestProductsSection() {
             productsCollection,
             where('createdAt', '>=', fifteenDaysAgo),
             orderBy('createdAt', 'desc'),
-            limit(10) // Limit number shown on home page
+            limit(10)
         );
         const snapshot = await getDocs(q);
 
@@ -1629,11 +1412,11 @@ async function renderAllProductsSection() {
     container.appendChild(productsGrid);
 
     try {
-        // Fetch only a limited number of products initially for the home page section
+        // Fetch only a few products initially for the home page section
         const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(10));
         const snapshot = await getDocs(q);
         if (snapshot.empty) {
-            return null; // Don't render if no products exist at all
+            return null; // Don't render if no products exist
         }
 
         snapshot.forEach(doc => {
@@ -1648,103 +1431,121 @@ async function renderAllProductsSection() {
     }
 }
 
-// ... (Paste renderHomePageContent, renderPromoCardsSectionForHome unchanged) ...
+// ======================================
+// ===== START: GORRANKARIYA 1 / CHANGE 1 (Slider Fix v2) =====
+// ======================================
+// Function updated to accept layoutId and pass it to renderPromoCardsSectionForHome
 async function renderHomePageContent() {
-    if (state.isRenderingHomePage) {
-        // console.log("Already rendering home page, skipping."); // Ji bo debugê
-        return;
-    }
+    if (state.isRenderingHomePage) return;
     state.isRenderingHomePage = true;
-    // console.log("Starting renderHomePageContent"); // Ji bo debugê
 
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
 
     try {
-        renderSkeletonLoader(homeSectionsContainer, 4); // Nîşandana skeleton loader
-        homeSectionsContainer.innerHTML = ''; // Paqijkirina naveroka berê
+        renderSkeletonLoader(homeSectionsContainer, 4);
+        homeSectionsContainer.innerHTML = ''; // Clear previous content first
 
-        // Paqijkirina intervalên berê
+        // === START: Interval Cleanup Code ===
+        // Clean up any existing intervals before rendering new ones
         Object.keys(state.sliderIntervals || {}).forEach(layoutId => {
             if (state.sliderIntervals[layoutId]) {
                 clearInterval(state.sliderIntervals[layoutId]);
             }
         });
         state.sliderIntervals = {};
+        // === END: Interval Cleanup Code ===
 
         const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
         const layoutSnapshot = await getDocs(layoutQuery);
 
         if (layoutSnapshot.empty) {
             console.warn("Home page layout is not configured or all sections are disabled.");
-            homeSectionsContainer.innerHTML = '<p style="text-align: center; padding: 20px;">ڕووکاری لاپەڕەی سەرەکی دیاری نەکراوە.</p>';
         } else {
-            // Promise array ji bo renderkirina beşên async
-            const sectionRenderPromises = layoutSnapshot.docs.map(doc => {
-                 const section = doc.data();
-                 const layoutId = doc.id; // IDya belgeyê ji bo slideran bikar bîne
+            for (const doc of layoutSnapshot.docs) {
+                const section = doc.data();
+                let sectionElement = null;
 
-                 switch (section.type) {
-                     case 'promo_slider':
-                         return section.groupId ? renderPromoCardsSectionForHome(section.groupId, layoutId) : Promise.resolve(null);
-                     case 'brands':
-                         return section.groupId ? renderBrandsSection(section.groupId) : Promise.resolve(null);
-                     case 'newest_products':
-                         return renderNewestProductsSection();
-                     case 'single_shortcut_row':
-                         return section.rowId ? renderSingleShortcutRow(section.rowId, section.name) : Promise.resolve(null);
-                     case 'single_category_row':
-                         return section.categoryId ? renderSingleCategoryRow(section) : Promise.resolve(null);
-                     case 'all_products':
-                         return renderAllProductsSection();
-                     default:
-                         console.warn(`Unknown home layout section type: ${section.type}`);
-                         return Promise.resolve(null);
-                 }
-            });
+                switch (section.type) {
+                    case 'promo_slider':
+                        if (section.groupId) {
+                            // CHAKKIRÎ: Nardina `doc.id` wekî `layoutId`
+                            sectionElement = await renderPromoCardsSectionForHome(section.groupId, doc.id);
+                        } else { console.warn("Promo slider section is missing groupId in layout config."); }
+                        break;
+                    case 'brands':
+                        if (section.groupId) {
+                            sectionElement = await renderBrandsSection(section.groupId);
+                        } else { console.warn("Brands section is missing groupId in layout config."); }
+                        break;
+                    case 'newest_products':
+                        sectionElement = await renderNewestProductsSection();
+                        break;
+                    case 'single_shortcut_row':
+                        if (section.rowId) {
+                            sectionElement = await renderSingleShortcutRow(section.rowId, section.name);
+                        } else { console.warn("Single shortcut row section is missing rowId in layout config."); }
+                        break;
+                    case 'single_category_row':
+                        if (section.categoryId) {
+                            sectionElement = await renderSingleCategoryRow(section);
+                        } else { console.warn("Single category row section is missing categoryId in layout config."); }
+                        break;
+                    case 'all_products':
+                        sectionElement = await renderAllProductsSection();
+                        break;
+                    default:
+                        console.warn(`Unknown home layout section type: ${section.type}`);
+                }
 
-            // Li benda hemû beşan be ku render bibin
-            const renderedSections = await Promise.all(sectionRenderPromises);
-
-            // Tenê beşên ku bi serkeftî hatine renderkirin lê zêde bike
-            renderedSections.forEach(sectionElement => {
-                 if (sectionElement) {
-                     homeSectionsContainer.appendChild(sectionElement);
-                 }
-            });
-             // console.log("Finished rendering home sections"); // Ji bo debugê
+                if (sectionElement) {
+                    homeSectionsContainer.appendChild(sectionElement);
+                }
+            }
         }
     } catch (error) {
         console.error("Error rendering home page content:", error);
         homeSectionsContainer.innerHTML = `<p style="text-align: center; padding: 20px;">هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
     } finally {
+        // Interval cleanup is now handled at the beginning and when navigating away
         state.isRenderingHomePage = false;
-        // console.log("renderHomePageContent finished"); // Ji bo debugê
     }
 }
+// ======================================
+// ===== END: GORRANKARIYA 1 / CHANGE 1 (Slider Fix v2) =====
+// ======================================
 
-async function renderPromoCardsSectionForHome(groupId, layoutId) {
+
+// ======================================
+// ===== START: GORRANKARIYA 2 / CHANGE 2 (Slider Fix v2) =====
+// ======================================
+// Function updated to accept layoutId, create unique ID, and manage its interval in state.sliderIntervals
+async function renderPromoCardsSectionForHome(groupId, layoutId) { // ZÊDEKIRÎ: layoutId
     const promoGrid = document.createElement('div');
     promoGrid.className = 'products-container';
     promoGrid.style.marginBottom = '24px';
-    promoGrid.id = `promoSliderLayout_${layoutId}`; // IDya yekta
+    // CHAKKIRÎ: Bikaranîna layoutId ji bo çêkirina IDyek bêhempa
+    promoGrid.id = `promoSliderLayout_${layoutId}`;
 
     try {
         const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
+
         const cards = cardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         if (cards.length > 0) {
             const sliderState = { currentIndex: 0, intervalId: null };
             const cardData = { cards };
-            const promoCardElement = createPromoCardElement(cardData, sliderState); // Pass sliderState
+
+            const promoCardElement = createPromoCardElement(cardData, sliderState);
             promoGrid.appendChild(promoCardElement);
 
             if (cards.length > 1) {
                 const rotate = () => {
-                    // Kontrol bike ka element hê jî heye û interval di state de ye
+                    // CHAKKIRÎ: Check if interval still exists in state before clearing
                     if (!document.getElementById(promoGrid.id) || !state.sliderIntervals || !state.sliderIntervals[layoutId]) {
                         if (sliderState.intervalId) {
-                            clearInterval(sliderState.intervalId);
+                            clearInterval(sliderState.intervalId); // Clear this specific interval
+                            // Also remove from global state if it exists there
                             if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
                                 delete state.sliderIntervals[layoutId];
                             }
@@ -1757,89 +1558,98 @@ async function renderPromoCardsSectionForHome(groupId, layoutId) {
                     if(imgElement) imgElement.src = newImageUrl;
                 };
 
-                // Intervala berê paqij bike
+                // Clear previous interval for this specific layoutId if it exists
                 if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
                     clearInterval(state.sliderIntervals[layoutId]);
                 }
 
                 sliderState.intervalId = setInterval(rotate, 5000);
-                if (!state.sliderIntervals) state.sliderIntervals = {};
-                state.sliderIntervals[layoutId] = sliderState.intervalId; // Di stateê de hilîne
+                // CHAKKIRÎ: Store interval ID in the global state object using layoutId as key
+                if (!state.sliderIntervals) state.sliderIntervals = {}; // Initialize if doesn't exist
+                state.sliderIntervals[layoutId] = sliderState.intervalId;
+                // CHAKKIRÎ: Remove storing interval ID on dataset
+                // promoGrid.dataset.interval = sliderState.intervalId;
             }
-            return promoGrid; // Elementê vegerîne
+
+            return promoGrid;
         }
     } catch (error) {
         console.error(`Error rendering promo slider for group ${groupId}:`, error);
     }
-    return null; // Null vegerîne eger tiştek tune be yan jî xeletî çêbibe
+    return null;
 }
+// ======================================
+// ===== END: GORRANKARIYA 2 / CHANGE 2 (Slider Fix v2) =====
+// ======================================
 
 
-// ... (Paste searchProductsInFirestore, addToCart, renderCart unchanged) ...
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
 
     if (shouldShowHomeSections) {
-        // --- Nîşandana naveroka rûpela sereke ---
         productsContainer.style.display = 'none';
         skeletonLoader.style.display = 'none';
-        scrollTrigger.style.display = 'none'; // Veşartina triggerê
+        scrollTrigger.style.display = 'none';
         homeSectionsContainer.style.display = 'block';
 
-        // Naveroka rûpela sereke render bike eger vala be
         if (homeSectionsContainer.innerHTML.trim() === '') {
-            // console.log("Home container empty, calling renderHomePageContent"); // Ji bo debugê
             await renderHomePageContent();
         } else {
-            // console.log("Home container not empty, assuming content exists"); // Ji bo debugê
+            // Re-start rotations are implicitly handled by renderHomePageContent now
         }
-        return; // Ji fonksiyonê derkeve piştî nîşandana rûpela sereke
+        return;
     } else {
-        // --- Nîşandana encamên fîlterê/lêgerînê ---
-        homeSectionsContainer.style.display = 'none'; // Veşartina beşên rûpela sereke
-
-        // Rawestandina hemû sliderên promo
+        homeSectionsContainer.style.display = 'none';
+        // ======================================
+        // ===== START: GORRANKARIYA 3 / CHANGE 3 (Slider Fix v2) =====
+        // ======================================
+        // Stop all promo rotations when navigating away from the full home view
+        // CHAKKIRÎ: Use state.sliderIntervals for cleanup
         Object.keys(state.sliderIntervals || {}).forEach(layoutId => {
             if (state.sliderIntervals[layoutId]) {
                 clearInterval(state.sliderIntervals[layoutId]);
             }
         });
-        state.sliderIntervals = {}; // Reset bike
+        state.sliderIntervals = {}; // Reset the intervals object
+        // ======================================
+        // ===== END: GORRANKARIYA 3 / CHANGE 3 (Slider Fix v2) =====
+        // ======================================
     }
 
-    // --- Barkirina berheman ---
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
-
-    // Ji bo lêgerîn/fîlterên nû, cacheê kontrol bike (eger pêwîst be)
-    // Ev beş dikare were rakirin eger cache bûye sedema pirsgirêkan
-    /*
     if (isNewSearch && state.productCache[cacheKey]) {
-        // ... (koda cacheê) ...
-        // return;
-    }
-    */
+        state.products = state.productCache[cacheKey].products;
+        state.lastVisibleProductDoc = state.productCache[cacheKey].lastVisible;
+        state.allProductsLoaded = state.productCache[cacheKey].allLoaded;
 
-    if (state.isLoadingMoreProducts && !isNewSearch) return; // Pêşî li barkirina hevdem bigire
+        skeletonLoader.style.display = 'none';
+        loader.style.display = 'none';
+        productsContainer.style.display = 'grid';
+
+        renderProducts();
+        scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
+        return;
+    }
+
+    if (state.isLoadingMoreProducts) return;
 
     if (isNewSearch) {
         state.allProductsLoaded = false;
         state.lastVisibleProductDoc = null;
-        state.products = []; // Lîsteya berheman vala bike
-        renderSkeletonLoader(); // Skeleton loader nîşan bide
-        productsContainer.innerHTML = ''; // Piştrast bike ku vala ye
+        state.products = [];
+        renderSkeletonLoader();
     }
 
-    if (state.allProductsLoaded && !isNewSearch) return; // Hemû berhem hatine barkirin
+    if (state.allProductsLoaded && !isNewSearch) return;
 
     state.isLoadingMoreProducts = true;
-    loader.style.display = 'block'; // Nîşandana loadera binî
+    loader.style.display = 'block';
 
     try {
         let productsQuery = collection(db, "products");
 
-        // Fîlteran bicîh bîne
         if (state.currentCategory && state.currentCategory !== 'all') {
             productsQuery = query(productsQuery, where("categoryId", "==", state.currentCategory));
         }
@@ -1858,14 +1668,12 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
             );
         }
 
-        // Rêzkirinê bicîh bîne
         if (finalSearchTerm) {
             productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
         } else {
             productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         }
 
-        // Pagination
         if (state.lastVisibleProductDoc && !isNewSearch) {
             productsQuery = query(productsQuery, startAfter(state.lastVisibleProductDoc));
         }
@@ -1876,34 +1684,31 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         if (isNewSearch) {
-            state.products = newProducts; // Ji bo lêgerîna nû, lîsteyê binivîse
+            state.products = newProducts;
         } else {
-            state.products = [...state.products, ...newProducts]; // Berhemên nû lê zêde bike
+            state.products = [...state.products, ...newProducts];
         }
 
-        // Rewşa paginationê nûve bike
         if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
             state.allProductsLoaded = true;
-            scrollTrigger.style.display = 'none'; // Triggerê veşêre
+            scrollTrigger.style.display = 'none';
         } else {
             state.allProductsLoaded = false;
-            scrollTrigger.style.display = 'block'; // Triggerê nîşan bide
+            scrollTrigger.style.display = 'block';
         }
+
         state.lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
 
-        // Cacheê nûve bike (eger bikar tê)
-        /*
         if (isNewSearch) {
             state.productCache[cacheKey] = {
-                 products: state.products, lastVisible: state.lastVisibleProductDoc, allLoaded: state.allProductsLoaded
+                products: state.products,
+                lastVisible: state.lastVisibleProductDoc,
+                allLoaded: state.allProductsLoaded
             };
         }
-        */
 
-        // Berheman render bike (eger isNewSearch be, ev ê yên berê paqij bike)
         renderProducts();
 
-        // Peyama "tiştek nehat dîtin" nîşan bide eger pêwîst be
         if (state.products.length === 0 && isNewSearch) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         }
@@ -1913,85 +1718,52 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
     } finally {
         state.isLoadingMoreProducts = false;
-        loader.style.display = 'none'; // Loadera binî veşêre
-        skeletonLoader.style.display = 'none'; // Skeleton loader veşêre
-        productsContainer.style.display = 'grid'; // Konteynera berheman nîşan bide
-        // console.log("Finished searchProductsInFirestore"); // Ji bo debugê
+        loader.style.display = 'none';
+        skeletonLoader.style.display = 'none';
+        productsContainer.style.display = 'grid';
     }
 }
 
 function addToCart(productId) {
-    // Find product in state.products first
-    let product = state.products.find(p => p.id === productId);
+    const allFetchedProducts = [...state.products];
+    let product = allFetchedProducts.find(p => p.id === productId);
 
-    // If not found in state (e.g., added from related products not in current list)
     if (!product) {
-        console.warn("Product not found in local 'products' array. Fetching details to add.");
-        // Fetch product details to add essential info to cart
+        console.warn("Product not found in local 'products' array. Adding with limited data.");
         getDoc(doc(db, "products", productId)).then(docSnap => {
             if (docSnap.exists()) {
                 const fetchedProduct = { id: docSnap.id, ...docSnap.data() };
-                const mainImage = (fetchedProduct.imageUrls && fetchedProduct.imageUrls.length > 0) ? fetchedProduct.imageUrls[0] : (fetchedProduct.image || ''); // Handle image source
+                const mainImage = (fetchedProduct.imageUrls && fetchedProduct.imageUrls.length > 0) ? fetchedProduct.imageUrls[0] : (fetchedProduct.image || '');
                 const existingItem = state.cart.find(item => item.id === productId);
-                if (existingItem) {
-                    existingItem.quantity++; // Increment quantity if already in cart
-                } else {
-                    // Add new item with essential details
-                    state.cart.push({
-                        id: fetchedProduct.id,
-                        name: fetchedProduct.name, // Store the name object
-                        price: fetchedProduct.price,
-                        image: mainImage,
-                        quantity: 1
-                    });
-                }
-                saveCart(); // Save updated cart to local storage and update count
-                showNotification(t('product_added_to_cart')); // Show confirmation
-            } else {
-                 showNotification(t('product_not_found_error'), 'error'); // Product deleted?
+                if (existingItem) { existingItem.quantity++; }
+                else { state.cart.push({ id: fetchedProduct.id, name: fetchedProduct.name, price: fetchedProduct.price, image: mainImage, quantity: 1 }); }
+                saveCart();
+                showNotification(t('product_added_to_cart'));
             }
-        }).catch(err => {
-             console.error("Error fetching product details for cart:", err);
-             showNotification(t('error_generic'), 'error');
         });
-        return; // Exit function while fetching
-    }
-
-    // Product found in state.products
-    const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || ''); // Handle image source
-    const existingItem = state.cart.find(item => item.id === productId);
-
-    if (existingItem) {
-        existingItem.quantity++; // Increment quantity
-    } else {
-        // Add new item to cart
-        state.cart.push({
-            id: product.id,
-            name: product.name, // Store the name object
-            price: product.price,
-            image: mainImage,
-            quantity: 1
-        });
-    }
-    saveCart(); // Save updated cart and update count
-    showNotification(t('product_added_to_cart')); // Show confirmation
-}
-
-function renderCart() {
-    cartItemsContainer.innerHTML = ''; // Clear previous items
-
-    if (state.cart.length === 0) {
-        emptyCartMessage.style.display = 'block'; // Show empty message
-        cartTotal.style.display = 'none'; // Hide total
-        cartActions.style.display = 'none'; // Hide actions
         return;
     }
 
-    // Cart is not empty
+    const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
+    const existingItem = state.cart.find(item => item.id === productId);
+    if (existingItem) { existingItem.quantity++; }
+    else { state.cart.push({ id: product.id, name: product.name, price: product.price, image: mainImage, quantity: 1 }); }
+    saveCart();
+    showNotification(t('product_added_to_cart'));
+}
+
+function renderCart() {
+    cartItemsContainer.innerHTML = '';
+    if (state.cart.length === 0) {
+        emptyCartMessage.style.display = 'block';
+        cartTotal.style.display = 'none';
+        cartActions.style.display = 'none';
+        return;
+    }
     emptyCartMessage.style.display = 'none';
     cartTotal.style.display = 'block';
     cartActions.style.display = 'block';
-    renderCartActionButtons(); // Render action buttons (WhatsApp, Viber etc.)
+    renderCartActionButtons();
 
     let total = 0;
     state.cart.forEach(item => {
@@ -2000,271 +1772,208 @@ function renderCart() {
         const cartItem = document.createElement('div');
         cartItem.className = 'cart-item';
 
-        // Get localized name, fallback to Sorani or ID if name object missing
-        const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : item.id); // Fallback added
-        const itemImage = item.image || 'https://placehold.co/60x60/e2e8f0/2d3748?text=N/A'; // Placeholder if image missing
+        const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
 
         cartItem.innerHTML = `
-            <img src="${itemImage}" alt="${itemNameInCurrentLang}" class="cart-item-image" onerror="this.src='https://placehold.co/60x60/e2e8f0/2d3748?text=Err'">
+            <img src="${item.image}" alt="${itemNameInCurrentLang}" class="cart-item-image">
             <div class="cart-item-details">
                 <div class="cart-item-title">${itemNameInCurrentLang}</div>
                 <div class="cart-item-price">${item.price.toLocaleString()} د.ع.</div>
                 <div class="cart-item-quantity">
-                    <button class="quantity-btn increase-btn" data-id="${item.id}" aria-label="Increase quantity">+</button>
+                    <button class="quantity-btn increase-btn" data-id="${item.id}">+</button>
                     <span class="quantity-text">${item.quantity}</span>
-                    <button class="quantity-btn decrease-btn" data-id="${item.id}" aria-label="Decrease quantity">-</button>
+                    <button class="quantity-btn decrease-btn" data-id="${item.id}">-</button>
                 </div>
             </div>
             <div class="cart-item-subtotal">
                 <div>${t('total_price')}</div>
                 <span>${itemTotal.toLocaleString()} د.ع.</span>
-                <button class="cart-item-remove" data-id="${item.id}" aria-label="Remove item"><i class="fas fa-trash"></i></button>
+                <button class="cart-item-remove" data-id="${item.id}"><i class="fas fa-trash"></i></button>
             </div>
         `;
         cartItemsContainer.appendChild(cartItem);
     });
-
-    // Update total amount display
     totalAmount.textContent = total.toLocaleString();
-
-    // Add event listeners for quantity buttons and remove button
-    cartItemsContainer.querySelectorAll('.increase-btn').forEach(btn => btn.onclick = (e) => updateQuantity(e.currentTarget.dataset.id, 1));
-    cartItemsContainer.querySelectorAll('.decrease-btn').forEach(btn => btn.onclick = (e) => updateQuantity(e.currentTarget.dataset.id, -1));
-    cartItemsContainer.querySelectorAll('.cart-item-remove').forEach(btn => btn.onclick = (e) => removeFromCart(e.currentTarget.dataset.id));
+    document.querySelectorAll('.increase-btn').forEach(btn => btn.onclick = (e) => updateQuantity(e.currentTarget.dataset.id, 1));
+    document.querySelectorAll('.decrease-btn').forEach(btn => btn.onclick = (e) => updateQuantity(e.currentTarget.dataset.id, -1));
+    document.querySelectorAll('.cart-item-remove').forEach(btn => btn.onclick = (e) => removeFromCart(e.currentTarget.dataset.id));
 }
 
-
-// ... (Paste updateQuantity, removeFromCart, generateOrderMessage, renderCartActionButtons, renderPolicies unchanged) ...
 function updateQuantity(productId, change) {
     const cartItem = state.cart.find(item => item.id === productId);
     if (cartItem) {
         cartItem.quantity += change;
-        if (cartItem.quantity <= 0) {
-            // Remove item if quantity drops to 0 or below
-            removeFromCart(productId);
-        } else {
-            // Save changes and re-render cart UI
-            saveCart();
-            renderCart();
-        }
+        if (cartItem.quantity <= 0) { removeFromCart(productId); }
+        else { saveCart(); renderCart(); }
     }
 }
 
 function removeFromCart(productId) {
-    state.cart = state.cart.filter(item => item.id !== productId); // Filter out the item
-    saveCart(); // Save changes
-    renderCart(); // Re-render cart UI
+    state.cart = state.cart.filter(item => item.id !== productId);
+    saveCart();
+    renderCart();
 }
 
 function generateOrderMessage() {
-    if (state.cart.length === 0) return ""; // Return empty if cart is empty
-
-    let message = t('order_greeting') + "\n\n"; // "Hello! I need the following items:"
-
-    // Add each cart item to the message
+    if (state.cart.length === 0) return "";
+    let message = t('order_greeting') + "\n\n";
     state.cart.forEach(item => {
-        const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || item.id; // Get localized name
-        const itemDetails = t('order_item_details', { price: item.price.toLocaleString(), quantity: item.quantity }); // "Price: {price} IQD | Quantity: {quantity}"
+        const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
+        const itemDetails = t('order_item_details', { price: item.price.toLocaleString(), quantity: item.quantity });
         message += `- ${itemNameInCurrentLang} | ${itemDetails}\n`;
     });
+    message += `\n${t('order_total')}: ${totalAmount.textContent} د.ع.\n`;
 
-    // Add total price
-    message += `\n${t('order_total')}: ${totalAmount.textContent} د.ع.\n`; // "Total: {total} IQD"
-
-    // Add user profile info if available
     if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
-        message += `\n${t('order_user_info')}\n`; // "--- Customer Info ---"
-        message += `${t('order_user_name')}: ${state.userProfile.name}\n`; // "Name:"
-        message += `${t('order_user_address')}: ${state.userProfile.address}\n`; // "Address:"
-        message += `${t('order_user_phone')}: ${state.userProfile.phone}\n`; // "Phone:"
+        message += `\n${t('order_user_info')}\n`;
+        message += `${t('order_user_name')}: ${state.userProfile.name}\n`;
+        message += `${t('order_user_address')}: ${state.userProfile.address}\n`;
+        message += `${t('order_user_phone')}: ${state.userProfile.phone}\n`;
     } else {
-        // Prompt user to provide info if profile is incomplete
-        message += `\n${t('order_prompt_info')}\n`; // "Please send your address and details for delivery."
+        message += `\n${t('order_prompt_info')}\n`;
     }
-
     return message;
 }
 
 async function renderCartActionButtons() {
     const container = document.getElementById('cartActions');
-    container.innerHTML = ''; // Clear previous buttons
+    container.innerHTML = '';
 
-    try {
-        const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
-        const q = query(methodsCollection, orderBy("createdAt")); // Order by creation time (can be changed)
-        const snapshot = await getDocs(q);
+    const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
+    const q = query(methodsCollection, orderBy("createdAt"));
 
-        if (snapshot.empty) {
-            container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>'; // Message if no methods configured
-            return;
-        }
-
-        snapshot.forEach(doc => {
-            const method = { id: doc.id, ...doc.data() };
-            const btn = document.createElement('button');
-            // Use a generic class, specific styles handled by inline style
-            btn.className = 'whatsapp-btn'; // Keeping class name for potential shared styles
-            btn.style.backgroundColor = method.color; // Apply color from Firestore
-
-            // Get localized button text
-            const name = method['name_' + state.currentLanguage] || method.name_ku_sorani;
-            btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`; // Set icon and text
-
-            btn.onclick = () => {
-                const message = generateOrderMessage(); // Generate the order details
-                if (!message) return; // Don't proceed if cart is empty
-
-                let link = '';
-                const encodedMessage = encodeURIComponent(message);
-                const value = method.value; // Phone number, username, or URL
-
-                // Construct link based on method type
-                switch (method.type) {
-                    case 'whatsapp':
-                        link = `https://wa.me/${value}?text=${encodedMessage}`;
-                        break;
-                    case 'viber':
-                        // Viber link format might need %2B for the plus sign
-                        link = `viber://chat?number=%2B${value.replace('+', '')}&text=${encodedMessage}`;
-                        break;
-                    case 'telegram':
-                        // Assumes value is username (without @)
-                        link = `https://t.me/${value}?text=${encodedMessage}`;
-                        break;
-                    case 'phone':
-                        link = `tel:${value}`; // Opens dialer
-                        break;
-                    case 'url': // For custom external links
-                        link = value; // Use the value directly as URL
-                        break;
-                }
-
-                if (link) {
-                    window.open(link, '_blank'); // Open the link in a new tab/app
-                }
-            };
-
-            container.appendChild(btn); // Add the button to the container
-        });
-    } catch (error) {
-         console.error("Error fetching contact methods:", error);
-         container.innerHTML = '<p>هەڵە لە هێنانی ڕێگاکانی ناردن.</p>';
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+        container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
+        return;
     }
+
+    snapshot.forEach(doc => {
+        const method = { id: doc.id, ...doc.data() };
+        const btn = document.createElement('button');
+        btn.className = 'whatsapp-btn'; // Maybe change class name later if needed
+        btn.style.backgroundColor = method.color;
+
+        const name = method['name_' + state.currentLanguage] || method.name_ku_sorani;
+        btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
+
+        btn.onclick = () => {
+            const message = generateOrderMessage();
+            if (!message) return;
+
+            let link = '';
+            const encodedMessage = encodeURIComponent(message);
+            const value = method.value;
+
+            switch (method.type) {
+                case 'whatsapp':
+                    link = `https://wa.me/${value}?text=${encodedMessage}`;
+                    break;
+                case 'viber':
+                    // Viber links can be tricky, might need testing
+                    link = `viber://chat?number=%2B${value}&text=${encodedMessage}`;
+                    break;
+                case 'telegram':
+                    link = `https://t.me/${value}?text=${encodedMessage}`;
+                    break;
+                case 'phone':
+                    link = `tel:${value}`;
+                    break;
+                case 'url': // For custom URLs
+                    link = value; // Assume the value is the full URL
+                    break;
+            }
+
+            if (link) {
+                window.open(link, '_blank');
+            }
+        };
+
+        container.appendChild(btn);
+    });
 }
 
 async function renderPolicies() {
-    termsContentContainer.innerHTML = `<p>${t('loading_policies')}</p>`; // Show loading message
+    termsContentContainer.innerHTML = `<p>${t('loading_policies')}</p>`;
     try {
-        const docRef = doc(db, "settings", "policies"); // Path to the policies document
+        const docRef = doc(db, "settings", "policies");
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists() && docSnap.data().content) {
-            const policies = docSnap.data().content; // Get the content object
-            // Get content for current language, fallback to Sorani, then empty string
+            const policies = docSnap.data().content;
             const content = policies[state.currentLanguage] || policies.ku_sorani || '';
-            // Display content, replace newlines with <br> for HTML rendering
             termsContentContainer.innerHTML = content ? content.replace(/\n/g, '<br>') : `<p>${t('no_policies_found')}</p>`;
         } else {
-            // Document doesn't exist or has no content field
             termsContentContainer.innerHTML = `<p>${t('no_policies_found')}</p>`;
         }
     } catch (error) {
         console.error("Error fetching policies:", error);
-        termsContentContainer.innerHTML = `<p>${t('error_generic')}</p>`; // Show generic error
+        termsContentContainer.innerHTML = `<p>${t('error_generic')}</p>`;
     }
 }
 
-
-// ... (Paste checkNewAnnouncements, renderUserNotifications, renderContactLinks, showWelcomeMessage, setupGpsButton unchanged) ...
 function checkNewAnnouncements() {
-    // Listen for the latest announcement
     const q = query(announcementsCollection, orderBy("createdAt", "desc"), limit(1));
-
-    // Use onSnapshot for real-time updates (optional, could be getDocs if only checking on load)
     onSnapshot(q, (snapshot) => {
         if (!snapshot.empty) {
             const latestAnnouncement = snapshot.docs[0].data();
-            const latestTimestamp = latestAnnouncement.createdAt;
-            // Get the timestamp of the last announcement the user saw
             const lastSeenTimestamp = localStorage.getItem('lastSeenAnnouncementTimestamp') || 0;
 
-            // If the latest announcement is newer than the last seen one, show badge
-            if (latestTimestamp > lastSeenTimestamp) {
+            if (latestAnnouncement.createdAt > lastSeenTimestamp) {
                 notificationBadge.style.display = 'block';
             } else {
                 notificationBadge.style.display = 'none';
             }
-        } else {
-             notificationBadge.style.display = 'none'; // No announcements at all
         }
-    }, (error) => {
-         console.error("Error listening for announcements:", error);
-         notificationBadge.style.display = 'none'; // Hide badge on error
     });
 }
 
 async function renderUserNotifications() {
-    // Fetch all announcements, ordered newest first
     const q = query(announcementsCollection, orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(q);
 
-    try {
-        const snapshot = await getDocs(q);
-        notificationsListContainer.innerHTML = ''; // Clear previous list
+    notificationsListContainer.innerHTML = '';
+    if (snapshot.empty) {
+        notificationsListContainer.innerHTML = `<div class="cart-empty"><i class="fas fa-bell-slash"></i><p>${t('no_notifications_found')}</p></div>`;
+        return;
+    }
 
-        if (snapshot.empty) {
-            notificationsListContainer.innerHTML = `<div class="cart-empty"><i class="fas fa-bell-slash"></i><p>${t('no_notifications_found')}</p></div>`;
-            return;
+    let latestTimestamp = 0;
+    snapshot.forEach(doc => {
+        const announcement = doc.data();
+        if (announcement.createdAt > latestTimestamp) {
+            latestTimestamp = announcement.createdAt;
         }
 
-        let latestTimestamp = 0;
-        snapshot.forEach(doc => {
-            const announcement = doc.data();
-            // Keep track of the newest timestamp among all fetched announcements
-            if (announcement.createdAt > latestTimestamp) {
-                latestTimestamp = announcement.createdAt;
-            }
+        const date = new Date(announcement.createdAt);
+        const formattedDate = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
 
-            // Format date (e.g., YYYY/MM/DD)
-            const date = new Date(announcement.createdAt);
-            const formattedDate = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+        const title = (announcement.title && announcement.title[state.currentLanguage]) || (announcement.title && announcement.title.ku_sorani) || '';
+        const content = (announcement.content && announcement.content[state.currentLanguage]) || (announcement.content && announcement.content.ku_sorani) || '';
 
-            // Get localized title and content
-            const title = (announcement.title && announcement.title[state.currentLanguage]) || (announcement.title && announcement.title.ku_sorani) || '';
-            const content = (announcement.content && announcement.content[state.currentLanguage]) || (announcement.content && announcement.content.ku_sorani) || '';
+        const item = document.createElement('div');
+        item.className = 'notification-item';
+        item.innerHTML = `
+            <div class="notification-header">
+                <span class="notification-title">${title}</span>
+                <span class="notification-date">${formattedDate}</span>
+            </div>
+            <p class="notification-content">${content}</p>
+        `;
+        notificationsListContainer.appendChild(item);
+    });
 
-            // Create notification item HTML
-            const item = document.createElement('div');
-            item.className = 'notification-item';
-            item.innerHTML = `
-                <div class="notification-header">
-                    <span class="notification-title">${title}</span>
-                    <span class="notification-date">${formattedDate}</span>
-                </div>
-                <p class="notification-content">${content.replace(/\n/g, '<br>')}</p>
-            `;
-            notificationsListContainer.appendChild(item);
-        });
-
-        // Update the last seen timestamp in local storage after viewing
-        localStorage.setItem('lastSeenAnnouncementTimestamp', latestTimestamp);
-        notificationBadge.style.display = 'none'; // Hide the badge
-
-    } catch (error) {
-        console.error("Error fetching notifications:", error);
-        notificationsListContainer.innerHTML = `<p style="text-align:center;">${t('error_generic')}</p>`;
-    }
+    localStorage.setItem('lastSeenAnnouncementTimestamp', latestTimestamp);
+    notificationBadge.style.display = 'none';
 }
 
 function renderContactLinks() {
     const contactLinksContainer = document.getElementById('dynamicContactLinksContainer');
-    // Path to the social links subcollection
     const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
-    // Query ordered by creation time (can be changed if an 'order' field is added)
-    const q = query(socialLinksCollection, orderBy("createdAt", "desc")); // Or asc if preferred
+    const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
 
-    // Use onSnapshot for real-time updates
     onSnapshot(q, (snapshot) => {
-        contactLinksContainer.innerHTML = ''; // Clear previous links
+        contactLinksContainer.innerHTML = '';
 
         if (snapshot.empty) {
             contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هیچ لینکی پەیوەندی نییە.</p>';
@@ -2273,15 +1982,12 @@ function renderContactLinks() {
 
         snapshot.forEach(doc => {
             const link = doc.data();
-            // Get localized name
             const name = link['name_' + state.currentLanguage] || link.name_ku_sorani;
 
-            // Create link element
             const linkElement = document.createElement('a');
             linkElement.href = link.url;
-            linkElement.target = '_blank'; // Open in new tab
-            linkElement.rel = 'noopener noreferrer'; // Security best practice
-            linkElement.className = 'settings-item'; // Use existing style
+            linkElement.target = '_blank';
+            linkElement.className = 'settings-item';
 
             linkElement.innerHTML = `
                 <div>
@@ -2293,27 +1999,23 @@ function renderContactLinks() {
 
             contactLinksContainer.appendChild(linkElement);
         });
-    }, (error) => {
-         console.error("Error fetching social links:", error);
-         contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هەڵە لە هێنانی لینکەکان.</p>';
     });
 }
 
 function showWelcomeMessage() {
-    // Show welcome message only on the very first visit
     if (!localStorage.getItem('hasVisited')) {
         openPopup('welcomeModal', 'modal');
-        localStorage.setItem('hasVisited', 'true'); // Mark as visited
+        localStorage.setItem('hasVisited', 'true');
     }
 }
 
 function setupGpsButton() {
     const getLocationBtn = document.getElementById('getLocationBtn');
     const profileAddressInput = document.getElementById('profileAddress');
-    const btnSpan = getLocationBtn?.querySelector('span'); // Use optional chaining
-    const originalBtnText = btnSpan?.textContent || 'وەرگرتنی ناونیشانم بە GPS'; // Fallback text
+    const btnSpan = getLocationBtn.querySelector('span');
+    const originalBtnText = btnSpan.textContent;
 
-    if (!getLocationBtn || !profileAddressInput || !btnSpan) return; // Exit if elements not found
+    if (!getLocationBtn) return;
 
     getLocationBtn.addEventListener('click', () => {
         if (!('geolocation' in navigator)) {
@@ -2321,15 +2023,10 @@ function setupGpsButton() {
             return;
         }
 
-        // Show loading state
         btnSpan.textContent = '...چاوەڕوان بە';
         getLocationBtn.disabled = true;
 
-        navigator.geolocation.getCurrentPosition(successCallback, errorCallback, {
-            enableHighAccuracy: true, // Request more accurate position
-            timeout: 10000, // Set timeout to 10 seconds
-            maximumAge: 0 // Force fresh location data
-        });
+        navigator.geolocation.getCurrentPosition(successCallback, errorCallback);
     });
 
     async function successCallback(position) {
@@ -2337,29 +2034,20 @@ function setupGpsButton() {
         const longitude = position.coords.longitude;
 
         try {
-            // Using OpenStreetMap Nominatim for reverse geocoding
-            // It's free but has usage limits. Consider alternatives if needed.
-            // Request Kurdish ('ku') first, fallback to English ('en')
+            // Using Nominatim for reverse geocoding
             const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`);
-            if (!response.ok) {
-                throw new Error(`Geocoding request failed: ${response.statusText}`);
-            }
             const data = await response.json();
 
             if (data && data.display_name) {
-                profileAddressInput.value = data.display_name; // Set the address input
+                profileAddressInput.value = data.display_name;
                 showNotification('ناونیشان وەرگیرا', 'success');
             } else {
-                console.warn("Geocoding response missing display_name:", data);
-                // Fallback: show coordinates if address not found
-                profileAddressInput.value = `Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}`;
-                showNotification('نەتوانرا ناونیشانی ورد بدۆزرێتەوە', 'error');
+                showNotification('نەتوانرا ناونیشان بدۆزرێتەوە', 'error');
             }
         } catch (error) {
             console.error('Reverse Geocoding Error:', error);
             showNotification('هەڵەیەک لە وەرگرتنی ناونیشان ڕوویدا', 'error');
         } finally {
-            // Restore button state
             btnSpan.textContent = originalBtnText;
             getLocationBtn.disabled = false;
         }
@@ -2368,102 +2056,76 @@ function setupGpsButton() {
     function errorCallback(error) {
         let message = '';
         switch (error.code) {
-            case error.PERMISSION_DENIED:
+            case 1: // PERMISSION_DENIED
                 message = 'ڕێگەت نەدا GPS بەکاربهێنرێت';
                 break;
-            case error.POSITION_UNAVAILABLE:
-                message = 'زانیاری شوێن بەردەست نییە';
+            case 2: // POSITION_UNAVAILABLE
+                message = 'شوێنەکەت نەدۆزرایەوە';
                 break;
-            case error.TIMEOUT:
+            case 3: // TIMEOUT
                 message = 'کاتی داواکارییەکە تەواو بوو';
                 break;
             default:
-                message = 'هەڵەیەکی نادیار لە GPS ڕوویدا';
+                message = 'هەڵەیەکی نادیار ڕوویدا';
                 break;
         }
         showNotification(message, 'error');
-        // Restore button state
         btnSpan.textContent = originalBtnText;
         getLocationBtn.disabled = false;
     }
 }
 
-
-// ... (Paste setupScrollObserver unchanged) ...
 function setupScrollObserver() {
     const trigger = document.getElementById('scroll-loader-trigger');
     if (!trigger) return;
 
     const observer = new IntersectionObserver((entries) => {
-        // Check if the trigger element is intersecting with the viewport
         if (entries[0].isIntersecting) {
             // Only load more if not currently loading and not all products are loaded
             if (!state.isLoadingMoreProducts && !state.allProductsLoaded) {
-                // console.log("Scroll trigger hit, loading more products..."); // Ji bo debugê
-                searchProductsInFirestore(state.currentSearch, false); // Fetch next page
+                 searchProductsInFirestore(state.currentSearch, false); // Fetch next page
             }
         }
     }, {
-        root: null, // Use the viewport as the root
-        rootMargin: '0px', // No margin
-        threshold: 0.1 // Trigger when 10% of the element is visible
+        root: null, // relative to document viewport
+        threshold: 0.1 // trigger when 10% of the element is visible
     });
 
-    // Start observing the trigger element
     observer.observe(trigger);
 }
 
-// ... (Paste updateCategoryDependentUI unchanged) ...
 function updateCategoryDependentUI() {
     if (state.categories.length === 0) return; // Wait until categories are loaded
-
-    // Populate category dropdown in the product form
     populateCategoryDropdown();
-
-    // Render the main category buttons/tabs
     renderMainCategories();
-
-    // Re-render the categories sheet if it might be open or opened later
-    renderCategoriesSheet();
-
     // Update admin dropdowns only if admin logic is loaded and user is admin
     if (sessionStorage.getItem('isAdmin') === 'true' && window.AdminLogic) {
         window.AdminLogic.updateAdminCategoryDropdowns();
-        window.AdminLogic.updateShortcutCardCategoryDropdowns();
     }
 }
 
-// ... (Paste setupEventListeners unchanged, ensuring showSubcategoryDetailPage is called correctly) ...
 function setupEventListeners() {
-    // --- Navigation ---
     homeBtn.onclick = async () => {
         if (!document.getElementById('mainPage').classList.contains('page-active')) {
-            // --- GORRANKARIYA 14: Tomarkirina scrollê berî guhertina rûpelê ---
-            // Em li vir tomar nakin ji ber ku showPage dê bike
-            // --- Dawiya Gorrankariyê 14 ---
             history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
             showPage('mainPage');
         }
-        // Reset filters when explicitly clicking home button
+        // Reset filters when clicking home
         await navigateToFilter({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
     };
 
     settingsBtn.onclick = () => {
-        // --- GORRANKARIYA 15: Tomarkirina scrollê berî guhertina rûpelê ---
-        saveMainPageScrollPosition(); // Tomar bike berî ku here settings
-        // --- Dawiya Gorrankariyê 15 ---
         history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
         showPage('settingsPage', t('settings_title'));
     };
 
     document.getElementById('headerBackBtn').onclick = () => {
-        history.back(); // Use browser back functionality
+        history.back();
     };
 
-    // --- Popups / Sheets ---
     profileBtn.onclick = () => {
         openPopup('profileSheet');
-        updateActiveNav('profileBtn'); // Highlight nav item
+        updateActiveNav('profileBtn');
     };
 
     cartBtn.onclick = () => {
@@ -2484,98 +2146,52 @@ function setupEventListeners() {
         openPopup('loginModal', 'modal');
     };
 
-    notificationBtn.addEventListener('click', () => {
-        openPopup('notificationsSheet');
-    });
-
-    if (termsAndPoliciesBtn) {
-        termsAndPoliciesBtn.addEventListener('click', () => {
-            openPopup('termsSheet');
-        });
-    }
-
-    // Close popups/sheets
     sheetOverlay.onclick = () => closeCurrentPopup();
     document.querySelectorAll('.close').forEach(btn => btn.onclick = closeCurrentPopup);
-    // Close modal if clicking outside content
-    window.onclick = (e) => {
-        if (e.target.classList.contains('modal') && e.target.style.display === 'block') {
-             closeCurrentPopup();
-        }
-    };
+    window.onclick = (e) => { if (e.target.classList.contains('modal')) closeCurrentPopup(); };
 
-
-    // --- Forms ---
     loginForm.onsubmit = async (e) => {
         e.preventDefault();
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const loginButton = e.target.querySelector('button[type="submit"]');
-        const originalText = loginButton.textContent;
-        loginButton.disabled = true;
-        loginButton.textContent = '...چاوەڕێ بە';
-
         try {
-            await signInWithEmailAndPassword(auth, email, password);
-            // Success: onAuthStateChanged will handle UI updates and close modal
-            // No need to manually close here, prevents race conditions
+            await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
+            // Admin logic initialization will happen via onAuthStateChanged
         } catch (error) {
-            console.error("Login Error:", error);
             showNotification(t('login_error'), 'error');
-            loginButton.disabled = false; // Re-enable button on error
-            loginButton.textContent = originalText;
         }
     };
 
-    profileForm.onsubmit = (e) => {
-        e.preventDefault();
-        // Save profile data to state and local storage
-        state.userProfile = {
-            name: document.getElementById('profileName').value.trim(),
-            address: document.getElementById('profileAddress').value.trim(),
-            phone: document.getElementById('profilePhone').value.trim(),
-        };
-        localStorage.setItem(PROFILE_KEY, JSON.stringify(state.userProfile));
-        showNotification(t('profile_saved'), 'success');
-        closeCurrentPopup(); // Close the profile sheet
-    };
-
-    // --- Search ---
     const debouncedSearch = debounce((term) => {
-        // --- GORRANKARIYA 16: Tomarkirina scrollê berî navîgasyonê ---
-        // navigateToFilter dê scrollê tomar bike
-        // --- Dawiya Gorrankariyê 16 ---
-        navigateToFilter({ search: term }); // Apply search filter
-    }, 500); // 500ms delay after user stops typing
+        navigateToFilter({ search: term });
+    }, 500);
 
     searchInput.oninput = () => {
         const searchTerm = searchInput.value;
-        clearSearchBtn.style.display = searchTerm ? 'block' : 'none'; // Show/hide clear button
-        debouncedSearch(searchTerm); // Trigger debounced search
+        clearSearchBtn.style.display = searchTerm ? 'block' : 'none';
+        debouncedSearch(searchTerm);
     };
 
     clearSearchBtn.onclick = () => {
-        searchInput.value = ''; // Clear input
-        clearSearchBtn.style.display = 'none'; // Hide clear button
-        // --- GORRANKARIYA 17: Tomarkirina scrollê berî navîgasyonê ---
-        // navigateToFilter dê scrollê tomar bike
-        // --- Dawiya Gorrankariyê 17 ---
-        navigateToFilter({ search: '' }); // Apply empty search filter
+        searchInput.value = '';
+        clearSearchBtn.style.display = 'none';
+        navigateToFilter({ search: '' });
     };
 
-    // Subpage search
+    // Subpage search logic
     const subpageSearchInput = document.getElementById('subpageSearchInput');
     const subpageClearSearchBtn = document.getElementById('subpageClearSearchBtn');
+
     const debouncedSubpageSearch = debounce(async (term) => {
         const hash = window.location.hash.substring(1);
         if (hash.startsWith('subcategory_')) {
             const ids = hash.split('_');
             const subCatId = ids[2];
+
+            // Find the currently active sub-subcategory button
             const activeSubSubBtn = document.querySelector('#subSubCategoryContainerOnDetailPage .subcategory-btn.active');
-            const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.id || 'all') : 'all';
-            await renderProductsOnDetailPage(subCatId, subSubCatId, term); // Re-render products on detail page
+            const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.id || 'all') : 'all'; // Default to 'all' if none active
+
+            await renderProductsOnDetailPage(subCatId, subSubCatId, term);
         }
-        // Add logic here if search is needed on other subpages
     }, 500);
 
     subpageSearchInput.oninput = () => {
@@ -2587,20 +2203,33 @@ function setupEventListeners() {
     subpageClearSearchBtn.onclick = () => {
         subpageSearchInput.value = '';
         subpageClearSearchBtn.style.display = 'none';
-        debouncedSubpageSearch('');
+        debouncedSubpageSearch(''); // Trigger search with empty term
     };
 
-    // --- Settings Actions ---
+
     contactToggle.onclick = () => {
         const container = document.getElementById('dynamicContactLinksContainer');
         const chevron = contactToggle.querySelector('.contact-chevron');
         container.classList.toggle('open');
-        chevron.classList.toggle('open'); // Rotate chevron
+        chevron.classList.toggle('open'); // Toggle chevron direction
+    };
+
+
+    profileForm.onsubmit = (e) => {
+        e.preventDefault();
+        state.userProfile = {
+            name: document.getElementById('profileName').value,
+            address: document.getElementById('profileAddress').value,
+            phone: document.getElementById('profilePhone').value,
+        };
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(state.userProfile));
+        showNotification(t('profile_saved'), 'success');
+        closeCurrentPopup();
     };
 
     document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.onclick = () => {
-            setLanguage(btn.dataset.lang); // Change language
+            setLanguage(btn.dataset.lang);
         };
     });
 
@@ -2608,16 +2237,22 @@ function setupEventListeners() {
     if (installBtn) {
         installBtn.addEventListener('click', async () => {
             if (state.deferredPrompt) {
-                installBtn.style.display = 'none'; // Hide button after use
-                state.deferredPrompt.prompt(); // Show install prompt
-                try {
-                    const { outcome } = await state.deferredPrompt.userChoice;
-                    console.log(`User response to the install prompt: ${outcome}`);
-                } catch (error) {
-                     console.error("Error showing install prompt:", error);
-                }
-                state.deferredPrompt = null; // Clear prompt event
+                installBtn.style.display = 'none'; // Hide the button after prompting
+                state.deferredPrompt.prompt();
+                const { outcome } = await state.deferredPrompt.userChoice;
+                console.log(`User response to the install prompt: ${outcome}`);
+                state.deferredPrompt = null; // Clear the saved prompt
             }
+        });
+    }
+
+    notificationBtn.addEventListener('click', () => {
+        openPopup('notificationsSheet');
+    });
+
+    if (termsAndPoliciesBtn) {
+        termsAndPoliciesBtn.addEventListener('click', () => {
+            openPopup('termsSheet');
         });
     }
 
@@ -2631,42 +2266,18 @@ function setupEventListeners() {
         forceUpdateBtn.addEventListener('click', forceUpdate);
     }
 
-    // --- Product Form Category Dependencies ---
-    document.getElementById('productCategoryId').addEventListener('change', (e) => {
-        const categoryId = e.target.value;
-        // Populate subcategories based on main category selection
-        window.AdminLogic.populateSubcategoriesDropdown(categoryId);
-        // Reset and hide sub-subcategory dropdown
-        window.AdminLogic.populateSubSubcategoriesDropdown(null, null);
+    // Handle foreground messages
+    onMessage(messaging, (payload) => {
+        console.log('Foreground message received: ', payload);
+        // Customize notification display for foreground messages
+        const title = payload.notification.title;
+        const body = payload.notification.body;
+        showNotification(`${title}: ${body}`, 'success'); // Example: using existing notification system
+        // Optionally update the notification badge immediately
+        notificationBadge.style.display = 'block';
     });
-
-    document.getElementById('productSubcategoryId').addEventListener('change', (e) => {
-        const mainCatId = document.getElementById('productCategoryId').value;
-        const subcategoryId = e.target.value;
-        // Populate sub-subcategories based on subcategory selection
-        window.AdminLogic.populateSubSubcategoriesDropdown(mainCatId, subcategoryId);
-    });
-
-    // --- Image Preview for Product Form ---
-    document.getElementById('imageInputsContainer').addEventListener('input', (e) => {
-        if (e.target.classList.contains('productImageUrl')) {
-            const previewImg = e.target.nextElementSibling; // Get the img element next to the input
-            const url = e.target.value.trim();
-            if (url && previewImg) {
-                previewImg.src = url; // Update preview source
-            } else if (previewImg) {
-                // Reset to placeholder if URL is cleared
-                const index = Array.from(e.target.parentElement.parentElement.children).indexOf(e.target.parentElement);
-                previewImg.src = `https://placehold.co/40x40/e2e8f0/2d3748?text=${index + 1}`;
-            }
-        }
-    });
-
-    // --- Admin Form Submissions (delegated to admin.js) ---
-    // Ensure admin.js adds its specific form submit listeners
 }
 
-// ... (Paste onAuthStateChanged unchanged) ...
 onAuthStateChanged(auth, async (user) => {
     // IMPORTANT: Use the actual Admin UID from your Firebase project
     const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3"; // Replace with your Admin UID
@@ -2676,158 +2287,138 @@ onAuthStateChanged(auth, async (user) => {
         sessionStorage.setItem('isAdmin', 'true'); // Use sessionStorage for temporary admin status
         if (window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
              // Ensure admin logic is loaded before initializing
-             if (document.readyState === 'complete' || document.readyState === 'interactive') {
+             if (document.readyState === 'complete') {
                   window.AdminLogic.initialize();
              } else {
-                  window.addEventListener('load', window.AdminLogic.initialize, { once: true });
+                  window.addEventListener('load', window.AdminLogic.initialize);
              }
         } else {
-             console.warn("AdminLogic not found or initialize not a function. Admin features might not work.");
-             // Attempt to load admin.js dynamically if needed (more complex setup)
+             console.warn("AdminLogic not found or initialize not a function.");
         }
     } else {
         sessionStorage.removeItem('isAdmin');
         if (user) {
             // If a non-admin user is somehow signed in, sign them out.
-            // This might happen if admin logs out and another Firebase user exists in browser cache.
             await signOut(auth);
             console.log("Non-admin user signed out.");
         }
-        // Deinitialize admin UI if admin logic exists
         if (window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
             window.AdminLogic.deinitialize(); // Clean up admin UI elements
         }
     }
 
-    // Close login modal automatically only if login was successful (isAdmin is true)
+    // Close login modal if user successfully logs in as admin
     if (loginModal.style.display === 'block' && isAdmin) {
-        // Find the close button and click it, or directly close
-        const closeButton = loginModal.querySelector('.close');
-        if (closeButton) {
-             closeButton.click(); // Simulate clicking close
-        } else {
-             loginModal.style.display = 'none'; // Directly hide if no close button found
-             document.body.classList.remove('overlay-active'); // Ensure overlay is removed
-        }
-    } else if (loginModal.style.display === 'block' && !isAdmin && user) {
-         // If login attempted but failed (user exists but not admin), re-enable form
-         const loginButton = loginForm.querySelector('button[type="submit"]');
-         if (loginButton) {
-              loginButton.disabled = false;
-              loginButton.textContent = t('login_button');
-         }
-    }
-
-    // Update general UI based on admin status (e.g., show/hide edit buttons)
-    // This part might be better handled inside AdminLogic.initialize/deinitialize
-    // Or call a specific function here:
-    if (window.AdminLogic) {
-         window.AdminLogic.updateAdminUI(isAdmin);
-    } else if (!isAdmin) {
-         // Ensure admin elements are hidden if AdminLogic hasn't loaded but user is not admin
-         document.querySelectorAll('.product-actions').forEach(el => el.style.display = 'none');
-         document.getElementById('addProductBtn').style.display = 'none';
-         // Hide specific settings sections if needed
+        closeCurrentPopup();
     }
 });
 
 
-
-// --- GORRANKARIYA 18: Nûvekirina init() ---
 function init() {
-    // --- Destpêka Guhertinê ---
-    // Scroll restorationê manual bike
-    if ('scrollRestoration' in history) {
-        history.scrollRestoration = 'manual';
-        // console.log("Scroll restoration set to manual."); // Ji bo debugê
-    }
-    // --- Dawiya Guhertinê ---
+    renderSkeletonLoader(); // Show skeleton loader immediately
 
-    renderSkeletonLoader(); // Skeleton nîşan bide
-
-    // Hewl bide persistenceê çalak bike
+    // Attempt to enable offline persistence
     enableIndexedDbPersistence(db)
         .then(() => {
             console.log("Firestore offline persistence enabled successfully.");
-            initializeAppLogic(); // Mantiqê sepanê dest pê bike
+            // Initialize core app logic after persistence is set up (or failed gracefully)
+            initializeAppLogic();
         })
         .catch((err) => {
             if (err.code == 'failed-precondition') {
+                // Multiple tabs open, persistence can only be enabled in one tab at a time.
                 console.warn('Firestore Persistence failed: Multiple tabs open.');
             } else if (err.code == 'unimplemented') {
+                // The current browser does not support all of the features required to enable persistence.
                 console.warn('Firestore Persistence failed: Browser not supported.');
             }
             console.error("Error enabling persistence, running online mode only:", err);
-            initializeAppLogic(); // Her çawa be, sepanê dest pê bike
+            // Initialize core app logic even if persistence fails
+            initializeAppLogic();
         });
 }
-// --- Dawiya Gorrankariyê 18 ---
 
 function initializeAppLogic() {
-    if (!state.sliderIntervals) state.sliderIntervals = {}; // Piştrast bike ku heye
+    // Add sliderIntervals property if it doesn't exist (robustness)
+    if (!state.sliderIntervals) {
+        state.sliderIntervals = {};
+    }
 
-    // Kategoriyan barke û UIya destpêkê saz bike
+    // Fetch categories and set up initial UI based on them
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     onSnapshot(categoriesQuery, async (snapshot) => {
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        state.categories = [{ id: 'all', icon: 'fas fa-th', name_ku_sorani: t('all_categories_label'), name_ku_badini: t('all_categories_label'), name_ar: t('all_categories_label') }, ...fetchedCategories]; // 'All' lê zêde bike
-        updateCategoryDependentUI(); // Dropdown û bişkokan nûve bike
+        state.categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories]; // Add 'All' category
+        updateCategoryDependentUI(); // Update dropdowns and category buttons
 
-        // Barkirina rûpela destpêkê li gorî URLê (piştî barkirina kategoriyan)
-        handleInitialPageLoad(); // Ev ê applyFilterState jî bang bike eger pêwîst be
+        // Handle initial page load based on URL (hash or query params)
+        // This needs to run *after* categories are loaded to potentially filter correctly
+        const hash = window.location.hash.substring(1);
+        if (hash.startsWith('subcategory_')) {
+            const ids = hash.split('_');
+            const mainCatId = ids[1];
+            const subCatId = ids[2];
+            // Only show detail page if category data is ready
+            if (state.categories.length > 1) {
+               showSubcategoryDetailPage(mainCatId, subCatId, true); // True because it's from initial load/history
+            }
+        } else {
+            handleInitialPageLoad(); // Handles main page filters and other hashes
+        }
 
-        // Ziman bicîh bike piştî barkirina kategoriyan ji bo navên rast
+        // Apply language after categories are loaded to ensure names are correct
         setLanguage(state.currentLanguage);
-
-    }, (error) => {
-         console.error("Error fetching categories:", error);
-         // Hewl bide ku sepanê bê kategoriyan bidomîne yan peyamekê nîşan bide
-         handleInitialPageLoad(); // Hewl bide dîsa jî rûpelê barke
-         setLanguage(state.currentLanguage);
     });
 
-    // Beşên din ên sepanê saz bike
+    // Setup other parts of the app
     updateCartCount();
-    setupEventListeners(); // Guhdarên bûyeran saz bike
-    setupScrollObserver(); // Çavdêriya scrollê ji bo barkirina bêtir saz bike
-    // setLanguage(state.currentLanguage); // Êdî di hundirê onSnapshot de tê kirin
-    renderContactLinks(); // Lînkên têkiliyê barke
-    checkNewAnnouncements(); // Kontrol bike ji bo agahdariyên nû
-    showWelcomeMessage(); // Peyama bi xêr hatinê (tenê carekê)
-    setupGpsButton(); // Fonksiyona GPSê ji bo profaylê
+    setupEventListeners();
+    setupScrollObserver();
+    setLanguage(state.currentLanguage); // Apply language initially
+    renderContactLinks(); // Fetch and display contact links
+    checkNewAnnouncements(); // Check for notification badge
+    showWelcomeMessage(); // Show only on first visit
+    setupGpsButton(); // Add GPS functionality to profile address
 }
 
-// Fonksiyon/guhêrbarên pêwîst ji bo admin.js eşkere bike
+// Expose necessary functions/variables for admin.js
 Object.assign(window.globalAdminTools, {
     db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
-    productsCollection, categoriesCollection, announcementsCollection, promoGroupsCollection, brandGroupsCollection, // Koleksiyonên nû
+    productsCollection, categoriesCollection, announcementsCollection, promoGroupsCollection, brandGroupsCollection, // Pass new collections
 
-    // Fonksiyonên alîkar ji bo mantiqê admin
+    // Helper functions for admin logic
     clearProductCache: () => {
         console.log("Product cache and home page cleared due to admin action.");
-        state.productCache = {}; // Cacheê paqij bike
+        state.productCache = {}; // Clear the cache
         const homeContainer = document.getElementById('homePageSectionsContainer');
         if (homeContainer) {
-            homeContainer.innerHTML = ''; // Naveroka rûpela sereke paqij bike ji bo renderkirina nû
+            homeContainer.innerHTML = ''; // Clear home page to force re-render
         }
+        // Optionally trigger a re-render if the user is on the home page
+        // searchProductsInFirestore(state.currentSearch, true);
     },
     setEditingProductId: (id) => { state.editingProductId = id; },
     getEditingProductId: () => state.editingProductId,
-    getCategories: () => state.categories, // Kategoriyan bide admin
-    getCurrentLanguage: () => state.currentLanguage // Zimanê heyî bide admin
+    getCategories: () => state.categories, // Provide categories to admin
+    getCurrentLanguage: () => state.currentLanguage // Provide language to admin
 });
 
-// Destpêkirina sepanê
+// Start the application initialization process
 document.addEventListener('DOMContentLoaded', init);
 
-// Handling PWA install prompt
+// PWA install prompt handling
 window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault(); // Pêşî li info-barê bigire
-    state.deferredPrompt = e; // Bûyerê hilîne
+    // Prevent the mini-infobar from appearing on mobile
+    e.preventDefault();
+    // Stash the event so it can be triggered later.
+    state.deferredPrompt = e;
+    // Update UI notify the user they can install the PWA
     const installBtn = document.getElementById('installAppBtn');
-    if (installBtn) installBtn.style.display = 'flex'; // Bişkokê nîşan bide
-    console.log('`beforeinstallprompt` event fired.');
+    if (installBtn) {
+        installBtn.style.display = 'flex'; // Show install button in settings
+    }
+    console.log('`beforeinstallprompt` event was fired.');
 });
 
 
@@ -2838,23 +2429,38 @@ if ('serviceWorker' in navigator) {
 
     navigator.serviceWorker.register('/sw.js').then(registration => {
         console.log('Service Worker registered successfully.');
+
+        // Track updates to the Service Worker.
         registration.addEventListener('updatefound', () => {
             const newWorker = registration.installing;
             console.log('New service worker found!', newWorker);
+
             newWorker.addEventListener('statechange', () => {
+                // Has network.state changed?
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    updateNotification.classList.add('show'); // Agahdariya nûvekirinê nîşan bide
+                    // New worker is installed and waiting (controller exists means current page controlled)
+                    // Show the update notification bar
+                    updateNotification.classList.add('show');
                 }
             });
         });
-        updateNowBtn.addEventListener('click', () => {
-             // Ji SW re bêje ku skipWaiting bike
-            registration.waiting?.postMessage({ action: 'skipWaiting' });
-        });
-    }).catch(err => console.log('Service Worker registration failed: ', err));
 
+        // Event listener for the update button
+        updateNowBtn.addEventListener('click', () => {
+            // Send message to SW to skip waiting and activate immediately
+            registration.waiting.postMessage({ action: 'skipWaiting' });
+        });
+
+    }).catch(err => {
+        console.log('Service Worker registration failed: ', err);
+    });
+
+    // Listen for controller change which happens after skipWaiting is called
     navigator.serviceWorker.addEventListener('controllerchange', () => {
+        // This fires when the service worker controlling this page changes
+        // The page needs to be reloaded to use the new service worker.
         console.log('New Service Worker activated. Reloading page...');
-        window.location.reload(); // Rûpelê ji nû ve barke
+        window.location.reload();
     });
 }
+
