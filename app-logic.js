@@ -125,6 +125,7 @@ function closeCurrentPopup() {
     }
 }
 
+// کۆدی ڕاستکراوە (چارەسەری گشتی)
 async function applyFilterState(filterState, fromPopState = false) {
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
@@ -141,9 +142,8 @@ async function applyFilterState(filterState, fromPopState = false) {
 
     if (fromPopState && typeof filterState.scroll === 'number') {
         setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
-    } else if (!fromPopState) {
-         
     }
+    // بەشی سکڕۆڵکردنەکە لێرەدا بە تەواوی سڕایەوە
 }
 
 async function navigateToFilter(newState) {
@@ -942,7 +942,7 @@ function createPromoCardElement(cardData, sliderState) {
                     subSubcategory: 'all',
                     search: ''
                 });
-                
+                document.getElementById('mainCategoriesContainer')?.scrollIntoView({ behavior: 'smooth' });
             }
         }
     });
