@@ -141,7 +141,7 @@ async function applyFilterState(filterState, fromPopState = false) {
     if (fromPopState && typeof filterState.scroll === 'number') {
         // <-- لێرە گۆڕانکارییەکە کراوە
         // زیادکردنی کات بۆ ئەوەی دڵنیا بین هەموو بەشەکانی پەیجی سەرەکی باربوونە پێش scroll کردن
-        setTimeout(() => window.scrollTo(0, filterState.scroll), 150);
+        setTimeout(() => window.scrollTo(0, filterState.scroll), 300);
     } else if (!fromPopState) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
