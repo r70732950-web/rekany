@@ -1,11 +1,11 @@
 // BEŞÊ DUYEM: app-logic.js
-// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر)
+// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر - وەشانی 2)
 
 import {
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, // Ensure these are imported from app-setup
-    translations, state,
+    translations, state, // state object needs sliderIntervals: {} added in app-setup.js
     CART_KEY, FAVORITES_KEY, PROFILE_KEY, PRODUCTS_PER_PAGE,
     loginModal, addProductBtn, productFormModal, productsContainer, skeletonLoader, searchInput,
     clearSearchBtn, loginForm, productForm, formTitle, imageInputsContainer, loader,
@@ -1432,9 +1432,9 @@ async function renderAllProductsSection() {
 }
 
 // ======================================
-// ===== START: GORRANKARIYA 1 / CHANGE 1 =====
+// ===== START: GORRANKARIYA 1 / CHANGE 1 (Slider Fix v2) =====
 // ======================================
-// Fonksiyon hate guhertin da ku layoutId werbigire û bişîne renderPromoCardsSectionForHome
+// Function updated to accept layoutId and pass it to renderPromoCardsSectionForHome
 async function renderHomePageContent() {
     if (state.isRenderingHomePage) return;
     state.isRenderingHomePage = true;
@@ -1443,7 +1443,17 @@ async function renderHomePageContent() {
 
     try {
         renderSkeletonLoader(homeSectionsContainer, 4);
-        homeSectionsContainer.innerHTML = '';
+        homeSectionsContainer.innerHTML = ''; // Clear previous content first
+
+        // === START: Interval Cleanup Code ===
+        // Clean up any existing intervals before rendering new ones
+        Object.keys(state.sliderIntervals || {}).forEach(layoutId => {
+            if (state.sliderIntervals[layoutId]) {
+                clearInterval(state.sliderIntervals[layoutId]);
+            }
+        });
+        state.sliderIntervals = {};
+        // === END: Interval Cleanup Code ===
 
         const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
         const layoutSnapshot = await getDocs(layoutQuery);
@@ -1496,30 +1506,25 @@ async function renderHomePageContent() {
         console.error("Error rendering home page content:", error);
         homeSectionsContainer.innerHTML = `<p style="text-align: center; padding: 20px;">هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
     } finally {
-        // Stop promo rotation if it exists from previous render
-        // CHAKKIRÎ: Divê êdî rawestandina interval li vir neyê kirin, ji ber ku her slider intervala xwe kontrol dike
-        // if (state.promoRotationInterval) {
-        //     clearInterval(state.promoRotationInterval);
-        //     state.promoRotationInterval = null;
-        // }
+        // Interval cleanup is now handled at the beginning and when navigating away
         state.isRenderingHomePage = false;
     }
 }
 // ======================================
-// ===== END: GORRANKARIYA 1 / CHANGE 1 =====
+// ===== END: GORRANKARIYA 1 / CHANGE 1 (Slider Fix v2) =====
 // ======================================
 
 
 // ======================================
-// ===== START: GORRANKARIYA 2 / CHANGE 2 =====
+// ===== START: GORRANKARIYA 2 / CHANGE 2 (Slider Fix v2) =====
 // ======================================
-// Fonksiyon hate guhertin da ku layoutId werbigire û IDyek taybet çêbike
+// Function updated to accept layoutId, create unique ID, and manage its interval in state.sliderIntervals
 async function renderPromoCardsSectionForHome(groupId, layoutId) { // ZÊDEKIRÎ: layoutId
     const promoGrid = document.createElement('div');
     promoGrid.className = 'products-container';
     promoGrid.style.marginBottom = '24px';
     // CHAKKIRÎ: Bikaranîna layoutId ji bo çêkirina IDyek bêhempa
-    promoGrid.id = `promoSliderLayout_${layoutId}`; // Berê 'promoSliderGroup_${groupId}' bû
+    promoGrid.id = `promoSliderLayout_${layoutId}`;
 
     try {
         const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
@@ -1536,9 +1541,15 @@ async function renderPromoCardsSectionForHome(groupId, layoutId) { // ZÊDEKIRÎ
 
             if (cards.length > 1) {
                 const rotate = () => {
-                    // Kontrol bike ka element hîn di DOMê de ye yan na
-                    if (!document.getElementById(promoGrid.id)) {
-                        clearInterval(sliderState.intervalId); // Intervalê rawestîne eger beş hatibe rakirin
+                    // CHAKKIRÎ: Check if interval still exists in state before clearing
+                    if (!document.getElementById(promoGrid.id) || !state.sliderIntervals || !state.sliderIntervals[layoutId]) {
+                        if (sliderState.intervalId) {
+                            clearInterval(sliderState.intervalId); // Clear this specific interval
+                            // Also remove from global state if it exists there
+                            if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
+                                delete state.sliderIntervals[layoutId];
+                            }
+                        }
                         return;
                     }
                     sliderState.currentIndex = (sliderState.currentIndex + 1) % cards.length;
@@ -1546,9 +1557,18 @@ async function renderPromoCardsSectionForHome(groupId, layoutId) { // ZÊDEKIRÎ
                     const imgElement = promoCardElement.querySelector('.product-image');
                     if(imgElement) imgElement.src = newImageUrl;
                 };
-                if(sliderState.intervalId) clearInterval(sliderState.intervalId);
+
+                // Clear previous interval for this specific layoutId if it exists
+                if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
+                    clearInterval(state.sliderIntervals[layoutId]);
+                }
+
                 sliderState.intervalId = setInterval(rotate, 5000);
-                promoGrid.dataset.interval = sliderState.intervalId;
+                // CHAKKIRÎ: Store interval ID in the global state object using layoutId as key
+                if (!state.sliderIntervals) state.sliderIntervals = {}; // Initialize if doesn't exist
+                state.sliderIntervals[layoutId] = sliderState.intervalId;
+                // CHAKKIRÎ: Remove storing interval ID on dataset
+                // promoGrid.dataset.interval = sliderState.intervalId;
             }
 
             return promoGrid;
@@ -1559,7 +1579,7 @@ async function renderPromoCardsSectionForHome(groupId, layoutId) { // ZÊDEKIRÎ
     return null;
 }
 // ======================================
-// ===== END: GORRANKARIYA 2 / CHANGE 2 =====
+// ===== END: GORRANKARIYA 2 / CHANGE 2 (Slider Fix v2) =====
 // ======================================
 
 
@@ -1577,28 +1597,24 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         if (homeSectionsContainer.innerHTML.trim() === '') {
             await renderHomePageContent();
         } else {
-            // Re-start rotations if content was already there but intervals might have stopped
-            // CHAKKIRÎ: Prefixê rast bikar bîne
-            document.querySelectorAll('[id^="promoSliderLayout_"]').forEach(el => { // Berê 'promoSliderGroup_' bû
-                const intervalId = parseInt(el.dataset.interval, 10);
-                // Logic to restart interval if needed (might be handled by renderHomePageContent)
-            });
+            // Re-start rotations are implicitly handled by renderHomePageContent now
         }
         return;
     } else {
         homeSectionsContainer.style.display = 'none';
+        // ======================================
+        // ===== START: GORRANKARIYA 3 / CHANGE 3 (Slider Fix v2) =====
+        // ======================================
         // Stop all promo rotations when navigating away from the full home view
-        // ======================================
-        // ===== START: GORRANKARIYA 3 / CHANGE 3 =====
-        // ======================================
-        // CHAKKIRÎ: Prefixê rast bikar bîne ji bo rawestandina intervalan
-        document.querySelectorAll('[id^="promoSliderLayout_"]').forEach(el => { // Berê 'promoSliderGroup_' bû
-            const intervalId = parseInt(el.dataset.interval, 10);
-            if(intervalId) clearInterval(intervalId);
-            delete el.dataset.interval;
+        // CHAKKIRÎ: Use state.sliderIntervals for cleanup
+        Object.keys(state.sliderIntervals || {}).forEach(layoutId => {
+            if (state.sliderIntervals[layoutId]) {
+                clearInterval(state.sliderIntervals[layoutId]);
+            }
         });
+        state.sliderIntervals = {}; // Reset the intervals object
         // ======================================
-        // ===== END: GORRANKARIYA 3 / CHANGE 3 =====
+        // ===== END: GORRANKARIYA 3 / CHANGE 3 (Slider Fix v2) =====
         // ======================================
     }
 
@@ -2323,6 +2339,11 @@ function init() {
 }
 
 function initializeAppLogic() {
+    // Add sliderIntervals property if it doesn't exist (robustness)
+    if (!state.sliderIntervals) {
+        state.sliderIntervals = {};
+    }
+
     // Fetch categories and set up initial UI based on them
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     onSnapshot(categoriesQuery, async (snapshot) => {
@@ -2442,3 +2463,4 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
+
