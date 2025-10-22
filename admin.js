@@ -1,4 +1,4 @@
-// فایلی admin.js (ڕاستکراوە)
+// فایلی admin.js (چاککراو بۆ کێشەی کارتی کورت)
 
 const {
     db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit,
@@ -29,7 +29,6 @@ window.AdminLogic = {
         this.updateShortcutCardCategoryDropdowns();
         this.renderHomeLayoutAdmin();
         
-        // New group-based rendering
         this.renderPromoGroupsAdminList();
         this.renderBrandGroupsAdminList();
     },
@@ -866,6 +865,23 @@ window.AdminLogic = {
         });
     },
 
+    // === START: NEW FUNCTIONS FOR SHORTCUT CARD MANAGEMENT ===
+    editShortcutRow: async function(rowId) {
+        const rowSnap = await getDoc(doc(db, "shortcut_rows", rowId));
+        if (rowSnap.exists()) {
+            const row = rowSnap.data();
+            document.getElementById('editingShortcutRowId').value = rowId;
+            document.getElementById('shortcutRowTitleKuSorani').value = row.title.ku_sorani || '';
+            document.getElementById('shortcutRowTitleKuBadini').value = row.title.ku_badini || '';
+            document.getElementById('shortcutRowTitleAr').value = row.title.ar || '';
+            document.getElementById('shortcutRowOrder').value = row.order || 10;
+
+            document.getElementById('addShortcutRowForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوەی ڕیز';
+            document.getElementById('cancelRowEditBtn').style.display = 'inline-block';
+            document.getElementById('addShortcutRowForm').scrollIntoView({ behavior: 'smooth' });
+        }
+    },
+
     deleteShortcutRow: async function(rowId) {
         if (confirm('دڵنیایت دەتەوێت ئەم ڕیزە بسڕیتەوە؟ هەموو کارتەکانی ناویشی دەسڕێنەوە!')) {
             try {
@@ -884,8 +900,41 @@ window.AdminLogic = {
         }
     },
 
+    editShortcutCard: async function(rowId, cardId) {
+        const cardSnap = await getDoc(doc(db, "shortcut_rows", rowId, "cards", cardId));
+        if (cardSnap.exists()) {
+            const card = cardSnap.data();
+            document.getElementById('editingShortcutCardId').value = cardId;
+            document.getElementById('selectRowForCard').value = rowId;
+            document.getElementById('shortcutCardNameKuSorani').value = card.name.ku_sorani || '';
+            document.getElementById('shortcutCardNameKuBadini').value = card.name.ku_badini || '';
+            document.getElementById('shortcutCardNameAr').value = card.name.ar || '';
+            document.getElementById('shortcutCardImageUrl').value = card.imageUrl || '';
+            document.getElementById('shortcutCardOrder').value = card.order || 10;
+            
+            const mainCatSelect = document.getElementById('shortcutCardMainCategory');
+            mainCatSelect.value = card.categoryId || '';
+            
+            mainCatSelect.dispatchEvent(new Event('change')); 
+
+            setTimeout(() => {
+                const subCatSelect = document.getElementById('shortcutCardSubcategory');
+                subCatSelect.value = card.subcategoryId || '';
+                subCatSelect.dispatchEvent(new Event('change'));
+                
+                setTimeout(() => {
+                    document.getElementById('shortcutCardSubSubcategory').value = card.subSubcategoryId || '';
+                }, 500);
+            }, 500);
+
+            document.getElementById('addCardToRowForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوەی کارت';
+            document.getElementById('cancelCardEditBtn').style.display = 'inline-block';
+            document.getElementById('addCardToRowForm').scrollIntoView({ behavior: 'smooth' });
+        }
+    },
+
     deleteShortcutCard: async function(rowId, cardId) {
-         if (confirm('دڵنیایت دەتەوێت ئەم کارتە بسڕیتەوە؟')) {
+        if (confirm('دڵنیایت دەتەوێت ئەم کارتە بسڕیتەوە؟')) {
             try {
                 await deleteDoc(doc(db, "shortcut_rows", rowId, "cards", cardId));
                 showNotification('کارتەکە سڕدرایەوە', 'success');
@@ -896,6 +945,7 @@ window.AdminLogic = {
             }
         }
     },
+    // === END: NEW FUNCTIONS FOR SHORTCUT CARD MANAGEMENT ===
     
     updateShortcutCardCategoryDropdowns: function() {
         const categories = getCategories();
@@ -1047,9 +1097,6 @@ window.AdminLogic = {
             }
         });
 
-        // ======================================
-        // ===== START: BLOKA KODÊ YA RASTKIRÎ =====
-        // ======================================
         document.getElementById('newSectionType').addEventListener('change', async (e) => {
             const type = e.target.value;
             const groupContainer = document.getElementById('specificItemGroupSelectContainer');
@@ -1058,7 +1105,6 @@ window.AdminLogic = {
             const mainCatSelect = document.getElementById('newSectionMainCategory');
             const groupLabel = document.getElementById('specificItemGroupLabel');
 
-            // Reset required status first
             groupSelect.required = false;
             mainCatSelect.required = false;
 
@@ -1067,7 +1113,7 @@ window.AdminLogic = {
 
             if (type === 'promo_slider' || type === 'brands' || type === 'single_shortcut_row') {
                 groupContainer.style.display = 'block';
-                groupSelect.required = true; // Make it required
+                groupSelect.required = true;
                 groupSelect.innerHTML = '<option value="">...بارکردن</option>';
                 
                 let collectionRef, orderField, nameFieldAccessor;
@@ -1082,7 +1128,7 @@ window.AdminLogic = {
                     groupLabel.textContent = 'کام گرووپی براند؟';
                     orderField = 'name';
                     nameFieldAccessor = (data) => data.name;
-                } else { // single_shortcut_row
+                } else { 
                     collectionRef = shortcutRowsCollection;
                     groupLabel.textContent = 'کام ڕیزی کارت؟';
                     orderField = 'order';
@@ -1098,16 +1144,13 @@ window.AdminLogic = {
                 });
             } else if (type === 'single_category_row') {
                 categoryContainer.style.display = 'block';
-                mainCatSelect.required = true; // Make it required
+                mainCatSelect.required = true;
                 mainCatSelect.innerHTML = '<option value="">-- جۆری سەرەکی هەڵبژێرە (پێویستە) --</option>';
                 getCategories().filter(c => c.id !== 'all').forEach(cat => {
                     mainCatSelect.innerHTML += `<option value="${cat.id}">${cat.name_ku_sorani}</option>`;
                 });
             }
         });
-        // ======================================
-        // ===== END: BLOKA KODÊ YA RASTKIRÎ =====
-        // ======================================
         
         document.getElementById('addHomeSectionForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -1309,7 +1352,6 @@ window.AdminLogic = {
             }
         });
         
-        // --- The rest of the event listeners ---
         const addCategoryForm = document.getElementById('addCategoryForm');
         if (addCategoryForm) {
             addCategoryForm.addEventListener('submit', async (e) => {
@@ -1735,7 +1777,29 @@ window.AdminLogic = {
             }
         });
         
-        // --- End of new event listeners ---
+        // --- START: NEW EVENT LISTENER FOR SHORTCUT ROWS ---
+        document.getElementById('shortcutRowsListContainer').addEventListener('click', (e) => {
+            const editRowBtn = e.target.closest('.edit-row-btn');
+            if (editRowBtn) {
+                self.editShortcutRow(editRowBtn.dataset.id);
+            }
+        
+            const deleteRowBtn = e.target.closest('.delete-row-btn');
+            if (deleteRowBtn) {
+                self.deleteShortcutRow(deleteRowBtn.dataset.id);
+            }
+        
+            const editCardBtn = e.target.closest('.edit-card-btn');
+            if (editCardBtn) {
+                self.editShortcutCard(editCardBtn.dataset.rowId, editCardBtn.dataset.cardId);
+            }
+        
+            const deleteCardBtn = e.target.closest('.delete-card-btn');
+            if (deleteCardBtn) {
+                self.deleteShortcutCard(deleteCardBtn.dataset.rowId, deleteCardBtn.dataset.cardId);
+            }
+        });
+        // --- END: NEW EVENT LISTENER FOR SHORTCUT ROWS ---
 
         this.listenersAttached = true;
     }
