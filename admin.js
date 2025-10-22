@@ -1047,21 +1047,31 @@ window.AdminLogic = {
             }
         });
 
+        // ======================================
+        // ===== START: BLOKA KODÊ YA RASTKIRÎ =====
+        // ======================================
         document.getElementById('newSectionType').addEventListener('change', async (e) => {
             const type = e.target.value;
             const groupContainer = document.getElementById('specificItemGroupSelectContainer');
             const categoryContainer = document.getElementById('specificCategorySelectContainer');
-            const groupLabel = document.getElementById('specificItemGroupLabel');
             const groupSelect = document.getElementById('specificItemGroupId');
-        
+            const mainCatSelect = document.getElementById('newSectionMainCategory');
+            const groupLabel = document.getElementById('specificItemGroupLabel');
+
+            // Reset required status first
+            groupSelect.required = false;
+            mainCatSelect.required = false;
+
             groupContainer.style.display = 'none';
             categoryContainer.style.display = 'none';
-        
+
             if (type === 'promo_slider' || type === 'brands' || type === 'single_shortcut_row') {
                 groupContainer.style.display = 'block';
+                groupSelect.required = true; // Make it required
                 groupSelect.innerHTML = '<option value="">...بارکردن</option>';
+                
                 let collectionRef, orderField, nameFieldAccessor;
-        
+
                 if (type === 'promo_slider') {
                     collectionRef = promoGroupsCollection;
                     groupLabel.textContent = 'کام گرووپی سلایدەر؟';
@@ -1088,13 +1098,16 @@ window.AdminLogic = {
                 });
             } else if (type === 'single_category_row') {
                 categoryContainer.style.display = 'block';
-                const mainSelect = document.getElementById('newSectionMainCategory');
-                mainSelect.innerHTML = '<option value="">-- جۆری سەرەکی هەڵبژێرە (پێویستە) --</option>';
+                mainCatSelect.required = true; // Make it required
+                mainCatSelect.innerHTML = '<option value="">-- جۆری سەرەکی هەڵبژێرە (پێویستە) --</option>';
                 getCategories().filter(c => c.id !== 'all').forEach(cat => {
-                    mainSelect.innerHTML += `<option value="${cat.id}">${cat.name_ku_sorani}</option>`; // <-- لێرە هەڵەکە ڕاستکرایەوە
+                    mainCatSelect.innerHTML += `<option value="${cat.id}">${cat.name_ku_sorani}</option>`;
                 });
             }
         });
+        // ======================================
+        // ===== END: BLOKA KODÊ YA RASTKIRÎ =====
+        // ======================================
         
         document.getElementById('addHomeSectionForm').addEventListener('submit', async (e) => {
             e.preventDefault();
