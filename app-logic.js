@@ -532,8 +532,19 @@ async function renderSubSubcategories(mainCatId, subCatId) {
     subSubcategoriesContainer.innerHTML = '';
 }
 
+// کۆدی ڕاستکراوە
 async function showSubcategoryDetailPage(mainCatId, subCatId, fromHistory = false) {
+    if (!fromHistory) {
+        saveCurrentScrollPosition(); // <<-- تەنها ئەم دێڕە لێرە زیاد بکە
+    }
+
     let subCatName = '';
+    try {
+        const subCatRef = doc(db, "categories", mainCatId, "subcategories", subCatId);
+        // ... ostataka koda wekî xo bimînit
+    } 
+    // ...
+}
     try {
         const subCatRef = doc(db, "categories", mainCatId, "subcategories", subCatId);
         const subCatSnap = await getDoc(subCatRef);
