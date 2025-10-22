@@ -1,5 +1,5 @@
 // BEŞÊ DUYEM: app-logic.js
-// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی گەڕانەوەی سکڕۆڵ - Hewldana 3)
+// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر - وەشانی 2)
 
 import {
     db, auth, messaging,
@@ -37,9 +37,7 @@ function debounce(func, delay = 500) {
 function saveCurrentScrollPosition() {
     const currentState = history.state;
     // Only save scroll position for the main page filter state
-    // *** GUHERTIN: Piştrast be ku em tenê pozîsyona ji bo rûpela serekiyê tomar dikin ***
     if (document.getElementById('mainPage').classList.contains('page-active') && currentState && !currentState.type) {
-        // console.log("Saving scroll for main page:", window.scrollY);
         history.replaceState({ ...currentState, scroll: window.scrollY }, '');
     }
 }
@@ -66,10 +64,9 @@ function showPage(pageId, pageTitle = '') {
         page.classList.toggle('page-hidden', !isActive);
     });
 
-    // *** GUHERTIN: Skrolkirina bo jorê ji vir hat rakirin, dê ji applyFilterState were kirin ***
-    // if (pageId !== 'mainPage') {
-    //     window.scrollTo(0, 0); // Ev rêze êdî ne pêwîst e li vir
-    // }
+    if (pageId !== 'mainPage') {
+        window.scrollTo(0, 0);
+    }
 
     // Nûvekirina headerê li gorî rûpelê
     if (pageId === 'settingsPage') {
@@ -95,7 +92,7 @@ function closeAllPopupsUI() {
 }
 
 function openPopup(id, type = 'sheet') {
-    saveCurrentScrollPosition(); // Tomarkirina pozîsyona skrolê berî vekirina popup
+    saveCurrentScrollPosition();
     const element = document.getElementById(id);
     if (!element) return;
 
@@ -122,60 +119,43 @@ function openPopup(id, type = 'sheet') {
 
 function closeCurrentPopup() {
     if (history.state && (history.state.type === 'sheet' || history.state.type === 'modal')) {
-        history.back(); // Bihêle popstate birêve bibe
+        history.back();
     } else {
-        closeAllPopupsUI(); // Wekî din, hemûyan bigire
+        closeAllPopupsUI();
     }
 }
 
-// *** GUHERTINA Sereke 1: applyFilterState ***
 async function applyFilterState(filterState, fromPopState = false) {
-    // 1. Nûvekirina guherbarên state
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
     state.currentSubSubcategory = filterState.subSubcategory || 'all';
     state.currentSearch = filterState.search || '';
 
-    // 2. Nûvekirina hêmanên UI yên bingehîn
     searchInput.value = state.currentSearch;
     clearSearchBtn.style.display = state.currentSearch ? 'block' : 'none';
+
     renderMainCategories();
-    await renderSubcategories(state.currentCategory); // Ev dê barê jêr-kategoriyan nîşan bide/veşêre
+    await renderSubcategories(state.currentCategory);
 
-    // 3. Anîn û nîşandana berheman yan beşên rûpela serekiyê
-    // Nîşeya 'true' wek isNewSearch tê şandin ji bo ku cache were bikaranîn an nûvekirin
-    // Em êdî pozîsyona skrolê naşînin; dê piştî renderkirinê were birêvebirin
-    await searchProductsInFirestore(state.currentSearch, true, fromPopState);
-
-    // 4. Skrolkirin PIŞTÎ ku searchProductsInFirestore qediya û render kir
-    // Em ê hewl bidin skrolkirinê hinekî din dereng bixin, nemaze dema vedigerin rûpela serekiyê
-    const shouldShowHomeSections = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-    const scrollRestoreDelay = shouldShowHomeSections ? 250 : 150; // Derengiyek dirêjtir ji bo rûpela serekiyê
+    await searchProductsInFirestore(state.currentSearch, true);
 
     if (fromPopState && typeof filterState.scroll === 'number') {
-        // console.log(`Restoring scroll from popstate: ${filterState.scroll} after ${scrollRestoreDelay}ms`);
-        setTimeout(() => window.scrollTo(0, filterState.scroll), scrollRestoreDelay);
+        setTimeout(() => window.scrollTo(0, filterState.scroll), 900);
     } else if (!fromPopState) {
-         // Ji bo filterên nû yên rasterast (ne ji popstate), here jor
-         // console.log("Scrolling to top for new filter/search");
-         window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
-
 async function navigateToFilter(newState) {
-    // Tomarkirina pozîsyona skrolê ya heyî berî guhertina state
-    saveCurrentScrollPosition(); // Ev girîng e
-
-    const finalState = {
+    history.replaceState({
         category: state.currentCategory,
         subcategory: state.currentSubcategory,
         subSubcategory: state.currentSubSubcategory,
         search: state.currentSearch,
-         // scroll: window.scrollY // Êdî ne pêwîst e li vir tomar bikî, saveCurrentScrollPosition dike
-         ...newState, // Guhertinên nû li ser yên kevin zêde bike
-         scroll: 0 // Pozîsyona skrolê ya armanc ji bo state nû sifir bike
-    };
+        scroll: window.scrollY
+    }, '');
+
+    const finalState = { ...history.state, ...newState, scroll: 0 };
 
     const params = new URLSearchParams();
     if (finalState.category && finalState.category !== 'all') params.set('category', finalState.category);
@@ -185,103 +165,80 @@ async function navigateToFilter(newState) {
 
     const newUrl = `${window.location.pathname}?${params.toString()}`;
 
-    history.pushState(finalState, '', newUrl); // State nû bi skrol=0 tomar bike
+    history.pushState(finalState, '', newUrl);
 
-    await applyFilterState(finalState, false); // Nîşan bide ku ev ne ji popstate ye
+    await applyFilterState(finalState);
 }
 
 window.addEventListener('popstate', async (event) => { // Guhertin bo async
-    closeAllPopupsUI(); // Pêşî hemû popupan bigire
+    closeAllPopupsUI();
     const popState = event.state;
-    // console.log("Popstate triggered:", popState);
-
     if (popState) {
         if (popState.type === 'page') {
             let pageTitle = popState.title;
-            // Koda ji bo anîna sernavê rûpela jêr-kategoriyê wek xwe dimîne
+            // Eger ew rûpela jêr-kategoriyê be û sernav tune be, ji nû ve bistîne
             if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
                try {
-                   const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
-                   const subCatSnap = await getDoc(subCatRef);
-                   if (subCatSnap.exists()) {
-                       const subCat = subCatSnap.data();
-                       pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
-                   }
+                  const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
+                  const subCatSnap = await getDoc(subCatRef);
+                  if (subCatSnap.exists()) {
+                      const subCat = subCatSnap.data();
+                      pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
+                  }
                } catch(e) { console.error("Could not refetch title on popstate", e) }
             }
             showPage(popState.id, pageTitle);
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
-            // Vegerîna ji popupê, divê em vegerin state berî popupê
-            // Dibe ku pêwîstî bi mentiqek zêdetir hebe li vir heger state berî popupê filter bû
-            // Lê ji bo niha, tenê popupê vedike (an jî divê bê girtin, ku closeAllPopupsUI dike)
-             // openPopup(popState.id, popState.type); // Dibe ku ev ne hewce be heger em tenê popupê digirin
+            openPopup(popState.id, popState.type);
         } else {
-            // Vegerîna navbera filteran an rûpela serekiyê
-            showPage('mainPage'); // Her dem rûpela serekiyê nîşan bide ji bo filteran
-            await applyFilterState(popState, true); // Nîşan bide ku ev ji popstate ye
+            showPage('mainPage');
+            applyFilterState(popState, true);
         }
     } else {
-        // Heger state tune be (mînak, gava yekem car rûpel tê barkirin û paşê vedigerî)
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
         showPage('mainPage');
-        await applyFilterState(defaultState, true); // Bihesibîne ku ev wek popstate ye
+        applyFilterState(defaultState);
     }
 });
 
-// Fonksiyona handleInitialPageLoad hinekî sade dibe
 function handleInitialPageLoad() {
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(window.location.search);
-    let initialState;
 
-    // Ger hash hebe û ne popup be, hewl bide rûpelê veke
-    if (hash && !document.getElementById(hash)?.classList.contains('bottom-sheet') && !document.getElementById(hash)?.classList.contains('modal')) {
-        if (hash.startsWith('subcategory_')) {
-            const ids = hash.split('_');
-            const mainCatId = ids[1];
-            const subCatId = ids[2];
-            // Em li benda barkirina kategoriyan dimînin berî ku rûpela detail nîşan bidin
-            // Lê em state tomar dikin
-            initialState = { type: 'page', id: 'subcategoryDetailPage', mainCatId: mainCatId, subCatId: subCatId, scroll: 0 };
-        } else if (hash === 'settingsPage') {
-            initialState = { type: 'page', id: 'settingsPage', title: t('settings_title'), scroll: 0 };
-        }
-    }
+    const pageId = hash.startsWith('subcategory_') ? 'subcategoryDetailPage' : (hash === 'settingsPage' ? 'settingsPage' : 'mainPage');
 
-    // Ger initialState nehatibe danîn, ango em li rûpela serekiyê ne
-    if (!initialState) {
-        initialState = {
+    if (pageId === 'subcategoryDetailPage') {
+        const ids = hash.split('_');
+        const mainCatId = ids[1];
+        const subCatId = ids[2];
+        // The actual rendering will be triggered by onSnapshot in initializeAppLogic
+    } else if (pageId === 'settingsPage') {
+         history.replaceState({ type: 'page', id: pageId, title: t('settings_title') }, '', `#${hash}`);
+         showPage(pageId, t('settings_title'));
+    } else {
+        showPage('mainPage');
+        const initialState = {
             category: params.get('category') || 'all',
             subcategory: params.get('subcategory') || 'all',
             subSubcategory: params.get('subSubcategory') || 'all',
             search: params.get('search') || '',
-            scroll: 0 // Destpêkê skrol sifir e
+            scroll: 0
         };
-        // Rûpela serekiyê nîşan bide
-        showPage('mainPage');
-        // Filterên destpêkê bicîh bîne (lê ne wek popstate)
-        // applyFilterState(initialState, false); // isNewSearch dê bibe true di searchProductsInFirestore de
-        // *** GUHERTIN: Bangkirina applyFilterState dê di initializeAppLogic de be piştî barkirina kategoriyan ***
+        history.replaceState(initialState, '');
+        applyFilterState(initialState);
     }
 
-    // State destpêkê tomar bike di history de
-    history.replaceState(initialState, '');
-
-    // Barkirina popupan heger di hash de bin piştî barkirina rûpela serekiyê
     const element = document.getElementById(hash);
-    if (element && initialState && !initialState.type) { // Tenê popupan veke heger em li rûpela serekiyê bin
+    if (element && pageId === 'mainPage') {
         const isSheet = element.classList.contains('bottom-sheet');
         const isModal = element.classList.contains('modal');
         if (isSheet || isModal) {
-            // Derengiyek biçûk bide berî vekirina popupê da ku piştrast bî rûpel barkiriye
-            setTimeout(() => openPopup(hash, isSheet ? 'sheet' : 'modal'), 100);
+            openPopup(hash, isSheet ? 'sheet' : 'modal');
         }
     }
 
-    // Barkirina hûrguliyên berhemê heger di URL de be
     const productId = params.get('product');
     if (productId) {
-        // Derengiyek bide berî nîşandana hûrguliyan
         setTimeout(() => showProductDetails(productId), 500);
     }
 }
@@ -320,24 +277,20 @@ function setLanguage(lang) {
 
     const homeContainer = document.getElementById('homePageSectionsContainer');
     if (homeContainer) {
-        homeContainer.innerHTML = ''; // Paqijkirina beşên kevin
+        homeContainer.innerHTML = '';
     }
 
-    // Ji nû ve renderkirina naverokê li gorî state heyî
     const isHomeView = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
     if (isHomeView) {
-        renderHomePageContent(); // Ji nû ve renderkirina rûpela serekiyê
+        renderHomePageContent();
     } else {
-        // Ji bo dîtinên filterkirî, divê em ji nû ve lê bigerin da ku berheman bi zimanê rast nîşan bidin
-        // Lê ji bo performansê, em dikarin tenê berhemên heyî ji nû ve render bikin
-        renderProducts(); // Tenê UI nûve bike, daneyan ji nû ve neyne
+        renderProducts();
     }
 
     renderMainCategories();
     renderCategoriesSheet();
     if (document.getElementById('cartSheet').classList.contains('show')) renderCart();
     if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPage();
-    // Hûn dikarin li vir nûvekirinên din ên UI yên girêdayî ziman lê zêde bikin
 }
 
 async function forceUpdate() {
@@ -395,7 +348,6 @@ function formatDescription(text) {
     return textWithLinks.replace(/\n/g, '<br>');
 }
 
-
 async function requestNotificationPermission() {
     console.log('Requesting notification permission...');
     try {
@@ -404,14 +356,14 @@ async function requestNotificationPermission() {
             console.log('Notification permission granted.');
             showNotification('مۆڵەتی ناردنی ئاگەداری درا', 'success');
             const currentToken = await getToken(messaging, {
-                vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ' // VAPID key wek xwe bimîne
+                vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ'
             });
 
             if (currentToken) {
                 console.log('FCM Token:', currentToken);
                 await saveTokenToFirestore(currentToken);
             } else {
-                console.log('No registration token available. Request permission to generate one.');
+                console.log('No registration token available.');
             }
         } else {
             console.log('Unable to get permission to notify.');
@@ -425,9 +377,8 @@ async function requestNotificationPermission() {
 async function saveTokenToFirestore(token) {
     try {
         const tokensCollection = collection(db, 'device_tokens');
-        // Dokumanek bi ID ya tokenê çêbike da ku pêşî li dubarebûnê bigire
         await setDoc(doc(tokensCollection, token), {
-            createdAt: Date.now() // Timestamp ji bo zanîna dema dawî ya dîtinê
+            createdAt: Date.now()
         });
         console.log('Token saved to Firestore.');
     } catch (error) {
@@ -444,69 +395,61 @@ function isFavorite(productId) {
 }
 
 function toggleFavorite(productId, event) {
-    if(event) event.stopPropagation(); // Pêşî li bûyera clickê ya kartê bigire
+    if(event) event.stopPropagation();
 
     const isCurrentlyFavorite = isFavorite(productId);
 
     if (isCurrentlyFavorite) {
-        // Rakirin ji favorîtan
         state.favorites = state.favorites.filter(id => id !== productId);
-        showNotification(t('product_removed_from_favorites'), 'error'); // Peyama rakirinê
+        showNotification(t('product_removed_from_favorites'), 'error');
     } else {
-        // Zêdekirin bo favorîtan
         state.favorites.push(productId);
-        showNotification(t('product_added_to_favorites'), 'success'); // Peyama zêdekirinê
+        showNotification(t('product_added_to_favorites'), 'success');
     }
-    saveFavorites(); // Guhertinan tomar bike
+    saveFavorites();
 
-    // UI nûve bike ji bo hemû kartên bi heman IDyê
     const allProductCards = document.querySelectorAll(`[data-product-id="${productId}"]`);
     allProductCards.forEach(card => {
         const favButton = card.querySelector('.favorite-btn');
-        const heartIcon = card.querySelector('.fa-heart'); // Îkona dil bibîne
+        const heartIcon = card.querySelector('.fa-heart');
         if (favButton && heartIcon) {
-            const isNowFavorite = !isCurrentlyFavorite; // Rewşa nû
-            favButton.classList.toggle('favorited', isNowFavorite); // Classê lê zêde bike/rake
-            // Classên îkonê biguherîne ji bo tijî/vala
-            heartIcon.classList.toggle('fas', isNowFavorite); // fas = tijî
-            heartIcon.classList.toggle('far', !isNowFavorite); // far = vala
+            const isNowFavorite = !isCurrentlyFavorite;
+            favButton.classList.toggle('favorited', isNowFavorite);
+            heartIcon.classList.toggle('fas', isNowFavorite);
+            heartIcon.classList.toggle('far', !isNowFavorite);
         }
     });
 
-    // Heger rûpela favorîtan vekirî be, wê nûve bike
     if (document.getElementById('favoritesSheet').classList.contains('show')) {
         renderFavoritesPage();
     }
 }
 
 async function renderFavoritesPage() {
-    favoritesContainer.innerHTML = ''; // Paqij bike berî renderkirinê
+    favoritesContainer.innerHTML = '';
 
     if (state.favorites.length === 0) {
-        emptyFavoritesMessage.style.display = 'block'; // Peyama vala nîşan bide
-        favoritesContainer.style.display = 'none'; // Konteynirê veşêre
+        emptyFavoritesMessage.style.display = 'block';
+        favoritesContainer.style.display = 'none';
         return;
     }
 
-    emptyFavoritesMessage.style.display = 'none'; // Peyama vala veşêre
-    favoritesContainer.style.display = 'grid'; // Grid display bikar bîne
+    emptyFavoritesMessage.style.display = 'none';
+    favoritesContainer.style.display = 'grid';
 
-    renderSkeletonLoader(favoritesContainer, 4); // Skeleton loader nîşan bide
+    renderSkeletonLoader(favoritesContainer, 4);
 
     try {
-        // Hemû daxwazên anîna berheman bi hev re bişîne
         const fetchPromises = state.favorites.map(id => getDoc(doc(db, "products", id)));
         const productSnaps = await Promise.all(fetchPromises);
 
-        favoritesContainer.innerHTML = ''; // Skeleton loaderê rake
+        favoritesContainer.innerHTML = '';
 
-        // Tenê berhemên ku hene û nehatine jêbirin, filter bike
         const favoritedProducts = productSnaps
             .filter(snap => snap.exists())
             .map(snap => ({ id: snap.id, ...snap.data() }));
 
         if (favoritedProducts.length === 0) {
-            // Heger hemû favorît hatibin jêbirin
             emptyFavoritesMessage.style.display = 'block';
             favoritesContainer.style.display = 'none';
         } else {
@@ -517,87 +460,77 @@ async function renderFavoritesPage() {
         }
     } catch (error) {
         console.error("Error fetching favorites:", error);
-        favoritesContainer.innerHTML = `<p style="text-align:center;">${t('error_generic')}</p>`; // Peyama xeletiyê
+        favoritesContainer.innerHTML = `<p style="text-align:center;">${t('error_generic')}</p>`;
     }
 }
 
+
 function saveCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
-    updateCartCount(); // Jimara ser selikê nûve bike
+    updateCartCount();
 }
 
 function updateCartCount() {
     const totalItems = state.cart.reduce((total, item) => total + item.quantity, 0);
-    // Hemû hêmanên ku jimara selikê nîşan didin nûve bike
     document.querySelectorAll('.cart-count').forEach(el => { el.textContent = totalItems; });
 }
 
 function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
-    notification.className = `notification ${type}`; // Classê li gorî cureyê (success/error)
+    notification.className = `notification ${type}`;
     notification.textContent = message;
     document.body.appendChild(notification);
-    // Derengiyek biçûk bide berî nîşandana bi animasyonê
     setTimeout(() => notification.classList.add('show'), 10);
-    // Piştî 3 çirkeyan, animasyona veşartinê dest pê bike
     setTimeout(() => {
         notification.classList.remove('show');
-        // Piştî ku animasyona veşartinê qediya, hêmanê rake
         setTimeout(() => document.body.removeChild(notification), 300);
     }, 3000);
 }
 
 function populateCategoryDropdown() {
     productCategorySelect.innerHTML = '<option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>';
-    const categoriesWithoutAll = state.categories.filter(cat => cat.id !== 'all'); // 'Hemû' derxe
+    const categoriesWithoutAll = state.categories.filter(cat => cat.id !== 'all');
     categoriesWithoutAll.forEach(cat => {
         const option = document.createElement('option');
         option.value = cat.id;
-        // Navê li gorî zimanê heyî yan fallback bo soranî nîşan bide
         option.textContent = cat['name_' + state.currentLanguage] || cat.name_ku_sorani;
         productCategorySelect.appendChild(option);
     });
 }
 
 function renderCategoriesSheet() {
-    sheetCategoriesContainer.innerHTML = ''; // Paqij bike berî renderkirinê
+    sheetCategoriesContainer.innerHTML = '';
     state.categories.forEach(cat => {
         const btn = document.createElement('button');
         btn.className = 'sheet-category-btn';
-        btn.dataset.category = cat.id; // ID ya kategoriyê tomar bike
-        if (state.currentCategory === cat.id) { btn.classList.add('active'); } // Bişkoka çalak highlight bike
+        btn.dataset.category = cat.id;
+        if (state.currentCategory === cat.id) { btn.classList.add('active'); }
 
-        // Navê kategoriyê li gorî zimanê heyî yan fallback
         const categoryName = cat.id === 'all'
-            ? t('all_categories_label') // Wergera 'Hemû'
+            ? t('all_categories_label')
             : (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
 
-        btn.innerHTML = `<i class="${cat.icon}"></i> ${categoryName}`; // Îkon û nav
+        btn.innerHTML = `<i class="${cat.icon}"></i> ${categoryName}`;
 
-        // Event listener ji bo klikkirinê
         btn.onclick = async () => {
-            // Filter bike li gorî kategoriya hilbijartî
             await navigateToFilter({
                 category: cat.id,
-                subcategory: 'all', // Jêr-kategorî û jêr-jêr-kategorî reset bike
+                subcategory: 'all',
                 subSubcategory: 'all',
-                search: '' // Lêgerînê vala bike
+                search: ''
             });
-            closeCurrentPopup(); // Sheetê bigire
-            showPage('mainPage'); // Vegere rûpela serekiyê
+            closeCurrentPopup();
+            showPage('mainPage');
         };
 
         sheetCategoriesContainer.appendChild(btn);
     });
 }
 
-// *** GUHERTIN: Fonksiyon êdî ne hewce ye li rûpela serekiyê ***
 async function renderSubSubcategories(mainCatId, subCatId) {
-     // Ev fonksiyon êdî li rûpela serekiyê nayê bikaranîn ji ber ku jêr-jêr-kategorî tenê li rûpela detail têne nîşandan
-     subSubcategoriesContainer.innerHTML = ''; // Tenê vala bike heger were bangkirin
-     subSubcategoriesContainer.style.display = 'none'; // Veşêre
+    // This function is no longer needed on the main page.
+    subSubcategoriesContainer.innerHTML = '';
 }
-// *** DAWÎYA GUHERTINÊ ***
 
 async function showSubcategoryDetailPage(mainCatId, subCatId, fromHistory = false) {
     let subCatName = '';
@@ -630,61 +563,54 @@ async function showSubcategoryDetailPage(mainCatId, subCatId, fromHistory = fals
     document.getElementById('subpageClearSearchBtn').style.display = 'none';
 
     await renderSubSubcategoriesOnDetailPage(mainCatId, subCatId);
-    await renderProductsOnDetailPage(subCatId, 'all', ''); // Destpêkê hemû berhemên vê jêr-kategoriyê nîşan bide
+    await renderProductsOnDetailPage(subCatId, 'all', '');
 
     loader.style.display = 'none';
 }
 
 async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
     const container = document.getElementById('subSubCategoryContainerOnDetailPage');
-    container.innerHTML = ''; // Paqij bike
+    container.innerHTML = '';
 
     try {
         const ref = collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
-        const q = query(ref, orderBy("order", "asc")); // Li gorî rêzê rêz bike
+        const q = query(ref, orderBy("order", "asc"));
         const snapshot = await getDocs(q);
 
         if (snapshot.empty) {
-            container.style.display = 'none'; // Heger tune bin, veşêre
+            container.style.display = 'none';
             return;
         }
 
-        container.style.display = 'flex'; // Nîşan bide heger hebin
+        container.style.display = 'flex';
 
-        // Bişkoka "Hemû" lê zêde bike
         const allBtn = document.createElement('button');
-        allBtn.className = `subcategory-btn active`; // Destpêkê çalak be
-        // Îkona SVG ji bo "Hemû"
+        allBtn.className = `subcategory-btn active`;
         const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
         allBtn.innerHTML = `<div class="subcategory-image">${allIconSvg}</div><span>${t('all_categories_label')}</span>`;
         allBtn.dataset.id = 'all'; // Ji bo nasîna bişkojê
         allBtn.onclick = () => {
-            // Hemû bişkokan neçalak bike û vê çalak bike
             container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
             allBtn.classList.add('active');
             const currentSearch = document.getElementById('subpageSearchInput').value;
-            // Berhemên hemû jêr-jêr-kategoriyan nîşan bide
             renderProductsOnDetailPage(subCatId, 'all', currentSearch);
         };
         container.appendChild(allBtn);
 
-        // Bişkokên ji bo her jêr-jêr-kategoriyekê çêbike
         snapshot.forEach(doc => {
             const subSubcat = { id: doc.id, ...doc.data() };
             const btn = document.createElement('button');
             btn.className = `subcategory-btn`;
             btn.dataset.id = subSubcat.id; // Ji bo nasîna bişkojê
             const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
-            const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"; // Wêneya vala
-            const imageUrl = subSubcat.imageUrl || placeholderImg; // Wêne yan placeholder
+            const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+            const imageUrl = subSubcat.imageUrl || placeholderImg;
             btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
 
             btn.onclick = () => {
-                 // Hemû bişkokan neçalak bike û vê çalak bike
                 container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 const currentSearch = document.getElementById('subpageSearchInput').value;
-                // Tenê berhemên vê jêr-jêr-kategoriyê nîşan bide
                 renderProductsOnDetailPage(subCatId, subSubcat.id, currentSearch);
             };
             container.appendChild(btn);
@@ -692,38 +618,34 @@ async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
 
     } catch (error) {
         console.error("Error fetching sub-subcategories for detail page:", error);
-        container.style.display = 'none'; // Di rewşa xeletiyê de veşêre
+        container.style.display = 'none';
     }
 }
 
 async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchTerm = '') {
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const loader = document.getElementById('detailPageLoader');
-    loader.style.display = 'block'; // Loaderê nîşan bide
-    productsContainer.innerHTML = ''; // Konteynirê paqij bike
+    loader.style.display = 'block';
+    productsContainer.innerHTML = '';
 
     try {
         let productsQuery;
-        // Query ava bike li gorî ka "Hemû" hatiye hilbijartin an jêr-jêr-kategoriyek taybet
         if (subSubCatId === 'all') {
-            // Hemû berhemên di bin vê jêr-kategoriyê de (categoryId ne pêwîst e ji ber ku subcategoryId têra xwe taybet e)
             productsQuery = query(productsCollection, where("subcategoryId", "==", subCatId));
         } else {
-            // Tenê berhemên vê jêr-jêr-kategoriyê
             productsQuery = query(productsCollection, where("subSubcategoryId", "==", subSubCatId));
         }
 
-        // Lêgerînê lê zêde bike heger hebe
         const finalSearchTerm = searchTerm.trim().toLowerCase();
         if (finalSearchTerm) {
             productsQuery = query(productsQuery,
                 where('searchableName', '>=', finalSearchTerm),
-                where('searchableName', '<=', finalSearchTerm + '\uf8ff') // Ji bo lêgerîna pêşgir
+                where('searchableName', '<=', finalSearchTerm + '\uf8ff')
             );
-            // Heger lêgerîn hebe, divê orderBy ya yekem li gorî searchableName be
+            // If searching, first orderBy must match inequality field
             productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
         } else {
-            // Heger lêgerîn tune be, tenê li gorî dema çêkirinê rêz bike
+            // If not searching, use the original orderBy
             productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         }
 
@@ -734,46 +656,37 @@ async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchT
         } else {
             productSnapshot.forEach(doc => {
                 const product = { id: doc.id, ...doc.data() };
-                const card = createProductCardElement(product); // Karta berhemê çêbike
+                const card = createProductCardElement(product);
                 productsContainer.appendChild(card);
             });
         }
     } catch (error) {
-        // Logkirina xeletiyek berfirehtir
         console.error(`Error fetching products for detail page (subCatId: ${subCatId}, subSubCatId: ${subSubCatId}, searchTerm: "${searchTerm}"):`, error);
         productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هەڵەیەک ڕوویدا.</p>';
     } finally {
-        loader.style.display = 'none'; // Loaderê veşêre
+        loader.style.display = 'none';
     }
 }
 
+
 async function renderSubcategories(categoryId) {
     const subcategoriesContainer = document.getElementById('subcategoriesContainer');
-    subcategoriesContainer.innerHTML = ''; // Paqij bike
+    subcategoriesContainer.innerHTML = '';
 
-    // Heger kategoriya serekiyê "Hemû" be, jêr-kategoriyan nîşan nede
     if (categoryId === 'all') {
-        subcategoriesContainer.style.display = 'none'; // Veşêre
         return;
     }
-    subcategoriesContainer.style.display = 'flex'; // Nîşan bide
 
     try {
         const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
-        const q = query(subcategoriesQuery, orderBy("order", "asc")); // Li gorî rêzê rêz bike
+        const q = query(subcategoriesQuery, orderBy("order", "asc"));
         const querySnapshot = await getDocs(q);
 
         state.subcategories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Heger jêr-kategorî tune bin, barê nîşan nede (yan jî dibe ku bişkoka "Hemû" tenê bimîne)
-        // if (state.subcategories.length === 0) {
-        //     subcategoriesContainer.style.display = 'none';
-        //     return;
-        // }
+        if (state.subcategories.length === 0) return;
 
-        // Bişkoka "Hemû" ya jêr-kategoriyan (ji bo vegerînê)
         const allBtn = document.createElement('button');
-        // Eger jêr-kategoriya heyî 'all' be, vê çalak bike
         allBtn.className = `subcategory-btn ${state.currentSubcategory === 'all' ? 'active' : ''}`;
         const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
         allBtn.innerHTML = `
@@ -781,19 +694,15 @@ async function renderSubcategories(categoryId) {
             <span>${t('all_categories_label')}</span>
         `;
         allBtn.onclick = async () => {
-             // Tenê jêr-kategorî û jêr-jêr-kategorî reset bike, kategoriya serekiyê bihêle
             await navigateToFilter({
                 subcategory: 'all',
                 subSubcategory: 'all'
-                // categoryId wek xwe dimîne
             });
         };
         subcategoriesContainer.appendChild(allBtn);
 
-        // Bişkokên ji bo her jêr-kategoriyekê
         state.subcategories.forEach(subcat => {
             const subcatBtn = document.createElement('button');
-            // Eger jêr-kategoriya heyî ev be, çalak bike
             subcatBtn.className = `subcategory-btn ${state.currentSubcategory === subcat.id ? 'active' : ''}`;
 
             const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
@@ -805,7 +714,6 @@ async function renderSubcategories(categoryId) {
                 <span>${subcatName}</span>
             `;
 
-            // Dema klik tê kirin, here rûpela detail ya vê jêr-kategoriyê
             subcatBtn.onclick = () => {
                 showSubcategoryDetailPage(categoryId, subcat.id);
             };
@@ -814,39 +722,35 @@ async function renderSubcategories(categoryId) {
 
     } catch (error) {
         console.error("Error fetching subcategories: ", error);
-        subcategoriesContainer.style.display = 'none'; // Di rewşa xeletiyê de veşêre
     }
 }
 
 function renderMainCategories() {
     const container = document.getElementById('mainCategoriesContainer');
     if (!container) return;
-    container.innerHTML = ''; // Paqij bike
+    container.innerHTML = '';
 
     state.categories.forEach(cat => {
         const btn = document.createElement('button');
         btn.className = 'main-category-btn';
-        btn.dataset.category = cat.id; // ID tomar bike
+        btn.dataset.category = cat.id;
 
-        // Heger kategoriya heyî ev be, çalak bike
         if (state.currentCategory === cat.id) {
             btn.classList.add('active');
         }
 
-        // Navê li gorî zimanê heyî yan fallback
         const categoryName = cat.id === 'all'
             ? t('all_categories_label')
             : (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
 
-        btn.innerHTML = `<i class="${cat.icon}"></i> <span>${categoryName}</span>`; // Îkon û nav
+        btn.innerHTML = `<i class="${cat.icon}"></i> <span>${categoryName}</span>`;
 
-        // Dema klik tê kirin, filter bike
         btn.onclick = async () => {
             await navigateToFilter({
                 category: cat.id,
-                subcategory: 'all', // Reset bike
-                subSubcategory: 'all', // Reset bike
-                search: '' // Reset bike
+                subcategory: 'all',
+                subSubcategory: 'all',
+                search: ''
             });
         };
 
@@ -855,30 +759,24 @@ function renderMainCategories() {
 }
 
 function showProductDetails(productId) {
-    // Hewl bide berhemê ji lîsteya barkirî bibîne
-    const product = state.products.find(p => p.id === productId);
+    const allFetchedProducts = [...state.products];
+    const product = allFetchedProducts.find(p => p.id === productId);
 
     if (!product) {
-        // Heger nehat dîtin, ji Firestore bîne
-        console.log("Product not found in current list for details view. Fetching from Firestore...");
+        console.log("Product not found for details view. Trying to fetch...");
         getDoc(doc(db, "products", productId)).then(docSnap => {
             if (docSnap.exists()) {
                 const fetchedProduct = { id: docSnap.id, ...docSnap.data() };
-                showProductDetailsWithData(fetchedProduct); // Bi daneyên anî nîşan bide
+                showProductDetailsWithData(fetchedProduct);
             } else {
-                showNotification(t('product_not_found_error'), 'error'); // Heger li Firestore jî tune be
+                showNotification(t('product_not_found_error'), 'error');
             }
-        }).catch(error => {
-            console.error("Error fetching product details:", error);
-            showNotification(t('error_generic'), 'error');
         });
         return;
     }
-    // Heger di lîsteyê de hat dîtin, rasterast nîşan bide
     showProductDetailsWithData(product);
 }
 
-// ... (renderRelatedProducts, showProductDetailsWithData, createPromoCardElement, createProductCardElement, setupScrollAnimations, renderSkeletonLoader, renderProducts, renderSingleShortcutRow, renderSingleCategoryRow, renderBrandsSection, renderNewestProductsSection, renderAllProductsSection, renderHomePageContent, renderPromoCardsSectionForHome wek guhertoya berê dimînin) ...
 async function renderRelatedProducts(currentProduct) {
     const section = document.getElementById('relatedProductsSection');
     const container = document.getElementById('relatedProductsContainer');
@@ -894,7 +792,7 @@ async function renderRelatedProducts(currentProduct) {
         q = query(
             productsCollection,
             where('subSubcategoryId', '==', currentProduct.subSubcategoryId),
-            where('__name__', '!=', currentProduct.id), // Berhema heyî derxe
+            where('__name__', '!=', currentProduct.id),
             limit(6)
         );
     } else if (currentProduct.subcategoryId) {
@@ -904,7 +802,7 @@ async function renderRelatedProducts(currentProduct) {
             where('__name__', '!=', currentProduct.id),
             limit(6)
         );
-    } else { // Fallback bo kategoriya serekiyê heger yên din tune bin
+    } else {
         q = query(
             productsCollection,
             where('categoryId', '==', currentProduct.categoryId),
@@ -916,7 +814,7 @@ async function renderRelatedProducts(currentProduct) {
     try {
         const snapshot = await getDocs(q);
         if (snapshot.empty) {
-            console.log("No related products found.");
+            console.log("هیچ کاڵایەکی هاوشێوە نەدۆزرایەوە.");
             return;
         }
 
@@ -926,54 +824,46 @@ async function renderRelatedProducts(currentProduct) {
             container.appendChild(card);
         });
 
-        section.style.display = 'block'; // Beşê nîşan bide
+        section.style.display = 'block';
 
     } catch (error) {
-        console.error("Error fetching related products:", error);
+        console.error("هەڵە لە هێنانی کاڵا هاوشێوەکان:", error);
     }
 }
 
 function showProductDetailsWithData(product) {
-    // Skrolkirina sheetê bo jorê
     const sheetContent = document.querySelector('#productDetailSheet .sheet-content');
     if (sheetContent) {
         sheetContent.scrollTop = 0;
     }
 
-    // Nav û wesfê li gorî zimanê heyî bistîne
     const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
     const descriptionText = (product.description && product.description[state.currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
-    // Lîsteya URLên wêneyan bistîne (fallback bo image heger imageUrls tune be)
     const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
 
-    // Konteynirên wêneyan û thumbnailan vala bike
     const imageContainer = document.getElementById('sheetImageContainer');
     const thumbnailContainer = document.getElementById('sheetThumbnailContainer');
     imageContainer.innerHTML = '';
     thumbnailContainer.innerHTML = '';
 
-    // Wêneyan û thumbnailan lê zêde bike heger hebin
     if (imageUrls.length > 0) {
         imageUrls.forEach((url, index) => {
-            // Wêneya mezin
             const img = document.createElement('img');
             img.src = url;
             img.alt = nameInCurrentLang;
-            if (index === 0) img.classList.add('active'); // Wêneya yekem çalak be
+            if (index === 0) img.classList.add('active');
             imageContainer.appendChild(img);
 
-            // Thumbnail
             const thumb = document.createElement('img');
             thumb.src = url;
             thumb.alt = `Thumbnail of ${nameInCurrentLang}`;
             thumb.className = 'thumbnail';
-            if (index === 0) thumb.classList.add('active'); // Thumbnaileya yekem çalak be
-            thumb.dataset.index = index; // Index tomar bike ji bo klikkirinê
+            if (index === 0) thumb.classList.add('active');
+            thumb.dataset.index = index;
             thumbnailContainer.appendChild(thumb);
         });
     }
 
-    // Mentiqê sliderê
     let currentIndex = 0;
     const images = imageContainer.querySelectorAll('img');
     const thumbnails = thumbnailContainer.querySelectorAll('.thumbnail');
@@ -981,17 +871,14 @@ function showProductDetailsWithData(product) {
     const nextBtn = document.getElementById('sheetNextBtn');
 
     function updateSlider(index) {
-        if (!images[index] || !thumbnails[index]) return; // Piştrast be index derbasdar e
-        // Hemûyan neçalak bike
+        if (!images[index] || !thumbnails[index]) return;
         images.forEach(img => img.classList.remove('active'));
         thumbnails.forEach(thumb => thumb.classList.remove('active'));
-        // Ya hilbijartî çalak bike
         images[index].classList.add('active');
         thumbnails[index].classList.add('active');
-        currentIndex = index; // Indexa heyî nûve bike
+        currentIndex = index;
     }
 
-    // Bişkokên next/prev nîşan bide/veşêre li gorî hejmara wêneyan
     if (imageUrls.length > 1) {
         prevBtn.style.display = 'flex';
         nextBtn.style.display = 'flex';
@@ -1000,35 +887,29 @@ function showProductDetailsWithData(product) {
         nextBtn.style.display = 'none';
     }
 
-    // Event listener ji bo bişkokan û thumbnailan
-    prevBtn.onclick = () => updateSlider((currentIndex - 1 + images.length) % images.length); // Loop bike
-    nextBtn.onclick = () => updateSlider((currentIndex + 1) % images.length); // Loop bike
+    prevBtn.onclick = () => updateSlider((currentIndex - 1 + images.length) % images.length);
+    nextBtn.onclick = () => updateSlider((currentIndex + 1) % images.length);
     thumbnails.forEach(thumb => thumb.onclick = () => updateSlider(parseInt(thumb.dataset.index)));
 
-    // Nav, wesf û bihayan nûve bike
     document.getElementById('sheetProductName').textContent = nameInCurrentLang;
-    document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText); // HTML format bike
+    document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText);
 
     const priceContainer = document.getElementById('sheetProductPrice');
-    // Bihayê bi daşikandinê yan bê daşikandin nîşan bide
     if (product.originalPrice && product.originalPrice > product.price) {
         priceContainer.innerHTML = `<span style="color: var(--accent-color);">${product.price.toLocaleString()} د.ع</span> <del style="color: var(--dark-gray); font-size: 16px; margin-right: 10px;">${product.originalPrice.toLocaleString()} د.ع</del>`;
     } else {
         priceContainer.innerHTML = `<span>${product.price.toLocaleString()} د.ع</span>`;
     }
 
-    // Bişkoka "Zêdekirin bo Selikê" saz bike
     const addToCartButton = document.getElementById('sheetAddToCartBtn');
     addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
     addToCartButton.onclick = () => {
         addToCart(product.id);
-        closeCurrentPopup(); // Sheetê bigire piştî zêdekirinê
+        closeCurrentPopup();
     };
 
-    // Beşa berhemên pêwendîdar render bike
     renderRelatedProducts(product);
 
-    // Sheetê veke
     openPopup('productDetailSheet');
 }
 
@@ -1037,7 +918,6 @@ function createPromoCardElement(cardData, sliderState) {
     const cardElement = document.createElement('div');
     cardElement.className = 'product-card promo-card-grid-item';
     const currentCard = cardData.cards[sliderState.currentIndex];
-    // URLê wêneyê li gorî zimanê heyî bistîne
     const imageUrl = currentCard.imageUrls[state.currentLanguage] || currentCard.imageUrls.ku_sorani;
 
     cardElement.innerHTML = `
@@ -1050,79 +930,68 @@ function createPromoCardElement(cardData, sliderState) {
         ` : ''}
     `;
 
-    // Event listener ji bo klikkirina li ser kartê (ne bişkokan)
     cardElement.addEventListener('click', async (e) => {
-        // Heger klik ne li ser bişkokekê be
+        // Use currentCard from the closure
         if (!e.target.closest('button')) {
-            const targetCategoryId = currentCard.categoryId; // ID ya kategoriya armanc
-            // Piştrast be ku kategorî heye
+            const targetCategoryId = currentCard.categoryId;
             const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
             if (categoryExists) {
-                // Filter bike li gorî kategoriya armanc
                 await navigateToFilter({
                     category: targetCategoryId,
                     subcategory: 'all',
                     subSubcategory: 'all',
                     search: ''
                 });
-                // Skrol bike bo beşa kategoriyên serekiyê
                 document.getElementById('mainCategoriesContainer')?.scrollIntoView({ behavior: 'smooth' });
             }
         }
     });
 
-    // Heger zêdetirî kartekê hebe, event listeneran ji bo bişkokên sliderê lê zêde bike
     if (cardData.cards.length > 1) {
         cardElement.querySelector('.promo-slider-btn.prev').addEventListener('click', (e) => {
-            e.stopPropagation(); // Pêşî li klikkirina kartê bigire
-            // Here wêneya berê (loop bike)
+            e.stopPropagation();
             sliderState.currentIndex = (sliderState.currentIndex - 1 + cardData.cards.length) % cardData.cards.length;
-            // URLê wêneyê nû bistîne
             const newImageUrl = cardData.cards[sliderState.currentIndex].imageUrls[state.currentLanguage] || cardData.cards[sliderState.currentIndex].imageUrls.ku_sorani;
             const imgElement = cardElement.querySelector('.product-image');
-            if(imgElement) imgElement.src = newImageUrl; // Çavkaniya wêneyê nûve bike
+            if(imgElement) imgElement.src = newImageUrl;
         });
 
         cardElement.querySelector('.promo-slider-btn.next').addEventListener('click', (e) => {
-            e.stopPropagation(); // Pêşî li klikkirina kartê bigire
-            // Here wêneya paşê (loop bike)
+            e.stopPropagation();
             sliderState.currentIndex = (sliderState.currentIndex + 1) % cardData.cards.length;
-            // URLê wêneyê nû bistîne
             const newImageUrl = cardData.cards[sliderState.currentIndex].imageUrls[state.currentLanguage] || cardData.cards[sliderState.currentIndex].imageUrls.ku_sorani;
             const imgElement = cardElement.querySelector('.product-image');
-            if(imgElement) imgElement.src = newImageUrl; // Çavkaniya wêneyê nûve bike
+            if(imgElement) imgElement.src = newImageUrl;
         });
     }
 
     return cardElement;
 }
 
+
 function createProductCardElement(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
-    productCard.dataset.productId = product.id; // ID tomar bike
-    const isAdmin = sessionStorage.getItem('isAdmin') === 'true'; // Rewşa admin kontrol bike
+    productCard.dataset.productId = product.id;
+    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
 
-    // Navê li gorî zimanê heyî yan fallback
+
     const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
-    // Wêneya serekiyê bistîne (fallback bo image heger imageUrls tune be, yan placeholder)
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || 'https://placehold.co/300x300/e2e8f0/2d3748?text=No+Image');
 
-    // HTML ji bo bihayê amade bike
     let priceHTML = `<div class="product-price-container"><div class="product-price">${product.price.toLocaleString()} د.ع.</div></div>`;
-    let discountBadgeHTML = ''; // Destpêkê badge vala be
+    let discountBadgeHTML = '';
     const hasDiscount = product.originalPrice && product.originalPrice > product.price;
 
-    // Heger daşikandin hebe, bihayê kevin û badge lê zêde bike
     if (hasDiscount) {
         priceHTML = `<div class="product-price-container"><span class="product-price">${product.price.toLocaleString()} د.ع.</span><del class="original-price">${product.originalPrice.toLocaleString()} د.ع.</del></div>`;
         const discountPercentage = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
         discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
     }
 
-    // HTML ji bo agahiyên zêde (mînak, shipping)
     let extraInfoHTML = '';
     const shippingText = product.shippingInfo && product.shippingInfo[state.currentLanguage] && product.shippingInfo[state.currentLanguage].trim();
+
     if (shippingText) {
         extraInfoHTML = `
             <div class="product-extra-info">
@@ -1133,18 +1002,16 @@ function createProductCardElement(product) {
         `;
     }
 
-    // Rewşa favorît kontrol bike û classên îkonê û bişkokê diyar bike
     const isProdFavorite = isFavorite(product.id);
-    const heartIconClass = isProdFavorite ? 'fas' : 'far'; // fas=tijî, far=vala
+    const heartIconClass = isProdFavorite ? 'fas' : 'far';
     const favoriteBtnClass = isProdFavorite ? 'favorite-btn favorited' : 'favorite-btn';
 
-    // Struktura HTML ya kartê ava bike
     productCard.innerHTML = `
         <div class="product-image-container">
             <img src="${mainImage}" alt="${nameInCurrentLang}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
             ${discountBadgeHTML}
              <button class="${favoriteBtnClass}" aria-label="Add to favorites">
-                 <i class="${heartIconClass} fa-heart"></i>
+                <i class="${heartIconClass} fa-heart"></i>
             </button>
             <button class="share-btn-card" aria-label="Share product">
                 <i class="fas fa-share-alt"></i>
@@ -1165,20 +1032,20 @@ function createProductCardElement(product) {
         </div>
     `;
 
-    // Event listener ji bo bişkoka parvekirinê
     productCard.querySelector('.share-btn-card').addEventListener('click', async (event) => {
-        event.stopPropagation(); // Pêşî li klikkirina kartê bigire
-        const productUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`; // URLê berhemê
+        event.stopPropagation();
+        const productUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
         const shareData = {
             title: nameInCurrentLang,
-            text: `${t('share_text')}: ${nameInCurrentLang}`, // Peyama parvekirinê
+            text: `${t('share_text')}: ${nameInCurrentLang}`,
             url: productUrl,
         };
         try {
-            if (navigator.share) { // Heger APIya Share piştgirîkirî be
+            if (navigator.share) {
                 await navigator.share(shareData);
             } else {
-                // Fallback: URLê kopî bike bo clipboard
+                // Fallback for browsers that don't support navigator.share
+                 // Use the old execCommand method for broader compatibility
                  const textArea = document.createElement('textarea');
                  textArea.value = productUrl;
                  document.body.appendChild(textArea);
@@ -1193,22 +1060,20 @@ function createProductCardElement(product) {
             }
         } catch (err) {
             console.error('Share error:', err);
-            // Xeletiyê nîşan nede heger bikarhêner parvekirin betal bike
-             if (err.name !== 'AbortError') {
+             if (err.name !== 'AbortError') { // Don't show error if user cancelled share
                  showNotification(t('share_error'), 'error');
              }
         }
     });
 
-    // Event listener ji bo klikkirina li ser kartê bi giştî
+
     productCard.addEventListener('click', (event) => {
         const target = event.target;
         const addToCartButton = target.closest('.add-to-cart-btn-card');
-        const isAdminNow = sessionStorage.getItem('isAdmin') === 'true'; // Rewşa admin ji nû ve kontrol bike
+        const isAdminNow = sessionStorage.getItem('isAdmin') === 'true';
 
-        if (addToCartButton) { // Heger li bişkoka selikê hatibe klikkirin
+        if (addToCartButton) {
             addToCart(product.id);
-            // Anîmasyona bişkokê
             if (!addToCartButton.disabled) {
                 const originalContent = addToCartButton.innerHTML;
                 addToCartButton.disabled = true;
@@ -1221,43 +1086,40 @@ function createProductCardElement(product) {
                     }, 1500);
                 }, 500);
             }
-        } else if (isAdminNow && target.closest('.edit-btn')) { // Heger admin be û li bişkoka edit klik bike
+        } else if (isAdminNow && target.closest('.edit-btn')) {
             window.AdminLogic.editProduct(product.id);
-        } else if (isAdminNow && target.closest('.delete-btn')) { // Heger admin be û li bişkoka delete klik bike
+        } else if (isAdminNow && target.closest('.delete-btn')) {
             window.AdminLogic.deleteProduct(product.id);
-        } else if (target.closest('.favorite-btn')) { // Heger li bişkoka favorît klik bike
+        } else if (target.closest('.favorite-btn')) {
             toggleFavorite(product.id, event);
         } else if (target.closest('.share-btn-card')) {
-            // Jixwe event listenerê wê heye
-        } else if (!target.closest('a')) { // Heger li deverek din a kartê (ne lînkek di wesfê de) klik bike
-            showProductDetailsWithData(product); // Hûrguliyan nîşan bide
+            // Event listener is already attached
+        } else if (!target.closest('a')) { // Prevent triggering if clicking a link in description
+            showProductDetailsWithData(product);
         }
     });
     return productCard;
 }
 
 function setupScrollAnimations() {
-    // Observer ji bo animasyona fade-in dema kart xuya dibin
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                entry.target.classList.add('visible'); // Classê lê zêde bike
-                observer.unobserve(entry.target); // Êdî temaşe neke
+                entry.target.classList.add('visible');
+                observer.unobserve(entry.target);
             }
         });
     }, {
-        threshold: 0.1 // Dema %10 xuya bû
+        threshold: 0.1
     });
 
-    // Li hemû kartên bi classê 'product-card-reveal' temaşe bike
     document.querySelectorAll('.product-card-reveal').forEach(card => {
         observer.observe(card);
     });
 }
 
 function renderSkeletonLoader(container = skeletonLoader, count = 8) {
-    container.innerHTML = ''; // Paqij bike
-    // Hejmarek skeleton card çêbike
+    container.innerHTML = '';
     for (let i = 0; i < count; i++) {
         const skeletonCard = document.createElement('div');
         skeletonCard.className = 'skeleton-card';
@@ -1269,8 +1131,7 @@ function renderSkeletonLoader(container = skeletonLoader, count = 8) {
         `;
         container.appendChild(skeletonCard);
     }
-    container.style.display = 'grid'; // Grid display
-    // Heger konteynira serekî ya skeleton be, konteynira rastî veşêre
+    container.style.display = 'grid';
     if (container === skeletonLoader) {
       productsContainer.style.display = 'none';
       loader.style.display = 'none';
@@ -1278,23 +1139,17 @@ function renderSkeletonLoader(container = skeletonLoader, count = 8) {
 }
 
 function renderProducts() {
-    // Heger state.products vala be, konteynirê paqij bike
+    productsContainer.innerHTML = '';
     if (!state.products || state.products.length === 0) {
-        productsContainer.innerHTML = '';
         return;
     }
 
-    // Tenê berhemên ku hîn nehatine renderkirin lê zêde bike
-    const existingProductIds = new Set(Array.from(productsContainer.children).map(card => card.dataset.productId));
-    const productsToRender = state.products.filter(item => !existingProductIds.has(item.id));
-
-    productsToRender.forEach(item => {
+    state.products.forEach(item => {
         let element = createProductCardElement(item);
-        element.classList.add('product-card-reveal'); // Classê animasyonê lê zêde bike
+        element.classList.add('product-card-reveal');
         productsContainer.appendChild(element);
     });
 
-    // Animasyonê ji bo kartên nû saz bike
     setupScrollAnimations();
 }
 
@@ -1304,37 +1159,30 @@ async function renderSingleShortcutRow(rowId, sectionNameObj) {
 
     try {
         const rowDoc = await getDoc(doc(db, "shortcut_rows", rowId));
-        if (!rowDoc.exists()) return null; // Heger rêz tune be, tiştek render neke
+        if (!rowDoc.exists()) return null;
 
         const rowData = { id: rowDoc.id, ...rowDoc.data() };
-        // Sernavê rêzê bistîne li gorî zimanê heyî yan fallback
         const rowTitle = sectionNameObj[state.currentLanguage] || rowData.title[state.currentLanguage] || rowData.title.ku_sorani;
 
-        // Hêmana sernavê çêbike
         const titleElement = document.createElement('h3');
         titleElement.className = 'shortcut-row-title';
         titleElement.textContent = rowTitle;
         sectionContainer.appendChild(titleElement);
 
-        // Konteynira kartan çêbike
         const cardsContainer = document.createElement('div');
         cardsContainer.className = 'shortcut-cards-container';
         sectionContainer.appendChild(cardsContainer);
 
-        // Kartên vê rêzê ji Firestore bîne
         const cardsCollectionRef = collection(db, "shortcut_rows", rowData.id, "cards");
         const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
 
-        // Heger kart tune bin, beşê render neke
         if (cardsSnapshot.empty) {
-            return null;
+            return null; // Don't render empty rows
         }
 
-        // Ji bo her kartê, hêmanek çêbike
         cardsSnapshot.forEach(cardDoc => {
             const cardData = cardDoc.data();
-            // Navê kartê li gorî zimanê heyî yan fallback
             const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
 
             const item = document.createElement('div');
@@ -1344,7 +1192,6 @@ async function renderSingleShortcutRow(rowId, sectionNameObj) {
                 <div class="shortcut-card-name">${cardName}</div>
             `;
 
-            // Dema klik li kartê tê kirin, filter bike li gorî kategoriya girêdayî
             item.onclick = async () => {
                 await navigateToFilter({
                     category: cardData.categoryId || 'all',
@@ -1356,20 +1203,21 @@ async function renderSingleShortcutRow(rowId, sectionNameObj) {
             cardsContainer.appendChild(item);
         });
 
-        return sectionContainer; // Hêmana beşê vegerîne
+        return sectionContainer;
     } catch (error) {
         console.error("Error rendering single shortcut row:", error);
-        return null; // Di rewşa xeletiyê de tiştek venegerîne
+        return null;
     }
 }
 
+// Function updated to handle sub and sub-sub categories
 async function renderSingleCategoryRow(sectionData) {
     const { categoryId, subcategoryId, subSubcategoryId, name } = sectionData;
     let queryField, queryValue;
-    let title = name[state.currentLanguage] || name.ku_sorani; // Sernavê destpêkê
-    let targetDocRef; // Referansa ji bo anîna navê rastîn ê kategoriyê
+    let title = name[state.currentLanguage] || name.ku_sorani;
+    let targetDocRef;
 
-    // Diyarkirina query û referansê li gorî ID ya herî taybet
+    // Determine the query field and value based on the most specific ID provided
     if (subSubcategoryId) {
         queryField = 'subSubcategoryId';
         queryValue = subSubcategoryId;
@@ -1383,97 +1231,92 @@ async function renderSingleCategoryRow(sectionData) {
         queryValue = categoryId;
         targetDocRef = doc(db, `categories/${categoryId}`);
     } else {
-        return null; // Heger kategorî neyê diyarkirin
+        return null; // No category specified, cannot render
     }
 
     try {
-        // Navê rastîn ê kategorî/jêr-kategoriyê ji Firestore bîne
+        // Fetch the name of the category/subcategory/subsubcategory for the title
         const targetSnap = await getDoc(targetDocRef);
         if (targetSnap.exists()) {
              const targetData = targetSnap.data();
-             // Sernavê nûve bike heger navê rastîn hat dîtin
+             // Use the fetched name if available, otherwise fallback to the name from layout data
              title = targetData['name_' + state.currentLanguage] || targetData.name_ku_sorani || title;
         }
 
-        // Hêmanên HTML çêbike
         const container = document.createElement('div');
         container.className = 'dynamic-section';
         const header = document.createElement('div');
         header.className = 'section-title-header';
         const titleEl = document.createElement('h3');
         titleEl.className = 'section-title-main';
-        titleEl.textContent = title; // Sernavê nûvekirî bikar bîne
+        titleEl.textContent = title; // Use the potentially updated title
         header.appendChild(titleEl);
 
-        // Bişkoka "Binêre Hemû"
         const seeAllLink = document.createElement('a');
         seeAllLink.className = 'see-all-link';
         seeAllLink.textContent = t('see_all');
         seeAllLink.onclick = async () => {
-            // Li gorî ID ya herî taybet navîgasyon bike
-            if(subcategoryId) { // Heger jêr-kategorî yan jêr-jêr-kategorî be
-                showSubcategoryDetailPage(categoryId, subcategoryId); // Here rûpela detail
-            } else { // Heger tenê kategoriya serekiyê be
-                 // Filter bike li rûpela serekiyê
+            // Navigate based on the most specific category ID
+            if(subcategoryId) {
+                // If subcategory or subsubcategory is selected, go to the subcategory detail page
+                showSubcategoryDetailPage(categoryId, subcategoryId);
+            } else {
+                 // If only main category is selected, filter on the main page
                  await navigateToFilter({
-                     category: categoryId,
-                     subcategory: 'all',
-                     subSubcategory: 'all',
-                     search: ''
-                 });
+                    category: categoryId,
+                    subcategory: 'all',
+                    subSubcategory: 'all',
+                    search: ''
+                });
             }
         };
         header.appendChild(seeAllLink);
         container.appendChild(header);
 
-        // Konteynira ji bo skrolkirina horizontal a berheman
         const productsScroller = document.createElement('div');
         productsScroller.className = 'horizontal-products-container';
         container.appendChild(productsScroller);
 
-        // Berhemên pêwendîdar bîne (max 10)
         const q = query(
             productsCollection,
-            where(queryField, '==', queryValue), // Filter li gorî ID ya diyarkirî
-            orderBy('createdAt', 'desc'), // Li gorî dema dawî rêz bike
-            limit(10) // Tenê 10 berheman bîne
+            where(queryField, '==', queryValue), // Use the determined field and value
+            orderBy('createdAt', 'desc'),
+            limit(10)
         );
         const snapshot = await getDocs(q);
-        if (snapshot.empty) return null; // Heger berhem tune bin, beşê render neke
+        if (snapshot.empty) return null; // Don't render if no products found
 
-        // Kartên berheman çêbike û lê zêde bike
         snapshot.forEach(doc => {
             const product = { id: doc.id, ...doc.data() };
             const card = createProductCardElement(product);
             productsScroller.appendChild(card);
         });
-        return container; // Hêmana beşê vegerîne
+        return container;
 
     } catch (error) {
         console.error(`Error fetching products for single category row:`, error);
-        return null; // Di rewşa xeletiyê de tiştek venegerîne
+        return null;
     }
 }
 
+
+// Function updated to take groupId
 async function renderBrandsSection(groupId) {
     const sectionContainer = document.createElement('div');
     sectionContainer.className = 'brands-section';
     const brandsContainer = document.createElement('div');
-    brandsContainer.id = `brandsContainer_${groupId}`; // IDyek bêhempa
+    brandsContainer.id = `brandsContainer_${groupId}`; // Unique ID per group
     brandsContainer.className = 'brands-container';
     sectionContainer.appendChild(brandsContainer);
 
     try {
-        // Branda ji koma diyarkirî bîne (max 30)
         const q = query(collection(db, "brand_groups", groupId, "brands"), orderBy("order", "asc"), limit(30));
         const snapshot = await getDocs(q);
 
-        if (snapshot.empty) return null; // Heger brand tune bin, render neke
+        if (snapshot.empty) return null; // Don't render empty brand sections
 
-        // Ji bo her brandê, hêmanek çêbike
         snapshot.forEach(doc => {
             const brand = { id: doc.id, ...doc.data() };
-            // Navê li gorî zimanê heyî yan fallback
             const brandName = brand.name[state.currentLanguage] || brand.name.ku_sorani;
 
             const item = document.createElement('div');
@@ -1485,13 +1328,11 @@ async function renderBrandsSection(groupId) {
                 <span>${brandName}</span>
             `;
 
-            // Dema klik tê kirin, here kategoriya girêdayî (eger hebe)
             item.onclick = async () => {
+                // Navigate based on linked category/subcategory
                 if (brand.subcategoryId && brand.categoryId) {
-                    // Here rûpela detail ya jêr-kategoriyê
                     showSubcategoryDetailPage(brand.categoryId, brand.subcategoryId);
                 } else if(brand.categoryId) {
-                     // Filter bike li gorî kategoriya serekiyê
                     await navigateToFilter({
                         category: brand.categoryId,
                         subcategory: 'all',
@@ -1499,49 +1340,45 @@ async function renderBrandsSection(groupId) {
                         search: ''
                     });
                 }
-                // Heger ti kategorî ne girêdayî be, tiştek nake
+                // If no category linked, clicking does nothing for now
             };
 
             brandsContainer.appendChild(item);
         });
 
-        return sectionContainer; // Hêmana beşê vegerîne
+        return sectionContainer;
     } catch (error) {
         console.error("Error fetching brands for group:", error);
-        return null; // Di rewşa xeletiyê de tiştek venegerîne
+        return null;
     }
 }
 
 async function renderNewestProductsSection() {
     const container = document.createElement('div');
     container.className = 'dynamic-section';
-    // Sernavê beşê çêbike
     const header = document.createElement('div');
     header.className = 'section-title-header';
     const title = document.createElement('h3');
     title.className = 'section-title-main';
-    title.textContent = t('newest_products'); // Wergera "Nûtirîn Berhem"
+    title.textContent = t('newest_products');
     header.appendChild(title);
     container.appendChild(header);
 
     try {
-        // Berhemên ku di 15 rojên dawî de hatine zêdekirin bîne (max 10)
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
         const q = query(
             productsCollection,
-            where('createdAt', '>=', fifteenDaysAgo), // Tenê yên nû
-            orderBy('createdAt', 'desc'), // Yên herî nû pêşî
-            limit(10) // Max 10
+            where('createdAt', '>=', fifteenDaysAgo),
+            orderBy('createdAt', 'desc'),
+            limit(10)
         );
         const snapshot = await getDocs(q);
 
-        // Konteynira ji bo skrolkirina horizontal
         const productsScroller = document.createElement('div');
         if (snapshot.empty) {
-            return null; // Heger berhemên nû tune bin, render neke
+            return null; // Do not render if there are no new products
         } else {
             productsScroller.className = 'horizontal-products-container';
-            // Kartên berheman çêbike û lê zêde bike
             snapshot.forEach(doc => {
                 const product = { id: doc.id, ...doc.data() };
                 const card = createProductCardElement(product);
@@ -1549,111 +1386,109 @@ async function renderNewestProductsSection() {
             });
         }
         container.appendChild(productsScroller);
-        return container; // Hêmana beşê vegerîne
+        return container;
 
     } catch (error) {
         console.error("Error fetching newest products:", error);
-        return null; // Di rewşa xeletiyê de tiştek venegerîne
+        return null;
     }
 }
 
 async function renderAllProductsSection() {
     const container = document.createElement('div');
     container.className = 'dynamic-section';
-    container.style.marginTop = '20px'; // Hinek valahî berî beşê
+    container.style.marginTop = '20px'; // Add some space before this section
 
-    // Sernavê beşê çêbike
     const header = document.createElement('div');
     header.className = 'section-title-header';
     const title = document.createElement('h3');
     title.className = 'section-title-main';
-    title.textContent = t('all_products_section_title'); // Wergera "Hemû Berhem"
+    title.textContent = t('all_products_section_title');
     header.appendChild(title);
     container.appendChild(header);
 
-    // Konteynira grid ji bo berheman
     const productsGrid = document.createElement('div');
-    productsGrid.className = 'products-container'; // Heman style wek lîsteya serekiyê
+    productsGrid.className = 'products-container'; // Use existing grid style
     container.appendChild(productsGrid);
 
     try {
-        // Tenê çend berhemên destpêkê bîne ji bo nîşandanê li rûpela serekiyê
+        // Fetch only a few products initially for the home page section
         const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(10));
         const snapshot = await getDocs(q);
         if (snapshot.empty) {
-            return null; // Heger ti berhem tune bin, render neke
+            return null; // Don't render if no products exist
         }
 
-        // Kartan çêbike û lê zêde bike
         snapshot.forEach(doc => {
             const product = { id: doc.id, ...doc.data() };
             const card = createProductCardElement(product);
             productsGrid.appendChild(card);
         });
-        return container; // Hêmana beşê vegerîne
+        return container;
     } catch (error) {
         console.error("Error fetching all products for home page:", error);
-        return null; // Di rewşa xeletiyê de tiştek venegerîne
+        return null;
     }
 }
 
+// ======================================
+// ===== START: GORRANKARIYA 1 / CHANGE 1 (Slider Fix v2) =====
+// ======================================
+// Function updated to accept layoutId and pass it to renderPromoCardsSectionForHome
 async function renderHomePageContent() {
-    if (state.isRenderingHomePage) return; // Heger jixwe render dibe, raweste
-    state.isRenderingHomePage = true; // Ala danîne
+    if (state.isRenderingHomePage) return;
+    state.isRenderingHomePage = true;
 
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
 
     try {
-        renderSkeletonLoader(homeSectionsContainer, 4); // Skeleton loader nîşan bide
-        homeSectionsContainer.innerHTML = ''; // Naveroka kevin paqij bike
+        renderSkeletonLoader(homeSectionsContainer, 4);
+        homeSectionsContainer.innerHTML = ''; // Clear previous content first
 
-        // Hemû intervalên sliderên kevin rawestîne berî renderkirina nû
+        // === START: Interval Cleanup Code ===
+        // Clean up any existing intervals before rendering new ones
         Object.keys(state.sliderIntervals || {}).forEach(layoutId => {
             if (state.sliderIntervals[layoutId]) {
                 clearInterval(state.sliderIntervals[layoutId]);
             }
         });
-        state.sliderIntervals = {}; // Objeya intervalan vala bike
+        state.sliderIntervals = {};
+        // === END: Interval Cleanup Code ===
 
-        // Rêzeya beşên rûpela serekiyê ji Firestore bîne
         const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
         const layoutSnapshot = await getDocs(layoutQuery);
 
         if (layoutSnapshot.empty) {
             console.warn("Home page layout is not configured or all sections are disabled.");
-            // Dibe ku li vir peyamek bê nîşandan
         } else {
-            // Ji bo her beşê di rêzê de, hêmana wê render bike
             for (const doc of layoutSnapshot.docs) {
                 const section = doc.data();
                 let sectionElement = null;
 
-                // Li gorî cureyê beşê, fonksiyona renderkirinê ya guncaw bang bike
                 switch (section.type) {
                     case 'promo_slider':
                         if (section.groupId) {
-                             // ID ya dokumanê (layoutId) bişîne ji bo birêvebirina intervalê
+                            // CHAKKIRÎ: Nardina `doc.id` wekî `layoutId`
                             sectionElement = await renderPromoCardsSectionForHome(section.groupId, doc.id);
-                        } else { console.warn("Promo slider section is missing groupId."); }
+                        } else { console.warn("Promo slider section is missing groupId in layout config."); }
                         break;
                     case 'brands':
                         if (section.groupId) {
                             sectionElement = await renderBrandsSection(section.groupId);
-                        } else { console.warn("Brands section is missing groupId."); }
+                        } else { console.warn("Brands section is missing groupId in layout config."); }
                         break;
                     case 'newest_products':
                         sectionElement = await renderNewestProductsSection();
                         break;
                     case 'single_shortcut_row':
                         if (section.rowId) {
-                            // Navê beşê jî bişîne ji bo sernavê
                             sectionElement = await renderSingleShortcutRow(section.rowId, section.name);
-                        } else { console.warn("Single shortcut row section is missing rowId."); }
+                        } else { console.warn("Single shortcut row section is missing rowId in layout config."); }
                         break;
                     case 'single_category_row':
                         if (section.categoryId) {
                             sectionElement = await renderSingleCategoryRow(section);
-                        } else { console.warn("Single category row section is missing categoryId."); }
+                        } else { console.warn("Single category row section is missing categoryId in layout config."); }
                         break;
                     case 'all_products':
                         sectionElement = await renderAllProductsSection();
@@ -1662,7 +1497,6 @@ async function renderHomePageContent() {
                         console.warn(`Unknown home layout section type: ${section.type}`);
                 }
 
-                // Heger hêman hatibe çêkirin, lê zêde bike li konteynirê
                 if (sectionElement) {
                     homeSectionsContainer.appendChild(sectionElement);
                 }
@@ -1672,107 +1506,118 @@ async function renderHomePageContent() {
         console.error("Error rendering home page content:", error);
         homeSectionsContainer.innerHTML = `<p style="text-align: center; padding: 20px;">هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
     } finally {
-        // Ala renderkirinê rake
+        // Interval cleanup is now handled at the beginning and when navigating away
         state.isRenderingHomePage = false;
     }
 }
+// ======================================
+// ===== END: GORRANKARIYA 1 / CHANGE 1 (Slider Fix v2) =====
+// ======================================
 
-async function renderPromoCardsSectionForHome(groupId, layoutId) { // layoutId ji bo birêvebirina intervalê
+
+// ======================================
+// ===== START: GORRANKARIYA 2 / CHANGE 2 (Slider Fix v2) =====
+// ======================================
+// Function updated to accept layoutId, create unique ID, and manage its interval in state.sliderIntervals
+async function renderPromoCardsSectionForHome(groupId, layoutId) { // ZÊDEKIRÎ: layoutId
     const promoGrid = document.createElement('div');
-    promoGrid.className = 'products-container'; // Heman style wek gridê berheman
-    promoGrid.style.marginBottom = '24px'; // Valahî li jêr
-    promoGrid.id = `promoSliderLayout_${layoutId}`; // IDyek bêhempa ji bo vê beşê
+    promoGrid.className = 'products-container';
+    promoGrid.style.marginBottom = '24px';
+    // CHAKKIRÎ: Bikaranîna layoutId ji bo çêkirina IDyek bêhempa
+    promoGrid.id = `promoSliderLayout_${layoutId}`;
 
     try {
-        // Kartên girêdayî vê komê bîne
         const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
 
         const cards = cardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        if (cards.length > 0) { // Tenê heger kart hebin
-            const sliderState = { currentIndex: 0, intervalId: null }; // State herêmî ji bo indexê
-            const cardData = { cards }; // Daneyên kartê
+        if (cards.length > 0) {
+            const sliderState = { currentIndex: 0, intervalId: null };
+            const cardData = { cards };
 
-            // Hêmana kartê/sliderê çêbike
             const promoCardElement = createPromoCardElement(cardData, sliderState);
             promoGrid.appendChild(promoCardElement);
 
-            // Heger zêdetirî kartekê hebe, intervalê ji bo zivirandinê saz bike
             if (cards.length > 1) {
                 const rotate = () => {
-                    // Berî zivirandinê, kontrol bike ka hêman hîn heye û interval nehatiye rawestandin
+                    // CHAKKIRÎ: Check if interval still exists in state before clearing
                     if (!document.getElementById(promoGrid.id) || !state.sliderIntervals || !state.sliderIntervals[layoutId]) {
-                        // Heger hêman hatibe rakirin an interval hatibe paqijkirin, intervalê rawestîne
                         if (sliderState.intervalId) {
-                            clearInterval(sliderState.intervalId);
-                            // Ji state giştî jî rake heger hîn tê de be
+                            clearInterval(sliderState.intervalId); // Clear this specific interval
+                            // Also remove from global state if it exists there
                             if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
                                 delete state.sliderIntervals[layoutId];
                             }
                         }
-                        return; // Raweste
+                        return;
                     }
-                    // Here indexa paşê (loop bike)
                     sliderState.currentIndex = (sliderState.currentIndex + 1) % cards.length;
-                    // URLê wêneyê nû bistîne
                     const newImageUrl = cards[sliderState.currentIndex].imageUrls[state.currentLanguage] || cards[sliderState.currentIndex].imageUrls.ku_sorani;
                     const imgElement = promoCardElement.querySelector('.product-image');
-                    if(imgElement) imgElement.src = newImageUrl; // Wêneyê nûve bike
+                    if(imgElement) imgElement.src = newImageUrl;
                 };
 
-                // Intervala kevin a ji bo vê layoutId (heger hebe) rawestîne
+                // Clear previous interval for this specific layoutId if it exists
                 if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
                     clearInterval(state.sliderIntervals[layoutId]);
                 }
 
-                // Intervala nû saz bike û ID ya wê tomar bike
-                sliderState.intervalId = setInterval(rotate, 5000); // Her 5 çirkeyan
-                // ID ya intervalê di state giştî de tomar bike bi bikaranîna layoutId wek key
-                if (!state.sliderIntervals) state.sliderIntervals = {}; // Piştrast be objeya state heye
+                sliderState.intervalId = setInterval(rotate, 5000);
+                // CHAKKIRÎ: Store interval ID in the global state object using layoutId as key
+                if (!state.sliderIntervals) state.sliderIntervals = {}; // Initialize if doesn't exist
                 state.sliderIntervals[layoutId] = sliderState.intervalId;
+                // CHAKKIRÎ: Remove storing interval ID on dataset
+                // promoGrid.dataset.interval = sliderState.intervalId;
             }
 
-            return promoGrid; // Hêmana beşê vegerîne
+            return promoGrid;
         }
     } catch (error) {
         console.error(`Error rendering promo slider for group ${groupId}:`, error);
     }
-    return null; // Di rewşa xeletiyê de yan nebûna kartan de tiştek venegerîne
+    return null;
 }
+// ======================================
+// ===== END: GORRANKARIYA 2 / CHANGE 2 (Slider Fix v2) =====
+// ======================================
 
-// *** GUHERTINA Sereke 2: searchProductsInFirestore ***
-async function searchProductsInFirestore(searchTerm = '', isNewSearch = false, fromPopState = false) {
-    // *** Parametera scrollYToRestore hat rakirin, em ê ji history.state bixwînin ***
+
+async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
 
-    // 1. Birêvebirina dîtina rûpela serekiyê yan lîsteya berheman
     if (shouldShowHomeSections) {
         productsContainer.style.display = 'none';
         skeletonLoader.style.display = 'none';
         scrollTrigger.style.display = 'none';
         homeSectionsContainer.style.display = 'block';
 
-        // Render bike tenê heger vala be yan jî ne ji popstate be (ji bo nûvekirinê)
-        if (homeSectionsContainer.innerHTML.trim() === '' || !fromPopState) {
-             await renderHomePageContent();
+        if (homeSectionsContainer.innerHTML.trim() === '') {
+            await renderHomePageContent();
+        } else {
+            // Re-start rotations are implicitly handled by renderHomePageContent now
         }
-        // Pozîsyona skrolê venegerîne ji ber ku beşên rûpela serekiyê dibe ku cuda bin
-        return; // Ji fonksyonê derkeve
-     } else {
-        // Heger ne rûpela serekiyê be, beşên wê veşêre û slideran rawestîne
+        return;
+    } else {
         homeSectionsContainer.style.display = 'none';
+        // ======================================
+        // ===== START: GORRANKARIYA 3 / CHANGE 3 (Slider Fix v2) =====
+        // ======================================
+        // Stop all promo rotations when navigating away from the full home view
+        // CHAKKIRÎ: Use state.sliderIntervals for cleanup
         Object.keys(state.sliderIntervals || {}).forEach(layoutId => {
             if (state.sliderIntervals[layoutId]) {
                 clearInterval(state.sliderIntervals[layoutId]);
             }
         });
-        state.sliderIntervals = {};
-     }
+        state.sliderIntervals = {}; // Reset the intervals object
+        // ======================================
+        // ===== END: GORRANKARIYA 3 / CHANGE 3 (Slider Fix v2) =====
+        // ======================================
+    }
 
-    // 2. Kontrolkirina Cache (bê guhertin)
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
     if (isNewSearch && state.productCache[cacheKey]) {
         state.products = state.productCache[cacheKey].products;
@@ -1781,40 +1626,30 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false, f
 
         skeletonLoader.style.display = 'none';
         loader.style.display = 'none';
-        productsContainer.innerHTML = ''; // Paqij bike berî renderkirina ji cache
         productsContainer.style.display = 'grid';
+
         renderProducts();
         scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
-
-        // Vegerandina skrolê ji bo cache jî pêwîst e
-        // *** Êdî scrollYToRestore bikar nayne ***
-        const scrollYToRestoreFromState = history.state?.scroll;
-        if (fromPopState && typeof scrollYToRestoreFromState === 'number') {
-            setTimeout(() => window.scrollTo(0, scrollYToRestoreFromState), 150); // Derengî
-        } else if (!fromPopState) {
-             // Ji bo lêgerîn/filterên nû, here jor
-             window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
         return;
     }
 
-    // 3. Mentiqê barkirinê (bê guhertin)
     if (state.isLoadingMoreProducts) return;
+
     if (isNewSearch) {
         state.allProductsLoaded = false;
         state.lastVisibleProductDoc = null;
         state.products = [];
-        productsContainer.innerHTML = ''; // Paqij bike berî skeleton
         renderSkeletonLoader();
     }
+
     if (state.allProductsLoaded && !isNewSearch) return;
+
     state.isLoadingMoreProducts = true;
     loader.style.display = 'block';
 
-    // 4. Anîna daneyan ji Firestore
     try {
-        // ... (Koda avakirina query wek xwe dimîne) ...
         let productsQuery = collection(db, "products");
+
         if (state.currentCategory && state.currentCategory !== 'all') {
             productsQuery = query(productsQuery, where("categoryId", "==", state.currentCategory));
         }
@@ -1824,6 +1659,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false, f
         if (state.currentSubSubcategory && state.currentSubSubcategory !== 'all') {
             productsQuery = query(productsQuery, where("subSubcategoryId", "==", state.currentSubSubcategory));
         }
+
         const finalSearchTerm = searchTerm.trim().toLowerCase();
         if (finalSearchTerm) {
             productsQuery = query(productsQuery,
@@ -1831,35 +1667,38 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false, f
                 where('searchableName', '<=', finalSearchTerm + '\uf8ff')
             );
         }
+
         if (finalSearchTerm) {
             productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
         } else {
             productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         }
+
         if (state.lastVisibleProductDoc && !isNewSearch) {
             productsQuery = query(productsQuery, startAfter(state.lastVisibleProductDoc));
         }
+
         productsQuery = query(productsQuery, limit(PRODUCTS_PER_PAGE));
-        // ... (Dawîya koda query) ...
 
         const productSnapshot = await getDocs(productsQuery);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Nûvekirina state.products (bê guhertin)
         if (isNewSearch) {
             state.products = newProducts;
         } else {
-            const existingIds = new Set(state.products.map(p => p.id));
-            const uniqueNewProducts = newProducts.filter(p => !existingIds.has(p.id));
-            state.products = [...state.products, ...uniqueNewProducts];
+            state.products = [...state.products, ...newProducts];
         }
 
-        // Nûvekirina allProductsLoaded û lastVisibleProductDoc (bê guhertin)
-        state.allProductsLoaded = productSnapshot.docs.length < PRODUCTS_PER_PAGE;
-        scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
+        if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
+            state.allProductsLoaded = true;
+            scrollTrigger.style.display = 'none';
+        } else {
+            state.allProductsLoaded = false;
+            scrollTrigger.style.display = 'block';
+        }
+
         state.lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
 
-        // Nûvekirina Cache (bê guhertin)
         if (isNewSearch) {
             state.productCache[cacheKey] = {
                 products: state.products,
@@ -1868,20 +1707,11 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false, f
             };
         }
 
-        // 5. Renderkirina Berheman
-        skeletonLoader.style.display = 'none';
-        productsContainer.style.display = 'grid';
-        if (isNewSearch) {
-             productsContainer.innerHTML = ''; // Piştrast be konteynir vala ye berî renderkirina encamên nû
-        }
-        renderProducts(); // Renderkirina berheman (yan yên nû yan yên lêzêdekirî)
+        renderProducts();
 
-        // Peyama "Berhem tune" (bê guhertin)
         if (state.products.length === 0 && isNewSearch) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         }
-
-        // *** Vegerandina Skrolê êdî ne li vir e ***
 
     } catch (error) {
         console.error("Error fetching content:", error);
@@ -1889,103 +1719,63 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false, f
     } finally {
         state.isLoadingMoreProducts = false;
         loader.style.display = 'none';
-        // Piştrast be ku skeleton loader veşartî ye
         skeletonLoader.style.display = 'none';
-        // Piştrast be ku konteynira berheman xuya ye (eger ne vala be)
-        if (state.products.length > 0 || !isNewSearch) {
-            productsContainer.style.display = 'grid';
-        }
+        productsContainer.style.display = 'grid';
     }
 }
 
-
-// ... (Fonksiyonên mayî yên addToCart, renderCart, hwd. wek xwe dimînin) ...
 function addToCart(productId) {
-    // Hewl bide berhemê ji lîsteya barkirî ya heyî bibîne
-    let product = state.products.find(p => p.id === productId);
+    const allFetchedProducts = [...state.products];
+    let product = allFetchedProducts.find(p => p.id === productId);
 
-    // Heger di lîsteya heyî de nehat dîtin (mînak, ji rûpela favorîtan an detail hatibe)
     if (!product) {
-        console.warn("Product not found in local 'products' array. Fetching details to add to cart.");
-        // Ji Firestore bîne da ku nav, biha, û wêneyê bistîne
+        console.warn("Product not found in local 'products' array. Adding with limited data.");
         getDoc(doc(db, "products", productId)).then(docSnap => {
             if (docSnap.exists()) {
                 const fetchedProduct = { id: docSnap.id, ...docSnap.data() };
-                // Wêneya serekiyê bistîne
                 const mainImage = (fetchedProduct.imageUrls && fetchedProduct.imageUrls.length > 0) ? fetchedProduct.imageUrls[0] : (fetchedProduct.image || '');
-                // Kontrol bike ka berhem jixwe di selikê de ye
                 const existingItem = state.cart.find(item => item.id === productId);
-                if (existingItem) {
-                    existingItem.quantity++; // Jimarê zêde bike
-                } else {
-                    // Wekî din, wekî hêmanek nû lê zêde bike
-                    state.cart.push({
-                        id: fetchedProduct.id,
-                        name: fetchedProduct.name, // Objeya navê tomar bike
-                        price: fetchedProduct.price,
-                        image: mainImage,
-                        quantity: 1
-                    });
-                }
-                saveCart(); // Selikê tomar bike
-                showNotification(t('product_added_to_cart')); // Agahdarî nîşan bide
-            } else {
-                 showNotification(t('product_not_found_error'), 'error'); // Heger berhem li Firestore jî tune be
+                if (existingItem) { existingItem.quantity++; }
+                else { state.cart.push({ id: fetchedProduct.id, name: fetchedProduct.name, price: fetchedProduct.price, image: mainImage, quantity: 1 }); }
+                saveCart();
+                showNotification(t('product_added_to_cart'));
             }
-        }).catch(error => {
-            console.error("Error fetching product details for cart:", error);
-             showNotification(t('error_generic'), 'error');
         });
-        return; // Raweste heta ku dane tên anîn (an jî xeletî çêdibe)
+        return;
     }
 
-    // Heger berhem di lîsteya heyî de hat dîtin
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
     const existingItem = state.cart.find(item => item.id === productId);
-    if (existingItem) {
-        existingItem.quantity++; // Jimarê zêde bike
-    } else {
-        // Wekî hêmanek nû lê zêde bike
-        state.cart.push({
-            id: product.id,
-            name: product.name, // Objeya navê tomar bike
-            price: product.price,
-            image: mainImage,
-            quantity: 1
-        });
-    }
-    saveCart(); // Selikê tomar bike
-    // showNotification(t('product_added_to_cart')); // Dibe ku anîmasyona bişkokê têra xwe bike
+    if (existingItem) { existingItem.quantity++; }
+    else { state.cart.push({ id: product.id, name: product.name, price: product.price, image: mainImage, quantity: 1 }); }
+    saveCart();
+    showNotification(t('product_added_to_cart'));
 }
 
 function renderCart() {
-    cartItemsContainer.innerHTML = ''; // Paqij bike
-    if (state.cart.length === 0) { // Heger selik vala be
-        emptyCartMessage.style.display = 'block'; // Peyama vala nîşan bide
-        cartTotal.style.display = 'none'; // Bihayê giştî veşêre
-        cartActions.style.display = 'none'; // Bişkokên çalakiyê veşêre
+    cartItemsContainer.innerHTML = '';
+    if (state.cart.length === 0) {
+        emptyCartMessage.style.display = 'block';
+        cartTotal.style.display = 'none';
+        cartActions.style.display = 'none';
         return;
     }
-    // Heger selik ne vala be
     emptyCartMessage.style.display = 'none';
     cartTotal.style.display = 'block';
     cartActions.style.display = 'block';
-    renderCartActionButtons(); // Bişkokên wek Whatsapp, Viber, hwd. render bike
+    renderCartActionButtons();
 
-    let total = 0; // Bihayê giştî sifir bike
-    // Ji bo her hêmanekê di selikê de
+    let total = 0;
     state.cart.forEach(item => {
-        const itemTotal = item.price * item.quantity; // Bihayê vê hêmanê hesab bike
-        total += itemTotal; // Lê zêde bike li ser bihayê giştî
+        const itemTotal = item.price * item.quantity;
+        total += itemTotal;
         const cartItem = document.createElement('div');
         cartItem.className = 'cart-item';
 
-        // Navê hêmanê li gorî zimanê heyî bistîne
         const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
 
-        // Struktura HTML ya hêmanê selikê
         cartItem.innerHTML = `
-            <img src="${item.image || 'https://placehold.co/60x60/e2e8f0/2d3748?text=N/A'}" alt="${itemNameInCurrentLang}" class="cart-item-image" onerror="this.src='https://placehold.co/60x60/e2e8f0/2d3748?text=Err'">
+            <img src="${item.image}" alt="${itemNameInCurrentLang}" class="cart-item-image">
             <div class="cart-item-details">
                 <div class="cart-item-title">${itemNameInCurrentLang}</div>
                 <div class="cart-item-price">${item.price.toLocaleString()} د.ع.</div>
@@ -2003,10 +1793,7 @@ function renderCart() {
         `;
         cartItemsContainer.appendChild(cartItem);
     });
-    // Bihayê giştî yê dawî nîşan bide
     totalAmount.textContent = total.toLocaleString();
-
-    // Event listeneran ji bo bişkokên +/-/rakirinê saz bike
     document.querySelectorAll('.increase-btn').forEach(btn => btn.onclick = (e) => updateQuantity(e.currentTarget.dataset.id, 1));
     document.querySelectorAll('.decrease-btn').forEach(btn => btn.onclick = (e) => updateQuantity(e.currentTarget.dataset.id, -1));
     document.querySelectorAll('.cart-item-remove').forEach(btn => btn.onclick = (e) => removeFromCart(e.currentTarget.dataset.id));
@@ -2015,185 +1802,152 @@ function renderCart() {
 function updateQuantity(productId, change) {
     const cartItem = state.cart.find(item => item.id === productId);
     if (cartItem) {
-        cartItem.quantity += change; // Jimarê biguherîne
-        if (cartItem.quantity <= 0) { // Heger jimar bibe sifir yan kêmtir
-            removeFromCart(productId); // Ji selikê rake
-        } else {
-            saveCart(); // Guhertinan tomar bike
-            renderCart(); // UI ya selikê nûve bike
-        }
+        cartItem.quantity += change;
+        if (cartItem.quantity <= 0) { removeFromCart(productId); }
+        else { saveCart(); renderCart(); }
     }
 }
 
 function removeFromCart(productId) {
-    // Hêmana bi ID ya diyarkirî ji selikê derxe
     state.cart = state.cart.filter(item => item.id !== productId);
-    saveCart(); // Guhertinan tomar bike
-    renderCart(); // UI ya selikê nûve bike
+    saveCart();
+    renderCart();
 }
 
 function generateOrderMessage() {
-    if (state.cart.length === 0) return ""; // Heger selik vala be, tiştek venegerîne
-    // Destpêka peyamê
+    if (state.cart.length === 0) return "";
     let message = t('order_greeting') + "\n\n";
-    // Ji bo her hêmanekê, hûrguliyan lê zêde bike
     state.cart.forEach(item => {
         const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
         const itemDetails = t('order_item_details', { price: item.price.toLocaleString(), quantity: item.quantity });
         message += `- ${itemNameInCurrentLang} | ${itemDetails}\n`;
     });
-    // Bihayê giştî lê zêde bike
     message += `\n${t('order_total')}: ${totalAmount.textContent} د.ع.\n`;
 
-    // Agahiyên bikarhêner lê zêde bike heger hebin
     if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
         message += `\n${t('order_user_info')}\n`;
         message += `${t('order_user_name')}: ${state.userProfile.name}\n`;
         message += `${t('order_user_address')}: ${state.userProfile.address}\n`;
         message += `${t('order_user_phone')}: ${state.userProfile.phone}\n`;
     } else {
-        // Heger agahî tune bin, daxwaz bike
         message += `\n${t('order_prompt_info')}\n`;
     }
-    return message; // Peyama dawî vegerîne
+    return message;
 }
 
 async function renderCartActionButtons() {
     const container = document.getElementById('cartActions');
-    container.innerHTML = ''; // Paqij bike
+    container.innerHTML = '';
 
-    try {
-        // Rêbazên têkiliyê ji Firestore bîne
-        const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
-        const q = query(methodsCollection, orderBy("createdAt")); // Li gorî dema çêkirinê rêz bike
+    const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
+    const q = query(methodsCollection, orderBy("createdAt"));
 
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-            container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
-            return;
-        }
-
-        // Ji bo her rêbazekê, bişkokek çêbike
-        snapshot.forEach(doc => {
-            const method = { id: doc.id, ...doc.data() };
-            const btn = document.createElement('button');
-            btn.className = 'whatsapp-btn'; // Dibe ku pêwîst be class cuda bê danîn
-            btn.style.backgroundColor = method.color; // Rengê bişkokê
-
-            // Navê bişkokê li gorî zimanê heyî
-            const name = method['name_' + state.currentLanguage] || method.name_ku_sorani;
-            btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`; // Îkon û nav
-
-            // Dema klik li bişkokê tê kirin
-            btn.onclick = () => {
-                const message = generateOrderMessage(); // Peyama fermanê çêbike
-                if (!message) return; // Heger peyam vala be, raweste
-
-                let link = '';
-                const encodedMessage = encodeURIComponent(message); // Peyamê encode bike ji bo URL
-                const value = method.value; // Nirxa rêbazê (hejmar, username, yan URL)
-
-                // Lînkê çêbike li gorî cureyê rêbazê
-                switch (method.type) {
-                    case 'whatsapp':
-                        link = `https://wa.me/${value}?text=${encodedMessage}`;
-                        break;
-                    case 'viber':
-                        // Lînkên Viber dibe ku tevlihev bin û pêwîstî bi testkirinê hebe
-                        link = `viber://chat?number=%2B${value}&text=${encodedMessage}`;
-                        break;
-                    case 'telegram':
-                        link = `https://t.me/${value}?text=${encodedMessage}`;
-                        break;
-                    case 'phone':
-                        link = `tel:${value}`; // Ji bo banga telefonê
-                        break;
-                    case 'url': // Ji bo URLên taybet
-                        link = value; // Bihesibîne nirx URLek temam e
-                        break;
-                }
-
-                // Heger lînk hatibe çêkirin, wê veke di tabek nû de
-                if (link) {
-                    window.open(link, '_blank');
-                }
-            };
-
-            container.appendChild(btn); // Bişkokê lê zêde bike li konteynirê
-        });
-    } catch (error) {
-         console.error("Error fetching contact methods:", error);
-         container.innerHTML = `<p>${t('error_generic')}</p>`;
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+        container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
+        return;
     }
+
+    snapshot.forEach(doc => {
+        const method = { id: doc.id, ...doc.data() };
+        const btn = document.createElement('button');
+        btn.className = 'whatsapp-btn'; // Maybe change class name later if needed
+        btn.style.backgroundColor = method.color;
+
+        const name = method['name_' + state.currentLanguage] || method.name_ku_sorani;
+        btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
+
+        btn.onclick = () => {
+            const message = generateOrderMessage();
+            if (!message) return;
+
+            let link = '';
+            const encodedMessage = encodeURIComponent(message);
+            const value = method.value;
+
+            switch (method.type) {
+                case 'whatsapp':
+                    link = `https://wa.me/${value}?text=${encodedMessage}`;
+                    break;
+                case 'viber':
+                    // Viber links can be tricky, might need testing
+                    link = `viber://chat?number=%2B${value}&text=${encodedMessage}`;
+                    break;
+                case 'telegram':
+                    link = `https://t.me/${value}?text=${encodedMessage}`;
+                    break;
+                case 'phone':
+                    link = `tel:${value}`;
+                    break;
+                case 'url': // For custom URLs
+                    link = value; // Assume the value is the full URL
+                    break;
+            }
+
+            if (link) {
+                window.open(link, '_blank');
+            }
+        };
+
+        container.appendChild(btn);
+    });
 }
 
 async function renderPolicies() {
-    termsContentContainer.innerHTML = `<p>${t('loading_policies')}</p>`; // Peyama barkirinê
+    termsContentContainer.innerHTML = `<p>${t('loading_policies')}</p>`;
     try {
-        const docRef = doc(db, "settings", "policies"); // Referansa dokumanê
+        const docRef = doc(db, "settings", "policies");
         const docSnap = await getDoc(docRef);
 
-        // Heger dokuman hebe û naverok tê de be
         if (docSnap.exists() && docSnap.data().content) {
             const policies = docSnap.data().content;
-            // Naverokê li gorî zimanê heyî yan fallback bistîne
             const content = policies[state.currentLanguage] || policies.ku_sorani || '';
-            // Newline biguherîne bo <br> û nîşan bide
             termsContentContainer.innerHTML = content ? content.replace(/\n/g, '<br>') : `<p>${t('no_policies_found')}</p>`;
         } else {
-            // Heger naverok tune be
             termsContentContainer.innerHTML = `<p>${t('no_policies_found')}</p>`;
         }
     } catch (error) {
         console.error("Error fetching policies:", error);
-        termsContentContainer.innerHTML = `<p>${t('error_generic')}</p>`; // Peyama xeletiyê
+        termsContentContainer.innerHTML = `<p>${t('error_generic')}</p>`;
     }
 }
 
 function checkNewAnnouncements() {
-    // Li guhertinên dawî yên agahdariyan temaşe bike (tenê ya herî dawî)
     const q = query(announcementsCollection, orderBy("createdAt", "desc"), limit(1));
     onSnapshot(q, (snapshot) => {
         if (!snapshot.empty) {
             const latestAnnouncement = snapshot.docs[0].data();
-            // Timestampa agahdariya herî dawî ya dîtî ji localStorage bistîne
             const lastSeenTimestamp = localStorage.getItem('lastSeenAnnouncementTimestamp') || 0;
 
-            // Heger agahdariya nû ji ya dîtî nûtir be
             if (latestAnnouncement.createdAt > lastSeenTimestamp) {
-                notificationBadge.style.display = 'block'; // Badge nîşan bide
+                notificationBadge.style.display = 'block';
             } else {
-                notificationBadge.style.display = 'none'; // Badge veşêre
+                notificationBadge.style.display = 'none';
             }
         }
     });
 }
 
 async function renderUserNotifications() {
-    // Hemû agahdariyan bîne, yên herî nû pêşî
     const q = query(announcementsCollection, orderBy("createdAt", "desc"));
     const snapshot = await getDocs(q);
 
-    notificationsListContainer.innerHTML = ''; // Paqij bike
-    if (snapshot.empty) { // Heger agahdarî tune bin
+    notificationsListContainer.innerHTML = '';
+    if (snapshot.empty) {
         notificationsListContainer.innerHTML = `<div class="cart-empty"><i class="fas fa-bell-slash"></i><p>${t('no_notifications_found')}</p></div>`;
         return;
     }
 
-    let latestTimestamp = 0; // Ji bo tomarkirina timestampa ya herî nû
-    // Ji bo her agahdariyekê, hêmanek çêbike
+    let latestTimestamp = 0;
     snapshot.forEach(doc => {
         const announcement = doc.data();
-        // Timestampa herî nû nûve bike
         if (announcement.createdAt > latestTimestamp) {
             latestTimestamp = announcement.createdAt;
         }
 
-        // Dîrokê format bike
         const date = new Date(announcement.createdAt);
         const formattedDate = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
 
-        // Sernav û naverokê li gorî zimanê heyî bistîne
         const title = (announcement.title && announcement.title[state.currentLanguage]) || (announcement.title && announcement.title.ku_sorani) || '';
         const content = (announcement.content && announcement.content[state.currentLanguage]) || (announcement.content && announcement.content.ku_sorani) || '';
 
@@ -2209,42 +1963,38 @@ async function renderUserNotifications() {
         notificationsListContainer.appendChild(item);
     });
 
-    // Timestampa herî nû tomar bike wekî ya dawî ya dîtî
     localStorage.setItem('lastSeenAnnouncementTimestamp', latestTimestamp);
-    notificationBadge.style.display = 'none'; // Badge veşêre piştî vekirina sheetê
+    notificationBadge.style.display = 'none';
 }
 
 function renderContactLinks() {
     const contactLinksContainer = document.getElementById('dynamicContactLinksContainer');
     const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
-    // Li guhertinên lînkên sosyal medya temaşe bike
     const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
 
     onSnapshot(q, (snapshot) => {
-        contactLinksContainer.innerHTML = ''; // Paqij bike
+        contactLinksContainer.innerHTML = '';
 
-        if (snapshot.empty) { // Heger lînk tune bin
+        if (snapshot.empty) {
             contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هیچ لینکی پەیوەندی نییە.</p>';
             return;
         }
 
-        // Ji bo her lînkekê, hêmanek <a> çêbike
         snapshot.forEach(doc => {
             const link = doc.data();
-            // Navê li gorî zimanê heyî
             const name = link['name_' + state.currentLanguage] || link.name_ku_sorani;
 
             const linkElement = document.createElement('a');
-            linkElement.href = link.url; // URLê lînkê
-            linkElement.target = '_blank'; // Di tabek nû de veke
-            linkElement.className = 'settings-item'; // Heman style wek hêmanên din ên settings
+            linkElement.href = link.url;
+            linkElement.target = '_blank';
+            linkElement.className = 'settings-item';
 
             linkElement.innerHTML = `
                 <div>
                     <i class="${link.icon}" style="margin-left: 10px;"></i>
                     <span>${name}</span>
                 </div>
-                <i class="fas fa-external-link-alt"></i> <!-- Îkona lînkê derve -->
+                <i class="fas fa-external-link-alt"></i>
             `;
 
             contactLinksContainer.appendChild(linkElement);
@@ -2253,10 +2003,9 @@ function renderContactLinks() {
 }
 
 function showWelcomeMessage() {
-    // Tenê carekê peyama bi xêrhatinê nîşan bide
     if (!localStorage.getItem('hasVisited')) {
-        openPopup('welcomeModal', 'modal'); // Modalê veke
-        localStorage.setItem('hasVisited', 'true'); // Ala tomar bike
+        openPopup('welcomeModal', 'modal');
+        localStorage.setItem('hasVisited', 'true');
     }
 }
 
@@ -2266,25 +2015,18 @@ function setupGpsButton() {
     const btnSpan = getLocationBtn.querySelector('span');
     const originalBtnText = btnSpan.textContent;
 
-    if (!getLocationBtn) return; // Heger bişkok tune be, raweste
+    if (!getLocationBtn) return;
 
     getLocationBtn.addEventListener('click', () => {
-        // Piştrast be ku geolocation piştgirîkirî ye
         if (!('geolocation' in navigator)) {
             showNotification('وێبگەڕەکەت پشتگیری GPS ناکات', 'error');
             return;
         }
 
-        // Rewşa barkirinê nîşan bide
         btnSpan.textContent = '...چاوەڕوان بە';
         getLocationBtn.disabled = true;
 
-        // Daxwaza pozîsyona heyî bike
-        navigator.geolocation.getCurrentPosition(successCallback, errorCallback, {
-             enableHighAccuracy: true, // Hewl bide pozîsyonek rasttir bistîne
-             timeout: 10000, // Max 10 çirke çaverê be
-             maximumAge: 0 // Pozîsyona kevin bikar neyne
-        });
+        navigator.geolocation.getCurrentPosition(successCallback, errorCallback);
     });
 
     async function successCallback(position) {
@@ -2292,24 +2034,20 @@ function setupGpsButton() {
         const longitude = position.coords.longitude;
 
         try {
-            // APIya Nominatim bikar bîne ji bo reverse geocoding
+            // Using Nominatim for reverse geocoding
             const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`);
             const data = await response.json();
 
-            // Heger nav û nîşan hat dîtin, inputê dagire
             if (data && data.display_name) {
                 profileAddressInput.value = data.display_name;
                 showNotification('ناونیشان وەرگیرا', 'success');
             } else {
                 showNotification('نەتوانرا ناونیشان بدۆزرێتەوە', 'error');
-                // Alternatîf: Koordînatên têxe inputê heger nav nehat dîtin
-                // profileAddressInput.value = `Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}`;
             }
         } catch (error) {
             console.error('Reverse Geocoding Error:', error);
             showNotification('هەڵەیەک لە وەرگرتنی ناونیشان ڕوویدا', 'error');
         } finally {
-            // Rewşa bişkokê vegerîne wekî berê
             btnSpan.textContent = originalBtnText;
             getLocationBtn.disabled = false;
         }
@@ -2317,15 +2055,14 @@ function setupGpsButton() {
 
     function errorCallback(error) {
         let message = '';
-        // Peyamek guncaw li gorî koda xeletiyê nîşan bide
         switch (error.code) {
-            case error.PERMISSION_DENIED:
+            case 1: // PERMISSION_DENIED
                 message = 'ڕێگەت نەدا GPS بەکاربهێنرێت';
                 break;
-            case error.POSITION_UNAVAILABLE:
+            case 2: // POSITION_UNAVAILABLE
                 message = 'شوێنەکەت نەدۆزرایەوە';
                 break;
-            case error.TIMEOUT:
+            case 3: // TIMEOUT
                 message = 'کاتی داواکارییەکە تەواو بوو';
                 break;
             default:
@@ -2333,63 +2070,48 @@ function setupGpsButton() {
                 break;
         }
         showNotification(message, 'error');
-        // Rewşa bişkokê vegerîne wekî berê
         btnSpan.textContent = originalBtnText;
         getLocationBtn.disabled = false;
     }
 }
 
-
 function setupScrollObserver() {
     const trigger = document.getElementById('scroll-loader-trigger');
-    if (!trigger) return; // Heger trigger tune be
+    if (!trigger) return;
 
-    // IntersectionObserver ji bo detektkirina dema trigger xuya dibe
     const observer = new IntersectionObserver((entries) => {
-        // Heger trigger xuya bû
         if (entries[0].isIntersecting) {
-            // Tenê berhemên zêdetir bar bike heger barkirin ne çalak be û hemû nehatibin barkirin
+            // Only load more if not currently loading and not all products are loaded
             if (!state.isLoadingMoreProducts && !state.allProductsLoaded) {
-                 // console.log("Scroll trigger intersected, loading more products...");
-                 searchProductsInFirestore(state.currentSearch, false); // Rûpela paşê bîne
+                 searchProductsInFirestore(state.currentSearch, false); // Fetch next page
             }
         }
     }, {
-        root: null, // Li gorî viewport
-        threshold: 0.1 // Dema %10 xuya bû
+        root: null, // relative to document viewport
+        threshold: 0.1 // trigger when 10% of the element is visible
     });
 
-    // Dest bi temaşekirina trigger bike
     observer.observe(trigger);
 }
 
 function updateCategoryDependentUI() {
-    // Piştrast be ku kategorî hatine barkirin
-    if (state.categories.length === 0) return;
-    // Dropdowna kategoriyan di forma berhemê de dagire
+    if (state.categories.length === 0) return; // Wait until categories are loaded
     populateCategoryDropdown();
-    // Barê kategoriyên serekiyê li rûpela serekiyê render bike
     renderMainCategories();
-    // Heger admin têketibe û mentiqê admin hatibe barkirin, dropdownên admin nûve bike
+    // Update admin dropdowns only if admin logic is loaded and user is admin
     if (sessionStorage.getItem('isAdmin') === 'true' && window.AdminLogic) {
         window.AdminLogic.updateAdminCategoryDropdowns();
-        window.AdminLogic.updateShortcutCardCategoryDropdowns(); // Dropdownên ji bo kartên shortcut jî nûve bike
     }
 }
 
-
 function setupEventListeners() {
-    // ... (Event listenersên din wek xwe dimînin) ...
     homeBtn.onclick = async () => {
         if (!document.getElementById('mainPage').classList.contains('page-active')) {
-            // State nû biafirîne bêyî type ji bo rûpela serekiyê
-            history.pushState({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 }, '', window.location.pathname.split('?')[0]);
+            history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
             showPage('mainPage');
         }
-        // Filteran reset bike
-        await applyFilterState({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 }, false);
-        // *** GUHERTIN: navigateToFilter bikar neyne ji ber ku ew ê dîsa push bike ***
-        // await navigateToFilter({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
+        // Reset filters when clicking home
+        await navigateToFilter({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
     };
 
     settingsBtn.onclick = () => {
@@ -2398,7 +2120,7 @@ function setupEventListeners() {
     };
 
     document.getElementById('headerBackBtn').onclick = () => {
-        history.back(); // Tenê vegere state berê
+        history.back();
     };
 
     profileBtn.onclick = () => {
@@ -2426,63 +2148,51 @@ function setupEventListeners() {
 
     sheetOverlay.onclick = () => closeCurrentPopup();
     document.querySelectorAll('.close').forEach(btn => btn.onclick = closeCurrentPopup);
-    // Modalê bigire heger li derveyî naverokê hat klikkirin
     window.onclick = (e) => { if (e.target.classList.contains('modal')) closeCurrentPopup(); };
 
-    // Forma têketina admin
     loginForm.onsubmit = async (e) => {
         e.preventDefault();
         try {
             await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
-            // Piştî têketina serkeftî, onAuthStateChanged dê mentiqê admin dest pê bike
-            // Modal dê ji hêla onAuthStateChanged ve were girtin
+            // Admin logic initialization will happen via onAuthStateChanged
         } catch (error) {
-            showNotification(t('login_error'), 'error'); // Peyama xeletiyê
+            showNotification(t('login_error'), 'error');
         }
     };
 
-    // Fonksiyona debounce ji bo kêmkirina bangên lêgerînê
     const debouncedSearch = debounce((term) => {
-        // navigateToFilter bikar bîne ji bo nûvekirina URL û state
         navigateToFilter({ search: term });
-    }, 500); // Piştî 500ms bêdengî
+    }, 500);
 
-    // Dema nivîs di inputa lêgerînê de tê nivîsandin
     searchInput.oninput = () => {
         const searchTerm = searchInput.value;
-        // Bişkoka paqijkirinê nîşan bide/veşêre
         clearSearchBtn.style.display = searchTerm ? 'block' : 'none';
-        // Fonksiyona debounce bang bike
         debouncedSearch(searchTerm);
     };
 
-    // Dema li bişkoka paqijkirinê tê klikkirin
     clearSearchBtn.onclick = () => {
-        searchInput.value = ''; // Inputê vala bike
-        clearSearchBtn.style.display = 'none'; // Bişkokê veşêre
-        // Filter bike bêyî terma lêgerînê
+        searchInput.value = '';
+        clearSearchBtn.style.display = 'none';
         navigateToFilter({ search: '' });
     };
 
-    // Mentiqê lêgerînê ji bo rûpelên detail
+    // Subpage search logic
     const subpageSearchInput = document.getElementById('subpageSearchInput');
     const subpageClearSearchBtn = document.getElementById('subpageClearSearchBtn');
 
     const debouncedSubpageSearch = debounce(async (term) => {
         const hash = window.location.hash.substring(1);
-        // Piştrast be ku em li rûpela detail ya jêr-kategoriyê ne
         if (hash.startsWith('subcategory_')) {
             const ids = hash.split('_');
-            const subCatId = ids[2]; // ID ya jêr-kategoriyê
+            const subCatId = ids[2];
 
-            // ID ya jêr-jêr-kategoriya çalak bibîne
+            // Find the currently active sub-subcategory button
             const activeSubSubBtn = document.querySelector('#subSubCategoryContainerOnDetailPage .subcategory-btn.active');
-            const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.id || 'all') : 'all';
+            const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.id || 'all') : 'all'; // Default to 'all' if none active
 
-            // Berheman li gorî terma lêgerînê û jêr-jêr-kategoriya çalak render bike
             await renderProductsOnDetailPage(subCatId, subSubCatId, term);
         }
-    }, 500); // Piştî 500ms
+    }, 500);
 
     subpageSearchInput.oninput = () => {
         const searchTerm = subpageSearchInput.value;
@@ -2493,127 +2203,111 @@ function setupEventListeners() {
     subpageClearSearchBtn.onclick = () => {
         subpageSearchInput.value = '';
         subpageClearSearchBtn.style.display = 'none';
-        debouncedSubpageSearch(''); // Bi terma vala lê bigere
+        debouncedSubpageSearch(''); // Trigger search with empty term
     };
 
 
-    // Vekirin/girtina beşa "Pêwendî" li settings
     contactToggle.onclick = () => {
         const container = document.getElementById('dynamicContactLinksContainer');
         const chevron = contactToggle.querySelector('.contact-chevron');
         container.classList.toggle('open');
-        chevron.classList.toggle('open'); // Îkona chevron bizivirîne
+        chevron.classList.toggle('open'); // Toggle chevron direction
     };
 
 
-    // Tomarkirina profîla bikarhêner
     profileForm.onsubmit = (e) => {
         e.preventDefault();
-        // Agahiyan ji forman bistîne
         state.userProfile = {
-            name: document.getElementById('profileName').value.trim(),
-            address: document.getElementById('profileAddress').value.trim(),
-            phone: document.getElementById('profilePhone').value.trim(),
+            name: document.getElementById('profileName').value,
+            address: document.getElementById('profileAddress').value,
+            phone: document.getElementById('profilePhone').value,
         };
-        // Di localStorage de tomar bike
         localStorage.setItem(PROFILE_KEY, JSON.stringify(state.userProfile));
-        showNotification(t('profile_saved'), 'success'); // Agahdarî nîşan bide
-        closeCurrentPopup(); // Sheetê bigire
+        showNotification(t('profile_saved'), 'success');
+        closeCurrentPopup();
     };
 
-    // Guhertina zimanê
     document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.onclick = () => {
-            setLanguage(btn.dataset.lang); // Zimanê hilbijartî saz bike
+            setLanguage(btn.dataset.lang);
         };
     });
 
-    // Bişkoka sazkirina PWA
     const installBtn = document.getElementById('installAppBtn');
     if (installBtn) {
         installBtn.addEventListener('click', async () => {
-            // Heger prompta sazkirinê hatibe hilanîn
             if (state.deferredPrompt) {
-                installBtn.style.display = 'none'; // Bişkokê veşêre
-                state.deferredPrompt.prompt(); // Promptê nîşan bide
-                // Li benda bersiva bikarhêner be
+                installBtn.style.display = 'none'; // Hide the button after prompting
+                state.deferredPrompt.prompt();
                 const { outcome } = await state.deferredPrompt.userChoice;
                 console.log(`User response to the install prompt: ${outcome}`);
-                state.deferredPrompt = null; // Prompta hilanî paqij bike
+                state.deferredPrompt = null; // Clear the saved prompt
             }
         });
     }
 
-    // Bişkoka agahdariyan
     notificationBtn.addEventListener('click', () => {
-        openPopup('notificationsSheet'); // Sheeta agahdariyan veke
+        openPopup('notificationsSheet');
     });
 
-    // Bişkoka Merc & Rêsa
     if (termsAndPoliciesBtn) {
         termsAndPoliciesBtn.addEventListener('click', () => {
-            openPopup('termsSheet'); // Sheeta mercan veke
+            openPopup('termsSheet');
         });
     }
 
-    // Bişkoka çalakkirina agahdariyan
     const enableNotificationsBtn = document.getElementById('enableNotificationsBtn');
     if (enableNotificationsBtn) {
         enableNotificationsBtn.addEventListener('click', requestNotificationPermission);
     }
 
-    // Bişkoka force update
     const forceUpdateBtn = document.getElementById('forceUpdateBtn');
     if (forceUpdateBtn) {
         forceUpdateBtn.addEventListener('click', forceUpdate);
     }
 
-    // Birêvebirina peyamên push dema ku app vekirî ye
+    // Handle foreground messages
     onMessage(messaging, (payload) => {
         console.log('Foreground message received: ', payload);
-        // Agahdariyek hundirîn nîşan bide
-        const title = payload.notification?.title || 'Agahdarî';
-        const body = payload.notification?.body || '';
-        showNotification(`${title}: ${body}`, 'success');
-        // Badge nûve bike
+        // Customize notification display for foreground messages
+        const title = payload.notification.title;
+        const body = payload.notification.body;
+        showNotification(`${title}: ${body}`, 'success'); // Example: using existing notification system
+        // Optionally update the notification badge immediately
         notificationBadge.style.display = 'block';
     });
 }
 
-
 onAuthStateChanged(auth, async (user) => {
-    // UID ya adminê ya rastî ji projeya Firebase bistîne
-    const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3"; // *** UID ya xwe li vir binivîse ***
-    const isAdmin = user && user.uid === adminUID; // Kontrol bike ka bikarhêner admin e
+    // IMPORTANT: Use the actual Admin UID from your Firebase project
+    const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3"; // Replace with your Admin UID
+    const isAdmin = user && user.uid === adminUID;
 
     if (isAdmin) {
-        sessionStorage.setItem('isAdmin', 'true'); // Rewşa admin tomar bike
-        // Heger mentiqê admin hebe û fonksiyonê initialize hebe
+        sessionStorage.setItem('isAdmin', 'true'); // Use sessionStorage for temporary admin status
         if (window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
-             // Piştrast be ku rûpel bi tevahî barkiriye berî destpêkirinê
-             if (document.readyState === 'complete' || document.readyState === 'interactive') {
+             // Ensure admin logic is loaded before initializing
+             if (document.readyState === 'complete') {
                   window.AdminLogic.initialize();
              } else {
-                  window.addEventListener('load', window.AdminLogic.initialize, { once: true });
+                  window.addEventListener('load', window.AdminLogic.initialize);
              }
         } else {
-             console.warn("AdminLogic not found or initialize is not a function. Admin features might not work.");
+             console.warn("AdminLogic not found or initialize not a function.");
         }
     } else {
-        // Heger bikarhêner ne admin be yan têketî nebe
-        sessionStorage.removeItem('isAdmin'); // Rewşa admin rake
-        // Heger bikarhênerek ne-admin têketibe (ku divê nebe), derxe
+        sessionStorage.removeItem('isAdmin');
         if (user) {
+            // If a non-admin user is somehow signed in, sign them out.
             await signOut(auth);
             console.log("Non-admin user signed out.");
         }
-        // Heger mentiqê admin hebe û fonksiyonê deinitialize hebe, bang bike
         if (window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
-            window.AdminLogic.deinitialize(); // Hêmanên UI yên admin paqij bike
+            window.AdminLogic.deinitialize(); // Clean up admin UI elements
         }
     }
 
-    // Modalê têketinê bigire heger admin bi serkeftî têkeve
+    // Close login modal if user successfully logs in as admin
     if (loginModal.style.display === 'block' && isAdmin) {
         closeCurrentPopup();
     }
@@ -2621,116 +2315,108 @@ onAuthStateChanged(auth, async (user) => {
 
 
 function init() {
-    renderSkeletonLoader(); // Skeleton loaderê yekser nîşan bide
+    renderSkeletonLoader(); // Show skeleton loader immediately
 
-    // Hewl bide moda offline ya Firestore çalak bike
+    // Attempt to enable offline persistence
     enableIndexedDbPersistence(db)
         .then(() => {
             console.log("Firestore offline persistence enabled successfully.");
+            // Initialize core app logic after persistence is set up (or failed gracefully)
+            initializeAppLogic();
         })
         .catch((err) => {
-            // Xeletiyên hevpar ji bo neçalakkirina persistence
             if (err.code == 'failed-precondition') {
-                console.warn('Firestore Persistence failed: Multiple tabs open?');
+                // Multiple tabs open, persistence can only be enabled in one tab at a time.
+                console.warn('Firestore Persistence failed: Multiple tabs open.');
             } else if (err.code == 'unimplemented') {
-                console.warn('Firestore Persistence failed: Browser not fully supported.');
+                // The current browser does not support all of the features required to enable persistence.
+                console.warn('Firestore Persistence failed: Browser not supported.');
             }
             console.error("Error enabling persistence, running online mode only:", err);
-        })
-        .finally(() => {
-             // Her çi qewimî, mentiqê serekiyê appê dest pê bike
-             initializeAppLogic();
+            // Initialize core app logic even if persistence fails
+            initializeAppLogic();
         });
 }
 
 function initializeAppLogic() {
-    // Piştrast be ku objeya ji bo intervalên sliderê heye
+    // Add sliderIntervals property if it doesn't exist (robustness)
     if (!state.sliderIntervals) {
         state.sliderIntervals = {};
     }
 
-    // Kategoriyan bîne û li guhertinên wan temaşe bike
+    // Fetch categories and set up initial UI based on them
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     onSnapshot(categoriesQuery, async (snapshot) => {
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // Kategorîya "Hemû" lê zêde bike
-        state.categories = [{ id: 'all', icon: 'fas fa-th', name_ku_sorani:'هەموو', name_ku_badini:'هەمی', name_ar:'الكل' }, ...fetchedCategories];
-        updateCategoryDependentUI(); // UI yên girêdayî kategoriyan nûve bike
+        state.categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories]; // Add 'All' category
+        updateCategoryDependentUI(); // Update dropdowns and category buttons
 
-        // *** GUHERTIN: Barkirina rûpela destpêkê û bicîhanîna filteran li vir ***
-        const initialState = history.state; // State ku ji hêla handleInitialPageLoad ve hat danîn bistîne
-        if (initialState) {
-            if (initialState.type === 'page') {
-                // Heger rûpelek taybet be (settings yan detail)
-                if (initialState.id === 'subcategoryDetailPage') {
-                     let pageTitle = initialState.title;
-                     if (!pageTitle && initialState.mainCatId && initialState.subCatId) {
-                         try {
-                             const subCatRef = doc(db, "categories", initialState.mainCatId, "subcategories", initialState.subCatId);
-                             const subCatSnap = await getDoc(subCatRef);
-                             if (subCatSnap.exists()) {
-                                 const subCat = subCatSnap.data();
-                                 pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
-                                 history.replaceState({ ...initialState, title: pageTitle }, ''); // Sernavê nûve bike
-                             }
-                         } catch(e) { console.error("Could not fetch title on init after categories loaded", e) }
-                     }
-                     showPage(initialState.id, pageTitle);
-                } else if (initialState.id === 'settingsPage') {
-                     showPage(initialState.id, initialState.title);
-                }
-            } else {
-                 // Heger rûpela serekiyê be (bê type)
-                 showPage('mainPage'); // Piştrast be rûpela serekiyê xuya ye
-                 await applyFilterState(initialState, false); // Filterên destpêkê bicîh bîne
+        // Handle initial page load based on URL (hash or query params)
+        // This needs to run *after* categories are loaded to potentially filter correctly
+        const hash = window.location.hash.substring(1);
+        if (hash.startsWith('subcategory_')) {
+            const ids = hash.split('_');
+            const mainCatId = ids[1];
+            const subCatId = ids[2];
+            // Only show detail page if category data is ready
+            if (state.categories.length > 1) {
+               showSubcategoryDetailPage(mainCatId, subCatId, true); // True because it's from initial load/history
             }
         } else {
-             // Wekî fallback, rûpela serekiyê bê filter nîşan bide
-             console.warn("Initial history state not found, loading default main page.");
-             showPage('mainPage');
-             await applyFilterState({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 }, false);
+            handleInitialPageLoad(); // Handles main page filters and other hashes
         }
 
-        // Zimanê bicîh bîne piştî ku kategorî û naveroka destpêkê hatine barkirin
+        // Apply language after categories are loaded to ensure names are correct
         setLanguage(state.currentLanguage);
-    }, error => {
-         console.error("Error fetching categories:", error);
-         // Dibe ku li vir pêwîst be peyamek xeletiyê ji bikarhêner re bê nîşandan
-         document.getElementById('mainCategoriesContainer').innerHTML = '<p>Error loading categories.</p>';
-         skeletonLoader.style.display = 'none'; // Skeleton loaderê veşêre
     });
 
-    // Beşên din ên appê saz bike
+    // Setup other parts of the app
     updateCartCount();
     setupEventListeners();
     setupScrollObserver();
-    // setLanguage(state.currentLanguage); // Êdî ne li vir, piştî barkirina kategoriyan e
-    renderContactLinks();
-    checkNewAnnouncements();
-    showWelcomeMessage();
-    setupGpsButton();
+    setLanguage(state.currentLanguage); // Apply language initially
+    renderContactLinks(); // Fetch and display contact links
+    checkNewAnnouncements(); // Check for notification badge
+    showWelcomeMessage(); // Show only on first visit
+    setupGpsButton(); // Add GPS functionality to profile address
 }
 
-// Fonksiyon û guherbarên pêwîst ji bo admin.js derxe
+// Expose necessary functions/variables for admin.js
 Object.assign(window.globalAdminTools, {
-    db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction, // Firestore û Auth
-    showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore, // Fonksiyonên Utility
-    productsCollection, categoriesCollection, announcementsCollection, promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection, // Koleksiyon
-    setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage, // Fonksiyonên Helper ji bo Admin
-    clearProductCache // Fonksiyona paqijkirina cache
+    db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
+    showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
+    productsCollection, categoriesCollection, announcementsCollection, promoGroupsCollection, brandGroupsCollection, // Pass new collections
+
+    // Helper functions for admin logic
+    clearProductCache: () => {
+        console.log("Product cache and home page cleared due to admin action.");
+        state.productCache = {}; // Clear the cache
+        const homeContainer = document.getElementById('homePageSectionsContainer');
+        if (homeContainer) {
+            homeContainer.innerHTML = ''; // Clear home page to force re-render
+        }
+        // Optionally trigger a re-render if the user is on the home page
+        // searchProductsInFirestore(state.currentSearch, true);
+    },
+    setEditingProductId: (id) => { state.editingProductId = id; },
+    getEditingProductId: () => state.editingProductId,
+    getCategories: () => state.categories, // Provide categories to admin
+    getCurrentLanguage: () => state.currentLanguage // Provide language to admin
 });
 
-// Destpêkirina appê
-document.addEventListener('DOMContentLoaded', init); // init dê initializeAppLogic bang bike piştî persistence
+// Start the application initialization process
+document.addEventListener('DOMContentLoaded', init);
 
-// ... (Koda PWA û Service Worker wek xwe dimîne) ...
 // PWA install prompt handling
 window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent the mini-infobar from appearing on mobile
     e.preventDefault();
+    // Stash the event so it can be triggered later.
     state.deferredPrompt = e;
+    // Update UI notify the user they can install the PWA
     const installBtn = document.getElementById('installAppBtn');
     if (installBtn) {
-        installBtn.style.display = 'flex';
+        installBtn.style.display = 'flex'; // Show install button in settings
     }
     console.log('`beforeinstallprompt` event was fired.');
 });
@@ -2744,31 +2430,37 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').then(registration => {
         console.log('Service Worker registered successfully.');
 
+        // Track updates to the Service Worker.
         registration.addEventListener('updatefound', () => {
             const newWorker = registration.installing;
             console.log('New service worker found!', newWorker);
 
             newWorker.addEventListener('statechange', () => {
+                // Has network.state changed?
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New worker is installed and waiting (controller exists means current page controlled)
+                    // Show the update notification bar
                     updateNotification.classList.add('show');
                 }
             });
         });
 
+        // Event listener for the update button
         updateNowBtn.addEventListener('click', () => {
-            registration.waiting?.postMessage({ action: 'skipWaiting' });
+            // Send message to SW to skip waiting and activate immediately
+            registration.waiting.postMessage({ action: 'skipWaiting' });
         });
 
     }).catch(err => {
         console.log('Service Worker registration failed: ', err);
     });
 
-    let refreshing;
+    // Listen for controller change which happens after skipWaiting is called
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (refreshing) return;
+        // This fires when the service worker controlling this page changes
+        // The page needs to be reloaded to use the new service worker.
         console.log('New Service Worker activated. Reloading page...');
         window.location.reload();
-        refreshing = true;
     });
 }
 
