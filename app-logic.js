@@ -125,7 +125,6 @@ function closeCurrentPopup() {
     }
 }
 
-// کۆدی ڕاستکراوە (چارەسەری گشتی)
 async function applyFilterState(filterState, fromPopState = false) {
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
@@ -142,8 +141,9 @@ async function applyFilterState(filterState, fromPopState = false) {
 
     if (fromPopState && typeof filterState.scroll === 'number') {
         setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
+    } else if (!fromPopState) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    // بەشی سکڕۆڵکردنەکە لێرەدا بە تەواوی سڕایەوە
 }
 
 async function navigateToFilter(newState) {
@@ -714,9 +714,11 @@ async function renderSubcategories(categoryId) {
                 <span>${subcatName}</span>
             `;
 
-            subcatBtn.onclick = () => {
-                showSubcategoryDetailPage(categoryId, subcat.id);
-            };
+              
+subcatBtn.onclick = () => {
+    saveCurrentScrollPosition(); //     
+    showSubcategoryDetailPage(categoryId, subcat.id);
+};
             subcategoriesContainer.appendChild(subcatBtn);
         });
 
@@ -2114,11 +2116,13 @@ function setupEventListeners() {
         await navigateToFilter({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
     };
 
-    settingsBtn.onclick = () => {
-        history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
-        showPage('settingsPage', t('settings_title'));
-    };
+    
 
+settingsBtn.onclick = () => {
+    saveCurrentScrollPosition(); //  
+    history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
+    showPage('settingsPage', t('settings_title'));
+};
     document.getElementById('headerBackBtn').onclick = () => {
         history.back();
     };
