@@ -140,7 +140,7 @@ async function applyFilterState(filterState, fromPopState = false) {
     await searchProductsInFirestore(state.currentSearch, true);
 
     if (fromPopState && typeof filterState.scroll === 'number') {
-        setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
+        setTimeout(() => window.scrollTo(0, filterState.scroll), 600);
     } else if (!fromPopState) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
