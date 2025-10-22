@@ -1,5 +1,6 @@
 // BEŞÊ DUYEM: app-logic.js
 // Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر - وەشانی 2)
+// (Çakkirî bo çareserkirina کێشەی سکڕۆڵ - Scroll Restoration Fix)
 
 import {
     db, auth, messaging,
@@ -79,7 +80,7 @@ function showPage(pageId, pageTitle = '') {
 
     const activeBtnId = pageId === 'mainPage' ? 'homeBtn' : (pageId === 'settingsPage' ? 'settingsBtn' : null);
     if (activeBtnId) {
-       updateActiveNav(activeBtnId);
+        updateActiveNav(activeBtnId);
     }
 }
 
@@ -139,11 +140,21 @@ async function applyFilterState(filterState, fromPopState = false) {
 
     await searchProductsInFirestore(state.currentSearch, true);
 
+    // ============================================
+    // ===== START: SCROLL RESTORATION FIX ======
+    // ============================================
     if (fromPopState && typeof filterState.scroll === 'number') {
-        setTimeout(() => window.scrollTo(0, filterState.scroll), 900);
+        // Use requestAnimationFrame for smoother scroll restoration after rendering
+        requestAnimationFrame(() => {
+             // Use setTimeout with 0ms delay inside rAF to ensure execution after paint
+             setTimeout(() => window.scrollTo(0, filterState.scroll), 0);
+        });
     } else if (!fromPopState) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+    // ============================================
+    // ===== END: SCROLL RESTORATION FIX ========
+    // ============================================
 }
 
 async function navigateToFilter(newState) {
@@ -178,14 +189,14 @@ window.addEventListener('popstate', async (event) => { // Guhertin bo async
             let pageTitle = popState.title;
             // Eger ew rûpela jêr-kategoriyê be û sernav tune be, ji nû ve bistîne
             if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
-               try {
-                  const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
-                  const subCatSnap = await getDoc(subCatRef);
-                  if (subCatSnap.exists()) {
-                      const subCat = subCatSnap.data();
-                      pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
-                  }
-               } catch(e) { console.error("Could not refetch title on popstate", e) }
+                try {
+                    const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
+                    const subCatSnap = await getDoc(subCatRef);
+                    if (subCatSnap.exists()) {
+                        const subCat = subCatSnap.data();
+                        pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
+                    }
+                } catch(e) { console.error("Could not refetch title on popstate", e) }
             }
             showPage(popState.id, pageTitle);
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
@@ -1258,16 +1269,16 @@ async function renderSingleCategoryRow(sectionData) {
         seeAllLink.onclick = async () => {
             // Navigate based on the most specific category ID
             if(subcategoryId) {
-                // If subcategory or subsubcategory is selected, go to the subcategory detail page
-                showSubcategoryDetailPage(categoryId, subcategoryId);
+                 // If subcategory or subsubcategory is selected, go to the subcategory detail page
+                 showSubcategoryDetailPage(categoryId, subcategoryId);
             } else {
                  // If only main category is selected, filter on the main page
                  await navigateToFilter({
-                    category: categoryId,
-                    subcategory: 'all',
-                    subSubcategory: 'all',
-                    search: ''
-                });
+                     category: categoryId,
+                     subcategory: 'all',
+                     subSubcategory: 'all',
+                     search: ''
+                 });
             }
         };
         header.appendChild(seeAllLink);
@@ -2288,9 +2299,9 @@ onAuthStateChanged(auth, async (user) => {
         if (window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
              // Ensure admin logic is loaded before initializing
              if (document.readyState === 'complete') {
-                  window.AdminLogic.initialize();
+                   window.AdminLogic.initialize();
              } else {
-                  window.addEventListener('load', window.AdminLogic.initialize);
+                   window.addEventListener('load', window.AdminLogic.initialize);
              }
         } else {
              console.warn("AdminLogic not found or initialize not a function.");
@@ -2360,7 +2371,7 @@ function initializeAppLogic() {
             const subCatId = ids[2];
             // Only show detail page if category data is ready
             if (state.categories.length > 1) {
-               showSubcategoryDetailPage(mainCatId, subCatId, true); // True because it's from initial load/history
+              showSubcategoryDetailPage(mainCatId, subCatId, true); // True because it's from initial load/history
             }
         } else {
             handleInitialPageLoad(); // Handles main page filters and other hashes
@@ -2463,4 +2474,3 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
-
