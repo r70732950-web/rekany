@@ -1,4 +1,4 @@
-// فایلی admin.js (تەواو و نوێکراوە بۆ سیستەمی پێشکەوتووی ڕیزبەندی)
+// فایلی admin.js (چاککراو)
 
 const { 
     db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit,
@@ -50,20 +50,17 @@ window.AdminLogic = {
         }
     
         const firstDocData = snapshot.docs[0].data();
-        // Check if the 'name' field is a string, which indicates the old structure
         const isOldStructure = typeof firstDocData.name === 'string' || !firstDocData.hasOwnProperty('name');
     
         if (isOldStructure) {
             console.warn("Old home_layout structure detected. Migrating to new structure...");
             showNotification('خەریکی نوێکردنەوەی سیستەمی ڕیزبەندییە...', 'success');
             
-            // Delete all old documents
             const allDocsSnapshot = await getDocs(layoutCollectionRef);
             const deletePromises = allDocsSnapshot.docs.map(doc => deleteDoc(doc.ref));
             await Promise.all(deletePromises);
             console.log("Old layout deleted.");
     
-            // Create the new default layout
             await this.createDefaultHomeLayout(layoutCollectionRef);
             console.log("New default layout created after migration.");
         } else {
@@ -80,7 +77,6 @@ window.AdminLogic = {
         ];
         const addPromises = defaultLayout.map(item => addDoc(collectionRef, item));
         
-        // Create default groups if they don't exist
         await setDoc(doc(promoGroupsCollection, 'default'), { name: 'گرووپی سەرەکی', createdAt: Date.now() });
         await setDoc(doc(brandGroupsCollection, 'default'), { name: 'گرووپی سەرەکی', createdAt: Date.now() });
 
@@ -538,7 +534,6 @@ window.AdminLogic = {
         const confirmation = confirm(`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە.`);
         if (confirmation) {
             try {
-                // This is a simplified delete. For production, a Cloud Function for recursive delete is better.
                 await deleteDoc(doc(db, docPath));
                 showNotification('جۆرەکە بە سەرکەوتوویی سڕدرایەوە', 'success');
                 clearProductCache();
@@ -1052,34 +1047,54 @@ window.AdminLogic = {
             }
         });
 
-        // Event listener for the "Add Section" modal form
+        // ======================================
+        // ===== START: CHAKKIRINA KOD / CODE FIX =====
+        // ======================================
         document.getElementById('newSectionType').addEventListener('change', async (e) => {
             const type = e.target.value;
             const groupContainer = document.getElementById('specificItemGroupSelectContainer');
             const categoryContainer = document.getElementById('specificCategorySelectContainer');
             const groupLabel = document.getElementById('specificItemGroupLabel');
             const groupSelect = document.getElementById('specificItemGroupId');
-
+        
             groupContainer.style.display = 'none';
             categoryContainer.style.display = 'none';
-
-            if (type === 'promo_slider' || type === 'brands') {
+        
+            if (type === 'promo_slider' || type === 'brands' || type === 'single_shortcut_row') {
                 groupContainer.style.display = 'block';
                 groupSelect.innerHTML = '<option value="">...بارکردن</option>';
-                const collectionRef = type === 'promo_slider' ? promoGroupsCollection : brandGroupsCollection;
-                groupLabel.textContent = type === 'promo_slider' ? 'کام گرووپی سلایدەر؟' : 'کام گرووپی براند؟';
+                let collectionRef, orderField, nameFieldAccessor;
+        
+                if (type === 'promo_slider') {
+                    collectionRef = promoGroupsCollection;
+                    groupLabel.textContent = 'کام گرووپی سلایدەر؟';
+                    orderField = 'name';
+                    nameFieldAccessor = (data) => data.name;
+                } else if (type === 'brands') {
+                    collectionRef = brandGroupsCollection;
+                    groupLabel.textContent = 'کام گرووپی براند؟';
+                    orderField = 'name';
+                    nameFieldAccessor = (data) => data.name;
+                } else { // single_shortcut_row
+                    collectionRef = shortcutRowsCollection;
+                    groupLabel.textContent = 'کام ڕیزی کارت؟';
+                    orderField = 'order';
+                    nameFieldAccessor = (data) => data.title.ku_sorani;
+                }
                 
-                const snapshot = await getDocs(query(collectionRef, orderBy('name')));
-                groupSelect.innerHTML = `<option value="" disabled selected>-- گرووپێک هەڵبژێرە --</option>`;
+                const snapshot = await getDocs(query(collectionRef, orderBy(orderField)));
+                groupSelect.innerHTML = `<option value="" disabled selected>-- گرووپ/ڕیزێک هەڵبژێرە --</option>`;
                 snapshot.forEach(doc => {
-                    groupSelect.innerHTML += `<option value="${doc.id}">${doc.data().name}</option>`;
+                    const data = doc.data();
+                    const name = nameFieldAccessor(data);
+                    groupSelect.innerHTML += `<option value="${doc.id}">${name}</option>`;
                 });
             } else if (type === 'single_category_row') {
                 categoryContainer.style.display = 'block';
                 const mainSelect = document.getElementById('newSectionMainCategory');
                 mainSelect.innerHTML = '<option value="">-- جۆری سەرەکی هەڵبژێرە (پێویستە) --</option>';
                 getCategories().filter(c => c.id !== 'all').forEach(cat => {
-                     mainSelect.innerHTML += `<option value="${cat.id}">${cat.name_ku_sorani}</option>`;
+                    mainSelect.innerHTML += `<option value="${cat.id}">${cat.name_ku_sorani}</option>`;
                 });
             }
         });
@@ -1096,6 +1111,10 @@ window.AdminLogic = {
                 const groupId = document.getElementById('specificItemGroupId').value;
                 if (!groupId) { showNotification('تکایە گرووپێک هەڵبژێرە', 'error'); return; }
                 specificIdData = { groupId };
+            } else if (type === 'single_shortcut_row') {
+                const rowId = document.getElementById('specificItemGroupId').value;
+                if (!rowId) { showNotification('تکایە ڕیزێک هەڵبژێرە', 'error'); return; }
+                specificIdData = { rowId };
             } else if (type === 'single_category_row') {
                 const catId = document.getElementById('newSectionMainCategory').value;
                 const subCatId = document.getElementById('newSectionSubcategory').value;
@@ -1127,6 +1146,9 @@ window.AdminLogic = {
                 showNotification('هەڵەیەک ڕوویدا', 'error');
             }
         });
+        // ======================================
+        // ===== END: CHAKKIRINA KOD / CODE FIX =====
+        // ======================================
 
         document.getElementById('newSectionMainCategory').addEventListener('change', async (e) => {
             const mainCatId = e.target.value;
@@ -1144,7 +1166,7 @@ window.AdminLogic = {
                 const snapshot = await getDocs(q);
                 subSelect.innerHTML = '<option value="">-- هەموو (یان هەڵبژێرە) --</option>';
                 snapshot.forEach(doc => {
-                     subSelect.innerHTML += `<option value="${doc.id}">${doc.data().name_ku_sorani}</option>`;
+                    subSelect.innerHTML += `<option value="${doc.id}">${doc.data().name_ku_sorani}</option>`;
                 });
             } else {
                 subContainer.style.display = 'none';
