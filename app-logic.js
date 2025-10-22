@@ -1,5 +1,5 @@
 // BEŞÊ DUYEM: app-logic.js
-// Fonksiyon û mentiqê serekî yê bernameyê
+// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر)
 
 import {
     db, auth, messaging,
@@ -1431,7 +1431,10 @@ async function renderAllProductsSection() {
     }
 }
 
-// Function updated to handle different section types based on layout config
+// ======================================
+// ===== START: GORRANKARIYA 1 / CHANGE 1 =====
+// ======================================
+// Fonksiyon hate guhertin da ku layoutId werbigire û bişîne renderPromoCardsSectionForHome
 async function renderHomePageContent() {
     if (state.isRenderingHomePage) return;
     state.isRenderingHomePage = true;
@@ -1439,15 +1442,14 @@ async function renderHomePageContent() {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
 
     try {
-        renderSkeletonLoader(homeSectionsContainer, 4); // Show skeleton loader initially
-        homeSectionsContainer.innerHTML = ''; // Clear previous content
+        renderSkeletonLoader(homeSectionsContainer, 4);
+        homeSectionsContainer.innerHTML = '';
 
         const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
         const layoutSnapshot = await getDocs(layoutQuery);
 
         if (layoutSnapshot.empty) {
             console.warn("Home page layout is not configured or all sections are disabled.");
-            // Optionally render a default message or structure
         } else {
             for (const doc of layoutSnapshot.docs) {
                 const section = doc.data();
@@ -1455,14 +1457,15 @@ async function renderHomePageContent() {
 
                 switch (section.type) {
                     case 'promo_slider':
-                        if (section.groupId) { // Check if groupId is specified
-                            sectionElement = await renderPromoCardsSectionForHome(section.groupId);
+                        if (section.groupId) {
+                            // CHAKKIRÎ: Nardina `doc.id` wekî `layoutId`
+                            sectionElement = await renderPromoCardsSectionForHome(section.groupId, doc.id);
                         } else { console.warn("Promo slider section is missing groupId in layout config."); }
                         break;
                     case 'brands':
-                         if (section.groupId) { // Check if groupId is specified
+                        if (section.groupId) {
                             sectionElement = await renderBrandsSection(section.groupId);
-                         } else { console.warn("Brands section is missing groupId in layout config."); }
+                        } else { console.warn("Brands section is missing groupId in layout config."); }
                         break;
                     case 'newest_products':
                         sectionElement = await renderNewestProductsSection();
@@ -1473,10 +1476,9 @@ async function renderHomePageContent() {
                         } else { console.warn("Single shortcut row section is missing rowId in layout config."); }
                         break;
                     case 'single_category_row':
-                         // Pass the whole section object which contains categoryId, subcategoryId, subSubcategoryId
-                         if (section.categoryId) {
-                             sectionElement = await renderSingleCategoryRow(section);
-                         } else { console.warn("Single category row section is missing categoryId in layout config."); }
+                        if (section.categoryId) {
+                            sectionElement = await renderSingleCategoryRow(section);
+                        } else { console.warn("Single category row section is missing categoryId in layout config."); }
                         break;
                     case 'all_products':
                         sectionElement = await renderAllProductsSection();
@@ -1495,21 +1497,29 @@ async function renderHomePageContent() {
         homeSectionsContainer.innerHTML = `<p style="text-align: center; padding: 20px;">هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
     } finally {
         // Stop promo rotation if it exists from previous render
-        if (state.promoRotationInterval) {
-            clearInterval(state.promoRotationInterval);
-            state.promoRotationInterval = null;
-        }
+        // CHAKKIRÎ: Divê êdî rawestandina interval li vir neyê kirin, ji ber ku her slider intervala xwe kontrol dike
+        // if (state.promoRotationInterval) {
+        //     clearInterval(state.promoRotationInterval);
+        //     state.promoRotationInterval = null;
+        // }
         state.isRenderingHomePage = false;
     }
 }
+// ======================================
+// ===== END: GORRANKARIYA 1 / CHANGE 1 =====
+// ======================================
 
-// Function updated to take groupId and manage its own interval
-async function renderPromoCardsSectionForHome(groupId) {
+
+// ======================================
+// ===== START: GORRANKARIYA 2 / CHANGE 2 =====
+// ======================================
+// Fonksiyon hate guhertin da ku layoutId werbigire û IDyek taybet çêbike
+async function renderPromoCardsSectionForHome(groupId, layoutId) { // ZÊDEKIRÎ: layoutId
     const promoGrid = document.createElement('div');
     promoGrid.className = 'products-container';
     promoGrid.style.marginBottom = '24px';
-    // Add an ID to track the interval for this specific group's slider
-    promoGrid.id = `promoSliderGroup_${groupId}`;
+    // CHAKKIRÎ: Bikaranîna layoutId ji bo çêkirina IDyek bêhempa
+    promoGrid.id = `promoSliderLayout_${layoutId}`; // Berê 'promoSliderGroup_${groupId}' bû
 
     try {
         const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
@@ -1518,19 +1528,17 @@ async function renderPromoCardsSectionForHome(groupId) {
         const cards = cardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         if (cards.length > 0) {
-            // Each slider needs its own state
             const sliderState = { currentIndex: 0, intervalId: null };
-            const cardData = { cards }; // Pass the cards for this group
+            const cardData = { cards };
 
-            const promoCardElement = createPromoCardElement(cardData, sliderState); // Pass sliderState
+            const promoCardElement = createPromoCardElement(cardData, sliderState);
             promoGrid.appendChild(promoCardElement);
 
-            // Start rotation only if there are multiple cards
             if (cards.length > 1) {
                 const rotate = () => {
-                    // Check if the element still exists in the DOM
+                    // Kontrol bike ka element hîn di DOMê de ye yan na
                     if (!document.getElementById(promoGrid.id)) {
-                        clearInterval(sliderState.intervalId); // Stop interval if section removed
+                        clearInterval(sliderState.intervalId); // Intervalê rawestîne eger beş hatibe rakirin
                         return;
                     }
                     sliderState.currentIndex = (sliderState.currentIndex + 1) % cards.length;
@@ -1538,11 +1546,9 @@ async function renderPromoCardsSectionForHome(groupId) {
                     const imgElement = promoCardElement.querySelector('.product-image');
                     if(imgElement) imgElement.src = newImageUrl;
                 };
-                // Clear any previous interval before starting a new one
                 if(sliderState.intervalId) clearInterval(sliderState.intervalId);
                 sliderState.intervalId = setInterval(rotate, 5000);
-                 // Store interval ID on the element for potential cleanup later
-                 promoGrid.dataset.interval = sliderState.intervalId;
+                promoGrid.dataset.interval = sliderState.intervalId;
             }
 
             return promoGrid;
@@ -1550,8 +1556,11 @@ async function renderPromoCardsSectionForHome(groupId) {
     } catch (error) {
         console.error(`Error rendering promo slider for group ${groupId}:`, error);
     }
-    return null; // Return null if no cards or error
+    return null;
 }
+// ======================================
+// ===== END: GORRANKARIYA 2 / CHANGE 2 =====
+// ======================================
 
 
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
@@ -1566,25 +1575,31 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         homeSectionsContainer.style.display = 'block';
 
         if (homeSectionsContainer.innerHTML.trim() === '') {
-            await renderHomePageContent(); // This will handle starting rotations
+            await renderHomePageContent();
         } else {
             // Re-start rotations if content was already there but intervals might have stopped
-            document.querySelectorAll('[id^="promoSliderGroup_"]').forEach(el => {
-                 const intervalId = parseInt(el.dataset.interval, 10);
-                 // Re-implement or re-call the rotation logic if needed,
-                 // or ensure startPromoRotation() handles this case correctly.
-                 // For simplicity now, we assume renderHomePageContent handles it.
+            // CHAKKIRÎ: Prefixê rast bikar bîne
+            document.querySelectorAll('[id^="promoSliderLayout_"]').forEach(el => { // Berê 'promoSliderGroup_' bû
+                const intervalId = parseInt(el.dataset.interval, 10);
+                // Logic to restart interval if needed (might be handled by renderHomePageContent)
             });
         }
         return;
     } else {
         homeSectionsContainer.style.display = 'none';
         // Stop all promo rotations when navigating away from the full home view
-        document.querySelectorAll('[id^="promoSliderGroup_"]').forEach(el => {
+        // ======================================
+        // ===== START: GORRANKARIYA 3 / CHANGE 3 =====
+        // ======================================
+        // CHAKKIRÎ: Prefixê rast bikar bîne ji bo rawestandina intervalan
+        document.querySelectorAll('[id^="promoSliderLayout_"]').forEach(el => { // Berê 'promoSliderGroup_' bû
             const intervalId = parseInt(el.dataset.interval, 10);
             if(intervalId) clearInterval(intervalId);
-            delete el.dataset.interval; // Remove the interval ID marker
+            delete el.dataset.interval;
         });
+        // ======================================
+        // ===== END: GORRANKARIYA 3 / CHANGE 3 =====
+        // ======================================
     }
 
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
