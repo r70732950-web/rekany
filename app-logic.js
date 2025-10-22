@@ -678,63 +678,67 @@ async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchT
     }
 }
 
+   // تکایە ئەم فەنکشنە نوێیە لە شوێنی فەنکشنی renderSubcategoriesـی کۆن دابنێ
 
 async function renderSubcategories(categoryId) {
-    const subcategoriesContainer = document.getElementById('subcategoriesContainer');
-    subcategoriesContainer.innerHTML = '';
+    const subcategoriesContainer = document.getElementById('subcategoriesContainer');
+    subcategoriesContainer.innerHTML = '';
 
-    if (categoryId === 'all') {
-        return;
-    }
+    if (categoryId === 'all') {
+        return;
+    }
 
-    try {
-        const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
-        const q = query(subcategoriesQuery, orderBy("order", "asc"));
-        const querySnapshot = await getDocs(q);
+    try {
+        const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
+        const q = query(subcategoriesQuery, orderBy("order", "asc"));
+        const querySnapshot = await getDocs(q);
 
-        state.subcategories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        state.subcategories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        if (state.subcategories.length === 0) return;
+        if (state.subcategories.length === 0) return;
 
-        const allBtn = document.createElement('button');
-        allBtn.className = `subcategory-btn ${state.currentSubcategory === 'all' ? 'active' : ''}`;
-        const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
-        allBtn.innerHTML = `
-            <div class="subcategory-image">${allIconSvg}</div>
-            <span>${t('all_categories_label')}</span>
-        `;
-        allBtn.onclick = async () => {
-            await navigateToFilter({
-                subcategory: 'all',
-                subSubcategory: 'all'
-            });
-        };
-        subcategoriesContainer.appendChild(allBtn);
+        const allBtn = document.createElement('button');
+        allBtn.className = `subcategory-btn ${state.currentSubcategory === 'all' ? 'active' : ''}`;
+        const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
+        allBtn.innerHTML = `
+            <div class="subcategory-image">${allIconSvg}</div>
+            <span>${t('all_categories_label')}</span>
+        `;
+        allBtn.onclick = async () => {
+            await navigateToFilter({
+                subcategory: 'all',
+                subSubcategory: 'all'
+            });
+        };
+        subcategoriesContainer.appendChild(allBtn);
 
-        state.subcategories.forEach(subcat => {
-            const subcatBtn = document.createElement('button');
-            subcatBtn.className = `subcategory-btn ${state.currentSubcategory === subcat.id ? 'active' : ''}`;
+        state.subcategories.forEach(subcat => {
+            const subcatBtn = document.createElement('button');
+            subcatBtn.className = `subcategory-btn ${state.currentSubcategory === subcat.id ? 'active' : ''}`;
 
-            const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
-            const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-            const imageUrl = subcat.imageUrl || placeholderImg;
+            const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
+            const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+            const imageUrl = subcat.imageUrl || placeholderImg;
 
-            subcatBtn.innerHTML = `
-                <img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
-                <span>${subcatName}</span>
-            `;
+            subcatBtn.innerHTML = `
+                <img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
+                <span>${subcatName}</span>
+            `;
 
-            subcatBtn.onclick = () => {
-                showSubcategoryDetailPage(categoryId, subcat.id);
-            };
-            subcategoriesContainer.appendChild(subcatBtn);
-        });
+            // === گۆڕانکارییەکە لێرەدایە ===
+            subcatBtn.onclick = () => {
+                saveCurrentScrollPosition(); // ئەم دێڕە لێرە زیادکراوە
+                showSubcategoryDetailPage(categoryId, subcat.id);
+            };
+            // ============================
 
-    } catch (error) {
-        console.error("Error fetching subcategories: ", error);
-    }
+            subcategoriesContainer.appendChild(subcatBtn);
+        });
+
+    } catch (error) {
+        console.error("Error fetching subcategories: ", error);
+    }
 }
-
 function renderMainCategories() {
     const container = document.getElementById('mainCategoriesContainer');
     if (!container) return;
