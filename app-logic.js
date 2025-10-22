@@ -531,7 +531,6 @@ async function renderSubSubcategories(mainCatId, subCatId) {
     // This function is no longer needed on the main page.
     subSubcategoriesContainer.innerHTML = '';
 }
-
 // کۆدی ڕاستکراوە
 async function showSubcategoryDetailPage(mainCatId, subCatId, fromHistory = false) {
     if (!fromHistory) {
@@ -725,11 +724,9 @@ async function renderSubcategories(categoryId) {
                 <span>${subcatName}</span>
             `;
 
-              
-subcatBtn.onclick = () => {
-    saveCurrentScrollPosition(); //     
-    showSubcategoryDetailPage(categoryId, subcat.id);
-};
+            subcatBtn.onclick = () => {
+                showSubcategoryDetailPage(categoryId, subcat.id);
+            };
             subcategoriesContainer.appendChild(subcatBtn);
         });
 
@@ -2127,13 +2124,11 @@ function setupEventListeners() {
         await navigateToFilter({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
     };
 
-    
+    settingsBtn.onclick = () => {
+        history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
+        showPage('settingsPage', t('settings_title'));
+    };
 
-settingsBtn.onclick = () => {
-    saveCurrentScrollPosition(); //  
-    history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
-    showPage('settingsPage', t('settings_title'));
-};
     document.getElementById('headerBackBtn').onclick = () => {
         history.back();
     };
