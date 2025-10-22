@@ -942,7 +942,7 @@ function createPromoCardElement(cardData, sliderState) {
                     subSubcategory: 'all',
                     search: ''
                 });
-                document.getElementById('mainCategoriesContainer')?.scrollIntoView({ behavior: 'smooth' });
+                
             }
         }
     });
