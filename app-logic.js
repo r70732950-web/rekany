@@ -1,6 +1,6 @@
 // BEŞÊ DUYEM: app-logic.js
 // Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر - وەشانی 2)
-// (Çakkirî bo çareserkirina کێشەی سکڕۆڵ - Scroll Restoration Fix)
+// (Çakkirî bo çareserkirina کێشەی سکڕۆڵ - Scroll Restoration Fix v2)
 
 import {
     db, auth, messaging,
@@ -136,26 +136,35 @@ async function applyFilterState(filterState, fromPopState = false) {
     clearSearchBtn.style.display = state.currentSearch ? 'block' : 'none';
 
     renderMainCategories();
-    await renderSubcategories(state.currentCategory);
+    await renderSubcategories(state.currentCategory); // Render categories first
 
-    await searchProductsInFirestore(state.currentSearch, true);
+    // Call the function to fetch/render content based on the new state
+    await searchProductsInFirestore(state.currentSearch, true); // Wait for content rendering to start/complete
 
     // ============================================
-    // ===== START: SCROLL RESTORATION FIX ======
+    // ===== START: SCROLL RESTORATION FIX v2 =====
     // ============================================
+    // Restore scroll position *after* content rendering has likely finished
     if (fromPopState && typeof filterState.scroll === 'number') {
         // Use requestAnimationFrame for smoother scroll restoration after rendering
         requestAnimationFrame(() => {
              // Use setTimeout with 0ms delay inside rAF to ensure execution after paint
-             setTimeout(() => window.scrollTo(0, filterState.scroll), 0);
+             setTimeout(() => {
+                // Double check if we are still on the main page before scrolling
+                if (document.getElementById('mainPage').classList.contains('page-active')) {
+                     window.scrollTo(0, filterState.scroll);
+                }
+             } , 0);
         });
     } else if (!fromPopState) {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Only scroll to top smoothly on *new* navigations, not popstate
+         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     // ============================================
-    // ===== END: SCROLL RESTORATION FIX ========
+    // ===== END: SCROLL RESTORATION FIX v2 =======
     // ============================================
 }
+
 
 async function navigateToFilter(newState) {
     history.replaceState({
@@ -2474,3 +2483,4 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
+
