@@ -91,12 +91,22 @@ function closeAllPopupsUI() {
     document.body.classList.remove('overlay-active');
 }
 
+// =======================================================
+// ===== دەستپێکی گۆڕانکاری ١: نوێکردنەوەی openPopup =====
+// =======================================================
 function openPopup(id, type = 'sheet') {
-    saveCurrentScrollPosition();
+    // --- دەستپێکی گۆڕانکاری ---
+    // شوێنی سکڕۆڵی ئێستا پاشەکەوت بکە لەسەر مێژووی ئێستای وێبگەڕ پێش زیادکردنی دۆخی نوێ
+    const currentScroll = window.scrollY;
+    const currentState = history.state || {}; // دۆخی ئێستا یان ئۆبجێکتێکی بەتاڵ وەربگرە
+    history.replaceState({ ...currentState, scroll: currentScroll }, ''); // سکڕۆڵ لەسەر دۆخی ئێستا پاشەکەوت بکە
+    // --- کۆتایی گۆڕانکاری ---
+
     const element = document.getElementById(id);
     if (!element) return;
 
-    closeAllPopupsUI();
+    // closeAllPopupsUI(); // لێرەدا پێویست نییە چونکە لە popstate بانگ دەکرێتەوە
+
     if (type === 'sheet') {
         sheetOverlay.classList.add('show');
         element.classList.add('show');
@@ -114,8 +124,13 @@ function openPopup(id, type = 'sheet') {
         element.style.display = 'block';
     }
     document.body.classList.add('overlay-active');
+    // دۆخی نوێ بۆ پۆپئەپ زیاد بکە
     history.pushState({ type: type, id: id }, '', `#${id}`);
 }
+// =====================================================
+// ===== کۆتایی گۆڕانکاری ١: نوێکردنەوەی openPopup =====
+// =====================================================
+
 
 function closeCurrentPopup() {
     if (history.state && (history.state.type === 'sheet' || history.state.type === 'modal')) {
@@ -125,6 +140,9 @@ function closeCurrentPopup() {
     }
 }
 
+// ==============================================================
+// ===== دەستپێکی گۆڕانکاری ٢: نوێکردنەوەی applyFilterState =====
+// ==============================================================
 async function applyFilterState(filterState, fromPopState = false) {
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
@@ -135,16 +153,27 @@ async function applyFilterState(filterState, fromPopState = false) {
     clearSearchBtn.style.display = state.currentSearch ? 'block' : 'none';
 
     renderMainCategories();
+    // چاوەڕێی تەواوبوونی رێندەری سەب-کاتیگۆرییەکان بکە
     await renderSubcategories(state.currentCategory);
 
-    await searchProductsInFirestore(state.currentSearch, true);
+    // چاوەڕێی تەواوبوونی گەڕان/فلتەرکردنی بەرهەمەکان بکە
+    await searchProductsInFirestore(state.currentSearch, true); // `true` بۆ ئەوەی بڵێین گەڕان/فلتەری نوێیە
 
+    // --- دەستپێکی گۆڕانکاری ---
+    // گەڕاندنەوەی شوێنی سکڕۆڵ
     if (fromPopState && typeof filterState.scroll === 'number') {
-        setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
+        // کەمێک دواخستن بۆ دڵنیابوون لەوەی ناوەڕۆک پیشان دراوە
+        setTimeout(() => window.scrollTo(0, filterState.scroll), 100); // دواخستن بۆ 100 میلی چرکە
     } else if (!fromPopState) {
+        // بۆ فلتەری نوێ، سکڕۆڵ بکە بۆ سەرەوە
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+    // --- کۆتایی گۆڕانکاری ---
 }
+// ============================================================
+// ===== کۆتایی گۆڕانکاری ٢: نوێکردنەوەی applyFilterState =====
+// ============================================================
+
 
 async function navigateToFilter(newState) {
     history.replaceState({
@@ -179,12 +208,12 @@ window.addEventListener('popstate', async (event) => { // Guhertin bo async
             // Eger ew rûpela jêr-kategoriyê be û sernav tune be, ji nû ve bistîne
             if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
                try {
-                  const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
-                  const subCatSnap = await getDoc(subCatRef);
-                  if (subCatSnap.exists()) {
-                      const subCat = subCatSnap.data();
-                      pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
-                  }
+                   const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
+                   const subCatSnap = await getDoc(subCatRef);
+                   if (subCatSnap.exists()) {
+                       const subCat = subCatSnap.data();
+                       pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
+                   }
                } catch(e) { console.error("Could not refetch title on popstate", e) }
             }
             showPage(popState.id, pageTitle);
@@ -1011,7 +1040,7 @@ function createProductCardElement(product) {
             <img src="${mainImage}" alt="${nameInCurrentLang}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
             ${discountBadgeHTML}
              <button class="${favoriteBtnClass}" aria-label="Add to favorites">
-                <i class="${heartIconClass} fa-heart"></i>
+                 <i class="${heartIconClass} fa-heart"></i>
             </button>
             <button class="share-btn-card" aria-label="Share product">
                 <i class="fas fa-share-alt"></i>
@@ -1263,11 +1292,11 @@ async function renderSingleCategoryRow(sectionData) {
             } else {
                  // If only main category is selected, filter on the main page
                  await navigateToFilter({
-                    category: categoryId,
-                    subcategory: 'all',
-                    subSubcategory: 'all',
-                    search: ''
-                });
+                     category: categoryId,
+                     subcategory: 'all',
+                     subSubcategory: 'all',
+                     search: ''
+                 });
             }
         };
         header.appendChild(seeAllLink);
@@ -2463,4 +2492,3 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
-
