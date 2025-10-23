@@ -1,5 +1,5 @@
 // BEŞÊ DUYEM: app-logic.js
-// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo rûpela kategoriyan - Guhertoya 3)
+// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo rûpela kategoriyan - Guhertoya 3.1 - Çareserkirina xeletiya deklarasyonê)
 
 import {
     db, auth, messaging,
@@ -15,15 +15,19 @@ import {
     productSubSubcategorySelect, profileForm, settingsPage, mainPage, homeBtn, settingsBtn,
     settingsFavoritesBtn, settingsAdminLoginBtn, settingsLogoutBtn, profileBtn, contactToggle,
     notificationBtn, notificationBadge, notificationsSheet, notificationsListContainer,
-    termsAndPoliciesBtn, termsSheet, termsContentContainer, subSubcategoriesContainer,
-    // === START: Zêdekirinên nû ji index.html ===
-    categoryDetailPage // Elementa nû ya rûpelê
-    // === END: Zêdekirinên nû ===
+    termsAndPoliciesBtn, termsSheet, termsContentContainer, subSubcategoriesContainer
+    // === START: Jêbirina xelet ===
+    // categoryDetailPage // <<< Ev rêze hate jêbirin ji ber ku divê neyê import kirin
+    // === END: Jêbirina xelet ===
 } from './app-setup.js';
 
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, addDoc, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
+
+// === START: Deklarasyona rast ===
+const categoryDetailPage = document.getElementById('categoryDetailPage');
+// === END: Deklarasyona rast ===
 
 
 function debounce(func, delay = 500) {
@@ -958,10 +962,8 @@ function renderMainCategories() {
 
 
 function showProductDetails(productId) {
-    const allFetchedProducts = [...state.products]; // Divê ev berhemên niha nîşankirî bigire
-    let product = allFetchedProducts.find(p => p.id === productId);
-
-    // Ger li rûpelên din be, hewl bide ku ji cache an Firestore bigire
+    // Hewl bide ku berhemê ji cache an lîsteya niha bigire
+    let product = state.products.find(p => p.id === productId);
     if (!product) {
          product = state.productCache && Object.values(state.productCache).flatMap(cache => cache.products).find(p => p.id === productId);
     }
@@ -1350,7 +1352,7 @@ function renderSkeletonLoader(container = skeletonLoader, count = 8) {
 function renderProducts() {
     productsContainer.innerHTML = '';
     if (!state.products || state.products.length === 0) {
-        return;
+        return; // Heke berhem tune bin, tiştekî neke
     }
 
     state.products.forEach(item => {
@@ -1622,10 +1624,11 @@ async function renderAllProductsSection() {
     container.appendChild(productsGrid);
 
     try {
+        // Tenê çend berheman ji bo beşa rûpela malê bigire
         const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(10));
         const snapshot = await getDocs(q);
         if (snapshot.empty) {
-            return null;
+            return null; // Ger tu berhem tune bin, render neke
         }
 
         snapshot.forEach(doc => {
@@ -1648,7 +1651,7 @@ async function renderHomePageContent() {
 
     try {
         renderSkeletonLoader(homeSectionsContainer, 4);
-        homeSectionsContainer.innerHTML = '';
+        homeSectionsContainer.innerHTML = ''; // Naveroka berê paqij bike
 
         Object.keys(state.sliderIntervals || {}).forEach(layoutId => {
             if (state.sliderIntervals[layoutId]) {
@@ -2468,6 +2471,7 @@ onAuthStateChanged(auth, async (user) => {
     if (isAdmin) {
         sessionStorage.setItem('isAdmin', 'true');
         if (window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
+             // Piştrast be ku DOM amade ye berî ku initialize bang bike
              if (document.readyState === 'complete' || document.readyState === 'interactive') {
                   window.AdminLogic.initialize();
              } else {
@@ -2475,18 +2479,28 @@ onAuthStateChanged(auth, async (user) => {
              }
         } else {
              console.warn("AdminLogic not found or initialize not a function.");
+             // Ger admin.js hîn nehatiye barkirin, demekê bisekine û dîsa hewl bide
+             setTimeout(() => {
+                if (window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
+                    window.AdminLogic.initialize();
+                } else {
+                     console.error("AdminLogic still not available after delay.");
+                }
+             }, 500);
         }
     } else {
         sessionStorage.removeItem('isAdmin');
         if (user) {
+            // Ger bikarhênerek ne-admin bi awayekî ketibe hundur, wî derxe.
             await signOut(auth);
             console.log("Non-admin user signed out.");
         }
         if (window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
-            window.AdminLogic.deinitialize();
+            window.AdminLogic.deinitialize(); // Hêmanên UI yên admin paqij bike
         }
     }
 
+    // Modal login bigire heke bikarhêner bi serkeftî wekî admin têkeve
     if (loginModal.style.display === 'block' && isAdmin) {
         closeCurrentPopup();
     }
@@ -2494,20 +2508,25 @@ onAuthStateChanged(auth, async (user) => {
 
 
 function init() {
-    renderSkeletonLoader();
+    renderSkeletonLoader(); // Skeleton loaderê yekser nîşan bide
 
+    // Hewl bide ku persistansa offline çalak bike
     enableIndexedDbPersistence(db)
         .then(() => {
             console.log("Firestore offline persistence enabled successfully.");
+            // Mantiqê sereke yê sepanê piştî ku persistans hate saz kirin (an bi keremî têk çû) dest pê bike
             initializeAppLogic();
         })
         .catch((err) => {
             if (err.code == 'failed-precondition') {
+                // Gelek tab vekirî ne, persistans tenê di yek tabê de dikare were çalak kirin.
                 console.warn('Firestore Persistence failed: Multiple tabs open.');
             } else if (err.code == 'unimplemented') {
+                // Geroka heyî hemî taybetmendiyên pêwîst ji bo çalakkirina persistansê piştgirî nake.
                 console.warn('Firestore Persistence failed: Browser not supported.');
             }
             console.error("Error enabling persistence, running online mode only:", err);
+            // Mantiqê sereke yê sepanê dest pê bike hetta ku persistans têk biçe
             initializeAppLogic();
         });
 }
@@ -2517,70 +2536,85 @@ function initializeAppLogic() {
         state.sliderIntervals = {};
     }
 
+    // Kategoriyan bigire û UI-ya destpêkê li gorî wan saz bike
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     onSnapshot(categoriesQuery, async (snapshot) => {
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        state.categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories];
-        updateCategoryDependentUI();
+        state.categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories]; // Kategoriya 'Hemî' lê zêde bike
+        updateCategoryDependentUI(); // Dropdown û bişkokên kategoriyê nûve bike
 
-        // Destpêkirina rûpelê piştî barkirina kategoriyan pêk tê
-        const hash = window.location.hash.substring(1);
-        const currentState = history.state;
+        // Barkirina rûpela destpêkê li gorî URL (hash an pîvanên query)
+        // Pêdivî ye ku ev *piştî* barkirina kategoriyan were meşandin da ku potansiyel bi rêkûpêk fîlter bike
+        const currentState = history.state; // Rewşa heyî ya dîrokê kontrol bike
 
-        if (currentState && currentState.type === 'page') {
-             // Ger rewş hebe, li gorî wê rûpelê nîşan bide
+        // Ger rewşek hebe û ew ne popupek be, hewl bide ku li gorî wê rewşê render bike
+        if (currentState && currentState.type === 'page' && !document.querySelector('.page-active')) {
+             console.log("Initializing page based on history state:", currentState);
              let pageTitle = currentState.title;
+
+             // Germahiya ji nû ve girtina sernavê
              if (currentState.id === 'categoryDetailPage' && !pageTitle && currentState.categoryId) {
                  const cat = state.categories.find(c => c.id === currentState.categoryId);
                  pageTitle = cat ? (cat['name_' + state.currentLanguage] || cat.name_ku_sorani) : 'Category';
              } else if (currentState.id === 'subcategoryDetailPage' && !pageTitle && currentState.subCatId) {
-                 // Sernavê subkategoriyê ji nû ve bigire (wekî berê)
-                 try {
+                  try {
                      const subCatRef = doc(db, "categories", currentState.mainCatId, "subcategories", currentState.subCatId);
                      const subCatSnap = await getDoc(subCatRef);
                      if (subCatSnap.exists()) {
                          const subCat = subCatSnap.data();
                          pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
                      }
-                 } catch(e) { console.error("Could not fetch subcat title on init", e) }
+                  } catch(e) { console.error("Could not fetch subcat title on init state", e) }
              }
+
              showPage(currentState.id, pageTitle);
-             // Germahiya ji nû ve barkirina naverokê ji bo rûpelên hûrgulî
+             // Germahiya ji nû ve barkirina naverokê
              if (currentState.id === 'categoryDetailPage' && currentState.categoryId) {
                  await renderSubcategoriesOnCategoryPage(currentState.categoryId);
                  await renderProductsOnCategoryPage(currentState.categoryId, 'all');
              } else if (currentState.id === 'subcategoryDetailPage' && currentState.mainCatId && currentState.subCatId) {
                   await renderSubSubcategoriesOnDetailPage(currentState.mainCatId, currentState.subCatId);
                   await renderProductsOnDetailPage(currentState.subCatId, 'all', '');
+             } else if (currentState.id === 'mainPage') {
+                 // Dibe ku pêwîst be ku em rewşa fîltera rûpela sereke bicîh bînin ger di dîrokê de hebe
+                 const filterState = { category: currentState.category || 'all', search: currentState.search || '', scroll: currentState.scroll || 0};
+                 applyFilterState(filterState);
              }
-        } else {
-             // Wekî din, rûpela destpêkê bar bike
-             handleInitialPageLoad();
+        }
+        // Ger rewşek tune be an ew popupek be, barkirina rûpela destpêkê ya normal bike
+        else if (!document.querySelector('.page-active')) {
+            console.log("Initializing page based on URL (handleInitialPageLoad)");
+            handleInitialPageLoad();
         }
 
-        setLanguage(state.currentLanguage); // Ziman bicîh bike piştî barkirina destpêkê
+        // Ziman bicîh bike piştî barkirina destpêkê (dibe ku ji nû ve were bang kirin lê baş e)
+        setLanguage(state.currentLanguage);
     });
 
+    // Beşên din ên sepanê saz bike
     updateCartCount();
     setupEventListeners();
     setupScrollObserver();
-    setLanguage(state.currentLanguage);
-    renderContactLinks();
-    checkNewAnnouncements();
-    showWelcomeMessage();
-    setupGpsButton();
+    setLanguage(state.currentLanguage); // Zimanê destpêkê bicîh bike
+    renderContactLinks(); // Lînkên têkiliyê bigire û nîşan bide
+    checkNewAnnouncements(); // Ji bo nîşana agahdariyê kontrol bike
+    showWelcomeMessage(); // Tenê di serdana yekem de nîşan bide
+    setupGpsButton(); // Fonksiyona GPS li navnîşana profîlê zêde bike
 }
 
+// Fonksiyon/guhêrbarên pêwîst ji bo admin.js eşkere bike
 Object.assign(window.globalAdminTools, {
     db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
     showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
-    productsCollection, categoriesCollection, announcementsCollection, promoGroupsCollection, brandGroupsCollection,
+    productsCollection, categoriesCollection, announcementsCollection, promoGroupsCollection, brandGroupsCollection, // Koleksiyonên nû derbas bike
+
+    // Fonksiyonên alîkar ji bo mantiqê admin
     clearProductCache: () => {
         console.log("Product cache and home page cleared due to admin action.");
-        state.productCache = {};
+        state.productCache = {}; // Cache paqij bike
         const homeContainer = document.getElementById('homePageSectionsContainer');
         if (homeContainer) {
-            homeContainer.innerHTML = '';
+            homeContainer.innerHTML = ''; // Rûpela malê paqij bike da ku ji nû ve render bike
         }
         // Vebijêrk: Ji nû ve render bike ger bikarhêner li rûpela malê be
         if (document.getElementById('mainPage').classList.contains('page-active')) {
@@ -2589,23 +2623,29 @@ Object.assign(window.globalAdminTools, {
     },
     setEditingProductId: (id) => { state.editingProductId = id; },
     getEditingProductId: () => state.editingProductId,
-    getCategories: () => state.categories,
-    getCurrentLanguage: () => state.currentLanguage
+    getCategories: () => state.categories, // Kategoriyan ji admin re peyda bike
+    getCurrentLanguage: () => state.currentLanguage // Ziman ji admin re peyda bike
 });
 
+// Pêvajoya destpêkirina sepanê dest pê bike
 document.addEventListener('DOMContentLoaded', init);
 
+// Germahiya daxwaza sazkirina PWA
 window.addEventListener('beforeinstallprompt', (e) => {
+    // Pêşî li xuya bûna mini-infobarê li ser mobîlê bigire
     e.preventDefault();
+    // Bûyerê hilîne da ku paşê were çalak kirin.
     state.deferredPrompt = e;
+    // UI nûve bike da ku bikarhêner agahdar bike ku ew dikarin PWA saz bikin
     const installBtn = document.getElementById('installAppBtn');
     if (installBtn) {
-        installBtn.style.display = 'flex';
+        installBtn.style.display = 'flex'; // Bişkojka sazkirinê di mîhengan de nîşan bide
     }
     console.log('`beforeinstallprompt` event was fired.');
 });
 
 
+// Germahiya nûvekirina Service Worker
 if ('serviceWorker' in navigator) {
     const updateNotification = document.getElementById('update-notification');
     const updateNowBtn = document.getElementById('update-now-btn');
@@ -2613,17 +2653,22 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').then(registration => {
         console.log('Service Worker registered successfully.');
 
+        // Nûvekirinên Service Worker bişopîne.
         registration.addEventListener('updatefound', () => {
             const newWorker = registration.installing;
             console.log('New service worker found!', newWorker);
 
             newWorker.addEventListener('statechange', () => {
+                // Rewşa network.state guheriye?
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // Karkera nû hatiye sazkirin û li bendê ye (hebûna controller tê wateya ku rûpela heyî tê kontrol kirin)
+                    // Bara agahdariya nûvekirinê nîşan bide
                     updateNotification.classList.add('show');
                 }
             });
         });
 
+        // Event listener ji bo bişkojka nûvekirinê
         updateNowBtn.addEventListener('click', () => {
              // Ger karkerek li benda çalakkirinê be, peyamê jê re bişîne
              if (registration.waiting) {
@@ -2639,8 +2684,12 @@ if ('serviceWorker' in navigator) {
         console.log('Service Worker registration failed: ', err);
     });
 
+    // Guhdarî bike ji bo guherîna controllerê ku piştî skipWaiting tê bang kirin
     navigator.serviceWorker.addEventListener('controllerchange', () => {
+        // Ev dema ku service workerê ku vê rûpelê kontrol dike diguhere tê çalak kirin
+        // Pêdivî ye ku rûpel ji nû ve were barkirin da ku service workera nû bikar bîne.
         console.log('New Service Worker activated. Reloading page...');
         window.location.reload();
     });
 }
+
