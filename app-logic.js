@@ -1,5 +1,5 @@
 // BEŞÊ DUYEM: app-logic.js
-// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی Scroll Restoration - v4)
+// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی Scroll Restoration - v5)
 
 import {
     db, auth, messaging,
@@ -22,6 +22,11 @@ import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https:/
 import { enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, addDoc, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
+// Initialize mainPageScrollPos in state if not present (added in setup or here)
+if (state.mainPageScrollPos === undefined) {
+    state.mainPageScrollPos = 0;
+}
+
 
 function debounce(func, delay = 500) {
     let timeout;
@@ -36,11 +41,10 @@ function debounce(func, delay = 500) {
 
 function saveCurrentScrollPosition() {
     const currentState = history.state;
-    // Only save scroll position for the main page filter state
+    // Save scroll for main page *filter* navigation history
     if (document.getElementById('mainPage').classList.contains('page-active') && currentState && !currentState.type) {
-        // Save scrollY directly associated with the current filter state
         history.replaceState({ ...currentState, scroll: window.scrollY }, '');
-        // console.log("Saved scroll for mainPage:", window.scrollY, "State:", history.state);
+        // console.log("Saved scroll for mainPage FILTER state:", window.scrollY, "State:", history.state);
     }
 }
 
@@ -66,9 +70,8 @@ function showPage(pageId, pageTitle = '') {
         page.classList.toggle('page-hidden', !isActive);
     });
 
-    // Scroll to top only for new page views, not when restoring via popstate
-    // Scroll restoration for mainPage filters is handled in applyFilterState
-    if (pageId !== 'mainPage' && !(history.state && history.state.type === 'page' && history.state.id === pageId)) {
+    // Scroll to top only for new page views, restoration is handled separately
+    if (!(history.state && history.state.type === 'page' && history.state.id === pageId) && pageId !== 'mainPage') {
          window.scrollTo(0, 0);
     }
 
@@ -97,7 +100,14 @@ function closeAllPopupsUI() {
 }
 
 function openPopup(id, type = 'sheet') {
-    saveCurrentScrollPosition(); // Save scroll BEFORE opening popup
+    // === MANUAL SCROLL SAVE ===
+    // Save scroll ONLY if main page is active BEFORE opening popup
+    if (document.getElementById('mainPage').classList.contains('page-active')) {
+        state.mainPageScrollPos = window.scrollY;
+        // console.log("Saving mainPage scroll before opening popup:", state.mainPageScrollPos);
+    }
+    // saveCurrentScrollPosition(); // Keep this for filter state navigation
+
     const element = document.getElementById(id);
     if (!element) return;
 
@@ -119,6 +129,7 @@ function openPopup(id, type = 'sheet') {
         element.style.display = 'block';
     }
     document.body.classList.add('overlay-active');
+    // Push state AFTER saving scroll
     history.pushState({ type: type, id: id }, '', `#${id}`);
 }
 
@@ -145,24 +156,24 @@ async function applyFilterState(filterState, fromPopState = false) {
     // Render content (products or home sections)
     await searchProductsInFirestore(state.currentSearch, true);
 
-    // --- SCROLL RESTORATION LOGIC ---
-    if (fromPopState && typeof filterState.scroll === 'number' && filterState.scroll > 0) {
-        // Use setTimeout to allow content rendering/reflow before restoring scroll
+    // --- ADJUSTED SCROLL RESTORATION LOGIC ---
+    // Restore scroll ONLY if navigating between *filter* states via popstate
+    if (fromPopState && typeof filterState.scroll === 'number' && filterState.scroll > 0 && !filterState.type /* Check it's a filter state */) {
+        // Use setTimeout to allow content rendering/reflow before restoring scroll for filter navigation
         setTimeout(() => {
-             // console.log("Attempting to restore scroll from popstate:", filterState.scroll);
-             window.scrollTo({ top: filterState.scroll, behavior: 'instant' }); // Use 'instant' for direct jump
-        }, 100); // Increased delay slightly (try 50 or 100)
-    } else if (!fromPopState) {
-        // Scroll to top for *new* filter navigations
+             // console.log("Restoring filter navigation scroll from popstate:", filterState.scroll);
+             window.scrollTo({ top: filterState.scroll, behavior: 'instant' });
+        }, 50); // Small delay might still be needed
+    } else if (!fromPopState) { // For NEW filter navigations initiated by user clicks
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    // --- END SCROLL RESTORATION LOGIC ---
+    // --- END ADJUSTED SCROLL RESTORATION LOGIC ---
 }
 
 
 async function navigateToFilter(newState) {
-    // --- REMOVED: Redundant scroll saving here ---
-    // history.replaceState({ ...history.state, scroll: window.scrollY }, '');
+    // Save current scroll for potential back navigation
+    saveCurrentScrollPosition();
 
     const finalState = {
         category: newState.category !== undefined ? newState.category : state.currentCategory,
@@ -188,46 +199,55 @@ async function navigateToFilter(newState) {
 }
 
 
-window.addEventListener('popstate', async (event) => { // Guhertin bo async
+window.addEventListener('popstate', async (event) => {
     const popState = event.state;
     // console.log("Popstate triggered. State:", popState);
 
     // Close any open popups first when navigating back/forward
-    closeAllPopupsUI();
+    const wasPopupOpen = document.querySelector('.bottom-sheet.show, .modal[style*="display: block"]');
+    closeAllPopupsUI(); // Always close UI elements managed by popups
 
     if (popState) {
         if (popState.type === 'page') {
+            // Handle page navigation
             let pageTitle = popState.title;
-            // Eger ew rûpela jêr-kategoriyê be û sernav tune be, ji nû ve bistîne
             if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
-               try {
-                 const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
-                 const subCatSnap = await getDoc(subCatRef);
-                 if (subCatSnap.exists()) {
-                     const subCat = subCatSnap.data();
-                     pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
-                 }
-               } catch(e) { console.error("Could not refetch title on popstate", e) }
+                // Fetch title if needed (same as before)
+                try {
+                    const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
+                    const subCatSnap = await getDoc(subCatRef);
+                    if (subCatSnap.exists()) {
+                        const subCat = subCatSnap.data();
+                        pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
+                    }
+                } catch(e) { console.error("Could not refetch title on popstate", e) }
             }
             showPage(popState.id, pageTitle);
+            // Scroll restoration for non-main pages is handled by showPage (scrolls to top)
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
-           // If the state represents a popup that should now be closed (because we went back),
-           // the closeAllPopupsUI() above already handles it.
-           // We might need to ensure the underlying page (mainPage) is shown and its scroll restored.
-           // Check if the state *before* the popup state was a mainPage filter state.
-           // This requires more complex history tracking, let's rely on the filter state logic for now.
-           // Ensure main page is active if no other page state is found
-           if (!document.querySelector('.page-active:not(#mainPage)')) {
-               showPage('mainPage');
-           }
-
+            // This state represents an open popup. Since we just went back,
+            // the popup UI is closed. We now need to ensure the underlying page
+            // (likely mainPage) is displayed and attempt scroll restoration.
+             // console.log("Popstate closing popup. Attempting scroll restore if needed.");
+            if (document.getElementById('mainPage').classList.contains('page-active') && state.mainPageScrollPos > 0) {
+                 // console.log("Restoring mainPage scroll after closing popup via popstate:", state.mainPageScrollPos);
+                 setTimeout(() => { // Use setTimeout to ensure page is visible
+                      window.scrollTo({ top: state.mainPageScrollPos, behavior: 'instant' });
+                      // state.mainPageScrollPos = 0; // Reset after use
+                 }, 50); // Small delay
+            } else if (!document.querySelector('.page-active:not(#mainPage)')){
+                 // If no other specific page should be active, ensure mainPage is
+                 showPage('mainPage');
+            }
         } else {
-            // This is a mainPage filter state, apply it and restore scroll
-            showPage('mainPage'); // Make sure main page is visible
-            await applyFilterState(popState, true); // Pass true to indicate it's from history
+            // This is a mainPage filter state (navigating between filters using back/forward)
+            showPage('mainPage'); // Ensure main page is visible
+            // Restore scroll using the scroll value saved *in this state*
+            await applyFilterState(popState, true); // applyFilterState handles scroll for filter states
         }
     } else {
-        // No state, default to main page initial state
+        // No state (e.g., navigating back to the very first entry)
+        // Default to main page initial state
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
         showPage('mainPage');
         await applyFilterState(defaultState);
@@ -2382,6 +2402,12 @@ function initializeAppLogic() {
     if (!state.sliderIntervals) {
         state.sliderIntervals = {};
     }
+
+    // Add mainPageScrollPos if not defined
+    if (state.mainPageScrollPos === undefined) {
+         state.mainPageScrollPos = 0;
+    }
+
 
     // Fetch categories and set up initial UI based on them
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
