@@ -1,114 +1,128 @@
-/* --- Root Variables --- */
 :root {
-    --primary-color: #1a365d;
-    --primary-light: #2a4365;
-    --accent-color: #2f855a;
-    --accent-light: #38a169;
-    --danger-color: #c53030;
-    --danger-light: #e53e3e;
-    --text-color: #2d3748;
-    --text-light: #4a5568;
-    --light-gray: #f0f2f5;
-    --medium-gray: #e2e8f0;
-    --dark-gray: #718096;
-    --section-bg: #ffffff;
-    --section-border: #e2e8f0;
+    --primary-color: #1a365d; /* Renkê serekî yê tarî */
+    --primary-light: #2a4365; /* Renkê serekî yê ronî */
+    --accent-color: #2f855a; /* Renkê duyemî (bo nimûne, bişkokên erêkirinê) */
+    --accent-light: #38a169; /* Renkê duyemî yê ronî */
+    --danger-color: #c53030; /* Renkê sor yê metirsîyê */
+    --danger-light: #e53e3e; /* Renkê sor yê ronî */
+    --text-color: #2d3748; /* Renkê nivîsê yê serekî */
+    --text-light: #4a5568; /* Renkê nivîsê yê sivik */
+    --light-gray: #f0f2f5; /* Renkê paşxanê yê sivik */
+    --medium-gray: #e2e8f0; /* Renkê gewr yê navîn */
+    --dark-gray: #718096; /* Renkê gewr yê tarî */
+    --section-bg: #ffffff; /* Renkê paşxanê yê beşan */
+    --section-border: #e2e8f0; /* Renkê sînorê beşan */
 }
 
-/* --- Global Styles --- */
+/* Resetkirina giştî û fonta bingehîn */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Vazirmatn', sans-serif;
-    -webkit-tap-highlight-color: transparent; /* Remove tap highlight */
+    font-family: 'Vazirmatn', sans-serif; /* Fonta ji bo tevahî sepanê */
 }
 
+/* Stîlên bingehîn yên body */
 body {
     background-color: var(--light-gray);
     color: var(--text-color);
-    direction: rtl;
-    overflow-x: hidden;
+    direction: rtl; /* Danîna arasteyê ji rastê bo çepê */
+    overflow-x: hidden; /* Nehiştina scroll-a asoyî */
     font-family: 'Vazirmatn', sans-serif;
+    /* Zêdekirina padding ji bo safe area li ser iOS */
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
-    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-     -webkit-user-select: none; /* Disable text selection globally */
-     -moz-user-select: none;
-     -ms-user-select: none;
-     user-select: none;
+    -webkit-overflow-scrolling: touch; /* Ji bo scroll-a nerm li ser iOS */
+    /* Nehiştina hilbijartina nivîsê */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    /* Nehiştina şînahiya dema destlêdanê */
+     -webkit-tap-highlight-color: transparent;
 }
+
+/* Dema overlay çalak be, scroll-a body rawestîne */
 body.overlay-active {
-    overflow: hidden; /* Prevent body scroll when overlay/modal is active */
+    overflow: hidden;
 }
 
-/* --- App Container --- */
+/* Konteynera serekî ya sepanê */
 .app-container {
-     max-width: 100%;
-     margin: 0 auto;
-     background-color: var(--light-gray);
-     min-height: 100vh;
-     position: relative;
-     overflow-x: hidden;
- }
+    max-width: 100%; /* Firehiya herî zêde */
+    margin: 0 auto;
+    background-color: var(--light-gray);
+    min-height: 100vh; /* Bilindahiya kêmtirîn */
+    position: relative;
+    overflow-x: hidden; /* Nehiştina scroll-a asoyî */
+}
 
-/* --- Header Styles --- */
+/* Beşa serî (Header) */
 .app-header {
     background-color: white;
     color: var(--primary-color);
     padding: 12px 15px;
-    padding-top: calc(12px + env(safe-area-inset-top)); /* Adjust for safe area */
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: fixed;
+    display: flex; /* Bikarhînana flexbox */
+    justify-content: space-between; /* Belavkirina hêmanan */
+    align-items: center; /* Navînkirina hêmanan bi awayekî vertîkal */
+    position: fixed; /* Sabitkirina headerê li jor */
     top: 0;
     left: 0;
     right: 0;
-    z-index: 100;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    border-bottom: 1px solid var(--medium-gray);
-    gap: 15px;
+    z-index: 100; /* Danîna li ser hêmanên din */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Sîbera sivik */
+    border-bottom: 1px solid var(--medium-gray); /* Xêza jêrîn */
+    gap: 15px; /* Valahiya di navbera hêmanên headerê de */
+    /* Zêdekirina padding ji bo safe area */
+    padding-top: calc(12px + env(safe-area-inset-top));
 }
-.logo { display: flex; align-items: center; gap: 10px; }
-.logo-bottom { font-size: 22px; font-weight: bold; color: var(--primary-color); white-space: nowrap; }
 
-/* Header Content Containers (Main vs Subpage) */
+/* Stîla logo */
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Valahiya navbera îkon û nivîsê */
+}
+.logo-bottom {
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--primary-color);
+    white-space: nowrap; /* Nehiştina şikandina nivîsê */
+}
+
+/* Stîla beşa sereke û beşa rûpelên din ya headerê */
 .main-header-content, .subpage-header-content {
     display: flex;
     align-items: center;
     width: 100%;
-    gap: 10px; /* Reduced gap */
+    gap: 10px; /* Kêmkirina valahiyê */
 }
 
-/* Subpage Header Specifics */
+/* Stîla sernavê rûpelên din */
 .header-title {
     font-size: 18px;
     font-weight: bold;
     color: var(--primary-color);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex-grow: 1; /* Allow title to take available space */
-    flex-shrink: 1; /* Allow title to shrink if needed */
-    min-width: 0; /* Crucial for text-overflow */
-    text-align: right;
-}
-#headerBackBtn {
-    flex-shrink: 0; /* Prevent back button from shrinking */
+    white-space: nowrap; /* Nehiştina şikandina nivîsê */
+    overflow: hidden; /* Veşartina nivîsa zêde */
+    text-overflow: ellipsis; /* Danîna "..." ji bo nivîsa zêde */
+    flex-grow: 1; /* Destûrê dide ku mezin bibe */
+    flex-shrink: 1; /* Destûrê dide ku piçûk bibe */
+    min-width: 0; /* Girîng e ji bo text-overflow */
+    text-align: right; /* Nivîs li rastê be */
 }
 
-/* Search Container Styles (Used in both headers) */
+/* Stîla beşa lêgerînê */
 .search-container {
-    flex-grow: 1; /* Takes up space in main header */
+    flex-grow: 1; /* Ku valahiya mayî dagire */
     margin: 0;
-    position: relative;
+    position: relative; /* Ji bo pozîsyona îkonan */
 }
 .search-input {
     width: 100%;
-    padding: 10px 40px 10px 40px; /* Right padding for icon, left for clear button */
+    padding: 10px 40px 10px 40px; /* Padding ji bo îkon û bişkoka paqijkirinê */
     border: 1px solid var(--section-border);
     border-radius: 6px;
     font-size: 15px;
@@ -116,14 +130,14 @@ body.overlay-active {
 }
 .search-icon {
     position: absolute;
-    right: 12px;
+    right: 12px; /* Îkona lêgerînê li rastê */
     top: 50%;
     transform: translateY(-50%);
     color: var(--dark-gray);
 }
 .clear-search-btn {
     position: absolute;
-    left: 10px;
+    left: 10px; /* Bişkoka paqijkirinê li çepê */
     top: 50%;
     transform: translateY(-50%);
     background: none;
@@ -132,67 +146,110 @@ body.overlay-active {
     color: var(--dark-gray);
     cursor: pointer;
 }
-
-/* Subpage Search Specific Styling */
+/* Stîla lêgerîna rûpelên din */
 .subpage-search {
-    flex-grow: 0; /* Don't grow automatically */
-    flex-shrink: 0; /* Don't shrink */
-    width: 150px; /* Fixed width, adjust as needed */
-    display: none; /* Initially hidden, shown by JS */
+    flex-grow: 0; /* Ne mezin bibe */
+    flex-shrink: 0; /* Ne piçûk bibe */
+    width: 150px; /* Firehiyek maqûl */
+}
+/* Stîla bişkoka vegeryanê */
+#headerBackBtn {
+    flex-shrink: 0; /* Ne piçûk bibe */
 }
 
-.header-actions { display: flex; align-items: center; gap: 10px; }
-.header-icon-btn { background: none; border: none; font-size: 22px; color: var(--primary-color); cursor: pointer; position: relative; padding: 5px; }
-.notification-badge { position: absolute; top: 5px; right: 2px; width: 10px; height: 10px; background-color: var(--danger-color); border-radius: 50%; border: 2px solid white; }
+/* Stîla kiryarên headerê (mîna agahdarî) */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.header-icon-btn {
+    background: none;
+    border: none;
+    font-size: 22px;
+    color: var(--primary-color);
+    cursor: pointer;
+    position: relative; /* Ji bo nîşana agahdarîyê */
+    padding: 5px;
+}
+/* Nîşana agahdarîya nexwendî */
+.notification-badge {
+    position: absolute;
+    top: 5px;
+    right: 2px;
+    width: 10px;
+    height: 10px;
+    background-color: var(--danger-color);
+    border-radius: 50%;
+    border: 2px solid white;
+}
 
-/* --- Page Transitions --- */
+/* === Stîlên Rûpelan (Pages) === */
 .page {
-    position: absolute; /* Changed from fixed for better scroll handling with header */
+    position: absolute; /* An absolute da ku tenê rûpela çalak xuya bibe */
     top: 0;
     left: 0;
     width: 100%;
-    min-height: 100vh; /* Ensure page takes full height */
-    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 100%;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); /* Efekta guhertinê */
     background-color: var(--light-gray);
     overflow-x: hidden;
-    overflow-y: auto; /* Allow scrolling within the page */
-    padding-top: 80px; /* Consistent top padding for fixed header */
-    padding-bottom: calc(85px + env(safe-area-inset-bottom)); /* Consistent bottom padding for fixed nav */
+    overflow-y: auto; /* Scroll-a vertîkal */
+    /* Zêdekirina padding ji bo header û navîgasyona jêrîn */
+    padding-top: 80px; /* Bilindahiya texmînî ya headerê */
+    padding-bottom: 85px; /* Bilindahiya texmînî ya navîgasyona jêrîn */
 }
-.page-active { transform: translateX(0); z-index: 10; }
-.page-hidden { transform: translateX(100%); z-index: 1; }
+/* Dema rûpel çalak be */
+.page-active {
+    transform: translateX(0); /* Li cihê xwe be */
+    z-index: 10;
+}
+/* Dema rûpel veşartî be */
+.page-hidden {
+    transform: translateX(100%); /* Ji dîmenê derkeve (ber bi rastê) */
+    z-index: 1;
+}
 
-/* Remove individual page paddings, apply globally via .page */
-/* .main-content, #subcategoryDetailPage, .settings-page { ... } REMOVED */
-.settings-page { padding-left: 15px; padding-right: 15px; } /* Keep horizontal padding for settings */
+/* Stîla rûpela serekî */
+.main-content {
+    /* Padding jixwe li ser .page heye */
+}
 
+/* === Stîla Rûpela Nû ya Jûr-Kategoriyê === */
+.subcategory-detail-content {
+    /* Ev dikare vala be heke stîlên taybet ne hewce bin */
+}
 
-/* --- Main Content Sections --- */
+/* Stîla rûpela mîhengan */
+.settings-page {
+    padding-left: 15px; /* Padding li kêlekan */
+    padding-right: 15px;
+}
+
+/* Stîla beşan (Sections) */
 .section {
     background-color: var(--section-bg);
-    border-radius: 0;
-    margin: 0 0 16px;
-    padding: 16px 0; /* Vertical padding only */
+    border-radius: 0; /* Bê goşeyên gilover */
+    margin: 0 0 16px; /* Valahiya jêrîn */
+    padding: 16px 0; /* Padding hundirîn */
     border: 1px solid var(--section-border);
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    border-right: none;
+    border-right: none; /* Bê sînorên kêlekê */
     border-left: none;
 }
 
-/* Category Containers (Main, Sub, Sub-Sub) */
-.main-categories-container,
-.subcategories-container {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    gap: 8px;
-    padding: 5px 12px 15px 12px;
-    scrollbar-width: none; /* Firefox */
+/* Konteynera kategorîyên serekî */
+.main-categories-container {
+    display: flex; /* Flexbox ji bo rêzkirina horizontal */
+    gap: 8px; /* Valahiya navbera bişkokan */
+    overflow-x: auto; /* Scroll-a asoyî */
+    padding: 5px 12px 10px 12px; /* Padding */
+    scrollbar-width: none; /* Veşartina scrollbar li Firefox */
 }
-.main-categories-container::-webkit-scrollbar,
-.subcategories-container::-webkit-scrollbar { display: none; } /* Chrome, Safari */
-
+.main-categories-container::-webkit-scrollbar {
+    display: none; /* Veşartina scrollbar li Chrome/Safari */
+}
+/* Bişkokên kategorîyên serekî */
 .main-category-btn {
     padding: 6px 12px;
     border: 1px solid var(--medium-gray);
@@ -201,19 +258,45 @@ body.overlay-active {
     border-radius: 8px;
     cursor: pointer;
     font-size: 13px;
-    white-space: nowrap;
-    transition: all 0.2s;
+    white-space: nowrap; /* Nehiştina şikandinê */
+    transition: all 0.2s; /* Efekta nerm */
     display: flex;
     align-items: center;
     gap: 8px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     font-weight: bold;
 }
-.main-category-btn i { color: var(--primary-color); font-size: 16px; }
-.main-category-btn:hover { background-color: var(--light-gray); border-color: var(--dark-gray); }
-.main-category-btn.active { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
-.main-category-btn.active i { color: white !important; }
+.main-category-btn i {
+    color: var(--primary-color);
+    font-size: 16px;
+}
+.main-category-btn:hover {
+    background-color: var(--light-gray);
+    border-color: var(--dark-gray);
+}
+.main-category-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+.main-category-btn.active i {
+    color: white !important;
+}
 
+/* Konteynera jûr-kategoriyan (Subcategories) */
+.subcategories-container {
+    display: flex;
+    flex-direction: row; /* Rêzkirina horizontal */
+    flex-wrap: nowrap; /* Nehiştina şikandina rêzê */
+    overflow-x: auto; /* Scroll-a asoyî */
+    gap: 8px; /* Valahiya navbera bişkokan */
+    padding: 5px 12px 15px 12px; /* Padding */
+    scrollbar-width: none; /* Veşartina scrollbar */
+}
+.subcategories-container::-webkit-scrollbar {
+    display: none;
+}
+/* Bişkokên jûr-kategoriyan */
 .subcategory-btn {
     padding: 8px 5px;
     border: none;
@@ -221,339 +304,936 @@ body.overlay-active {
     color: var(--text-light);
     border-radius: 8px;
     cursor: pointer;
-    white-space: normal;
+    white-space: normal; /* Destûra şikandina nivîsê */
     transition: all 0.2s;
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    flex-direction: column; /* Wêne li jor, nivîs li jêr */
+    align-items: center; /* Navînkirina horizontal */
     gap: 6px;
-    width: 75px; /* Fixed width for consistent look */
-    flex-shrink: 0;
+    width: 75px; /* Firehiya sabit */
+    flex-shrink: 0; /* Ne piçûk bibe */
     font-size: 12px;
     text-align: center;
     font-weight: bold;
 }
-.subcategory-btn:hover { background-color: var(--light-gray); }
-.subcategory-btn.active .subcategory-image { border-color: var(--primary-color); transform: scale(1.05); }
-.subcategory-btn.active span { color: var(--primary-color); }
-
+.subcategory-btn:hover {
+    background-color: var(--light-gray);
+}
+/* Dema bişkok çalak be */
+.subcategory-btn.active .subcategory-image {
+    border-color: var(--primary-color); /* Guhertina rengê sînorê wêneyê */
+    transform: scale(1.05); /* Hinekî mezinkirin */
+}
+.subcategory-btn.active span {
+    color: var(--primary-color); /* Guhertina rengê nivîsê */
+}
+/* Wêneyên jûr-kategoriyan */
 .subcategory-image {
     width: 55px;
     height: 55px;
-    border-radius: 50%;
-    object-fit: cover;
+    border-radius: 50%; /* Giloverkirin */
+    object-fit: cover; /* Ku wêne cihê xwe dagire */
     background-color: #ffffff;
     border: 2px solid var(--medium-gray);
     flex-shrink: 0;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     transition: all 0.2s ease-in-out;
-    display: flex; /* For centering SVG */
-    align-items: center; /* For centering SVG */
-    justify-content: center; /* For centering SVG */
 }
-.subcategory-image svg { /* Style for SVG icons */
-    width: 60%;
-    height: 60%;
+/* Konteynera jûr-jûr-kategoriyan li ser rûpela detayê */
+#subSubCategoryContainerOnDetailPage {
+    background-color: white; /* Paşxaneya spî */
+    border-bottom: 1px solid var(--section-border); /* Xêza jêrîn */
 }
 
-
-/* --- Products Grid & Cards --- */
+/* Konteynera berheman (Products) */
 .products-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); /* Responsive grid */
-    gap: 12px;
-    padding: 0 12px; /* Horizontal padding for grid container */
+    display: grid; /* Grid layout */
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); /* Stûnên bi firehiya kêm 135px */
+    gap: 12px; /* Valahiya navbera kartan */
+    padding: 0 12px; /* Padding li kêlekan */
+}
+/* Konteynera berheman li ser rûpela detayê */
+#productsContainerOnDetailPage {
+    padding-top: 16px; /* Padding li jor */
 }
 
+/* Stîla kartên berheman */
 .product-card {
     background-color: white;
     border-radius: 12px;
-    overflow: hidden;
-    position: relative;
+    overflow: hidden; /* Ji bo goşeyên gilover */
+    position: relative; /* Ji bo pozîsyona hêmanên hundir */
     border: 1px solid var(--section-border);
     cursor: pointer;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
     transition: transform 0.2s, box-shadow 0.2s;
     display: flex;
-    flex-direction: column;
-    -webkit-user-select: none; /* Prevent selection on card */
+    flex-direction: column; /* Rêzkirina vertîkal */
+    /* Nehiştina hilbijartinê */
+    -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
 }
-.product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04); }
-
-/* Animation for revealing cards on scroll */
-.product-card-reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.5s ease-out, transform 0.5s ease-out; }
-.product-card-reveal.visible { opacity: 1; transform: translateY(0); }
-
-.product-image-container { width: 100%; aspect-ratio: 1/1; position: relative; }
-.product-image-container::after { /* Gradient overlay for name */
-    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 30%; /* Increased height */
-    background: linear-gradient(to top, rgba(0,0,0,0.75), transparent); pointer-events: none;
+.product-card:hover {
+    transform: translateY(-5px); /* Efekta bilindbûnê dema hover */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
 }
+/* Efekta xuya bûnê */
+.product-card-reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+.product-card-reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+/* Konteynera wêneyê berhemê */
+.product-image-container {
+    width: 100%;
+    aspect-ratio: 1/1; /* Rêjeya 1:1 */
+    position: relative;
+}
+/* Sîbera reş li jêrê wêneyê */
+.product-image-container::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 20%;
+    background: linear-gradient(to top, rgba(0,0,0,0.75), transparent);
+    pointer-events: none; /* Ku destûrê bide klikkirina li ser wêneyê */
+}
+/* Wêneyê berhemê */
 .product-image {
-    width: 100%; height: 100%; object-fit: contain; padding: 10px; background-color: #f8f9fa;
-    -webkit-touch-callout: none; -webkit-user-drag: none; /* Prevent image interaction */
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Nîşandana tevahî wêneyê */
+    padding: 10px; /* Hinek padding */
+    background-color: #f8f9fa;
+    /* Nehiştina kaşkirin an kopîkirina wêneyê */
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
 }
-
-.discount-badge { /* Positioned above gradient */
-    position: absolute; top: 8px; right: 8px; z-index: 3; background-color: var(--danger-color); color: white;
-    padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; animation: bounce-badge 2s infinite ease-in-out;
+/* Beşa agahdarîya berhemê */
+.product-info {
+    background-color: white;
+    height: 80px; /* Bilindahiya sabit */
+    position: relative;
+    padding: 0;
+    text-align: right; /* Nivîs li rastê */
 }
-@keyframes bounce-badge { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-4px) scale(1.05); } }
-
-.product-info { background-color: white; height: 80px; position: relative; padding: 0; text-align: right; }
-.product-name { /* Positioned within gradient */
-    position: absolute; top: -22px; right: 10px; left: 10px; z-index: 3; font-weight: bold; font-size: 14px;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: white;
+/* Navê berhemê (li ser wêneyê) */
+.product-name {
+    position: absolute;
+    top: -22px; /* Hinekî li ser beşa spî */
+    right: 10px;
+    left: 10px;
+    z-index: 3;
+    font-weight: bold;
+    font-size: 14px;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.6); /* Sîbera nivîsê */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: white;
 }
-.product-price-container { position: absolute; bottom: 40px; left: 12px; right: auto; top: auto; }
-.product-price { font-weight: 700; font-size: 15px; color: var(--accent-color); text-shadow: none; }
-.original-price { display: inline; color: var(--dark-gray); text-decoration: line-through; font-size: 13px; margin-right: 5px; } /* Changed to inline */
-
-.add-to-cart-btn-card {
-    position: absolute; bottom: 40px; right: 12px; left: auto; top: auto; width: 32px; height: 32px; background-color: var(--accent-color);
-    color: white; border: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;
-    transition: all 0.2s; z-index: 5; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+/* Konteynera bihayê */
+.product-price-container {
+    position: absolute;
+    bottom: 40px; /* Pozîsyona ji jêrê */
+    left: 12px; /* Pozîsyona ji çepê */
+    right: auto;
+    top: auto;
 }
-.add-to-cart-btn-card:hover { background-color: var(--accent-light); transform: scale(1.1); }
-.add-to-cart-btn-card span { display: none; }
-.add-to-cart-btn-card i { font-size: 15px; margin: 0; }
-.add-to-cart-btn-card:disabled { background-color: var(--dark-gray); cursor: not-allowed; }
-
-.favorite-btn {
-    position: absolute; top: 8px; left: 8px; background: rgba(255, 255, 255, 0.8); border: 1px solid var(--medium-gray);
-    width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;
-    font-size: 16px; color: var(--dark-gray); transition: color 0.2s, transform 0.2s; z-index: 5;
+/* Bihayê berhemê */
+.product-price {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--accent-color);
+    text-shadow: none;
 }
-.favorite-btn:hover { transform: scale(1.1); }
-.favorite-btn.favorited { color: var(--danger-color); } /* Style for favorited state */
-.favorite-btn.favorited i.far { display: none; } /* Hide regular if favorited */
-.favorite-btn:not(.favorited) i.fas { display: none; } /* Hide solid if not favorited */
-
-.share-btn-card { /* Share button next to favorite */
-    position: absolute; top: 8px; left: 48px; background: rgba(255, 255, 255, 0.8); border: 1px solid var(--medium-gray);
-    width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;
-    font-size: 15px; color: var(--dark-gray); transition: color 0.2s, transform 0.2s; z-index: 5;
+/* Bihayê berî dakêşanê (veşartî bi default) */
+.original-price {
+    display: none; /* Dema dakêşan hebe dê were xuya kirin */
 }
-.share-btn-card:hover { transform: scale(1.1); color: var(--primary-color); }
-
-.product-extra-info {}
-.shipping-badge {
-    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); right: auto; top: auto; display: inline-flex;
-    align-items: center; padding: 3px 8px; border-radius: 16px; background-color: rgba(230, 244, 234, 0.9);
-    color: #38a169; font-size: 11px; font-weight: bold; white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    z-index: 6; animation: move-peek 5s infinite ease-in-out;
+/* Danîna agahdarîyên zêde (veşartî) */
+.product-description { display: none; }
+/* Badge dakêşanê */
+.discount-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 3;
+    background-color: var(--danger-color);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    animation: bounce-badge 2s infinite ease-in-out; /* Animasyona lerzînê */
 }
-.shipping-badge i { margin-left: 6px; }
-@keyframes move-peek { 0%, 80%, 100% { transform: translateX(-50%); } 90% { transform: translateX(calc(-50% - 8px)); } }
-
-/* Admin Edit/Delete buttons on card */
-.product-actions { position: absolute; top: 5px; left: 90px; /* Adjusted left position */ display: flex; gap: 5px; flex-direction: column; z-index: 4; }
-.edit-btn, .delete-btn { width: 28px; height: 28px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 13px; color: white; cursor: pointer; }
+/* Keyframes ji bo animasyona badge */
+@keyframes bounce-badge {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-4px) scale(1.05); }
+}
+/* Kiryarên admin (sererastkirin, jêbirin) */
+.product-actions {
+    position: absolute;
+    top: 5px;
+    left: 45px; /* Li kêleka bişkoka favorit */
+    display: flex;
+    gap: 5px;
+    flex-direction: column;
+    z-index: 4;
+}
+.edit-btn, .delete-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: white;
+    cursor: pointer;
+}
 .edit-btn { background-color: var(--accent-color); }
 .delete-btn { background-color: var(--danger-color); }
-
-/* --- Modals & Sheets --- */
-@keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 2000; overflow-y: auto; }
-.modal-content { background-color: white; margin: 30px auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 450px; position: relative; animation: scaleIn 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
-.close { position: absolute; top: 12px; left: 12px; font-size: 22px; cursor: pointer; }
-
-.sheet-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1500; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
-.sheet-overlay.show { opacity: 1; visibility: visible; }
-.bottom-sheet { position: fixed; bottom: 0; left: 0; right: 0; background-color: white; border-top-left-radius: 16px; border-top-right-radius: 16px; box-shadow: 0 -4px 20px rgba(0,0,0,0.15); transform: translateY(100%); transition: transform 0.3s ease-out; z-index: 1600; max-height: 80vh; display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom); }
-.bottom-sheet.show { transform: translateY(0); }
-.sheet-header { padding: 12px; text-align: center; border-bottom: 1px solid var(--medium-gray); position: relative; flex-shrink: 0; }
-.sheet-handle { width: 40px; height: 5px; background-color: var(--medium-gray); border-radius: 3px; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); }
-.sheet-title { font-size: 17px; margin-top: 15px; font-weight: bold; }
-.sheet-content { padding: 15px; overflow-y: auto; }
-
-/* Category Sheet Buttons */
-.sheet-category-btn { background-color: var(--light-gray); border: 1px solid var(--section-border); padding: 12px; border-radius: 6px; width: 100%; text-align: right; cursor: pointer; font-size: 15px; display: flex; align-items: center; gap: 8px; transition: background-color 0.2s, color 0.2s; margin-bottom: 10px; }
-.sheet-category-btn:last-child { margin-bottom: 0; }
-.sheet-category-btn:hover { background-color: var(--medium-gray); }
-.sheet-category-btn.active { background-color: var(--primary-color); color: white; font-weight: bold; border-color: var(--primary-color); }
-.sheet-category-btn.active i { color: white !important; }
-
-/* Product Detail Sheet Image Slider */
-#sheetImageSlider { position: relative; max-width: 100%; margin-bottom: 15px; }
-#sheetImageContainer { display: flex; overflow: hidden; border-radius: 8px; }
-#sheetImageContainer img { width: 100%; flex-shrink: 0; display: none; object-fit: contain; max-height: 350px; transition: opacity 0.3s ease-in-out; -webkit-touch-callout: none; -webkit-user-drag: none; }
-#sheetImageContainer img.active { display: block; }
-.slider-btn { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0,0,0,0.4); color: white; border: none; font-size: 20px; cursor: pointer; z-index: 10; border-radius: 50%; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; }
-.slider-btn.prev { left: 10px; }
-.slider-btn.next { right: 10px; }
-#sheetThumbnailContainer { display: flex; justify-content: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-.thumbnail { width: 60px; height: 60px; object-fit: contain; border: 2px solid var(--medium-gray); border-radius: 4px; cursor: pointer; opacity: 0.6; transition: all 0.2s; }
-.thumbnail.active { border-color: var(--primary-color); opacity: 1; }
-#sheetProductDescription a { color: var(--primary-color); text-decoration: underline; font-weight: bold; }
-.add-to-cart-btn { /* General Add to Cart button style */
-    width: 100%; height: auto; padding: 8px; margin-top: auto; background-color: var(--accent-color); color: white;
-    border: none; border-radius: 6px; display: flex; align-items: center; justify-content: center; gap: 8px;
-    cursor: pointer; font-weight: bold; font-size: 14px; transition: background-color 0.2s;
+/* Bişkoka zêdekirina bo selikê li ser kartê */
+.add-to-cart-btn-card {
+    position: absolute;
+    bottom: 40px; /* Li heman bilindahiya bihayê */
+    right: 12px; /* Li rastê */
+    left: auto;
+    top: auto;
+    width: 32px;
+    height: 32px;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 5;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
-.add-to-cart-btn:hover { background-color: var(--accent-light); }
+.add-to-cart-btn-card:hover {
+    background-color: var(--accent-light);
+    transform: scale(1.1);
+}
+.add-to-cart-btn-card span { display: none; } /* Nivîsa "Zêdekirin" veşartî ye */
+.add-to-cart-btn-card i { font-size: 15px; margin: 0; }
+.add-to-cart-btn-card:disabled {
+    background-color: var(--dark-gray);
+    cursor: not-allowed;
+}
+/* Bişkoka Favorit */
+.favorite-btn {
+    position: absolute;
+    top: 8px;
+    left: 8px; /* Li çepê jor */
+    background: rgba(255, 255, 255, 0.8); /* Hinekî zelal */
+    border: 1px solid var(--medium-gray);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--dark-gray);
+    transition: color 0.2s, transform 0.2s;
+    z-index: 5;
+}
+.favorite-btn:hover { transform: scale(1.1); }
+.favorite-btn.favorited { color: var(--danger-color); } /* Dema favorit be sor bibe */
 
-/* Related Products Section */
-.related-products-section { margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--section-border); }
-.related-products-title { font-size: 18px; font-weight: bold; color: var(--primary-color); margin-bottom: 15px; padding: 0 12px; } /* Added padding */
-#relatedProductsContainer .product-card { width: 140px; flex-shrink: 0; } /* Smaller cards for horizontal scroll */
+/* --- Stîla Bişkoka Parvekirinê --- */
+.share-btn-card {
+    position: absolute;
+    top: 8px;
+    left: 48px; /* Li tenişta bişkoja favorit */
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid var(--medium-gray);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 15px;
+    color: var(--dark-gray);
+    transition: color 0.2s, transform 0.2s;
+    z-index: 5;
+}
+.share-btn-card:hover {
+    transform: scale(1.1);
+    color: var(--primary-color);
+}
+/* --- Dawiya Stîla Bişkoka Parvekirinê --- */
 
-/* --- Cart Styles --- */
-.cart-item { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--section-border); justify-content: space-between; gap: 10px; }
-.cart-item-image { width: 60px; height: 60px; object-fit: contain; border-radius: 6px; margin-left: 10px; }
-.cart-item-details { flex-grow: 1; }
-.cart-item-title { font-weight: bold; }
-.cart-item-price { font-size: 14px; color: var(--text-light); } /* Added price display */
-.cart-item-quantity { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-.quantity-btn { width: 28px; height: 28px; border: 1px solid var(--medium-gray); background-color: var(--light-gray); border-radius: 50%; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.quantity-btn:hover { background-color: var(--medium-gray); }
-.quantity-text { font-weight: bold; font-size: 16px; min-width: 20px; text-align: center; }
-.cart-item-subtotal { text-align: left; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; font-size: 13px; color: var(--dark-gray); }
-.cart-item-subtotal span { font-weight: bold; font-size: 15px; color: var(--text-color); }
-.cart-item-remove { color: var(--danger-color); background: none; border: none; cursor: pointer; font-size: 16px; margin-top: 5px; }
-.cart-total { font-weight: bold; font-size: 17px; margin-top: 12px; text-align: left; padding: 10px 0; border-top: 1px solid var(--medium-gray); }
-.cart-empty { text-align: center; padding: 25px; color: var(--dark-gray); }
-.cart-empty i { font-size: 45px; margin-bottom: 12px; color: var(--medium-gray); }
-.cart-actions { display:none; margin-top: 15px; }
-.whatsapp-btn, .viber-btn, .telegram-btn { /* Style for action buttons */ display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%; border: none; color: white; }
+/* Agahdarîyên zêde yên berhemê (mîna shipping) */
+.product-extra-info {
+    /* Niha vala ye */
+}
+/* Badge shipping */
+.shipping-badge {
+    position: absolute;
+    bottom: 10px; /* Li jêrê kartê */
+    left: 50%; /* Navînkirina horizontal */
+    transform: translateX(-50%);
+    right: auto;
+    top: auto;
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 16px; /* Goşeyên gilover */
+    background-color: rgba(230, 244, 234, 0.9); /* Rengek kesk yê sivik */
+    color: #38a169;
+    font-size: 11px;
+    font-weight: bold;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    z-index: 6;
+    animation: move-peek 5s infinite ease-in-out; /* Animasyona livînê */
+}
+.shipping-badge i { margin-left: 6px; }
+/* Keyframes ji bo animasyona shipping badge */
+@keyframes move-peek {
+    0%, 80%, 100% { transform: translateX(-50%); }
+    90% { transform: translateX(calc(-50% - 8px)); } /* Hinekî ber bi çepê ve biçe */
+}
 
-/* --- Forms --- */
+/* Stîla Modal (Pop-up) */
+@keyframes scaleIn { /* Animasyona xuya bûnê */
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+.modal {
+    display: none; /* Bi default veşartî */
+    position: fixed; /* Sabit */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Paşxaneya reş ya zelal */
+    z-index: 2000;
+    overflow-y: auto; /* Scroll heke naverok dirêj be */
+}
+.modal-content {
+    background-color: white;
+    margin: 30px auto; /* Navînkirin */
+    padding: 20px;
+    border-radius: 8px;
+    width: 90%; /* Firehiya 90% */
+    max-width: 450px; /* Firehiya herî zêde */
+    position: relative;
+    animation: scaleIn 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* Efekta mezinbûnê */
+}
+/* Bişkoka girtinê (X) */
+.close {
+    position: absolute;
+    top: 12px;
+    left: 12px; /* Li çepê jor (ji ber RTL) */
+    font-size: 22px;
+    cursor: pointer;
+}
+/* Stîla komên formê */
 .form-group { margin-bottom: 16px; }
 .form-group label { display: block; margin-bottom: 6px; font-weight: bold; }
-.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid var(--section-border); border-radius: 6px; }
-button[type="submit"] { background-color: var(--accent-color); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; }
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--section-border);
+    border-radius: 6px;
+}
+/* Bişkoka submit ya formê */
+button[type="submit"] {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: bold;
+}
 
-/* Profile Form Specific */
-.location-btn { width: 100%; margin-top: 8px; padding: 8px; background-color: var(--primary-light); color: white; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; }
-.location-btn:disabled { background-color: var(--dark-gray); cursor: not-allowed; }
-.image-inputs-container { display: flex; flex-direction: column; gap: 10px; }
-.image-input-group { display: flex; gap: 8px; align-items: center; }
-.image-input-group input { flex-grow: 1; }
-.image-preview-small { width: 40px; height: 40px; object-fit: contain; border-radius: 4px; background-color: var(--light-gray); border: 1px solid var(--medium-gray); }
-
-/* --- Notifications --- */
-.notification { position: fixed; top: 15px; right: 15px; padding: 12px 16px; border-radius: 6px; color: white; z-index: 9999; opacity: 0; transform: translateX(100%); transition: all 0.3s; }
-.notification.show { opacity: 1; transform: translateX(0); }
+/* Stîla Notifications (Toast Messages) */
+.notification {
+    position: fixed;
+    top: 15px;
+    right: 15px; /* Li rastê jor */
+    padding: 12px 16px;
+    border-radius: 6px;
+    color: white;
+    z-index: 9999;
+    opacity: 0;
+    transform: translateX(100%); /* Ji derve dest pê bike */
+    transition: all 0.3s; /* Efekta nerm */
+}
+.notification.show {
+    opacity: 1;
+    transform: translateX(0); /* Bê hundir */
+}
 .notification.success { background-color: var(--accent-color); }
 .notification.error { background-color: var(--danger-color); }
 
-.notification-item { background-color: #ffffff; border: 1px solid var(--section-border); border-radius: 8px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-.notification-item:last-child { margin-bottom: 0; }
-.notification-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.notification-title { font-weight: bold; font-size: 16px; color: var(--primary-color); }
-.notification-date { font-size: 12px; color: var(--dark-gray); }
-.notification-content { font-size: 14px; line-height: 1.6; color: var(--text-light); }
+/* Bişkoka zêdekirina berhemê ya float (tenê ji bo admin) */
+.add-product-btn {
+    display: none; /* Bi default veşartî */
+    position: fixed;
+    bottom: 80px; /* Li ser navîgasyona jêrîn */
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    background-color: var(--accent-color);
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 80;
+}
 
-/* --- Bottom Navigation --- */
-.bottom-nav { display: flex; justify-content: space-around; align-items: stretch; position: fixed; bottom: 0; left: 0; right: 0; width: 100%; height: calc(65px + env(safe-area-inset-bottom)); background-color: #ffffff; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000; border-top: 1px solid var(--medium-gray); padding-bottom: env(safe-area-inset-bottom); }
-.bottom-nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: none; color: var(--text-color); text-decoration: none; font-size: 12px; cursor: pointer; flex: 1; position: relative; padding: 5px 0; transition: all 0.2s; border-bottom: 3px solid transparent; -webkit-user-select: none; user-select: none; }
-.bottom-nav-item.active { border-bottom-color: var(--accent-light); }
+/* Stîla hêmanên selikê */
+.cart-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--section-border);
+    justify-content: space-between;
+    gap: 10px;
+}
+.cart-item-image {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    border-radius: 6px;
+    margin-left: 10px; /* Valahiya li çepê */
+}
+.cart-item-details { flex-grow: 1; }
+.cart-item-title { font-weight: bold; }
+/* Beşa hejmarê */
+.cart-item-quantity { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.quantity-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--medium-gray);
+    background-color: var(--light-gray);
+    border-radius: 50%;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.quantity-btn:hover { background-color: var(--medium-gray); }
+.quantity-text { font-weight: bold; font-size: 16px; min-width: 20px; text-align: center; }
+/* Buhayê parçeyî û jêbirin */
+.cart-item-subtotal {
+    text-align: left; /* Li çepê be */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--dark-gray);
+}
+.cart-item-subtotal span { font-weight: bold; font-size: 15px; color: var(--text-color); }
+.cart-item-remove {
+    color: var(--danger-color);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 5px;
+}
+/* Buhayê giştî yê selikê */
+.cart-total {
+    font-weight: bold;
+    font-size: 17px;
+    margin-top: 12px;
+    text-align: left; /* Li çepê be */
+}
+/* Peyama selika vala */
+.cart-empty { text-align: center; padding: 25px; color: var(--dark-gray); }
+.cart-empty i { font-size: 45px; margin-bottom: 12px; color: var(--medium-gray); }
+/* Kiryarên selikê */
+.cart-actions { display:none; margin-top: 15px; }
+/* Bişkokên şandina fermanê */
+.whatsapp-btn, .viber-btn, .telegram-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+    width: 100%;
+    border: none;
+    color: white;
+}
+
+/* Navîgasyona jêrîn (Bottom Navigation) */
+.bottom-nav {
+    display: flex;
+    justify-content: space-around; /* Belavkirina wekhev */
+    align-items: stretch; /* Ku bilindahî wekhev be */
+    position: fixed; /* Sabitkirina li jêr */
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 65px;
+    background-color: #ffffff;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+    border-top: 1px solid var(--medium-gray);
+    /* Zêdekirina padding ji bo safe area */
+    padding-bottom: env(safe-area-inset-bottom);
+    height: calc(65px + env(safe-area-inset-bottom));
+}
+/* Hêmanên navîgasyonê */
+.bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    color: var(--text-color);
+    text-decoration: none;
+    font-size: 12px;
+    cursor: pointer;
+    flex: 1; /* Ku firehî wekhev be */
+    position: relative; /* Ji bo hejmara selikê */
+    padding: 5px 0;
+    transition: all 0.2s;
+    border-bottom: 3px solid transparent; /* Ji bo nîşana çalakbûnê */
+}
+/* Dema hêman çalak be */
+.bottom-nav-item.active {
+    border-bottom-color: var(--accent-light); /* Xêza kesk */
+}
 .bottom-nav-item:hover { background-color: var(--light-gray); }
 .bottom-nav-item i { font-size: 20px; color: var(--primary-color); transition: color 0.2s; }
-.bottom-nav-item.active i, .bottom-nav-item.active span { color: var(--accent-light); font-weight: bold; }
-.bottom-nav-item .cart-count { position: absolute; top: 5px; left: calc(50% + 5px); background-color: var(--danger-light); color: white; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 11px; border: 1px solid white; }
+.bottom-nav-item.active i,
+.bottom-nav-item.active span {
+    color: var(--accent-light); /* Rengê kesk */
+    font-weight: bold;
+}
+/* Hejmara ser selikê */
+.bottom-nav-item .cart-count {
+    position: absolute;
+    top: 5px;
+    left: calc(50% + 5px); /* Pozîsyon li gorî navînê */
+    background-color: var(--danger-light);
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    border: 1px solid white;
+}
 
-/* --- Skeleton Loader --- */
-@keyframes shimmer { 0% { background-position: -468px 0; } 100% { background-position: 468px 0; } }
-.skeleton-card { background-color: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid var(--section-border); }
-.skeleton-image { width: 100%; aspect-ratio: 1/1; background-color: #e0e0e0; }
-.skeleton-text { height: 14px; width: 80%; background-color: #e0e0e0; margin: 12px; border-radius: 4px; }
-.skeleton-price { height: 15px; width: 50%; background-color: #e0e0e0; margin: 0 12px 12px; border-radius: 4px; }
-.skeleton-button { height: 35px; background-color: #e0e0e0; margin: 12px; border-radius: 6px; }
-.skeleton-card .shimmer { animation: shimmer 1.5s linear infinite; background: linear-gradient(to right, #eeeeee 8%, #dddddd 18%, #eeeeee 33%); background-size: 1000px 100%; }
+/* Stîla Bottom Sheet */
+.sheet-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Paşxaneya reş ya zelal */
+    z-index: 1500;
+    opacity: 0;
+    visibility: hidden; /* Bi default veşartî */
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+.sheet-overlay.show { opacity: 1; visibility: visible; }
+.bottom-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: white;
+    border-top-left-radius: 16px; /* Goşeyên gilover */
+    border-top-right-radius: 16px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+    transform: translateY(100%); /* Bi default li derve */
+    transition: transform 0.3s ease-out; /* Efekta nerm */
+    z-index: 1600;
+    max-height: 80vh; /* Bilindahiya herî zêde */
+    display: flex;
+    flex-direction: column; /* Rêzkirina vertîkal */
+    /* Zêdekirina padding ji bo safe area */
+    padding-bottom: env(safe-area-inset-bottom);
+}
+.bottom-sheet.show { transform: translateY(0); } /* Dema xuya be bê jor */
+.sheet-header {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid var(--medium-gray);
+    position: relative;
+    flex-shrink: 0; /* Ne piçûk bibe */
+}
+/* Destikê kaşkirinê */
+.sheet-handle {
+    width: 40px;
+    height: 5px;
+    background-color: var(--medium-gray);
+    border-radius: 3px;
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+.sheet-title { font-size: 17px; margin-top: 15px; font-weight: bold; }
+.sheet-content { padding: 15px; overflow-y: auto; } /* Scroll heke pêwîst be */
+/* Bişkokên kategoriyan di sheetê de */
+.sheet-category-btn {
+    background-color: var(--light-gray);
+    border: 1px solid var(--section-border);
+    padding: 12px;
+    border-radius: 6px;
+    width: 100%;
+    text-align: right; /* Nivîs li rastê */
+    cursor: pointer;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s, color 0.2s;
+    margin-bottom: 10px;
+}
+.sheet-category-btn:last-child { margin-bottom: 0; }
+.sheet-category-btn:hover { background-color: var(--medium-gray); }
+.sheet-category-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: bold;
+    border-color: var(--primary-color);
+}
+.sheet-category-btn.active i { color: white !important; }
 
-/* --- Update Notification Bar --- */
-.update-notification { display: none; position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(100px); background-color: var(--primary-color); color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 2000; align-items: center; gap: 15px; transition: all 0.4s ease-in-out; opacity: 0; }
-.update-notification.show { display: flex; transform: translateX(-50%) translateY(0); opacity: 1; }
-.update-now-btn { background-color: var(--accent-color); color: white; border: none; border-radius: 5px; padding: 8px 15px; cursor: pointer; font-weight: bold; white-space: nowrap; }
-.update-now-btn:hover { background-color: var(--accent-light); }
+/* Stîla slidera wêneyan di hûrgiliyên berhemê de */
+#sheetImageSlider { position: relative; max-width: 100%; margin-bottom: 15px; }
+#sheetImageContainer { display: flex; overflow: hidden; border-radius: 8px; }
+#sheetImageContainer img {
+    width: 100%;
+    flex-shrink: 0;
+    display: none; /* Bi default veşartî */
+    object-fit: contain;
+    max-height: 350px; /* Bilindahiya herî zêde */
+    transition: opacity 0.3s ease-in-out;
+     /* Nehiştina kaşkirin an kopîkirinê */
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+}
+#sheetImageContainer img.active { display: block; } /* Wêneyê çalak xuya bike */
+/* Bişkokên sliderê (pêş/paş) */
+.slider-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0,0,0,0.4);
+    color: white;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 10;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.slider-btn.prev { left: 10px; }
+.slider-btn.next { right: 10px; }
+/* Konteynera wêneyên biçûk (Thumbnails) */
+#sheetThumbnailContainer { display: flex; justify-content: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.thumbnail {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    border: 2px solid var(--medium-gray);
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0.6; /* Hinekî zelal */
+    transition: all 0.2s;
+    /* Nehiştina kaşkirin an kopîkirinê */
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+}
+.thumbnail.active { border-color: var(--primary-color); opacity: 1; } /* Thumbnail-a çalak */
+/* Stîla lînkan di danasînê de */
+#sheetProductDescription a { color: var(--primary-color); text-decoration: underline; font-weight: bold; }
 
-/* --- Settings Page --- */
-.settings-group { background-color: white; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--section-border); overflow: hidden; }
-.settings-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; cursor: pointer; border-bottom: 1px solid var(--section-border); color: var(--text-color); text-decoration: none; }
+/* Stîla inputên wêneyan di forma admin de */
+.image-inputs-container { display: flex; flex-direction: column; gap: 10px; }
+.image-input-group { display: flex; gap: 8px; align-items: center; }
+.image-input-group input { flex-grow: 1; }
+.image-preview-small {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    border-radius: 4px;
+    background-color: var(--light-gray);
+    border: 1px solid var(--medium-gray);
+}
+
+/* Stîla rûpela mîhengan */
+.settings-group {
+    background-color: white;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border: 1px solid var(--section-border);
+    overflow: hidden; /* Ji bo goşeyên gilover */
+}
+.settings-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--section-border);
+    color: var(--text-color);
+    text-decoration: none;
+}
 .settings-item:last-child { border-bottom: none; }
 .settings-item:hover { background-color: var(--light-gray); }
 .settings-item i.fa-chevron-left, .settings-item i.fa-external-link-alt, .settings-item .contact-chevron { color: var(--dark-gray); }
 .settings-item i { font-size: 18px; }
 .settings-item .fa-chevron-left, .settings-item i.fa-external-link-alt, .settings-item .contact-chevron { font-size: 14px; }
+/* Hilbijartina zimanî */
 .language-selector { display: flex; gap: 10px; }
-.lang-btn { background-color: var(--medium-gray); border: 2px solid transparent; border-radius: 6px; padding: 5px 12px; cursor: pointer; font-weight: bold; }
-.lang-btn.active { border-color: var(--primary-color); background-color: var(--primary-light); color: white; }
-.contact-links-container { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; background-color: #f8f9fa; }
-.contact-links-container.open { max-height: 1000px; transition: max-height 0.4s ease-in; }
-.contact-links-container .settings-item { padding-right: 30px; } /* Indent contact links */
+.lang-btn {
+    background-color: var(--medium-gray);
+    border: 2px solid transparent;
+    border-radius: 6px;
+    padding: 5px 12px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.lang-btn.active {
+    border-color: var(--primary-color);
+    background-color: var(--primary-light);
+    color: white;
+}
+/* Konteynera lînkên têkilîyê (veşartî) */
+.contact-links-container {
+    max-height: 0; /* Bi default veşartî */
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    background-color: #f8f9fa; /* Rengek cuda */
+}
+.contact-links-container.open { max-height: 1000px; transition: max-height 0.4s ease-in; } /* Dema vekirî be */
+.contact-links-container .settings-item { padding-right: 30px; } /* Hinek padding zêde */
+/* Îkona chevron ji bo vekirin/girtinê */
 .contact-chevron { transition: transform 0.3s ease; }
-.contact-chevron.open { transform: rotate(180deg); } /* Changed rotation */
+.contact-chevron.open { transform: rotate(-90deg); } /* Zivirandin dema vekirî be */
 
-/* Social Link Item in Admin */
-.social-link-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background-color: #ffffff; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--section-border); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-.social-link-item .item-info { display: flex; align-items: center; gap: 15px; font-weight: normal; overflow: hidden; flex: 1; }
-.social-link-item .item-details { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; overflow: hidden; }
-.social-link-item .item-name { font-weight: bold; font-size: 15px; color: var(--text-color); }
-.social-link-item .item-value { font-size: 13px; color: var(--text-light); direction: ltr; text-align: right; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Bişkoka wergirtina cîhê GPS */
+.location-btn {
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px;
+    background-color: var(--primary-light);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+}
+.location-btn:disabled {
+    background-color: var(--dark-gray);
+    cursor: not-allowed;
+}
+
+/* Stîla Skeleton Loader */
+@keyframes shimmer { /* Animasyona biriqînê */
+    0% { background-position: -468px 0; }
+    100% { background-position: 468px 0; }
+}
+.skeleton-card {
+    background-color: #ffffff; border-radius: 8px; overflow: hidden;
+    border: 1px solid var(--section-border);
+}
+.skeleton-image { width: 100%; aspect-ratio: 1/1; background-color: #e0e0e0; }
+.skeleton-text { height: 14px; width: 80%; background-color: #e0e0e0; margin: 12px; border-radius: 4px; }
+.skeleton-price { height: 15px; width: 50%; background-color: #e0e0e0; margin: 0 12px 12px; border-radius: 4px; }
+.skeleton-button { height: 35px; background-color: #e0e0e0; margin: 12px; border-radius: 6px; }
+/* Çîna ji bo efekta biriqînê */
+.skeleton-card .shimmer {
+    animation: shimmer 1.5s linear infinite;
+    background: linear-gradient(to right, #eeeeee 8%, #dddddd 18%, #eeeeee 33%);
+    background-size: 1000px 100%;
+}
+
+/* Stîla Agahdariya Nûvekirinê (PWA Update) */
+.update-notification {
+    display: none; /* Bi default veşartî */
+    position: fixed;
+    bottom: 80px; /* Li ser navîgasyona jêrîn */
+    left: 50%;
+    transform: translateX(-50%) translateY(100px); /* Ji derve dest pê bike */
+    background-color: var(--primary-color);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 2000;
+    align-items: center;
+    gap: 15px;
+    transition: all 0.4s ease-in-out; /* Efekta nerm */
+    opacity: 0;
+}
+.update-notification.show {
+    display: flex; /* Dema xuya be flex bibe */
+    transform: translateX(-50%) translateY(0); /* Bê cihê xwe */
+    opacity: 1;
+}
+.update-now-btn {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 15px;
+    cursor: pointer;
+    font-weight: bold;
+    white-space: nowrap;
+}
+.update-now-btn:hover { background-color: var(--accent-light); }
+
+/* Stîla lîsteya lînkên sosyal medya di beşa admin de */
+.social-link-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border: 1px solid var(--section-border);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.social-link-item .item-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-weight: normal;
+    overflow: hidden; /* Veşartina naveroka zêde */
+    flex: 1; /* Ku valahiya mayî dagire */
+}
+.social-link-item .item-details {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start; /* Ji rastê dest pê bike */
+      gap: 3px;
+      overflow: hidden; /* Veşartina naveroka zêde */
+}
+.social-link-item .item-name {
+    font-weight: bold;
+    font-size: 15px;
+    color: var(--text-color);
+}
+.social-link-item .item-value {
+    font-size: 13px;
+    color: var(--text-light);
+    direction: ltr; /* Ji bo URL */
+    text-align: right; /* Li gorî konteynerê li rastê be */
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 .social-link-item i { font-size: 22px; width: 25px; text-align: center; }
-.social-link-item .delete-btn { flex-shrink: 0; } /* Prevent delete button from shrinking */
+.social-link-item .delete-btn { flex-shrink: 0; } /* Ne piçûk bibe */
 
-/* --- Dynamic Home Page Sections --- */
-.dynamic-section { margin-bottom: 10px; }
-.horizontal-products-container { display: flex; gap: 12px; overflow-x: auto; padding: 5px 12px 15px 12px; scrollbar-width: none; }
-.horizontal-products-container::-webkit-scrollbar { display: none; }
-.horizontal-products-container .product-card { flex-shrink: 0; width: 160px; } /* Fixed width for horizontal items */
-.section-title-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 12px; }
-.section-title-main { font-size: 18px; font-weight: bold; color: var(--primary-color); margin: 0; }
-.see-all-link { font-size: 13px; font-weight: bold; color: var(--accent-color); text-decoration: none; cursor: pointer; padding: 4px 10px; border-radius: 6px; transition: background-color 0.2s; white-space: nowrap; }
-.see-all-link:hover { background-color: var(--medium-gray); }
 
-/* Promo Card Grid Item (Slider) */
-.promo-card-grid-item { grid-column: 1 / -1; width: 100%; height: 140px; border-radius: 12px; overflow: hidden; cursor: pointer; transition: opacity 0.3s ease-in-out, transform 0.2s, box-shadow 0.2s; position: relative; }
-.promo-card-grid-item:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-.promo-card-grid-item .product-image-container { aspect-ratio: auto; height: 100%; } /* Override aspect ratio */
-.promo-card-grid-item .product-image { object-fit: cover; padding: 0; background-color: #1a202c; /* Dark background for loading */ }
-.promo-slider-btn { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0, 0, 0, 0.3); color: white; border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 16px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s, opacity 0.2s; opacity: 0.7; pointer-events: auto; }
-.promo-slider-btn:hover { background-color: rgba(0, 0, 0, 0.6); opacity: 1; }
-.promo-slider-btn.prev { left: 10px; }
-.promo-slider-btn.next { right: 10px; }
+/* Loader ji bo rûpelên din */
+#detailPageLoader {
+    text-align: center; padding: 40px; color: var(--dark-gray); display: none;
+}
 
-/* Brands Section */
-.brands-section { padding: 16px 0; background-color: var(--section-bg); margin: 0 0 16px; border: 1px solid var(--section-border); box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-right: none; border-left: none; }
-.brands-container { display: flex; overflow-x: auto; gap: 15px; padding: 10px 12px; scrollbar-width: none; }
-.brands-container::-webkit-scrollbar { display: none; }
-.brand-item { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; text-align: center; flex-shrink: 0; width: 80px; }
-.brand-image-wrapper { width: 65px; height: 65px; border-radius: 50%; overflow: hidden; border: 2px solid var(--medium-gray); transition: all 0.2s ease-in-out; display: flex; justify-content: center; align-items: center; background-color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-.brand-item:hover .brand-image-wrapper { border-color: var(--primary-color); transform: scale(1.05); }
-.brand-image-wrapper img { width: 100%; height: 100%; object-fit: contain; -webkit-touch-callout: none; -webkit-user-drag: none;}
-.brand-item span { font-size: 12px; font-weight: bold; color: var(--text-light); white-space: nowrap; }
-
-/* Shortcut Cards Section */
-.shortcut-cards-section { padding: 16px 0; background-color: var(--section-bg); margin: 0 0 16px; border: 1px solid var(--section-border); box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-right: none; border-left: none; }
-.shortcut-row-title { font-size: 18px; font-weight: bold; color: var(--primary-color); margin-bottom: 12px; padding-right: 12px; }
-.shortcut-cards-container { display: flex; overflow-x: auto; gap: 12px; padding: 5px 12px 15px 12px; scrollbar-width: none; }
-.shortcut-cards-container::-webkit-scrollbar { display: none; }
-.shortcut-card { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; transition: transform 0.2s ease-in-out; background-color: transparent; border: none; flex-shrink: 0; width: 100px; }
-.shortcut-card:hover { transform: scale(1.05); }
-.shortcut-card-image { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); -webkit-touch-callout: none; -webkit-user-drag: none;}
-.shortcut-card-name { font-weight: bold; font-size: 13px; color: var(--text-color); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
-
-/* --- Admin Specific Styles --- */
-.add-product-btn { display: none; position: fixed; bottom: calc(80px + env(safe-area-inset-bottom)); /* Adjust for nav bar */ right: 20px; width: 50px; height: 50px; background-color: var(--accent-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; cursor: pointer; z-index: 80; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
-
-.add-section-btn { background-color: var(--accent-color); color: white; border: none; border-radius: 6px; padding: 8px 12px; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background-color 0.2s; }
+/* === Stîlên Zêde ji bo Beşa Nû ya Home Page Layout === */
+.add-section-btn {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s;
+}
 .add-section-btn:hover { background-color: var(--accent-light); }
-.layout-list-container { border: 1px solid var(--section-border); border-radius: 6px; padding: 10px; background-color: #f8f9fa; min-height: 50px; }
-.layout-item { background-color: white; padding: 12px; margin-bottom: 8px; border-radius: 4px; border: 1px solid var(--medium-gray); display: flex; justify-content: space-between; align-items: center; cursor: grab; transition: background-color 0.2s, box-shadow 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.layout-list-container {
+    border: 1px solid var(--section-border);
+    border-radius: 6px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    min-height: 50px;
+}
+.layout-item {
+    background-color: white;
+    padding: 12px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    border: 1px solid var(--medium-gray);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: grab; /* Destê girtinê ji bo kaşkirinê */
+    transition: background-color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
 .layout-item:last-child { margin-bottom: 0; }
-.layout-item.dragging { opacity: 0.7; background: var(--medium-gray); box-shadow: 0 4px 8px rgba(0,0,0,0.1); cursor: grabbing; }
+.layout-item.dragging { /* Dema tê kaşkirin */
+    opacity: 0.7;
+    background: var(--medium-gray);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
 .layout-item-info { display: flex; align-items: center; gap: 10px; font-weight: bold; }
 .drag-handle { color: var(--dark-gray); cursor: grab; }
-.layout-item-info::before { counter-increment: layout-item-counter; content: counter(layout-item-counter); background-color: var(--medium-gray); color: var(--text-light); font-weight: bold; font-size: 12px; padding: 4px 8px; border-radius: 4px; margin-right: 8px; }
-#homeLayoutListContainer { counter-reset: layout-item-counter; }
 .layout-item-actions { display: flex; align-items: center; gap: 15px; }
-.delete-layout-item-btn { background: none !important; border: none; color: var(--danger-color) !important; cursor: pointer; font-size: 16px !important; width: auto !important; height: auto !important; }
-
-/* Switch toggle styles */
+.delete-layout-item-btn { /* Taybet ji bo bişkoka jêbirina layoutê */
+    background: none !important;
+    border: none;
+    color: var(--danger-color) !important;
+    cursor: pointer;
+    font-size: 16px !important;
+    width: auto !important;
+    height: auto !important;
+}
+/* Stîla Switch Toggle */
 .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
 .switch input { opacity: 0; width: 0; height: 0; }
 .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
@@ -561,53 +1241,109 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 input:checked + .slider { background-color: var(--accent-color); }
 input:checked + .slider:before { transform: translateX(20px); }
 
-/* Improved Admin Section Styles */
+/* === Stîlên din ên Zêdekirî === */
+/* Stîla kartên promo di gridê de */
+.promo-card-grid-item .product-image-container { aspect-ratio: auto; height: 100%; }
+.promo-card-grid-item .product-image { object-fit: cover; padding: 0; background-color: #1a202c; }
+.promo-card-grid-item {
+    grid-column: 1 / -1; /* Ku tevahî firehiyê bigire */
+    width: 100%;
+    height: 140px; /* Bilindahiyek maqûl */
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: opacity 0.3s ease-in-out, transform 0.2s, box-shadow 0.2s;
+    position: relative;
+}
+.promo-card-grid-item:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+.promo-card-grid-item img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+/* Bişkokên slidera promo */
+.promo-slider-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.3);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, opacity 0.2s;
+    opacity: 0.7;
+    pointer-events: auto; /* Piştrastkirina ku têne klik kirin */
+}
+.promo-slider-btn:hover { background-color: rgba(0, 0, 0, 0.6); opacity: 1; }
+.promo-slider-btn.prev { left: 10px; }
+.promo-slider-btn.next { right: 10px; }
+/* Beşên dînamîk */
+.dynamic-section { margin-bottom: 10px; }
+/* Konteynera berhemên horizontal */
+.horizontal-products-container { display: flex; gap: 12px; overflow-x: auto; padding: 5px 12px 15px 12px; scrollbar-width: none; }
+.horizontal-products-container::-webkit-scrollbar { display: none; }
+.horizontal-products-container .product-card { flex-shrink: 0; width: 160px; } /* Firehiya sabit ji bo kartên horizontal */
+/* Sernivîsa beşan */
+.section-title-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 12px; }
+.section-title-main { font-size: 18px; font-weight: bold; color: var(--primary-color); margin: 0; }
+/* Lînka "Binêre Hemû" */
+.see-all-link { font-size: 13px; font-weight: bold; color: var(--accent-color); text-decoration: none; cursor: pointer; padding: 4px 10px; border-radius: 6px; transition: background-color 0.2s; white-space: nowrap; }
+.see-all-link:hover { background-color: var(--medium-gray); }
+/* Beşa Brandan */
+.brands-section { padding: 16px 0; background-color: var(--section-bg); margin: 0 0 16px; border: 1px solid var(--section-border); box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-right: none; border-left: none; }
+.brands-container { display: flex; overflow-x: auto; gap: 15px; padding: 10px 12px; scrollbar-width: none; }
+.brands-container::-webkit-scrollbar { display: none; }
+.brand-item { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; text-align: center; flex-shrink: 0; width: 80px; }
+.brand-image-wrapper { width: 65px; height: 65px; border-radius: 50%; overflow: hidden; border: 2px solid var(--medium-gray); transition: all 0.2s ease-in-out; display: flex; justify-content: center; align-items: center; background-color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.brand-item:hover .brand-image-wrapper { border-color: var(--primary-color); transform: scale(1.05); }
+.brand-image-wrapper img { width: 100%; height: 100%; object-fit: contain; }
+.brand-item span { font-size: 12px; font-weight: bold; color: var(--text-light); white-space: nowrap; }
+/* Beşa Kartên Shortcut */
+.shortcut-cards-section { padding: 16px 0; background-color: var(--section-bg); margin: 0 0 16px; border: 1px solid var(--section-border); box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-right: none; border-left: none; }
+.shortcut-row-title { font-size: 18px; font-weight: bold; color: var(--primary-color); margin-bottom: 12px; padding-right: 12px; }
+.shortcut-cards-container { display: flex; overflow-x: auto; gap: 12px; padding: 5px 12px 15px 12px; scrollbar-width: none; }
+.shortcut-cards-container::-webkit-scrollbar { display: none; }
+.shortcut-card { display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; transition: transform 0.2s ease-in-out; background-color: transparent; border: none; flex-shrink: 0; width: 100px; }
+.shortcut-card:hover { transform: scale(1.05); }
+.shortcut-card-image { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+.shortcut-card-name { font-weight: bold; font-size: 13px; color: var(--text-color); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+
+/* Beşa Berhemên Pêwendîdar di Detayê de */
+.related-products-section { margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--section-border); }
+.related-products-title { font-size: 18px; font-weight: bold; color: var(--primary-color); margin-bottom: 15px; }
+#relatedProductsContainer .product-card { width: 140px; flex-shrink: 0; }
+
+/* === Stîlên Zêdekirî ji bo Rêkxistina Beşa Admin === */
 .settings-group[id^="admin"] { background-color: #f7fafc; border: 1px solid #e2e8f0; margin-bottom: 25px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
-.settings-group[id^="admin"] .section-title, .settings-group[id^="admin"] h3, .settings-group[id^="admin"] h4 { background-color: #edf2f7; color: var(--primary-color); padding: 12px 15px; margin: 0; border-bottom: 1px solid var(--section-border); font-size: 16px; font-weight: bold; display: flex; align-items: center; gap: 10px; }
+.settings-group[id^="admin"] .section-title,
+.settings-group[id^="admin"] h3,
+.settings-group[id^="admin"] h4 { background-color: #edf2f7; color: var(--primary-color); padding: 12px 15px; margin: 0; border-bottom: 1px solid var(--section-border); font-size: 16px; font-weight: bold; display: flex; align-items: center; gap: 10px; }
 .settings-group[id^="admin"] h4 { background-color: #e2e8f0; font-size: 14px; }
 .settings-group[id^="admin"] form { padding: 15px; background-color: #ffffff; border-bottom: 1px solid var(--section-border); }
 .settings-group[id^="admin"] form:last-of-type { border-bottom: none; }
-#adminCategoryManagement > div, #adminPromoCardsManagement > div, #adminBrandsManagement > div, #adminShortcutRowsManagement > div { padding: 0 !important; } /* Remove extra padding */
-#adminCategoryManagement > div:not(:last-child), #adminPromoCardsManagement > div:not(:last-child), #adminBrandsManagement > div:not(:last-child), #adminShortcutRowsManagement > div:not(:last-child) { border-bottom: 8px solid #f7fafc; } /* Add separator between forms */
-.settings-group[id^="admin"] .form-group input, .settings-group[id^="admin"] .form-group select, .settings-group[id^="admin"] .form-group textarea { background-color: #fdfdfe; border: 1px solid #cbd5e0; transition: all 0.2s ease-in-out; }
-.settings-group[id^="admin"] .form-group input:focus, .settings-group[id^="admin"] .form-group select:focus, .settings-group[id^="admin"] .form-group textarea:focus { background-color: #ffffff; border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(26, 54, 93, 0.2); }
+#adminCategoryManagement > div { padding: 0 !important; }
+#adminCategoryManagement > div:not(:last-child) { border-bottom: 8px solid #f7fafc; }
+.settings-group[id^="admin"] .form-group input,
+.settings-group[id^="admin"] .form-group select,
+.settings-group[id^="admin"] .form-group textarea { background-color: #f7fafc; border: 1px solid #cbd5e0; transition: all 0.2s ease-in-out; }
+.settings-group[id^="admin"] .form-group input:focus,
+.settings-group[id^="admin"] .form-group select:focus,
+.settings-group[id^="admin"] .form-group textarea:focus { background-color: #ffffff; border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(26, 54, 93, 0.2); }
 .settings-group[id^="admin"] form button[type="submit"] { background-color: var(--primary-light); font-size: 15px; transition: background-color 0.2s; }
 .settings-group[id^="admin"] form button[type="submit"]:hover { background-color: var(--primary-color); }
-
-/* Admin List Styles */
+/* Stîla listan (bo nimûne, lista kategoriyan) */
 .admin-list-group { border: 1px solid var(--section-border); border-radius: 6px; margin-bottom: 12px; overflow: hidden; background-color: #fff; }
 .admin-list-group-header { display: flex; justify-content: space-between; align-items: center; padding: 10px; background-color: #f8f9fa; border-bottom: 1px solid var(--section-border); }
 .admin-list-group-header strong { font-size: 14px; }
-.admin-list-item, .social-link-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid #f1f1f1; }
+.admin-list-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid #f1f1f1; }
 .admin-list-item:last-child { border-bottom: none; }
 .admin-list-item:hover { background-color: #f7fafc; }
 .empty-list-text { padding: 15px; text-align: center; color: var(--dark-gray); font-size: 14px; }
 .small-btn { width: 28px !important; height: 28px !important; font-size: 12px !important; }
-.admin-notification-item { display: flex; align-items: center; justify-content: space-between; padding: 10px; border: 1px solid var(--section-border); border-radius: 6px; margin-bottom: 8px; background-color: #fff; }
-.admin-notification-details { max-width: calc(100% - 40px); }
-.admin-notification-details .notification-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* Category Management List */
-.category-manage-item { transition: background-color 0.2s; }
-.category-manage-item:hover { background-color: #e2e8f0 !important; }
-
-/* --- NEW PAGE STYLES --- */
-#mainCategoryDetailPage .category-detail-content,
-#subcategoryDetailPage .category-detail-content {
-    /* Container for the content within the detail pages */
-}
-
-/* Styling for subcategory/subsubcategory containers on detail pages */
-#subCategoryContainerOnMainDetailPage,
-#subSubCategoryContainerOnDetailPage {
-    background-color: white;
-    border-bottom: 1px solid var(--section-border);
-    /* padding is inherited from .subcategories-container */
-}
-
-/* Product containers on detail pages */
-#productsContainerOnMainDetailPage,
-#productsContainerOnDetailPage {
-    padding-top: 16px; /* Space above products grid */
-    /* Uses .products-container grid styles */
-}
+/* Hejmar li kêleka hêmanên layoutê */
+#homeLayoutListContainer { counter-reset: layout-item-counter; }
+.layout-item-info::before { counter-increment: layout-item-counter; content: counter(layout-item-counter); background-color: var(--medium-gray); color: var(--text-light); font-weight: bold; font-size: 12px; padding: 4px 8px; border-radius: 4px; margin-right: 8px; }
