@@ -6,16 +6,14 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
 
-    <!-- Stylesheet link -->
     <link rel="stylesheet" href="styles.css">
 
-    <!-- PWA Manifest and Theme -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a365d">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -26,9 +24,7 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Header Section -->
         <header class="app-header">
-            <!-- Main Header Content (Visible on Home Page) -->
             <div class="main-header-content">
                 <div class="logo">
                     <i class="fas fa-store" style="color: var(--accent-color); font-size: 24px;"></i>
@@ -47,13 +43,10 @@
                 </div>
             </div>
 
-            <!-- Subpage Header Content (Visible on other Pages) -->
             <div class="subpage-header-content" style="display: none;">
                 <button id="headerBackBtn" class="header-icon-btn" aria-label="Go back">
-                    <i class="fas fa-arrow-right"></i> <!-- Changed from left to right for RTL -->
-                </button>
+                    <i class="fas fa-arrow-right"></i> </button>
                 <h2 id="headerTitle" class="header-title"></h2>
-                <!-- Subpage Search (optional, can be shown based on page) -->
                 <div class="search-container subpage-search">
                     <input type="text" id="subpageSearchInput" class="search-input" placeholder="گەڕان..." data-translate-key="search_placeholder">
                     <i class="fas fa-search search-icon"></i>
@@ -62,7 +55,6 @@
             </div>
         </header>
 
-        <!-- Login Modal -->
         <div id="loginModal" class="modal">
             <div class="modal-content">
                 <span class="close" aria-label="Close">&times;</span>
@@ -75,7 +67,6 @@
             </div>
         </div>
 
-        <!-- Welcome Modal -->
         <div id="welcomeModal" class="modal">
             <div class="modal-content" style="text-align: center;">
                 <span class="close" aria-label="Close">&times;</span>
@@ -85,10 +76,8 @@
             </div>
         </div>
 
-        <!-- Sheet Overlay -->
         <div id="sheet-overlay" class="sheet-overlay"></div>
 
-        <!-- Notifications Bottom Sheet -->
         <div id="notificationsSheet" class="bottom-sheet">
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
@@ -98,7 +87,6 @@
             <div id="notificationsListContainer" class="sheet-content"></div>
         </div>
 
-        <!-- Cart Bottom Sheet -->
         <div id="cartSheet" class="bottom-sheet">
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
@@ -109,23 +97,19 @@
                 <div id="cartItemsContainer"></div>
                 <div id="emptyCartMessage" class="cart-empty" style="display:none;"><i class="fas fa-shopping-basket"></i><p data-translate-key="cart_empty">سەبەتەکەت بەتاڵە</p></div>
                 <div id="cartTotal" class="cart-total" style="display:none;"><span data-translate-key="total_price">کۆی گشتی:</span> <span id="totalAmount">0</span> د.ع.</div>
-                <!-- Cart action buttons will be rendered here by JS -->
                 <div id="cartActions" style="display:none; margin-top: 15px;"></div>
             </div>
         </div>
 
-        <!-- Categories Bottom Sheet -->
         <div id="categoriesSheet" class="bottom-sheet">
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
                 <h2 class="sheet-title"><i class="fas fa-list"></i> <span data-translate-key="choose_category">هەڵبژاردنی جۆر</span></h2>
                 <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
             </div>
-            <!-- Categories list rendered here by JS -->
             <div id="sheetCategoriesContainer" class="sheet-content"></div>
         </div>
 
-        <!-- Profile Bottom Sheet -->
         <div id="profileSheet" class="bottom-sheet">
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
@@ -155,7 +139,6 @@
             </div>
         </div>
 
-        <!-- Favorites Bottom Sheet -->
         <div id="favoritesSheet" class="bottom-sheet">
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
@@ -163,7 +146,6 @@
                 <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
             </div>
             <div class="sheet-content">
-                <!-- Favorite products rendered here -->
                 <div id="favoritesContainer" class="products-container"></div>
                 <div id="emptyFavoritesMessage" class="cart-empty" style="display:none;">
                     <i class="fas fa-heart-broken"></i>
@@ -172,7 +154,6 @@
             </div>
         </div>
 
-        <!-- Product Detail Bottom Sheet -->
         <div id="productDetailSheet" class="bottom-sheet">
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
@@ -180,29 +161,24 @@
                 <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
             </div>
             <div class="sheet-content">
-                <!-- Image Slider -->
                 <div id="sheetImageSlider">
                     <div id="sheetImageContainer"></div>
                     <button class="slider-btn prev" id="sheetPrevBtn" style="display: none;">&#10094;</button>
                     <button class="slider-btn next" id="sheetNextBtn" style="display: none;">&#10095;</button>
                 </div>
                 <div id="sheetThumbnailContainer"></div>
-                <!-- Product Info -->
                 <div id="sheetProductPrice" style="font-size: 22px; font-weight: bold; color: var(--accent-color); margin: 15px 0; text-align:center;"></div>
                 <p id="sheetProductDescription" style="color: #4a5568; margin-bottom: 20px; text-align:right; line-height: 1.7;"></p>
 
-                <!-- Add to Cart Button -->
                 <button id="sheetAddToCartBtn" class="add-to-cart-btn" style="padding: 12px; font-size: 16px;"></button>
 
-                <!-- Related Products Section -->
-                 <div id="relatedProductsSection" class="related-products-section" style="display: none;">
+                <div id="relatedProductsSection" class="related-products-section" style="display: none;">
                     <h4 class="related-products-title" data-translate-key="related_products_title">کاڵای هاوشێوە</h4>
                     <div id="relatedProductsContainer" class="horizontal-products-container"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Terms and Policies Bottom Sheet -->
         <div id="termsSheet" class="bottom-sheet">
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
@@ -213,63 +189,44 @@
                 <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
             </div>
             <div class="sheet-content">
-                <!-- Policies content rendered here -->
                 <div id="termsContentContainer" style="line-height: 1.8; color: var(--text-light);">
                     <p data-translate-key="loading_policies">...خەریکی بارکردنی ڕێساکانە</p>
                 </div>
             </div>
         </div>
 
-        <!-- Main Content Area -->
         <main class="main-content page page-active" id="mainPage">
             <div class="section">
-                <!-- Main Categories Bar -->
                 <div id="mainCategoriesContainer" class="main-categories-container"></div>
-                <!-- Subcategories Bar (shown when a main category is selected) -->
                 <div id="subcategoriesContainer" class="subcategories-container"></div>
-                 <!-- Sub-Subcategories Bar (potentially shown on main page, currently hidden) -->
-                <div id="subSubcategoriesContainer" class="subcategories-container" style="padding-top: 0; padding-bottom: 10px; display: none;"></div>
+                 <div id="subSubcategoriesContainer" class="subcategories-container" style="padding-top: 0; padding-bottom: 10px; display: none;"></div>
 
-                <!-- Home Page Sections Container (Promo Sliders, Brands, etc.) -->
                 <div id="homePageSectionsContainer">
-                    <!-- Dynamic sections rendered here by JS -->
-                </div>
+                    </div>
 
-                <!-- Loader and Skeleton Loader -->
                 <div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;" data-translate-key="loading_products">...خەریکی بارکردنی کاڵاکانە</p></div>
                 <div id="skeletonLoader" class="products-container"></div>
 
-                <!-- Products Grid (shown when filtering or searching) -->
                 <div class="products-container" id="productsContainer" style="display: none;">
-                    <!-- Product cards rendered here by JS -->
-                </div>
+                    </div>
 
-                <!-- Scroll Loader Trigger -->
                 <div id="scroll-loader-trigger" style="height: 50px;"></div>
             </div>
         </main>
 
-        <!-- NEW: Subcategory Detail Page -->
         <div class="page page-hidden" id="subcategoryDetailPage">
             <div class="subcategory-detail-content">
-                <!-- Sub-Subcategories for this specific subcategory -->
                 <div id="subSubCategoryContainerOnDetailPage" class="subcategories-container">
-                    <!-- Sub-sub category buttons rendered here by JS -->
-                </div>
-                <!-- Products within this subcategory -->
+                    </div>
                 <div id="productsContainerOnDetailPage" class="products-container">
-                    <!-- Product cards rendered here by JS -->
-                </div>
-                <!-- Loader for this page -->
+                    </div>
                 <div id="detailPageLoader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
             </div>
         </div>
 
-        <!-- Settings Page -->
         <div class="settings-page page page-hidden" id="settingsPage">
             <h3 class="section-title" style="margin: 0; border-radius: 8px 8px 0 0;"><i class="fas fa-cog"></i> <span data-translate-key="settings_title">ڕێکخستنەکان</span></h3>
 
-            <!-- Language Settings -->
             <div class="settings-group">
                 <div class="settings-item">
                     <div>
@@ -284,54 +241,45 @@
                 </div>
             </div>
 
-            <!-- Favorites Link -->
             <div class="settings-group">
                 <div class="settings-item" id="settingsFavoritesBtn">
                     <div>
                         <i class="fas fa-heart" style="margin-left: 10px; color: var(--danger-color)"></i>
                         <span data-translate-key="favorites_title">لیستی دڵخوازەکان</span>
                     </div>
-                    <i class="fas fa-chevron-left"></i> <!-- Changed icon -->
-                </div>
+                    <i class="fas fa-chevron-left"></i> </div>
             </div>
 
-            <!-- Terms and Policies -->
             <div class="settings-group">
                 <div class="settings-item" id="termsAndPoliciesBtn">
                     <div>
                         <i class="fas fa-file-contract" style="margin-left: 10px; color: var(--primary-color)"></i>
                         <span data-translate-key="terms_policies_title">مەرج و ڕێساکان</span>
                     </div>
-                    <i class="fas fa-chevron-left"></i> <!-- Changed icon -->
-                </div>
+                    <i class="fas fa-chevron-left"></i> </div>
             </div>
 
-            <!-- App Management -->
             <div class="settings-group">
                 <div class="settings-item" id="installAppBtn" style="display: none; cursor: pointer;">
                     <div>
                         <i class="fas fa-download" style="margin-left: 10px; color: var(--accent-color);"></i>
                         <span data-translate-key="install_app">دامەزراندنی ئەپ</span>
                     </div>
-                    <i class="fas fa-chevron-left"></i> <!-- Changed icon -->
-                </div>
+                    <i class="fas fa-chevron-left"></i> </div>
                 <div class="settings-item" id="enableNotificationsBtn" style="cursor: pointer;">
                     <div>
                         <i class="fas fa-bell" style="margin-left: 10px; color: var(--accent-color);"></i>
                         <span data-translate-key="enable_notifications">چالاککردنی ئاگەدارییەکان</span>
                     </div>
-                    <i class="fas fa-chevron-left"></i> <!-- Changed icon -->
-                </div>
+                    <i class="fas fa-chevron-left"></i> </div>
                  <div class="settings-item" id="forceUpdateBtn" style="cursor: pointer;">
                     <div>
                         <i class="fas fa-sync-alt" style="margin-left: 10px; color: var(--danger-color);"></i>
                         <span data-translate-key="force_update">ناچارکردن بە نوێکردنەوە (سڕینەوەی کاش)</span>
                     </div>
-                    <i class="fas fa-chevron-left"></i> <!-- Changed icon -->
-                </div>
+                    <i class="fas fa-chevron-left"></i> </div>
             </div>
 
-            <!-- Contact Us Section -->
             <div class="settings-group">
                 <div class="settings-item" id="contactToggle">
                     <div>
@@ -340,31 +288,25 @@
                     </div>
                     <i class="fas fa-chevron-down contact-chevron"></i>
                 </div>
-                <!-- Social media links rendered here -->
                 <div class="contact-links-container" id="dynamicContactLinksContainer"></div>
             </div>
 
-            <!-- Admin/Login Section -->
             <div class="settings-group">
                 <div class="settings-item" id="settingsAdminLoginBtn">
                     <div>
                         <i class="fas fa-user-shield" style="margin-left: 10px;"></i>
                         <span data-translate-key="admin_login_nav">چوونەژوورەوەی بەڕێوەبەر</span>
                     </div>
-                    <i class="fas fa-chevron-left"></i> <!-- Changed icon -->
-                </div>
+                    <i class="fas fa-chevron-left"></i> </div>
                 <div class="settings-item" id="settingsLogoutBtn" style="display: none;">
                     <div>
                         <i class="fas fa-sign-out-alt" style="margin-left: 10px;"></i>
                         <span data-translate-key="logout_nav">چوونەدەرەوە</span>
                     </div>
-                    <i class="fas fa-chevron-left"></i> <!-- Changed icon -->
-                </div>
+                    <i class="fas fa-chevron-left"></i> </div>
             </div>
 
-            <!-- ADMIN SECTIONS (Initially hidden, shown on login) -->
-            <!-- Policies Management -->
-             <div class="settings-group" id="adminPoliciesManagement" style="display: none;">
+            <div class="settings-group" id="adminPoliciesManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                     <i class="fas fa-edit"></i> <span data-translate-key="manage_policies_title">بەڕێوەبردنی مەرج و ڕێساکان</span>
                 </h3>
@@ -386,7 +328,6 @@
                     </form>
                 </div>
             </div>
-            <!-- Category Management -->
             <div class="settings-group" id="adminCategoryManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;"><i class="fas fa-sitemap"></i> <span data-translate-key="manage_categories_title">بەڕێوەبردنی جۆرەکان</span></h3>
 
@@ -496,8 +437,7 @@
                     </div>
                 </div>
             </div>
-             <!-- Promo Slider Management -->
-            <div class="settings-group" id="adminPromoCardsManagement" style="display: none;">
+             <div class="settings-group" id="adminPromoCardsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                     <i class="fas fa-images"></i> <span>بەڕێوەبردنی سلایدەری ڕێکلام</span>
                 </h3>
@@ -523,15 +463,15 @@
                         <div class="form-group">
                              <label>لینکی وێنە (سۆرانی):</label>
                              <input type="url" id="promoCardImageKuSorani" required>
-                         </div>
+                        </div>
                          <div class="form-group">
                              <label>لینکی وێنە (بادینی):</label>
                              <input type="url" id="promoCardImageKuBadini" required>
-                         </div>
+                        </div>
                          <div class="form-group">
                              <label>لینکی وێنە (عربی):</label>
                              <input type="url" id="promoCardImageAr" required>
-                         </div>
+                        </div>
                         <div class="form-group">
                             <label>جۆری کاڵا کە لینک بکرێت بۆی:</label>
                             <select id="promoCardTargetCategory" required>
@@ -551,8 +491,7 @@
                     <div id="promoGroupsListContainer"></div>
                 </div>
             </div>
-             <!-- Brand Management -->
-            <div class="settings-group" id="adminBrandsManagement" style="display: none;">
+             <div class="settings-group" id="adminBrandsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                     <i class="fas fa-tags"></i> <span>بەڕێوەبردنی براندەکان</span>
                 </h3>
@@ -616,7 +555,6 @@
                     <div id="brandGroupsListContainer"></div>
                 </div>
             </div>
-            <!-- Shortcut Rows Management -->
             <div class="settings-group" id="adminShortcutRowsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                     <i class="fas fa-layer-group"></i> <span>بەڕێوەبردنی ڕیزی کارتەکان</span>
@@ -628,15 +566,15 @@
                         <div class="form-group">
                              <label>ناونیشانی ڕیز (سۆرانی):</label>
                              <input type="text" id="shortcutRowTitleKuSorani" required>
-                         </div>
+                        </div>
                          <div class="form-group">
                              <label>ناونیشانی ڕیز (بادینی):</label>
                              <input type="text" id="shortcutRowTitleKuBadini" required>
-                         </div>
+                        </div>
                          <div class="form-group">
                              <label>عنوان الصف (عربي):</label>
                              <input type="text" id="shortcutRowTitleAr" required>
-                         </div>
+                        </div>
                          <div class="form-group">
                              <label>ژمارەی ڕیزبەندی ڕیز:</label>
                              <input type="number" id="shortcutRowOrder" value="10" required>
@@ -660,19 +598,19 @@
                          <div class="form-group">
                              <label>ناوی کارت (سۆرانی):</label>
                              <input type="text" id="shortcutCardNameKuSorani" required>
-                         </div>
+                        </div>
                          <div class="form-group">
                              <label>ناوی کارت (بادینی):</label>
                              <input type="text" id="shortcutCardNameKuBadini" required>
-                         </div>
+                        </div>
                          <div class="form-group">
                              <label>اسم البطاقة (عربي):</label>
                              <input type="text" id="shortcutCardNameAr" required>
-                         </div>
+                        </div>
                          <div class="form-group">
                              <label>لینکی وێنەی کارت:</label>
                              <input type="url" id="shortcutCardImageUrl" required>
-                         </div>
+                        </div>
                          <div class="form-group">
                             <label>جۆری سەرەکی:</label>
                             <select id="shortcutCardMainCategory">
@@ -702,25 +640,22 @@
                     <div id="shortcutRowsListContainer"></div>
                 </div>
             </div>
-             <!-- Home Page Layout Management -->
-            <div class="settings-group" id="adminHomeLayoutManagement" style="display: none;">
+             <div class="settings-group" id="adminHomeLayoutManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                     <i class="fas fa-stream"></i> <span>ڕێکخستنی پەڕەی سەرەکی</span>
                 </h3>
                  <div style="padding: 15px;">
-                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                         <p style="margin: 0; color: var(--text-light); font-size: 14px;">
-                             ڕیزبەندی بەشەکان بگۆڕە و بەشی نوێ زیاد بکە.
-                         </p>
-                         <button id="addHomeSectionBtn" class="add-section-btn"><i class="fas fa-plus"></i> زیادکردنی بەش</button>
-                    </div>
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                          <p style="margin: 0; color: var(--text-light); font-size: 14px;">
+                              ڕیزبەندی بەشەکان بگۆڕە و بەشی نوێ زیاد بکە.
+                          </p>
+                          <button id="addHomeSectionBtn" class="add-section-btn"><i class="fas fa-plus"></i> زیادکردنی بەش</button>
+                      </div>
                     <div id="homeLayoutListContainer" class="layout-list-container">
-                        <!-- Layout items rendered here by JS -->
-                    </div>
+                        </div>
                      <button id="saveLayoutBtn" style="margin-top: 15px; background-color: var(--primary-color);">پاشەکەوتکردنی ڕیزبەندی</button>
                 </div>
             </div>
-            <!-- Contact Methods Management -->
             <div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;"><i class="fas fa-paper-plane"></i> <span data-translate-key="manage_contact_methods_title">بەڕێوەبردنی شێوازەکانی ناردنی داواکاری</span></h3>
 
@@ -776,7 +711,6 @@
                     <div id="contactMethodsListContainer"></div>
                 </div>
             </div>
-             <!-- Social Media Management -->
              <div class="settings-group" id="adminSocialMediaManagement" style="display: none;">
                 <div class="settings-item" id="socialMediaToggle">
                     <div>
@@ -788,7 +722,7 @@
                 <div class="contact-links-container">
                     <div style="padding: 15px;">
                         <form id="addSocialMediaForm">
-                             <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی لینکی نوێ</h4>
+                            <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی لینکی نوێ</h4>
                             <div class="form-group">
                                 <label>ناوی سۆشیال میدیا (سۆرانی):</label>
                                 <input type="text" id="socialNameKuSorani" required>
@@ -820,8 +754,7 @@
                     </div>
                 </div>
             </div>
-            <!-- Announcements Management -->
-             <div class="settings-group" id="adminAnnouncementManagement" style="display: none;">
+            <div class="settings-group" id="adminAnnouncementManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                     <i class="fas fa-bullhorn"></i> <span data-translate-key="manage_announcements_title">ناردنی ئاگەهداری گشتی</span>
                 </h3>
@@ -844,15 +777,15 @@
                          <div class="form-group">
                              <label for="announcementContentKuSorani">ناوەڕۆک (سۆرانی):</label>
                              <textarea id="announcementContentKuSorani" rows="3" required></textarea>
-                         </div>
+                        </div>
                          <div class="form-group">
                              <label for="announcementContentKuBadini">ناوەڕۆک (بادینی):</label>
                              <textarea id="announcementContentKuBadini" rows="3" required></textarea>
-                         </div>
+                        </div>
                          <div class="form-group">
                              <label for="announcementContentAr">ناوەڕۆک (عربی):</label>
                              <textarea id="announcementContentAr" rows="3" required></textarea>
-                         </div>
+                        </div>
                         <button type="submit" data-translate-key="send_announcement_button">ناردنی ئاگەهداری</button>
                     </form>
                     <hr style="margin: 25px 0;">
@@ -862,10 +795,8 @@
             </div>
         </div>
 
-        <!-- Floating Add Product Button (Admin only) -->
         <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
 
-        <!-- Add Home Section Modal -->
         <div id="addHomeSectionModal" class="modal">
             <div class="modal-content">
                 <span class="close" aria-label="Close">&times;</span>
@@ -899,7 +830,7 @@
                         <div class="form-group" id="newSectionSubSubcategoryContainer" style="display:none;">
                              <label for="newSectionSubSubcategory">جۆری لاوەکی لاوەکی (ئارەزوومەندانە):</label>
                              <select id="newSectionSubSubcategory"></select>
-                         </div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="newSectionName">ناوی بەش (بۆ ناسینەوەی خۆت لە لیستی ڕێکخستن):</label>
@@ -910,7 +841,6 @@
             </div>
         </div>
 
-        <!-- Edit Category Modal -->
         <div id="editCategoryModal" class="modal">
             <div class="modal-content">
                 <span class="close" aria-label="Close">&times;</span>
@@ -949,14 +879,12 @@
             </div>
         </div>
 
-        <!-- Product Form Modal (Add/Edit) -->
         <div id="productFormModal" class="modal">
             <div class="modal-content">
                 <span class="close" aria-label="Close">&times;</span>
                 <h2 id="formTitle" style="text-align: center; margin-bottom: 18px;">زیادکردنی کاڵای نوێ</h2>
                 <form id="productForm">
 
-                    <!-- Product Name (Multilingual) -->
                     <div class="form-group">
                         <label for="productNameKuSorani">ناوی کاڵا (سۆرانی):</label>
                         <input type="text" id="productNameKuSorani" required>
@@ -964,38 +892,32 @@
                     <div class="form-group">
                          <label for="productNameKuBadini">ناڤێ کاڵای (بادینی):</label>
                          <input type="text" id="productNameKuBadini" required>
-                     </div>
+                    </div>
                      <div class="form-group">
                          <label for="productNameAr">اسم المنتج (عربي):</label>
                          <input type="text" id="productNameAr" required>
-                     </div>
-                    <!-- Pricing -->
+                    </div>
                     <div class="form-group"><label for="productPrice">نرخی فرۆشتن (د.ع.):</label><input type="number" id="productPrice" required min="0" step="1"></div>
                     <div class="form-group"><label for="productOriginalPrice">نرخی ڕەسەن (د.ع.):</label><input type="number" id="productOriginalPrice" min="0" step="1" placeholder="ئەگەر داشکانی نییە، بەتاڵ بێت"></div>
 
-                    <!-- Category Selection -->
                     <div class="form-group"><label for="productCategoryId">جۆری سەرەکی:</label>
                         <select id="productCategoryId" required>
                             <option value="" disabled selected>-- جۆرێ سەرەکی هەڵبژێرە --</option>
                         </select>
                     </div>
-                    <!-- Subcategory Selection (Dynamic) -->
                     <div class="form-group" id="subcategorySelectContainer" style="display: none;">
                         <label for="productSubcategoryId">جۆری لاوەکی:</label>
                         <select id="productSubcategoryId">
                             <option value="" disabled selected>-- سەرەتا جۆری سەرەکی هەڵبژێرە --</option>
                         </select>
                     </div>
-                    <!-- Sub-Subcategory Selection (Dynamic) -->
-                     <div class="form-group" id="subSubcategorySelectContainer" style="display: none;">
+                    <div class="form-group" id="subSubcategorySelectContainer" style="display: none;">
                         <label for="productSubSubcategoryId">جۆری لاوەکیی لاوەکی:</label>
                         <select id="productSubSubcategoryId">
-                            <!-- Options populated by JS -->
-                        </select>
+                            </select>
                     </div>
 
-                    <!-- Description (Multilingual) -->
-                     <div class="form-group">
+                    <div class="form-group">
                         <label for="productDescriptionKuSorani">وەسف (سۆرانی):</label>
                         <textarea id="productDescriptionKuSorani" rows="3" required></textarea>
                     </div>
@@ -1007,15 +929,12 @@
                         <label for="productDescriptionAr">وەسف (عربي):</label>
                         <textarea id="productDescriptionAr" rows="3" required></textarea>
                     </div>
-                    <!-- Image URLs -->
                     <div class="form-group">
                         <label>لینکەکانی وێنەی کاڵا (تا 4 وێنە):</label>
                         <div class="image-inputs-container" id="imageInputsContainer"></div>
                     </div>
-                    <!-- External Link -->
                     <div class="form-group"><label for="productExternalLink">لینکی دەرەکی:</label><input type="text" id="productExternalLink" placeholder="بۆ نموونە، لینکی ڤیدیۆ..."></div>
 
-                    <!-- Shipping Info (Multilingual) -->
                     <hr style="margin: 20px 0; border-top: 1px solid var(--section-border);">
                      <div class="form-group">
                         <label for="shippingInfoKuSorani">زانیاری گەیاندن (سۆرانی):</label>
@@ -1035,7 +954,6 @@
             </div>
         </div>
 
-        <!-- Bottom Navigation Bar -->
         <div class="bottom-nav">
             <button id="homeBtn" class="bottom-nav-item">
                 <i class="fas fa-home"></i>
@@ -1061,15 +979,11 @@
         </div>
     </div>
 
-    <!-- PWA Update Notification -->
-     <div id="update-notification" class="update-notification">
+    <div id="update-notification" class="update-notification">
         <span>ڤێرژنێکی نوێ بەردەستە!</span>
         <button id="update-now-btn" class="update-now-btn">نوێی بکەرەوە</button>
     </div>
 
-    <!-- JavaScript Modules -->
     <script type="module" src="app-setup.js"></script>
-    <script type="module" src="app-logic.js"></script>
-    <script src="admin.js" defer></script>
-</body>
+    <script src="admin.js" defer></script>  <script type="module" src="app-logic.js"></script> </body>
 </html>
