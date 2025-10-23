@@ -1,13 +1,12 @@
 // BEŞÊ DUYEM: app-logic.js
-// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر - v2)
+// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر - وەشانی 2)
 // Guhertinên nû ji bo navîgasyona rûpela jêr-kategoriyê hatine zêdekirin
-// Debugging: Define subcategoryDetailPage directly
 
 import {
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
-    promoGroupsCollection, brandGroupsCollection,
-    translations, state,
+    promoGroupsCollection, brandGroupsCollection, // Ensure these are imported from app-setup
+    translations, state, // state object needs sliderIntervals: {} added in app-setup.js
     CART_KEY, FAVORITES_KEY, PROFILE_KEY, PRODUCTS_PER_PAGE,
     loginModal, addProductBtn, productFormModal, productsContainer, skeletonLoader, searchInput,
     clearSearchBtn, loginForm, productForm, formTitle, imageInputsContainer, loader,
@@ -17,17 +16,14 @@ import {
     productSubSubcategorySelect, profileForm, settingsPage, mainPage, homeBtn, settingsBtn,
     settingsFavoritesBtn, settingsAdminLoginBtn, settingsLogoutBtn, profileBtn, contactToggle,
     notificationBtn, notificationBadge, notificationsSheet, notificationsListContainer,
-    termsAndPoliciesBtn, termsSheet, termsContentContainer, subSubcategoriesContainer
-    // REMOVED: subcategoryDetailPage from import
+    termsAndPoliciesBtn, termsSheet, termsContentContainer, subSubcategoriesContainer,
+    // NEW: Import elements for the new subcategory detail page
+    subcategoryDetailPage // Ensure this ID matches the one in index.html
 } from './app-setup.js';
 
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, addDoc, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
-
-// --- DEBUGGING: Define subcategoryDetailPage directly ---
-const subcategoryDetailPage = document.getElementById('subcategoryDetailPage');
-console.log("Defining subcategoryDetailPage directly:", typeof subcategoryDetailPage, subcategoryDetailPage); // DEBUGGING LOG 2
 
 // --- Helper Functions ---
 
@@ -3026,5 +3022,3 @@ if ('serviceWorker' in navigator) {
 
 // --- Start the App ---
 document.addEventListener('DOMContentLoaded', init);
-ئەمە کودێ app-logic.js کودێ من درست نەکە هەتا ئەس بێشمە تە
-
