@@ -1,5 +1,5 @@
 // BEŞÊ DUYEM: app-logic.js
-// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر - وەشانی 2)
+// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر و Scroll Restoration - v3)
 
 import {
     db, auth, messaging,
@@ -38,7 +38,9 @@ function saveCurrentScrollPosition() {
     const currentState = history.state;
     // Only save scroll position for the main page filter state
     if (document.getElementById('mainPage').classList.contains('page-active') && currentState && !currentState.type) {
+        // Save scrollY directly associated with the current filter state
         history.replaceState({ ...currentState, scroll: window.scrollY }, '');
+        // console.log("Saved scroll for mainPage:", window.scrollY, "State:", history.state);
     }
 }
 
@@ -64,9 +66,12 @@ function showPage(pageId, pageTitle = '') {
         page.classList.toggle('page-hidden', !isActive);
     });
 
-    if (pageId !== 'mainPage') {
-        window.scrollTo(0, 0);
+    // Scroll to top only for new page views, not when restoring via popstate
+    // Scroll restoration for mainPage filters is handled in applyFilterState
+    if (pageId !== 'mainPage' && !(history.state && history.state.type === 'page' && history.state.id === pageId)) {
+         window.scrollTo(0, 0);
     }
+
 
     // Nûvekirina headerê li gorî rûpelê
     if (pageId === 'settingsPage') {
@@ -92,7 +97,7 @@ function closeAllPopupsUI() {
 }
 
 function openPopup(id, type = 'sheet') {
-    saveCurrentScrollPosition();
+    saveCurrentScrollPosition(); // Save scroll BEFORE opening popup
     const element = document.getElementById(id);
     if (!element) return;
 
@@ -119,9 +124,9 @@ function openPopup(id, type = 'sheet') {
 
 function closeCurrentPopup() {
     if (history.state && (history.state.type === 'sheet' || history.state.type === 'modal')) {
-        history.back();
+        history.back(); // Trigger popstate which handles UI closure and potential scroll restoration
     } else {
-        closeAllPopupsUI();
+        closeAllPopupsUI(); // Fallback if no history state
     }
 }
 
@@ -137,25 +142,35 @@ async function applyFilterState(filterState, fromPopState = false) {
     renderMainCategories();
     await renderSubcategories(state.currentCategory);
 
+    // Render content (products or home sections)
     await searchProductsInFirestore(state.currentSearch, true);
 
-    if (fromPopState && typeof filterState.scroll === 'number') {
-        setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
+    // --- SCROLL RESTORATION LOGIC ---
+    if (fromPopState && typeof filterState.scroll === 'number' && filterState.scroll > 0) {
+        // Use requestAnimationFrame for smoother scroll restoration after content might have rendered
+        requestAnimationFrame(() => {
+             // console.log("Restoring scroll from popstate:", filterState.scroll);
+             window.scrollTo({ top: filterState.scroll, behavior: 'instant' }); // Use 'instant' for direct jump
+        });
     } else if (!fromPopState) {
+        // Scroll to top for *new* filter navigations
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+    // --- END SCROLL RESTORATION LOGIC ---
 }
 
-async function navigateToFilter(newState) {
-    history.replaceState({
-        category: state.currentCategory,
-        subcategory: state.currentSubcategory,
-        subSubcategory: state.currentSubSubcategory,
-        search: state.currentSearch,
-        scroll: window.scrollY
-    }, '');
 
-    const finalState = { ...history.state, ...newState, scroll: 0 };
+async function navigateToFilter(newState) {
+    // --- REMOVED: Redundant scroll saving here ---
+    // history.replaceState({ ...history.state, scroll: window.scrollY }, '');
+
+    const finalState = {
+        category: newState.category !== undefined ? newState.category : state.currentCategory,
+        subcategory: newState.subcategory !== undefined ? newState.subcategory : state.currentSubcategory,
+        subSubcategory: newState.subSubcategory !== undefined ? newState.subSubcategory : state.currentSubSubcategory,
+        search: newState.search !== undefined ? newState.search : state.currentSearch,
+        scroll: 0 // New navigations always start at the top
+    };
 
     const params = new URLSearchParams();
     if (finalState.category && finalState.category !== 'all') params.set('category', finalState.category);
@@ -165,41 +180,60 @@ async function navigateToFilter(newState) {
 
     const newUrl = `${window.location.pathname}?${params.toString()}`;
 
+    // Push the new state representing the filter change
     history.pushState(finalState, '', newUrl);
 
-    await applyFilterState(finalState);
+    // Apply the new state (will scroll to top because fromPopState is false)
+    await applyFilterState(finalState, false);
 }
 
+
 window.addEventListener('popstate', async (event) => { // Guhertin bo async
-    closeAllPopupsUI();
     const popState = event.state;
+    // console.log("Popstate triggered. State:", popState);
+
+    // Close any open popups first when navigating back/forward
+    closeAllPopupsUI();
+
     if (popState) {
         if (popState.type === 'page') {
             let pageTitle = popState.title;
             // Eger ew rûpela jêr-kategoriyê be û sernav tune be, ji nû ve bistîne
             if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
                try {
-                  const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
-                  const subCatSnap = await getDoc(subCatRef);
-                  if (subCatSnap.exists()) {
-                      const subCat = subCatSnap.data();
-                      pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
-                  }
+                 const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
+                 const subCatSnap = await getDoc(subCatRef);
+                 if (subCatSnap.exists()) {
+                     const subCat = subCatSnap.data();
+                     pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
+                 }
                } catch(e) { console.error("Could not refetch title on popstate", e) }
             }
             showPage(popState.id, pageTitle);
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
-            openPopup(popState.id, popState.type);
+           // If the state represents a popup that should now be closed (because we went back),
+           // the closeAllPopupsUI() above already handles it.
+           // We might need to ensure the underlying page (mainPage) is shown and its scroll restored.
+           // Check if the state *before* the popup state was a mainPage filter state.
+           // This requires more complex history tracking, let's rely on the filter state logic for now.
+           // Ensure main page is active if no other page state is found
+           if (!document.querySelector('.page-active:not(#mainPage)')) {
+               showPage('mainPage');
+           }
+
         } else {
-            showPage('mainPage');
-            applyFilterState(popState, true);
+            // This is a mainPage filter state, apply it and restore scroll
+            showPage('mainPage'); // Make sure main page is visible
+            await applyFilterState(popState, true); // Pass true to indicate it's from history
         }
     } else {
+        // No state, default to main page initial state
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
         showPage('mainPage');
-        applyFilterState(defaultState);
+        await applyFilterState(defaultState);
     }
 });
+
 
 function handleInitialPageLoad() {
     const hash = window.location.hash.substring(1);
@@ -212,34 +246,41 @@ function handleInitialPageLoad() {
         const mainCatId = ids[1];
         const subCatId = ids[2];
         // The actual rendering will be triggered by onSnapshot in initializeAppLogic
+        // Ensure initial history state is set correctly for this page
+        history.replaceState({ type: 'page', id: pageId, mainCatId: mainCatId, subCatId: subCatId }, '', `#${hash}`);
     } else if (pageId === 'settingsPage') {
          history.replaceState({ type: 'page', id: pageId, title: t('settings_title') }, '', `#${hash}`);
          showPage(pageId, t('settings_title'));
     } else {
-        showPage('mainPage');
+        // It's the main page, potentially with filters or a hash for a popup
         const initialState = {
             category: params.get('category') || 'all',
             subcategory: params.get('subcategory') || 'all',
             subSubcategory: params.get('subSubcategory') || 'all',
             search: params.get('search') || '',
-            scroll: 0
+            scroll: 0 // Initial load always starts at top
         };
-        history.replaceState(initialState, '');
-        applyFilterState(initialState);
-    }
+        // Set the initial state without adding to history
+        history.replaceState(initialState, '', window.location.pathname + window.location.search);
+        showPage('mainPage'); // Show the main page container first
+        applyFilterState(initialState); // Apply filters (will also render content)
 
-    const element = document.getElementById(hash);
-    if (element && pageId === 'mainPage') {
-        const isSheet = element.classList.contains('bottom-sheet');
-        const isModal = element.classList.contains('modal');
-        if (isSheet || isModal) {
-            openPopup(hash, isSheet ? 'sheet' : 'modal');
+        // Check if the hash targets a popup after setting main page state
+        const element = document.getElementById(hash);
+        if (element) {
+            const isSheet = element.classList.contains('bottom-sheet');
+            const isModal = element.classList.contains('modal');
+            if (isSheet || isModal) {
+                // Open the popup, this will push a new history state for the popup
+                openPopup(hash, isSheet ? 'sheet' : 'modal');
+            }
         }
     }
 
+    // Handle direct product link after ensuring the correct page is shown
     const productId = params.get('product');
     if (productId) {
-        setTimeout(() => showProductDetails(productId), 500);
+        setTimeout(() => showProductDetails(productId), 500); // Open product details sheet
     }
 }
 
@@ -792,21 +833,21 @@ async function renderRelatedProducts(currentProduct) {
         q = query(
             productsCollection,
             where('subSubcategoryId', '==', currentProduct.subSubcategoryId),
-            where('__name__', '!=', currentProduct.id),
+            where('__name__', '!=', currentProduct.id), // Exclude the current product
             limit(6)
         );
     } else if (currentProduct.subcategoryId) {
         q = query(
             productsCollection,
             where('subcategoryId', '==', currentProduct.subcategoryId),
-            where('__name__', '!=', currentProduct.id),
+            where('__name__', '!=', currentProduct.id), // Exclude the current product
             limit(6)
         );
-    } else {
+    } else { // Fallback to main category if subcategory is not available
         q = query(
             productsCollection,
             where('categoryId', '==', currentProduct.categoryId),
-            where('__name__', '!=', currentProduct.id),
+            where('__name__', '!=', currentProduct.id), // Exclude the current product
             limit(6)
         );
     }
@@ -1263,11 +1304,11 @@ async function renderSingleCategoryRow(sectionData) {
             } else {
                  // If only main category is selected, filter on the main page
                  await navigateToFilter({
-                    category: categoryId,
-                    subcategory: 'all',
-                    subSubcategory: 'all',
-                    search: ''
-                });
+                     category: categoryId,
+                     subcategory: 'all',
+                     subSubcategory: 'all',
+                     search: ''
+                 });
             }
         };
         header.appendChild(seeAllLink);
@@ -1541,16 +1582,14 @@ async function renderPromoCardsSectionForHome(groupId, layoutId) { // ZÊDEKIRÎ
 
             if (cards.length > 1) {
                 const rotate = () => {
-                    // CHAKKIRÎ: Check if interval still exists in state before clearing
+                    // CHAKKIRÎ: Check if interval still exists in state before proceeding
                     if (!document.getElementById(promoGrid.id) || !state.sliderIntervals || !state.sliderIntervals[layoutId]) {
-                        if (sliderState.intervalId) {
-                            clearInterval(sliderState.intervalId); // Clear this specific interval
-                            // Also remove from global state if it exists there
-                            if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
-                                delete state.sliderIntervals[layoutId];
-                            }
-                        }
-                        return;
+                         // If element gone or interval cleared globally, clear local ref too
+                         if (sliderState.intervalId) {
+                             clearInterval(sliderState.intervalId);
+                             sliderState.intervalId = null; // Clear local reference
+                         }
+                         return; // Stop rotation
                     }
                     sliderState.currentIndex = (sliderState.currentIndex + 1) % cards.length;
                     const newImageUrl = cards[sliderState.currentIndex].imageUrls[state.currentLanguage] || cards[sliderState.currentIndex].imageUrls.ku_sorani;
@@ -2287,10 +2326,10 @@ onAuthStateChanged(auth, async (user) => {
         sessionStorage.setItem('isAdmin', 'true'); // Use sessionStorage for temporary admin status
         if (window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
              // Ensure admin logic is loaded before initializing
-             if (document.readyState === 'complete') {
+             if (document.readyState === 'complete' || document.readyState === 'interactive') {
                   window.AdminLogic.initialize();
              } else {
-                  window.addEventListener('load', window.AdminLogic.initialize);
+                  window.addEventListener('DOMContentLoaded', window.AdminLogic.initialize); // Use DOMContentLoaded
              }
         } else {
              console.warn("AdminLogic not found or initialize not a function.");
@@ -2351,30 +2390,20 @@ function initializeAppLogic() {
         state.categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories]; // Add 'All' category
         updateCategoryDependentUI(); // Update dropdowns and category buttons
 
-        // Handle initial page load based on URL (hash or query params)
-        // This needs to run *after* categories are loaded to potentially filter correctly
-        const hash = window.location.hash.substring(1);
-        if (hash.startsWith('subcategory_')) {
-            const ids = hash.split('_');
-            const mainCatId = ids[1];
-            const subCatId = ids[2];
-            // Only show detail page if category data is ready
-            if (state.categories.length > 1) {
-               showSubcategoryDetailPage(mainCatId, subCatId, true); // True because it's from initial load/history
-            }
-        } else {
-            handleInitialPageLoad(); // Handles main page filters and other hashes
-        }
-
         // Apply language after categories are loaded to ensure names are correct
-        setLanguage(state.currentLanguage);
+        setLanguage(state.currentLanguage); // Apply language initially
+
+        // Handle initial page load based on URL (hash or query params)
+        // This needs to run *after* categories and language are set
+        handleInitialPageLoad();
+
     });
 
     // Setup other parts of the app
     updateCartCount();
     setupEventListeners();
     setupScrollObserver();
-    setLanguage(state.currentLanguage); // Apply language initially
+    // setLanguage(state.currentLanguage); // Moved up
     renderContactLinks(); // Fetch and display contact links
     checkNewAnnouncements(); // Check for notification badge
     showWelcomeMessage(); // Show only on first visit
@@ -2448,7 +2477,9 @@ if ('serviceWorker' in navigator) {
         // Event listener for the update button
         updateNowBtn.addEventListener('click', () => {
             // Send message to SW to skip waiting and activate immediately
-            registration.waiting.postMessage({ action: 'skipWaiting' });
+            if (registration.waiting) {
+                 registration.waiting.postMessage({ action: 'skipWaiting' });
+            }
         });
 
     }).catch(err => {
@@ -2463,4 +2494,3 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
-
