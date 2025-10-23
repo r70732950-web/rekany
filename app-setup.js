@@ -384,5 +384,8 @@ export const policiesForm = document.getElementById('policiesForm');
 export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
 export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
 export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
+
 // Export the new page element
+console.log("Attempting to export subcategoryDetailPage..."); // DEBUGGING LOG
 export const subcategoryDetailPage = document.getElementById('subcategoryDetailPage');
+
