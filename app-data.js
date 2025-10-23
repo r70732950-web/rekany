@@ -1,10 +1,10 @@
-// app-data.js
+// app-data.js (V2 - Corrected Imports/Exports)
 // Ev pel ji bo rêveberiya data, rewş (state), û lojîka bingehîn a sepanê ye.
 
 import {
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
-    promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection, // Add shortcutRowsCollection
+    promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
     translations, state,
     CART_KEY, FAVORITES_KEY, PROFILE_KEY, PRODUCTS_PER_PAGE,
     loginModal, addProductBtn, productFormModal, searchInput, clearSearchBtn,
@@ -29,9 +29,12 @@ import {
     renderCategoriesSheet, renderSubcategories, renderMainCategories,
     renderUserNotifications, renderContactLinks, showWelcomeMessage,
     setupGpsButton, updateActiveNav, updateCategoryDependentUI,
-    renderHomePageContent, updateHeaderView, setLanguage,
-    renderCartActionButtons, renderPolicies
+    renderHomePageContent, // Correctly imported from app-ui
+    updateHeaderView, setLanguage, renderCartActionButtons, renderPolicies,
+    showSubcategoryDetailPage, // Import function to show detail page
+    // createProductCardElement is NOT needed here, it's a UI function
 } from './app-ui.js';
+
 
 // --- Utility Functions ---
 export function debounce(func, delay = 500) {
@@ -55,7 +58,15 @@ export function t(key, replacements = {}) {
 // --- State Management & Local Storage ---
 export function saveCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
-    updateCartCount(); // UI function imported from app-ui.js
+    // updateCartCount is in app-ui.js, called from there or where needed
+    // We can call it here if necessary, assuming updateCartCount is exported from app-ui
+    // import { updateCartCount } from './app-ui.js'; // Needs import
+    // updateCartCount();
+    // For now, let's assume it's called appropriately elsewhere (e.g., when rendering cart)
+    // Correction: It's better to update the count immediately after modifying the cart.
+    // Let's import and call updateCartCount.
+    import('./app-ui.js').then(uiModule => uiModule.updateCartCount());
+
 }
 
 export function saveFavorites() {
@@ -70,7 +81,6 @@ export function saveProfile() {
 
 export function saveCurrentScrollPosition() {
     const currentState = history.state;
-    // Only save scroll position for the main page filter state
     if (document.getElementById('mainPage').classList.contains('page-active') && currentState && !currentState.type) {
         history.replaceState({ ...currentState, scroll: window.scrollY }, '');
     }
@@ -82,7 +92,7 @@ export function addToCart(productId) {
     let product = allFetchedProducts.find(p => p.id === productId);
 
     if (!product) {
-        console.warn("Product not found in local 'products' array. Fetching from DB...");
+        console.warn("Product not found locally. Fetching from DB...");
         getDoc(doc(db, "products", productId)).then(docSnap => {
             if (docSnap.exists()) {
                 const fetchedProduct = { id: docSnap.id, ...docSnap.data() };
@@ -90,7 +100,7 @@ export function addToCart(productId) {
                 const existingItem = state.cart.find(item => item.id === productId);
                 if (existingItem) { existingItem.quantity++; }
                 else { state.cart.push({ id: fetchedProduct.id, name: fetchedProduct.name, price: fetchedProduct.price, image: mainImage, quantity: 1 }); }
-                saveCart();
+                saveCart(); // Update local storage and UI count
                 showNotification(t('product_added_to_cart'));
             } else {
                 showNotification(t('product_not_found_error'), 'error');
@@ -103,23 +113,24 @@ export function addToCart(productId) {
     const existingItem = state.cart.find(item => item.id === productId);
     if (existingItem) { existingItem.quantity++; }
     else { state.cart.push({ id: product.id, name: product.name, price: product.price, image: mainImage, quantity: 1 }); }
-    saveCart();
+    saveCart(); // Update local storage and UI count
     showNotification(t('product_added_to_cart'));
 }
+
 
 export function updateQuantity(productId, change) {
     const cartItem = state.cart.find(item => item.id === productId);
     if (cartItem) {
         cartItem.quantity += change;
         if (cartItem.quantity <= 0) { removeFromCart(productId); }
-        else { saveCart(); renderCart(); } // Re-render cart UI
+        else { saveCart(); renderCart(); }
     }
 }
 
 export function removeFromCart(productId) {
     state.cart = state.cart.filter(item => item.id !== productId);
     saveCart();
-    renderCart(); // Re-render cart UI
+    renderCart();
 }
 
 export function generateOrderMessage() {
@@ -130,7 +141,10 @@ export function generateOrderMessage() {
         const itemDetails = t('order_item_details', { price: item.price.toLocaleString(), quantity: item.quantity });
         message += `- ${itemNameInCurrentLang} | ${itemDetails}\n`;
     });
-    message += `\n${t('order_total')}: ${totalAmount.textContent} د.ع.\n`; // Use textContent from UI element
+    // Ensure totalAmount element exists and has content before using it
+    const totalAmountElement = document.getElementById('totalAmount');
+    const totalText = totalAmountElement ? totalAmountElement.textContent : '0';
+    message += `\n${t('order_total')}: ${totalText} د.ع.\n`;
 
     if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
         message += `\n${t('order_user_info')}\n`;
@@ -161,7 +175,6 @@ export function toggleFavorite(productId, event) {
     }
     saveFavorites();
 
-    // Update UI for all cards with this product ID
     const allProductCards = document.querySelectorAll(`[data-product-id="${productId}"]`);
     allProductCards.forEach(card => {
         const favButton = card.querySelector('.favorite-btn');
@@ -169,12 +182,11 @@ export function toggleFavorite(productId, event) {
         if (favButton && heartIcon) {
             const isNowFavorite = !isCurrentlyFavorite;
             favButton.classList.toggle('favorited', isNowFavorite);
-            heartIcon.classList.toggle('fas', isNowFavorite); // Solid heart
-            heartIcon.classList.toggle('far', !isNowFavorite); // Regular heart
+            heartIcon.classList.toggle('fas', isNowFavorite);
+            heartIcon.classList.toggle('far', !isNowFavorite);
         }
     });
 
-    // Re-render favorites page if it's currently open
     if (document.getElementById('favoritesSheet').classList.contains('show')) {
         renderFavoritesPage();
     }
@@ -183,6 +195,9 @@ export function toggleFavorite(productId, event) {
 // --- Data Fetching & Filtering ---
 export async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
+    const productsContainer = document.getElementById('productsContainer');
+    const skeletonLoader = document.getElementById('skeletonLoader');
+    const loader = document.getElementById('loader');
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
 
@@ -192,15 +207,13 @@ export async function searchProductsInFirestore(searchTerm = '', isNewSearch = f
         scrollTrigger.style.display = 'none';
         homeSectionsContainer.style.display = 'block';
 
-        if (homeSectionsContainer.innerHTML.trim() === '') {
-            await renderHomePageContent();
-        } else {
-             // Rêstartkirina slideran dê di hundirê renderHomePageContent de bête kirin
+        if (homeSectionsContainer.innerHTML.trim() === '' || isNewSearch) { // Rerender if empty or explicitly new search
+            await renderHomePageContent(); // UI function imported from app-ui.js
         }
-        return;
+        return; // Stop here for home view
     } else {
         homeSectionsContainer.style.display = 'none';
-        // Rawestandina hemî slideran dema ku ji dîmena malê derdikevin
+        // Stop all promo rotations when navigating away
         Object.keys(state.sliderIntervals || {}).forEach(layoutId => {
             if (state.sliderIntervals[layoutId]) {
                 clearInterval(state.sliderIntervals[layoutId]);
@@ -209,50 +222,42 @@ export async function searchProductsInFirestore(searchTerm = '', isNewSearch = f
         state.sliderIntervals = {};
     }
 
+    // --- Caching logic ---
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
     if (isNewSearch && state.productCache[cacheKey]) {
         state.products = state.productCache[cacheKey].products;
         state.lastVisibleProductDoc = state.productCache[cacheKey].lastVisible;
         state.allProductsLoaded = state.productCache[cacheKey].allLoaded;
-
         skeletonLoader.style.display = 'none';
         loader.style.display = 'none';
         productsContainer.style.display = 'grid';
-
-        renderProducts();
+        renderProducts(); // Render cached products
         scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
         return;
     }
 
+    // --- Loading checks ---
     if (state.isLoadingMoreProducts) return;
-
     if (isNewSearch) {
         state.allProductsLoaded = false;
         state.lastVisibleProductDoc = null;
         state.products = [];
-        renderSkeletonLoader();
+        renderSkeletonLoader(); // Show skeleton
     }
+    if (state.allProductsLoaded && !isNewSearch) return; // Already loaded all
 
-    if (state.allProductsLoaded && !isNewSearch) return;
-
+    // --- Start fetching ---
     state.isLoadingMoreProducts = true;
-    loader.style.display = 'block';
+    loader.style.display = 'block'; // Show bottom loader
 
     try {
         let productsQuery = collection(db, "products");
 
-        // Apply category filters
-        if (state.currentCategory && state.currentCategory !== 'all') {
-            productsQuery = query(productsQuery, where("categoryId", "==", state.currentCategory));
-        }
-        if (state.currentSubcategory && state.currentSubcategory !== 'all') {
-            productsQuery = query(productsQuery, where("subcategoryId", "==", state.currentSubcategory));
-        }
-        if (state.currentSubSubcategory && state.currentSubSubcategory !== 'all') {
-            productsQuery = query(productsQuery, where("subSubcategoryId", "==", state.currentSubSubcategory));
-        }
+        // Apply filters
+        if (state.currentCategory !== 'all') productsQuery = query(productsQuery, where("categoryId", "==", state.currentCategory));
+        if (state.currentSubcategory !== 'all') productsQuery = query(productsQuery, where("subcategoryId", "==", state.currentSubcategory));
+        if (state.currentSubSubcategory !== 'all') productsQuery = query(productsQuery, where("subSubcategoryId", "==", state.currentSubSubcategory));
 
-        // Apply search term filter
         const finalSearchTerm = searchTerm.trim().toLowerCase();
         if (finalSearchTerm) {
             productsQuery = query(productsQuery,
@@ -263,42 +268,31 @@ export async function searchProductsInFirestore(searchTerm = '', isNewSearch = f
 
         // Apply ordering
         if (finalSearchTerm) {
-            // If searching, first orderBy must match inequality field
             productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
         } else {
-            // Default sort by creation date
             productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         }
 
-        // Apply pagination (startAfter)
+        // Apply pagination
         if (state.lastVisibleProductDoc && !isNewSearch) {
             productsQuery = query(productsQuery, startAfter(state.lastVisibleProductDoc));
         }
 
-        // Apply limit
         productsQuery = query(productsQuery, limit(PRODUCTS_PER_PAGE));
 
+        // Execute query
         const productSnapshot = await getDocs(productsQuery);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Update products state
-        if (isNewSearch) {
-            state.products = newProducts;
-        } else {
-            state.products = [...state.products, ...newProducts];
-        }
+        // Update state
+        if (isNewSearch) state.products = newProducts;
+        else state.products = [...state.products, ...newProducts];
 
-        // Update pagination state
-        if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
-            state.allProductsLoaded = true;
-            scrollTrigger.style.display = 'none';
-        } else {
-            state.allProductsLoaded = false;
-            scrollTrigger.style.display = 'block';
-        }
+        state.allProductsLoaded = productSnapshot.docs.length < PRODUCTS_PER_PAGE;
         state.lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
+        scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
 
-        // Cache results for new searches
+        // Cache result if new search
         if (isNewSearch) {
             state.productCache[cacheKey] = {
                 products: state.products,
@@ -307,10 +301,8 @@ export async function searchProductsInFirestore(searchTerm = '', isNewSearch = f
             };
         }
 
-        // Render the products (UI function)
-        renderProducts();
+        renderProducts(); // Render the fetched products
 
-        // Handle empty results display
         if (state.products.length === 0 && isNewSearch) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         }
@@ -326,29 +318,32 @@ export async function searchProductsInFirestore(searchTerm = '', isNewSearch = f
     }
 }
 
-// Function to fetch products for subcategory detail page
 export async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchTerm = '') {
     const productsContainerDetail = document.getElementById('productsContainerOnDetailPage');
     const loaderDetail = document.getElementById('detailPageLoader');
     loaderDetail.style.display = 'block';
-    productsContainerDetail.innerHTML = '';
+    productsContainerDetail.innerHTML = ''; // Clear previous
 
     try {
         let productsQuery;
+        // Base query for subcategory or sub-subcategory
         if (subSubCatId === 'all') {
             productsQuery = query(productsCollection, where("subcategoryId", "==", subCatId));
         } else {
             productsQuery = query(productsCollection, where("subSubcategoryId", "==", subSubCatId));
         }
 
+        // Apply search term filter
         const finalSearchTerm = searchTerm.trim().toLowerCase();
         if (finalSearchTerm) {
             productsQuery = query(productsQuery,
                 where('searchableName', '>=', finalSearchTerm),
                 where('searchableName', '<=', finalSearchTerm + '\uf8ff')
             );
+             // Order by name first when searching
              productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
         } else {
+            // Default order when not searching
             productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         }
 
@@ -357,16 +352,18 @@ export async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', 
         if (productSnapshot.empty) {
             productsContainerDetail.innerHTML = '<p style="text-align:center; padding: 20px;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         } else {
+             // Need createProductCardElement from app-ui.js
+             const uiModule = await import('./app-ui.js');
             productSnapshot.forEach(doc => {
                 const product = { id: doc.id, ...doc.data() };
-                 // createProductCardElement is now in app-ui.js, we need to import it if it's not already
-                 // Assuming createProductCardElement is globally available or imported
-                 const card = window.createProductCardElement(product); // Temporary fix: make it global or import
+                const card = uiModule.createProductCardElement(product); // Use imported function
                 productsContainerDetail.appendChild(card);
             });
+             // Setup animations if needed for these cards too
+             uiModule.setupScrollAnimations();
         }
     } catch (error) {
-        console.error(`Error fetching products for detail page (subCatId: ${subCatId}, subSubCatId: ${subSubCatId}, searchTerm: "${searchTerm}"):`, error);
+        console.error(`Error fetching products for detail page:`, error);
         productsContainerDetail.innerHTML = '<p style="text-align:center; padding: 20px;">هەڵەیەک ڕوویدا.</p>';
     } finally {
         loaderDetail.style.display = 'none';
@@ -376,29 +373,33 @@ export async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', 
 
 // --- Navigation & Routing ---
 export async function applyFilterState(filterState, fromPopState = false) {
+    // Update global state
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
     state.currentSubSubcategory = filterState.subSubcategory || 'all';
     state.currentSearch = filterState.search || '';
 
+    // Update search input UI
     searchInput.value = state.currentSearch;
     clearSearchBtn.style.display = state.currentSearch ? 'block' : 'none';
 
-    renderMainCategories(); // UI Function
-    await renderSubcategories(state.currentCategory); // UI Function that fetches subcats
+    // Update category UI elements
+    renderMainCategories();
+    await renderSubcategories(state.currentCategory); // Fetches and renders subcats
 
-    await searchProductsInFirestore(state.currentSearch, true); // Fetch products based on new state
+    // Fetch and render products based on the new state
+    await searchProductsInFirestore(state.currentSearch, true);
 
+    // Restore scroll position if navigating back/forward
     if (fromPopState && typeof filterState.scroll === 'number') {
-        setTimeout(() => window.scrollTo(0, filterState.scroll), 50); // Restore scroll
+        setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
     } else if (!fromPopState) {
-        window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to top for new filter
+        window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to top for new filter action
     }
 }
 
 export async function navigateToFilter(newState) {
-    // Save current scroll position before changing state
-    history.replaceState({
+    history.replaceState({ // Save current state before navigating
         category: state.currentCategory,
         subcategory: state.currentSubcategory,
         subSubcategory: state.currentSubSubcategory,
@@ -406,26 +407,33 @@ export async function navigateToFilter(newState) {
         scroll: window.scrollY
     }, '');
 
-    // Define the new state, setting scroll to 0 for navigation
-    const finalState = { ...history.state, ...newState, scroll: 0 };
+    const finalState = { ...history.state, ...newState, scroll: 0 }; // New state scrolls to top
 
-    // Update URL query parameters
+    // Update URL
     const params = new URLSearchParams();
-    if (finalState.category && finalState.category !== 'all') params.set('category', finalState.category);
-    if (finalState.subcategory && finalState.subcategory !== 'all') params.set('subcategory', finalState.subcategory);
-    if (finalState.subSubcategory && finalState.subSubcategory !== 'all') params.set('subSubcategory', finalState.subSubcategory);
+    if (finalState.category !== 'all') params.set('category', finalState.category);
+    if (finalState.subcategory !== 'all') params.set('subcategory', finalState.subcategory);
+    if (finalState.subSubcategory !== 'all') params.set('subSubcategory', finalState.subSubcategory);
     if (finalState.search) params.set('search', finalState.search);
     const newUrl = `${window.location.pathname}?${params.toString()}`;
 
-    // Push the new state and URL to history
-    history.pushState(finalState, '', newUrl);
+    history.pushState(finalState, '', newUrl); // Push new state
 
-    // Apply the new filter state (fetch data and update UI)
-    await applyFilterState(finalState);
+    await applyFilterState(finalState); // Apply the changes
 }
 
 
 // --- Notifications & Permissions ---
+async function saveTokenToFirestore(token) { // Not exported, only used internally
+    try {
+        const tokensCollection = collection(db, 'device_tokens');
+        await setDoc(doc(tokensCollection, token), { createdAt: Date.now() });
+        console.log('Token saved to Firestore.');
+    } catch (error) {
+        console.error('Error saving token to Firestore: ', error);
+    }
+}
+
 export async function requestNotificationPermission() {
     console.log('Requesting notification permission...');
     try {
@@ -433,12 +441,10 @@ export async function requestNotificationPermission() {
         if (permission === 'granted') {
             console.log('Notification permission granted.');
             showNotification('مۆڵەتی ناردنی ئاگەداری درا', 'success');
-            const currentToken = await getToken(messaging, {
-                vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ' // Your VAPID key
-            });
+            const currentToken = await getToken(messaging, { vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ' });
             if (currentToken) {
                 console.log('FCM Token:', currentToken);
-                await saveTokenToFirestore(currentToken);
+                await saveTokenToFirestore(currentToken); // Call internal save function
             } else {
                 console.log('No registration token available.');
             }
@@ -451,58 +457,39 @@ export async function requestNotificationPermission() {
     }
 }
 
-async function saveTokenToFirestore(token) {
-    try {
-        const tokensCollection = collection(db, 'device_tokens');
-        // Use the token itself as the document ID to prevent duplicates
-        await setDoc(doc(tokensCollection, token), {
-            createdAt: Date.now() // Store timestamp for potential cleanup later
-        });
-        console.log('Token saved to Firestore.');
-    } catch (error) {
-        console.error('Error saving token to Firestore: ', error);
-    }
-}
-
 export function checkNewAnnouncements() {
     const q = query(announcementsCollection, orderBy("createdAt", "desc"), limit(1));
     onSnapshot(q, (snapshot) => {
         if (!snapshot.empty) {
             const latestAnnouncement = snapshot.docs[0].data();
             const lastSeenTimestamp = localStorage.getItem('lastSeenAnnouncementTimestamp') || 0;
-
-            if (latestAnnouncement.createdAt > lastSeenTimestamp) {
-                notificationBadge.style.display = 'block'; // UI Element
-            } else {
-                notificationBadge.style.display = 'none'; // UI Element
+            const badge = document.getElementById('notificationBadge'); // Get badge element
+            if (badge) { // Check if badge element exists
+                 badge.style.display = latestAnnouncement.createdAt > lastSeenTimestamp ? 'block' : 'none';
             }
         }
+    }, error => {
+         console.error("Error checking announcements:", error); // Handle potential errors
     });
 }
+
 
 // --- PWA & Service Worker ---
 export async function forceUpdate() {
     if (confirm(t('update_confirm'))) {
         try {
-            // Unregister service workers
             if ('serviceWorker' in navigator) {
                 const registrations = await navigator.serviceWorker.getRegistrations();
-                for (const registration of registrations) {
-                    await registration.unregister();
-                }
+                for (const registration of registrations) await registration.unregister();
                 console.log('Service Workers unregistered.');
             }
-            // Clear caches
             if (window.caches) {
                 const keys = await window.caches.keys();
                 await Promise.all(keys.map(key => window.caches.delete(key)));
                 console.log('All caches cleared.');
             }
             showNotification(t('update_success'), 'success');
-            // Reload the page after a short delay
-            setTimeout(() => {
-                window.location.reload(true); // Force reload bypassing cache
-            }, 1500);
+            setTimeout(() => window.location.reload(true), 1500);
         } catch (error) {
             console.error('Error during force update:', error);
             showNotification(t('error_generic'), 'error');
@@ -516,10 +503,8 @@ export function setupScrollObserver() {
     if (!trigger) return;
 
     const observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) {
-            if (!state.isLoadingMoreProducts && !state.allProductsLoaded) {
-                 searchProductsInFirestore(state.currentSearch, false); // Fetch next page
-            }
+        if (entries[0].isIntersecting && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
+            searchProductsInFirestore(state.currentSearch, false); // Load more
         }
     }, { root: null, threshold: 0.1 });
 
@@ -560,10 +545,7 @@ export function setupEventListeners() {
         e.preventDefault();
         try {
             await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value);
-            // Admin logic will init via onAuthStateChanged
-        } catch (error) {
-            showNotification(t('login_error'), 'error');
-        }
+        } catch (error) { showNotification(t('login_error'), 'error'); }
     };
     profileForm.onsubmit = (e) => {
         e.preventDefault();
@@ -572,10 +554,10 @@ export function setupEventListeners() {
             address: document.getElementById('profileAddress').value,
             phone: document.getElementById('profilePhone').value,
         };
-        saveProfile(); // Saves to local storage and shows notification
+        saveProfile();
     };
 
-    // Search
+    // Search (Main Page)
     const debouncedSearch = debounce((term) => navigateToFilter({ search: term }), 500);
     searchInput.oninput = () => {
         const searchTerm = searchInput.value;
@@ -588,7 +570,7 @@ export function setupEventListeners() {
         navigateToFilter({ search: '' });
     };
 
-    // Subpage search
+    // Search (Subpage)
     const subpageSearchInput = document.getElementById('subpageSearchInput');
     const subpageClearSearchBtn = document.getElementById('subpageClearSearchBtn');
     const debouncedSubpageSearch = debounce(async (term) => {
@@ -637,68 +619,24 @@ export function setupEventListeners() {
     // Foreground FCM messages
     onMessage(messaging, (payload) => {
         console.log('Foreground message received: ', payload);
-        const title = payload.notification.title;
-        const body = payload.notification.body;
-        showNotification(`${title}: ${body}`, 'success');
-        notificationBadge.style.display = 'block';
-    });
-}
-
-
-function handleInitialPageLoad() {
-    const hash = window.location.hash.substring(1);
-    const params = new URLSearchParams(window.location.search);
-
-    const pageId = hash.startsWith('subcategory_') ? 'subcategoryDetailPage' : (hash === 'settingsPage' ? 'settingsPage' : 'mainPage');
-
-    if (pageId === 'subcategoryDetailPage') {
-        const ids = hash.split('_');
-        const mainCatId = ids[1];
-        const subCatId = ids[2];
-        // The actual rendering will be triggered by onSnapshot in initializeAppLogic after categories load
-         // No need to call showSubcategoryDetailPage here, it happens later
-    } else if (pageId === 'settingsPage') {
-        history.replaceState({ type: 'page', id: pageId, title: t('settings_title') }, '', `#${hash}`);
-        showPage(pageId, t('settings_title'));
-    } else { // It's mainPage or invalid hash treated as mainPage
-        showPage('mainPage');
-        const initialState = {
-            category: params.get('category') || 'all',
-            subcategory: params.get('subcategory') || 'all',
-            subSubcategory: params.get('subSubcategory') || 'all',
-            search: params.get('search') || '',
-            scroll: 0
-        };
-        history.replaceState(initialState, '');
-        applyFilterState(initialState); // Apply filters from URL params
-    }
-
-    // Check if hash points to a modal or sheet on the main page
-    const element = document.getElementById(hash);
-    if (element && pageId === 'mainPage') {
-        const isSheet = element.classList.contains('bottom-sheet');
-        const isModal = element.classList.contains('modal');
-        if (isSheet || isModal) {
-            openPopup(hash, isSheet ? 'sheet' : 'modal');
+        const title = payload.notification?.title; // Use optional chaining
+        const body = payload.notification?.body;
+        if(title && body){ // Only show if title and body exist
+             showNotification(`${title}: ${body}`, 'success');
         }
-    }
-
-    // Check if URL has a specific product to show
-    const productId = params.get('product');
-    if (productId) {
-        // Delay slightly to ensure product data might be loaded
-        setTimeout(() => window.showProductDetailsById(productId), 500); // Use a globally exposed function
-    }
+        const badge = document.getElementById('notificationBadge');
+        if(badge) badge.style.display = 'block'; // Show badge on new message
+    });
 }
 
 // History (Popstate) Handling
 window.addEventListener('popstate', async (event) => {
-    closeAllPopupsUI();
+    closeAllPopupsUI(); // Close any open sheets/modals
     const popState = event.state;
     if (popState) {
         if (popState.type === 'page') {
             let pageTitle = popState.title;
-             // Eger ew rûpela jêr-kategoriyê be û sernav tune be, ji nû ve bistîne
+            // Refetch title for subcategory page if needed
             if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
                 try {
                     const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
@@ -707,16 +645,16 @@ window.addEventListener('popstate', async (event) => {
                         const subCat = subCatSnap.data();
                         pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
                     }
-                } catch(e) { console.error("Could not refetch title on popstate", e) }
+                } catch(e) { console.error("Could not refetch title on popstate", e); }
             }
-            showPage(popState.id, pageTitle);
+            showPage(popState.id, pageTitle); // Show the correct page
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
-            openPopup(popState.id, popState.type);
+            openPopup(popState.id, popState.type); // Reopen the popup
         } else { // Filter state on main page
             showPage('mainPage');
-            applyFilterState(popState, true);
+            applyFilterState(popState, true); // Apply filters and restore scroll
         }
-    } else { // No state, likely initial load or manual URL change
+    } else { // No state, go to default main page view
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
         showPage('mainPage');
         applyFilterState(defaultState);
@@ -731,109 +669,101 @@ onAuthStateChanged(auth, async (user) => {
 
     if (isAdmin) {
         sessionStorage.setItem('isAdmin', 'true');
-        if (window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
-            // Wait for DOM content to be fully loaded if not already
-             if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                  window.AdminLogic.initialize();
+        // Ensure DOM is ready before initializing AdminLogic
+        const initializeAdmin = () => {
+             if (window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
+                 window.AdminLogic.initialize();
              } else {
-                  document.addEventListener('DOMContentLoaded', window.AdminLogic.initialize, { once: true });
+                 console.error("AdminLogic not ready for initialization.");
              }
-        } else {
-             console.warn("AdminLogic not found or initialize not a function. Retrying after DOM load.");
-              document.addEventListener('DOMContentLoaded', () => {
-                  if (window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
-                      window.AdminLogic.initialize();
-                  } else {
-                      console.error("AdminLogic still not available after DOM load.");
-                  }
-              }, { once: true });
-        }
+         };
+         if (document.readyState === 'complete' || document.readyState === 'interactive') {
+             initializeAdmin();
+         } else {
+             document.addEventListener('DOMContentLoaded', initializeAdmin, { once: true });
+         }
+
     } else {
         sessionStorage.removeItem('isAdmin');
-        if (user) { // If a non-admin user is signed in, sign them out
-            await signOut(auth);
-            console.log("Non-admin user signed out.");
-        }
+        if (user) await signOut(auth); // Sign out non-admins
         if (window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
-            window.AdminLogic.deinitialize(); // Clean up admin UI
+            window.AdminLogic.deinitialize();
         }
     }
 
     // Close login modal if admin logs in successfully
-    if (loginModal.style.display === 'block' && isAdmin) {
+    if (document.getElementById('loginModal')?.style.display === 'block' && isAdmin) {
         closeCurrentPopup();
     }
 });
 
+
 // --- App Initialization ---
 export function initializeAppLogic() {
-     // Piştrastkirina ku state.sliderIntervals heye
-     if (!state.sliderIntervals) {
-        state.sliderIntervals = {};
-    }
+    if (!state.sliderIntervals) state.sliderIntervals = {}; // Ensure slider interval state exists
 
-    // Fetch categories first, then handle initial load
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
-    onSnapshot(categoriesQuery, async (snapshot) => {
+    const unsubscribe = onSnapshot(categoriesQuery, async (snapshot) => { // Use async here
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        state.categories = [{ id: 'all', icon: 'fas fa-th', name_ku_sorani: t('all_categories_label'), name_ku_badini: t('all_categories_label'), name_ar: t('all_categories_label') }, ...fetchedCategories]; // Add 'All' category with localized names
+        state.categories = [{ id: 'all', icon: 'fas fa-th', name_ku_sorani: t('all_categories_label'), name_ku_badini: t('all_categories_label'), name_ar: t('all_categories_label') }, ...fetchedCategories];
+        updateCategoryDependentUI();
 
-        updateCategoryDependentUI(); // Update dropdowns, main category buttons etc.
+        // Handle initial page load AFTER categories are available
+        handleInitialPageLoad();
 
-         // Handle initial page load ONLY after categories are loaded
-         handleInitialPageLoad(); // Handles main page filters, detail page hash, settings page hash etc.
-
-        // Re-apply language after categories are loaded to ensure names are correct
+        // Apply language AFTER categories and initial load logic
         setLanguage(state.currentLanguage);
+
+    }, error => {
+         console.error("Error fetching categories:", error);
+         // Handle error, maybe show a message to the user
+         handleInitialPageLoad(); // Still try to load based on URL even if categories fail
+         setLanguage(state.currentLanguage); // Apply language anyway
     });
 
-    // Setup other parts
-    updateCartCount(); // Initial cart count UI update
+
+    // Setup other non-category dependent parts
+    import('./app-ui.js').then(uiModule => uiModule.updateCartCount()); // Initial cart count
     setupEventListeners();
     setupScrollObserver();
-    setLanguage(state.currentLanguage); // Initial language setting
-    renderContactLinks(); // Fetch and display contact links
-    checkNewAnnouncements(); // Check for notification badge
-    showWelcomeMessage(); // Show only on first visit
-    setupGpsButton(); // Add GPS functionality
+    renderContactLinks();
+    checkNewAnnouncements();
+    showWelcomeMessage();
+    setupGpsButton();
 }
 
 export function init() {
-    renderSkeletonLoader(); // Show skeleton loader immediately
-
+    renderSkeletonLoader(); // Show skeleton immediately
     enableIndexedDbPersistence(db)
-        .then(() => {
-            console.log("Firestore offline persistence enabled.");
-            initializeAppLogic(); // Initialize after persistence setup
-        })
-        .catch((err) => {
-            console.error("Error enabling persistence, running online:", err);
-            initializeAppLogic(); // Initialize even if persistence fails
-        });
+        .then(() => console.log("Firestore offline persistence enabled."))
+        .catch((err) => console.error("Error enabling persistence:", err))
+        .finally(() => initializeAppLogic()); // Initialize regardless of persistence success/failure
 }
 
-// Make essential functions globally available if needed by HTML onclick or admin.js before modules fully load
-// Use this sparingly
-window.showProductDetailsById = (id) => {
-    // This is a temporary solution. Ideally, you'd find the product data
-    // or fetch it if not found, then call the UI function.
-    // Assuming showProductDetailsWithData exists in app-ui.js
-     const product = state.products.find(p => p.id === id);
-     if (product) {
-         window.showProductDetailsWithData(product); // Assuming showProductDetailsWithData is made global from app-ui.js
-     } else {
-         getDoc(doc(db, "products", id)).then(docSnap => {
-             if (docSnap.exists()) {
-                 window.showProductDetailsWithData({ id: docSnap.id, ...docSnap.data() });
-             } else {
-                 showNotification(t('product_not_found_error'), 'error');
-             }
-         });
-     }
+// Make essential functions globally available if needed
+// Use sparingly
+// Expose showProductDetailsById for potential direct calls (e.g., from notifications)
+window.showProductDetailsById = async (id) => {
+    try {
+        const uiModule = await import('./app-ui.js');
+        const product = state.products.find(p => p.id === id);
+        if (product) {
+            uiModule.showProductDetailsWithData(product);
+        } else {
+            const docSnap = await getDoc(doc(db, "products", id));
+            if (docSnap.exists()) {
+                uiModule.showProductDetailsWithData({ id: docSnap.id, ...docSnap.data() });
+            } else {
+                showNotification(t('product_not_found_error'), 'error');
+            }
+        }
+    } catch (error) {
+        console.error("Error showing product details by ID:", error);
+        showNotification(t('error_generic'), 'error');
+    }
 };
 
-
-// --- PWA Install Prompt & Service Worker ---
+// --- PWA Install Prompt & Service Worker --- (Keep as is)
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     state.deferredPrompt = e;
@@ -853,11 +783,11 @@ if ('serviceWorker' in navigator) {
             console.log('New SW found!', newWorker);
             newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    updateNotification.classList.add('show');
+                    if (updateNotification) updateNotification.classList.add('show');
                 }
             });
         });
-        updateNowBtn.addEventListener('click', () => {
+        if(updateNowBtn) updateNowBtn.addEventListener('click', () => {
             registration.waiting?.postMessage({ action: 'skipWaiting' });
         });
     }).catch(err => console.log('SW registration failed: ', err));
@@ -868,6 +798,23 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-
 // --- Start the App ---
-document.addEventListener('DOMContentLoaded', init); // Ensure DOM is ready before init
+// Use DOMContentLoaded to ensure basic HTML is parsed before init
+document.addEventListener('DOMContentLoaded', init);
+
+
+// Expose necessary functions/variables for admin.js via global object
+Object.assign(window.globalAdminTools, {
+    db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction, // Firestore/Auth functions
+    showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore, // Core utils/data functions
+    productsCollection, categoriesCollection, announcementsCollection, promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection, // Collections
+    setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage, // State accessors/setters
+    clearProductCache: () => { // Helper for admin
+        console.log("Product cache and home page cleared due to admin action.");
+        state.productCache = {};
+        const homeContainer = document.getElementById('homePageSectionsContainer');
+        if (homeContainer) homeContainer.innerHTML = '';
+        // Optionally trigger re-render if needed
+        // searchProductsInFirestore(state.currentSearch, true);
+    }
+});
