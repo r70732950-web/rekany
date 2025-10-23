@@ -9,7 +9,7 @@ import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/fireb
 
 // Firebase Configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE",
+    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", // Replace with your actual API key if needed
     authDomain: "maten-store.firebaseapp.com",
     projectId: "maten-store",
     storageBucket: "maten-store.appspot.com",
@@ -298,9 +298,9 @@ export const translations = {
 export let state = {
     currentLanguage: localStorage.getItem('language') || 'ku_sorani',
     deferredPrompt: null,
-    cart: JSON.parse(localStorage.getItem("maten_store_cart")) || [],
-    favorites: JSON.parse(localStorage.getItem("maten_store_favorites")) || [],
-    userProfile: JSON.parse(localStorage.getItem("maten_store_profile")) || {},
+    cart: JSON.parse(localStorage.getItem(CART_KEY)) || [],
+    favorites: JSON.parse(localStorage.getItem(FAVORITES_KEY)) || [],
+    userProfile: JSON.parse(localStorage.getItem(PROFILE_KEY)) || {},
     editingProductId: null,
     products: [],
     allPromoCards: [],
@@ -318,6 +318,7 @@ export let state = {
     currentSubcategory: 'all',
     currentSubSubcategory: 'all',
     currentSearch: '',
+    sliderIntervals: {}, // Added for slider fix v2
 };
 
 // Constants
@@ -383,3 +384,5 @@ export const policiesForm = document.getElementById('policiesForm');
 export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
 export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
 export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
+// Export the new page element
+export const subcategoryDetailPage = document.getElementById('subcategoryDetailPage');
