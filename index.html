@@ -171,7 +171,7 @@
                 <div id="sheetThumbnailContainer"></div>
                 <div id="sheetProductPrice" style="font-size: 22px; font-weight: bold; color: var(--accent-color); margin: 15px 0; text-align:center;"></div>
                 <p id="sheetProductDescription" style="color: #4a5568; margin-bottom: 20px; text-align:right; line-height: 1.7;"></p>
-
+                
                 <button id="sheetAddToCartBtn" class="add-to-cart-btn" style="padding: 12px; font-size: 16px;"></button>
 
                 <div id="relatedProductsSection" class="related-products-section" style="display: none;">
@@ -181,28 +181,31 @@
             </div>
         </div>
 
-        <div id="termsSheet" class="bottom-sheet">
-            <div class="sheet-header">
-                <span class="sheet-handle"></span>
-                <h2 class="sheet-title">
-                    <i class="fas fa-file-contract"></i>
-                    <span data-translate-key="terms_policies_title">مەرج و ڕێساکان</span>
-                </h2>
-                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
-            </div>
-            <div class="sheet-content">
-                <div id="termsContentContainer" style="line-height: 1.8; color: var(--text-light);">
-                    <p data-translate-key="loading_policies">...خەریکی بارکردنی ڕێساکانە</p>
-                </div>
-            </div>
-        </div>
-
+		<div id="termsSheet" class="bottom-sheet">
+			<div class="sheet-header">
+				<span class="sheet-handle"></span>
+				<h2 class="sheet-title">
+					<i class="fas fa-file-contract"></i>
+					<span data-translate-key="terms_policies_title">مەرج و ڕێساکان</span>
+				</h2>
+				<span class="close" style="top: 20px;" aria-label="Close">&times;</span>
+			</div>
+			<div class="sheet-content">
+				<div id="termsContentContainer" style="line-height: 1.8; color: var(--text-light);">
+					<p data-translate-key="loading_policies">...خەریکی بارکردنی ڕێساکانە</p>
+				</div>
+			</div>
+		</div>
+        
         <main class="main-content page page-active" id="mainPage">
             <div class="section">
                 <div id="mainCategoriesContainer" class="main-categories-container"></div>
-                <div id="homePageSectionsContainer">
-                    </div>
+                <div id="subcategoriesContainer" class="subcategories-container"></div>
+                
+                <div id="subSubcategoriesContainer" class="subcategories-container" style="padding-top: 0; padding-bottom: 10px; display: none;"></div>
 
+                <div id="homePageSectionsContainer">
+                </div>
                 <div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;" data-translate-key="loading_products">...خەریکی بارکردنی کاڵاکانە</p></div>
                 <div id="skeletonLoader" class="products-container"></div>
                 <div class="products-container" id="productsContainer" style="display: none;"></div>
@@ -210,25 +213,16 @@
                 <div id="scroll-loader-trigger" style="height: 50px;"></div>
             </div>
         </main>
-
-        <div class="page page-hidden" id="categoryDetailPage">
-             <div class="category-detail-content" style="padding-top: 80px; padding-bottom: 85px;"> <div id="subCategoryContainerOnDetailPage" class="subcategories-container">
-                     </div>
-                 <div id="productsContainerOnCategoryPage" class="products-container" style="padding-top: 16px;">
-                     </div>
-                 <div id="categoryPageLoader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
-             </div>
-         </div>
-
+        
         <div class="page page-hidden" id="subcategoryDetailPage">
-             <div class="subcategory-detail-content" style="padding-top: 80px; padding-bottom: 85px;">
-                 <div id="subSubCategoryContainerOnDetailPage" class="subcategories-container">
-                     </div>
-                 <div id="productsContainerOnDetailPage" class="products-container" style="padding-top: 16px;">
-                     </div>
-                 <div id="detailPageLoader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
-             </div>
-         </div>
+             <div class="subcategory-detail-content">
+                <div id="subSubCategoryContainerOnDetailPage" class="subcategories-container">
+                </div>
+                <div id="productsContainerOnDetailPage" class="products-container">
+                </div>
+                <div id="detailPageLoader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
+            </div>
+        </div>
 
         <div class="settings-page page page-hidden" id="settingsPage">
             <h3 class="section-title" style="margin: 0; border-radius: 8px 8px 0 0;"><i class="fas fa-cog"></i> <span data-translate-key="settings_title">ڕێکخستنەکان</span></h3>
@@ -451,7 +445,7 @@
                     </div>
                 </div>
             </div>
-
+            
             <div class="settings-group" id="adminPromoCardsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                     <i class="fas fa-images"></i> <span>بەڕێوەبردنی سلایدەری ڕێکلام</span>
@@ -813,7 +807,7 @@
                     <div id="announcementsListContainer"></div>
                 </div>
             </div>
-            </div>
+        </div>
 
         <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
 
@@ -860,7 +854,7 @@
                 </form>
             </div>
         </div>
-
+        
         <div id="editCategoryModal" class="modal">
             <div class="modal-content">
                 <span class="close" aria-label="Close">&times;</span>
@@ -1006,7 +1000,8 @@
     </div>
 
     <script type="module" src="app-setup.js"></script>
-    <script type="module" src="app-logic.js"></script>
+    <script type="module" src="app-core.js"></script>
+<script type="module" src="app-ui.js"></script>
     <script src="admin.js" defer></script>
 </body>
 </html>
