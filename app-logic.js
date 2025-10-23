@@ -1,5 +1,5 @@
 // BEŞÊ DUYEM: app-logic.js
-// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر و Scroll Restoration - v3)
+// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی Scroll Restoration - v4)
 
 import {
     db, auth, messaging,
@@ -147,11 +147,11 @@ async function applyFilterState(filterState, fromPopState = false) {
 
     // --- SCROLL RESTORATION LOGIC ---
     if (fromPopState && typeof filterState.scroll === 'number' && filterState.scroll > 0) {
-        // Use requestAnimationFrame for smoother scroll restoration after content might have rendered
-        requestAnimationFrame(() => {
-             // console.log("Restoring scroll from popstate:", filterState.scroll);
+        // Use setTimeout to allow content rendering/reflow before restoring scroll
+        setTimeout(() => {
+             // console.log("Attempting to restore scroll from popstate:", filterState.scroll);
              window.scrollTo({ top: filterState.scroll, behavior: 'instant' }); // Use 'instant' for direct jump
-        });
+        }, 100); // Increased delay slightly (try 50 or 100)
     } else if (!fromPopState) {
         // Scroll to top for *new* filter navigations
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2494,3 +2494,4 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
+
