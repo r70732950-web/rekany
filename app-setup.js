@@ -1,12 +1,13 @@
 // --- app-setup.js ---
 // Pênasekirin û sazkarîyên destpêkê
 
-// Firebase Imports
+// Firebase Imports ( *** چاککراو *** )
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js"; // Import only what's needed here
-import { getFirestore } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js"; // Import only what's needed here
-import { getMessaging } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js"; // Import only what's needed here
+import { getAuth } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+// 'collection' لێرە زیادکرا چونکە لە خوارەوە بەکاردێت
+import { getFirestore, collection } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getMessaging } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
 // Firebase Configuration (Keep your actual config)
 const firebaseConfig = {
@@ -20,20 +21,19 @@ const firebaseConfig = {
 };
 
 // Initialization and Exports
-export const app = initializeApp(firebaseConfig);
+export const app = initializeApp(firebaseConfig); // ئێستا پێویستە کار بکات
 export const analytics = getAnalytics(app);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 
-// Firestore Collections Exports (Import collection function from Firestore where needed)
-import { collection } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+// Firestore Collections Exports (using 'collection' imported above)
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
-export const shortcutRowsCollection = collection(db, "shortcut_rows"); // Added export for shortcut rows
+export const shortcutRowsCollection = collection(db, "shortcut_rows");
 
 // --- Global State ---
 export let state = {
@@ -66,6 +66,7 @@ export const PROFILE_KEY = "maten_store_profile";
 export const PRODUCTS_PER_PAGE = 25; // Or your desired number
 
 // --- Translations ---
+// *** دڵنیابە وەرگێڕانەکانت لێرە تەواون ***
 export const translations = {
     ku_sorani: {
         search_placeholder: "گەڕان بە ناوی کاڵا...",
@@ -150,13 +151,14 @@ export const translations = {
         related_products_title: "کاڵای هاوشێوە",
         share_text: "سەیری ئەم کاڵایە بکە",
         share_error: "هاوبەشیپێکردن سەرکەوتوو نەبوو",
-        no_products_found: "هیچ کاڵایەک نەدۆزرایەوە.", // Added for empty search/filter
-        product_no_name: "کاڵای بێ ناو", // Added for products missing names
-        new_notification: "ئاگەداری نوێ" // Added for FCM
+        no_products_found: "هیچ کاڵایەک نەدۆزرایەوە.",
+        product_no_name: "کاڵای بێ ناو",
+        new_notification: "ئاگەداری نوێ"
     },
     ku_badini: { /* ... وەرگێڕانەکانی بادینی لێرە دابنێ ... */ },
     ar: { /* ... وەرگێڕانەکانی عەرەبی لێرە دابنێ ... */ }
 };
+
 
 // --- Utility Functions ---
 
@@ -189,6 +191,7 @@ export function showNotification(message, type = 'success') {
         notification.classList.remove('show');
         // Remove from DOM after transition finishes
         setTimeout(() => {
+            // Check if the element still exists before removing
             if (notification.parentNode) {
                 notification.parentNode.removeChild(notification);
             }
@@ -222,14 +225,13 @@ export const searchInput = document.getElementById('searchInput');
 export const clearSearchBtn = document.getElementById('clearSearchBtn');
 export const notificationBtn = document.getElementById('notificationBtn');
 export const notificationBadge = document.getElementById('notificationBadge');
-// Subpage Header elements might be needed too
 export const subpageSearchInput = document.getElementById('subpageSearchInput');
 export const subpageClearSearchBtn = document.getElementById('subpageClearSearchBtn');
 
 // Main Content Area Elements
 export const mainPage = document.getElementById('mainPage');
-export const subcategoryDetailPage = document.getElementById('subcategoryDetailPage'); // Needed for page switching
-export const settingsPage = document.getElementById('settingsPage'); // Needed for page switching
+export const subcategoryDetailPage = document.getElementById('subcategoryDetailPage');
+export const settingsPage = document.getElementById('settingsPage');
 export const mainCategoriesContainer = document.getElementById('mainCategoriesContainer');
 export const subcategoriesContainer = document.getElementById('subcategoriesContainer');
 export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
@@ -260,18 +262,17 @@ export const sheetCategoriesContainer = document.getElementById('sheetCategories
 
 // Profile Form Elements
 export const profileForm = document.getElementById('profileForm');
-// GPS button is handled within UI logic, might not need export unless core interacts
 
 // Settings Page Elements
 export const settingsFavoritesBtn = document.getElementById('settingsFavoritesBtn');
 export const settingsAdminLoginBtn = document.getElementById('settingsAdminLoginBtn');
 export const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
 export const contactToggle = document.getElementById('contactToggle');
-export const dynamicContactLinksContainer = document.getElementById('dynamicContactLinksContainer'); // Needed for UI render
+export const dynamicContactLinksContainer = document.getElementById('dynamicContactLinksContainer');
 export const termsAndPoliciesBtn = document.getElementById('termsAndPoliciesBtn');
-export const installAppBtn = document.getElementById('installAppBtn'); // Needed for PWA logic in UI
-export const enableNotificationsBtn = document.getElementById('enableNotificationsBtn'); // Needed for Notif logic in UI
-export const forceUpdateBtn = document.getElementById('forceUpdateBtn'); // Needed for update logic in UI
+export const installAppBtn = document.getElementById('installAppBtn');
+export const enableNotificationsBtn = document.getElementById('enableNotificationsBtn');
+export const forceUpdateBtn = document.getElementById('forceUpdateBtn');
 
 // Terms Sheet Elements
 export const termsContentContainer = document.getElementById('termsContentContainer');
@@ -280,7 +281,7 @@ export const termsContentContainer = document.getElementById('termsContentContai
 export const notificationsListContainer = document.getElementById('notificationsListContainer');
 
 // Product Form Elements (Admin)
-export const addProductBtn = document.getElementById('addProductBtn'); // Floating button
+export const addProductBtn = document.getElementById('addProductBtn');
 export const productForm = document.getElementById('productForm');
 export const formTitle = document.getElementById('formTitle');
 export const imageInputsContainer = document.getElementById('imageInputsContainer');
@@ -290,7 +291,7 @@ export const productSubcategorySelect = document.getElementById('productSubcateg
 export const subSubcategorySelectContainer = document.getElementById('subSubcategorySelectContainer');
 export const productSubSubcategorySelect = document.getElementById('productSubSubcategoryId');
 
-// Admin Management Sections (Main containers needed if UI needs to toggle visibility based on auth)
+// Admin Management Sections (Main containers)
 export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
 export const adminCategoryManagement = document.getElementById('adminCategoryManagement');
 export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
@@ -300,7 +301,6 @@ export const adminHomeLayoutManagement = document.getElementById('adminHomeLayou
 export const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
 export const adminSocialMediaManagement = document.getElementById('adminSocialMediaManagement');
 export const adminAnnouncementManagement = document.getElementById('adminAnnouncementManagement');
-// Specific elements within admin sections are usually handled by admin.js or ui.js event listeners
 
 // Bottom Navigation Buttons
 export const homeBtn = document.getElementById('homeBtn');
