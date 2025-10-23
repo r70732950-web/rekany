@@ -294,7 +294,7 @@ export const translations = {
     }
 };
 
-// Global State Variables (Mutable)
+// Global State Variables (Mutable) - Ensure this is declared only ONCE
 export let state = {
     currentLanguage: localStorage.getItem('language') || 'ku_sorani',
     deferredPrompt: null,
@@ -320,6 +320,7 @@ export let state = {
     currentSearch: '',
     sliderIntervals: {}, // Added for slider fix v2
 };
+// Removed duplicate state declaration if it existed previously
 
 // Constants
 export const CART_KEY = "maten_store_cart";
