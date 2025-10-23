@@ -294,7 +294,7 @@ export const translations = {
     }
 };
 
-// Global State Variables (Mutable) - Ensure this is declared only ONCE
+// Global State Variables (Mutable)
 export let state = {
     currentLanguage: localStorage.getItem('language') || 'ku_sorani',
     deferredPrompt: null,
@@ -320,7 +320,6 @@ export let state = {
     currentSearch: '',
     sliderIntervals: {}, // Added for slider fix v2
 };
-// Removed duplicate state declaration if it existed previously
 
 // Constants
 export const CART_KEY = "maten_store_cart";
@@ -385,8 +384,5 @@ export const policiesForm = document.getElementById('policiesForm');
 export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
 export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
 export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
-
 // Export the new page element
-console.log("Attempting to export subcategoryDetailPage..."); // DEBUGGING LOG
 export const subcategoryDetailPage = document.getElementById('subcategoryDetailPage');
-
