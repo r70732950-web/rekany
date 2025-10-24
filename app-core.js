@@ -1,4 +1,4 @@
-// app-core.js: Core logic, Firebase interactions, state management
+// app-core.js: Core logic, Firebase interactions, state management (Fixed Errors)
 
 import {
     db, auth, messaging,
@@ -52,6 +52,9 @@ export function t(key, replacements = {}) {
 export function saveCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
     // The UI part (updateCartCount) will be in app-ui.js
+    if (window.AppUI && typeof window.AppUI.updateCartCount === 'function') {
+        window.AppUI.updateCartCount(); // Update UI count immediately after saving
+    }
 }
 
 /** Saves the current favorites list to localStorage. */
@@ -69,6 +72,27 @@ export function isFavorite(productId) {
     return state.favorites.includes(productId);
 }
 
+/** Sets the ID of the product currently being edited (for admin). */
+export function setEditingProductId(id) {
+    state.editingProductId = id;
+}
+
+/** Gets the ID of the product currently being edited (for admin). */
+export function getEditingProductId() {
+    return state.editingProductId;
+}
+
+/** Gets the currently loaded categories (for admin). */
+export function getCategories() {
+    return state.categories;
+}
+
+/** Gets the current language setting (for admin). */
+export function getCurrentLanguage() {
+    return state.currentLanguage;
+}
+
+
 // --- Firebase & Data Fetching ---
 
 /**
@@ -78,6 +102,14 @@ export function isFavorite(productId) {
  * @param {boolean} [isNewSearch=false] Whether this is a new search or loading more.
  */
 export async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
+    // Ensure AppUI is available before proceeding
+     if (!window.AppUI) {
+        console.warn("searchProductsInFirestore called before AppUI is ready.");
+        // Optionally, retry after a short delay
+        // setTimeout(() => searchProductsInFirestore(searchTerm, isNewSearch), 100);
+        return;
+    }
+
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
 
     if (shouldShowHomeSections) {
@@ -159,8 +191,12 @@ export async function searchProductsInFirestore(searchTerm = '', isNewSearch = f
         if (isNewSearch) {
             state.products = newProducts;
         } else {
-            state.products = [...state.products, ...newProducts];
+            // Append new products, avoiding duplicates just in case
+            const currentIds = new Set(state.products.map(p => p.id));
+            const uniqueNewProducts = newProducts.filter(p => !currentIds.has(p.id));
+            state.products = [...state.products, ...uniqueNewProducts];
         }
+
 
         state.allProductsLoaded = productSnapshot.docs.length < PRODUCTS_PER_PAGE;
         state.lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
@@ -193,13 +229,25 @@ export function setupCategoryListener() {
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     onSnapshot(categoriesQuery, (snapshot) => {
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        state.categories = [{ id: 'all', icon: 'fas fa-th', name_ku_sorani: t('all_categories_label'), name_ku_badini: t('all_categories_label'), name_ar: t('all_categories_label') }, ...fetchedCategories]; // Ensure 'All' category has names
-        // Trigger UI update related to categories
-        window.AppUI.updateCategoryDependentUI();
-        // If it's the initial load after categories are ready, handle initial page state
+        // Ensure 'All' category has names for all languages for consistency
+        const allCategoryNameObj = {
+            ku_sorani: t('all_categories_label', { lang: 'ku_sorani' }),
+            ku_badini: t('all_categories_label', { lang: 'ku_badini' }),
+            ar: t('all_categories_label', { lang: 'ar' })
+        };
+        state.categories = [{ id: 'all', icon: 'fas fa-th', ...allCategoryNameObj }, ...fetchedCategories]; // Add 'All' category
+
+        // Trigger UI update related to categories (ensure AppUI exists)
+        if (window.AppUI && typeof window.AppUI.updateCategoryDependentUI === 'function') {
+            window.AppUI.updateCategoryDependentUI();
+        } else {
+            console.warn("Category listener fired before AppUI was ready.");
+        }
+
+        // Handle initial page load based on URL *after* categories are loaded
         if (!state.initialLoadHandled) {
-            handleInitialPageLoad(); // Now safe to call
-            state.initialLoadHandled = true; // Mark initial load as handled
+             handleInitialPageLoad(); // Now safe to call as categories are available
+             state.initialLoadHandled = true; // Mark initial load as handled
         }
     }, (error) => {
         console.error("Error fetching categories:", error);
@@ -207,15 +255,18 @@ export function setupCategoryListener() {
     });
 }
 
+
 /** Fetches contact links from Firestore. */
 export function setupContactLinksListener() {
     const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
-    const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
+    const q = query(socialLinksCollection, orderBy("createdAt", "desc")); // Order consistently
 
     onSnapshot(q, (snapshot) => {
         const links = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // Trigger UI update for contact links
-        window.AppUI.renderContactLinks(links);
+        // Trigger UI update for contact links (check if AppUI exists)
+        if (window.AppUI && typeof window.AppUI.renderContactLinks === 'function') {
+            window.AppUI.renderContactLinks(links);
+        }
     }, (error) => {
         console.error("Error fetching contact links:", error);
     });
@@ -228,8 +279,14 @@ export function setupContactMethodsListener() {
 
     onSnapshot(q, (snapshot) => {
         state.contactMethods = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // Trigger UI update for cart action buttons (if cart sheet is open)
-        window.AppUI.updateCartActionButtons();
+        // Trigger UI update for cart action buttons (check if AppUI exists)
+        // FIX: Check if AppUI and the function exist before calling
+        if (window.AppUI && typeof window.AppUI.updateCartActionButtons === 'function') {
+            window.AppUI.updateCartActionButtons();
+        } else {
+             console.warn("Contact methods updated, but AppUI.updateCartActionButtons not ready.");
+             // Optionally queue the update or handle later
+        }
     }, (error) => {
         console.error("Error fetching contact methods:", error);
     });
@@ -244,14 +301,23 @@ export function checkNewAnnouncements() {
             const latestAnnouncement = snapshot.docs[0].data();
             const lastSeenTimestamp = localStorage.getItem('lastSeenAnnouncementTimestamp') || 0;
             const showBadge = latestAnnouncement.createdAt > lastSeenTimestamp;
-            // Trigger UI update for notification badge
-            window.AppUI.updateNotificationBadge(showBadge);
+            // Trigger UI update for notification badge (check if AppUI exists)
+            if (window.AppUI && typeof window.AppUI.updateNotificationBadge === 'function') {
+                 window.AppUI.updateNotificationBadge(showBadge);
+            }
         }
+    }, (error) => {
+        console.error("Error checking announcements:", error);
     });
 }
 
 /** Fetches announcements for the notification sheet. */
 export async function fetchAnnouncementsForSheet() {
+     // Ensure AppUI is available
+     if (!window.AppUI) {
+        console.warn("fetchAnnouncementsForSheet called before AppUI is ready.");
+        return;
+    }
     try {
         const q = query(announcementsCollection, orderBy("createdAt", "desc"));
         const snapshot = await getDocs(q);
@@ -260,11 +326,27 @@ export async function fetchAnnouncementsForSheet() {
         // Find the latest timestamp among fetched announcements
         let latestTimestamp = 0;
         if (!snapshot.empty) {
-            latestTimestamp = snapshot.docs[0].data().createdAt;
+            // Ensure createdAt exists and is a number before comparison
+            const firstDocData = snapshot.docs[0].data();
+            if (firstDocData && typeof firstDocData.createdAt === 'number') {
+                latestTimestamp = firstDocData.createdAt;
+            } else {
+                // Fallback or log error if createdAt is missing/invalid
+                console.warn("Latest announcement missing valid createdAt timestamp:", firstDocData);
+                 // Find the max timestamp manually just in case the first isn't the latest due to potential data issues
+                 announcements.forEach(ann => {
+                    if (ann && typeof ann.createdAt === 'number' && ann.createdAt > latestTimestamp) {
+                        latestTimestamp = ann.createdAt;
+                    }
+                 });
+            }
         }
 
+
         // Update last seen timestamp and trigger UI update
-        localStorage.setItem('lastSeenAnnouncementTimestamp', latestTimestamp);
+        if (latestTimestamp > 0) { // Only update if a valid timestamp was found
+             localStorage.setItem('lastSeenAnnouncementTimestamp', latestTimestamp);
+        }
         window.AppUI.renderUserNotifications(announcements); // Pass data to UI function
         window.AppUI.updateNotificationBadge(false); // Hide badge after opening
 
@@ -274,8 +356,14 @@ export async function fetchAnnouncementsForSheet() {
     }
 }
 
+
 /** Fetches policies from Firestore. */
 export async function fetchPolicies() {
+     // Ensure AppUI is available
+     if (!window.AppUI) {
+        console.warn("fetchPolicies called before AppUI is ready.");
+        return;
+    }
     try {
         const docRef = doc(db, "settings", "policies");
         const docSnap = await getDoc(docRef);
@@ -301,11 +389,12 @@ export async function fetchSubcategories(categoryId) {
         const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
         const q = query(subcategoriesQuery, orderBy("order", "asc"));
         const querySnapshot = await getDocs(q);
+        // Store in state (optional, could just return)
         state.subcategories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         return state.subcategories;
     } catch (error) {
         console.error(`Error fetching subcategories for ${categoryId}:`, error);
-        return [];
+        return []; // Return empty array on error
     }
 }
 
@@ -321,7 +410,7 @@ export async function fetchSubSubcategories(mainCatId, subCatId) {
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
         console.error(`Error fetching sub-subcategories for ${mainCatId}/${subCatId}:`, error);
-        return [];
+        return []; // Return empty array on error
     }
 }
 
@@ -329,20 +418,24 @@ export async function fetchSubSubcategories(mainCatId, subCatId) {
 export async function fetchProductsForDetailPage(subCatId, subSubCatId = 'all', searchTerm = '') {
     try {
         let productsQuery;
+        // Base query based on sub or sub-sub category
         if (subSubCatId === 'all') {
             productsQuery = query(productsCollection, where("subcategoryId", "==", subCatId));
         } else {
             productsQuery = query(productsCollection, where("subSubcategoryId", "==", subSubCatId));
         }
 
+        // Apply search term filter
         const finalSearchTerm = searchTerm.trim().toLowerCase();
         if (finalSearchTerm) {
             productsQuery = query(productsQuery,
                 where('searchableName', '>=', finalSearchTerm),
                 where('searchableName', '<=', finalSearchTerm + '\uf8ff')
             );
+            // Order by searchableName first when searching
             productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
         } else {
+            // Default order when not searching
             productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         }
 
@@ -350,31 +443,42 @@ export async function fetchProductsForDetailPage(subCatId, subSubCatId = 'all', 
         return productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
         console.error(`Error fetching products for detail page (subCatId: ${subCatId}, subSubCatId: ${subSubCatId}, searchTerm: "${searchTerm}"):`, error);
-        return [];
+        return []; // Return empty array on error
     }
 }
 
 /** Fetches related products based on category/subcategory. */
 export async function fetchRelatedProducts(currentProduct) {
-    if (!currentProduct.subcategoryId && !currentProduct.categoryId) {
-        return [];
+    // Determine the most specific category available
+    let queryField, queryValue;
+    if (currentProduct.subSubcategoryId) {
+        queryField = 'subSubcategoryId';
+        queryValue = currentProduct.subSubcategoryId;
+    } else if (currentProduct.subcategoryId) {
+        queryField = 'subcategoryId';
+        queryValue = currentProduct.subcategoryId;
+    } else if (currentProduct.categoryId) {
+        queryField = 'categoryId';
+        queryValue = currentProduct.categoryId;
+    } else {
+        return []; // Cannot find related if no category info
     }
 
-    let q;
-    if (currentProduct.subSubcategoryId) {
-        q = query(productsCollection, where('subSubcategoryId', '==', currentProduct.subSubcategoryId), where('__name__', '!=', currentProduct.id), limit(6));
-    } else if (currentProduct.subcategoryId) {
-        q = query(productsCollection, where('subcategoryId', '==', currentProduct.subcategoryId), where('__name__', '!=', currentProduct.id), limit(6));
-    } else {
-        q = query(productsCollection, where('categoryId', '==', currentProduct.categoryId), where('__name__', '!=', currentProduct.id), limit(6));
-    }
+    // Query for products in the same category, excluding the current one
+    const q = query(
+        productsCollection,
+        where(queryField, '==', queryValue),
+        where('__name__', '!=', currentProduct.id), // Exclude the product itself
+        limit(6) // Limit the number of related products
+        // Optionally add orderBy('createdAt', 'desc') or similar
+    );
 
     try {
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
         console.error("Error fetching related products:", error);
-        return [];
+        return []; // Return empty array on error
     }
 }
 
@@ -383,10 +487,23 @@ export async function fetchRelatedProducts(currentProduct) {
 
 /** Adds a product to the cart or increments its quantity. */
 export function addToCart(productId) {
+    // Ensure AppUI is available for notifications
+     if (!window.AppUI) {
+        console.warn("addToCart called before AppUI is ready.");
+        return; // Or queue the action
+    }
+
     // Find product details (prioritize local state, fallback to fetch if needed)
     let product = state.products.find(p => p.id === productId);
 
     const processAddToCart = (productData) => {
+        // Ensure productData is valid before proceeding
+         if (!productData || !productData.id || !productData.price) {
+             console.error("Invalid product data for cart:", productData);
+             window.AppUI.showNotification(t('error_generic'), 'error');
+             return;
+         }
+
         const mainImage = (productData.imageUrls && productData.imageUrls.length > 0) ? productData.imageUrls[0] : (productData.image || '');
         const existingItem = state.cart.find(item => item.id === productId);
 
@@ -401,9 +518,8 @@ export function addToCart(productId) {
                 quantity: 1
             });
         }
-        saveCart();
+        saveCart(); // This now calls AppUI.updateCartCount internally
         window.AppUI.showNotification(t('product_added_to_cart'), 'success');
-        window.AppUI.updateCartCount(); // Update UI count
     };
 
     if (product) {
@@ -435,7 +551,10 @@ export function updateQuantity(productId, change) {
             removeFromCart(productId); // Remove if quantity is zero or less
         } else {
             saveCart();
-            window.AppUI.renderCart(); // Trigger UI update
+            // Trigger UI update (check if AppUI exists)
+            if (window.AppUI && typeof window.AppUI.renderCart === 'function') {
+                window.AppUI.renderCart();
+            }
         }
     }
 }
@@ -443,15 +562,23 @@ export function updateQuantity(productId, change) {
 /** Removes an item completely from the cart. */
 export function removeFromCart(productId) {
     state.cart = state.cart.filter(item => item.id !== productId);
-    saveCart();
-    window.AppUI.renderCart(); // Trigger UI update
-    window.AppUI.updateCartCount(); // Update UI count
+    saveCart(); // This will also update the count via AppUI
+    // Trigger UI update (check if AppUI exists)
+     if (window.AppUI && typeof window.AppUI.renderCart === 'function') {
+        window.AppUI.renderCart();
+    }
 }
 
 // --- Favorites Logic ---
 
 /** Toggles a product's favorite status. */
 export function toggleFavorite(productId) {
+    // Ensure AppUI is available for notifications and UI updates
+     if (!window.AppUI) {
+        console.warn("toggleFavorite called before AppUI is ready.");
+        return;
+    }
+
     const isCurrentlyFavorite = isFavorite(productId);
     let messageKey = '';
     let messageType = 'success';
@@ -459,68 +586,81 @@ export function toggleFavorite(productId) {
     if (isCurrentlyFavorite) {
         state.favorites = state.favorites.filter(id => id !== productId);
         messageKey = 'product_removed_from_favorites';
-        messageType = 'error';
+        messageType = 'error'; // Use error style for removal
     } else {
         state.favorites.push(productId);
         messageKey = 'product_added_to_favorites';
     }
-    saveFavorites();
+    saveFavorites(); // Save the updated list
 
-    // Trigger UI updates
+    // Trigger UI updates using AppUI functions
     window.AppUI.showNotification(t(messageKey), messageType);
     window.AppUI.updateFavoriteButtons(productId, !isCurrentlyFavorite);
     window.AppUI.updateFavoritesPageIfOpen();
 }
+
 
 // --- Authentication & Admin ---
 
 /** Sets up the listener for Firebase Authentication state changes. */
 function setupAuthListener() {
     onAuthStateChanged(auth, async (user) => {
+        // IMPORTANT: Use the actual Admin UID from your Firebase project
         const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3"; // Replace with your Admin UID
         const isAdmin = user && user.uid === adminUID;
 
+        // Use sessionStorage which is cleared when the tab/browser is closed
         sessionStorage.setItem('isAdmin', isAdmin ? 'true' : 'false');
 
         if (isAdmin) {
             console.log("Admin user detected.");
-            // Ensure admin logic is loaded before initializing
-            if (window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
-                if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                     window.AdminLogic.initialize();
-                } else {
-                    document.addEventListener('DOMContentLoaded', window.AdminLogic.initialize, { once: true });
-                }
-            } else {
-                 console.warn("AdminLogic not found or initialize not a function when admin logged in.");
-                 // Optionally try again after a delay if admin.js might load later
-                 setTimeout(() => {
+             // Load admin script dynamically if not already loaded (more robust)
+             if (!window.AdminLogic) {
+                const adminScript = document.createElement('script');
+                adminScript.src = 'admin.js';
+                adminScript.defer = true;
+                adminScript.onload = () => {
                     if (window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
                         window.AdminLogic.initialize();
+                         // Update UI after admin logic is initialized
+                         if (window.AppUI && typeof window.AppUI.updateAdminSpecificUI === 'function') {
+                            window.AppUI.updateAdminSpecificUI(true);
+                        }
                     } else {
-                         console.error("AdminLogic still not available after delay.");
+                         console.error("admin.js loaded but AdminLogic.initialize not found.");
                     }
-                 }, 1000);
+                };
+                adminScript.onerror = () => console.error("Failed to load admin.js");
+                document.body.appendChild(adminScript);
+            } else if (typeof window.AdminLogic.initialize === 'function') {
+                // If already loaded, just initialize
+                window.AdminLogic.initialize();
             }
         } else {
             console.log("No admin user or non-admin user detected.");
             if (user) {
                 // If a non-admin user is somehow signed in, sign them out.
-                await signOut(auth);
-                console.log("Non-admin user signed out.");
+                try {
+                    await signOut(auth);
+                    console.log("Non-admin user signed out.");
+                } catch (signOutError) {
+                    console.error("Error signing out non-admin user:", signOutError);
+                }
             }
-             // Deinitialize admin UI elements if the logic exists
+             // Deinitialize admin UI elements if the logic exists and is initialized
              if (window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
                 window.AdminLogic.deinitialize();
             }
         }
 
-        // Trigger UI update based on admin status
-        window.AppUI.updateAdminSpecificUI(isAdmin);
+        // Trigger UI update based on admin status (might run before admin.js loads, but sets initial state)
+         if (window.AppUI && typeof window.AppUI.updateAdminSpecificUI === 'function') {
+             window.AppUI.updateAdminSpecificUI(isAdmin);
+        }
 
         // Close login modal if admin logs in successfully
-        if (window.AppUI.isModalOpen('loginModal') && isAdmin) {
-            window.AppUI.closeCurrentPopup();
+        if (window.AppUI && window.AppUI.isModalOpen('loginModal') && isAdmin) {
+             window.AppUI.closeCurrentPopup();
         }
     });
 }
@@ -530,30 +670,59 @@ function setupAuthListener() {
 
 /** Requests permission for push notifications and saves the token. */
 export async function requestNotificationPermission() {
+    // Ensure AppUI is available for notifications
+     if (!window.AppUI) {
+        console.warn("requestNotificationPermission called before AppUI is ready.");
+        return;
+    }
     console.log('Requesting notification permission...');
     try {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
+        // Check current permission state first
+        if (Notification.permission === 'granted') {
+             console.log('Notification permission already granted.');
+             window.AppUI.showNotification('مۆڵەتی ئاگەداری پێشتر دراوە.', 'success');
+             // Proceed to get and save token
+        } else if (Notification.permission === 'denied') {
+            console.log('Notification permission was previously denied.');
+            window.AppUI.showNotification('مۆڵەتی ئاگەداری ڕەتکراوەتەوە. تکایە لە ڕێکخستنەکانی وێبگەڕەکەت چاکی بکە.', 'error');
+            return; // Don't request again if denied
+        }
+
+        // If permission is 'default', request it
+        const permissionResult = await Notification.requestPermission();
+
+        if (permissionResult === 'granted') {
             console.log('Notification permission granted.');
-            window.AppUI.showNotification(t('notification_permission_granted', { lang: state.currentLanguage }), 'success'); // Example of passing lang
+            window.AppUI.showNotification(t('notification_permission_granted', { lang: state.currentLanguage }), 'success');
+            // Get and save the token
             const currentToken = await getToken(messaging, {
                 vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ' // Your VAPID key
+            }).catch(err => { // Catch errors during getToken specifically
+                console.error('Error retrieving FCM token:', err);
+                 window.AppUI.showNotification('هەڵە لە وەرگرتنی تۆکن ڕوویدا.', 'error');
+                 return null; // Return null if token retrieval fails
             });
 
             if (currentToken) {
                 console.log('FCM Token:', currentToken);
                 await saveTokenToFirestore(currentToken);
             } else {
-                console.log('No registration token available.');
+                 console.log('No registration token available or error retrieving token.');
+                 // Optionally inform the user if token retrieval failed after permission grant
+                 if (Notification.permission === 'granted') {
+                     // We already showed an error if getToken failed
+                 }
             }
         } else {
-            console.log('Unable to get permission to notify.');
+            console.log('User denied notification permission.');
             window.AppUI.showNotification(t('notification_permission_denied', { lang: state.currentLanguage }), 'error');
         }
     } catch (error) {
-        console.error('An error occurred while requesting permission: ', error);
+        console.error('An error occurred during notification permission request: ', error);
+         window.AppUI.showNotification(t('error_generic'), 'error');
     }
 }
+
 
 /** Saves the FCM token to Firestore. */
 async function saveTokenToFirestore(token) {
@@ -564,12 +733,18 @@ async function saveTokenToFirestore(token) {
             createdAt: Date.now(),
             // You might want to add user ID here if users log in
             // userId: auth.currentUser ? auth.currentUser.uid : null
+            lastUpdated: Date.now() // Add a timestamp for last update
         }, { merge: true }); // Use merge to avoid overwriting if token exists
         console.log('Token saved/updated in Firestore.');
     } catch (error) {
         console.error('Error saving token to Firestore: ', error);
+        // Optionally notify UI about the error
+         if (window.AppUI) {
+             window.AppUI.showNotification('هەڵە لە پاشەکەوتکردنی تۆکن ڕوویدا', 'error');
+         }
     }
 }
+
 
 /** Sets up the listener for foreground push messages. */
 function setupForegroundMessageListener() {
@@ -577,20 +752,24 @@ function setupForegroundMessageListener() {
         console.log('Foreground message received: ', payload);
         const title = payload.notification?.title || 'Notification';
         const body = payload.notification?.body || '';
-        // Use the UI function to display the notification
-        window.AppUI.showNotification(`${title}: ${body}`, 'success');
-        // Optionally update the badge immediately (UI function)
-        window.AppUI.updateNotificationBadge(true);
+         // Use the UI function to display the notification (check existence)
+         if (window.AppUI && typeof window.AppUI.showNotification === 'function') {
+            window.AppUI.showNotification(`${title}: ${body}`, 'success');
+             // Optionally update the badge immediately (UI function)
+             window.AppUI.updateNotificationBadge(true);
+        }
     });
 }
 
 /** Handles the PWA beforeinstallprompt event. */
 function setupInstallPromptHandler() {
     window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        state.deferredPrompt = e;
-        // Trigger UI update to show install button
-        window.AppUI.showInstallButton(true);
+        e.preventDefault(); // Prevent the default mini-infobar
+        state.deferredPrompt = e; // Save the event
+        // Trigger UI update to show install button (check existence)
+        if (window.AppUI && typeof window.AppUI.showInstallButton === 'function') {
+            window.AppUI.showInstallButton(true);
+        }
         console.log('`beforeinstallprompt` event was fired.');
     });
 }
@@ -598,17 +777,27 @@ function setupInstallPromptHandler() {
 /** Triggers the PWA installation prompt. */
 export async function triggerInstallPrompt() {
     if (state.deferredPrompt) {
-        window.AppUI.showInstallButton(false); // Hide button after prompting
-        state.deferredPrompt.prompt();
+         // Hide button via UI function (check existence)
+         if (window.AppUI && typeof window.AppUI.showInstallButton === 'function') {
+             window.AppUI.showInstallButton(false);
+         }
+        state.deferredPrompt.prompt(); // Show the install prompt
         try {
             const { outcome } = await state.deferredPrompt.userChoice;
             console.log(`User response to the install prompt: ${outcome}`);
         } catch (error) {
             console.error("Error during install prompt:", error);
         }
-        state.deferredPrompt = null; // Clear the saved prompt
+        state.deferredPrompt = null; // Clear the saved prompt once used
+    } else {
+        console.log("Deferred install prompt not available.");
+        // Optionally inform the user via UI
+         if (window.AppUI) {
+             window.AppUI.showNotification("ئەپەکە پێشتر دامەزراوە یان وێبگەڕ پشتگیری ناکات.", "error");
+         }
     }
 }
+
 
 // --- Service Worker ---
 
@@ -624,8 +813,10 @@ function setupServiceWorker() {
 
                 newWorker.addEventListener('statechange', () => {
                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        // New worker is waiting, trigger UI update
-                        window.AppUI.showUpdateNotification(true);
+                        // New worker is waiting, trigger UI update (check existence)
+                         if (window.AppUI && typeof window.AppUI.showUpdateNotification === 'function') {
+                            window.AppUI.showUpdateNotification(true);
+                        }
                     }
                 });
             });
@@ -636,40 +827,62 @@ function setupServiceWorker() {
 
         // Listen for controller change (after skipWaiting)
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-            console.log('New Service Worker activated. Reloading page...');
-            window.location.reload();
+             // Ensure this only runs once
+             if (navigator.serviceWorker.controller) { // Check if controller is now active
+                 console.log('New Service Worker activated. Reloading page...');
+                 window.location.reload();
+             }
         });
+
+    } else {
+        console.log('Service workers are not supported in this browser.');
     }
 }
+
 
 /** Sends a message to the waiting service worker to skip waiting. */
 export function skipWaiting() {
     navigator.serviceWorker.getRegistration().then(registration => {
         if (registration && registration.waiting) {
             registration.waiting.postMessage({ action: 'skipWaiting' });
+             // Optionally hide the update notification immediately in the UI
+             if (window.AppUI) {
+                 window.AppUI.showUpdateNotification(false);
+             }
         }
+    }).catch(error => {
+        console.error("Error getting SW registration for skipWaiting:", error);
     });
 }
 
 /** Forces an update by unregistering SW and clearing caches. */
 export async function forceUpdate() {
+     // Ensure AppUI exists for notifications
+     if (!window.AppUI) {
+         console.error("Cannot force update, AppUI not ready.");
+         alert("Cannot force update now, please try again later."); // Basic fallback
+         return;
+     }
     // Confirmation should be handled in UI before calling this
     try {
         if ('serviceWorker' in navigator) {
             const registrations = await navigator.serviceWorker.getRegistrations();
-            for (const registration of registrations) {
-                await registration.unregister();
-            }
+            await Promise.all(registrations.map(reg => reg.unregister()));
             console.log('Service Workers unregistered.');
+        } else {
+            console.log('Service workers not supported, skipping unregister.');
         }
 
         if (window.caches) {
             const keys = await window.caches.keys();
             await Promise.all(keys.map(key => window.caches.delete(key)));
             console.log('All caches cleared.');
+        } else {
+             console.log('Cache API not supported, skipping cache clear.');
         }
 
         window.AppUI.showNotification(t('update_success'), 'success');
+        // Reload after a short delay to allow notification to show
         setTimeout(() => window.location.reload(true), 1500);
 
     } catch (error) {
@@ -683,17 +896,31 @@ export async function forceUpdate() {
 
 /** Saves the current scroll position for the main page filter state. */
 export function saveCurrentScrollPosition() {
-    const mainPageActive = document.getElementById('mainPage')?.classList.contains('page-active');
+    // Ensure mainPage element exists
+    const mainPageElement = document.getElementById('mainPage');
+    if (!mainPageElement) return;
+
+    const mainPageActive = mainPageElement.classList.contains('page-active');
     const currentState = history.state;
     // Only save if on main page and it's a filter state (not modal/sheet/page)
     if (mainPageActive && currentState && !currentState.type) {
-        history.replaceState({ ...currentState, scroll: window.scrollY }, '');
+        try {
+            history.replaceState({ ...currentState, scroll: window.scrollY }, '');
+        } catch (e) {
+             console.warn("Could not replace history state for scroll:", e);
+        }
         // console.log("Saved scroll:", window.scrollY, "for state:", currentState);
     }
 }
 
 /** Applies filter state (category, search, etc.) and updates the view. */
 export async function applyFilterState(filterState, fromPopState = false) {
+    // Ensure AppUI is available
+    if (!window.AppUI) {
+        console.warn("applyFilterState called before AppUI is ready.");
+        return;
+    }
+
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
     state.currentSubSubcategory = filterState.subSubcategory || 'all';
@@ -703,15 +930,18 @@ export async function applyFilterState(filterState, fromPopState = false) {
     window.AppUI.updateFilterUI();
 
     // Fetch and render content based on the new state
-    await searchProductsInFirestore(state.currentSearch, true); // Always treat state application as a new search
+    // Use await to ensure products are fetched before attempting scroll restoration
+    await searchProductsInFirestore(state.currentSearch, true);
 
     // Restore scroll position if navigating back/forward
-    if (fromPopState && typeof filterState.scroll === 'number') {
+    if (fromPopState && typeof filterState.scroll === 'number' && filterState.scroll >= 0) {
         // console.log("Restoring scroll to:", filterState.scroll);
-        // Delay slightly to allow content rendering
-        setTimeout(() => window.scrollTo({ top: filterState.scroll, behavior: 'auto' }), 100);
+        // Delay slightly AFTER products are likely rendered
+        setTimeout(() => {
+            window.scrollTo({ top: filterState.scroll, behavior: 'auto' }); // Use 'auto' for instant jump
+        }, 150); // Increased delay slightly
     } else if (!fromPopState) {
-        // Scroll to top for new filter actions initiated by user
+        // Scroll to top smoothly for new filter actions initiated by user
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
@@ -737,13 +967,19 @@ export async function navigateToFilter(newState) {
     if (finalState.subcategory && finalState.subcategory !== 'all') params.set('subcategory', finalState.subcategory);
     if (finalState.subSubcategory && finalState.subSubcategory !== 'all') params.set('subSubcategory', finalState.subSubcategory);
     if (finalState.search) params.set('search', finalState.search);
-    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    const queryString = params.toString();
+    const newUrl = `${window.location.pathname}${queryString ? '?' + queryString : ''}`; // Avoid trailing '?'
+
 
     // Push the new state and URL to history
-    history.pushState(finalState, '', newUrl);
+    try {
+        history.pushState(finalState, '', newUrl);
+    } catch (e) {
+         console.warn("Could not push history state:", e);
+    }
 
     // Apply the new state to the application
-    await applyFilterState(finalState);
+    await applyFilterState(finalState); // Apply state immediately
 }
 
 
@@ -752,8 +988,13 @@ export function handleInitialPageLoad() {
     state.initialLoadHandled = true; // Mark as handled
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(window.location.search);
-
     const productId = params.get('product');
+
+    // Ensure AppUI is available
+    if (!window.AppUI) {
+        console.error("AppUI not available during initial page load handling.");
+        return;
+    }
 
     // Determine initial page based on hash first
     let initialPageId = 'mainPage';
@@ -763,8 +1004,14 @@ export function handleInitialPageLoad() {
     if (hash.startsWith('subcategory_')) {
         initialPageId = 'subcategoryDetailPage';
         const ids = hash.split('_');
-        pageStateData = { mainCatId: ids[1], subCatId: ids[2] };
-        // Title will be fetched later in showSubcategoryDetailPage
+        // Validate IDs if necessary
+        if (ids.length >= 3) {
+             pageStateData = { mainCatId: ids[1], subCatId: ids[2] };
+             // Title will be fetched later in showSubcategoryDetailPage
+        } else {
+            console.warn("Invalid subcategory hash:", hash);
+            initialPageId = 'mainPage'; // Fallback to main page
+        }
     } else if (hash === 'settingsPage') {
         initialPageId = 'settingsPage';
         initialPageTitle = t('settings_title');
@@ -772,8 +1019,14 @@ export function handleInitialPageLoad() {
     }
 
     // Replace history for the initial page view
-    history.replaceState({ type: 'page', id: initialPageId, ...pageStateData }, '', window.location.href);
-    window.AppUI.showPage(initialPageId, initialPageTitle); // Show the initial page UI
+    try {
+        history.replaceState({ type: 'page', id: initialPageId, ...pageStateData }, '', window.location.href);
+    } catch(e) {
+        console.warn("Could not replace initial history state:", e);
+    }
+
+    // Show the initial page UI first
+    window.AppUI.showPage(initialPageId, initialPageTitle);
 
     // If it's the main page, apply filters from query params
     if (initialPageId === 'mainPage') {
@@ -782,28 +1035,49 @@ export function handleInitialPageLoad() {
             subcategory: params.get('subcategory') || 'all',
             subSubcategory: params.get('subSubcategory') || 'all',
             search: params.get('search') || '',
-            scroll: 0
+            scroll: 0 // Initial scroll is always 0
         };
         // Replace initial history state with filter state
-        history.replaceState(initialState, '', `${window.location.pathname}?${params.toString()}`);
-        applyFilterState(initialState); // Apply filters *after* categories are loaded (handled by listener)
+        const queryString = params.toString();
+        const initialUrl = `${window.location.pathname}${queryString ? '?' + queryString : ''}`;
+         try {
+             history.replaceState(initialState, '', initialUrl);
+         } catch (e) {
+             console.warn("Could not replace initial filter history state:", e);
+         }
+        // Apply filters *after* categories are loaded (handled by category listener calling this function again if needed)
+        // Check if categories are already loaded
+         if (state.categories && state.categories.length > 0) {
+            applyFilterState(initialState);
+        } else {
+             console.log("Initial load: Categories not yet loaded, deferring filter application.");
+        }
+
+    } else if (initialPageId === 'subcategoryDetailPage' && pageStateData.mainCatId && pageStateData.subCatId) {
+         // If starting on detail page, render its content
+         window.AppUI.showSubcategoryDetailPage(pageStateData.mainCatId, pageStateData.subCatId, true); // True because it's initial load
     }
 
-     // If a specific product ID is in the URL, open its details *after* a short delay
-     // This allows categories/products to potentially load first
-     if (productId) {
-         setTimeout(() => window.AppUI.showProductDetailsById(productId), 500); // Use UI function
-     }
+
      // Handle opening sheets/modals based on hash *if* on the main page
+     // This needs to run *after* the initial page is shown and filters potentially applied
+     // Also check if a product detail is requested first
+     if (productId) {
+         // Delay slightly to ensure necessary data/UI might be ready
+         setTimeout(() => window.AppUI.showProductDetailsById(productId), 700); // Increased delay
+     }
      else if (initialPageId === 'mainPage' && hash && !hash.startsWith('subcategory_') && hash !== 'settingsPage') {
-         const element = document.getElementById(hash);
-         if (element) {
-             const isSheet = element.classList.contains('bottom-sheet');
-             const isModal = element.classList.contains('modal');
-             if (isSheet || isModal) {
-                 window.AppUI.openPopup(hash, isSheet ? 'sheet' : 'modal'); // Use UI function
+         // Delay opening popups slightly on initial load
+         setTimeout(() => {
+             const element = document.getElementById(hash);
+             if (element) {
+                 const isSheet = element.classList.contains('bottom-sheet');
+                 const isModal = element.classList.contains('modal');
+                 if (isSheet || isModal) {
+                     window.AppUI.openPopup(hash, isSheet ? 'sheet' : 'modal');
+                 }
              }
-         }
+         }, 300); // Short delay for popups
      }
 }
 
@@ -814,9 +1088,10 @@ export function handleInitialPageLoad() {
 function initializeAppLogic() {
     state.initialLoadHandled = false; // Reset initial load flag
     state.sliderIntervals = {}; // Ensure slider intervals object exists
+    state.productCache = {}; // Initialize product cache
 
-    setupCategoryListener(); // Fetches categories and triggers initial load handling
-    setupAuthListener();
+    setupAuthListener(); // Setup auth listener early
+    setupCategoryListener(); // Fetches categories and triggers initial load handling when ready
     setupContactLinksListener();
     setupContactMethodsListener();
     checkNewAnnouncements();
@@ -825,11 +1100,25 @@ function initializeAppLogic() {
     setupServiceWorker();
 
     // Initial language setup (will be refined once categories load)
-    window.AppUI.setLanguageUI(state.currentLanguage);
+    // Defer UI setup until AppUI is confirmed to be loaded
+    if (window.AppUI) {
+         window.AppUI.setLanguageUI(state.currentLanguage);
+    } else {
+         // If AppUI isn't ready yet, wait for it
+         const checkUIInterval = setInterval(() => {
+             if (window.AppUI) {
+                 clearInterval(checkUIInterval);
+                 window.AppUI.setLanguageUI(state.currentLanguage);
+                 // Potentially call other deferred UI setups here if needed
+             }
+         }, 50); // Check every 50ms
+    }
 }
+
 
 /** Main initialization function, enables Firestore persistence first. */
 function init() {
+    console.log("Initializing application...");
     // Attempt to enable offline persistence
     enableIndexedDbPersistence(db)
         .then(() => console.log("Firestore offline persistence enabled."))
@@ -841,22 +1130,49 @@ function init() {
 }
 
 // Start the application
+// Use DOMContentLoaded to ensure basic DOM is ready before trying to init
 document.addEventListener('DOMContentLoaded', init);
 
+
 // --- Global Exposure for Admin ---
-// Expose necessary functions/variables for admin.js
+// Ensure this runs after the functions are defined
 window.globalAdminTools = {
+    // Firebase services/functions needed by admin.js
     db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
-    t,
-    productsCollection, categoriesCollection, announcementsCollection, promoGroupsCollection, brandGroupsCollection, // Pass new collections
-    setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage,
+
+    // Core utility functions needed by admin.js
+    t, // Translation
+    showNotification: (msg, type) => { // Wrapper to ensure AppUI exists
+        if (window.AppUI) window.AppUI.showNotification(msg, type);
+        else console.warn("Admin tried to show notification before AppUI was ready.");
+    },
+    openPopup: (id, type) => { // Wrapper
+        if (window.AppUI) window.AppUI.openPopup(id, type);
+    },
+    closeCurrentPopup: () => { // Wrapper
+         if (window.AppUI) window.AppUI.closeCurrentPopup();
+    },
+    searchProductsInFirestore, // Core search function
+
+    // Collections needed by admin.js
+    productsCollection, categoriesCollection, announcementsCollection, promoGroupsCollection, brandGroupsCollection,
+
+    // State accessors/mutators needed by admin.js
+    setEditingProductId,
+    getEditingProductId,
+    getCategories,
+    getCurrentLanguage,
+
+    // Cache clearing function
     clearProductCache: () => {
         console.log("Product cache and home page cleared due to admin action.");
         state.productCache = {}; // Clear the cache
-        window.AppUI.clearHomePageContent(); // Clear home page UI to force re-render
+        // Trigger UI update to clear home page (check AppUI)
+        if (window.AppUI) window.AppUI.clearHomePageContent();
     },
-    // Expose necessary fetch functions for admin UI updates
+
+    // Specific Fetch functions needed by admin forms
     fetchSubcategories,
     fetchSubSubcategories,
-    // Add other core functions if admin needs them directly (use with caution)
 };
+
