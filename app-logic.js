@@ -21,7 +21,8 @@ import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/f
 // Removed closeCurrentPopup from ui-manager import as it's defined and exported here now.
 import { t, setLanguage, showPage, openPopup, closeAllPopupsUI, showNotification, updateActiveNav } from './ui-manager.js';
 import { searchProductsInFirestore, renderMainCategories, renderSubcategories, showSubcategoryDetailPage, renderProductsOnDetailPage, showProductDetails } from './data-renderer.js'; // Added renderProductsOnDetailPage, showProductDetails
-import { saveProfile, renderCart, renderFavoritesPage, renderCategoriesSheet, renderUserNotifications, renderPolicies, checkNewAnnouncements, saveTokenToFirestore, requestNotificationPermission, renderContactLinks } from './user-actions.js'; // Added renderContactLinks
+// *** renderContactLinks REMOVED from the line below ***
+import { saveProfile, renderCart, renderFavoritesPage, renderCategoriesSheet, renderUserNotifications, renderPolicies, checkNewAnnouncements, saveTokenToFirestore, requestNotificationPermission } from './user-actions.js';
 
 // Debounce utility function
 function debounce(func, delay = 500) {
@@ -252,6 +253,53 @@ async function handleInitialPageLoad() {
     }
 }
 
+/**
+ * Fetches and renders the social media/contact links in the settings page.
+ * (This function remained in app-logic.js/app-core.js)
+ */
+function renderContactLinks() { // <-- Function definition should be here
+    const contactLinksContainer = document.getElementById('dynamicContactLinksContainer');
+    if (!contactLinksContainer) return; // Exit if container not found
+
+    const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
+    const q = query(socialLinksCollection, orderBy("createdAt", "desc")); // Order links if needed
+
+    // Use onSnapshot to listen for real-time updates to links
+    onSnapshot(q, (snapshot) => {
+        contactLinksContainer.innerHTML = ''; // Clear previous links
+
+        if (snapshot.empty) {
+            // Display message if no links are configured
+            contactLinksContainer.innerHTML = `<p style="padding: 15px; text-align: center;">${t('no_contact_links')}</p>`; // Assuming key exists
+            return;
+        }
+
+        // Render each link
+        snapshot.forEach(doc => {
+            const link = doc.data();
+            const name = link['name_' + state.currentLanguage] || link.name_ku_sorani; // Get localized name
+
+            const linkElement = document.createElement('a');
+            linkElement.href = link.url;
+            linkElement.target = '_blank'; // Open in new tab
+            linkElement.rel = 'noopener noreferrer'; // Security measure
+            linkElement.className = 'settings-item'; // Reuse settings item styling
+
+            linkElement.innerHTML = `
+                <div>
+                    <i class="${link.icon}" style="margin-left: 10px;"></i>
+                    <span>${name}</span>
+                </div>
+                <i class="fas fa-external-link-alt"></i> `;
+
+            contactLinksContainer.appendChild(linkElement);
+        });
+    }, (error) => {
+        console.error("Error fetching contact links:", error);
+        contactLinksContainer.innerHTML = `<p style="padding: 15px; text-align: center;">${t('error_generic')}</p>`;
+    });
+}
+
 
 /**
  * Sets up core application event listeners.
@@ -307,10 +355,11 @@ function setupEventListeners() {
         const hash = window.location.hash.substring(1);
         if (hash.startsWith('subcategory_')) {
             const ids = hash.split('_');
+            const mainCatId = ids[1]; // Need mainCatId if renderProductsOnDetailPage needs it? Check definition
             const subCatId = ids[2];
             const activeSubSubBtn = document.querySelector('#subSubCategoryContainerOnDetailPage .subcategory-btn.active');
             const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.id || 'all') : 'all';
-            await renderProductsOnDetailPage(subCatId, subSubCatId, term);
+            await renderProductsOnDetailPage(subCatId, subSubCatId, term); // Pass subCatId only if that's enough
         }
     }, 500);
     if (subpageSearchInputEl) {
@@ -544,7 +593,7 @@ async function initializeAppLogic() {
 
     // Setup remaining parts (should run only once during init)
     setupEventListeners();
-    renderContactLinks();
+    renderContactLinks(); // Call the function defined in this file
     checkNewAnnouncements();
     // Consider moving showWelcomeMessage here if needed on first load
     setupServiceWorker();
@@ -630,3 +679,26 @@ function init() {
 
 // Start the application initialization process when the DOM is ready
 document.addEventListener('DOMContentLoaded', init);
+
+// Make necessary functions available globally ONLY IF NEEDED by admin.js through window object
+// This approach is less ideal than proper module imports/exports but was used previously.
+// Ensure admin.js only relies on functions exposed this way.
+window.globalAdminTools = {
+    db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit, // Firebase functions
+    showNotification, t, openPopup, closeCurrentPopup, // UI functions needed by admin
+    searchProductsInFirestore, // Data function needed by admin? Maybe just clear cache?
+    productsCollection, categoriesCollection, announcementsCollection, // Collections
+    promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection, // Added collections
+    setEditingProductId: (id) => { state.editingProductId = id; }, // State accessors
+    getEditingProductId: () => state.editingProductId,
+    getCategories: () => state.categories,
+    getCurrentLanguage: () => state.currentLanguage,
+    clearProductCache: () => { // Helper for admin
+        console.log("Product cache and home page cleared due to admin action.");
+        state.productCache = {};
+        const homeContainer = document.getElementById('homePageSectionsContainer');
+        if (homeContainer) homeContainer.innerHTML = '';
+        // Optionally trigger re-render immediately?
+        // applyFilterState({ category: state.currentCategory, subcategory: state.currentSubcategory, subSubcategory: state.currentSubSubcategory, search: state.currentSearch });
+    }
+};
