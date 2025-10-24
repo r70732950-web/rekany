@@ -3,7 +3,7 @@
 
 // --- Imports from Setup ---
 import {
-    db, auth, messaging, state, analytics,  // Core Firebase and state
+    db, auth, messaging, state, analytics, // Core Firebase and state // *** firebaseConfig REMOVED ***
     loginModal, // DOM Elements needed for event listeners or direct manipulation here
     sheetOverlay,
     searchInput, clearSearchBtn, subpageSearchInput, subpageClearSearchBtn,
