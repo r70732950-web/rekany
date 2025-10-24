@@ -3,7 +3,7 @@
 
 // --- Imports from Setup ---
 import {
-    db, auth, messaging, state, analytics, // Core Firebase and state // *** firebaseConfig REMOVED ***
+    db, auth, messaging, state, analytics, // Core Firebase and state
     loginModal, // DOM Elements needed for event listeners or direct manipulation here
     sheetOverlay,
     searchInput, clearSearchBtn, subpageSearchInput, subpageClearSearchBtn,
@@ -21,8 +21,8 @@ import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/f
 // Removed closeCurrentPopup from ui-manager import as it's defined and exported here now.
 import { t, setLanguage, showPage, openPopup, closeAllPopupsUI, showNotification, updateActiveNav } from './ui-manager.js';
 import { searchProductsInFirestore, renderMainCategories, renderSubcategories, showSubcategoryDetailPage, renderProductsOnDetailPage, showProductDetails } from './data-renderer.js'; // Added renderProductsOnDetailPage, showProductDetails
-// *** renderContactLinks REMOVED from the line below ***
-import { saveProfile, renderCart, renderFavoritesPage, renderCategoriesSheet, renderUserNotifications, renderPolicies, checkNewAnnouncements, saveTokenToFirestore, requestNotificationPermission } from './user-actions.js';
+// *** saveTokenToFirestore, requestNotificationPermission, renderContactLinks REMOVED from the line below ***
+import { saveProfile, renderCart, renderFavoritesPage, renderCategoriesSheet, renderUserNotifications, renderPolicies, checkNewAnnouncements } from './user-actions.js';
 
 // Debounce utility function
 function debounce(func, delay = 500) {
@@ -257,7 +257,7 @@ async function handleInitialPageLoad() {
  * Fetches and renders the social media/contact links in the settings page.
  * (This function remained in app-logic.js/app-core.js)
  */
-function renderContactLinks() { // <-- Function definition should be here
+function renderContactLinks() { // <-- Function definition is here
     const contactLinksContainer = document.getElementById('dynamicContactLinksContainer');
     if (!contactLinksContainer) return; // Exit if container not found
 
@@ -298,6 +298,53 @@ function renderContactLinks() { // <-- Function definition should be here
         console.error("Error fetching contact links:", error);
         contactLinksContainer.innerHTML = `<p style="padding: 15px; text-align: center;">${t('error_generic')}</p>`;
     });
+}
+
+/**
+ * Saves the FCM token to Firestore.
+ * @param {string} token - The FCM device token.
+ */
+async function saveTokenToFirestore(token) { // <-- Function defined here
+    try {
+        const tokensCollection = collection(db, 'device_tokens');
+        // Use the token itself as the document ID to prevent duplicates
+        await setDoc(doc(tokensCollection, token), {
+            createdAt: Date.now() // Store timestamp for reference
+        });
+        console.log('FCM Token saved to Firestore.');
+    } catch (error) {
+        console.error('Error saving FCM token to Firestore: ', error);
+    }
+}
+
+/**
+ * Requests permission from the user to show notifications.
+ */
+async function requestNotificationPermission() { // <-- Function defined here
+    console.log('Requesting notification permission...');
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            console.log('Notification permission granted.');
+            showNotification(t('notification_permission_granted'), 'success'); // Assuming key exists
+            // Get the token
+            const currentToken = await getToken(messaging, {
+                vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ' // Replace with your VAPID key
+            });
+            if (currentToken) {
+                console.log('FCM Token:', currentToken);
+                await saveTokenToFirestore(currentToken); // Save the token
+            } else {
+                console.log('No registration token available. Request permission to generate one.');
+            }
+        } else {
+            console.log('Unable to get permission to notify.');
+            showNotification(t('notification_permission_denied'), 'error'); // Assuming key exists
+        }
+    } catch (error) {
+        console.error('An error occurred while requesting permission: ', error);
+        showNotification(t('error_requesting_permission'), 'error'); // Assuming key exists
+    }
 }
 
 
@@ -381,7 +428,7 @@ function setupEventListeners() {
     document.getElementById('settingsFavoritesBtn').onclick = () => openPopup('favoritesSheet');
     document.getElementById('settingsAdminLoginBtn').onclick = () => openPopup('loginModal', 'modal');
     document.getElementById('termsAndPoliciesBtn')?.addEventListener('click', () => openPopup('termsSheet'));
-    document.getElementById('enableNotificationsBtn')?.addEventListener('click', requestNotificationPermission);
+    document.getElementById('enableNotificationsBtn')?.addEventListener('click', requestNotificationPermission); // Calls function defined here
     document.getElementById('forceUpdateBtn')?.addEventListener('click', forceUpdate);
     document.getElementById('settingsLogoutBtn').onclick = async () => {
         await signOut(auth);
@@ -538,20 +585,22 @@ function setupFCM() {
         if(notificationBadge) notificationBadge.style.display = 'block'; // Ensure badge exists
     });
 
-    Notification.requestPermission().then(permission => {
-         if (permission === 'granted') {
-             getToken(messaging, { vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ' }).then(currentToken => { // Replace with your VAPID key
-                if (currentToken) {
-                     console.log('FCM Token:', currentToken);
-                     saveTokenToFirestore(currentToken);
-                 } else {
-                     console.log('No registration token available. Request permission.');
-                 }
-             }).catch(err => {
-                 console.error('An error occurred while retrieving token. ', err);
-             });
-         }
-     });
+    // Request permission on first load if not already granted/denied
+    if (Notification.permission === 'default') {
+         console.log('Requesting initial notification permission...');
+         // We might trigger this via the button click instead, to provide context.
+         // requestNotificationPermission(); // Or just wait for button click.
+     } else if (Notification.permission === 'granted') {
+         // Get token if permission already granted
+         getToken(messaging, { vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ' }).then(currentToken => { // Replace with your VAPID key
+             if (currentToken) {
+                 console.log('FCM Token (on load):', currentToken);
+                 saveTokenToFirestore(currentToken);
+             }
+         }).catch(err => {
+             console.error('An error occurred while retrieving token on load. ', err);
+         });
+     }
 }
 
 /**
@@ -625,7 +674,11 @@ async function initializeAppLogic() {
                     signOut(auth);
                 }
             } else if (typeof window.AdminLogic.initialize === 'function') {
-                 window.AdminLogic.initialize(); // Initialize if already loaded
+                 // Ensure initialize is called even if admin.js was already loaded somehow
+                 // But prevent re-initialization if already done
+                 if (!window.AdminLogic.isInitialized) { // Check a flag if you add one in admin.js
+                     window.AdminLogic.initialize();
+                 }
             }
             if (loginModal?.style.display === 'block') { // Check if loginModal exists
                  closeCurrentPopup();
@@ -640,6 +693,15 @@ async function initializeAppLogic() {
                 window.AdminLogic.deinitialize();
             }
         }
+        // Always update admin-specific UI visibility after auth state change
+        if (window.AdminLogic && typeof window.AdminLogic.updateAdminUI === 'function') {
+            window.AdminLogic.updateAdminUI(isAdmin); // Ensure UI reflects current admin status
+        } else if (!isAdmin) {
+             // Basic UI cleanup if admin.js might not be loaded
+             document.querySelectorAll('.product-actions, .settings-group[id^="admin"], #addProductBtn').forEach(el => el.style.display = 'none');
+             document.getElementById('settingsAdminLoginBtn').style.display = 'flex';
+             document.getElementById('settingsLogoutBtn').style.display = 'none';
+         }
     });
 
     // PWA install prompt handling
@@ -658,8 +720,7 @@ async function initializeAppLogic() {
  */
 function init() {
     console.log("App initializing...");
-    // Render skeleton loader is handled within initializeAppLogic/applyFilterState now
-    // renderSkeletonLoader();
+    // renderSkeletonLoader(); // Skeleton loader is handled later now
 
     enableIndexedDbPersistence(db)
         .then(() => {
