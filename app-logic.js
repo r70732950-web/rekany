@@ -1,5 +1,5 @@
 // BEŞÊ DUYEM: app-logic.js
-// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر - وەشانی 2 + کێشەی سکڕۆڵ)
+// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر - وەشانی 2 + کێشەی سکڕۆڵ v2)
 
 import {
     db, auth, messaging,
@@ -93,20 +93,22 @@ function closeAllPopupsUI() {
 }
 
 // ======================================
-// ===== START: GORRANKARIYA 4 / CHANGE 4 (Scroll Fix) =====
+// ===== START: GORRANKARIYA 5 / CHANGE 5 (Scroll Fix v2 - Conditional Reset) =====
 // ======================================
 function openPopup(id, type = 'sheet') {
-    // saveCurrentScrollPosition(); // We keep this for saving filter state scroll
+    // saveCurrentScrollPosition(); // Keep for filter state
 
-    const activePage = document.querySelector('.page-active'); // Find the currently active page
+    const activePage = document.querySelector('.page-active');
 
-    // *** START: Add this part ***
-    // Reset scroll ONLY if opening from main page AND it's a sheet/modal
-    // تەنها سکڕۆڵ ڕێسێت بکە ئەگەر لە پەیجی سەرەکی بوویت و شیت یان مۆداڵت کردەوە
-    if (activePage && activePage.id === 'mainPage' && (type === 'sheet' || type === 'modal')) {
-         activePage.scrollTop = 0; // Reset the scroll of the main page content / سکڕۆڵی پەیجی سەرەکی بگەڕێنەوە سەرەوە
+    // *** START: Modified Scroll Reset Logic ***
+    // Only reset scroll if opening from main page AND it's NOT one of the main navigation sheets
+    // تەنها سکڕۆڵ ڕێسێت بکە ئەگەر لە پەیجی سەرەکی بوویت و یەکێک لە شیتە سەرەکییەکانی ناوەیشن نەبوو
+    const navigationSheetIds = ['categoriesSheet', 'cartSheet', 'profileSheet', 'favoritesSheet']; // IDs of sheets opened from bottom nav
+    if (activePage && activePage.id === 'mainPage' &&
+        (type === 'modal' || (type === 'sheet' && !navigationSheetIds.includes(id))) ) {
+         activePage.scrollTop = 0; // Reset scroll for modals or non-nav sheets like product details, notifications, terms
     }
-    // *** END: Add this part ***
+    // *** END: Modified Scroll Reset Logic ***
 
 
     const element = document.getElementById(id);
@@ -128,6 +130,7 @@ function openPopup(id, type = 'sheet') {
             document.getElementById('profileAddress').value = state.userProfile.address || '';
             document.getElementById('profilePhone').value = state.userProfile.phone || '';
         }
+        // No need to reset scroll for productDetailSheet here, as it's handled above if opened from mainPage
     } else { // modal
         element.style.display = 'block';
     }
@@ -136,8 +139,9 @@ function openPopup(id, type = 'sheet') {
     history.pushState({ type: type, id: id }, '', `#${id}`); // Push state AFTER UI changes
 }
 // ======================================
-// ===== END: GORRANKARIYA 4 / CHANGE 4 (Scroll Fix) =====
+// ===== END: GORRANKARIYA 5 / CHANGE 5 (Scroll Fix v2 - Conditional Reset) =====
 // ======================================
+
 
 function closeCurrentPopup() {
     if (history.state && (history.state.type === 'sheet' || history.state.type === 'modal')) {
@@ -2485,3 +2489,4 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
+
