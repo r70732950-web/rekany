@@ -1,15 +1,26 @@
-// MODULE: app-core.js
+// MODULE: app-logic.js (Formerly app-core.js)
 // Handles core application initialization, event listeners, PWA features, navigation, and authentication state.
 
-import { db, auth, messaging, state, analytics, firebaseConfig } from './app-setup.js'; // Import core Firebase and state
-import { enableIndexedDbPersistence, doc, getDoc, collection, query, orderBy, getDocs, limit } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+// --- Imports from Setup ---
+import {
+    db, auth, messaging, state, analytics, firebaseConfig, // Core Firebase and state
+    loginModal, // DOM Elements needed for event listeners or direct manipulation here
+    sheetOverlay,
+    searchInput, clearSearchBtn, subpageSearchInput, subpageClearSearchBtn,
+    notificationBadge, // For FCM badge update
+    categoriesCollection, // Added categoriesCollection needed for onSnapshot listener
+    // ... add any other DOM elements directly used ONLY in this core file
+} from './app-setup.js';
+
+// --- Firebase Service Imports ---
+import { enableIndexedDbPersistence, doc, getDoc, collection, query, orderBy, getDocs, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js"; // Note: Added onSnapshot here
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
-// Import functions from other modules
-import { t, setLanguage, showPage, openPopup, closeCurrentPopup, closeAllPopupsUI, showNotification, updateActiveNav } from './ui-manager.js';
-import { searchProductsInFirestore, renderMainCategories, renderSubcategories, showSubcategoryDetailPage } from './data-renderer.js';
-import { saveProfile, renderCart, renderFavoritesPage, renderCategoriesSheet, renderUserNotifications, renderPolicies, checkNewAnnouncements, saveTokenToFirestore, requestNotificationPermission } from './user-actions.js'; // Assuming saveToken and requestPermission moved here
+// --- Imports from Other Modules ---
+import { t, setLanguage, showPage, openPopup, closeAllPopupsUI, showNotification, updateActiveNav } from './ui-manager.js'; // Removed closeCurrentPopup from here
+import { searchProductsInFirestore, renderMainCategories, renderSubcategories, showSubcategoryDetailPage, renderProductsOnDetailPage, showProductDetails } from './data-renderer.js'; // Added renderProductsOnDetailPage, showProductDetails
+import { saveProfile, renderCart, renderFavoritesPage, renderCategoriesSheet, renderUserNotifications, renderPolicies, checkNewAnnouncements, saveTokenToFirestore, requestNotificationPermission, renderContactLinks } from './user-actions.js'; // Added renderContactLinks
 
 // Debounce utility function
 function debounce(func, delay = 500) {
@@ -52,8 +63,10 @@ export function updateHeaderView(pageId, title = '') {
         mainHeader.style.display = 'flex';
         subpageHeader.style.display = 'none';
         // Reset subpage search if navigating back to main page
-        document.getElementById('subpageSearchInput').value = '';
-        document.getElementById('subpageClearSearchBtn').style.display = 'none';
+        const subpageSearchInputEl = document.getElementById('subpageSearchInput');
+        const subpageClearSearchBtnEl = document.getElementById('subpageClearSearchBtn');
+        if (subpageSearchInputEl) subpageSearchInputEl.value = '';
+        if (subpageClearSearchBtnEl) subpageClearSearchBtnEl.style.display = 'none';
     } else {
         mainHeader.style.display = 'none';
         subpageHeader.style.display = 'flex';
@@ -61,6 +74,17 @@ export function updateHeaderView(pageId, title = '') {
     }
 }
 
+/**
+ * Closes the currently active popup based on history state or closes all if no state.
+ * Needs to be EXPORTED.
+ */
+export function closeCurrentPopup() { // <-- EXPORT lê zêde kirin
+    if (history.state && (history.state.type === 'sheet' || history.state.type === 'modal')) {
+        history.back(); // Use history back to close popups managed by history state
+    } else {
+        closeAllPopupsUI(); // Fallback if no history state (imported from ui-manager)
+    }
+}
 
 /**
  * Applies filter state (category, search, etc.) to the UI and fetches corresponding products.
@@ -75,18 +99,18 @@ export async function applyFilterState(filterState, fromPopState = false) {
     state.currentSearch = filterState.search || '';
 
     // Update search input UI
-    const searchInput = document.getElementById('searchInput');
-    const clearSearchBtn = document.getElementById('clearSearchBtn');
-    if (searchInput) searchInput.value = state.currentSearch;
-    if (clearSearchBtn) clearSearchBtn.style.display = state.currentSearch ? 'block' : 'none';
+    const searchInputEl = document.getElementById('searchInput');
+    const clearSearchBtnEl = document.getElementById('clearSearchBtn');
+    if (searchInputEl) searchInputEl.value = state.currentSearch;
+    if (clearSearchBtnEl) clearSearchBtnEl.style.display = state.currentSearch ? 'block' : 'none';
 
     // Re-render category buttons to show active state
-    renderMainCategories(); // Assumes renderMainCategories is imported
+    renderMainCategories(); // Assumes renderMainCategories is imported from data-renderer
     // Render subcategories based on the current main category
-    await renderSubcategories(state.currentCategory); // Assumes renderSubcategories is imported
+    await renderSubcategories(state.currentCategory); // Assumes renderSubcategories is imported from data-renderer
 
     // Fetch and render products based on the new state
-    await searchProductsInFirestore(state.currentSearch, true); // True for new search/filter
+    await searchProductsInFirestore(state.currentSearch, true); // True for new search/filter (from data-renderer)
 
     // Restore scroll position if navigating back/forward
     if (fromPopState && typeof filterState.scroll === 'number') {
@@ -234,12 +258,10 @@ async function handleInitialPageLoad() {
 function setupEventListeners() {
     // --- Bottom Navigation ---
     document.getElementById('homeBtn').onclick = async () => {
-        // Check if already on main page to avoid unnecessary history push
         if (!document.getElementById('mainPage').classList.contains('page-active')) {
-            history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]); // Clear hash/query
+            history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
             showPage('mainPage');
         }
-        // Always reset filters when clicking home explicitly
         await navigateToFilter({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
     };
     document.getElementById('settingsBtn').onclick = () => {
@@ -251,69 +273,71 @@ function setupEventListeners() {
     document.getElementById('categoriesBtn').onclick = () => { openPopup('categoriesSheet'); updateActiveNav('categoriesBtn'); };
 
     // --- Header Buttons ---
-    document.getElementById('headerBackBtn').onclick = () => history.back(); // Use browser history back
+    document.getElementById('headerBackBtn').onclick = () => history.back();
     document.getElementById('notificationBtn').addEventListener('click', () => openPopup('notificationsSheet'));
 
     // --- Popup Close Mechanisms ---
-    sheetOverlay.onclick = () => closeCurrentPopup(); // Close on overlay click
-    document.querySelectorAll('.close').forEach(btn => btn.onclick = closeCurrentPopup); // Close buttons
-    // Close modals on background click
+    sheetOverlay.onclick = () => closeCurrentPopup();
+    document.querySelectorAll('.close').forEach(btn => btn.onclick = closeCurrentPopup);
     window.onclick = (e) => { if (e.target.classList.contains('modal')) closeCurrentPopup(); };
 
     // --- Search ---
-    const searchInput = document.getElementById('searchInput');
-    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    const searchInputEl = document.getElementById('searchInput');
+    const clearSearchBtnEl = document.getElementById('clearSearchBtn');
     const debouncedSearch = debounce((term) => navigateToFilter({ search: term }), 500);
-    searchInput.oninput = () => {
-        const searchTerm = searchInput.value;
-        clearSearchBtn.style.display = searchTerm ? 'block' : 'none';
-        debouncedSearch(searchTerm);
-    };
-    clearSearchBtn.onclick = () => {
-        searchInput.value = '';
-        clearSearchBtn.style.display = 'none';
-        navigateToFilter({ search: '' }); // Trigger search with empty term
-    };
+    if (searchInputEl) {
+        searchInputEl.oninput = () => {
+            const searchTerm = searchInputEl.value;
+            if (clearSearchBtnEl) clearSearchBtnEl.style.display = searchTerm ? 'block' : 'none';
+            debouncedSearch(searchTerm);
+        };
+    }
+    if (clearSearchBtnEl) {
+        clearSearchBtnEl.onclick = () => {
+            if (searchInputEl) searchInputEl.value = '';
+            clearSearchBtnEl.style.display = 'none';
+            navigateToFilter({ search: '' });
+        };
+    }
      // Subpage search logic
-    const subpageSearchInput = document.getElementById('subpageSearchInput');
-    const subpageClearSearchBtn = document.getElementById('subpageClearSearchBtn');
+    const subpageSearchInputEl = document.getElementById('subpageSearchInput');
+    const subpageClearSearchBtnEl = document.getElementById('subpageClearSearchBtn');
     const debouncedSubpageSearch = debounce(async (term) => {
         const hash = window.location.hash.substring(1);
-        // Ensure we are on the subcategory detail page
         if (hash.startsWith('subcategory_')) {
             const ids = hash.split('_');
             const subCatId = ids[2];
-            // Find the currently active sub-subcategory filter button
             const activeSubSubBtn = document.querySelector('#subSubCategoryContainerOnDetailPage .subcategory-btn.active');
             const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.id || 'all') : 'all';
-            // Re-render products on the detail page with the search term
-            await renderProductsOnDetailPage(subCatId, subSubCatId, term); // Assumes this is in data-renderer
+            await renderProductsOnDetailPage(subCatId, subSubCatId, term);
         }
     }, 500);
-
-    subpageSearchInput.oninput = () => {
-        const searchTerm = subpageSearchInput.value;
-        subpageClearSearchBtn.style.display = searchTerm ? 'block' : 'none';
-        debouncedSubpageSearch(searchTerm);
-    };
-    subpageClearSearchBtn.onclick = () => {
-        subpageSearchInput.value = '';
-        subpageClearSearchBtn.style.display = 'none';
-        debouncedSubpageSearch(''); // Trigger empty search
-    };
+    if (subpageSearchInputEl) {
+        subpageSearchInputEl.oninput = () => {
+            const searchTerm = subpageSearchInputEl.value;
+            if (subpageClearSearchBtnEl) subpageClearSearchBtnEl.style.display = searchTerm ? 'block' : 'none';
+            debouncedSubpageSearch(searchTerm);
+        };
+    }
+     if (subpageClearSearchBtnEl) {
+         subpageClearSearchBtnEl.onclick = () => {
+             if (subpageSearchInputEl) subpageSearchInputEl.value = '';
+             subpageClearSearchBtnEl.style.display = 'none';
+             debouncedSubpageSearch('');
+         };
+     }
 
     // --- Settings Page Actions ---
     document.getElementById('settingsFavoritesBtn').onclick = () => openPopup('favoritesSheet');
     document.getElementById('settingsAdminLoginBtn').onclick = () => openPopup('loginModal', 'modal');
     document.getElementById('termsAndPoliciesBtn')?.addEventListener('click', () => openPopup('termsSheet'));
-    document.getElementById('enableNotificationsBtn')?.addEventListener('click', requestNotificationPermission); // Moved from user-actions? Assumed here for core setup
-    document.getElementById('forceUpdateBtn')?.addEventListener('click', forceUpdate); // forceUpdate needs definition below
+    document.getElementById('enableNotificationsBtn')?.addEventListener('click', requestNotificationPermission);
+    document.getElementById('forceUpdateBtn')?.addEventListener('click', forceUpdate);
     document.getElementById('settingsLogoutBtn').onclick = async () => {
-        await signOut(auth); // Sign out Firebase user
+        await signOut(auth);
         showNotification(t('logout_success'), 'success');
-        // Admin UI cleanup happens via onAuthStateChanged listener below
     };
-     document.getElementById('contactToggle').onclick = () => { // Handle contact links toggle
+     document.getElementById('contactToggle').onclick = () => {
          const container = document.getElementById('dynamicContactLinksContainer');
          const chevron = document.querySelector('#contactToggle .contact-chevron');
          container?.classList.toggle('open');
@@ -322,18 +346,18 @@ function setupEventListeners() {
 
 
     // --- Forms ---
-    document.getElementById('loginForm').onsubmit = handleLogin; // handleLogin function below
-    document.getElementById('profileForm').onsubmit = (e) => { e.preventDefault(); saveProfile(); }; // saveProfile in user-actions
+    document.getElementById('loginForm').onsubmit = handleLogin;
+    document.getElementById('profileForm').onsubmit = (e) => { e.preventDefault(); saveProfile(); };
 
     // --- Language Buttons ---
     document.querySelectorAll('.lang-btn').forEach(btn => {
-        btn.onclick = () => setLanguage(btn.dataset.lang); // setLanguage in ui-manager
+        btn.onclick = () => setLanguage(btn.dataset.lang);
     });
 
     // --- PWA Install Button ---
     const installBtn = document.getElementById('installAppBtn');
     if (installBtn) {
-        installBtn.addEventListener('click', handleInstallPrompt); // handleInstallPrompt function below
+        installBtn.addEventListener('click', handleInstallPrompt);
     }
 
     // --- History Navigation ---
@@ -346,11 +370,11 @@ function setupEventListeners() {
 async function handleInstallPrompt() {
     const installBtn = document.getElementById('installAppBtn');
     if (state.deferredPrompt) {
-        installBtn.style.display = 'none'; // Hide button after prompting
-        state.deferredPrompt.prompt(); // Show the install prompt
+        if (installBtn) installBtn.style.display = 'none'; // Hide button after prompting
+        state.deferredPrompt.prompt();
         const { outcome } = await state.deferredPrompt.userChoice;
         console.log(`User response to the install prompt: ${outcome}`);
-        state.deferredPrompt = null; // Clear the saved prompt event
+        state.deferredPrompt = null;
     }
 }
 
@@ -366,19 +390,17 @@ async function handleLogin(e) {
     const loginButton = e.target.querySelector('button[type="submit"]');
     const originalButtonText = loginButton.textContent;
     loginButton.disabled = true;
-    loginButton.textContent = '...چوونەژوور'; // Loading indicator
+    loginButton.textContent = '...چوونەژوور';
 
     try {
         await signInWithEmailAndPassword(auth, email, password);
-        // Success: onAuthStateChanged listener will handle UI updates and closing modal
-        // No need to close modal here explicitly if onAuthStateChanged handles it
+        // Success handled by onAuthStateChanged
     } catch (error) {
         console.error("Login failed:", error);
-        showNotification(t('login_error'), 'error'); // Show login error
-        loginButton.disabled = false; // Re-enable button on error
+        showNotification(t('login_error'), 'error');
+        loginButton.disabled = false;
         loginButton.textContent = originalButtonText;
     }
-    // Note: Button state is reset by onAuthStateChanged success (closing modal) or error handling here
 }
 
 /**
@@ -387,9 +409,8 @@ async function handleLogin(e) {
 async function forceUpdate() {
     if (confirm(t('update_confirm'))) {
         try {
-            showNotification('...خەریکی نوێکردنەوەیە', 'success'); // Show immediate feedback
+            showNotification('...خەریکی نوێکردنەوەیە', 'success');
 
-            // Unregister Service Workers
             if ('serviceWorker' in navigator) {
                 const registrations = await navigator.serviceWorker.getRegistrations();
                 for (const registration of registrations) {
@@ -398,21 +419,14 @@ async function forceUpdate() {
                 console.log('Service Workers unregistered.');
             }
 
-            // Clear Caches
             if (window.caches) {
                 const keys = await window.caches.keys();
                 await Promise.all(keys.map(key => window.caches.delete(key)));
                 console.log('All caches cleared.');
             }
 
-            // Optional: Clear local storage items if needed, but be careful not to delete essential user data unless intended
-            // localStorage.removeItem(CART_KEY);
-            // localStorage.removeItem(FAVORITES_KEY);
-            // etc.
-
-            // Wait a moment for cleanup, then reload
             setTimeout(() => {
-                window.location.reload(true); // Force reload bypassing cache
+                window.location.reload(true);
             }, 1500);
 
         } catch (error) {
@@ -433,24 +447,18 @@ function setupServiceWorker() {
         navigator.serviceWorker.register('/sw.js').then(registration => {
             console.log('Service Worker registered successfully.');
 
-            // Listen for updates found during registration
             registration.addEventListener('updatefound', () => {
                 const newWorker = registration.installing;
                 console.log('New service worker found!', newWorker);
-
                 newWorker.addEventListener('statechange', () => {
-                    // Check if the new worker is installed and waiting to activate
                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        // Show the update notification bar
                         if (updateNotification) updateNotification.classList.add('show');
                     }
                 });
             });
 
-            // Handle click on the update button
             if (updateNowBtn) {
                 updateNowBtn.addEventListener('click', () => {
-                    // If a new worker is waiting, tell it to skip waiting
                     if (registration.waiting) {
                         registration.waiting.postMessage({ action: 'skipWaiting' });
                     }
@@ -461,10 +469,9 @@ function setupServiceWorker() {
             console.error('Service Worker registration failed: ', err);
         });
 
-        // Listen for the controller change event, which signals activation of the new worker
         navigator.serviceWorker.addEventListener('controllerchange', () => {
             console.log('New Service Worker activated. Reloading page...');
-            window.location.reload(); // Reload the page to use the new service worker
+            window.location.reload();
         });
     }
 }
@@ -473,23 +480,20 @@ function setupServiceWorker() {
  * Sets up Firebase Cloud Messaging.
  */
 function setupFCM() {
-    // Request permission on button click (handled in setupEventListeners)
-    // Listen for incoming messages when the app is in the foreground
     onMessage(messaging, (payload) => {
         console.log('Foreground message received: ', payload);
         const title = payload.notification?.title || 'New Notification';
         const body = payload.notification?.body || '';
-        showNotification(`${title}: ${body}`, 'success'); // Display using app's notification system
-        notificationBadge.style.display = 'block'; // Show badge indicator
+        showNotification(`${title}: ${body}`, 'success');
+        if(notificationBadge) notificationBadge.style.display = 'block'; // Ensure badge exists
     });
 
-    // Optionally, get token immediately if permission already granted
     Notification.requestPermission().then(permission => {
          if (permission === 'granted') {
-             getToken(messaging, { vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ' }).then(currentToken => {
+             getToken(messaging, { vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ' }).then(currentToken => { // Replace with your VAPID key
                 if (currentToken) {
                      console.log('FCM Token:', currentToken);
-                     saveTokenToFirestore(currentToken); // Assumes function is in user-actions
+                     saveTokenToFirestore(currentToken);
                  } else {
                      console.log('No registration token available. Request permission.');
                  }
@@ -505,79 +509,83 @@ function setupFCM() {
  */
 async function initializeAppLogic() {
     console.log("Initializing App Logic...");
-    if (!state.sliderIntervals) state.sliderIntervals = {}; // Ensure slider interval state exists
+    if (!state.sliderIntervals) state.sliderIntervals = {};
 
-    // Listen for category changes to update UI elements dependent on them
+    // Listen for category changes (moved inside init to ensure it runs once)
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
-    onSnapshot(categoriesQuery, async (snapshot) => {
+    const unsubscribeCategories = onSnapshot(categoriesQuery, async (snapshot) => { // Keep reference to unsubscribe later if needed
         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        state.categories = [{ id: 'all', name_ku_sorani: t('all_categories_label'), name_ku_badini: t('all_categories_label', {}, 'ku_badini'), name_ar: t('all_categories_label', {}, 'ar'), icon: 'fas fa-th' }, ...fetchedCategories]; // Add 'All' category dynamically
+        // Add 'All' category dynamically, ensuring translations are ready
+        state.categories = [{ id: 'all', name_ku_sorani: t('all_categories_label'), name_ku_badini: t('all_categories_label', {}, 'ku_badini'), name_ar: t('all_categories_label', {}, 'ar'), icon: 'fas fa-th' }, ...fetchedCategories];
 
-        // Now that categories are loaded, handle initial page load based on URL
-        await handleInitialPageLoad(); // Handles filters, popups, and specific pages based on URL
-
-        // Update UI elements that depend on categories
-        renderMainCategories(); // In data-renderer
-        renderCategoriesSheet(); // In user-actions? Or ui-manager? (Renders the sheet content)
-         // Update admin dropdowns if admin logic is loaded and user is admin
-         if (sessionStorage.getItem('isAdmin') === 'true' && window.AdminLogic) {
-             window.AdminLogic.updateAdminCategoryDropdowns(); // Update admin forms
-             window.AdminLogic.updateShortcutCardCategoryDropdowns();
+        // Handle initial page load only *once* after categories are first loaded
+        if (!initializeAppLogic.initialLoadHandled) {
+             initializeAppLogic.initialLoadHandled = true; // Flag to prevent re-running
+             await handleInitialPageLoad();
+             setLanguage(state.currentLanguage); // Apply language after initial load logic
+         } else {
+             // Subsequent updates: Just re-render category UI and potentially refresh data if category structure changes significantly
+             renderMainCategories();
+             renderCategoriesSheet();
          }
 
-        // Apply initial language settings *after* categories are potentially loaded with names
-        setLanguage(state.currentLanguage); // In ui-manager
+        // Always update admin dropdowns when categories change
+        if (sessionStorage.getItem('isAdmin') === 'true' && window.AdminLogic) {
+            window.AdminLogic.updateAdminCategoryDropdowns?.();
+            window.AdminLogic.updateShortcutCardCategoryDropdowns?.();
+        }
     }, error => {
         console.error("Error fetching categories: ", error);
-        // Handle error, maybe show a message to the user
+        // Handle error appropriately
     });
+    initializeAppLogic.initialLoadHandled = false; // Initialize the flag
 
-    // Setup remaining parts
-    setupEventListeners(); // Set up core event listeners
-    // setupScrollObserver(); // Setup infinite scroll (moved to searchProductsInFirestore logic)
-    renderContactLinks(); // Render contact links in settings (assumed in user-actions)
-    checkNewAnnouncements(); // Check for notification badge (in user-actions)
-    // showWelcomeMessage(); // Show only on first visit (in user-actions?) -> Needs careful placement, maybe after content load
-    // setupGpsButton(); // Add GPS functionality (called within setupEventListeners now)
-    setupServiceWorker(); // Register SW and handle updates
-    setupFCM(); // Setup Firebase Cloud Messaging
 
-    // Listen for Authentication state changes (login/logout)
+    // Setup remaining parts (should run only once during init)
+    setupEventListeners();
+    renderContactLinks();
+    checkNewAnnouncements();
+    // Consider moving showWelcomeMessage here if needed on first load
+    setupServiceWorker();
+    setupFCM();
+
+    // Listen for Authentication state changes
     onAuthStateChanged(auth, async (user) => {
         const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3"; // !! IMPORTANT: Replace with your actual Admin UID !!
         const isAdmin = user && user.uid === adminUID;
 
         if (isAdmin) {
             sessionStorage.setItem('isAdmin', 'true');
-            // Dynamically load and initialize admin logic if not already loaded
             if (!window.AdminLogic) {
                 try {
-                    await import('./admin.js'); // Assuming admin.js exports itself to window.AdminLogic
+                    // Use dynamic import for admin.js
+                    const adminModule = await import('./admin.js');
+                    // Ensure AdminLogic is attached to window or exported properly if needed elsewhere
                     if (window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
-                        window.AdminLogic.initialize();
-                    } else { throw new Error('AdminLogic loaded but initialize function not found.'); }
+                         window.AdminLogic.initialize();
+                     } else if (adminModule.AdminLogic && typeof adminModule.AdminLogic.initialize === 'function') {
+                         // If admin.js exports an object
+                         window.AdminLogic = adminModule.AdminLogic; // Make it global if needed by UI elements
+                         window.AdminLogic.initialize();
+                     } else { throw new Error('AdminLogic loaded but initialize function not found.'); }
                 } catch (err) {
                     console.error("Failed to load or initialize admin.js:", err);
                     showNotification('Error loading admin tools', 'error');
-                    sessionStorage.removeItem('isAdmin'); // Revert admin status
-                    signOut(auth); // Sign out if admin script failed
+                    sessionStorage.removeItem('isAdmin');
+                    signOut(auth);
                 }
             } else if (typeof window.AdminLogic.initialize === 'function') {
-                 window.AdminLogic.initialize(); // Initialize if already loaded but not initialized
+                 window.AdminLogic.initialize(); // Initialize if already loaded
             }
-            // Close login modal automatically on successful admin login
-            if (document.getElementById('loginModal')?.style.display === 'block') {
+            if (loginModal?.style.display === 'block') { // Check if loginModal exists
                  closeCurrentPopup();
             }
         } else {
-            // User is not admin or logged out
             sessionStorage.removeItem('isAdmin');
-            // If a non-admin user is logged in (shouldn't happen with email/pass), log them out
             if (user) {
                 await signOut(auth);
                 console.log("Non-admin user signed out.");
             }
-            // Deinitialize admin UI elements if admin logic was loaded
             if (window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
                 window.AdminLogic.deinitialize();
             }
@@ -586,10 +594,10 @@ async function initializeAppLogic() {
 
     // PWA install prompt handling
     window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault(); // Prevent mini-infobar
-        state.deferredPrompt = e; // Stash the event
+        e.preventDefault();
+        state.deferredPrompt = e;
         const installBtn = document.getElementById('installAppBtn');
-        if (installBtn) installBtn.style.display = 'flex'; // Show install button
+        if (installBtn) installBtn.style.display = 'flex';
         console.log('`beforeinstallprompt` event fired.');
     });
 }
@@ -600,23 +608,21 @@ async function initializeAppLogic() {
  */
 function init() {
     console.log("App initializing...");
-    renderSkeletonLoader(); // Show skeleton loader immediately
+    renderSkeletonLoader();
 
-    // Attempt to enable Firestore offline persistence
     enableIndexedDbPersistence(db)
         .then(() => {
             console.log("Firestore offline persistence enabled.");
-            initializeAppLogic(); // Initialize core logic after persistence setup
+            initializeAppLogic();
         })
         .catch((err) => {
-            // Handle known persistence errors gracefully
             if (err.code == 'failed-precondition') {
                 console.warn('Persistence failed: Multiple tabs open or unsupported environment.');
             } else if (err.code == 'unimplemented') {
                 console.warn('Persistence failed: Browser does not support required features.');
             }
             console.error("Error enabling persistence:", err);
-            initializeAppLogic(); // Initialize core logic even if persistence fails
+            initializeAppLogic(); // Initialize anyway
         });
 }
 
