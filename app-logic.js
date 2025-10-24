@@ -1,5 +1,5 @@
 // BEŞÊ DUYEM: app-logic.js
-// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی scroll - وەشانی 3)
+// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر - وەشانی 2 + کێشەی سکڕۆڵ)
 
 import {
     db, auth, messaging,
@@ -37,6 +37,7 @@ function debounce(func, delay = 500) {
 function saveCurrentScrollPosition() {
     const currentState = history.state;
     // Only save scroll position for the main page filter state
+    // تەنها شوێنی سکڕۆڵ پاشەکەوت بکە بۆ باری فلتەری پەیجی سەرەکی
     if (document.getElementById('mainPage').classList.contains('page-active') && currentState && !currentState.type) {
         history.replaceState({ ...currentState, scroll: window.scrollY }, '');
     }
@@ -91,15 +92,32 @@ function closeAllPopupsUI() {
     document.body.classList.remove('overlay-active');
 }
 
+// ======================================
+// ===== START: GORRANKARIYA 4 / CHANGE 4 (Scroll Fix) =====
+// ======================================
 function openPopup(id, type = 'sheet') {
-    saveCurrentScrollPosition();
+    // saveCurrentScrollPosition(); // We keep this for saving filter state scroll
+
+    const activePage = document.querySelector('.page-active'); // Find the currently active page
+
+    // *** START: Add this part ***
+    // Reset scroll ONLY if opening from main page AND it's a sheet/modal
+    // تەنها سکڕۆڵ ڕێسێت بکە ئەگەر لە پەیجی سەرەکی بوویت و شیت یان مۆداڵت کردەوە
+    if (activePage && activePage.id === 'mainPage' && (type === 'sheet' || type === 'modal')) {
+         activePage.scrollTop = 0; // Reset the scroll of the main page content / سکڕۆڵی پەیجی سەرەکی بگەڕێنەوە سەرەوە
+    }
+    // *** END: Add this part ***
+
+
     const element = document.getElementById(id);
     if (!element) return;
 
-    closeAllPopupsUI();
+    closeAllPopupsUI(); // Close any other popups first / سەرەتا هەر پۆپئەپێکی تر دابخە
+
     if (type === 'sheet') {
         sheetOverlay.classList.add('show');
         element.classList.add('show');
+        // Load content based on sheet id
         if (id === 'cartSheet') renderCart();
         if (id === 'favoritesSheet') renderFavoritesPage();
         if (id === 'categoriesSheet') renderCategoriesSheet();
@@ -110,12 +128,16 @@ function openPopup(id, type = 'sheet') {
             document.getElementById('profileAddress').value = state.userProfile.address || '';
             document.getElementById('profilePhone').value = state.userProfile.phone || '';
         }
-    } else {
+    } else { // modal
         element.style.display = 'block';
     }
-    document.body.classList.add('overlay-active');
-    history.pushState({ type: type, id: id }, '', `#${id}`);
+
+    document.body.classList.add('overlay-active'); // Apply overflow hidden AFTER potentially resetting scroll
+    history.pushState({ type: type, id: id }, '', `#${id}`); // Push state AFTER UI changes
 }
+// ======================================
+// ===== END: GORRANKARIYA 4 / CHANGE 4 (Scroll Fix) =====
+// ======================================
 
 function closeCurrentPopup() {
     if (history.state && (history.state.type === 'sheet' || history.state.type === 'modal')) {
@@ -125,14 +147,7 @@ function closeCurrentPopup() {
     }
 }
 
-// ============ START: SCROLL FIX v3 ============
 async function applyFilterState(filterState, fromPopState = false) {
-    const previousCategory = state.currentCategory; // Store previous state before updating
-    const previousSearch = state.currentSearch;
-
-    const mainCategoryChanged = filterState.category !== undefined && filterState.category !== state.currentCategory;
-    const isNewSearch = filterState.search !== undefined && filterState.search !== state.currentSearch && filterState.search !== '';
-
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
     state.currentSubSubcategory = filterState.subSubcategory || 'all';
@@ -141,65 +156,17 @@ async function applyFilterState(filterState, fromPopState = false) {
     searchInput.value = state.currentSearch;
     clearSearchBtn.style.display = state.currentSearch ? 'block' : 'none';
 
-    renderMainCategories(); // Update button active states even if category didn't change (for visual feedback)
-    // Only re-render subcategories if the main category actually changed
-    if(mainCategoryChanged){
-        await renderSubcategories(state.currentCategory);
-    }
+    renderMainCategories();
+    await renderSubcategories(state.currentCategory);
 
+    await searchProductsInFirestore(state.currentSearch, true);
 
-    // Fetch and display products based on the new state
-    await searchProductsInFirestore(state.currentSearch, true); // true indicates a new search/filter
-
-    // Scroll Logic:
     if (fromPopState && typeof filterState.scroll === 'number') {
-        // Restore scroll position when using back/forward buttons
-        // Use setTimeout to allow content to potentially render first
-        setTimeout(() => window.scrollTo(0, filterState.scroll), 100); // Increased delay slightly
+        setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
     } else if (!fromPopState) {
-        const headerElement = document.querySelector('.app-header'); // Get header height reference
-
-        // Scroll to top ONLY if:
-        // 1. It's a genuinely new search term being entered.
-        // 2. We are switching *to* the 'all' main category from a specific one.
-        const switchingToAllMain = state.currentCategory === 'all' && previousCategory !== 'all';
-        if (isNewSearch || switchingToAllMain) {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-        // Scroll below category bars if:
-        // 1. A *specific* main category was just selected (mainCategoryChanged is true and not switching to 'all').
-        else if (mainCategoryChanged && state.currentCategory !== 'all') {
-             // Scroll just below the category bars regardless of current position
-             const mainCatElement = document.getElementById('mainCategoriesContainer');
-             const subCatElement = document.getElementById('subcategoriesContainer');
-             let targetElement = null;
-
-             if (mainCatElement && mainCatElement.offsetParent !== null && mainCatElement.offsetHeight > 0) {
-                 targetElement = mainCatElement; // Base target is main categories
-                 // If subcategories will be visible, target below them instead
-                 if (subCatElement && subCatElement.offsetParent !== null){ // Check if subcat container exists
-                     // We anticipate subcategories will appear, so aim below where they WOULD be.
-                     // Use mainCatElement as reference as subCatElement might not have height yet.
-                     targetElement = mainCatElement;
-                 }
-             } else if (headerElement) {
-                 targetElement = headerElement; // Fallback to header
-             }
-
-             if (targetElement) {
-                // Calculate position slightly below the target element's bottom edge relative to the document top
-                const targetScrollY = targetElement.offsetTop + targetElement.offsetHeight + 10;
-                window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
-             } else {
-                 // Fallback: scroll slightly below header if category bars aren't found
-                  window.scrollTo({ top: (headerElement?.offsetHeight || 80) + 10, behavior: 'smooth' });
-             }
-        }
-        // Otherwise (e.g., clicking same category, clicking subcategory, clearing search)
-        // DO NOTHING - stay in the current scroll position.
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
-// ============ END: SCROLL FIX v3 ============
 
 async function navigateToFilter(newState) {
     history.replaceState({
@@ -234,12 +201,12 @@ window.addEventListener('popstate', async (event) => { // Guhertin bo async
             // Eger ew rûpela jêr-kategoriyê be û sernav tune be, ji nû ve bistîne
             if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
                try {
-                   const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
-                   const subCatSnap = await getDoc(subCatRef);
-                   if (subCatSnap.exists()) {
-                       const subCat = subCatSnap.data();
-                       pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
-                   }
+                  const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
+                  const subCatSnap = await getDoc(subCatRef);
+                  if (subCatSnap.exists()) {
+                      const subCat = subCatSnap.data();
+                      pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
+                  }
                } catch(e) { console.error("Could not refetch title on popstate", e) }
             }
             showPage(popState.id, pageTitle);
@@ -729,7 +696,7 @@ async function renderSubcategories(categoryId) {
     subcategoriesContainer.innerHTML = '';
 
     if (categoryId === 'all') {
-        return; // No subcategories to show for 'all'
+        return;
     }
 
     try {
@@ -739,17 +706,9 @@ async function renderSubcategories(categoryId) {
 
         state.subcategories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Only display the container if there are subcategories
-        if (state.subcategories.length === 0) {
-            subcategoriesContainer.style.display = 'none'; // Hide if empty
-            return;
-        } else {
-             subcategoriesContainer.style.display = 'flex'; // Show if not empty
-        }
-
+        if (state.subcategories.length === 0) return;
 
         const allBtn = document.createElement('button');
-        // Make 'All' active by default when showing subcategories
         allBtn.className = `subcategory-btn ${state.currentSubcategory === 'all' ? 'active' : ''}`;
         const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
         allBtn.innerHTML = `
@@ -757,7 +716,6 @@ async function renderSubcategories(categoryId) {
             <span>${t('all_categories_label')}</span>
         `;
         allBtn.onclick = async () => {
-             // Go back to showing all products within the main category
             await navigateToFilter({
                 subcategory: 'all',
                 subSubcategory: 'all'
@@ -779,7 +737,6 @@ async function renderSubcategories(categoryId) {
             `;
 
             subcatBtn.onclick = () => {
-                 // Navigate to the detail page for this subcategory
                 showSubcategoryDetailPage(categoryId, subcat.id);
             };
             subcategoriesContainer.appendChild(subcatBtn);
@@ -787,10 +744,8 @@ async function renderSubcategories(categoryId) {
 
     } catch (error) {
         console.error("Error fetching subcategories: ", error);
-        subcategoriesContainer.style.display = 'none'; // Hide on error
     }
 }
-
 
 function renderMainCategories() {
     const container = document.getElementById('mainCategoriesContainer');
@@ -815,16 +770,15 @@ function renderMainCategories() {
         btn.onclick = async () => {
             await navigateToFilter({
                 category: cat.id,
-                subcategory: 'all', // Reset subcategory when main changes
-                subSubcategory: 'all', // Reset sub-subcategory
-                search: '' // Clear search when changing category
+                subcategory: 'all',
+                subSubcategory: 'all',
+                search: ''
             });
         };
 
         container.appendChild(btn);
     });
 }
-
 
 function showProductDetails(productId) {
     const allFetchedProducts = [...state.products];
@@ -860,7 +814,7 @@ async function renderRelatedProducts(currentProduct) {
         q = query(
             productsCollection,
             where('subSubcategoryId', '==', currentProduct.subSubcategoryId),
-            where('__name__', '!=', currentProduct.id), // Exclude the current product
+            where('__name__', '!=', currentProduct.id),
             limit(6)
         );
     } else if (currentProduct.subcategoryId) {
@@ -874,7 +828,7 @@ async function renderRelatedProducts(currentProduct) {
         q = query(
             productsCollection,
             where('categoryId', '==', currentProduct.categoryId),
-             where('__name__', '!=', currentProduct.id),
+            where('__name__', '!=', currentProduct.id),
             limit(6)
         );
     }
@@ -899,11 +853,10 @@ async function renderRelatedProducts(currentProduct) {
     }
 }
 
-
 function showProductDetailsWithData(product) {
     const sheetContent = document.querySelector('#productDetailSheet .sheet-content');
     if (sheetContent) {
-        sheetContent.scrollTop = 0; // Scroll sheet content to top
+        sheetContent.scrollTop = 0;
     }
 
     const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
@@ -931,11 +884,7 @@ function showProductDetailsWithData(product) {
             thumb.dataset.index = index;
             thumbnailContainer.appendChild(thumb);
         });
-    } else {
-        // Handle case with no images
-        imageContainer.innerHTML = `<img src="https://placehold.co/400x400/e2e8f0/2d3748?text=وێنە+نییە" alt="وێنە نییە">`;
     }
-
 
     let currentIndex = 0;
     const images = imageContainer.querySelectorAll('img');
@@ -955,11 +904,9 @@ function showProductDetailsWithData(product) {
     if (imageUrls.length > 1) {
         prevBtn.style.display = 'flex';
         nextBtn.style.display = 'flex';
-        thumbnailContainer.style.display = 'flex'; // Show thumbnails only if multiple images
     } else {
         prevBtn.style.display = 'none';
         nextBtn.style.display = 'none';
-        thumbnailContainer.style.display = 'none'; // Hide thumbnails if only one image
     }
 
     prevBtn.onclick = () => updateSlider((currentIndex - 1 + images.length) % images.length);
@@ -980,15 +927,13 @@ function showProductDetailsWithData(product) {
     addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
     addToCartButton.onclick = () => {
         addToCart(product.id);
-        closeCurrentPopup(); // Close the sheet after adding to cart
+        closeCurrentPopup();
     };
 
-    // Fetch and render related products
-    renderRelatedProducts(product); // Moved here to ensure it runs after main product details are set
+    renderRelatedProducts(product);
 
-    openPopup('productDetailSheet'); // Open the sheet
+    openPopup('productDetailSheet');
 }
-
 
 // Function to create promo card element (now takes sliderState)
 function createPromoCardElement(cardData, sliderState) {
@@ -1088,7 +1033,7 @@ function createProductCardElement(product) {
             <img src="${mainImage}" alt="${nameInCurrentLang}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
             ${discountBadgeHTML}
              <button class="${favoriteBtnClass}" aria-label="Add to favorites">
-                <i class="${heartIconClass} fa-heart"></i>
+                 <i class="${heartIconClass} fa-heart"></i>
             </button>
             <button class="share-btn-card" aria-label="Share product">
                 <i class="fas fa-share-alt"></i>
@@ -1218,13 +1163,8 @@ function renderSkeletonLoader(container = skeletonLoader, count = 8) {
 function renderProducts() {
     productsContainer.innerHTML = '';
     if (!state.products || state.products.length === 0) {
-        // If the container is empty after filtering, show a message
-        if (productsContainer.offsetParent !== null) { // Check if the container itself is visible
-            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
-        }
         return;
     }
-
 
     state.products.forEach(item => {
         let element = createProductCardElement(item);
@@ -1232,14 +1172,8 @@ function renderProducts() {
         productsContainer.appendChild(element);
     });
 
-    // If after adding products, the container is still visually empty (e.g., due to CSS), show message
-    if (productsContainer.children.length === 0 && productsContainer.offsetParent !== null) {
-         productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
-    }
-
     setupScrollAnimations();
 }
-
 
 async function renderSingleShortcutRow(rowId, sectionNameObj) {
     const sectionContainer = document.createElement('div');
@@ -1351,11 +1285,11 @@ async function renderSingleCategoryRow(sectionData) {
             } else {
                  // If only main category is selected, filter on the main page
                  await navigateToFilter({
-                     category: categoryId,
-                     subcategory: 'all',
-                     subSubcategory: 'all',
-                     search: ''
-                 });
+                    category: categoryId,
+                    subcategory: 'all',
+                    subSubcategory: 'all',
+                    search: ''
+                });
             }
         };
         header.appendChild(seeAllLink);
@@ -1797,11 +1731,9 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
 
         renderProducts();
 
-        // Check again if products container is empty after rendering
-        if (productsContainer.children.length === 0 && isNewSearch && productsContainer.offsetParent !== null) {
+        if (state.products.length === 0 && isNewSearch) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         }
-
 
     } catch (error) {
         console.error("Error fetching content:", error);
@@ -1810,10 +1742,9 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         state.isLoadingMoreProducts = false;
         loader.style.display = 'none';
         skeletonLoader.style.display = 'none';
-        productsContainer.style.display = 'grid'; // Ensure grid is displayed even if empty message is shown
+        productsContainer.style.display = 'grid';
     }
 }
-
 
 function addToCart(productId) {
     const allFetchedProducts = [...state.products];
@@ -2410,23 +2341,23 @@ function init() {
 
     // Attempt to enable offline persistence
     enableIndexedDbPersistence(db)
-        .then(() => {
-            console.log("Firestore offline persistence enabled successfully.");
-            // Initialize core app logic after persistence is set up (or failed gracefully)
-            initializeAppLogic();
-        })
-        .catch((err) => {
-            if (err.code == 'failed-precondition') {
-                // Multiple tabs open, persistence can only be enabled in one tab at a time.
-                console.warn('Firestore Persistence failed: Multiple tabs open.');
-            } else if (err.code == 'unimplemented') {
-                // The current browser does not support all of the features required to enable persistence.
-                console.warn('Firestore Persistence failed: Browser not supported.');
-            }
-            console.error("Error enabling persistence, running online mode only:", err);
-            // Initialize core app logic even if persistence fails
-            initializeAppLogic();
-        });
+      .then(() => {
+          console.log("Firestore offline persistence enabled successfully.");
+          // Initialize core app logic after persistence is set up (or failed gracefully)
+          initializeAppLogic();
+      })
+      .catch((err) => {
+          if (err.code == 'failed-precondition') {
+              // Multiple tabs open, persistence can only be enabled in one tab at a time.
+              console.warn('Firestore Persistence failed: Multiple tabs open.');
+          } else if (err.code == 'unimplemented') {
+              // The current browser does not support all of the features required to enable persistence.
+              console.warn('Firestore Persistence failed: Browser not supported.');
+          }
+          console.error("Error enabling persistence, running online mode only:", err);
+          // Initialize core app logic even if persistence fails
+          initializeAppLogic();
+      });
 }
 
 function initializeAppLogic() {
