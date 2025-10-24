@@ -1,5 +1,5 @@
 // BEŞÊ DUYEM: app-logic.js
-// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر - وەشانی 2)
+// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی scroll - وەشانی 2)
 
 import {
     db, auth, messaging,
@@ -125,12 +125,13 @@ function closeCurrentPopup() {
     }
 }
 
-// ============ START: SCROLL FIX ============
+// ============ START: SCROLL FIX v2 ============
 async function applyFilterState(filterState, fromPopState = false) {
     const previousCategory = state.currentCategory; // Store previous state before updating
-    const previousSubcategory = state.currentSubcategory;
-    const previousSubSubcategory = state.currentSubSubcategory;
     const previousSearch = state.currentSearch;
+
+    const mainCategoryChanged = filterState.category !== undefined && filterState.category !== state.currentCategory;
+    const isNewSearch = filterState.search !== undefined && filterState.search !== state.currentSearch && filterState.search !== '';
 
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
@@ -140,8 +141,12 @@ async function applyFilterState(filterState, fromPopState = false) {
     searchInput.value = state.currentSearch;
     clearSearchBtn.style.display = state.currentSearch ? 'block' : 'none';
 
-    renderMainCategories(); // Update button active states
-    await renderSubcategories(state.currentCategory); // Render relevant subcategories
+    renderMainCategories(); // Update button active states even if category didn't change (for visual feedback)
+    // Only re-render subcategories if the main category actually changed
+    if(mainCategoryChanged){
+        await renderSubcategories(state.currentCategory);
+    }
+
 
     // Fetch and display products based on the new state
     await searchProductsInFirestore(state.currentSearch, true); // true indicates a new search/filter
@@ -149,36 +154,44 @@ async function applyFilterState(filterState, fromPopState = false) {
     // Scroll Logic:
     if (fromPopState && typeof filterState.scroll === 'number') {
         // Restore scroll position when using back/forward buttons
-        setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
+        // Use setTimeout to allow content to potentially render first
+        setTimeout(() => window.scrollTo(0, filterState.scroll), 100); // Increased delay slightly
     } else if (!fromPopState) {
-        // Only scroll to top if:
-        // 1. It's a new search term.
-        // 2. We are switching *to* the 'all' main category from a specific one.
-        // 3. We are switching *to* a new main category from 'all' or another main category.
-        const isNewSearch = state.currentSearch && state.currentSearch !== previousSearch;
-        const switchingToAllMain = state.currentCategory === 'all' && previousCategory !== 'all';
-        const switchingMainCategory = state.currentCategory !== 'all' && state.currentCategory !== previousCategory;
-
-        if (isNewSearch || switchingToAllMain || switchingMainCategory) {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Scroll to top ONLY if:
+        // 1. It's a genuinely new search term being entered.
+        // 2. The main category ID has actually changed.
+        if (isNewSearch || mainCategoryChanged) {
+             // Scroll to top smoothly
+             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
-             // Otherwise, try to scroll just below the header/category bars
-             const headerElement = document.querySelector('.app-header');
+             // Otherwise (e.g., clicking same category, subcategory, or clearing search),
+             // scroll just below the category bars if they are visible
              const mainCatElement = document.getElementById('mainCategoriesContainer');
-             let targetScroll = 0;
-             if (mainCatElement && mainCatElement.offsetParent !== null) { // Check if visible
-                 targetScroll = mainCatElement.offsetTop + mainCatElement.offsetHeight + 10; // Scroll below main cats
+             const subCatElement = document.getElementById('subcategoriesContainer');
+             const headerElement = document.querySelector('.app-header');
+             let targetElement = null;
+
+             if (subCatElement && subCatElement.offsetParent !== null && subCatElement.offsetHeight > 0) {
+                 targetElement = subCatElement; // Scroll below subcategories if visible
+             } else if (mainCatElement && mainCatElement.offsetParent !== null && mainCatElement.offsetHeight > 0) {
+                 targetElement = mainCatElement; // Scroll below main categories if visible
              } else if (headerElement) {
-                 targetScroll = headerElement.offsetHeight + 10; // Scroll below header
+                 targetElement = headerElement; // Fallback to header
              }
-             // Ensure we don't scroll past the current position if already below target
-             if (window.scrollY < targetScroll) {
-                window.scrollTo({ top: targetScroll, behavior: 'smooth' });
+
+             if (targetElement) {
+                // Calculate position slightly below the target element
+                const targetScrollY = window.scrollY + targetElement.getBoundingClientRect().bottom + 10;
+                // Only scroll down if we are currently above the target area
+                if (window.scrollY < targetScrollY - headerElement.offsetHeight) { // Check against approx top of target
+                     window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
+                }
              }
+             // If no target identified or already below, do nothing and stay in place
         }
     }
 }
-// ============ END: SCROLL FIX ============
+// ============ END: SCROLL FIX v2 ============
 
 async function navigateToFilter(newState) {
     history.replaceState({
