@@ -1,361 +1,216 @@
-// MODULE: data-renderer.js
-// Handles fetching data from Firestore and rendering it into the main UI areas.
+// data-renderer.js (نیشاندەرێ داتای)
+// بەرپرسیارەتی: ئینان (fetch) و نیشاندانا داتایان ژ Firestore (products, categories, home layout sections).
+// لێگەریان (searchProductsInFirestore), بارکرنا پتر یا کاڵایان (infinite scroll).
 
-import { db, state, productsCollection, categoriesCollection, promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection, PRODUCTS_PER_PAGE } from './app-setup.js';
-import { collection, doc, getDoc, getDocs, query, orderBy, limit, where, startAfter } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-import { t, renderSkeletonLoader, createProductCardElement, createPromoCardElement, setupScrollAnimations, showProductDetailsWithData, showPage } from './ui-manager.js';
-import { navigateToFilter, updateHeaderView } from './app-logic.js'; // Assuming navigation logic is in app-core
+import {
+    db, // Firestore instance
+    productsCollection, // Firestore collection references
+    categoriesCollection,
+    promoGroupsCollection,
+    brandGroupsCollection,
+    shortcutRowsCollection, // ZÊDEKIRÎ
+    state, // Global state object
+    PRODUCTS_PER_PAGE // Constant for pagination
+} from './app-setup.js';
+
+import { // Firestore functions needed
+    collection, doc, getDoc, getDocs, query, where, orderBy, limit, startAfter
+} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+import { // UI functions needed from ui-manager.js
+    renderProductsUI,
+    renderSkeletonLoader,
+    createProductCardElement,
+    createPromoCardElement, // Ji bo beşa promo slider
+    updatePromoCardImage, // Ji bo beşa promo slider
+    t, // Ji bo wergêranê
+    renderMainCategories, // Ji bo nûkirina UI piştî fetch category
+    updateCategoryDependentUI // Ji bo nûkirina dropdown û UI piştî fetch category
+} from './ui-manager.js';
+
+// --- Global State for Data Renderer ---
+// We use `state` from app-setup.js directly for consistency
+
+// --- Product Fetching and Rendering ---
 
 /**
- * Renders the current list of products (state.products) into the main products container.
+ * Fetches products from Firestore based on current filters, search term, and pagination state.
+ * Renders the products or home page content using functions from ui-manager.js.
+ * @param {string} [searchTerm=''] - The current search term.
+ * @param {boolean} [isNewSearch=false] - Whether this is a fresh search or loading more.
  */
-export function renderProducts() {
-    const productsContainer = document.getElementById('productsContainer'); // Get container fresh
-    if (!productsContainer) return;
-
-    productsContainer.innerHTML = ''; // Clear previous products
-    if (!state.products || state.products.length === 0) {
-        // Optionally display a "no products found" message if needed, handled by search function for now
-        return;
-    }
-
-    state.products.forEach(item => {
-        let element = createProductCardElement(item); // Create card using UI function
-        element.classList.add('product-card-reveal'); // Add animation class
-        productsContainer.appendChild(element);
-    });
-
-    setupScrollAnimations(); // Set up animations for newly added cards
-}
-
-/**
- * Fetches products from Firestore based on current filters (category, search) and pagination.
- * Handles both initial search/filter and loading more products.
- * @param {string} [searchTerm=''] - The search term entered by the user.
- * @param {boolean} [isNewSearch=false] - Flag indicating if this is a fresh search/filter or loading more.
- */
-export async function searchProductsInFirestore(searchTerm = state.currentSearch, isNewSearch = false) {
+export async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const productsContainer = document.getElementById('productsContainer');
     const skeletonLoader = document.getElementById('skeletonLoader');
-    const loader = document.getElementById('loader');
+    const loader = document.getElementById('loader'); // Infinite scroll loader
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
 
-    // Determine if the home page sections should be shown instead of the product list
+    // Determine if we should show the dynamic home page or the product list/grid
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
 
     if (shouldShowHomeSections) {
-        productsContainer.style.display = 'none';
-        skeletonLoader.style.display = 'none';
-        scrollTrigger.style.display = 'none';
-        homeSectionsContainer.style.display = 'block';
+        // --- Show Home Page Sections ---
+        if (productsContainer) productsContainer.style.display = 'none';
+        if (skeletonLoader) skeletonLoader.style.display = 'none';
+        if (scrollTrigger) scrollTrigger.style.display = 'none';
+        if (homeSectionsContainer) homeSectionsContainer.style.display = 'block';
 
-        // Render home page content if it's empty or needs refresh
-        if (homeSectionsContainer.innerHTML.trim() === '' || isNewSearch) { // Render if empty or explicitly new search landed on home
-            await renderHomePageContent();
+        // Render home content only if it's not already rendered or if it's a new "search" (navigating back home)
+        if (isNewSearch || !homeSectionsContainer || homeSectionsContainer.innerHTML.trim() === '') {
+             await renderHomePageContent(); // Fetch and render home layout
+        } else {
+            // Home content already exists, ensure slider intervals are restarted if necessary
+            // (Restart logic moved to renderHomePageContent itself for better encapsulation)
         }
-        return; // Stop further execution as we are showing the home page sections
+        return; // Stop further execution as we are showing the home page
+
     } else {
-        // Hide home sections and stop their sliders if switching to product list view
-        homeSectionsContainer.style.display = 'none';
+        // --- Show Product List/Grid ---
+        if (homeSectionsContainer) homeSectionsContainer.style.display = 'none';
+
+        // Stop all promo rotations when navigating away from the full home view
         Object.keys(state.sliderIntervals || {}).forEach(layoutId => {
             if (state.sliderIntervals[layoutId]) {
                 clearInterval(state.sliderIntervals[layoutId]);
             }
         });
-        state.sliderIntervals = {}; // Reset intervals
+        state.sliderIntervals = {}; // Reset the intervals object
     }
 
     // --- Product Fetching Logic ---
-    if (state.isLoadingMoreProducts && !isNewSearch) return; // Prevent concurrent loading
+    const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
 
+    // Use cache if available for a new search
+    if (isNewSearch && state.productCache && state.productCache[cacheKey]) {
+        state.products = state.productCache[cacheKey].products;
+        state.lastVisibleProductDoc = state.productCache[cacheKey].lastVisible;
+        state.allProductsLoaded = state.productCache[cacheKey].allLoaded;
+
+        if (skeletonLoader) skeletonLoader.style.display = 'none';
+        if (loader) loader.style.display = 'none';
+        if (productsContainer) productsContainer.style.display = 'grid';
+
+        renderProductsUI(state.products); // Render from cache using UI function
+        if(scrollTrigger) scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
+        return;
+    }
+
+    // Prevent concurrent loading
+    if (state.isLoadingMoreProducts) return;
+
+    // Reset state for a new search
     if (isNewSearch) {
         state.allProductsLoaded = false;
         state.lastVisibleProductDoc = null;
         state.products = [];
-        renderSkeletonLoader(skeletonLoader); // Show skeleton loader for new search/filter
-        productsContainer.style.display = 'none'; // Hide product container during skeleton load
-        scrollTrigger.style.display = 'none'; // Hide scroll trigger initially
+        renderSkeletonLoader(); // Show loading state using UI function
     }
 
-    // If all products are already loaded and we are not starting a new search, do nothing
+    // Stop if all products are already loaded for the current filter/search
     if (state.allProductsLoaded && !isNewSearch) return;
 
     state.isLoadingMoreProducts = true;
-    loader.style.display = 'block'; // Show loading indicator at the bottom
+    if (loader) loader.style.display = 'block'; // Show infinite scroll loader
 
     try {
-        let productsQuery = collection(db, "products");
+        let productsQuery = query(productsCollection); // Start with base collection
 
-        // Apply category filters
+        // --- Apply Filters ---
         if (state.currentCategory && state.currentCategory !== 'all') {
             productsQuery = query(productsQuery, where("categoryId", "==", state.currentCategory));
         }
+        // Subcategory and SubSubcategory filters are handled implicitly IF user navigated via those
+        // If filtering directly, you might need:
         if (state.currentSubcategory && state.currentSubcategory !== 'all') {
-            productsQuery = query(productsQuery, where("subcategoryId", "==", state.currentSubcategory));
+             productsQuery = query(productsQuery, where("subcategoryId", "==", state.currentSubcategory));
         }
          if (state.currentSubSubcategory && state.currentSubSubcategory !== 'all') {
              productsQuery = query(productsQuery, where("subSubcategoryId", "==", state.currentSubSubcategory));
          }
 
-        // Apply search term filter
+        // --- Apply Search Term ---
         const finalSearchTerm = searchTerm.trim().toLowerCase();
         if (finalSearchTerm) {
+            // Apply range filtering for basic prefix search on 'searchableName'
             productsQuery = query(productsQuery,
                 where('searchableName', '>=', finalSearchTerm),
                 where('searchableName', '<=', finalSearchTerm + '\uf8ff')
             );
             // Firestore requires the first orderBy to match the inequality field
-            productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
+             productsQuery = query(productsQuery, orderBy("searchableName", "asc"));
+             // Then add secondary ordering
+             productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         } else {
-            // Default sort order when not searching
+            // Default ordering when not searching
             productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         }
 
-        // Apply pagination (start after the last fetched document)
+
+        // --- Apply Pagination ---
         if (state.lastVisibleProductDoc && !isNewSearch) {
             productsQuery = query(productsQuery, startAfter(state.lastVisibleProductDoc));
         }
 
-        // Limit the number of results per page
+        // --- Apply Limit ---
         productsQuery = query(productsQuery, limit(PRODUCTS_PER_PAGE));
 
+        // --- Execute Query ---
         const productSnapshot = await getDocs(productsQuery);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+        // --- Update State ---
         if (isNewSearch) {
-            state.products = newProducts; // Replace existing products
+            state.products = newProducts;
         } else {
-            state.products = [...state.products, ...newProducts]; // Append new products
+            // Filter out duplicates just in case (though pagination should prevent this)
+            const currentIds = new Set(state.products.map(p => p.id));
+            const trulyNewProducts = newProducts.filter(p => !currentIds.has(p.id));
+            state.products = [...state.products, ...trulyNewProducts];
         }
 
-        // Check if all products have been loaded
+        // --- Update Pagination State ---
         if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
             state.allProductsLoaded = true;
-            scrollTrigger.style.display = 'none'; // Hide trigger if no more products
+            if(scrollTrigger) scrollTrigger.style.display = 'none';
         } else {
             state.allProductsLoaded = false;
-            scrollTrigger.style.display = 'block'; // Show trigger to load more
-            state.lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1]; // Update last visible doc
+            if(scrollTrigger) scrollTrigger.style.display = 'block';
+        }
+        state.lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1]; // Update last visible doc
+
+        // --- Cache Result for New Search ---
+        if (isNewSearch) {
+            if (!state.productCache) state.productCache = {}; // Initialize if needed
+            state.productCache[cacheKey] = {
+                products: [...state.products], // Store a copy
+                lastVisible: state.lastVisibleProductDoc,
+                allLoaded: state.allProductsLoaded
+            };
         }
 
-        // Render the fetched products
-        renderProducts();
+        // --- Render Results ---
+        renderProductsUI(state.products); // Use UI function to render
 
-        // Display message if no products found for a new search
-        if (state.products.length === 0 && isNewSearch) {
-            productsContainer.innerHTML = `<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">${t('no_products_found')}</p>`; // Assuming key exists
+        if (state.products.length === 0 && isNewSearch && productsContainer) {
+            productsContainer.innerHTML = `<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">${t('no_products_found', {default: 'هیچ کاڵایەک نەدۆزرایەوە.'})}</p>`;
         }
 
     } catch (error) {
         console.error("Error fetching products:", error);
-        productsContainer.innerHTML = `<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">${t('error_generic')}</p>`;
+        if (productsContainer) productsContainer.innerHTML = `<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">${t('error_fetching_products', {default: 'هەڵەیەک لە هێنانی کاڵاکان ڕوویدا.'})}</p>`;
     } finally {
         state.isLoadingMoreProducts = false;
-        loader.style.display = 'none'; // Hide bottom loader
-        skeletonLoader.style.display = 'none'; // Hide skeleton loader
-        productsContainer.style.display = 'grid'; // Ensure product container is visible
-    }
-}
-
-/**
- * Renders the main category filter buttons.
- */
-export function renderMainCategories() {
-    const container = document.getElementById('mainCategoriesContainer');
-    if (!container) return;
-    container.innerHTML = ''; // Clear existing buttons
-
-    state.categories.forEach(cat => {
-        const btn = document.createElement('button');
-        btn.className = 'main-category-btn';
-        btn.dataset.category = cat.id; // Store category ID
-
-        // Add 'active' class if this is the currently selected category
-        if (state.currentCategory === cat.id) {
-            btn.classList.add('active');
-        }
-
-        // Get category name in current language or fallback
-        const categoryName = cat.id === 'all'
-            ? t('all_categories_label') // Use translation for "All"
-            : (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
-
-        btn.innerHTML = `<i class="${cat.icon || 'fas fa-tag'}"></i> <span>${categoryName}</span>`; // Use default icon if none provided
-
-        // Set click handler to navigate/filter
-        btn.onclick = async () => {
-            await navigateToFilter({ // navigateToFilter function from app-core
-                category: cat.id,
-                subcategory: 'all', // Reset subcategory when main category changes
-                subSubcategory: 'all', // Reset sub-subcategory
-                search: '' // Clear search when changing category
-            });
-        };
-
-        container.appendChild(btn);
-    });
-}
-
-/**
- * Renders the subcategory filter buttons based on the selected main category.
- * @param {string} categoryId - The ID of the currently selected main category.
- */
-export async function renderSubcategories(categoryId) {
-    const subcategoriesContainer = document.getElementById('subcategoriesContainer');
-    if (!subcategoriesContainer) return;
-    subcategoriesContainer.innerHTML = ''; // Clear previous buttons
-    subcategoriesContainer.style.display = 'none'; // Hide by default
-
-    // Don't render subcategories if 'All' main categories is selected
-    if (!categoryId || categoryId === 'all') {
-        return;
-    }
-
-    try {
-        const subcategoriesQueryRef = collection(db, "categories", categoryId, "subcategories");
-        const q = query(subcategoriesQueryRef, orderBy("order", "asc"));
-        const querySnapshot = await getDocs(q);
-
-        const fetchedSubcategories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        // Only show the subcategory bar if there are subcategories
-        if (fetchedSubcategories.length === 0) return;
-
-        subcategoriesContainer.style.display = 'flex'; // Show the container
-
-        // Create "All" button for subcategories
-        const allBtn = document.createElement('button');
-        allBtn.className = `subcategory-btn ${state.currentSubcategory === 'all' ? 'active' : ''}`;
-        const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
-        allBtn.innerHTML = `
-            <div class="subcategory-image">${allIconSvg}</div>
-            <span>${t('all_categories_label')}</span>`;
-        allBtn.onclick = async () => {
-            // Navigate to filter with 'all' subcategory
-            await navigateToFilter({
-                subcategory: 'all',
-                subSubcategory: 'all' // Reset sub-sub as well
-            });
-        };
-        subcategoriesContainer.appendChild(allBtn);
-
-        // Create buttons for each subcategory
-        fetchedSubcategories.forEach(subcat => {
-            const subcatBtn = document.createElement('button');
-            subcatBtn.className = `subcategory-btn ${state.currentSubcategory === subcat.id ? 'active' : ''}`;
-
-            const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
-            const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-            const imageUrl = subcat.imageUrl || placeholderImg;
-
-            subcatBtn.innerHTML = `
-                <img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" loading="lazy" onerror="this.src='${placeholderImg}';">
-                <span>${subcatName}</span>`;
-
-            // On click, navigate to the subcategory detail page
-            subcatBtn.onclick = () => {
-                showSubcategoryDetailPage(categoryId, subcat.id); // Call function to show detail page
-            };
-            subcategoriesContainer.appendChild(subcatBtn);
-        });
-
-    } catch (error) {
-        console.error("Error fetching subcategories: ", error);
-        // Optionally display an error message in the subcategory container
+        if (loader) loader.style.display = 'none'; // Hide infinite scroll loader
+        // Skeleton loader hiding and product container display are handled by renderProductsUI
     }
 }
 
 
-/**
- * Fetches product data and displays the product details sheet.
- * @param {string} productId - The ID of the product to show.
- */
-export async function showProductDetails(productId) {
-    // Try finding the product in the already loaded state first
-    const productFromState = state.products.find(p => p.id === productId);
-
-    if (productFromState) {
-        showProductDetailsWithData(productFromState); // Use UI function to display
-        return;
-    }
-
-    // If not found in state, fetch from Firestore
-    console.log("Product not found in local state. Fetching from Firestore...");
-    try {
-        const productRef = doc(db, "products", productId);
-        const docSnap = await getDoc(productRef);
-
-        if (docSnap.exists()) {
-            const fetchedProduct = { id: docSnap.id, ...docSnap.data() };
-            showProductDetailsWithData(fetchedProduct); // Use UI function to display
-        } else {
-            console.error(`Product with ID ${productId} not found in Firestore.`);
-            showNotification(t('product_not_found_error'), 'error'); // Use UI function for notification
-        }
-    } catch (error) {
-        console.error("Error fetching product details:", error);
-        showNotification(t('error_generic'), 'error');
-    }
-}
+// --- Home Page Content Rendering ---
 
 /**
- * Fetches and renders related products based on the current product's category.
- * @param {object} currentProduct - The product currently being viewed.
- */
-export async function renderRelatedProducts(currentProduct) {
-    const section = document.getElementById('relatedProductsSection');
-    const container = document.getElementById('relatedProductsContainer');
-    if (!section || !container) return;
-
-    container.innerHTML = ''; // Clear previous related products
-    section.style.display = 'none'; // Hide section initially
-
-    // Determine the most specific category to query by
-    let queryField, queryValue;
-    if (currentProduct.subSubcategoryId) {
-        queryField = 'subSubcategoryId';
-        queryValue = currentProduct.subSubcategoryId;
-    } else if (currentProduct.subcategoryId) {
-        queryField = 'subcategoryId';
-        queryValue = currentProduct.subcategoryId;
-    } else if (currentProduct.categoryId) {
-        queryField = 'categoryId';
-        queryValue = currentProduct.categoryId;
-    } else {
-        return; // Cannot find related products without any category info
-    }
-
-    try {
-        const q = query(
-            productsCollection,
-            where(queryField, '==', queryValue),
-            where('__name__', '!=', currentProduct.id), // Exclude the current product itself
-            limit(8) // Limit the number of related products
-        );
-
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-            console.log("No related products found.");
-            return; // Don't show the section if no related products
-        }
-
-        snapshot.forEach(doc => {
-            const product = { id: doc.id, ...doc.data() };
-            const card = createProductCardElement(product); // Use UI function to create card
-            container.appendChild(card);
-        });
-
-        section.style.display = 'block'; // Show the related products section
-
-    } catch (error) {
-        console.error("Error fetching related products:", error);
-        // Optionally hide the section or show an error message
-    }
-}
-
-/**
- * Renders the dynamic sections of the home page based on Firestore configuration.
+ * Fetches the home page layout from Firestore and renders the sections.
  */
 export async function renderHomePageContent() {
     if (state.isRenderingHomePage) return; // Prevent concurrent rendering
@@ -368,16 +223,16 @@ export async function renderHomePageContent() {
     }
 
     try {
-        renderSkeletonLoader(homeSectionsContainer, 4); // Show skeleton while loading layout
+        renderSkeletonLoader(homeSectionsContainer, 4); // Show loading state
         homeSectionsContainer.innerHTML = ''; // Clear previous content
 
-        // Clean up any existing slider intervals before rendering new ones
+        // Clean up any existing intervals before rendering new ones
         Object.keys(state.sliderIntervals || {}).forEach(layoutId => {
             if (state.sliderIntervals[layoutId]) {
                 clearInterval(state.sliderIntervals[layoutId]);
             }
         });
-        state.sliderIntervals = {}; // Reset intervals object
+        state.sliderIntervals = {}; // Reset intervals
 
         // Fetch enabled layout sections ordered by 'order'
         const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
@@ -385,17 +240,18 @@ export async function renderHomePageContent() {
 
         if (layoutSnapshot.empty) {
             console.warn("Home page layout is not configured or all sections are disabled.");
-            homeSectionsContainer.innerHTML = `<p style="text-align: center; padding: 20px;">${t('home_layout_not_configured')}</p>`; // Assuming key exists
+             homeSectionsContainer.innerHTML = `<p style="text-align: center; padding: 20px;">${t('home_layout_not_configured', {default: 'لاپەڕەی سەرەکی ڕێکنەخراوە.'})}</p>`;
         } else {
-            // Iterate through layout sections and render corresponding content
+            // Process each section in the layout order
             for (const doc of layoutSnapshot.docs) {
                 const section = doc.data();
                 let sectionElement = null;
 
+                // Render section based on its type
                 switch (section.type) {
                     case 'promo_slider':
                         if (section.groupId) {
-                            sectionElement = await renderPromoCardsSectionForHome(section.groupId, doc.id); // Pass layout ID for interval management
+                            sectionElement = await renderPromoCardsSectionForHome(section.groupId, doc.id); // Pass layout ID
                         } else { console.warn("Promo slider section missing groupId."); }
                         break;
                     case 'brands':
@@ -417,184 +273,179 @@ export async function renderHomePageContent() {
                         } else { console.warn("Single category row section missing categoryId."); }
                         break;
                     case 'all_products':
-                        sectionElement = await renderAllProductsSection(); // Renders a preview grid
+                        // This section type might just trigger the normal product rendering
+                        // Or render a limited preview like before. Let's keep the preview.
+                        sectionElement = await renderAllProductsSectionPreview();
                         break;
                     default:
                         console.warn(`Unknown home layout section type: ${section.type}`);
                 }
 
                 if (sectionElement) {
-                    homeSectionsContainer.appendChild(sectionElement); // Add the rendered section to the page
+                    homeSectionsContainer.appendChild(sectionElement);
                 }
             }
         }
     } catch (error) {
         console.error("Error rendering home page content:", error);
-        homeSectionsContainer.innerHTML = `<p style="text-align: center; padding: 20px;">${t('error_rendering_home')}</p>`; // Assuming key exists
+        if (homeSectionsContainer) homeSectionsContainer.innerHTML = `<p style="text-align: center; padding: 20px;">${t('error_rendering_home', {default: 'هەڵەیەک لە بارکردنی لاپەڕەی سەرەکی ڕوویدا.'})}</p>`;
     } finally {
         state.isRenderingHomePage = false;
-        // Skeleton loader is cleared automatically when content is added or error message is set.
+         // Hide main skeleton loader after rendering is complete (or failed)
+         if (skeletonLoader) skeletonLoader.style.display = 'none';
     }
 }
 
 /**
- * Fetches and renders a specific promo card slider section for the home page.
- * Manages the automatic slide rotation interval.
+ * Renders a specific promo card slider section for the home page.
+ * Manages slider intervals using state.sliderIntervals.
  * @param {string} groupId - The ID of the promo group to render.
- * @param {string} layoutId - The unique ID of this layout item (for interval management).
- * @returns {Promise<HTMLElement|null>} The rendered section element or null if error/empty.
+ * @param {string} layoutId - The unique ID of this layout section instance.
+ * @returns {Promise<HTMLElement|null>} - The rendered section element or null on error/empty.
  */
-export async function renderPromoCardsSectionForHome(groupId, layoutId) {
-    const promoGridContainer = document.createElement('div');
-    promoGridContainer.className = 'products-container'; // Reuse grid styles for layout consistency
-    promoGridContainer.style.marginBottom = '24px'; // Add spacing below slider
-    promoGridContainer.id = `promoSliderLayout_${layoutId}`; // Unique ID for interval management
+async function renderPromoCardsSectionForHome(groupId, layoutId) {
+    const promoGrid = document.createElement('div');
+    promoGrid.className = 'products-container'; // Reuse styling
+    promoGrid.style.marginBottom = '24px';
+    promoGrid.id = `promoSliderLayout_${layoutId}`; // Unique ID for interval management
 
     try {
         const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
-
         const cards = cardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         if (cards.length > 0) {
-            const sliderState = { currentIndex: 0, intervalId: null }; // Local state for this slider instance
+            // Use an object associated with this specific slider instance
+            const sliderState = { currentIndex: 0, intervalId: null };
             const cardData = { cards }; // Data structure expected by createPromoCardElement
 
             // Create the initial card element
             const promoCardElement = createPromoCardElement(cardData, sliderState); // Pass local state
-            promoGridContainer.appendChild(promoCardElement);
+            promoGrid.appendChild(promoCardElement);
 
-            // Set up automatic rotation if more than one card
+            // Set up automatic rotation ONLY if there's more than one card
             if (cards.length > 1) {
                 const rotate = () => {
-                    // Check if the element still exists and the interval is still registered
-                    if (!document.getElementById(promoGridContainer.id) || !state.sliderIntervals || !state.sliderIntervals[layoutId]) {
+                    // Check if the element still exists and if the interval is still registered
+                    const elementExists = document.getElementById(promoGrid.id);
+                    const intervalRegistered = state.sliderIntervals && state.sliderIntervals[layoutId] === sliderState.intervalId;
+
+                    if (!elementExists || !intervalRegistered) {
+                        // Element removed or interval replaced, clean up this specific interval
                         if (sliderState.intervalId) {
-                            clearInterval(sliderState.intervalId); // Clear the local interval reference
-                            // Remove from global state if it's there (safety check)
-                            if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
+                            clearInterval(sliderState.intervalId);
+                            // Ensure it's also removed from the global state if it matches
+                            if (intervalRegistered) {
                                 delete state.sliderIntervals[layoutId];
                             }
                         }
-                        return; // Stop rotation if element removed or interval cleared globally
+                        return; // Stop the rotation for this instance
                     }
-                    // Advance index and update image
+                    // Update index and UI
                     sliderState.currentIndex = (sliderState.currentIndex + 1) % cards.length;
-                    const newImageUrl = cards[sliderState.currentIndex].imageUrls[state.currentLanguage] || cards[sliderState.currentIndex].imageUrls.ku_sorani;
-                    const imgElement = promoCardElement.querySelector('.product-image');
-                    if (imgElement) imgElement.src = newImageUrl;
+                    updatePromoCardImage(promoCardElement, cardData, sliderState); // Use UI function to update image
                 };
 
-                // Clear any previous interval associated with this layoutId in the global state
+                // Clear any previous interval for THIS specific layout ID before starting a new one
                 if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
                     clearInterval(state.sliderIntervals[layoutId]);
                 }
 
-                // Start new interval and store its ID both locally and globally
-                sliderState.intervalId = setInterval(rotate, 5000); // Rotate every 5 seconds
-                if (!state.sliderIntervals) state.sliderIntervals = {}; // Initialize global state if needed
-                state.sliderIntervals[layoutId] = sliderState.intervalId; // Store globally by layoutId
+                // Start new interval and store its ID in both local state and global registry
+                sliderState.intervalId = setInterval(rotate, 5000);
+                if (!state.sliderIntervals) state.sliderIntervals = {}; // Initialize registry if needed
+                state.sliderIntervals[layoutId] = sliderState.intervalId;
             }
-
-            return promoGridContainer; // Return the container with the slider
+            return promoGrid; // Return the container element
         }
     } catch (error) {
-        console.error(`Error rendering promo slider for group ${groupId}:`, error);
+        console.error(`Error rendering promo slider for group ${groupId} (layout ${layoutId}):`, error);
     }
-    return null; // Return null if error or no cards
+    return null; // Return null if empty or error
 }
 
+
 /**
- * Fetches and renders a horizontal scrolling section of brand logos.
+ * Renders a horizontal scrolling section of brand logos.
  * @param {string} groupId - The ID of the brand group to render.
- * @returns {Promise<HTMLElement|null>} The rendered section element or null if error/empty.
+ * @returns {Promise<HTMLElement|null>} - The rendered section element or null.
  */
-export async function renderBrandsSection(groupId) {
+async function renderBrandsSection(groupId) {
     const sectionContainer = document.createElement('div');
-    sectionContainer.className = 'brands-section'; // Apply specific styling
+    sectionContainer.className = 'brands-section';
     const brandsContainer = document.createElement('div');
-    brandsContainer.className = 'brands-container'; // Horizontal scroll container
+    brandsContainer.className = 'brands-container';
     sectionContainer.appendChild(brandsContainer);
 
     try {
-        const q = query(collection(db, "brand_groups", groupId, "brands"), orderBy("order", "asc"), limit(30)); // Limit number shown
+        const q = query(collection(db, "brand_groups", groupId, "brands"), orderBy("order", "asc"), limit(30));
         const snapshot = await getDocs(q);
 
-        if (snapshot.empty) return null; // Don't render empty brand sections
+        if (snapshot.empty) return null; // Don't render empty sections
 
         snapshot.forEach(doc => {
             const brand = { id: doc.id, ...doc.data() };
             const brandName = brand.name[state.currentLanguage] || brand.name.ku_sorani;
 
             const item = document.createElement('div');
-            item.className = 'brand-item'; // Styling for individual brand
+            item.className = 'brand-item';
+            // Add data attributes for navigation action
+            item.dataset.action = "navigate-brand";
+            item.dataset.categoryId = brand.categoryId || '';
+            item.dataset.subcategoryId = brand.subcategoryId || '';
             item.innerHTML = `
                 <div class="brand-image-wrapper">
                     <img src="${brand.imageUrl}" alt="${brandName}" loading="lazy" class="brand-image">
                 </div>
-                <span>${brandName}</span>`;
-
-            // Add click handler to navigate to the linked category/subcategory
-            item.onclick = async () => {
-                if (brand.subcategoryId && brand.categoryId) {
-                    showSubcategoryDetailPage(brand.categoryId, brand.subcategoryId); // Go to detail page
-                } else if (brand.categoryId) {
-                    await navigateToFilter({ // Filter on main page
-                        category: brand.categoryId,
-                        subcategory: 'all', subSubcategory: 'all', search: ''
-                    });
-                }
-                // If no category linked, clicking does nothing
-            };
-
+                <span>${brandName}</span>
+            `;
             brandsContainer.appendChild(item);
         });
-
-        return sectionContainer; // Return the fully constructed section
+        return sectionContainer;
     } catch (error) {
-        console.error("Error fetching brands for group:", error);
+        console.error(`Error fetching brands for group ${groupId}:`, error);
         return null;
     }
 }
 
 /**
- * Fetches and renders a horizontal scrolling section of the newest products.
- * @returns {Promise<HTMLElement|null>} The rendered section element or null if error/empty.
+ * Renders a horizontal scrolling section of newest products (added within last 15 days).
+ * @returns {Promise<HTMLElement|null>} - The rendered section element or null.
  */
-export async function renderNewestProductsSection() {
+async function renderNewestProductsSection() {
     const container = document.createElement('div');
-    container.className = 'dynamic-section'; // General section styling
+    container.className = 'dynamic-section';
     const header = document.createElement('div');
-    header.className = 'section-title-header'; // Header with title and optional "See All"
+    header.className = 'section-title-header';
     const title = document.createElement('h3');
     title.className = 'section-title-main';
-    title.textContent = t('newest_products'); // Use translation for title
+    title.textContent = t('newest_products');
     header.appendChild(title);
-    // Optionally add a "See All" link for newest products if needed
     container.appendChild(header);
 
     try {
-        // Query for products created within the last N days (e.g., 15 days)
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
         const q = query(
             productsCollection,
             where('createdAt', '>=', fifteenDaysAgo),
             orderBy('createdAt', 'desc'),
-            limit(10) // Limit number shown on home page
+            limit(10) // Limit the number shown horizontally
         );
         const snapshot = await getDocs(q);
 
         if (snapshot.empty) return null; // Don't render if no new products
 
         const productsScroller = document.createElement('div');
-        productsScroller.className = 'horizontal-products-container'; // Horizontal scroll
+        productsScroller.className = 'horizontal-products-container';
+        const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
         snapshot.forEach(doc => {
             const product = { id: doc.id, ...doc.data() };
-            const card = createProductCardElement(product); // Create card using UI function
+            const isFav = state.favorites.includes(product.id);
+            const card = createProductCardElement(product, isAdmin, isFav); // Use UI function
             productsScroller.appendChild(card);
         });
         container.appendChild(productsScroller);
-        return container; // Return the section
+        return container;
 
     } catch (error) {
         console.error("Error fetching newest products:", error);
@@ -602,390 +453,336 @@ export async function renderNewestProductsSection() {
     }
 }
 
-
 /**
- * Fetches and renders a single horizontal row of shortcut cards.
- * @param {string} rowId - The ID of the shortcut row document.
- * @param {object} sectionNameObj - The multilingual name object for the section title from layout data.
- * @returns {Promise<HTMLElement|null>} The rendered section element or null if error/empty.
+ * Renders a single horizontal row of shortcut cards based on a row ID.
+ * @param {string} rowId - The ID of the shortcut row in Firestore.
+ * @param {object} sectionNameObj - The multilingual name object from the layout config.
+ * @returns {Promise<HTMLElement|null>} - The rendered section element or null.
  */
-export async function renderSingleShortcutRow(rowId, sectionNameObj) {
+async function renderSingleShortcutRow(rowId, sectionNameObj) {
     const sectionContainer = document.createElement('div');
-    sectionContainer.className = 'shortcut-cards-section'; // Apply specific styling
+    sectionContainer.className = 'shortcut-cards-section';
 
     try {
         const rowDoc = await getDoc(doc(db, "shortcut_rows", rowId));
-        if (!rowDoc.exists()) return null; // Row not found
+        if (!rowDoc.exists()) return null;
 
         const rowData = { id: rowDoc.id, ...rowDoc.data() };
-        // Use name from layout if available, otherwise fallback to row title
-        const rowTitle = (sectionNameObj && sectionNameObj[state.currentLanguage]) || rowData.title[state.currentLanguage] || rowData.title.ku_sorani;
+        // Use layout name as primary, fallback to row title from DB
+        const rowTitle = sectionNameObj[state.currentLanguage]
+                         || rowData.title[state.currentLanguage]
+                         || rowData.title.ku_sorani;
 
-        // Add section title
+
         const titleElement = document.createElement('h3');
         titleElement.className = 'shortcut-row-title';
         titleElement.textContent = rowTitle;
         sectionContainer.appendChild(titleElement);
 
-        // Container for the cards
         const cardsContainer = document.createElement('div');
-        cardsContainer.className = 'shortcut-cards-container'; // Horizontal scroll
+        cardsContainer.className = 'shortcut-cards-container';
         sectionContainer.appendChild(cardsContainer);
 
-        // Fetch cards within this row
         const cardsCollectionRef = collection(db, "shortcut_rows", rowData.id, "cards");
         const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
 
         if (cardsSnapshot.empty) return null; // Don't render empty rows
 
-        // Create and append each card
         cardsSnapshot.forEach(cardDoc => {
             const cardData = cardDoc.data();
             const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
 
-            const item = document.createElement('div'); // Using div instead of button for better structure
-            item.className = 'shortcut-card'; // Styling for shortcut card
+            const item = document.createElement('div');
+            item.className = 'shortcut-card';
+            // Add data attributes for navigation action
+            item.dataset.action = "navigate-shortcut";
+            item.dataset.categoryId = cardData.categoryId || 'all';
+            item.dataset.subcategoryId = cardData.subcategoryId || 'all';
+            item.dataset.subSubcategoryId = cardData.subSubcategoryId || 'all';
             item.innerHTML = `
                 <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
-                <div class="shortcut-card-name">${cardName}</div>`;
-
-            // Add click handler to navigate to the linked category/subcategory/subsubcategory
-            item.onclick = async () => {
-                await navigateToFilter({
-                    category: cardData.categoryId || 'all',
-                    subcategory: cardData.subcategoryId || 'all',
-                    subSubcategory: cardData.subSubcategoryId || 'all',
-                    search: ''
-                });
-            };
+                <div class="shortcut-card-name">${cardName}</div>
+            `;
             cardsContainer.appendChild(item);
         });
 
-        return sectionContainer; // Return the complete section
+        return sectionContainer;
     } catch (error) {
-        console.error("Error rendering single shortcut row:", error);
+        console.error(`Error rendering single shortcut row (ID: ${rowId}):`, error);
         return null;
     }
 }
 
 /**
- * Fetches and renders a single horizontal row of products from a specific category/subcategory/subsubcategory.
- * @param {object} sectionData - Data from the home_layout document for this section.
- * @returns {Promise<HTMLElement|null>} The rendered section element or null if error/empty.
+ * Renders a horizontal row of products belonging to a specific category/subcategory/subsubcategory.
+ * @param {object} sectionData - Data from home_layout ({categoryId, subcategoryId?, subSubcategoryId?, name}).
+ * @returns {Promise<HTMLElement|null>} - The rendered section element or null.
  */
-export async function renderSingleCategoryRow(sectionData) {
+async function renderSingleCategoryRow(sectionData) {
     const { categoryId, subcategoryId, subSubcategoryId, name } = sectionData;
     let queryField, queryValue;
-    let title = (name && name[state.currentLanguage]) || (name && name.ku_sorani) || t('category_products'); // Default title
-    let targetDocRef; // To fetch the actual category name
+    let title = name[state.currentLanguage] || name.ku_sorani;
+    let targetDocRefPath;
 
-    // Determine the most specific category level to filter by and fetch name from
-    if (subSubcategoryId && subcategoryId && categoryId) {
+    // Determine the query field, value, and path based on the most specific ID
+    if (subSubcategoryId) {
         queryField = 'subSubcategoryId';
         queryValue = subSubcategoryId;
-        targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubcategoryId}`);
-    } else if (subcategoryId && categoryId) {
+        targetDocRefPath = `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubcategoryId}`;
+    } else if (subcategoryId) {
         queryField = 'subcategoryId';
         queryValue = subcategoryId;
-        targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}`);
+        targetDocRefPath = `categories/${categoryId}/subcategories/${subcategoryId}`;
     } else if (categoryId) {
         queryField = 'categoryId';
         queryValue = categoryId;
-        targetDocRef = doc(db, `categories/${categoryId}`);
+        targetDocRefPath = `categories/${categoryId}`;
     } else {
-        console.warn("Single category row section is missing necessary category IDs.");
-        return null; // Cannot render without at least categoryId
+        return null; // No category specified
     }
 
     try {
-        // Attempt to fetch the actual name of the category/sub/subsub
-        if (targetDocRef) {
-            const targetSnap = await getDoc(targetDocRef);
-            if (targetSnap.exists()) {
-                const targetData = targetSnap.data();
-                title = targetData['name_' + state.currentLanguage] || targetData.name_ku_sorani || title; // Update title if found
-            }
+        // Fetch the specific category/subcategory name for a more accurate title
+        const targetSnap = await getDoc(doc(db, targetDocRefPath));
+        if (targetSnap.exists()) {
+            const targetData = targetSnap.data();
+            title = targetData['name_' + state.currentLanguage] || targetData.name_ku_sorani || title;
         }
 
-        // Create section container and header
         const container = document.createElement('div');
         container.className = 'dynamic-section';
         const header = document.createElement('div');
         header.className = 'section-title-header';
         const titleEl = document.createElement('h3');
         titleEl.className = 'section-title-main';
-        titleEl.textContent = title; // Use potentially updated title
+        titleEl.textContent = title;
         header.appendChild(titleEl);
 
         // Add "See All" link
         const seeAllLink = document.createElement('a');
         seeAllLink.className = 'see-all-link';
         seeAllLink.textContent = t('see_all');
-        seeAllLink.onclick = async () => {
-            // Navigate based on the most specific category ID
-            if (subcategoryId && categoryId) {
-                // If subcategory or subsubcategory is specified, go to the subcategory detail page
-                showSubcategoryDetailPage(categoryId, subcategoryId);
-            } else if (categoryId) {
-                // If only main category is specified, filter on the main page
-                await navigateToFilter({
-                    category: categoryId, subcategory: 'all', subSubcategory: 'all', search: ''
-                });
-            }
-        };
+        // Add data attributes for navigation action
+        seeAllLink.dataset.action = "navigate-see-all";
+        seeAllLink.dataset.categoryId = categoryId || '';
+        seeAllLink.dataset.subcategoryId = subcategoryId || '';
+        seeAllLink.dataset.subSubcategoryId = subSubcategoryId || ''; // Pass all IDs
         header.appendChild(seeAllLink);
         container.appendChild(header);
 
-        // Create horizontal scroller for products
         const productsScroller = document.createElement('div');
         productsScroller.className = 'horizontal-products-container';
         container.appendChild(productsScroller);
 
-        // Fetch products matching the category filter
+        // Query for products matching the specific category level
         const q = query(
             productsCollection,
-            where(queryField, '==', queryValue), // Filter by the determined field/value
+            where(queryField, '==', queryValue),
             orderBy('createdAt', 'desc'),
-            limit(10) // Limit number shown on home page
+            limit(10) // Limit for horizontal view
         );
         const snapshot = await getDocs(q);
 
-        if (snapshot.empty) return null; // Don't render if no products found
+        if (snapshot.empty) return null; // Don't render empty rows
 
-        // Create and append product cards
+        const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
         snapshot.forEach(doc => {
             const product = { id: doc.id, ...doc.data() };
-            const card = createProductCardElement(product); // Use UI function
+            const isFav = state.favorites.includes(product.id);
+            const card = createProductCardElement(product, isAdmin, isFav); // Use UI function
             productsScroller.appendChild(card);
         });
-        return container; // Return the complete section
+        return container;
 
     } catch (error) {
-        console.error(`Error fetching products for single category row:`, error);
+        console.error(`Error rendering single category row (Cat: ${categoryId}, Sub: ${subcategoryId}, SubSub: ${subSubcategoryId}):`, error);
         return null;
     }
 }
 
 /**
- * Renders a grid section showing a preview of "All Products".
- * @returns {Promise<HTMLElement|null>} The rendered section element or null if error/empty.
+ * Renders a preview section titled "All Products" showing a few recent products.
+ * @returns {Promise<HTMLElement|null>} - The rendered section element or null.
  */
-export async function renderAllProductsSection() {
+async function renderAllProductsSectionPreview() {
     const container = document.createElement('div');
     container.className = 'dynamic-section';
-    container.style.marginTop = '20px'; // Add spacing
+    container.style.marginTop = '20px';
 
-    // Add section header
     const header = document.createElement('div');
     header.className = 'section-title-header';
     const title = document.createElement('h3');
     title.className = 'section-title-main';
-    title.textContent = t('all_products_section_title'); // Use translation
+    title.textContent = t('all_products_section_title');
     header.appendChild(title);
-    // Optionally add a "See All" link that just resets filters
-    // const seeAllLink = document.createElement('a'); ... seeAllLink.onclick = () => navigateToFilter({ category: 'all', ... }); header.appendChild(seeAllLink);
     container.appendChild(header);
 
-    // Create grid container for products
     const productsGrid = document.createElement('div');
-    productsGrid.className = 'products-container'; // Use existing grid style
+    productsGrid.className = 'products-container'; // Use grid style
     container.appendChild(productsGrid);
 
     try {
-        // Fetch a limited number of recent products for the preview
-        const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(8)); // Limit preview size
+        const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(10)); // Limit for preview
         const snapshot = await getDocs(q);
-        if (snapshot.empty) return null; // Don't render if no products exist
+        if (snapshot.empty) return null;
 
-        // Create and append product cards
+        const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
         snapshot.forEach(doc => {
             const product = { id: doc.id, ...doc.data() };
-            const card = createProductCardElement(product); // Use UI function
+            const isFav = state.favorites.includes(product.id);
+            const card = createProductCardElement(product, isAdmin, isFav); // Use UI function
             productsGrid.appendChild(card);
         });
-        return container; // Return the complete section
+        return container;
     } catch (error) {
-        console.error("Error fetching 'all products' preview for home page:", error);
+        console.error("Error fetching preview for all products section:", error);
         return null;
     }
 }
 
+// --- Category Fetching ---
+
 /**
- * Shows the dedicated page for a subcategory, rendering its sub-subcategories and products.
- * @param {string} mainCatId - The ID of the parent main category.
- * @param {string} subCatId - The ID of the subcategory to display.
- * @param {boolean} [fromHistory=false] - Indicates if navigation is due to browser back/forward.
+ * Fetches main categories from Firestore and updates the global state.
+ * Triggers UI updates for category-dependent elements.
  */
-export async function showSubcategoryDetailPage(mainCatId, subCatId, fromHistory = false) {
-    let subCatName = 'Details'; // Default title
-    try {
-        // Fetch the subcategory name for the header title
-        const subCatRef = doc(db, "categories", mainCatId, "subcategories", subCatId);
-        const subCatSnap = await getDoc(subCatRef);
-        if (subCatSnap.exists()) {
-            const subCat = subCatSnap.data();
-            subCatName = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
-        }
-    } catch (e) {
-        console.error("Could not fetch subcategory name:", e);
-    }
+export async function fetchAndUpdateCategories() {
+     try {
+         const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
+         const snapshot = await getDocs(categoriesQuery);
+         const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+         state.categories = [{ id: 'all', icon: 'fas fa-th', name_ku_sorani: t('all_categories_label'), name_ku_badini: t('all_categories_label'), name_ar: t('all_categories_label') }, ...fetchedCategories]; // Add 'All' category with localized names
 
-    // Push state to history if not navigating from back/forward
-    if (!fromHistory) {
-        history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
-    }
+         updateCategoryDependentUI(); // Update dropdowns, main category buttons etc.
 
-    // Show the detail page UI
-    showPage('subcategoryDetailPage', subCatName); // Use UI function
-
-    // Get references to page elements
-    const detailPageLoader = document.getElementById('detailPageLoader');
-    const detailProductsContainer = document.getElementById('productsContainerOnDetailPage');
-    const detailSubSubContainer = document.getElementById('subSubCategoryContainerOnDetailPage');
-    const subpageSearchInput = document.getElementById('subpageSearchInput');
-    const subpageClearSearchBtn = document.getElementById('subpageClearSearchBtn');
-
-    // Show loader and clear previous content
-    if (detailPageLoader) detailPageLoader.style.display = 'block';
-    if (detailProductsContainer) detailProductsContainer.innerHTML = '';
-    if (detailSubSubContainer) detailSubSubContainer.innerHTML = '';
-
-    // Reset search bar on this page
-    if (subpageSearchInput) subpageSearchInput.value = '';
-    if (subpageClearSearchBtn) subpageClearSearchBtn.style.display = 'none';
-
-    // Render the content (sub-subcategories and initial products)
-    await renderSubSubcategoriesOnDetailPage(mainCatId, subCatId); // Render filter buttons first
-    await renderProductsOnDetailPage(subCatId, 'all', ''); // Render products for 'all' sub-sub initially
-
-    // Hide loader after content is rendered
-    if (detailPageLoader) detailPageLoader.style.display = 'none';
+         return state.categories; // Return the fetched categories
+     } catch (error) {
+         console.error("Error fetching categories:", error);
+         // Handle error appropriately, maybe show a message to the user
+         return []; // Return empty array on error
+     }
 }
 
+
 /**
- * Renders the sub-subcategory filter buttons on the subcategory detail page.
- * @param {string} mainCatId - Parent main category ID.
- * @param {string} subCatId - Parent subcategory ID.
+ * Fetches and renders sub-subcategories for the subcategory detail page.
+ * @param {string} mainCatId - The ID of the parent main category.
+ * @param {string} subCatId - The ID of the parent subcategory.
  */
 export async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId) {
     const container = document.getElementById('subSubCategoryContainerOnDetailPage');
     if (!container) return;
-    container.innerHTML = ''; // Clear previous
-    container.style.display = 'none'; // Hide by default
+    container.innerHTML = ''; // Clear previous content
 
     try {
         const ref = collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
         const q = query(ref, orderBy("order", "asc"));
         const snapshot = await getDocs(q);
 
-        // Only show if sub-subcategories exist
-        if (snapshot.empty) return;
+        if (snapshot.empty) {
+            container.style.display = 'none'; // Hide if no sub-subcategories
+            return;
+        }
 
-        container.style.display = 'flex'; // Show container
+        container.style.display = 'flex'; // Show the container
 
-        // Create "All" button
+        // --- Add "All" Button ---
         const allBtn = document.createElement('button');
-        allBtn.className = `subcategory-btn active`; // 'All' is active initially
+        allBtn.className = `subcategory-btn active`; // Start with 'All' active
         const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
         allBtn.innerHTML = `<div class="subcategory-image">${allIconSvg}</div><span>${t('all_categories_label')}</span>`;
-        allBtn.dataset.id = 'all'; // Mark as 'all' button
-        allBtn.onclick = () => {
-            // Deactivate other buttons, activate this one
-            container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
-            allBtn.classList.add('active');
-            // Re-render products for 'all' sub-subcategories, preserving search term
-            const currentSearch = document.getElementById('subpageSearchInput')?.value || '';
-            renderProductsOnDetailPage(subCatId, 'all', currentSearch);
-        };
+        allBtn.dataset.action = 'filter-subsubcategory'; // Action for event listener
+        allBtn.dataset.subSubcategoryId = 'all'; // Value for the action
         container.appendChild(allBtn);
 
-        // Create buttons for each sub-subcategory
+        // --- Add Specific Sub-subcategory Buttons ---
         snapshot.forEach(doc => {
             const subSubcat = { id: doc.id, ...doc.data() };
             const btn = document.createElement('button');
             btn.className = `subcategory-btn`;
-            btn.dataset.id = subSubcat.id; // Store ID
+            btn.dataset.action = 'filter-subsubcategory'; // Action for event listener
+            btn.dataset.subSubcategoryId = subSubcat.id; // Value for the action
 
             const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
             const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
             const imageUrl = subSubcat.imageUrl || placeholderImg;
-            btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" loading="lazy" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
+            btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
 
-            btn.onclick = () => {
-                // Deactivate other buttons, activate this one
-                container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                // Re-render products for this specific sub-subcategory, preserving search term
-                const currentSearch = document.getElementById('subpageSearchInput')?.value || '';
-                renderProductsOnDetailPage(subCatId, subSubcat.id, currentSearch);
-            };
             container.appendChild(btn);
         });
 
     } catch (error) {
         console.error("Error fetching sub-subcategories for detail page:", error);
-        container.style.display = 'none'; // Hide if error
+        container.style.display = 'none'; // Hide on error
     }
 }
 
 /**
- * Renders products specifically for the subcategory detail page based on selected sub-subcategory and search term.
- * @param {string} subCatId - The parent subcategory ID.
- * @param {string} [subSubCatId='all'] - The selected sub-subcategory ID ('all' for no filter).
- * @param {string} [searchTerm=''] - The current search term.
+ * Fetches and renders products specifically for the subcategory detail page.
+ * @param {string} subCatId - The ID of the parent subcategory.
+ * @param {string} [subSubCatId='all'] - The ID of the selected sub-subcategory ('all' for no filter).
+ * @param {string} [searchTerm=''] - The search term entered by the user.
  */
 export async function renderProductsOnDetailPage(subCatId, subSubCatId = 'all', searchTerm = '') {
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const loader = document.getElementById('detailPageLoader');
     if (!productsContainer || !loader) return;
 
-    loader.style.display = 'block'; // Show loader
+    loader.style.display = 'block';
     productsContainer.innerHTML = ''; // Clear previous products
+    renderSkeletonLoader(productsContainer, 4); // Show skeleton loader
 
     try {
-        let productsQuery;
-        // Base query: filter by parent subcategory
-        productsQuery = query(productsCollection, where("subcategoryId", "==", subCatId));
+        let productsQuery = query(productsCollection);
 
-        // Add sub-subcategory filter if not 'all'
-        if (subSubCatId !== 'all') {
-            productsQuery = query(productsQuery, where("subSubcategoryId", "==", subSubCatId));
+        // --- Apply Category Filters ---
+        if (subSubCatId === 'all') {
+             // Filter only by the parent subcategory if 'All' is selected
+             productsQuery = query(productsQuery, where("subcategoryId", "==", subCatId));
+        } else {
+             // Filter by the specific sub-subcategory
+             productsQuery = query(productsQuery, where("subSubcategoryId", "==", subSubCatId));
+             // We still might want to ensure it belongs to the correct parent subcategory for data integrity,
+             // though filtering by subSubcategoryId should be sufficient if data is consistent.
+             // productsQuery = query(productsQuery, where("subcategoryId", "==", subCatId));
         }
 
-        // Add search term filter
+        // --- Apply Search Term ---
         const finalSearchTerm = searchTerm.trim().toLowerCase();
         if (finalSearchTerm) {
             productsQuery = query(productsQuery,
                 where('searchableName', '>=', finalSearchTerm),
                 where('searchableName', '<=', finalSearchTerm + '\uf8ff')
             );
-            // Firestore requires the first orderBy to match the inequality field
-            productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
+             // Adjust ordering for search
+             productsQuery = query(productsQuery, orderBy("searchableName", "asc"), orderBy("createdAt", "desc"));
         } else {
-            // Default sort order when not searching
-            productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
+             // Default ordering
+             productsQuery = query(productsQuery, orderBy("createdAt", "desc"));
         }
 
-        // Execute query
+        // --- Execute Query ---
+        // No pagination needed for this specific view currently, load all matching
         const productSnapshot = await getDocs(productsQuery);
 
+        // --- Render Results ---
+        productsContainer.innerHTML = ''; // Clear skeleton loader
         if (productSnapshot.empty) {
-            productsContainer.innerHTML = `<p style="text-align:center; padding: 20px;">${t('no_products_found')}</p>`;
+            productsContainer.innerHTML = `<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">${t('no_products_found', {default: 'هیچ کاڵایەک نەدۆزرایەوە.'})}</p>`;
         } else {
+            const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
             productSnapshot.forEach(doc => {
                 const product = { id: doc.id, ...doc.data() };
-                const card = createProductCardElement(product); // Use UI function
+                const isFav = state.favorites.includes(product.id);
+                const card = createProductCardElement(product, isAdmin, isFav); // Use UI function
                 productsContainer.appendChild(card);
             });
-            setupScrollAnimations(); // Apply animations
         }
     } catch (error) {
-        console.error(`Error fetching products for detail page (subCatId: ${subCatId}, subSubCatId: ${subSubCatId}, searchTerm: "${searchTerm}"):`, error);
-        productsContainer.innerHTML = `<p style="text-align:center; padding: 20px;">${t('error_generic')}</p>`;
+        console.error(`Error fetching products for detail page (SubCat: ${subCatId}, SubSub: ${subSubCatId}, Search: "${searchTerm}"):`, error);
+        productsContainer.innerHTML = `<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">${t('error_fetching_products', {default: 'هەڵەیەک ڕوویدا.'})}</p>`;
     } finally {
-        loader.style.display = 'none'; // Hide loader
+        loader.style.display = 'none'; // Hide loading indicator
     }
 }
-
-// Add other data rendering functions here...
