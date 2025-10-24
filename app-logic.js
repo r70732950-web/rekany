@@ -1,5 +1,5 @@
 // BEŞÊ DUYEM: app-logic.js
-// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی scroll - وەشانی 2)
+// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی scroll - وەشانی 3)
 
 import {
     db, auth, messaging,
@@ -125,7 +125,7 @@ function closeCurrentPopup() {
     }
 }
 
-// ============ START: SCROLL FIX v2 ============
+// ============ START: SCROLL FIX v3 ============
 async function applyFilterState(filterState, fromPopState = false) {
     const previousCategory = state.currentCategory; // Store previous state before updating
     const previousSearch = state.currentSearch;
@@ -157,41 +157,49 @@ async function applyFilterState(filterState, fromPopState = false) {
         // Use setTimeout to allow content to potentially render first
         setTimeout(() => window.scrollTo(0, filterState.scroll), 100); // Increased delay slightly
     } else if (!fromPopState) {
+        const headerElement = document.querySelector('.app-header'); // Get header height reference
+
         // Scroll to top ONLY if:
         // 1. It's a genuinely new search term being entered.
-        // 2. The main category ID has actually changed.
-        if (isNewSearch || mainCategoryChanged) {
-             // Scroll to top smoothly
-             window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-             // Otherwise (e.g., clicking same category, subcategory, or clearing search),
-             // scroll just below the category bars if they are visible
+        // 2. We are switching *to* the 'all' main category from a specific one.
+        const switchingToAllMain = state.currentCategory === 'all' && previousCategory !== 'all';
+        if (isNewSearch || switchingToAllMain) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        // Scroll below category bars if:
+        // 1. A *specific* main category was just selected (mainCategoryChanged is true and not switching to 'all').
+        else if (mainCategoryChanged && state.currentCategory !== 'all') {
+             // Scroll just below the category bars regardless of current position
              const mainCatElement = document.getElementById('mainCategoriesContainer');
              const subCatElement = document.getElementById('subcategoriesContainer');
-             const headerElement = document.querySelector('.app-header');
              let targetElement = null;
 
-             if (subCatElement && subCatElement.offsetParent !== null && subCatElement.offsetHeight > 0) {
-                 targetElement = subCatElement; // Scroll below subcategories if visible
-             } else if (mainCatElement && mainCatElement.offsetParent !== null && mainCatElement.offsetHeight > 0) {
-                 targetElement = mainCatElement; // Scroll below main categories if visible
+             if (mainCatElement && mainCatElement.offsetParent !== null && mainCatElement.offsetHeight > 0) {
+                 targetElement = mainCatElement; // Base target is main categories
+                 // If subcategories will be visible, target below them instead
+                 if (subCatElement && subCatElement.offsetParent !== null){ // Check if subcat container exists
+                     // We anticipate subcategories will appear, so aim below where they WOULD be.
+                     // Use mainCatElement as reference as subCatElement might not have height yet.
+                     targetElement = mainCatElement;
+                 }
              } else if (headerElement) {
                  targetElement = headerElement; // Fallback to header
              }
 
              if (targetElement) {
-                // Calculate position slightly below the target element
-                const targetScrollY = window.scrollY + targetElement.getBoundingClientRect().bottom + 10;
-                // Only scroll down if we are currently above the target area
-                if (window.scrollY < targetScrollY - headerElement.offsetHeight) { // Check against approx top of target
-                     window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
-                }
+                // Calculate position slightly below the target element's bottom edge relative to the document top
+                const targetScrollY = targetElement.offsetTop + targetElement.offsetHeight + 10;
+                window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
+             } else {
+                 // Fallback: scroll slightly below header if category bars aren't found
+                  window.scrollTo({ top: (headerElement?.offsetHeight || 80) + 10, behavior: 'smooth' });
              }
-             // If no target identified or already below, do nothing and stay in place
         }
+        // Otherwise (e.g., clicking same category, clicking subcategory, clearing search)
+        // DO NOTHING - stay in the current scroll position.
     }
 }
-// ============ END: SCROLL FIX v2 ============
+// ============ END: SCROLL FIX v3 ============
 
 async function navigateToFilter(newState) {
     history.replaceState({
@@ -721,7 +729,7 @@ async function renderSubcategories(categoryId) {
     subcategoriesContainer.innerHTML = '';
 
     if (categoryId === 'all') {
-        return;
+        return; // No subcategories to show for 'all'
     }
 
     try {
@@ -731,9 +739,17 @@ async function renderSubcategories(categoryId) {
 
         state.subcategories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        if (state.subcategories.length === 0) return;
+        // Only display the container if there are subcategories
+        if (state.subcategories.length === 0) {
+            subcategoriesContainer.style.display = 'none'; // Hide if empty
+            return;
+        } else {
+             subcategoriesContainer.style.display = 'flex'; // Show if not empty
+        }
+
 
         const allBtn = document.createElement('button');
+        // Make 'All' active by default when showing subcategories
         allBtn.className = `subcategory-btn ${state.currentSubcategory === 'all' ? 'active' : ''}`;
         const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
         allBtn.innerHTML = `
@@ -741,6 +757,7 @@ async function renderSubcategories(categoryId) {
             <span>${t('all_categories_label')}</span>
         `;
         allBtn.onclick = async () => {
+             // Go back to showing all products within the main category
             await navigateToFilter({
                 subcategory: 'all',
                 subSubcategory: 'all'
@@ -762,6 +779,7 @@ async function renderSubcategories(categoryId) {
             `;
 
             subcatBtn.onclick = () => {
+                 // Navigate to the detail page for this subcategory
                 showSubcategoryDetailPage(categoryId, subcat.id);
             };
             subcategoriesContainer.appendChild(subcatBtn);
@@ -769,8 +787,10 @@ async function renderSubcategories(categoryId) {
 
     } catch (error) {
         console.error("Error fetching subcategories: ", error);
+        subcategoriesContainer.style.display = 'none'; // Hide on error
     }
 }
+
 
 function renderMainCategories() {
     const container = document.getElementById('mainCategoriesContainer');
@@ -795,15 +815,16 @@ function renderMainCategories() {
         btn.onclick = async () => {
             await navigateToFilter({
                 category: cat.id,
-                subcategory: 'all',
-                subSubcategory: 'all',
-                search: ''
+                subcategory: 'all', // Reset subcategory when main changes
+                subSubcategory: 'all', // Reset sub-subcategory
+                search: '' // Clear search when changing category
             });
         };
 
         container.appendChild(btn);
     });
 }
+
 
 function showProductDetails(productId) {
     const allFetchedProducts = [...state.products];
@@ -839,7 +860,7 @@ async function renderRelatedProducts(currentProduct) {
         q = query(
             productsCollection,
             where('subSubcategoryId', '==', currentProduct.subSubcategoryId),
-            where('__name__', '!=', currentProduct.id),
+            where('__name__', '!=', currentProduct.id), // Exclude the current product
             limit(6)
         );
     } else if (currentProduct.subcategoryId) {
@@ -853,7 +874,7 @@ async function renderRelatedProducts(currentProduct) {
         q = query(
             productsCollection,
             where('categoryId', '==', currentProduct.categoryId),
-            where('__name__', '!=', currentProduct.id),
+             where('__name__', '!=', currentProduct.id),
             limit(6)
         );
     }
@@ -878,10 +899,11 @@ async function renderRelatedProducts(currentProduct) {
     }
 }
 
+
 function showProductDetailsWithData(product) {
     const sheetContent = document.querySelector('#productDetailSheet .sheet-content');
     if (sheetContent) {
-        sheetContent.scrollTop = 0;
+        sheetContent.scrollTop = 0; // Scroll sheet content to top
     }
 
     const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
@@ -909,7 +931,11 @@ function showProductDetailsWithData(product) {
             thumb.dataset.index = index;
             thumbnailContainer.appendChild(thumb);
         });
+    } else {
+        // Handle case with no images
+        imageContainer.innerHTML = `<img src="https://placehold.co/400x400/e2e8f0/2d3748?text=وێنە+نییە" alt="وێنە نییە">`;
     }
+
 
     let currentIndex = 0;
     const images = imageContainer.querySelectorAll('img');
@@ -929,9 +955,11 @@ function showProductDetailsWithData(product) {
     if (imageUrls.length > 1) {
         prevBtn.style.display = 'flex';
         nextBtn.style.display = 'flex';
+        thumbnailContainer.style.display = 'flex'; // Show thumbnails only if multiple images
     } else {
         prevBtn.style.display = 'none';
         nextBtn.style.display = 'none';
+        thumbnailContainer.style.display = 'none'; // Hide thumbnails if only one image
     }
 
     prevBtn.onclick = () => updateSlider((currentIndex - 1 + images.length) % images.length);
@@ -952,13 +980,15 @@ function showProductDetailsWithData(product) {
     addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
     addToCartButton.onclick = () => {
         addToCart(product.id);
-        closeCurrentPopup();
+        closeCurrentPopup(); // Close the sheet after adding to cart
     };
 
-    renderRelatedProducts(product);
+    // Fetch and render related products
+    renderRelatedProducts(product); // Moved here to ensure it runs after main product details are set
 
-    openPopup('productDetailSheet');
+    openPopup('productDetailSheet'); // Open the sheet
 }
+
 
 // Function to create promo card element (now takes sliderState)
 function createPromoCardElement(cardData, sliderState) {
@@ -1188,8 +1218,13 @@ function renderSkeletonLoader(container = skeletonLoader, count = 8) {
 function renderProducts() {
     productsContainer.innerHTML = '';
     if (!state.products || state.products.length === 0) {
+        // If the container is empty after filtering, show a message
+        if (productsContainer.offsetParent !== null) { // Check if the container itself is visible
+            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+        }
         return;
     }
+
 
     state.products.forEach(item => {
         let element = createProductCardElement(item);
@@ -1197,8 +1232,14 @@ function renderProducts() {
         productsContainer.appendChild(element);
     });
 
+    // If after adding products, the container is still visually empty (e.g., due to CSS), show message
+    if (productsContainer.children.length === 0 && productsContainer.offsetParent !== null) {
+         productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+    }
+
     setupScrollAnimations();
 }
+
 
 async function renderSingleShortcutRow(rowId, sectionNameObj) {
     const sectionContainer = document.createElement('div');
@@ -1756,9 +1797,11 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
 
         renderProducts();
 
-        if (state.products.length === 0 && isNewSearch) {
+        // Check again if products container is empty after rendering
+        if (productsContainer.children.length === 0 && isNewSearch && productsContainer.offsetParent !== null) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         }
+
 
     } catch (error) {
         console.error("Error fetching content:", error);
@@ -1767,9 +1810,10 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         state.isLoadingMoreProducts = false;
         loader.style.display = 'none';
         skeletonLoader.style.display = 'none';
-        productsContainer.style.display = 'grid';
+        productsContainer.style.display = 'grid'; // Ensure grid is displayed even if empty message is shown
     }
 }
+
 
 function addToCart(productId) {
     const allFetchedProducts = [...state.products];
