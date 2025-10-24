@@ -125,7 +125,13 @@ function closeCurrentPopup() {
     }
 }
 
+// ============ START: SCROLL FIX ============
 async function applyFilterState(filterState, fromPopState = false) {
+    const previousCategory = state.currentCategory; // Store previous state before updating
+    const previousSubcategory = state.currentSubcategory;
+    const previousSubSubcategory = state.currentSubSubcategory;
+    const previousSearch = state.currentSearch;
+
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
     state.currentSubSubcategory = filterState.subSubcategory || 'all';
@@ -134,17 +140,45 @@ async function applyFilterState(filterState, fromPopState = false) {
     searchInput.value = state.currentSearch;
     clearSearchBtn.style.display = state.currentSearch ? 'block' : 'none';
 
-    renderMainCategories();
-    await renderSubcategories(state.currentCategory);
+    renderMainCategories(); // Update button active states
+    await renderSubcategories(state.currentCategory); // Render relevant subcategories
 
-    await searchProductsInFirestore(state.currentSearch, true);
+    // Fetch and display products based on the new state
+    await searchProductsInFirestore(state.currentSearch, true); // true indicates a new search/filter
 
+    // Scroll Logic:
     if (fromPopState && typeof filterState.scroll === 'number') {
+        // Restore scroll position when using back/forward buttons
         setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
     } else if (!fromPopState) {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Only scroll to top if:
+        // 1. It's a new search term.
+        // 2. We are switching *to* the 'all' main category from a specific one.
+        // 3. We are switching *to* a new main category from 'all' or another main category.
+        const isNewSearch = state.currentSearch && state.currentSearch !== previousSearch;
+        const switchingToAllMain = state.currentCategory === 'all' && previousCategory !== 'all';
+        const switchingMainCategory = state.currentCategory !== 'all' && state.currentCategory !== previousCategory;
+
+        if (isNewSearch || switchingToAllMain || switchingMainCategory) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+             // Otherwise, try to scroll just below the header/category bars
+             const headerElement = document.querySelector('.app-header');
+             const mainCatElement = document.getElementById('mainCategoriesContainer');
+             let targetScroll = 0;
+             if (mainCatElement && mainCatElement.offsetParent !== null) { // Check if visible
+                 targetScroll = mainCatElement.offsetTop + mainCatElement.offsetHeight + 10; // Scroll below main cats
+             } else if (headerElement) {
+                 targetScroll = headerElement.offsetHeight + 10; // Scroll below header
+             }
+             // Ensure we don't scroll past the current position if already below target
+             if (window.scrollY < targetScroll) {
+                window.scrollTo({ top: targetScroll, behavior: 'smooth' });
+             }
+        }
     }
 }
+// ============ END: SCROLL FIX ============
 
 async function navigateToFilter(newState) {
     history.replaceState({
@@ -179,12 +213,12 @@ window.addEventListener('popstate', async (event) => { // Guhertin bo async
             // Eger ew rûpela jêr-kategoriyê be û sernav tune be, ji nû ve bistîne
             if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
                try {
-                  const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
-                  const subCatSnap = await getDoc(subCatRef);
-                  if (subCatSnap.exists()) {
-                      const subCat = subCatSnap.data();
-                      pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
-                  }
+                   const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
+                   const subCatSnap = await getDoc(subCatRef);
+                   if (subCatSnap.exists()) {
+                       const subCat = subCatSnap.data();
+                       pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
+                   }
                } catch(e) { console.error("Could not refetch title on popstate", e) }
             }
             showPage(popState.id, pageTitle);
@@ -1263,11 +1297,11 @@ async function renderSingleCategoryRow(sectionData) {
             } else {
                  // If only main category is selected, filter on the main page
                  await navigateToFilter({
-                    category: categoryId,
-                    subcategory: 'all',
-                    subSubcategory: 'all',
-                    search: ''
-                });
+                     category: categoryId,
+                     subcategory: 'all',
+                     subSubcategory: 'all',
+                     search: ''
+                 });
             }
         };
         header.appendChild(seeAllLink);
@@ -2360,7 +2394,7 @@ function initializeAppLogic() {
             const subCatId = ids[2];
             // Only show detail page if category data is ready
             if (state.categories.length > 1) {
-               showSubcategoryDetailPage(mainCatId, subCatId, true); // True because it's from initial load/history
+              showSubcategoryDetailPage(mainCatId, subCatId, true); // True because it's from initial load/history
             }
         } else {
             handleInitialPageLoad(); // Handles main page filters and other hashes
@@ -2463,4 +2497,3 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
-
