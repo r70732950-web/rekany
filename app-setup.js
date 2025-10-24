@@ -36,6 +36,7 @@ export const announcementsCollection = collection(db, "announcements");
 // ====== UPDATED COLLECTIONS / کۆڵێکشنە نوێکراوەکان ======
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
+export const shortcutRowsCollection = collection(db, "shortcut_rows");
 // ===============================================
 
 // Translations Export
