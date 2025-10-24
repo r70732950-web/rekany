@@ -1,5 +1,5 @@
 // BEŞÊ DUYEM: app-logic.js
-// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر - وەشانی 2 + کێشەی سکڕۆڵ v2)
+// Fonksiyon û mentiqê serekî yê bernameyê (Çakkirî bo çareserkirina کێشەی دووبارەبوونەوەی سلایدەر - وەشانی 2 + کێشەی سکڕۆڵ v3)
 
 import {
     db, auth, messaging,
@@ -93,29 +93,20 @@ function closeAllPopupsUI() {
 }
 
 // ======================================
-// ===== START: GORRANKARIYA 5 / CHANGE 5 (Scroll Fix v2 - Conditional Reset) =====
+// ===== START: GORRANKARIYA 6 / CHANGE 6 (Scroll Fix v3 - Delayed Reset) =====
 // ======================================
 function openPopup(id, type = 'sheet') {
-    // saveCurrentScrollPosition(); // Keep for filter state
-
     const activePage = document.querySelector('.page-active');
-
-    // *** START: Modified Scroll Reset Logic ***
-    // Only reset scroll if opening from main page AND it's NOT one of the main navigation sheets
-    // تەنها سکڕۆڵ ڕێسێت بکە ئەگەر لە پەیجی سەرەکی بوویت و یەکێک لە شیتە سەرەکییەکانی ناوەیشن نەبوو
-    const navigationSheetIds = ['categoriesSheet', 'cartSheet', 'profileSheet', 'favoritesSheet']; // IDs of sheets opened from bottom nav
-    if (activePage && activePage.id === 'mainPage' &&
-        (type === 'modal' || (type === 'sheet' && !navigationSheetIds.includes(id))) ) {
-         activePage.scrollTop = 0; // Reset scroll for modals or non-nav sheets like product details, notifications, terms
-    }
-    // *** END: Modified Scroll Reset Logic ***
-
-
     const element = document.getElementById(id);
     if (!element) return;
 
-    closeAllPopupsUI(); // Close any other popups first / سەرەتا هەر پۆپئەپێکی تر دابخە
+    // List of sheets opened from the bottom navigation
+    const navigationSheetIds = ['categoriesSheet', 'cartSheet', 'profileSheet', 'favoritesSheet'];
 
+    // Close any other popups first
+    closeAllPopupsUI();
+
+    // Show the new popup/sheet
     if (type === 'sheet') {
         sheetOverlay.classList.add('show');
         element.classList.add('show');
@@ -130,16 +121,33 @@ function openPopup(id, type = 'sheet') {
             document.getElementById('profileAddress').value = state.userProfile.address || '';
             document.getElementById('profilePhone').value = state.userProfile.phone || '';
         }
-        // No need to reset scroll for productDetailSheet here, as it's handled above if opened from mainPage
     } else { // modal
         element.style.display = 'block';
     }
 
-    document.body.classList.add('overlay-active'); // Apply overflow hidden AFTER potentially resetting scroll
+    // Apply overlay FIRST
+    document.body.classList.add('overlay-active');
+
+    // *** START: Modified Scroll Reset Logic (v3) ***
+    // Reset scroll with a slight delay ONLY if opening from main page AND it's NOT a navigation sheet/modal
+    // سکڕۆڵ ڕێسێت بکە بە دواخستنێکی کەم تەنها ئەگەر لە پەیجی سەرەکی بوویت و یەکێک لە شیتەکانی ناوەیشن نەبوو
+    if (activePage && activePage.id === 'mainPage' &&
+        (type === 'modal' || (type === 'sheet' && !navigationSheetIds.includes(id))) ) {
+         // Use setTimeout to allow the browser to apply overflow:hidden first
+         // setTimeout بەکاربهێنە بۆ ئەوەی براوسەر سەرەتا overflow:hidden جێبەجێ بکات
+         setTimeout(() => {
+             if (activePage && activePage.classList.contains('page-active')) { // Double check if main page is still active in case of quick actions
+                 activePage.scrollTop = 0;
+             }
+         }, 10); // Use a small delay like 10ms / دواخستنێکی کەم وەک 10 میلی چرکە بەکاربهێنە
+    }
+    // *** END: Modified Scroll Reset Logic (v3) ***
+
+
     history.pushState({ type: type, id: id }, '', `#${id}`); // Push state AFTER UI changes
 }
 // ======================================
-// ===== END: GORRANKARIYA 5 / CHANGE 5 (Scroll Fix v2 - Conditional Reset) =====
+// ===== END: GORRANKARIYA 6 / CHANGE 6 (Scroll Fix v3 - Delayed Reset) =====
 // ======================================
 
 
@@ -2490,3 +2498,14 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+```eof
+
+**ڕوونکردنەوەی گۆڕانکارییەکە:**
+هەمان مەرجی پێشوومان هێشتۆتەوە (`!navigationSheetIds.includes(id)`) بۆ ئەوەی سکڕۆڵ ڕێسێت نەکرێت بۆ شیتەکانی ناوەیشن. بەڵام لەجیاتی ڕاستەوخۆ ڕێسێتکردن، `setTimeout`مان بەکارهێناوە بە دواخستنێکی زۆر کەم (10 میلی چرکە). ئەمە وا دەکات:
+
+1.  کاتێک کلیک لە کاڵایەک دەکەیت، پۆپئەپەکە دەکرێتەوە، پاشان دوای ماوەیەکی زۆر کەم سکڕۆڵی پەیجی سەرەکی دەگەڕێتەوە سەرەوە (چارەسەری کێشەی یەکەم).
+2.  کاتێک کلیک لە دوگمەی جۆرەکان دەکەیت، چونکە مەرجەکە ڕێگە نادات، هیچ سکڕۆڵ ڕێسێتکردنێک ڕوونادات و پەڕەکە یەکسەر ناچێتەوە سەرەوە (پاراستنی چارەسەری کێشەی دووەم).
+
+**تێبینی گرنگ:** وەک پێشتر باسم کرد، ناتوانم شێوازی پێشکەشکردنی کۆد بگۆڕم، بەڵام دەتوانیت زۆر بە ئاسانی کۆدەکە لەناو بلۆکەکە کۆپی بکەیت.
+
+تکایە ئەم کۆدە نوێیە تاقی بکەرەوە و ئاگادارم بکەرەوە لە ئەنجام. هیوادارم ئەمجارە هەردوو کێشەکە چارەسەر بکات.
