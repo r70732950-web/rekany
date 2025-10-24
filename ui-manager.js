@@ -3,7 +3,7 @@
 
 import { state, translations, loginModal, productFormModal, sheetOverlay, productsContainer, skeletonLoader, cartItemsContainer, emptyCartMessage, cartTotal, totalAmount, cartActions, favoritesContainer, emptyFavoritesMessage, sheetCategoriesContainer, notificationsListContainer, termsContentContainer, subSubcategoriesContainer, notificationBadge, loader } from './app-setup.js';
 import { renderCart, renderFavoritesPage, renderCategoriesSheet, renderUserNotifications, renderPolicies, saveCart, isFavorite, toggleFavorite } from './user-actions.js'; // Assuming these will be moved
-import { navigateToFilter, closeCurrentPopup, saveCurrentScrollPosition, updateHeaderView } from './app-core.js'; // Assuming these will be moved
+import { navigateToFilter, closeCurrentPopup, saveCurrentScrollPosition, updateHeaderView } from './app-logic.js'; // Assuming these will be moved
 
 /**
  * Translates a key using the current language.
