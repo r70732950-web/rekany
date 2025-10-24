@@ -18,7 +18,8 @@ import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https:/
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
 // --- Imports from Other Modules ---
-import { t, setLanguage, showPage, openPopup, closeAllPopupsUI, showNotification, updateActiveNav } from './ui-manager.js'; // Removed closeCurrentPopup from here
+// Removed closeCurrentPopup from ui-manager import as it's defined and exported here now.
+import { t, setLanguage, showPage, openPopup, closeAllPopupsUI, showNotification, updateActiveNav } from './ui-manager.js';
 import { searchProductsInFirestore, renderMainCategories, renderSubcategories, showSubcategoryDetailPage, renderProductsOnDetailPage, showProductDetails } from './data-renderer.js'; // Added renderProductsOnDetailPage, showProductDetails
 import { saveProfile, renderCart, renderFavoritesPage, renderCategoriesSheet, renderUserNotifications, renderPolicies, checkNewAnnouncements, saveTokenToFirestore, requestNotificationPermission, renderContactLinks } from './user-actions.js'; // Added renderContactLinks
 
@@ -78,7 +79,7 @@ export function updateHeaderView(pageId, title = '') {
  * Closes the currently active popup based on history state or closes all if no state.
  * Needs to be EXPORTED.
  */
-export function closeCurrentPopup() { // <-- EXPORT lê zêde kirin
+export function closeCurrentPopup() { // <-- Exported here
     if (history.state && (history.state.type === 'sheet' || history.state.type === 'modal')) {
         history.back(); // Use history back to close popups managed by history state
     } else {
@@ -608,7 +609,8 @@ async function initializeAppLogic() {
  */
 function init() {
     console.log("App initializing...");
-    renderSkeletonLoader();
+    // Render skeleton loader is handled within initializeAppLogic/applyFilterState now
+    // renderSkeletonLoader();
 
     enableIndexedDbPersistence(db)
         .then(() => {
