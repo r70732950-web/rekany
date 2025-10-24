@@ -4,7 +4,7 @@
 import { db, state, productsCollection, categoriesCollection, promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection, PRODUCTS_PER_PAGE } from './app-setup.js';
 import { collection, doc, getDoc, getDocs, query, orderBy, limit, where, startAfter } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { t, renderSkeletonLoader, createProductCardElement, createPromoCardElement, setupScrollAnimations, showProductDetailsWithData, showPage } from './ui-manager.js';
-import { navigateToFilter, updateHeaderView } from './app-core.js'; // Assuming navigation logic is in app-core
+import { navigateToFilter, updateHeaderView } from './app-logic.js'; // Assuming navigation logic is in app-core
 
 /**
  * Renders the current list of products (state.products) into the main products container.
