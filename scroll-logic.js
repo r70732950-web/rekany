@@ -1,84 +1,116 @@
-// scroll-logic.js
-// Ev pel ji bo mentiqê têkildarî scrollkirinê ye (guhertoya çareserkirî)
+// BEŞA NÛ: scroll-logic.js
+// Ev pel hemû mentiqê (logic) پەیوەست بە scroll-kirinê vedihewîne.
 
-import { state } from './app-logic.js'; // Tenê state import bike
+// Elementa ku barkirina bêtir (infinite scroll) dest pê dike
+let infiniteScrollTriggerElement;
 
 /**
- * Fonksiyonek ji bo danîna IntersectionObserver ku dema bikarhêner digihîje dawiya lîsteyê,
- * callback-a pêşkêşkirî bang dike.
- * @param {HTMLElement} triggerElement - Elementa HTML ku wekî trigger kar dike.
- * @param {function} loadMoreCallback - Fonksiyona ku dema pêdivî bi barkirina zêdetir hebe tê bang kirin.
+ * Pozîsyona scroll-a paceyê ya heyî di state-a history-yê de tomar dike.
+ * Tenê heke li ser rûpela serekî be û ne di popupekê de be tomar dike.
+ * (Ji bo 'openPopup' tê bikaranîn)
  */
-function setupScrollObserver(triggerElement, loadMoreCallback) { // Callback wek parameter hat zêdekirin
-    if (!triggerElement) {
-        console.warn("Elementa trigger ji bo scroll observer nehat dîtin.");
-        return;
+export function saveCurrentScrollPositionForPopup() {
+    const currentState = history.state;
+    // Tenê pozîsyona scroll-ê ji bo state-a filter-a rûpela serekî tomar bike
+    if (document.getElementById('mainPage').classList.contains('page-active') && currentState && !currentState.type) {
+        history.replaceState({ ...currentState, scroll: window.scrollY }, '');
     }
-    if (typeof loadMoreCallback !== 'function') {
-         console.error("loadMoreCallback ne fonksiyonek e!");
-         return;
-    }
-
-    const observerOptions = {
-        root: null,
-        threshold: 0.1
-    };
-
-    const observerCallback = (entries) => {
-        // Piştrast be ku em hîn jî çavdêriyê dikin
-        if (!entries[0].target.closest('body')) {
-             console.log("Scroll trigger êdî ne di DOMê de ye, observer tê sekinandin.");
-             observer.unobserve(entries[0].target);
-             return;
-        }
-
-        if (entries[0].isIntersecting) {
-            if (!state.isLoadingMoreProducts && !state.allProductsLoaded) {
-                console.log("Triggera scrollê hat dîtin, callbacka barkirina zêdetir tê bang kirin...");
-                loadMoreCallback(); // Banga callbacka ku ji app-logic hatiye
-            } else if (state.isLoadingMoreProducts) {
-                console.log("Triggera scrollê hat dîtin, lê barkirin jixwe di pêvajoyê de ye.");
-            } else if (state.allProductsLoaded) {
-                console.log("Triggera scrollê hat dîtin, lê hemû berhem hatine barkirin.");
-                 triggerElement.style.display = 'none'; // Veşartina triggerê dema hemû tişt hatin
-                 observer.unobserve(triggerElement); // Rawestandina çavdêriyê dema hemû tişt hatin
-            }
-        }
-        // Beşa 'else' ya berê hat rakirin ji ber ku dibe sedema veşartina triggerê zû
-    };
-
-    const observer = new IntersectionObserver(observerCallback, observerOptions);
-    observer.observe(triggerElement);
-    console.log("Scroll observer ji bo barkirina bêdawî hat saz kirin.");
 }
 
-// setupScrollAnimations wekî berê dimîne
-function setupScrollAnimations() {
-    const observerOptions = {
-        threshold: 0.1
-    };
+/**
+ * Pozîsyona scroll-a paceyê ya heyî di state-a history-yê de tomar dike.
+ * Ev yek bê şert û merc e û ji bo guhertinên filter-ê tê bikaranîn.
+ * (Ji bo 'navigateToFilter' tê bikaranîn)
+ */
+export function replaceCurrentScrollInHistory() {
+     const currentState = history.state || {};
+     history.replaceState({ ...currentState, scroll: window.scrollY }, '');
+}
 
-    const observerCallback = (entries, observer) => {
+
+/**
+ * IntersectionObserver-ê saz dike da ku kartên hilberan (product cards)
+ * dema ku têne dîtin bi anîmasyonê nîşan bide.
+ */
+export function setupScrollAnimations() {
+    const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 entry.target.classList.add('visible');
                 observer.unobserve(entry.target);
             }
         });
-    };
-
-    // Observerek nû çêbike her carê ku ev fonksiyon tê bang kirin
-    const observer = new IntersectionObserver(observerCallback, observerOptions);
-
-    const cardsToAnimate = document.querySelectorAll('.product-card-reveal:not(.visible)');
-    cardsToAnimate.forEach(card => {
-        observer.observe(card);
+    }, {
+        threshold: 0.1
     });
 
-    if(cardsToAnimate.length > 0) {
-        // Ji bo debugê: console.log(`Scroll animation observer ji bo ${cardsToAnimate.length} kartan hat saz kirin.`);
+    // Piştî ku renderProducts() bang dike, dibe ku ev hewce bike ku ji nû ve were bang kirin
+    // an jî li ser elementên nû were sepandin.
+    document.querySelectorAll('.product-card-reveal').forEach(card => {
+        observer.observe(card);
+    });
+}
+
+/**
+ * Çavdêrê (observer) scroll-a bêsînor (infinite scroll) saz dike.
+ * @param {string} triggerElementId - ID-a elementa ku barkirinê dest pê dike.
+ * @param {Function} callback - Fonksiyona ku dema element hate dîtin tê bang kirin.
+ */
+export function initializeInfiniteScroll(triggerElementId, callback) {
+    infiniteScrollTriggerElement = document.getElementById(triggerElementId);
+    if (!infiniteScrollTriggerElement) {
+        console.warn(`Elementa destpêker a scroll-a bêsînor nehate dîtin: #${triggerElementId}`);
+        return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+            callback();
+        }
+    }, {
+        root: null, // Li gorî viewport-a belgeyê
+        threshold: 0.1 // Dema 10% ji elementê xuya bû dest pê bike
+    });
+
+    observer.observe(infiniteScrollTriggerElement);
+}
+
+/**
+ * Elementa destpêker a scroll-a bêsînor li gorî rewşa barkirinê nîşan dide an vedişêre.
+ * @param {boolean} allProductsLoaded - Gelo hemû hilber hatine barkirin an na.
+ */
+export function updateInfiniteScrollTrigger(allProductsLoaded) {
+    if (infiniteScrollTriggerElement) {
+        infiniteScrollTriggerElement.style.display = allProductsLoaded ? 'none' : 'block';
     }
 }
 
+/**
+ * Paceyê (window) dişîne jor (scroll to top) heke ne rûpela serekî be.
+ * @param {string} pageId - ID-a rûpela ku tê nîşandan.
+ */
+export function resetScrollOnPageChange(pageId) {
+    if (pageId !== 'mainPage') {
+        window.scrollTo(0, 0);
+    }
+}
 
-export { setupScrollObserver, setupScrollAnimations };
+/**
+ * Elementek taybet a sheet-ê (mîna hûrguliyên hilberê) dişîne jor.
+ * @param {HTMLElement} sheetContentElement - Konteynara naveroka sheet-ê.
+ */
+export function resetSheetScroll(sheetContentElement) {
+    if (sheetContentElement) {
+        sheetContentElement.scrollTop = 0;
+    }
+}
+
+/**
+ * Pozîsyona scroll-a paceyê vedigerîne, bi gelemperî ji state-a history-yê.
+ * @param {number} scrollValue - Nirxa pozîsyona Y-scroll-ê ya ji bo vegerandinê.
+ */
+export function restoreScrollPosition(scrollValue) {
+    if (typeof scrollValue === 'number') {
+        setTimeout(() => window.scrollTo(0, scrollValue), 50);
+    }
+}

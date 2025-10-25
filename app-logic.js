@@ -1,5 +1,6 @@
 // BEŞÊ DUYEM: app-logic.js
-// Fonksiyon û mentiqê serekî yê bernameyê (Guhertoya nûvekirî piştî veqetandina scroll-logic.js)
+// Fonksiyon û mentiqê serekî yê bernameyê
+// (Hate guherandin ji bo veqetandina mentiqê scroll-ê bo scroll-logic.js)
 
 import {
     db, auth, messaging,
@@ -18,15 +19,24 @@ import {
     termsAndPoliciesBtn, termsSheet, termsContentContainer, subSubcategoriesContainer,
 } from './app-setup.js';
 
+// === START: SCROLL LOGIC IMPORT ===
+// Mentiqê scroll-ê ji pelê nû tê import kirin
+import {
+    saveCurrentScrollPositionForPopup,
+    replaceCurrentScrollInHistory,
+    setupScrollAnimations,
+    initializeInfiniteScroll,
+    updateInfiniteScrollTrigger,
+    resetScrollOnPageChange,
+    resetSheetScroll,
+    restoreScrollPosition
+} from './scroll-logic.js';
+// === END: SCROLL LOGIC IMPORT ===
+
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, addDoc, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
-// === START: IMPORT JI SCROLL-LOGIC.JS ===
-import { setupScrollObserver, setupScrollAnimations } from './scroll-logic.js';
-// === END: IMPORT JI SCROLL-LOGIC.JS ===
-
-// --- Fonksiyonên din ên app-logic.js (wekî berê) ---
 
 function debounce(func, delay = 500) {
     let timeout;
@@ -38,13 +48,7 @@ function debounce(func, delay = 500) {
     };
 }
 
-function saveCurrentScrollPosition() {
-    const currentState = history.state;
-    // Tenê pozîsyona scrollê ji bo rewşa parzûna rûpela sereke tomar bike
-    if (document.getElementById('mainPage').classList.contains('page-active') && currentState && !currentState.type) {
-        history.replaceState({ ...currentState, scroll: window.scrollY }, '');
-    }
-}
+// Fonksiyona `saveCurrentScrollPosition` HATE RAKIRIN (hate veguhestin bo scroll-logic.js)
 
 function updateHeaderView(pageId, title = '') {
     const mainHeader = document.querySelector('.main-header-content');
@@ -68,9 +72,10 @@ function showPage(pageId, pageTitle = '') {
         page.classList.toggle('page-hidden', !isActive);
     });
 
-    if (pageId !== 'mainPage') {
-        window.scrollTo(0, 0);
-    }
+    // === START: SCROLL LOGIC GUHERTIN ===
+    // Li şûna `window.scrollTo(0, 0)` fonksiyona nû tê bikaranîn
+    resetScrollOnPageChange(pageId);
+    // === END: SCROLL LOGIC GUHERTIN ===
 
     // Nûvekirina headerê li gorî rûpelê
     if (pageId === 'settingsPage') {
@@ -83,9 +88,10 @@ function showPage(pageId, pageTitle = '') {
 
     const activeBtnId = pageId === 'mainPage' ? 'homeBtn' : (pageId === 'settingsPage' ? 'settingsBtn' : null);
     if (activeBtnId) {
-       updateActiveNav(activeBtnId);
+        updateActiveNav(activeBtnId);
     }
 }
+
 
 function closeAllPopupsUI() {
     document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
@@ -95,7 +101,11 @@ function closeAllPopupsUI() {
 }
 
 function openPopup(id, type = 'sheet') {
-    saveCurrentScrollPosition();
+    // === START: SCROLL LOGIC GUHERTIN ===
+    // Li şûna `saveCurrentScrollPosition()` fonksiyona nû tê bikaranîn
+    saveCurrentScrollPositionForPopup();
+    // === END: SCROLL LOGIC GUHERTIN ===
+
     const element = document.getElementById(id);
     if (!element) return;
 
@@ -142,21 +152,21 @@ async function applyFilterState(filterState, fromPopState = false) {
 
     await searchProductsInFirestore(state.currentSearch, true);
 
-    if (fromPopState && typeof filterState.scroll === 'number') {
-        setTimeout(() => window.scrollTo(0, filterState.scroll), 50);
+    if (fromPopState) {
+        // === START: SCROLL LOGIC GUHERTIN ===
+        // Li şûna `setTimeout` fonksiyona nû tê bikaranîn
+        restoreScrollPosition(filterState.scroll);
+        // === END: SCROLL LOGIC GUHERTIN ===
     } else if (!fromPopState) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
 async function navigateToFilter(newState) {
-    history.replaceState({
-        category: state.currentCategory,
-        subcategory: state.currentSubcategory,
-        subSubcategory: state.currentSubSubcategory,
-        search: state.currentSearch,
-        scroll: window.scrollY
-    }, '');
+    // === START: SCROLL LOGIC GUHERTIN ===
+    // Li şûna `history.replaceState` ya tevlihev, fonksiyona nû tê bikaranîn
+    replaceCurrentScrollInHistory();
+    // === END: SCROLL LOGIC GUHERTIN ===
 
     const finalState = { ...history.state, ...newState, scroll: 0 };
 
@@ -181,14 +191,14 @@ window.addEventListener('popstate', async (event) => { // Guhertin bo async
             let pageTitle = popState.title;
             // Eger ew rûpela jêr-kategoriyê be û sernav tune be, ji nû ve bistîne
             if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
-               try {
-                 const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
-                 const subCatSnap = await getDoc(subCatRef);
-                 if (subCatSnap.exists()) {
-                     const subCat = subCatSnap.data();
-                     pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
-                 }
-               } catch(e) { console.error("Could not refetch title on popstate", e) }
+                try {
+                    const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
+                    const subCatSnap = await getDoc(subCatRef);
+                    if (subCatSnap.exists()) {
+                        const subCat = subCatSnap.data();
+                        pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
+                    }
+                } catch(e) { console.error("Could not refetch title on popstate", e) }
             }
             showPage(popState.id, pageTitle);
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
@@ -216,8 +226,8 @@ function handleInitialPageLoad() {
         const subCatId = ids[2];
         // The actual rendering will be triggered by onSnapshot in initializeAppLogic
     } else if (pageId === 'settingsPage') {
-         history.replaceState({ type: 'page', id: pageId, title: t('settings_title') }, '', `#${hash}`);
-         showPage(pageId, t('settings_title'));
+        history.replaceState({ type: 'page', id: pageId, title: t('settings_title') }, '', `#${hash}`);
+        showPage(pageId, t('settings_title'));
     } else {
         showPage('mainPage');
         const initialState = {
@@ -245,6 +255,7 @@ function handleInitialPageLoad() {
         setTimeout(() => showProductDetails(productId), 500);
     }
 }
+
 
 function t(key, replacements = {}) {
     let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
@@ -530,7 +541,7 @@ function renderCategoriesSheet() {
 }
 
 async function renderSubSubcategories(mainCatId, subCatId) {
-    // Ev fonksiyon êdî li rûpela sereke ne pêwîst e.
+    // This function is no longer needed on the main page.
     subSubcategoriesContainer.innerHTML = '';
 }
 
@@ -794,7 +805,7 @@ async function renderRelatedProducts(currentProduct) {
         q = query(
             productsCollection,
             where('subSubcategoryId', '==', currentProduct.subSubcategoryId),
-            where('__name__', '!=', currentProduct.id), // Ensure the current product itself isn't included
+            where('__name__', '!=', currentProduct.id),
             limit(6)
         );
     } else if (currentProduct.subcategoryId) {
@@ -804,7 +815,7 @@ async function renderRelatedProducts(currentProduct) {
             where('__name__', '!=', currentProduct.id),
             limit(6)
         );
-    } else { // Fallback to main category if sub/subsub not available
+    } else {
         q = query(
             productsCollection,
             where('categoryId', '==', currentProduct.categoryId),
@@ -817,7 +828,7 @@ async function renderRelatedProducts(currentProduct) {
         const snapshot = await getDocs(q);
         if (snapshot.empty) {
             console.log("هیچ کاڵایەکی هاوشێوە نەدۆزرایەوە.");
-            return; // No related products, keep section hidden
+            return;
         }
 
         snapshot.forEach(doc => {
@@ -826,7 +837,7 @@ async function renderRelatedProducts(currentProduct) {
             container.appendChild(card);
         });
 
-        section.style.display = 'block'; // Show section only if products are found
+        section.style.display = 'block';
 
     } catch (error) {
         console.error("هەڵە لە هێنانی کاڵا هاوشێوەکان:", error);
@@ -834,16 +845,15 @@ async function renderRelatedProducts(currentProduct) {
 }
 
 function showProductDetailsWithData(product) {
-    const sheetContent = document.querySelector('#productDetailSheet .sheet-content');
-    if (sheetContent) {
-        sheetContent.scrollTop = 0; // Scroll to top when opening
-    }
+    // === START: SCROLL LOGIC GUHERTIN ===
+    // Li şûna `sheetContent.scrollTop = 0` fonksiyona nû tê bikaranîn
+    resetSheetScroll(document.querySelector('#productDetailSheet .sheet-content'));
+    // === END: SCROLL LOGIC GUHERTIN ===
 
     const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
     const descriptionText = (product.description && product.description[state.currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
     const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
 
-    // Setup image slider
     const imageContainer = document.getElementById('sheetImageContainer');
     const thumbnailContainer = document.getElementById('sheetThumbnailContainer');
     imageContainer.innerHTML = '';
@@ -874,7 +884,7 @@ function showProductDetailsWithData(product) {
     const nextBtn = document.getElementById('sheetNextBtn');
 
     function updateSlider(index) {
-        if (!images[index] || !thumbnails[index]) return; // Guard against invalid index
+        if (!images[index] || !thumbnails[index]) return;
         images.forEach(img => img.classList.remove('active'));
         thumbnails.forEach(thumb => thumb.classList.remove('active'));
         images[index].classList.add('active');
@@ -894,11 +904,9 @@ function showProductDetailsWithData(product) {
     nextBtn.onclick = () => updateSlider((currentIndex + 1) % images.length);
     thumbnails.forEach(thumb => thumb.onclick = () => updateSlider(parseInt(thumb.dataset.index)));
 
-    // Populate other details
     document.getElementById('sheetProductName').textContent = nameInCurrentLang;
     document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText);
 
-    // Display price (with discount if applicable)
     const priceContainer = document.getElementById('sheetProductPrice');
     if (product.originalPrice && product.originalPrice > product.price) {
         priceContainer.innerHTML = `<span style="color: var(--accent-color);">${product.price.toLocaleString()} د.ع</span> <del style="color: var(--dark-gray); font-size: 16px; margin-right: 10px;">${product.originalPrice.toLocaleString()} د.ع</del>`;
@@ -906,18 +914,15 @@ function showProductDetailsWithData(product) {
         priceContainer.innerHTML = `<span>${product.price.toLocaleString()} د.ع</span>`;
     }
 
-    // Setup Add to Cart button
     const addToCartButton = document.getElementById('sheetAddToCartBtn');
     addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
     addToCartButton.onclick = () => {
         addToCart(product.id);
-        closeCurrentPopup(); // Close sheet after adding
+        closeCurrentPopup();
     };
 
-    // Render related products
     renderRelatedProducts(product);
 
-    // Open the sheet
     openPopup('productDetailSheet');
 }
 
@@ -976,6 +981,7 @@ function createPromoCardElement(cardData, sliderState) {
     return cardElement;
 }
 
+
 function createProductCardElement(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
@@ -1018,11 +1024,11 @@ function createProductCardElement(product) {
             <img src="${mainImage}" alt="${nameInCurrentLang}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
             ${discountBadgeHTML}
              <button class="${favoriteBtnClass}" aria-label="Add to favorites">
-                 <i class="${heartIconClass} fa-heart"></i>
-             </button>
-             <button class="share-btn-card" aria-label="Share product">
-                 <i class="fas fa-share-alt"></i>
-             </button>
+                <i class="${heartIconClass} fa-heart"></i>
+            </button>
+            <button class="share-btn-card" aria-label="Share product">
+                <i class="fas fa-share-alt"></i>
+            </button>
         </div>
         <div class="product-info">
             <div class="product-name">${nameInCurrentLang}</div>
@@ -1051,23 +1057,24 @@ function createProductCardElement(product) {
             if (navigator.share) {
                 await navigator.share(shareData);
             } else {
-                 // Fallback for browsers that don't support navigator.share
-                 const textArea = document.createElement('textarea');
-                 textArea.value = productUrl;
-                 document.body.appendChild(textArea);
-                 textArea.select();
-                 try {
-                     document.execCommand('copy');
-                     showNotification('لينكى کاڵا کۆپى کرا!', 'success');
-                 } catch (err) {
-                     showNotification('کۆپیکردن سەرکەوتوو نەبوو!', 'error');
-                 }
-                 document.body.removeChild(textArea);
+                // Fallback for browsers that don't support navigator.share
+                 // Use the old execCommand method for broader compatibility
+                const textArea = document.createElement('textarea');
+                textArea.value = productUrl;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showNotification('لينكى کاڵا کۆپى کرا!', 'success');
+                } catch (err) {
+                    showNotification('کۆپیکردن سەرکەوتوو نەبوو!', 'error');
+                }
+                document.body.removeChild(textArea);
             }
         } catch (err) {
             console.error('Share error:', err);
              if (err.name !== 'AbortError') { // Don't show error if user cancelled share
-                 showNotification(t('share_error'), 'error');
+                showNotification(t('share_error'), 'error');
              }
         }
     });
@@ -1107,12 +1114,7 @@ function createProductCardElement(product) {
     return productCard;
 }
 
-// === START: FONKSIYONÊN SCROLLÊ JI SCROLL-LOGIC.JS TÊN BIKARANÎN ===
-// Fonksiyona `setupScrollAnimations` êdî li vir nayê pênase kirin
-
-// Fonksiyona `setupScrollObserver` êdî li vir nayê pênase kirin
-// === END: FONKSIYONÊN SCROLLÊ JI SCROLL-LOGIC.JS TÊN BIKARANÎN ===
-
+// Fonksiyona `setupScrollAnimations` HATE RAKIRIN (hate veguhestin bo scroll-logic.js)
 
 function renderSkeletonLoader(container = skeletonLoader, count = 8) {
     container.innerHTML = '';
@@ -1129,31 +1131,27 @@ function renderSkeletonLoader(container = skeletonLoader, count = 8) {
     }
     container.style.display = 'grid';
     if (container === skeletonLoader) {
-      productsContainer.style.display = 'none';
-      loader.style.display = 'none';
+        productsContainer.style.display = 'none';
+        loader.style.display = 'none';
     }
 }
 
 function renderProducts() {
-    // productsContainer.innerHTML = ''; // Ev rêz êdî ne pêwîst e ji ber ku em append dikin an jî di searchê de ji nû ve dadigirin
+    productsContainer.innerHTML = '';
     if (!state.products || state.products.length === 0) {
         return;
     }
 
-    // Tenê berhemên nû lê zêde bike an jî ger lêgerîneke nû be ji nû ve çêbike
-    const existingIds = new Set(Array.from(productsContainer.children).map(c => c.dataset.productId));
-    const newProductsToRender = state.products.filter(item => !existingIds.has(item.id));
-
-    newProductsToRender.forEach(item => {
+    state.products.forEach(item => {
         let element = createProductCardElement(item);
-        element.classList.add('product-card-reveal'); // Ji bo animasyonê
+        element.classList.add('product-card-reveal');
         productsContainer.appendChild(element);
     });
 
-    // === START: BANGA SETUP SCROLL ANIMATIONS ===
-    // Piştî renderkirina kartan, animasyonan saz bike
+    // === START: SCROLL LOGIC GUHERTIN ===
+    // Anîmasyonên scroll-ê piştî renderkirina hilberan saz dike
     setupScrollAnimations();
-    // === END: BANGA SETUP SCROLL ANIMATIONS ===
+    // === END: SCROLL LOGIC GUHERTIN ===
 }
 
 async function renderSingleShortcutRow(rowId, sectionNameObj) {
@@ -1261,16 +1259,16 @@ async function renderSingleCategoryRow(sectionData) {
         seeAllLink.onclick = async () => {
             // Navigate based on the most specific category ID
             if(subcategoryId) {
-                 // If subcategory or subsubcategory is selected, go to the subcategory detail page
-                 showSubcategoryDetailPage(categoryId, subcategoryId);
+                // If subcategory or subsubcategory is selected, go to the subcategory detail page
+                showSubcategoryDetailPage(categoryId, subcategoryId);
             } else {
                  // If only main category is selected, filter on the main page
-                 await navigateToFilter({
-                     category: categoryId,
-                     subcategory: 'all',
-                     subSubcategory: 'all',
-                     search: ''
-                 });
+                await navigateToFilter({
+                    category: categoryId,
+                    subcategory: 'all',
+                    subSubcategory: 'all',
+                    search: ''
+                });
             }
         };
         header.appendChild(seeAllLink);
@@ -1434,6 +1432,9 @@ async function renderAllProductsSection() {
     }
 }
 
+// ======================================
+// ===== START: GORRANKARIYA 1 / CHANGE 1 (Slider Fix v2) =====
+// ======================================
 // Function updated to accept layoutId and pass it to renderPromoCardsSectionForHome
 async function renderHomePageContent() {
     if (state.isRenderingHomePage) return;
@@ -1510,7 +1511,14 @@ async function renderHomePageContent() {
         state.isRenderingHomePage = false;
     }
 }
+// ======================================
+// ===== END: GORRANKARIYA 1 / CHANGE 1 (Slider Fix v2) =====
+// ======================================
 
+
+// ======================================
+// ===== START: GORRANKARIYA 2 / CHANGE 2 (Slider Fix v2) =====
+// ======================================
 // Function updated to accept layoutId, create unique ID, and manage its interval in state.sliderIntervals
 async function renderPromoCardsSectionForHome(groupId, layoutId) { // ZÊDEKIRÎ: layoutId
     const promoGrid = document.createElement('div');
@@ -1571,16 +1579,25 @@ async function renderPromoCardsSectionForHome(groupId, layoutId) { // ZÊDEKIRÎ
     }
     return null;
 }
+// ======================================
+// ===== END: GORRANKARIYA 2 / CHANGE 2 (Slider Fix v2) =====
+// ======================================
+
 
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
-    const scrollTrigger = document.getElementById('scroll-loader-trigger');
+    // === START: SCROLL LOGIC GUHERTIN ===
+    // Elementa trigger êdî di `scroll-logic.js` de tê birêvebirin
+    // const scrollTrigger = document.getElementById('scroll-loader-trigger'); // RAKIRIN
+    // === END: SCROLL LOGIC GUHERTIN ===
+
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
 
     if (shouldShowHomeSections) {
         productsContainer.style.display = 'none';
         skeletonLoader.style.display = 'none';
-        scrollTrigger.style.display = 'none';
+        // scrollTrigger.style.display = 'none'; // RAKIRIN
+        updateInfiniteScrollTrigger(true); // VEGUHERTIN (true = hemû barkirî/veşartî)
         homeSectionsContainer.style.display = 'block';
 
         if (homeSectionsContainer.innerHTML.trim() === '') {
@@ -1591,6 +1608,9 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         return;
     } else {
         homeSectionsContainer.style.display = 'none';
+        // ======================================
+        // ===== START: GORRANKARIYA 3 / CHANGE 3 (Slider Fix v2) =====
+        // ======================================
         // Stop all promo rotations when navigating away from the full home view
         // CHAKKIRÎ: Use state.sliderIntervals for cleanup
         Object.keys(state.sliderIntervals || {}).forEach(layoutId => {
@@ -1599,6 +1619,9 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
             }
         });
         state.sliderIntervals = {}; // Reset the intervals object
+        // ======================================
+        // ===== END: GORRANKARIYA 3 / CHANGE 3 (Slider Fix v2) =====
+        // ======================================
     }
 
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
@@ -1609,11 +1632,11 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
 
         skeletonLoader.style.display = 'none';
         loader.style.display = 'none';
-        productsContainer.innerHTML = ''; // Paqijkirina konteynerê berî renderkirina ji cache
         productsContainer.style.display = 'grid';
 
         renderProducts();
-        scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
+        // scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block'; // RAKIRIN
+        updateInfiniteScrollTrigger(state.allProductsLoaded); // VEGUHERTIN
         return;
     }
 
@@ -1623,7 +1646,6 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         state.allProductsLoaded = false;
         state.lastVisibleProductDoc = null;
         state.products = [];
-        productsContainer.innerHTML = ''; // Paqijkirina konteynerê ji bo lêgerîna nû
         renderSkeletonLoader();
     }
 
@@ -1668,15 +1690,20 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
         const productSnapshot = await getDocs(productsQuery);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Tenê berhemên nû lê zêde bike li arraya state.products
-        state.products = isNewSearch ? newProducts : [...state.products, ...newProducts];
+        if (isNewSearch) {
+            state.products = newProducts;
+        } else {
+            state.products = [...state.products, ...newProducts];
+        }
 
         if (productSnapshot.docs.length < PRODUCTS_PER_PAGE) {
             state.allProductsLoaded = true;
-            scrollTrigger.style.display = 'none';
+            // scrollTrigger.style.display = 'none'; // RAKIRIN
+            updateInfiniteScrollTrigger(true); // VEGUHERTIN
         } else {
             state.allProductsLoaded = false;
-            scrollTrigger.style.display = 'block';
+            // scrollTrigger.style.display = 'block'; // RAKIRIN
+            updateInfiniteScrollTrigger(false); // VEGUHERTIN
         }
 
         state.lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
@@ -1689,10 +1716,7 @@ async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
             };
         }
 
-        // === START: BANGA RENDERPRODUCTS JI BO NÎŞANDANA BERHEMAN ===
-        // Piştî anîna daneyan, berheman render bike (ev ê animasyonan jî saz bike)
         renderProducts();
-        // === END: BANGA RENDERPRODUCTS JI BO NÎŞANDANA BERHEMAN ===
 
         if (state.products.length === 0 && isNewSearch) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
@@ -2060,6 +2084,18 @@ function setupGpsButton() {
     }
 }
 
+// Fonksiyona `setupScrollObserver` HATE RAKIRIN (hate veguhestin bo scroll-logic.js)
+
+function updateCategoryDependentUI() {
+    if (state.categories.length === 0) return; // Wait until categories are loaded
+    populateCategoryDropdown();
+    renderMainCategories();
+    // Update admin dropdowns only if admin logic is loaded and user is admin
+    if (sessionStorage.getItem('isAdmin') === 'true' && window.AdminLogic) {
+        window.AdminLogic.updateAdminCategoryDropdowns();
+    }
+}
+
 function setupEventListeners() {
     homeBtn.onclick = async () => {
         if (!document.getElementById('mainPage').classList.contains('page-active')) {
@@ -2244,9 +2280,9 @@ onAuthStateChanged(auth, async (user) => {
         if (window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
              // Ensure admin logic is loaded before initializing
              if (document.readyState === 'complete') {
-                   window.AdminLogic.initialize();
+                 window.AdminLogic.initialize();
              } else {
-                   window.addEventListener('load', window.AdminLogic.initialize);
+                 window.addEventListener('load', window.AdminLogic.initialize);
              }
         } else {
              console.warn("AdminLogic not found or initialize not a function.");
@@ -2316,7 +2352,7 @@ function initializeAppLogic() {
             const subCatId = ids[2];
             // Only show detail page if category data is ready
             if (state.categories.length > 1) {
-              showSubcategoryDetailPage(mainCatId, subCatId, true); // True because it's from initial load/history
+                showSubcategoryDetailPage(mainCatId, subCatId, true); // True because it's from initial load/history
             }
         } else {
             handleInitialPageLoad(); // Handles main page filters and other hashes
@@ -2329,12 +2365,16 @@ function initializeAppLogic() {
     // Setup other parts of the app
     updateCartCount();
     setupEventListeners();
-
-    // === START: BANGA SETUP SCROLL OBSERVER ===
-    // Li vir observerê scrollê ji bo barkirina bêdawî saz bike
-    const scrollTrigger = document.getElementById('scroll-loader-trigger');
-    setupScrollObserver(scrollTrigger);
-    // === END: BANGA SETUP SCROLL OBSERVER ===
+    
+    // === START: SCROLL LOGIC GUHERTIN ===
+    // Li şûna `setupScrollObserver()` fonksiyona nû tê bikaranîn
+    initializeInfiniteScroll('scroll-loader-trigger', () => {
+        // Ev callback e ji observer-a kevn
+        if (!state.isLoadingMoreProducts && !state.allProductsLoaded) {
+            searchProductsInFirestore(state.currentSearch, false); // Rûpela din bîne
+        }
+    });
+    // === END: SCROLL LOGIC GUHERTIN ===
 
     setLanguage(state.currentLanguage); // Apply language initially
     renderContactLinks(); // Fetch and display contact links
@@ -2425,8 +2465,3 @@ if ('serviceWorker' in navigator) {
         window.location.reload();
     });
 }
-
-// === START: EXPORT JI BO SCROLL-LOGIC.JS ===
-// Divê state û searchProductsInFirestore werin export kirin
-export { state, searchProductsInFirestore };
-// === END: EXPORT JI BO SCROLL-LOGIC.JS ===
