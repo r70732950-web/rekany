@@ -30,12 +30,11 @@ export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 
 // --- START: Expose necessary Firebase functions and services globally for admin.js ---
-// دروستکردنی ئۆبجێکتی گلۆباڵ
 window.globalAdminTools = {
     // Firebase Services
     db: db,
     auth: auth,
-    // Firestore Functions (needed by admin.js) - فانکشنەکانی فایەربەیس کە admin.js پێویستی پێیانە
+    // Firestore Functions (needed by admin.js)
     collection: collection,
     doc: doc,
     getDoc: getDoc,
@@ -47,33 +46,34 @@ window.globalAdminTools = {
     orderBy: orderBy,
     onSnapshot: onSnapshot,
     getDocs: getDocs,
-    signOut: signOut, // Assuming admin might need to sign out via global tools too
+    signOut: signOut,
     where: where,
     limit: limit,
     startAfter: startAfter,
-    // Placeholder functions to be filled by other modules - فانکشنی کاتی کە دواتر لە فایلەکانی تر پڕ دەکرێنەوە
+    // Placeholder functions to be filled by other modules
     showNotification: () => console.warn('showNotification not yet assigned to globalAdminTools'),
-    t: (key) => key, // Basic translation fallback - وەرگێڕانی سەرەتایی
+    t: (key) => key,
     openPopup: () => console.warn('openPopup not yet assigned to globalAdminTools'),
     closeCurrentPopup: () => console.warn('closeCurrentPopup not yet assigned to globalAdminTools'),
     searchProductsInFirestore: () => console.warn('searchProductsInFirestore not yet assigned to globalAdminTools'),
-    setEditingProductId: (id) => { state.editingProductId = id; }, // Manage editing state here - لێرە ستەیتی دەستکاریکردن بەڕێوەببە
+    setEditingProductId: (id) => { state.editingProductId = id; },
     getEditingProductId: () => state.editingProductId,
-    getCategories: () => state.categories, // Provide access to categories - ڕێگەدان بە گەیشتن بە جۆرەکان
+    getCategories: () => state.categories,
     getCurrentLanguage: () => state.currentLanguage,
-    clearProductCache: () => { state.productCache = {}; state.products = []; state.allProductsLoaded = false; state.lastVisibleProductDoc = null; console.log("Product cache cleared."); } // Fonksiyona paqijkirina cache
+    clearProductCache: () => { state.productCache = {}; state.products = []; state.allProductsLoaded = false; state.lastVisibleProductDoc = null; console.log("Product cache cleared."); }
 };
 // --- END: Global Exposure ---
 
 
-// Firestore Collections Exports (still useful for app-core/app-features) - هەناردەکردنی کۆلێکشنەکان (هێشتا بۆ فایلەکانی تر سوودیان هەیە)
+// Firestore Collections Exports (still useful for app-core/app-features)
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
-// We no longer need to export shortcutRowsCollection here if admin.js uses the global `collection` function
-// export const shortcutRowsCollection = collection(db, "shortcut_rows"); // Can be removed if not needed elsewhere
+// ====== ADDED BACK / گەڕێندرایەوە ======
+export const shortcutRowsCollection = collection(db, "shortcut_rows"); // Exported again for app-features.js - جارێکی تر هەناردەکرێتەوە بۆ app-features.js
+// ===================================
 
 // Translations Export
 export const translations = {
@@ -160,39 +160,39 @@ export const translations = {
         related_products_title: "کاڵای هاوشێوە",
         share_text: "سەیری ئەم کاڵایە بکە",
         share_error: "هاوبەشیپێکردن سەرکەوتوو نەبوو",
-        link_copied: "لینک کۆپی کرا!", // Translate Link copied!
-        get_location_gps: "وەرگرتنی ناونیشانم بە GPS", // Translate Get my location with GPS
-        gps_not_supported: "GPS لەم وێبگەڕەدا پشتگیری نەکراوە.", // Translate GPS not supported in this browser.
-        gps_loading: "...وەرگرتنی ناونیشان", // Translate ...Getting location
-        address_retrieved: "ناونیشان وەرگیرا.", // Translate Address retrieved.
-        address_not_found: "نەتوانرا ناونیشان بدۆزرێتەوە.", // Translate Could not find address.
-        error_getting_address: "هەڵە لە وەرگرتنی ناونیشان.", // Translate Error getting address.
-        gps_permission_denied: "ڕێگەپێدانی GPS ڕەتکرایەوە.", // Translate GPS permission denied.
-        gps_position_unavailable: "زانیاری شوێن بەردەست نییە.", // Translate Location information is unavailable.
-        gps_timeout: "کاتی وەرگرتنی شوێن بەسەرچوو.", // Translate Location request timed out.
-        gps_error_unknown: "هەڵەیەکی نەزانراو لە GPS ڕوویدا.", // Translate Unknown GPS error occurred.
-        increase_quantity: "زیادکردنی بڕ", // Translate Increase quantity
-        decrease_quantity: "کەمکردنی بڕ", // Translate Decrease quantity
-        remove_item: "سڕینەوەی دانە", // Translate Remove item
-        subtotal: "کۆی بچووک", // Translate Subtotal
-        toggle_favorite: "گۆڕینی دڵخواز", // Translate Toggle favorite
-        add_to_favorites: "زیادکردن بۆ دڵخوازەکان", // Translate Add to favorites
-        remove_from_favorites: "سڕینەوە لە دڵخوازەکان", // Translate Remove from favorites
-        edit_product: "دەستکاریکردنی کاڵا", // Translate Edit product
-        delete_product: "سڕینەوەی کاڵا", // Translate Delete product
-        product_no_name: "ناوی کاڵا نییە", // Translate Product has no name
-        no_products_found: "هیچ کاڵایەک نەدۆزرایەوە.", // Translate No products found.
-        notification_permission_granted: "ڕێگەپێدانی ئاگەدارکردنەوە درا.", // Translate Notification permission granted.
-        notification_permission_denied: "ڕێگەپێدانی ئاگەدارکردنەوە ڕەتکرایەوە.", // Translate Notification permission denied.
-        no_send_methods: "هیچ شێوازێکی ناردن دیاری نەکراوە.", // Translate No sending methods defined.
-        error_loading_send_methods: "هەڵە لە بارکردنی شێوازەکانی ناردن.", // Translate Error loading sending methods.
-        no_contact_links: "هیچ لینکی پەیوەندی زیاد نەکراوە.", // Translate No contact links added.
-        category_added_success: "جۆری سەرەکی زیادکرا.", // Translate Main category added successfully.
-        subcategory_added_success: "جۆری لاوەکی زیادکرا.", // Translate Subcategory added successfully.
-        subsubcategory_added_success: "جۆری لاوەکیی لاوەکی زیادکرا.", // Translate Sub-subcategory added successfully.
-        category_updated_success: "گۆڕانکارییەکان پاشەکەوت کران.", // Translate Changes saved.
-        category_delete_confirm: "دڵنیایت دەتەوێت جۆری '{categoryName}' بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە.", // Translate Are you sure you want to delete the category '{categoryName}'?\nWarning: This will also delete all its subcategories.
-        category_deleted_success: "جۆرەکە سڕدرایەوە.", // Translate Category deleted.
+        link_copied: "لینک کۆپی کرا!",
+        get_location_gps: "وەرگرتنی ناونیشانم بە GPS",
+        gps_not_supported: "GPS لەم وێبگەڕەدا پشتگیری نەکراوە.",
+        gps_loading: "...وەرگرتنی ناونیشان",
+        address_retrieved: "ناونیشان وەرگیرا.",
+        address_not_found: "نەتوانرا ناونیشان بدۆزرێتەوە.",
+        error_getting_address: "هەڵە لە وەرگرتنی ناونیشان.",
+        gps_permission_denied: "ڕێگەپێدانی GPS ڕەتکرایەوە.",
+        gps_position_unavailable: "زانیاری شوێن بەردەست نییە.",
+        gps_timeout: "کاتی وەرگرتنی شوێن بەسەرچوو.",
+        gps_error_unknown: "هەڵەیەکی نەزانراو لە GPS ڕوویدا.",
+        increase_quantity: "زیادکردنی بڕ",
+        decrease_quantity: "کەمکردنی بڕ",
+        remove_item: "سڕینەوەی دانە",
+        subtotal: "کۆی بچووک",
+        toggle_favorite: "گۆڕینی دڵخواز",
+        add_to_favorites: "زیادکردن بۆ دڵخوازەکان",
+        remove_from_favorites: "سڕینەوە لە دڵخوازەکان",
+        edit_product: "دەستکاریکردنی کاڵا",
+        delete_product: "سڕینەوەی کاڵا",
+        product_no_name: "ناوی کاڵا نییە",
+        no_products_found: "هیچ کاڵایەک نەدۆزرایەوە.",
+        notification_permission_granted: "ڕێگەپێدانی ئاگەدارکردنەوە درا.",
+        notification_permission_denied: "ڕێگەپێدانی ئاگەدارکردنەوە ڕەتکرایەوە.",
+        no_send_methods: "هیچ شێوازێکی ناردن دیاری نەکراوە.",
+        error_loading_send_methods: "هەڵە لە بارکردنی شێوازەکانی ناردن.",
+        no_contact_links: "هیچ لینکی پەیوەندی زیاد نەکراوە.",
+        category_added_success: "جۆری سەرەکی زیادکرا.",
+        subcategory_added_success: "جۆری لاوەکی زیادکرا.",
+        subsubcategory_added_success: "جۆری لاوەکیی لاوەکی زیادکرا.",
+        category_updated_success: "گۆڕانکارییەکان پاشەکەوت کران.",
+        category_delete_confirm: "دڵنیایت دەتەوێت جۆری '{categoryName}' بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە.",
+        category_deleted_success: "جۆرەکە سڕدرایەوە.",
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -277,39 +277,39 @@ export const translations = {
         related_products_title: "کاڵایێن وەک ئێکن",
         share_text: "بەرێخۆ بدە ڤی کاڵای",
         share_error: "پارڤەکرن سەرنەکەفت",
-        link_copied: "لینک هاتە کۆپی کرن!", // Translate Link copied!
-        get_location_gps: "وەرگرتنا ناڤ و نیشانێن من ب GPS", // Translate Get my location with GPS
-        gps_not_supported: "GPS ل ڤێ وێبگەرێ ناهێتە پشتەڤانیکرن.", // Translate GPS not supported in this browser.
-        gps_loading: "...وەرگرتنا ناڤ و نیشانان", // Translate ...Getting location
-        address_retrieved: "ناڤ و نیشان هاتنە وەرگرتن.", // Translate Address retrieved.
-        address_not_found: "نەشهات ناڤ و نیشانان ببینیت.", // Translate Could not find address.
-        error_getting_address: "خەلەتی د وەرگرتنا ناڤ و نیشانان دا.", // Translate Error getting address.
-        gps_permission_denied: "دەستووریا GPS هاتە رەتکرن.", // Translate GPS permission denied.
-        gps_position_unavailable: "پێزانینێن جهی بەردەست نینن.", // Translate Location information is unavailable.
-        gps_timeout: "دەمێ داخوازا جهی ب دوماهیک هات.", // Translate Location request timed out.
-        gps_error_unknown: "خەلەتیەکا نەدیار یا GPS چێبوو.", // Translate Unknown GPS error occurred.
-        increase_quantity: "زێدەکرنا بڕی", // Translate Increase quantity
-        decrease_quantity: "کێمکرنا بڕی", // Translate Decrease quantity
-        remove_item: "ژێبرنا دانەی", // Translate Remove item
-        subtotal: "کۆمێ بچووک", // Translate Subtotal
-        toggle_favorite: "گوهارتنا حەزژێکری", // Translate Toggle favorite
-        add_to_favorites: "زێدەکرن بۆ حەزژێکریان", // Translate Add to favorites
-        remove_from_favorites: "ژێبرن ژ حەزژێکریان", // Translate Remove from favorites
-        edit_product: "دەستکاریکرنا کاڵای", // Translate Edit product
-        delete_product: "ژێبرنا کاڵای", // Translate Delete product
-        product_no_name: "ناڤێ کاڵای نینە", // Translate Product has no name
-        no_products_found: "چ کاڵا نەهاتنە دیتن.", // Translate No products found.
-        notification_permission_granted: "دەستووریا ئاگەهدارکرنێ هاتە دان.", // Translate Notification permission granted.
-        notification_permission_denied: "دەستووریا ئاگەهدارکرنێ هاتە رەتکرن.", // Translate Notification permission denied.
-        no_send_methods: "چ رێکێن فرێکرنێ نەهاتینە دیارکرن.", // Translate No sending methods defined.
-        error_loading_send_methods: "خەلەتی د بارکرنا رێکێن فرێکرنێ دا.", // Translate Error loading sending methods.
-        no_contact_links: "چ لینکێن پەیوەندیێ نەهاتینە زێدەکرن.", // Translate No contact links added.
-        category_added_success: "جۆرێ سەرەکی هاتە زێدەکرن.", // Translate Main category added successfully.
-        subcategory_added_success: "جۆرێ لاوەکی هاتە زێدەکرن.", // Translate Subcategory added successfully.
-        subsubcategory_added_success: "جۆرێ لاوەکیێ لاوەکی هاتە زێدەکرن.", // Translate Sub-subcategory added successfully.
-        category_updated_success: "گوهارتن هاتنە پاشەکەفتکرن.", // Translate Changes saved.
-        category_delete_confirm: "تو پشتڕاستی دێ جۆرێ '{categoryName}' ژێبەی؟\nئاگەهداربە: دێ هەمی جۆرێن لاوەکی ژی هێنە ژێبرن.", // Translate Are you sure you want to delete the category '{categoryName}'?\nWarning: This will also delete all its subcategories.
-        category_deleted_success: "جۆر هاتە ژێبرن.", // Translate Category deleted.
+        link_copied: "لینک هاتە کۆپی کرن!",
+        get_location_gps: "وەرگرتنا ناڤ و نیشانێن من ب GPS",
+        gps_not_supported: "GPS ل ڤێ وێبگەرێ ناهێتە پشتەڤانیکرن.",
+        gps_loading: "...وەرگرتنا ناڤ و نیشانان",
+        address_retrieved: "ناڤ و نیشان هاتنە وەرگرتن.",
+        address_not_found: "نەشهات ناڤ و نیشانان ببینیت.",
+        error_getting_address: "خەلەتی د وەرگرتنا ناڤ و نیشانان دا.",
+        gps_permission_denied: "دەستووریا GPS هاتە رەتکرن.",
+        gps_position_unavailable: "پێزانینێن جهی بەردەست نینن.",
+        gps_timeout: "دەمێ داخوازا جهی ب دوماهیک هات.",
+        gps_error_unknown: "خەلەتیەکا نەدیار یا GPS چێبوو.",
+        increase_quantity: "زێدەکرنا بڕی",
+        decrease_quantity: "کێمکرنا بڕی",
+        remove_item: "ژێبرنا دانەی",
+        subtotal: "کۆمێ بچووک",
+        toggle_favorite: "گوهارتنا حەزژێکری",
+        add_to_favorites: "زێدەکرن بۆ حەزژێکریان",
+        remove_from_favorites: "ژێبرن ژ حەزژێکریان",
+        edit_product: "دەستکاریکرنا کاڵای",
+        delete_product: "ژێبرنا کاڵای",
+        product_no_name: "ناڤێ کاڵای نینە",
+        no_products_found: "چ کاڵا نەهاتنە دیتن.",
+        notification_permission_granted: "دەستووریا ئاگەهدارکرنێ هاتە دان.",
+        notification_permission_denied: "دەستووریا ئاگەهدارکرنێ هاتە رەتکرن.",
+        no_send_methods: "چ رێکێن فرێکرنێ نەهاتینە دیارکرن.",
+        error_loading_send_methods: "خەلەتی د بارکرنا رێکێن فرێکرنێ دا.",
+        no_contact_links: "چ لینکێن پەیوەندیێ نەهاتینە زێدەکرن.",
+        category_added_success: "جۆرێ سەرەکی هاتە زێدەکرن.",
+        subcategory_added_success: "جۆرێ لاوەکی هاتە زێدەکرن.",
+        subsubcategory_added_success: "جۆرێ لاوەکیێ لاوەکی هاتە زێدەکرن.",
+        category_updated_success: "گوهارتن هاتنە پاشەکەفتکرن.",
+        category_delete_confirm: "تو پشتڕاستی دێ جۆرێ '{categoryName}' ژێبەی؟\nئاگەهداربە: دێ هەمی جۆرێن لاوەکی ژی هێنە ژێبرن.",
+        category_deleted_success: "جۆر هاتە ژێبرن.",
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -394,50 +394,50 @@ export const translations = {
         related_products_title: "منتجات مشابهة",
         share_text: "ألق نظرة على هذا المنتج",
         share_error: "فشلت المشاركة",
-        link_copied: "تم نسخ الرابط!", // Translate Link copied!
-        get_location_gps: "الحصول على موقعي بـ GPS", // Translate Get my location with GPS
-        gps_not_supported: "GPS غير مدعوم في هذا المتصفح.", // Translate GPS not supported in this browser.
-        gps_loading: "...جاري تحديد الموقع", // Translate ...Getting location
-        address_retrieved: "تم استرداد العنوان.", // Translate Address retrieved.
-        address_not_found: "تعذر العثور على العنوان.", // Translate Could not find address.
-        error_getting_address: "خطأ في الحصول على العنوان.", // Translate Error getting address.
-        gps_permission_denied: "تم رفض إذن GPS.", // Translate GPS permission denied.
-        gps_position_unavailable: "معلومات الموقع غير متوفرة.", // Translate Location information is unavailable.
-        gps_timeout: "انتهت مهلة طلب الموقع.", // Translate Location request timed out.
-        gps_error_unknown: "حدث خطأ GPS غير معروف.", // Translate Unknown GPS error occurred.
-        increase_quantity: "زيادة الكمية", // Translate Increase quantity
-        decrease_quantity: "تقليل الكمية", // Translate Decrease quantity
-        remove_item: "إزالة العنصر", // Translate Remove item
-        subtotal: "المجموع الفرعي", // Translate Subtotal
-        toggle_favorite: "تبديل المفضلة", // Translate Toggle favorite
-        add_to_favorites: "إضافة إلى المفضلة", // Translate Add to favorites
-        remove_from_favorites: "إزالة من المفضلة", // Translate Remove from favorites
-        edit_product: "تعديل المنتج", // Translate Edit product
-        delete_product: "حذف المنتج", // Translate Delete product
-        product_no_name: "المنتج ليس له اسم", // Translate Product has no name
-        no_products_found: "لم يتم العثور على منتجات.", // Translate No products found.
-        notification_permission_granted: "تم منح إذن الإشعارات.", // Translate Notification permission granted.
-        notification_permission_denied: "تم رفض إذن الإشعارات.", // Translate Notification permission denied.
-        no_send_methods: "لم يتم تحديد طرق إرسال.", // Translate No sending methods defined.
-        error_loading_send_methods: "خطأ في تحميل طرق الإرسال.", // Translate Error loading sending methods.
-        no_contact_links: "لم يتم إضافة روابط تواصل.", // Translate No contact links added.
-        category_added_success: "تمت إضافة الفئة الرئيسية.", // Translate Main category added successfully.
-        subcategory_added_success: "تمت إضافة الفئة الفرعية.", // Translate Subcategory added successfully.
-        subsubcategory_added_success: "تمت إضافة الفئة الفرعية الفرعية.", // Translate Sub-subcategory added successfully.
-        category_updated_success: "تم حفظ التغييرات.", // Translate Changes saved.
-        category_delete_confirm: "هل أنت متأكد من حذف الفئة '{categoryName}'؟\nتحذير: سيؤدي هذا أيضًا إلى حذف جميع فئاتها الفرعية.", // Translate Are you sure you want to delete the category '{categoryName}'?\nWarning: This will also delete all its subcategories.
-        category_deleted_success: "تم حذف الفئة.", // Translate Category deleted.
+        link_copied: "تم نسخ الرابط!",
+        get_location_gps: "الحصول على موقعي بـ GPS",
+        gps_not_supported: "GPS غير مدعوم في هذا المتصفح.",
+        gps_loading: "...جاري تحديد الموقع",
+        address_retrieved: "تم استرداد العنوان.",
+        address_not_found: "تعذر العثور على العنوان.",
+        error_getting_address: "خطأ في الحصول على العنوان.",
+        gps_permission_denied: "تم رفض إذن GPS.",
+        gps_position_unavailable: "معلومات الموقع غير متوفرة.",
+        gps_timeout: "انتهت مهلة طلب الموقع.",
+        gps_error_unknown: "حدث خطأ GPS غير معروف.",
+        increase_quantity: "زيادة الكمية",
+        decrease_quantity: "تقليل الكمية",
+        remove_item: "إزالة العنصر",
+        subtotal: "المجموع الفرعي",
+        toggle_favorite: "تبديل المفضلة",
+        add_to_favorites: "إضافة إلى المفضلة",
+        remove_from_favorites: "إزالة من المفضلة",
+        edit_product: "تعديل المنتج",
+        delete_product: "حذف المنتج",
+        product_no_name: "المنتج ليس له اسم",
+        no_products_found: "لم يتم العثور على منتجات.",
+        notification_permission_granted: "تم منح إذن الإشعارات.",
+        notification_permission_denied: "تم رفض إذن الإشعارات.",
+        no_send_methods: "لم يتم تحديد طرق إرسال.",
+        error_loading_send_methods: "خطأ في تحميل طرق الإرسال.",
+        no_contact_links: "لم يتم إضافة روابط تواصل.",
+        category_added_success: "تمت إضافة الفئة الرئيسية.",
+        subcategory_added_success: "تمت إضافة الفئة الفرعية.",
+        subsubcategory_added_success: "تمت إضافة الفئة الفرعية الفرعية.",
+        category_updated_success: "تم حفظ التغييرات.",
+        category_delete_confirm: "هل أنت متأكد من حذف الفئة '{categoryName}'؟\nتحذير: سيؤدي هذا أيضًا إلى حذف جميع فئاتها الفرعية.",
+        category_deleted_success: "تم حذف الفئة.",
     }
 };
 
-// Global State Variables (Mutable) - گۆڕاوی ستەیتی گشتی
+// Global State Variables (Mutable)
 export let state = {
     currentLanguage: localStorage.getItem('language') || 'ku_sorani',
     deferredPrompt: null,
     cart: JSON.parse(localStorage.getItem("maten_store_cart")) || [],
     favorites: JSON.parse(localStorage.getItem("maten_store_favorites")) || [],
     userProfile: JSON.parse(localStorage.getItem("maten_store_profile")) || {},
-    editingProductId: null, // Moved here from globalAdminTools - گواسترایەوە بۆ ئێرە
+    editingProductId: null,
     products: [],
     allPromoCards: [],
     currentPromoCardIndex: 0,
@@ -456,14 +456,13 @@ export let state = {
     currentSearch: '',
 };
 
-// Constants - نەگۆڕەکان
+// Constants
 export const CART_KEY = "maten_store_cart";
 export const FAVORITES_KEY = "maten_store_favorites";
 export const PROFILE_KEY = "maten_store_profile";
 export const PRODUCTS_PER_PAGE = 25;
 
-// DOM Elements Exports (can be reduced if not needed globally) - هەناردەکردنی ئلێمێنتەکانی دۆم
-// تێبینی: باشتر وایە هەموو ئەمانە لێرە نەبن، بەڵکو هەر فایلێک خۆی ئاماژە بە پێویستییەکانی بکات
+// DOM Elements Exports (Consider reducing these exports) - هەناردەکردنی ئلێمێنتەکانی دۆم (بیر لە کەمکردنەوەی بکەرەوە)
 export const loginModal = document.getElementById('loginModal');
 export const addProductBtn = document.getElementById('addProductBtn');
 export const productFormModal = document.getElementById('productFormModal');
@@ -522,6 +521,6 @@ export const adminPromoCardsManagement = document.getElementById('adminPromoCard
 export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
 
 // Make sure other modules populate the globalAdminTools with their specific functions
-// دڵنیا ببەوە کە فایلەکانی تر فانکشنە تایبەتەکانیان دەخەنە ناو globalAdminTools
 // Example in app-core.js: Object.assign(window.globalAdminTools, { showNotification, t, ... });
 // Example in app-features.js: Object.assign(window.globalAdminTools, { renderMainCategories, ... });
+
