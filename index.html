@@ -6,13 +6,12 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
 
-    <!-- ئاماژە بە فایلی ستایڵ وەک خۆی دەمێنێتەوە -->
     <link rel="stylesheet" href="styles.css">
 
     <link rel="manifest" href="manifest.json">
@@ -25,9 +24,6 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- **** هەموو ناوەڕۆکی HTML لێرەدا وەک خۆی دەمێنێتەوە **** -->
-        <!-- **** (Header, Modals, Sheets, Main Content, Bottom Nav, etc.) **** -->
-
         <header class="app-header">
             <div class="main-header-content">
                 <div class="logo">
@@ -175,7 +171,7 @@
                 <div id="sheetThumbnailContainer"></div>
                 <div id="sheetProductPrice" style="font-size: 22px; font-weight: bold; color: var(--accent-color); margin: 15px 0; text-align:center;"></div>
                 <p id="sheetProductDescription" style="color: #4a5568; margin-bottom: 20px; text-align:right; line-height: 1.7;"></p>
-
+                
                 <button id="sheetAddToCartBtn" class="add-to-cart-btn" style="padding: 12px; font-size: 16px;"></button>
 
                 <div id="relatedProductsSection" class="related-products-section" style="display: none;">
@@ -200,16 +196,15 @@
 				</div>
 			</div>
 		</div>
-
+        
         <main class="main-content page page-active" id="mainPage">
             <div class="section">
                 <div id="mainCategoriesContainer" class="main-categories-container"></div>
                 <div id="subcategoriesContainer" class="subcategories-container"></div>
-
+                
                 <div id="subSubcategoriesContainer" class="subcategories-container" style="padding-top: 0; padding-bottom: 10px; display: none;"></div>
 
                 <div id="homePageSectionsContainer">
-                    <!-- ناوەڕۆکی پەڕەی سەرەکی بە شێوەی داینامیک لێرە زیاد دەکرێت -->
                 </div>
                 <div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;" data-translate-key="loading_products">...خەریکی بارکردنی کاڵاکانە</p></div>
                 <div id="skeletonLoader" class="products-container"></div>
@@ -218,17 +213,15 @@
                 <div id="scroll-loader-trigger" style="height: 50px;"></div>
             </div>
         </main>
-
+        
         <div class="page page-hidden" id="subcategoryDetailPage">
              <div class="subcategory-detail-content">
-                 <div id="subSubCategoryContainerOnDetailPage" class="subcategories-container">
-                     <!-- Sub-subcategories for detail page -->
-                 </div>
-                 <div id="productsContainerOnDetailPage" class="products-container">
-                     <!-- Products for detail page -->
-                 </div>
-                 <div id="detailPageLoader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
-             </div>
+                <div id="subSubCategoryContainerOnDetailPage" class="subcategories-container">
+                </div>
+                <div id="productsContainerOnDetailPage" class="products-container">
+                </div>
+                <div id="detailPageLoader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
+            </div>
         </div>
 
         <div class="settings-page page page-hidden" id="settingsPage">
@@ -320,7 +313,6 @@
                 </div>
             </div>
 
-            <!-- ===== بەشەکانی تایبەت بە ئەدمین لێرەدا دەست پێدەکەن ===== -->
             <div class="settings-group" id="adminPoliciesManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                     <i class="fas fa-edit"></i> <span data-translate-key="manage_policies_title">بەڕێوەبردنی مەرج و ڕێساکان</span>
@@ -453,7 +445,7 @@
                     </div>
                 </div>
             </div>
-
+            
             <div class="settings-group" id="adminPromoCardsManagement" style="display: none;">
                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                     <i class="fas fa-images"></i> <span>بەڕێوەبردنی سلایدەری ڕێکلام</span>
@@ -672,7 +664,6 @@
                         <button id="addHomeSectionBtn" class="add-section-btn"><i class="fas fa-plus"></i> زیادکردنی بەش</button>
                     </div>
                     <div id="homeLayoutListContainer" class="layout-list-container">
-                        <!-- Layout items will be rendered here by JS -->
                     </div>
                     <button id="saveLayoutBtn" style="margin-top: 15px; background-color: var(--primary-color);">پاشەکەوتکردنی ڕیزبەندی</button>
                 </div>
@@ -816,7 +807,6 @@
                     <div id="announcementsListContainer"></div>
                 </div>
             </div>
-            <!-- ===== کۆتایی بەشەکانی ئەدمین ===== -->
         </div>
 
         <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
@@ -864,7 +854,7 @@
                 </form>
             </div>
         </div>
-
+        
         <div id="editCategoryModal" class="modal">
             <div class="modal-content">
                 <span class="close" aria-label="Close">&times;</span>
@@ -981,26 +971,26 @@
 
         <div class="bottom-nav">
              <button id="homeBtn" class="bottom-nav-item">
-                 <i class="fas fa-home"></i>
-                 <span data-translate-key="nav_home">سەرەکی</span>
-             </button>
-             <button id="categoriesBtn" class="bottom-nav-item">
-                 <i class="fas fa-tags"></i>
-                 <span data-translate-key="nav_categories">جۆرەکان</span>
-             </button>
-             <button id="cartBtn" class="bottom-nav-item">
-                 <span class="cart-count" id="cartCount">0</span>
-                 <i class="fas fa-shopping-cart"></i>
-                 <span data-translate-key="nav_cart">سەبەتە</span>
-             </button>
-             <button id="profileBtn" class="bottom-nav-item">
-                 <i class="fas fa-user"></i>
-                 <span data-translate-key="nav_profile">پڕۆفایل</span>
-             </button>
-              <button id="settingsBtn" class="bottom-nav-item">
-                 <i class="fas fa-cog"></i>
-                 <span data-translate-key="nav_settings">ڕێکخستن</span>
-             </button>
+                <i class="fas fa-home"></i>
+                <span data-translate-key="nav_home">سەرەکی</span>
+            </button>
+            <button id="categoriesBtn" class="bottom-nav-item">
+                <i class="fas fa-tags"></i>
+                <span data-translate-key="nav_categories">جۆرەکان</span>
+            </button>
+            <button id="cartBtn" class="bottom-nav-item">
+                <span class="cart-count" id="cartCount">0</span>
+                <i class="fas fa-shopping-cart"></i>
+                <span data-translate-key="nav_cart">سەبەتە</span>
+            </button>
+            <button id="profileBtn" class="bottom-nav-item">
+                <i class="fas fa-user"></i>
+                <span data-translate-key="nav_profile">پڕۆفایل</span>
+            </button>
+             <button id="settingsBtn" class="bottom-nav-item">
+                <i class="fas fa-cog"></i>
+                <span data-translate-key="nav_settings">ڕێکخستن</span>
+            </button>
         </div>
     </div>
 
@@ -1009,15 +999,8 @@
         <button id="update-now-btn" class="update-now-btn">نوێی بکەرەوە</button>
     </div>
 
-    <!-- **** گۆڕانکاری سەرەکی **** -->
-    <!-- ئاماژە بە فایلە کۆنەکان لابرا -->
-    <!-- <script type="module" src="app-setup.js"></script> -->
-    <!-- <script type="module" src="app-logic.js"></script> -->
-
-    <!-- ئاماژە بە فایلی سەرەکی نوێ -->
-    <script type="module" src="app-main.js"></script>
-
-    <!-- فایلی ئەدمین وەک خۆی دەمێنێتەوە -->
+    <script type="module" src="app-setup.js"></script>
+    <script type="module" src="app-logic.js"></script>
     <script src="admin.js" defer></script>
 </body>
 </html>
