@@ -17,7 +17,6 @@ import {
     sheetProductName, sheetProductDescription, sheetProductPrice, sheetAddToCartBtn,
     relatedProductsSection, relatedProductsContainer,
     // Header elements
-    // subSubcategoriesContainer, // *** REMOVED IMPORT ***
     mainCategoriesContainer, subcategoriesContainer, // Main page category containers
     // Subcategory Detail Page Elements
     subcategoryDetailPage, subSubCategoryContainerOnDetailPage, productsContainerOnDetailPage, detailPageLoader,
@@ -26,6 +25,8 @@ import {
     welcomeModal,
     // Add other elements if directly manipulated here
 } from './app-setup.js';
+
+import { db, collection, getDocs, query, orderBy, doc, getDoc } from './app-setup.js'; // Import necessary Firestore functions if needed directly
 
 import { translations } from './app-setup.js'; // Import translations
 
@@ -111,7 +112,12 @@ export function showNotification(message, type = 'success') {
     setTimeout(() => {
         notification.classList.remove('show');
         // Remove from DOM after transition ends
-        setTimeout(() => document.body.removeChild(notification), 300);
+        setTimeout(() => {
+             // Check if the notification element still exists before removing
+             if (document.body.contains(notification)) {
+                 document.body.removeChild(notification);
+             }
+        }, 300);
     }, 3000);
 }
 
@@ -351,16 +357,16 @@ export function createProductCardElement(product, actions = window.appActions ||
 
     // Admin Edit/Delete
     if (isAdmin) {
-        if (editButton && actions.editProduct) {
+        if (editButton && window.AdminLogic?.editProduct) { // Check AdminLogic exists
             editButton.addEventListener('click', (event) => {
                 event.stopPropagation();
-                actions.editProduct(product.id);
+                window.AdminLogic.editProduct(product.id);
             });
         }
-        if (deleteButton && actions.deleteProduct) {
+        if (deleteButton && window.AdminLogic?.deleteProduct) { // Check AdminLogic exists
             deleteButton.addEventListener('click', (event) => {
                 event.stopPropagation();
-                actions.deleteProduct(product.id);
+                window.AdminLogic.deleteProduct(product.id);
             });
         }
     }
@@ -378,6 +384,103 @@ export function createProductCardElement(product, actions = window.appActions ||
 
     return productCard;
 }
+
+// === ADDED FUNCTION / فەنکشنی زیادکراو ===
+/**
+ * Creates and returns an HTML element for a promo card slider.
+ * Handles internal state for sliding.
+ * @param {object} cardData - Object containing an array of cards { cards: [...] }.
+ * @param {object} sliderState - Object to hold current index { currentIndex: 0 }.
+ * @returns {HTMLElement} The promo card element with slider functionality.
+ */
+export function createPromoCardElement(cardData, sliderState) {
+    const cardElement = document.createElement('div');
+    // Important: Use a class that doesn't conflict with product card grid styling if placed outside the main grid
+    cardElement.className = 'promo-card-slider-item'; // Use a distinct class
+    cardElement.style.width = '100%'; // Ensure it takes full width if needed
+    cardElement.style.position = 'relative'; // For positioning buttons
+    cardElement.style.borderRadius = '12px';
+    cardElement.style.overflow = 'hidden';
+    cardElement.style.aspectRatio = '16 / 7'; // Adjust aspect ratio as needed
+
+
+    if (!cardData || !cardData.cards || cardData.cards.length === 0) {
+        cardElement.innerHTML = '<p>No promo card data</p>'; // Placeholder
+        return cardElement;
+    }
+
+    const currentCard = cardData.cards[sliderState.currentIndex];
+    const imageUrl = currentCard.imageUrls[state.currentLanguage] || currentCard.imageUrls.ku_sorani;
+
+    // Use img tag directly inside for simplicity, or a container div
+    cardElement.innerHTML = `
+        <img src="${imageUrl}" class="promo-image" loading="lazy" alt="Promotion" style="width: 100%; height: 100%; object-fit: cover;">
+        ${cardData.cards.length > 1 ? `
+        <button class="promo-slider-btn prev" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); z-index: 10; background: rgba(0,0,0,0.4); color: white; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px;"><i class="fas fa-chevron-left"></i></button>
+        <button class="promo-slider-btn next" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); z-index: 10; background: rgba(0,0,0,0.4); color: white; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px;"><i class="fas fa-chevron-right"></i></button>
+        ` : ''}
+    `;
+
+    const imgElement = cardElement.querySelector('.promo-image');
+
+    // --- Add Event Listeners ---
+
+    // Click on card (navigate to linked category)
+    cardElement.addEventListener('click', (e) => {
+        // Use currentCard from the closure, ensure sliderState reflects the *visible* card
+        const visibleCard = cardData.cards[sliderState.currentIndex];
+        if (!e.target.closest('button')) { // Don't navigate if clicking buttons
+            const targetCategoryId = visibleCard.categoryId;
+            const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
+            if (categoryExists && window.appActions?.navigateToFilter) {
+                window.appActions.navigateToFilter({
+                    category: targetCategoryId,
+                    subcategory: 'all',
+                    subSubcategory: 'all',
+                    search: ''
+                });
+                // Optional: Scroll to categories after navigation
+                // mainCategoriesContainer?.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                 console.warn(`Promo card link category ${targetCategoryId} not found or navigate function missing.`);
+            }
+        }
+    });
+
+    // Slider Buttons (if more than one card)
+    if (cardData.cards.length > 1) {
+        const prevButton = cardElement.querySelector('.promo-slider-btn.prev');
+        const nextButton = cardElement.querySelector('.promo-slider-btn.next');
+
+        const updateImage = (newIndex) => {
+            sliderState.currentIndex = newIndex;
+            const newImageUrl = cardData.cards[newIndex].imageUrls[state.currentLanguage] || cardData.cards[newIndex].imageUrls.ku_sorani;
+            if(imgElement) imgElement.src = newImageUrl;
+             // Reset interval if user manually changes slide (handled in data-renderer)
+             window.appActions?.resetSliderInterval?.(cardElement.closest('[data-layout-id]')?.dataset.layoutId);
+        };
+
+        if (prevButton) {
+            prevButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const newIndex = (sliderState.currentIndex - 1 + cardData.cards.length) % cardData.cards.length;
+                updateImage(newIndex);
+            });
+        }
+
+        if (nextButton) {
+            nextButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const newIndex = (sliderState.currentIndex + 1) % cardData.cards.length;
+                updateImage(newIndex);
+            });
+        }
+    }
+
+    return cardElement;
+}
+// ===================================
+
 
 /**
  * Creates a skeleton loader element for product cards.
@@ -495,7 +598,7 @@ export async function renderSubcategories(categoryId, showDetailFn) {
         state.subcategories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         if (state.subcategories.length === 0 && querySnapshot.empty) { // Check both state and snapshot
-             container.style.display = 'none'; // Hide if truly empty
+             // container.style.display = 'none'; // Keep container visible for the "All" button
              return;
         }
 
@@ -522,9 +625,8 @@ export async function renderSubcategories(categoryId, showDetailFn) {
 
     } catch (error) {
         console.error("Error fetching/rendering subcategories: ", error);
-         container.style.display = 'none'; // Hide on error
+         // container.style.display = 'none'; // Keep container visible for "All" button even on error
     }
-     // *** REMOVED subSubcategoriesContainer manipulation ***
 }
 
 
