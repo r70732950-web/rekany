@@ -4,18 +4,19 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+// *** زیادکرا: 'collection' و 'runTransaction' لێرە ***
+import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
 // Firebase Configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE",
+    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", // تکایە کلیلە ڕاستەقینەکانت بەکاربهێنە
     authDomain: "maten-store.firebaseapp.com",
     projectId: "maten-store",
     storageBucket: "maten-store.appspot.com",
     messagingSenderId: "137714858202",
     appId: "1:137714858202:web:e2443a0b26aac6bb56cde3",
-    measurementId: "G-1PV3DRY2V2"
+    measurementId: "G-1PV3DRY2V2" // تکایە کلیلە ڕاستەقینەکانت بەکاربهێنە
 };
 
 // Initialization and Exports
@@ -23,20 +24,83 @@ export const app = initializeApp(firebaseConfig);
 export const analytics = getAnalytics(app);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const messaging = getMessaging(app);
+// Initialize messaging only if supported, handle potential errors
+let messagingInstance;
+try {
+    messagingInstance = getMessaging(app);
+} catch (e) {
+    console.warn("Firebase Messaging is not supported in this browser or environment.", e);
+    messagingInstance = null; // Set to null if initialization fails
+}
+export const messaging = messagingInstance;
 
-// Make Firebase services and helper functions globally available for admin.js
-window.globalAdminTools = {};
+
+// --- Populate globalAdminTools IMMEDIATELY after initialization ---
+// *** گۆڕدرا: پڕکردنەوەی globalAdminTools لێرەدا ***
+window.globalAdminTools = {
+    // Firebase Services
+    db,
+    auth,
+    // Firestore Functions (Make sure all needed are included)
+    collection,
+    doc,
+    getDoc,
+    addDoc,
+    setDoc,
+    updateDoc,
+    deleteDoc,
+    onSnapshot,
+    query,
+    where,
+    orderBy,
+    limit,
+    startAfter,
+    getDocs,
+    runTransaction, // زیادکرا
+    // Auth Functions
+    signOut,
+    // --- Pointers to functions from other modules ---
+    // These functions need to be imported and assigned here,
+    // OR admin.js needs to be converted to a module to import them directly.
+    // Example (assuming functions are correctly exported from their modules):
+    /*
+    showNotification: (message, type) => import('./utils.js').then(utils => utils.showNotification(message, type)),
+    t: (key, replacements) => import('./utils.js').then(utils => utils.t(key, replacements)),
+    openPopup: (id, type) => import('./data-logic.js').then(dl => dl.openPopup(id, type)),
+    closeCurrentPopup: () => import('./data-logic.js').then(dl => dl.closeCurrentPopup()),
+    searchProductsInFirestore: (term, isNew) => import('./data-logic.js').then(dl => dl.searchProducts(term, isNew)), // Note: searchProducts is now in data-logic
+    setEditingProductId: (id) => { state.editingProductId = id; }, // Can stay simple
+    getEditingProductId: () => state.editingProductId,         // Can stay simple
+    getCategories: () => import('./data-logic.js').then(dl => dl.getCategories()), // Now in data-logic
+    getCurrentLanguage: () => state.currentLanguage,             // Can stay simple
+    clearProductCache: () => import('./admin-helpers.js').then(ah => ah.clearProductCache()), // Now in admin-helpers
+    */
+    // **For simplicity now, leave these undefined or assign directly if imported non-dynamically**
+    // **This might still cause errors in admin.js if it accesses them before they load**
+    showNotification: window.showNotification, // Assuming showNotification is globally available (less ideal)
+    t: window.t, // Assuming t is globally available (less ideal)
+    openPopup: window.openPopup,
+    closeCurrentPopup: window.closeCurrentPopup,
+    searchProductsInFirestore: window.searchProducts, // Assuming searchProducts is global name for data-logic's searchProducts
+    setEditingProductId: (id) => { state.editingProductId = id; },
+    getEditingProductId: () => state.editingProductId,
+    getCategories: window.getCategories, // Assuming getCategories is global name for data-logic's getCategories
+    getCurrentLanguage: () => state.currentLanguage,
+    clearProductCache: window.clearProductCache, // Assuming global name for admin-helpers function
+
+};
+// *** کۆتایی گۆڕانکاری ***
 
 // Firestore Collections Exports
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
-
-// ====== UPDATED COLLECTIONS / کۆڵێکشنە نوێکراوەکان ======
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
-// ===============================================
+// *** زیادکرا: Export shortcutRowsCollection & homeLayoutCollection ***
+export const shortcutRowsCollection = collection(db, "shortcut_rows");
+export const homeLayoutCollection = collection(db, "home_layout");
+// *** کۆتایی زیادکراو ***
 
 // Translations Export
 export const translations = {
@@ -123,6 +187,10 @@ export const translations = {
         related_products_title: "کاڵای هاوشێوە",
         share_text: "سەیری ئەم کاڵایە بکە",
         share_error: "هاوبەشیپێکردن سەرکەوتوو نەبوو",
+        unknown_product: "کاڵای نەناسراو", // Added for generateOrderMessage
+        notifications_enabled_success: "ئاگەدارییەکان چالاککران", // Added for requestNotificationPermissionAndToken
+        notifications_permission_denied: "مۆڵەت نەدرا", // Added for requestNotificationPermissionAndToken
+        no_products_found: "هیچ کاڵایەک نەدۆزرایەوە.", // Added for searchProducts
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -207,6 +275,10 @@ export const translations = {
         related_products_title: "کاڵایێن وەک ئێکن",
         share_text: "بەرێخۆ بدە ڤی کاڵای",
         share_error: "پارڤەکرن سەرنەکەفت",
+        unknown_product: "کاڵایێ نەدیار", // Added
+        notifications_enabled_success: "ئاگەهداری هاتنە چالاکرن", // Added
+        notifications_permission_denied: "دەستووری نەهاتە دان", // Added
+        no_products_found: "چ کاڵا نەهاتنە دیتن.", // Added
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -291,42 +363,48 @@ export const translations = {
         related_products_title: "منتجات مشابهة",
         share_text: "ألق نظرة على هذا المنتج",
         share_error: "فشلت المشاركة",
+        unknown_product: "منتج غير معروف", // Added
+        notifications_enabled_success: "تم تفعيل الإشعارات", // Added
+        notifications_permission_denied: "تم رفض الإذن", // Added
+        no_products_found: "لم يتم العثور على منتجات.", // Added
     }
 };
 
 // Global State Variables (Mutable)
+// Initialize sliderIntervals here
 export let state = {
     currentLanguage: localStorage.getItem('language') || 'ku_sorani',
     deferredPrompt: null,
-    cart: JSON.parse(localStorage.getItem("maten_store_cart")) || [],
-    favorites: JSON.parse(localStorage.getItem("maten_store_favorites")) || [],
-    userProfile: JSON.parse(localStorage.getItem("maten_store_profile")) || {},
+    cart: JSON.parse(localStorage.getItem(CART_KEY)) || [],
+    favorites: JSON.parse(localStorage.getItem(FAVORITES_KEY)) || [],
+    userProfile: JSON.parse(localStorage.getItem(PROFILE_KEY)) || {},
     editingProductId: null,
-    products: [],
-    allPromoCards: [],
-    currentPromoCardIndex: 0,
-    promoRotationInterval: null,
-    categories: [],
-    contactInfo: {},
-    subcategories: [],
-    lastVisibleProductDoc: null,
-    isLoadingMoreProducts: false,
-    allProductsLoaded: false,
-    isRenderingHomePage: false,
-    productCache: {},
-    currentCategory: 'all',
-    currentSubcategory: 'all',
-    currentSubSubcategory: 'all',
-    currentSearch: '',
+    products: [], // Holds currently displayed/fetched products
+    allPromoCards: [], // Might be removable if promo cards are fetched dynamically in sections
+    categories: [], // Holds main categories (fetched once)
+    subcategories: [], // Holds subcategories for the *currently selected* main category
+    contactInfo: {}, // Might be deprecated if links fetched directly
+    lastVisibleProductDoc: null, // For pagination
+    isLoadingMoreProducts: false, // Flag for infinite scroll
+    allProductsLoaded: false, // Flag for infinite scroll
+    isRenderingHomePage: false, // Flag to prevent concurrent home page rendering
+    productCache: {}, // Simple cache for product lists by filter/search
+    currentCategory: 'all', // Current filter state
+    currentSubcategory: 'all', // Current filter state
+    currentSubSubcategory: 'all', // Current filter state
+    currentSearch: '', // Current filter state
+    sliderIntervals: {}, // Object to store active promo slider intervals { layoutId: intervalId }
+    initialLoadComplete: false, // Flag to track if initial page load logic has run
 };
 
 // Constants
 export const CART_KEY = "maten_store_cart";
 export const FAVORITES_KEY = "maten_store_favorites";
 export const PROFILE_KEY = "maten_store_profile";
-export const PRODUCTS_PER_PAGE = 25;
+export const PRODUCTS_PER_PAGE = 25; // For pagination/infinite scroll
 
-// DOM Elements Exports
+// DOM Elements Exports (Keep only frequently accessed elements if needed, or remove if passed directly)
+// Consider removing these exports and accessing elements directly in ui-logic.js
 export const loginModal = document.getElementById('loginModal');
 export const addProductBtn = document.getElementById('addProductBtn');
 export const productFormModal = document.getElementById('productFormModal');
@@ -383,3 +461,9 @@ export const policiesForm = document.getElementById('policiesForm');
 export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
 export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
 export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
+// Make sure all necessary DOM elements needed elsewhere are exported
+export const adminCategoryManagement = document.getElementById('adminCategoryManagement');
+export const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
+export const adminShortcutRowsManagement = document.getElementById('adminShortcutRowsManagement');
+export const adminHomeLayoutManagement = document.getElementById('adminHomeLayoutManagement');
+
