@@ -37,6 +37,10 @@ import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https:/
 import { enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, addDoc, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
+// **** ÇARESERÎ LÊ ZÊDE BÛ / چارەسەری زیاد کرا ****
+// Ji bo rêgirtina li vegerandina otomatîkî ya scroll ji hêla gerokê ve
+history.scrollRestoration = 'manual';
+// ********************************************
 
 function debounce(func, delay = 500) {
     let timeout;
@@ -2280,9 +2284,9 @@ onAuthStateChanged(auth, async (user) => {
         if (window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
              // Ensure admin logic is loaded before initializing
              if (document.readyState === 'complete') {
-                 window.AdminLogic.initialize();
+                  window.AdminLogic.initialize();
              } else {
-                 window.addEventListener('load', window.AdminLogic.initialize);
+                  window.addEventListener('load', window.AdminLogic.initialize);
              }
         } else {
              console.warn("AdminLogic not found or initialize not a function.");
@@ -2365,11 +2369,20 @@ function initializeAppLogic() {
     // Setup other parts of the app
     updateCartCount();
     setupEventListeners();
-    
+
     // === START: SCROLL LOGIC GUHERTIN ===
     // Li şûna `setupScrollObserver()` fonksiyona nû tê bikaranîn
     initializeInfiniteScroll('scroll-loader-trigger', () => {
-        // Ev callback e ji observer-a kevn
+        // **** VÊ ŞERTÊ LÊ ZÊDE BIKE / ئەم مەرجە زیاد بکە ****
+        const shouldShowHomeSections = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
+        if (shouldShowHomeSections) {
+            // Ger di dîmena rûpela malê de bin, paşguh bike
+            console.log("Infinite scroll trigger fired on home view - ignoring.");
+            return;
+        }
+        // ***********************
+
+        // Mentiqê bingehîn:
         if (!state.isLoadingMoreProducts && !state.allProductsLoaded) {
             searchProductsInFirestore(state.currentSearch, false); // Rûpela din bîne
         }
