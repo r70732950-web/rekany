@@ -27,18 +27,6 @@ body {
     direction: rtl;
     overflow-x: hidden;
     font-family: 'Vazirmatn', sans-serif;
-    /* PWA Safe Area Insets */
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-    /* iOS Specific Styles */
-    -webkit-tap-highlight-color: transparent;
-    -webkit-overflow-scrolling: touch;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
 }
 body.overlay-active {
     overflow: hidden;
@@ -61,8 +49,6 @@ body.overlay-active {
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     border-bottom: 1px solid var(--medium-gray);
     gap: 15px;
-    /* PWA Safe Area */
-    padding-top: calc(12px + env(safe-area-inset-top));
 }
 .logo { display: flex; align-items: center; gap: 10px; }
 .logo-bottom { font-size: 22px; font-weight: bold; color: var(--primary-color); white-space: nowrap; }
@@ -99,32 +85,35 @@ body.overlay-active {
 }
 /* DAWÎYA KODA NÛ */
 
-
+/* === START: GORRANKARIYA JI BO KÊŞEYA SCROLLÊ === */
 .page {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
+    min-height: 100%; /* Guhertina ji çareseriya berê */
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     background-color: var(--light-gray);
     overflow-x: hidden;
-    overflow-y: auto;
+    /* overflow-y: auto; <-- Ev hat rakirin */
 }
 .page-active {
     transform: translateX(0);
-    z-index: 10;
+    z-index: 10;      /* Divê hebe */
+    overflow-y: auto; /* Scroll tenê ji bo vê yekê */
 }
 .page-hidden {
     transform: translateX(100%);
-    z-index: 1;
+    z-index: 1;       /* Divê hebe */
+    overflow-y: hidden; /* Scroll ji bo vê yekê qedexe ye */
 }
+/* === END: GORRANKARIYA JI BO KÊŞEYA SCROLLÊ === */
+
 
 /* Rêkxistina cihê vala yê jorîn ji bo hemî rûpelan */
 .main-content, #subcategoryDetailPage, .settings-page {
     padding-top: 80px; /* Cih ji bo headerê */
-    /* PWA Safe Area */
-    padding-bottom: calc(85px + env(safe-area-inset-bottom));
+    padding-bottom: 85px; /* Cih ji bo navîgasyona jêrîn */
 }
 
 .section {
@@ -136,6 +125,11 @@ body.overlay-active {
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     border-right: none;
     border-left: none;
+}
+
+#mainCategoriesContainer, /* <-- KODA NÛ */
+#subcategoriesContainer {  /* <-- KODA NÛ */
+    background-color: var(--section-bg); /* Ji bo pêşîlêgirtina dîmenê binî */
 }
 
 .subcategories-container {
@@ -195,8 +189,6 @@ body.overlay-active {
     flex-shrink: 0;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     transition: all 0.2s ease-in-out;
-    -webkit-touch-callout: none;
-    -webkit-user-drag: none;
 }
 
 .search-container {
@@ -311,10 +303,6 @@ body.overlay-active {
     transition: transform 0.2s, box-shadow 0.2s;
     display: flex;
     flex-direction: column;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
 }
 .product-card:hover {
     transform: translateY(-5px);
@@ -353,8 +341,6 @@ body.overlay-active {
     object-fit: contain;
     padding: 10px;
     background-color: #f8f9fa;
-    -webkit-touch-callout: none;
-    -webkit-user-drag: none;
 }
 
 .product-info {
@@ -397,7 +383,7 @@ body.overlay-active {
     text-shadow: none;
 }
 .original-price {
-    display: none; /* Changed from inline-block to handle cases where it's shown in details */
+    display: none;
 }
 
 @keyframes bounce-badge {
@@ -472,32 +458,6 @@ body.overlay-active {
 .favorite-btn:hover { transform: scale(1.1); }
 .favorite-btn.favorited { color: var(--danger-color); }
 
-/* --- KODA NUYÊ CSS BO BIŞKOJA PARVEKIRINÊ --- */
-/* --- کۆدی نوێ بۆ دوگمەی هاوبەشیپێکردن --- */
-.share-btn-card {
-    position: absolute;
-    top: 8px;
-    left: 48px; /* Li tenişta bişkoja favorit */
-    background: rgba(255, 255, 255, 0.8);
-    border: 1px solid var(--medium-gray);
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 15px;
-    color: var(--dark-gray);
-    transition: color 0.2s, transform 0.2s;
-    z-index: 5;
-}
-
-.share-btn-card:hover {
-    transform: scale(1.1);
-    color: var(--primary-color);
-}
-
 .add-to-cart-btn {
     width: 100%; height: auto; padding: 8px; margin-top: auto;
     background-color: var(--accent-color); color: white; border: none; border-radius: 6px;
@@ -532,9 +492,6 @@ body.overlay-active {
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     z-index: 6;
     animation: move-peek 5s infinite ease-in-out;
-}
-.shipping-badge i {
-    margin-left: 6px;
 }
 
 @keyframes scaleIn {
@@ -578,10 +535,7 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 
 .whatsapp-btn, .viber-btn, .telegram-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%; border: none; color: white; }
 
-.bottom-nav { display: flex; justify-content: space-around; align-items: stretch; position: fixed; bottom: 0; left: 0; right: 0; width: 100%; height: 65px; background-color: #ffffff; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000; border-top: 1px solid var(--medium-gray);
-/* PWA Safe Area */
-padding-bottom: env(safe-area-inset-bottom);
-height: calc(65px + env(safe-area-inset-bottom)); }
+.bottom-nav { display: flex; justify-content: space-around; align-items: stretch; position: fixed; bottom: 0; left: 0; right: 0; width: 100%; height: 65px; background-color: #ffffff; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000; border-top: 1px solid var(--medium-gray); }
 
 .bottom-nav-item {
     display: flex;
@@ -600,10 +554,6 @@ height: calc(65px + env(safe-area-inset-bottom)); }
     padding: 5px 0;
     transition: all 0.2s;
     border-bottom: 3px solid transparent;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
 }
 
 .bottom-nav-item.active {
@@ -621,9 +571,7 @@ height: calc(65px + env(safe-area-inset-bottom)); }
 
 .sheet-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1500; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; }
 .sheet-overlay.show { opacity: 1; visibility: visible; }
-.bottom-sheet { position: fixed; bottom: 0; left: 0; right: 0; background-color: white; border-top-left-radius: 16px; border-top-right-radius: 16px; box-shadow: 0 -4px 20px rgba(0,0,0,0.15); transform: translateY(100%); transition: transform 0.3s ease-out; z-index: 1600; max-height: 80vh; display: flex; flex-direction: column;
-/* PWA Safe Area */
-padding-bottom: env(safe-area-inset-bottom); }
+.bottom-sheet { position: fixed; bottom: 0; left: 0; right: 0; background-color: white; border-top-left-radius: 16px; border-top-right-radius: 16px; box-shadow: 0 -4px 20px rgba(0,0,0,0.15); transform: translateY(100%); transition: transform 0.3s ease-out; z-index: 1600; max-height: 80vh; display: flex; flex-direction: column; }
 .bottom-sheet.show { transform: translateY(0); }
 .sheet-header { padding: 12px; text-align: center; border-bottom: 1px solid var(--medium-gray); position: relative; flex-shrink: 0; }
 .sheet-handle { width: 40px; height: 5px; background-color: var(--medium-gray); border-radius: 3px; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); }
@@ -638,7 +586,7 @@ padding-bottom: env(safe-area-inset-bottom); }
 
 #sheetImageSlider { position: relative; max-width: 100%; margin-bottom: 15px; }
 #sheetImageContainer { display: flex; overflow: hidden; border-radius: 8px; }
-#sheetImageContainer img { width: 100%; flex-shrink: 0; display: none; object-fit: contain; max-height: 350px; transition: opacity 0.3s ease-in-out; -webkit-touch-callout: none; -webkit-user-drag: none; }
+#sheetImageContainer img { width: 100%; flex-shrink: 0; display: none; object-fit: contain; max-height: 350px; transition: opacity 0.3s ease-in-out; }
 #sheetImageContainer img.active { display: block; }
 .slider-btn { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0,0,0,0.4); color: white; border: none; font-size: 20px; cursor: pointer; z-index: 10; border-radius: 50%; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; }
 .slider-btn.prev { left: 10px; }
@@ -778,11 +726,6 @@ padding-bottom: env(safe-area-inset-bottom); }
     overflow-x: auto;
     padding: 5px 12px 10px 12px;
     scrollbar-width: none;
-    /* == KODA NÛ ZÊDEKIRÎ == */
-    /* == کۆدی نوێ زیادکرا == */
-    touch-action: pan-x; /* Destûrê dide tenê kişandina (pan) ئاسۆیی لەسەر شاشەی لەمس */
-    -ms-touch-action: pan-x; /* Ji bo Internet Explorer */
-    overscroll-behavior-x: contain; /* Rêگرتن لەوەی scrollـی ئاسۆیی کاریگەری لەسەر scrollـی دەرەوە (لاپەڕەی سەرەکی) بکات */
 }
 .main-categories-container::-webkit-scrollbar {
     display: none;
@@ -803,7 +746,6 @@ padding-bottom: env(safe-area-inset-bottom); }
     gap: 8px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     font-weight: bold;
-    flex-shrink: 0; /* Add this if not present */
 }
 
 .main-category-btn i {
@@ -874,6 +816,42 @@ padding-bottom: env(safe-area-inset-bottom); }
 }
 .social-link-item .delete-btn {
     flex-shrink: 0;
+}
+
+body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+}
+.app-header {
+    padding-top: calc(12px + env(safe-area-inset-top));
+}
+.bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom);
+    height: calc(65px + env(safe-area-inset-bottom));
+}
+.main-content, #subcategoryDetailPage, .settings-page {
+    padding-bottom: calc(85px + env(safe-area-inset-bottom));
+}
+.bottom-sheet {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+body {
+    -webkit-overflow-scrolling: touch;
+}
+body, .bottom-nav-item, .product-card {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.shipping-badge i {
+    margin-left: 6px;
 }
 
 @keyframes slideAndFade {
@@ -1061,8 +1039,6 @@ padding-bottom: env(safe-area-inset-bottom); }
     width: 100%;
     height: 100%;
     object-fit: contain;
-    -webkit-touch-callout: none;
-    -webkit-user-drag: none;
 }
 
 .brand-item span {
@@ -1125,8 +1101,6 @@ padding-bottom: env(safe-area-inset-bottom); }
     object-fit: cover;
     border-radius: 12px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    -webkit-touch-callout: none;
-    -webkit-user-drag: none;
 }
 
 .shortcut-card-name {
@@ -1179,7 +1153,14 @@ padding-bottom: env(safe-area-inset-bottom); }
     width: 140px;
     flex-shrink: 0;
 }
-
+.product-image,
+#sheetImageContainer img,
+.subcategory-image,
+.brand-image-wrapper img,
+.shortcut-card-image {
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+}
 
 /* ===== KODA NUYÊ CSS BO ADMIN LAYOUT ===== */
 .add-section-btn {
@@ -1315,6 +1296,32 @@ input:checked + .slider:before {
     padding-top: 16px;
 }
 
+
+/* --- KODÊ NÛ JI BO BIŞKOJA PARVEKIRINÊ --- */
+/* --- کۆدی نوێ بۆ دوگمەی هاوبەشیپێکردن --- */
+.share-btn-card {
+    position: absolute;
+    top: 8px;
+    left: 48px; /* Li tenişta bişkoja favorit */
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid var(--medium-gray);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 15px;
+    color: var(--dark-gray);
+    transition: color 0.2s, transform 0.2s;
+    z-index: 5;
+}
+
+.share-btn-card:hover {
+    transform: scale(1.1);
+    color: var(--primary-color);
+}
 /* === START: KODÊN NÛ JI BO DÎZAYNA BEŞÊ ADMIN === */
 
 /* 1. Stîla Giştî ya Beşên Admin */
@@ -1455,8 +1462,7 @@ input:checked + .slider:before {
     font-size: 12px;
     padding: 4px 8px;
     border-radius: 4px;
-    margin-right: 8px; /* Corrected from margin-left for RTL */
-    margin-left: 0;   /* Ensure no left margin */
+    margin-right: 8px;
 }
 
 /* === END: KODÊN NÛ JI BO DÎZAYNA BEŞÊ ADMIN === */
