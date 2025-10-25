@@ -532,7 +532,7 @@ function renderCategoriesSheet() {
                 subSubcategory: 'all',
                 search: ''
             });
-            closeCurrentPopup();
+            closeAllPopupsUI();
             showPage('mainPage');
         };
 
