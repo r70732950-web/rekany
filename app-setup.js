@@ -3,9 +3,29 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js"; // Removed unused imports
-import { getFirestore, enableIndexedDbPersistence, collection } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js"; // Removed unused imports
-import { getMessaging } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js"; // Removed unused imports
+import { getAuth } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+// === START: ADDED FIRESTORE FUNCTION IMPORTS ===
+import {
+    getFirestore,
+    enableIndexedDbPersistence,
+    collection, // Export this
+    doc,        // Export this
+    getDoc,     // Export this
+    setDoc,     // Export this (used in user-actions, admin)
+    addDoc,     // Export this (used in user-actions, admin)
+    updateDoc,  // Export this (used in admin)
+    deleteDoc,  // Export this (used in admin)
+    onSnapshot, // Export this (used in admin)
+    query,      // Export this
+    orderBy,    // Export this
+    getDocs,    // Export this
+    where,      // Export this (used in data-renderer, admin)
+    limit,      // Export this (used in data-renderer, admin)
+    startAfter, // Export this (used in data-renderer)
+    runTransaction // Export this (maybe needed by admin?)
+} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+// === END: ADDED FIRESTORE FUNCTION IMPORTS ===
+import { getMessaging } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
 // Firebase Configuration (Keep your original config)
 const firebaseConfig = {
@@ -25,9 +45,27 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 
-// Make Firebase services and helper functions globally available for admin.js (if needed by admin.js directly)
-// Consider if admin.js can import these directly from app-logic.js's globalAdminTools instead.
-// window.globalFirebase = { db, auth, collection, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction }; // Example
+// === START: EXPORT FIRESTORE FUNCTIONS ===
+export {
+    enableIndexedDbPersistence,
+    collection,
+    doc,
+    getDoc,
+    setDoc,
+    addDoc,
+    updateDoc,
+    deleteDoc,
+    onSnapshot,
+    query,
+    orderBy,
+    getDocs,
+    where,
+    limit,
+    startAfter,
+    runTransaction
+};
+// === END: EXPORT FIRESTORE FUNCTIONS ===
+
 
 // Firestore Collections Exports
 export const productsCollection = collection(db, "products");
