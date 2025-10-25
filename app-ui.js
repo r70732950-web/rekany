@@ -88,6 +88,7 @@ function updateCartCountUI() {
 function renderCartUI() {
     const itemsHTML = createCartItemsHTML(state.cart);
     cartItemsContainer.innerHTML = itemsHTML;
+    const totalPrice = getCartTotalPrice(); // Calculate total price once
 
     if (state.cart.length === 0) {
         emptyCartMessage.style.display = 'block';
@@ -97,11 +98,14 @@ function renderCartUI() {
         emptyCartMessage.style.display = 'none';
         cartTotal.style.display = 'block';
         cartActions.style.display = 'block';
-        totalAmount.textContent = getCartTotalPrice().toLocaleString();
+        // Use translation for currency symbol in cart total
+        totalAmount.textContent = totalPrice.toLocaleString();
+        cartTotal.querySelector('[data-translate-key="currency_symbol"]').textContent = t('currency_symbol', {defaultValue: 'د.ع.'});
         renderCartActionButtonsUI(); // Render buttons after ensuring cart is not empty
     }
     updateCartCountUI();
 }
+
 
 /**
  * Renders the favorite products page/sheet.
@@ -432,6 +436,9 @@ async function renderCartActionButtonsUI() {
  * Applies language translations to static UI elements.
  */
 function applyLanguageToUI() {
+    document.documentElement.lang = state.currentLanguage.startsWith('ar') ? 'ar' : 'ku'; // Set lang on HTML element
+    document.documentElement.dir = 'rtl'; // Always RTL for these languages
+
     document.querySelectorAll('[data-translate-key]').forEach(element => {
         const key = element.dataset.translateKey;
         const translation = t(key);
@@ -440,7 +447,13 @@ function applyLanguageToUI() {
                 element.placeholder = translation;
             }
         } else {
-            element.textContent = translation;
+            // Special case for currency symbol span inside cart total
+            if (element.parentElement?.id === 'cartTotal' && key === 'currency_symbol') {
+                element.textContent = translation;
+            } else if (!element.closest('#cartTotal') || key !== 'currency_symbol') {
+                // Avoid overwriting price in cart total, update others normally
+                 element.textContent = translation;
+            }
         }
     });
 
@@ -449,6 +462,7 @@ function applyLanguageToUI() {
         btn.classList.toggle('active', btn.dataset.lang === state.currentLanguage);
     });
 }
+
 
 /**
  * Shows or hides admin-specific UI elements.
@@ -581,8 +595,10 @@ export function openPopup(id, type = 'sheet') {
     }
     document.body.classList.add('overlay-active'); // Prevent body scroll
 
-    // Push state for popup
-    history.pushState({ type: type, id: id }, '', `#${id}`);
+    // Push state for popup only if it's not already the current state
+    if (history.state?.id !== id || history.state?.type !== type) {
+       history.pushState({ type: type, id: id }, '', `#${id}`);
+    }
 }
 
 
@@ -852,8 +868,11 @@ function setupScrollObserver() {
 
     const observer = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting) {
-            // Trigger loading more products via search function
-            searchProductsInFirestore(state.currentSearch, false); // false indicates loadMore
+             // Only load more if not currently loading and not all products are loaded
+             if (!state.isLoadingMoreProducts && !state.allProductsLoaded) {
+                 // Trigger loading more products via search function
+                 searchProductsInFirestore(state.currentSearch, false); // false indicates loadMore
+             }
         }
     }, {
         root: null, // relative to document viewport
@@ -931,7 +950,8 @@ function setupEventListeners() {
              const ids = hash.split('_');
              const subCatId = ids[2];
              const activeSubSubBtn = subSubCategoryContainerOnDetailPage.querySelector('.subcategory-btn.active');
-             const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.subsubcategoryid || 'all') : 'all';
+             // Correctly get subsubcategoryid from dataset
+             const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.subsubcategoryId || 'all') : 'all';
              await searchProductsOnDetailPage(subCatId, subSubCatId, term);
          }
      }, 500);
@@ -1005,9 +1025,9 @@ function setupEventListeners() {
     enableNotificationsBtn?.addEventListener('click', async () => {
          const result = await requestNotificationPermissionAndSaveToken();
          if(result.granted) {
-             showNotification('مۆڵەتی ئاگەداری درا', 'success');
+             showNotification(t('notification_permission_granted', {defaultValue:'مۆڵەتی ئاگەداری درا'}), 'success');
          } else if (!result.error) {
-             showNotification('مۆڵەت نەدرا', 'error');
+             showNotification(t('notification_permission_denied', {defaultValue:'مۆڵەت نەدرا'}), 'error');
          } else {
              showNotification(t('error_generic'), 'error');
          }
@@ -1020,10 +1040,12 @@ function setupEventListeners() {
                  if ('serviceWorker' in navigator) {
                      const registrations = await navigator.serviceWorker.getRegistrations();
                      for (const registration of registrations) { await registration.unregister(); }
+                     console.log('Service Workers unregistered.');
                  }
                  if (window.caches) {
                      const keys = await window.caches.keys();
                      await Promise.all(keys.map(key => window.caches.delete(key)));
+                      console.log('All caches cleared.');
                  }
                  showNotification(t('update_success'), 'success');
                  setTimeout(() => window.location.reload(true), 1500);
@@ -1059,11 +1081,17 @@ function setupEventListeners() {
     favoritesContainer.addEventListener('click', handleProductCardAction);
      // Product Grid (Detail Page)
      productsContainerOnDetailPage.addEventListener('click', handleProductCardAction);
+     // Home Page Sections Container (for cards within sections like newest, category row etc.)
+     homePageSectionsContainer.addEventListener('click', handleProductCardAction);
 
     // Cart Sheet
     cartItemsContainer.addEventListener('click', (e) => {
-        const action = e.target.closest('[data-action]')?.dataset.action;
-        const id = e.target.closest('[data-id]')?.dataset.id;
+        const targetButton = e.target.closest('button');
+        if (!targetButton) return;
+
+        const action = targetButton.dataset.action;
+        const id = targetButton.dataset.id;
+
         if (!action || !id) return;
 
         if (action === 'increase-quantity') updateQuantity(id, 1);
@@ -1147,10 +1175,16 @@ function setupEventListeners() {
      subSubCategoryContainerOnDetailPage?.addEventListener('click', async (e) => {
           const button = e.target.closest('[data-action="select-subsubcategory"]');
            if (button) {
-               const subSubcategoryId = button.dataset.subsubcategoryId;
+               const subSubcategoryId = button.dataset.subsubcategoryId; // Correct dataset key
                const hash = window.location.hash.substring(1);
-               const subCatId = hash.split('_')[2]; // Get subCatId from hash
+               const ids = hash.split('_'); // e.g., #subcategory_mainId_subId
+               const subCatId = ids.length > 2 ? ids[2] : null; // Get subCatId from hash
                const searchTerm = subpageSearchInput.value;
+
+               if(!subCatId) {
+                   console.error("Could not determine subCatId from hash for sub-subcategory selection.");
+                   return;
+               }
 
                // Update active button state visually
                subSubCategoryContainerOnDetailPage.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
@@ -1269,7 +1303,13 @@ function setupEventListeners() {
               window.AdminLogic.updateAdminCategoryDropdowns();
          }
          // Update dropdowns in product form
-         if(typeof populateCategoryDropdown === 'function') populateCategoryDropdown(); // Assuming this is defined in admin or here? Needs check.
+         // Check if AdminLogic exists and then call populateCategoryDropdown
+         if (window.AdminLogic && typeof window.AdminLogic.populateCategoryDropdown === 'function') {
+              window.AdminLogic.populateCategoryDropdown();
+         } else if (typeof populateCategoryDropdown === 'function') {
+             // Fallback to global if needed, though ideally it's part of admin logic now
+              populateCategoryDropdown();
+         }
     });
      document.addEventListener('productsFetched', (e) => {
          const { products, allLoaded, error, isNewSearch } = e.detail;
@@ -1299,6 +1339,8 @@ function setupEventListeners() {
                skeletonLoader.style.display = 'none';
                scrollTrigger.style.display = 'none';
                homePageSectionsContainer.style.display = 'block';
+               // Trigger re-render of home page content if needed
+                renderHomePageUI(); // Call UI render function
           }
      });
       document.addEventListener('renderHomePage', renderHomePageUI);
@@ -1320,54 +1362,68 @@ function setupEventListeners() {
  * Uses event delegation.
  */
 async function handleProductCardAction(event) {
-    const actionButton = event.target.closest('[data-action]');
-    if (!actionButton) return;
+    // Find the closest button with a data-action attribute
+    const actionButton = event.target.closest('button[data-action]');
+    // Find the product card itself
+     const productCard = event.target.closest('.product-card');
+     const productId = productCard?.dataset.productId;
 
-    const action = actionButton.dataset.action;
-    const productCard = actionButton.closest('.product-card');
-    const productId = productCard?.dataset.productId;
+     // If no product ID, exit
+     if (!productId) {
+          // If the click was not on a button, try to show details
+           if (!actionButton && productCard && !event.target.closest('a')) { // Avoid triggering on links inside cards
+                event.stopPropagation(); // Prevent potential parent handlers
+                document.dispatchEvent(new CustomEvent('showProductDetails', { detail: { productId } }));
+           }
+         return;
+     }
 
-    if (!productId) return;
+     // If the click was on an action button
+    if (actionButton) {
+         event.stopPropagation(); // Prevent card click if button is clicked
+         const action = actionButton.dataset.action;
 
-    event.stopPropagation(); // Prevent card click if button is clicked
-
-    switch (action) {
-        case 'add-to-cart':
-            const success = await addToCart(productId); // addToCart is async now
-            if (success && !actionButton.disabled) {
-                 // UI feedback for add to cart
-                 const originalContent = actionButton.innerHTML;
-                 actionButton.disabled = true;
-                 actionButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
-                 setTimeout(() => {
-                     actionButton.innerHTML = `<i class="fas fa-check"></i>`; // Just checkmark, no text
+        switch (action) {
+            case 'add-to-cart':
+                const success = await addToCart(productId); // addToCart is async now
+                if (success && !actionButton.disabled) {
+                     // UI feedback for add to cart
+                     const originalContent = actionButton.innerHTML;
+                     actionButton.disabled = true;
+                     actionButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
                      setTimeout(() => {
-                         actionButton.innerHTML = originalContent;
-                         actionButton.disabled = false;
-                     }, 1200); // Shorter duration for checkmark
-                 }, 400); // Shorter duration for spinner
-                 showNotification(t('product_added_to_cart')); // Show notification via app-data call result
-            } else if (!success) {
-                 showNotification(t('product_not_found_error'), 'error');
-            }
-            break;
-        case 'toggle-favorite':
-            toggleFavorite(productId); // Let event listener update UI and show notification
-            break;
-        case 'share-product':
-             shareProduct(productId, productCard); // Encapsulated share logic
-            break;
-        case 'edit-product':
-            if (window.AdminLogic && typeof window.AdminLogic.editProduct === 'function') {
-                window.AdminLogic.editProduct(productId);
-            }
-            break;
-        case 'delete-product':
-            if (window.AdminLogic && typeof window.AdminLogic.deleteProduct === 'function') {
-                window.AdminLogic.deleteProduct(productId);
-            }
-            break;
-    }
+                         actionButton.innerHTML = `<i class="fas fa-check"></i>`; // Just checkmark, no text
+                         setTimeout(() => {
+                             actionButton.innerHTML = originalContent;
+                             actionButton.disabled = false;
+                         }, 1200); // Shorter duration for checkmark
+                     }, 400); // Shorter duration for spinner
+                     // showNotification(t('product_added_to_cart')); // Notification shown by addToCart now via event
+                } else if (!success) {
+                     showNotification(t('product_not_found_error'), 'error');
+                }
+                break;
+            case 'toggle-favorite':
+                toggleFavorite(productId); // Let event listener update UI and show notification
+                break;
+            case 'share-product':
+                 shareProduct(productId, productCard); // Encapsulated share logic
+                break;
+            case 'edit-product':
+                if (window.AdminLogic && typeof window.AdminLogic.editProduct === 'function') {
+                    window.AdminLogic.editProduct(productId);
+                }
+                break;
+            case 'delete-product':
+                if (window.AdminLogic && typeof window.AdminLogic.deleteProduct === 'function') {
+                    window.AdminLogic.deleteProduct(productId);
+                }
+                break;
+        }
+     } else if (productCard && !event.target.closest('a')) {
+         // If click was directly on card (not a button or link), show details
+          document.dispatchEvent(new CustomEvent('showProductDetails', { detail: { productId } }));
+     }
 }
 
 /**
@@ -1392,6 +1448,12 @@ async function shareProduct(productId, productCardElement) {
              // Fallback: Copy URL to clipboard
              const textArea = document.createElement('textarea');
              textArea.value = productUrl;
+             // Make it non-editable and invisible
+             textArea.style.position = 'fixed';
+             textArea.style.top = '-9999px';
+             textArea.style.left = '-9999px';
+             textArea.setAttribute('readonly', '');
+
              document.body.appendChild(textArea);
              textArea.select();
              try {
@@ -1454,6 +1516,8 @@ async function showProductDetailsUI(productId) {
             const img = document.createElement('img');
             img.src = url;
             img.alt = nameInCurrentLang;
+             // Add error handling for images
+             img.onerror = function() { this.onerror=null; this.src='https://placehold.co/400x400/e2e8f0/2d3748?text=Error'; };
             if (index === 0) img.classList.add('active');
             imageContainer.appendChild(img);
 
@@ -1461,12 +1525,13 @@ async function showProductDetailsUI(productId) {
             thumb.src = url;
             thumb.alt = `Thumbnail ${index + 1}`;
             thumb.className = 'thumbnail';
+             thumb.onerror = function() { this.onerror=null; this.src='https://placehold.co/60x60/e2e8f0/2d3748?text=Err'; };
             if (index === 0) thumb.classList.add('active');
             thumb.dataset.index = index;
             thumbnailContainer.appendChild(thumb);
         });
     } else {
-         imageContainer.innerHTML = `<img src="https://placehold.co/400x400/e2e8f0/2d3748?text=${t('no_image_placeholder')}" alt="${nameInCurrentLang}" class="active">`;
+         imageContainer.innerHTML = `<img src="https://placehold.co/400x400/e2e8f0/2d3748?text=${t('no_image_placeholder', {defaultValue:'وێنە+نییە'})}" alt="${nameInCurrentLang}" class="active">`;
     }
 
     // --- Slider Logic (Internal to this function) ---
@@ -1501,27 +1566,26 @@ async function showProductDetailsUI(productId) {
     document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText);
 
     const priceContainer = document.getElementById('sheetProductPrice');
-     const currency = t('currency_symbol', {defaultValue: 'د.ع.'});
-     if (product.originalPrice && product.originalPrice > product.price) {
-         priceContainer.innerHTML = `<span style="color: var(--accent-color);">${product.price.toLocaleString()} ${currency}</span> <del style="color: var(--dark-gray); font-size: 16px; margin-right: 10px;">${product.originalPrice.toLocaleString()} ${currency}</del>`;
-     } else {
-         priceContainer.innerHTML = `<span>${product.price.toLocaleString()} ${currency}</span>`;
-     }
-
+    const currency = t('currency_symbol', {defaultValue: 'د.ع.'}); // Get currency symbol via translation
+    // *** FIX: Use the translated currency symbol ***
+    if (product.originalPrice && product.originalPrice > product.price) {
+        priceContainer.innerHTML = `<span style="color: var(--accent-color);">${product.price.toLocaleString()} ${currency}</span> <del style="color: var(--dark-gray); font-size: 16px; margin-right: 10px;">${product.originalPrice.toLocaleString()} ${currency}</del>`;
+    } else {
+        priceContainer.innerHTML = `<span>${product.price.toLocaleString()} ${currency}</span>`;
+    }
 
     // --- Add to Cart Button ---
     const addToCartButton = document.getElementById('sheetAddToCartBtn');
     addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
-    // Remove previous listener before adding new one
+    // Remove previous listener before adding new one to avoid multiple additions
     addToCartButton.replaceWith(addToCartButton.cloneNode(true));
     document.getElementById('sheetAddToCartBtn').onclick = async () => {
-         const success = await addToCart(product.id);
-          if(success){
-               showNotification(t('product_added_to_cart'));
-               closeCurrentPopup();
-          } else {
-               showNotification(t('error_adding_to_cart', {defaultValue: 'هەڵە لە زیادکردن بۆ سەبەتە'}), 'error');
-          }
+         // Use data-action for consistency with card handler
+         const btn = document.getElementById('sheetAddToCartBtn');
+         btn.dataset.action = 'add-to-cart'; // Add action temporarily
+         handleProductCardAction({ target: btn, stopPropagation: () => {} }); // Simulate event
+         delete btn.dataset.action; // Clean up
+         closeCurrentPopup(); // Close sheet after adding
     };
 
 
@@ -1608,7 +1672,7 @@ function setupServiceWorkerUpdateNotifications() {
         updateNowBtn?.addEventListener('click', () => {
              console.log("Update button clicked, sending skipWaiting.");
              // Use registration.waiting if available, otherwise assume newWorker
-             const workerToSignal = navigator.serviceWorker.controller ? registration.waiting : newWorker;
+             const workerToSignal = registration.waiting || newWorker; // Check registration.waiting first
             workerToSignal?.postMessage({ action: 'skipWaiting' });
              updateNotification?.classList.remove('show'); // Hide notification
         });
@@ -1738,3 +1802,4 @@ async function initAppUI() {
 
 // Start the UI initialization when the DOM is ready
 document.addEventListener('DOMContentLoaded', initAppUI);
+
