@@ -3,33 +3,13 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-// === START: ADDED FIRESTORE FUNCTION IMPORTS ===
-import {
-    getFirestore,
-    enableIndexedDbPersistence,
-    collection, // Export this
-    doc,        // Export this
-    getDoc,     // Export this
-    setDoc,     // Export this (used in user-actions, admin)
-    addDoc,     // Export this (used in user-actions, admin)
-    updateDoc,  // Export this (used in admin)
-    deleteDoc,  // Export this (used in admin)
-    onSnapshot, // Export this (used in admin)
-    query,      // Export this
-    orderBy,    // Export this
-    getDocs,    // Export this
-    where,      // Export this (used in data-renderer, admin)
-    limit,      // Export this (used in data-renderer, admin)
-    startAfter, // Export this (used in data-renderer)
-    runTransaction // Export this (maybe needed by admin?)
-} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-// === END: ADDED FIRESTORE FUNCTION IMPORTS ===
-import { getMessaging } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
-// Firebase Configuration (Keep your original config)
+// Firebase Configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", // Use environment variables in production
+    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE",
     authDomain: "maten-store.firebaseapp.com",
     projectId: "maten-store",
     storageBucket: "maten-store.appspot.com",
@@ -45,37 +25,18 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 
-// === START: EXPORT FIRESTORE FUNCTIONS ===
-export {
-    enableIndexedDbPersistence,
-    collection,
-    doc,
-    getDoc,
-    setDoc,
-    addDoc,
-    updateDoc,
-    deleteDoc,
-    onSnapshot,
-    query,
-    orderBy,
-    getDocs,
-    where,
-    limit,
-    startAfter,
-    runTransaction
-};
-// === END: EXPORT FIRESTORE FUNCTIONS ===
-
+// Make Firebase services and helper functions globally available for admin.js
+window.globalAdminTools = {};
 
 // Firestore Collections Exports
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
+
+// ====== UPDATED COLLECTIONS / کۆڵێکشنە نوێکراوەکان ======
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
-export const shortcutRowsCollection = collection(db, "shortcut_rows");
-export const homeLayoutCollection = collection(db, "home_layout");
-export const settingsCollection = collection(db, "settings");
+// ===============================================
 
 // Translations Export
 export const translations = {
@@ -128,7 +89,7 @@ export const translations = {
         login_error: "ئیمەیڵ یان وشەی نهێنی هەڵەیە",
         logout_success: "بە سەرکەوتوویی چوویتەدەرەوە",
         profile_saved: "زانیارییەکانی پڕۆفایل پاشەکەوتکران",
-        all_categories_label: "هەموو", // Changed from "هەموو جۆرەکان" for consistency
+        all_categories_label: "هەموو",
         install_app: "دامەزراندنی ئەپ",
         product_added_to_cart: "کاڵاکە زیادکرا بۆ سەبەتە",
         product_added_to_favorites: "زیادکرا بۆ لیستی دڵخوازەکان",
@@ -151,7 +112,7 @@ export const translations = {
         policies_saved_success: "مەرج و ڕێساکان پاشەکەوتکران",
         loading_policies: "...خەریکی بارکردنی ڕێساکانە",
         no_policies_found: "هیچ مەرج و ڕێسایەک دانەنراوە.",
-        has_discount_badge: "داشکانی تێدایە", // Or simply "داشکان"
+        has_discount_badge: "داشکانی تێدایە",
         force_update: "ناچارکردن بە نوێکردنەوە (سڕینەوەی کاش)",
         update_confirm: "دڵنیایت دەتەوێت ئەپەکە نوێ بکەیتەوە؟ هەموو کاشی ناو وێبگەڕەکەت دەسڕدرێتەوە.",
         update_success: "ئەپەکە بە سەرکەوتوویی نوێکرایەوە!",
@@ -162,48 +123,6 @@ export const translations = {
         related_products_title: "کاڵای هاوشێوە",
         share_text: "سەیری ئەم کاڵایە بکە",
         share_error: "هاوبەشیپێکردن سەرکەوتوو نەبوو",
-        product_link_copied: "لینکی کاڵا کۆپی کرا!",
-        copy_failed: "کۆپیکردن سەرکەوتوو نەبوو!",
-        // Added keys from user-actions
-        error_saving_cart: 'هەڵە لە پاشەکەوتکردنی سەبەتە ڕوویدا',
-        increase_quantity: 'زیادکردنی ژمارە',
-        decrease_quantity: 'کەمکردنی ژمارە',
-        remove_item: 'سڕینەوەی کاڵا',
-        subtotal: 'کۆی گشتی بەش',
-        currency: 'د.ع.',
-        unnamed_product: 'کاڵای بێ ناو',
-        no_order_methods: 'هیچ ڕێگایەک بۆ ناردنی داواکاری دیاری نەکراوە.',
-        error_contact_method_misconfigured: 'هەڵە لە ڕێکخستنی شێوازی پەیوەندی.',
-        error_unsupported_contact_method: 'شێوازی پەیوەندی نەناسراوە.',
-        error_loading_order_methods: 'هەڵە لە بارکردنی شێوازەکانی داواکاری.',
-        error_saving_favorites: 'هەڵە لە پاشەکەوتکردنی دڵخوازەکان ڕوویدا',
-        add_to_favorites: 'زیادکردن بۆ دڵخوازەکان',
-        remove_from_favorites: 'سڕینەوە لە دڵخوازەکان',
-        error_fetching_favorites: 'هەڵە لە هێنانی دڵخوازەکان ڕوویدا.',
-        error_saving_profile: 'هەڵە لە پاشەکەوتکردنی پڕۆفایل ڕوویدا',
-        loading_notifications: '...بارکردنی ئاگەدارییەکان',
-        error_loading_notifications: 'هەڵە لە بارکردنی ئاگەدارییەکان',
-        error_loading_policies: 'هەڵە لە بارکردنی ڕێساکان.',
-        notification_permission_granted: 'مۆڵەتی ناردنی ئاگەداری درا',
-        notification_permission_denied: 'مۆڵەت نەدرا',
-        error_notification_setup: 'هەڵە لە ڕێکخستنی ئاگەداری ڕوویدا',
-        new_notification: 'ئاگەداری نوێ',
-        error_force_update: 'هەڵە لەکاتی نوێکردنەوەی زۆرەملێ.',
-        logging_in: '...چوونەژوورەوە',
-        error_loading_admin_features: 'هەڵە لە بارکردنی تایبەتمەندییەکانی بەڕێوەبەر.',
-        error_displaying_product: 'هەڵە لە نیشاندانی زانیاری کاڵا.',
-        error_adding_cart: 'هەڵە لە زیادکردنی بۆ سەبەتە ڕوویدا',
-        // GPS related
-        gps_not_supported: 'وێبگەڕەکەت پشتگیری GPS ناکات',
-        loading_wait: '...چاوەڕوان بە',
-        address_received: 'ناونیشان وەرگیرا',
-        error_getting_address: 'هەڵەیەک لە وەرگرتنی ناونیشان ڕوویدا',
-        error_gps_permission: 'ڕێگەت نەدا GPS بەکاربهێنرێت',
-        error_gps_unavailable: 'شوێنەکەت نەدۆزرایەوە',
-        error_gps_timeout: 'کاتی داواکارییەکە تەواو بوو',
-        error_gps_unknown: 'هەڵەیەکی نادیار ڕوویدا لە وەرگرتنی شوێن',
-        no_image: 'وێنە+نییە',
-         // ... (Add other missing keys if needed)
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -254,30 +173,30 @@ export const translations = {
         login_error: "ئیمەیل یان پەیڤا نهێنى یا خەلەتە",
         logout_success: "ب سەرکەفتیانە چوويه دەر",
         profile_saved: "پێزانینێن پروفایلی هاتنە پاشەکەفتکرن",
-        all_categories_label: "هەمی", // Changed from "هەمی جور"
+        all_categories_label: "هەمی",
         install_app: "دامەزراندنا ئەپی",
         product_added_to_cart: "کاڵا هاتە زێدەکرن بۆ سەلکێ",
         product_added_to_favorites: "هاتە زێدەکرن بۆ لیستا حەزژێکریان",
         product_removed_from_favorites: "ژ لیستا حەزژێکریان هاتە ژێبرن",
-        manage_categories_title: "رێکخستنا جوران",
-		manage_contact_methods_title: "رێکخستنا رێکێن فرێکرنا داخازیێ",
+        manage_categories_title: "рێکخستنا جوران",
+		manage_contact_methods_title: "рێکخستنا رێکێن فرێکرنا داخازیێ",
         notifications_title: "ئاگەهداری",
         no_notifications_found: "چ ئاگەهداری نینن",
-        manage_announcements_title: "رێکخستنا ئاگەهداریان",
+        manage_announcements_title: "рێکخستنا ئاگەهداریان",
         send_new_announcement: "فرێکرنا ئاگەهداریەکا نوو",
         send_announcement_button: "ئاگەهداریێ فرێکە",
         sent_announcements: "ئاگەهداریێن هاتینە فرێکرن",
         no_announcements_sent: "چ ئاگەهداری نەهاتینە فرێکرن",
         announcement_deleted_success: "ئاگەهداری هاتە ژێبرن",
-        announcement_delete_confirm: "تو پشتڕاستی دێ ڤێ ئاگەهداریێ ژێبەی؟",
+        announcement_delete_confirm: "تو پشتڕاستی دێ ڤێ ئaگەهداریێ ژێبەی؟",
         enable_notifications: "چالاکرنا ئاگەهداریان",
         error_generic: "خەلەتییەک چێبوو!",
         terms_policies_title: "مەرج و سیاسەت",
-        manage_policies_title: "رێکخستنا مەرج و سیاسەتان",
+        manage_policies_title: "рێکخستنا مەرج و سیاسەتان",
         policies_saved_success: "مەرج و سیاسەت هاتنە پاشەکەفتکرن",
         loading_policies: "...د بارکرنا سیاسەتان دایە",
         no_policies_found: "چ مەرج و سیاسەت نەهاتینە دانان.",
-        has_discount_badge: "داشکان تێدایە", // Or simply "داشکان"
+        has_discount_badge: "داشکان تێدایە",
         force_update: "ناچارکرن ب نویکرنەوە (ژێبرنا کاشی)",
         update_confirm: "تو پشتراستی دێ ئەپی نویکەیەڤە؟ دێ هەمی کاش د ناڤ وێبگەرا تە دا هێتە ژێبرن.",
         update_success: "ئەپ ب سەرکەفتیانە هاتە نویکرن!",
@@ -288,9 +207,6 @@ export const translations = {
         related_products_title: "کاڵایێن وەک ئێکن",
         share_text: "بەرێخۆ بدە ڤی کاڵای",
         share_error: "پارڤەکرن سەرنەکەفت",
-        product_link_copied: "لینکێ کاڵای هاتە کۆپیکرن!",
-        copy_failed: "کۆپیکرن سەرنەکەفت!",
-         // ... (Add Badini translations for added keys)
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -341,7 +257,7 @@ export const translations = {
         login_error: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
         logout_success: "تم تسجيل الخروج بنجاح",
         profile_saved: "تم حفظ معلومات الملف الشخصي",
-        all_categories_label: "الكل", // Changed from "جميع الفئات"
+        all_categories_label: "الكل",
         install_app: "تثبيت التطبيق",
         product_added_to_cart: "تمت إضافة المنتج إلى السلة",
         product_added_to_favorites: "تمت الإضافة إلى المفضلة",
@@ -364,7 +280,7 @@ export const translations = {
         policies_saved_success: "تم حفظ الشروط والسياسات بنجاح",
         loading_policies: "...جاري تحميل السياسات",
         no_policies_found: "لم يتم تحديد أي شروط أو سياسات.",
-        has_discount_badge: "يتضمن خصم", // Or simply "خصم"
+        has_discount_badge: "يتضمن خصم",
         force_update: "فرض التحديث (مسح ذاكرة التخزين المؤقت)",
         update_confirm: "هل أنت متأكد من رغبتك في تحديث التطبيق؟ سيتم مسح جميع بيانات ذاكرة التخزين المؤقت.",
         update_success: "تم تحديث التطبيق بنجاح!",
@@ -375,139 +291,95 @@ export const translations = {
         related_products_title: "منتجات مشابهة",
         share_text: "ألق نظرة على هذا المنتج",
         share_error: "فشلت المشاركة",
-        product_link_copied: "تم نسخ رابط المنتج!",
-        copy_failed: "فشل النسخ!",
-         // ... (Add Arabic translations for added keys)
     }
 };
 
-// Global State Variables (Mutable) - Keep this minimal
+// Global State Variables (Mutable)
 export let state = {
     currentLanguage: localStorage.getItem('language') || 'ku_sorani',
-    deferredPrompt: null, // For PWA install prompt
+    deferredPrompt: null,
     cart: JSON.parse(localStorage.getItem("maten_store_cart")) || [],
     favorites: JSON.parse(localStorage.getItem("maten_store_favorites")) || [],
     userProfile: JSON.parse(localStorage.getItem("maten_store_profile")) || {},
-    // --- Data related state (Might move some to data-renderer if appropriate) ---
-    products: [], // Current list of displayed products
-    categories: [], // Main categories with 'all'
-    subcategories: [], // Subcategories for the *currently selected* main category
-    lastVisibleProductDoc: null, // For pagination
-    isLoadingMoreProducts: false, // Flag for infinite scroll
-    allProductsLoaded: false, // Flag for infinite scroll
-    productCache: {}, // Simple cache for search/filter results
-    // --- Filter/View state ---
+    editingProductId: null,
+    products: [],
+    allPromoCards: [],
+    currentPromoCardIndex: 0,
+    promoRotationInterval: null,
+    categories: [],
+    contactInfo: {},
+    subcategories: [],
+    lastVisibleProductDoc: null,
+    isLoadingMoreProducts: false,
+    allProductsLoaded: false,
+    isRenderingHomePage: false,
+    productCache: {},
     currentCategory: 'all',
     currentSubcategory: 'all',
     currentSubSubcategory: 'all',
     currentSearch: '',
-    // --- Home Page specific state ---
-    isRenderingHomePage: false, // Flag to prevent concurrent home renders
-    sliderIntervals: {}, // Object to store promo slider interval IDs { layoutId: intervalId }
-    // --- Admin state ---
-    editingProductId: null, // ID of product being edited in the form
 };
 
 // Constants
 export const CART_KEY = "maten_store_cart";
 export const FAVORITES_KEY = "maten_store_favorites";
 export const PROFILE_KEY = "maten_store_profile";
-export const PRODUCTS_PER_PAGE = 25; // For pagination
+export const PRODUCTS_PER_PAGE = 25;
 
 // DOM Elements Exports
-// General UI
 export const loginModal = document.getElementById('loginModal');
-export const welcomeModal = document.getElementById('welcomeModal');
-export const sheetOverlay = document.getElementById('sheet-overlay');
-export const mainPage = document.getElementById('mainPage');
-export const settingsPage = document.getElementById('settingsPage');
-export const subcategoryDetailPage = document.getElementById('subcategoryDetailPage'); // Added
-export const loader = document.getElementById('loader'); // General loader on main page
-export const skeletonLoader = document.getElementById('skeletonLoader'); // Skeleton on main page
-// Header
+export const addProductBtn = document.getElementById('addProductBtn');
+export const productFormModal = document.getElementById('productFormModal');
+export const productsContainer = document.getElementById('productsContainer');
+export const skeletonLoader = document.getElementById('skeletonLoader');
 export const searchInput = document.getElementById('searchInput');
 export const clearSearchBtn = document.getElementById('clearSearchBtn');
-export const subpageSearchInput = document.getElementById('subpageSearchInput');
-export const subpageClearSearchBtn = document.getElementById('subpageClearSearchBtn');
-// Bottom Nav
-export const homeBtn = document.getElementById('homeBtn');
-export const categoriesBtn = document.getElementById('categoriesBtn');
+export const loginForm = document.getElementById('loginForm');
+export const productForm = document.getElementById('productForm');
+export const formTitle = document.getElementById('formTitle');
+export const imageInputsContainer = document.getElementById('imageInputsContainer');
+export const loader = document.getElementById('loader');
 export const cartBtn = document.getElementById('cartBtn');
-export const profileBtn = document.getElementById('profileBtn');
-export const settingsBtn = document.getElementById('settingsBtn');
-// Cart Sheet
 export const cartItemsContainer = document.getElementById('cartItemsContainer');
 export const emptyCartMessage = document.getElementById('emptyCartMessage');
 export const cartTotal = document.getElementById('cartTotal');
 export const totalAmount = document.getElementById('totalAmount');
 export const cartActions = document.getElementById('cartActions');
-// Favorites Sheet
 export const favoritesContainer = document.getElementById('favoritesContainer');
 export const emptyFavoritesMessage = document.getElementById('emptyFavoritesMessage');
-// Categories Sheet
+export const categoriesBtn = document.getElementById('categoriesBtn');
+export const sheetOverlay = document.getElementById('sheet-overlay');
 export const sheetCategoriesContainer = document.getElementById('sheetCategoriesContainer');
-// Profile Sheet
-export const profileForm = document.getElementById('profileForm');
-// Notifications Sheet
-export const notificationBtn = document.getElementById('notificationBtn');
-export const notificationBadge = document.getElementById('notificationBadge');
-export const notificationsSheet = document.getElementById('notificationsSheet');
-export const notificationsListContainer = document.getElementById('notificationsListContainer');
-// Terms Sheet
-export const termsAndPoliciesBtn = document.getElementById('termsAndPoliciesBtn');
-export const termsSheet = document.getElementById('termsSheet');
-export const termsContentContainer = document.getElementById('termsContentContainer');
-// Product Detail Sheet
-export const productDetailSheet = document.getElementById('productDetailSheet');
-export const sheetImageContainer = document.getElementById('sheetImageContainer');
-export const sheetThumbnailContainer = document.getElementById('sheetThumbnailContainer');
-export const sheetPrevBtn = document.getElementById('sheetPrevBtn');
-export const sheetNextBtn = document.getElementById('sheetNextBtn');
-export const sheetProductName = document.getElementById('sheetProductName');
-export const sheetProductDescription = document.getElementById('sheetProductDescription');
-export const sheetProductPrice = document.getElementById('sheetProductPrice');
-export const sheetAddToCartBtn = document.getElementById('sheetAddToCartBtn');
-export const relatedProductsSection = document.getElementById('relatedProductsSection');
-export const relatedProductsContainer = document.getElementById('relatedProductsContainer');
-// Main Page Content Area
-export const mainCategoriesContainer = document.getElementById('mainCategoriesContainer');
-export const subcategoriesContainer = document.getElementById('subcategoriesContainer');
-export const productsContainer = document.getElementById('productsContainer');
-// Subcategory Detail Page Content Area
-export const subSubCategoryContainerOnDetailPage = document.getElementById('subSubCategoryContainerOnDetailPage'); // Added
-export const productsContainerOnDetailPage = document.getElementById('productsContainerOnDetailPage'); // Added
-export const detailPageLoader = document.getElementById('detailPageLoader'); // *** ADDED EXPORT ***
-// Settings Page Elements (General)
-export const contactToggle = document.getElementById('contactToggle');
-// Settings Page Elements (Admin Login/Logout)
-export const settingsAdminLoginBtn = document.getElementById('settingsAdminLoginBtn');
-export const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
-export const addProductBtn = document.getElementById('addProductBtn');
-// Admin Forms & Containers (Needed by AdminLogic)
-export const loginForm = document.getElementById('loginForm');
-export const productFormModal = document.getElementById('productFormModal');
-export const productForm = document.getElementById('productForm');
-export const formTitle = document.getElementById('formTitle');
-export const imageInputsContainer = document.getElementById('imageInputsContainer');
 export const productCategorySelect = document.getElementById('productCategoryId');
 export const subcategorySelectContainer = document.getElementById('subcategorySelectContainer');
 export const productSubcategorySelect = document.getElementById('productSubcategoryId');
 export const subSubcategorySelectContainer = document.getElementById('subSubcategorySelectContainer');
-export const productSubSubcategorySelect = document.getElementById('productSubSubcategorySelect');
-// Admin Sections (Needed by AdminLogic)
-export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
-export const policiesForm = document.getElementById('policiesForm');
-export const adminCategoryManagement = document.getElementById('adminCategoryManagement');
-export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
-export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
-export const adminShortcutRowsManagement = document.getElementById('adminShortcutRowsManagement');
-export const adminHomeLayoutManagement = document.getElementById('adminHomeLayoutManagement');
-export const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
+export const productSubSubcategorySelect = document.getElementById('productSubSubcategoryId');
+export const profileForm = document.getElementById('profileForm');
+export const settingsPage = document.getElementById('settingsPage');
+export const mainPage = document.getElementById('mainPage');
+export const homeBtn = document.getElementById('homeBtn');
+export const settingsBtn = document.getElementById('settingsBtn');
+export const settingsFavoritesBtn = document.getElementById('settingsFavoritesBtn');
+export const settingsAdminLoginBtn = document.getElementById('settingsAdminLoginBtn');
+export const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
+export const profileBtn = document.getElementById('profileBtn');
+export const contactToggle = document.getElementById('contactToggle');
 export const adminSocialMediaManagement = document.getElementById('adminSocialMediaManagement');
 export const addSocialMediaForm = document.getElementById('addSocialMediaForm');
 export const socialLinksListContainer = document.getElementById('socialLinksListContainer');
 export const socialMediaToggle = document.getElementById('socialMediaToggle');
+export const notificationBtn = document.getElementById('notificationBtn');
+export const notificationBadge = document.getElementById('notificationBadge');
+export const notificationsSheet = document.getElementById('notificationsSheet');
+export const notificationsListContainer = document.getElementById('notificationsListContainer');
 export const adminAnnouncementManagement = document.getElementById('adminAnnouncementManagement');
 export const announcementForm = document.getElementById('announcementForm');
-export const settingsFavoritesBtn = document.getElementById('settingsFavoritesBtn'); // Added back as it's used
-
+export const termsAndPoliciesBtn = document.getElementById('termsAndPoliciesBtn');
+export const termsSheet = document.getElementById('termsSheet');
+export const termsContentContainer = document.getElementById('termsContentContainer');
+export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
+export const policiesForm = document.getElementById('policiesForm');
+export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
+export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
+export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
