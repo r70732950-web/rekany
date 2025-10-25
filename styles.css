@@ -21,57 +21,18 @@
     font-family: 'Vazirmatn', sans-serif;
 }
 
-/* === START: GORRANKARIYA JI BO KÊŞEYA SCROLLÊ (2) === */
 body {
     background-color: var(--light-gray);
     color: var(--text-color);
     direction: rtl;
     overflow-x: hidden;
     font-family: 'Vazirmatn', sans-serif;
-    overflow-y: hidden; /* <-- VÊ LÊ ZÊDE BIKE / ئەمە زیاد کرا */
 }
 body.overlay-active {
-    overflow: hidden; /* Ev dimîne / ئەمە دەمێنێتەوە */
+    overflow: hidden;
 }
 
-.app-container {
-    max-width: 100%;
-    margin: 0 auto;
-    background-color: var(--light-gray);
-    /* min-height: 100vh; <-- Ev tê guhertin / ئەمە گۆڕدرا */
-    height: 100vh;      /* <-- VÊ LÊ ZÊDE BIKE / ئەمە زیاد کرا */
-    position: relative;
-    overflow-x: hidden;
-    overflow-y: hidden; /* <-- VÊ LÊ ZÊDE BIKE / ئەمە زیاد کرا */
-}
-
-/* Ji bo ku .page bi rêkûpêk kar bikin */
-.page {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;           /* <-- VÊ LÊ ZÊDE BIKE / ئەمە زیاد کرا */
-    bottom: 0;          /* <-- VÊ LÊ ZÊDE BIKE / ئەمە زیاد کرا */
-    /* width: 100%;       <-- Ev dikare bê rakirin / ئەمە لابرا */
-    /* min-height: 100%; <-- Ev dikare bê rakirin / ئەمە لابرا */
-    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    background-color: var(--light-gray);
-    overflow-x: hidden;
-    /* overflow-y êdî ne li vir e */
-}
-.page-active {
-    transform: translateX(0);
-    z-index: 10;
-    overflow-y: auto; /* Scroll tenê ji bo vê yekê */
-    -webkit-overflow-scrolling: touch; /* Ji bo scrolla nerm li iOS */
-}
-.page-hidden {
-    transform: translateX(100%);
-    z-index: 1;
-    overflow-y: hidden; /* Scroll ji bo vê yekê qedexe ye */
-}
-/* === END: GORRANKARIYA JI BO KÊŞEYA SCROLLÊ (2) === */
-
+.app-container { max-width: 100%; margin: 0 auto; background-color: var(--light-gray); min-height: 100vh; position: relative; overflow-x: hidden; }
 
 .app-header {
     background-color: white;
@@ -125,6 +86,26 @@ body.overlay-active {
 /* DAWÎYA KODA NÛ */
 
 
+.page {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    background-color: var(--light-gray);
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+.page-active {
+    transform: translateX(0);
+    z-index: 10;
+}
+.page-hidden {
+    transform: translateX(100%);
+    z-index: 1;
+}
+
 /* Rêkxistina cihê vala yê jorîn ji bo hemî rûpelan */
 .main-content, #subcategoryDetailPage, .settings-page {
     padding-top: 80px; /* Cih ji bo headerê */
@@ -140,11 +121,6 @@ body.overlay-active {
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     border-right: none;
     border-left: none;
-}
-
-#mainCategoriesContainer, /* <-- KODA NÛ */
-#subcategoriesContainer {  /* <-- KODA NÛ */
-    background-color: var(--section-bg); /* Ji bo pêşîlêgirtina dîmenê binî */
 }
 
 .subcategories-container {
@@ -1481,3 +1457,4 @@ input:checked + .slider:before {
 }
 
 /* === END: KODÊN NÛ JI BO DÎZAYNA BEŞÊ ADMIN === */
+
