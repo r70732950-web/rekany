@@ -1,16 +1,15 @@
-// app-setup.js
+// BEŞÊ YEKEM: app-setup.js
 // Pênasekirin û sazkarîyên destpêkê
 
-// --- Firebase Initialization ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js"; // Keep specific imports minimal if possible elsewhere
-import { getFirestore, collection, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-import { getMessaging } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
-// Firebase Configuration (Keep your actual config secure)
+// Firebase Configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", // Consider using environment variables in real projects
+    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE",
     authDomain: "maten-store.firebaseapp.com",
     projectId: "maten-store",
     storageBucket: "maten-store.appspot.com",
@@ -26,16 +25,20 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 
-// --- Firestore Collection References ---
+// Make Firebase services and helper functions globally available for admin.js
+window.globalAdminTools = {};
+
+// Firestore Collections Exports
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
+
+// ====== UPDATED COLLECTIONS / کۆڵێکشنە نوێکراوەکان ======
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
-export const shortcutRowsCollection = collection(db, "shortcut_rows");
-// Add other top-level collection references if needed
+// ===============================================
 
-// --- Translations ---
+// Translations Export
 export const translations = {
     ku_sorani: {
         search_placeholder: "گەڕان بە ناوی کاڵا...",
@@ -92,7 +95,7 @@ export const translations = {
         product_added_to_favorites: "زیادکرا بۆ لیستی دڵخوازەکان",
         product_removed_from_favorites: "لە لیستی دڵخوازەکان سڕدرایەوە",
         manage_categories_title: "بەڕێوەبردنی جۆرەکان",
-        manage_contact_methods_title: "بەڕێوەبردنی شێوازەکانی ناردنی داواکاری",
+		manage_contact_methods_title: "بەڕێوەبردنی شێوازەکانی ناردنی داواکاری",
         notifications_title: "ئاگەهدارییەکان",
         no_notifications_found: "هیچ ئاگەهدارییەک نییە",
         manage_announcements_title: "ناردنی ئاگەداری گشتی",
@@ -120,22 +123,6 @@ export const translations = {
         related_products_title: "کاڵای هاوشێوە",
         share_text: "سەیری ئەم کاڵایە بکە",
         share_error: "هاوبەشیپێکردن سەرکەوتوو نەبوو",
-        link_copied: "لینک کۆپی کرا", // ZÊDEKIRÎ
-        copy_failed: "کۆپیکردن سەرکەوتوو نەبوو", // ZÊDEKIRÎ
-        this_product: "ئەم کاڵایە", // ZÊDEKIRÎ
-        unknown_product: "کاڵای نەناسراو", // ZÊDEKIRÎ
-        no_contact_methods: "هیچ ڕێگایەکی ناردن دیاری نەکراوە.", // ZÊDEKIRÎ
-        error_fetching_methods: "هەڵە لە هێنانی ڕێگاکانی ناردن.", // ZÊDEKIRÎ
-        loading_notifications: "...خەریکی بارکردنی ئاگەدارییەکانە", // ZÊDEKIRÎ
-        untitled_notification: "ئاگەداری بێ ناونیشان", // ZÊDEKIRÎ
-        no_content: "بێ ناوەڕۆک", // ZÊDEKIRÎ
-        notification_permission_denied: "مۆڵەتی ئاگەداری ڕەتکرایەوە", // ZÊDEKIRÎ
-        error_saving_profile: "هەڵە لە پاشەکەوتکردنی پڕۆفایل ڕوویدا.", // ZÊDEKIRÎ
-        no_products_found: "هیچ کاڵایەک نەدۆزرایەوە.", // ZÊDEKIRÎ
-        error_fetching_products: "هەڵەیەک لە هێنانی کاڵاکان ڕوویدا.", // ZÊDEKIRÎ
-        home_layout_not_configured: "لاپەڕەی سەرەکی ڕێکنەخراوە.", // ZÊDEKIRÎ
-        error_rendering_home: "هەڵەیەک لە بارکردنی لاپەڕەی سەرەکی ڕوویدا.", // ZÊDEKIRÎ
-        product_name_placeholder: "کاڵای بێ ناو", // ZÊDEKIRÎ
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -192,7 +179,7 @@ export const translations = {
         product_added_to_favorites: "هاتە زێدەکرن بۆ لیستا حەزژێکریان",
         product_removed_from_favorites: "ژ لیستا حەزژێکریان هاتە ژێبرن",
         manage_categories_title: "рێکخستنا جوران",
-        manage_contact_methods_title: "рێکخستنا رێکێن فرێکرنا داخازیێ",
+		manage_contact_methods_title: "рێکخستنا رێکێن فرێکرنا داخازیێ",
         notifications_title: "ئاگەهداری",
         no_notifications_found: "چ ئاگەهداری نینن",
         manage_announcements_title: "рێکخستنا ئاگەهداریان",
@@ -220,22 +207,6 @@ export const translations = {
         related_products_title: "کاڵایێن وەک ئێکن",
         share_text: "بەرێخۆ بدە ڤی کاڵای",
         share_error: "پارڤەکرن سەرنەکەفت",
-        link_copied: "لینک هاتە کۆپیکرن", // ZÊDEKIRÎ
-        copy_failed: "کۆپیکرن سەرنەکەفت", // ZÊDEKIRÎ
-        this_product: "ئەڤ کاڵایە", // ZÊDEKIRÎ
-        unknown_product: "کاڵایێ نەدیار", // ZÊDEKIRÎ
-        no_contact_methods: "چ رێکێن فرێکرنێ نەهاتینە دیارکرن.", // ZÊDEKIRÎ
-        error_fetching_methods: "خەلەتی د ئینانا رێکێن فرێکرنێ دا.", // ZÊDEKIRÎ
-        loading_notifications: "...د بارکرنا ئاگەهداریا دایە", // ZÊDEKIRÎ
-        untitled_notification: "ئاگەهداری بێ ناڤ و نیشان", // ZÊDEKIRÎ
-        no_content: "بێ ناڤەرۆک", // ZÊDEKIRÎ
-        notification_permission_denied: "مۆلەتا ئاگەهداریێ هاتە رەتکرن", // ZÊDEKIRÎ
-        error_saving_profile: "خەلەتی د پاشەکەفتکرنا پروفایلی دا.", // ZÊDEKIRÎ
-        no_products_found: "چ کاڵا نەهاتنە دیتن.", // ZÊDEKIRÎ
-        error_fetching_products: "خەلەتی د ئینانا کاڵایان دا.", // ZÊDEKIRÎ
-        home_layout_not_configured: "رووکارێ سەرەکی نەهاتیە رێکخستن.", // ZÊDEKIRÎ
-        error_rendering_home: "خەلەتی د بارکرنا لاپەرێ سەرەکی دا.", // ZÊDEKIRÎ
-        product_name_placeholder: "کاڵایێ بێ ناڤ", // ZÊDEKIRÎ
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -292,7 +263,7 @@ export const translations = {
         product_added_to_favorites: "تمت الإضافة إلى المفضلة",
         product_removed_from_favorites: "تمت الإزالة من المفضلة",
         manage_categories_title: "إدارة الفئات",
-        manage_contact_methods_title: "إدارة طرق إرسال الطلب",
+		manage_contact_methods_title: "إدارة طرق إرسال الطلب",
         notifications_title: "الإشعارات",
         no_notifications_found: "لا توجد إشعارات",
         manage_announcements_title: "إدارة الإشعارات العامة",
@@ -320,163 +291,95 @@ export const translations = {
         related_products_title: "منتجات مشابهة",
         share_text: "ألق نظرة على هذا المنتج",
         share_error: "فشلت المشاركة",
-        link_copied: "تم نسخ الرابط", // ZÊDEKIRÎ
-        copy_failed: "فشل النسخ", // ZÊDEKIRÎ
-        this_product: "هذا المنتج", // ZÊDEKIRÎ
-        unknown_product: "منتج غير معروف", // ZÊDEKIRÎ
-        no_contact_methods: "لم يتم تحديد طرق إرسال.", // ZÊDEKIRÎ
-        error_fetching_methods: "خطأ في جلب طرق الإرسال.", // ZÊDEKIRÎ
-        loading_notifications: "...جاري تحميل الإشعارات", // ZÊDEKIRÎ
-        untitled_notification: "إشعار بدون عنوان", // ZÊDEKIRÎ
-        no_content: "بدون محتوى", // ZÊDEKIRÎ
-        notification_permission_denied: "تم رفض إذن الإشعارات", // ZÊDEKIRÎ
-        error_saving_profile: "حدث خطأ أثناء حفظ الملف الشخصي.", // ZÊDEKIRÎ
-        no_products_found: "لم يتم العثور على منتجات.", // ZÊDEKIRÎ
-        error_fetching_products: "حدث خطأ أثناء جلب المنتجات.", // ZÊDEKIRÎ
-        home_layout_not_configured: "تخطيط الصفحة الرئيسية غير مهيأ.", // ZÊDEKIRÎ
-        error_rendering_home: "حدث خطأ أثناء تحميل الصفحة الرئيسية.", // ZÊDEKIRÎ
-        product_name_placeholder: "منتج بدون اسم", // ZÊDEKIRÎ
     }
 };
 
-// --- Constants ---
-export const CART_KEY = "maten_store_cart";
-export const FAVORITES_KEY = "maten_store_favorites";
-export const PROFILE_KEY = "maten_store_profile";
-export const PRODUCTS_PER_PAGE = 25; // For pagination
-
-// --- Global State ---
+// Global State Variables (Mutable)
 export let state = {
     currentLanguage: localStorage.getItem('language') || 'ku_sorani',
-    deferredPrompt: null, // For PWA install prompt
-    cart: JSON.parse(localStorage.getItem(CART_KEY)) || [],
-    favorites: JSON.parse(localStorage.getItem(FAVORITES_KEY)) || [],
-    userProfile: JSON.parse(localStorage.getItem(PROFILE_KEY)) || {},
-    editingProductId: null, // Track product being edited (used by admin logic via global)
-    products: [], // Current list of displayed products
-    categories: [], // Loaded categories {id, name_xx, icon, order}
-    subcategories: [], // Loaded subcategories for current main category
-    lastVisibleProductDoc: null, // For product pagination
-    isLoadingMoreProducts: false, // Flag for infinite scroll
-    allProductsLoaded: false, // Flag for infinite scroll
-    isRenderingHomePage: false, // Flag to prevent concurrent home rendering
-    productCache: {}, // Cache for product results by filter/search key
-    // Current filter/search state
+    deferredPrompt: null,
+    cart: JSON.parse(localStorage.getItem("maten_store_cart")) || [],
+    favorites: JSON.parse(localStorage.getItem("maten_store_favorites")) || [],
+    userProfile: JSON.parse(localStorage.getItem("maten_store_profile")) || {},
+    editingProductId: null,
+    products: [],
+    allPromoCards: [],
+    currentPromoCardIndex: 0,
+    promoRotationInterval: null,
+    categories: [],
+    contactInfo: {},
+    subcategories: [],
+    lastVisibleProductDoc: null,
+    isLoadingMoreProducts: false,
+    allProductsLoaded: false,
+    isRenderingHomePage: false,
+    productCache: {},
     currentCategory: 'all',
     currentSubcategory: 'all',
     currentSubSubcategory: 'all',
     currentSearch: '',
-    sliderIntervals: {}, // Object to store active promo slider intervals { layoutId: intervalId }
-    contactInfo: {} // Placeholder for potential future use
 };
 
-// --- DOM Element Exports (Get elements once) ---
-// Header Elements
-export const headerTitle = document.getElementById('headerTitle');
+// Constants
+export const CART_KEY = "maten_store_cart";
+export const FAVORITES_KEY = "maten_store_favorites";
+export const PROFILE_KEY = "maten_store_profile";
+export const PRODUCTS_PER_PAGE = 25;
+
+// DOM Elements Exports
+export const loginModal = document.getElementById('loginModal');
+export const addProductBtn = document.getElementById('addProductBtn');
+export const productFormModal = document.getElementById('productFormModal');
+export const productsContainer = document.getElementById('productsContainer');
+export const skeletonLoader = document.getElementById('skeletonLoader');
 export const searchInput = document.getElementById('searchInput');
 export const clearSearchBtn = document.getElementById('clearSearchBtn');
-export const subpageSearchInput = document.getElementById('subpageSearchInput');
-export const subpageClearSearchBtn = document.getElementById('subpageClearSearchBtn');
-export const headerBackBtn = document.getElementById('headerBackBtn');
-export const notificationBtn = document.getElementById('notificationBtn');
-export const notificationBadge = document.getElementById('notificationBadge');
-
-// Main Content Areas
-export const mainPage = document.getElementById('mainPage');
-export const settingsPage = document.getElementById('settingsPage');
-export const subcategoryDetailPage = document.getElementById('subcategoryDetailPage'); // Assuming ID exists
-export const productsContainer = document.getElementById('productsContainer');
-export const homePageSectionsContainer = document.getElementById('homePageSectionsContainer');
-export const mainCategoriesContainer = document.getElementById('mainCategoriesContainer');
-export const subcategoriesContainer = document.getElementById('subcategoriesContainer');
-export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer'); // Main page one
-export const subSubCategoryContainerOnDetailPage = document.getElementById('subSubCategoryContainerOnDetailPage'); // Detail page one
-export const productsContainerOnDetailPage = document.getElementById('productsContainerOnDetailPage'); // Detail page one
-
-// Loaders
-export const skeletonLoader = document.getElementById('skeletonLoader');
-export const loader = document.getElementById('loader'); // Infinite scroll loader
-export const detailPageLoader = document.getElementById('detailPageLoader'); // Detail page loader
-
-// Modals
-export const loginModal = document.getElementById('loginModal');
-export const welcomeModal = document.getElementById('welcomeModal');
-export const productFormModal = document.getElementById('productFormModal');
-export const addHomeSectionModal = document.getElementById('addHomeSectionModal'); // Admin modal
-export const editCategoryModal = document.getElementById('editCategoryModal'); // Admin modal
-
-// Bottom Sheets & Overlay
-export const sheetOverlay = document.getElementById('sheet-overlay');
-export const notificationsSheet = document.getElementById('notificationsSheet');
-export const cartSheet = document.getElementById('cartSheet');
-export const categoriesSheet = document.getElementById('categoriesSheet');
-export const profileSheet = document.getElementById('profileSheet');
-export const favoritesSheet = document.getElementById('favoritesSheet');
-export const productDetailSheet = document.getElementById('productDetailSheet');
-export const termsSheet = document.getElementById('termsSheet');
-
-// Bottom Sheet Content Areas
-export const notificationsListContainer = document.getElementById('notificationsListContainer');
+export const loginForm = document.getElementById('loginForm');
+export const productForm = document.getElementById('productForm');
+export const formTitle = document.getElementById('formTitle');
+export const imageInputsContainer = document.getElementById('imageInputsContainer');
+export const loader = document.getElementById('loader');
+export const cartBtn = document.getElementById('cartBtn');
 export const cartItemsContainer = document.getElementById('cartItemsContainer');
 export const emptyCartMessage = document.getElementById('emptyCartMessage');
 export const cartTotal = document.getElementById('cartTotal');
 export const totalAmount = document.getElementById('totalAmount');
 export const cartActions = document.getElementById('cartActions');
-export const sheetCategoriesContainer = document.getElementById('sheetCategoriesContainer');
 export const favoritesContainer = document.getElementById('favoritesContainer');
 export const emptyFavoritesMessage = document.getElementById('emptyFavoritesMessage');
-export const termsContentContainer = document.getElementById('termsContentContainer');
-// Product Detail Sheet Content
-export const sheetImageContainer = document.getElementById('sheetImageContainer');
-export const sheetThumbnailContainer = document.getElementById('sheetThumbnailContainer');
-export const sheetProductName = document.getElementById('sheetProductName');
-export const sheetProductPrice = document.getElementById('sheetProductPrice');
-export const sheetProductDescription = document.getElementById('sheetProductDescription');
-export const sheetAddToCartBtn = document.getElementById('sheetAddToCartBtn');
-export const sheetPrevBtn = document.getElementById('sheetPrevBtn');
-export const sheetNextBtn = document.getElementById('sheetNextBtn');
-export const relatedProductsSection = document.getElementById('relatedProductsSection');
-export const relatedProductsContainer = document.getElementById('relatedProductsContainer');
-
-
-// Forms & Form Elements
-export const loginForm = document.getElementById('loginForm');
-export const profileForm = document.getElementById('profileForm');
-export const productForm = document.getElementById('productForm');
-export const formTitle = document.getElementById('formTitle'); // Product form title
-export const imageInputsContainer = document.getElementById('imageInputsContainer'); // Product form image inputs
-export const productCategorySelect = document.getElementById('productCategoryId'); // Product form category select
-export const subcategorySelectContainer = document.getElementById('subcategorySelectContainer'); // Product form subcat container
-export const productSubcategorySelect = document.getElementById('productSubcategoryId'); // Product form subcat select
-export const subSubcategorySelectContainer = document.getElementById('subSubcategorySelectContainer'); // Product form subsubcat container
-export const productSubSubcategorySelect = document.getElementById('productSubSubcategoryId'); // Product form subsubcat select
-
-// Buttons & Navigation
-export const addProductBtn = document.getElementById('addProductBtn'); // Floating admin button
-export const homeBtn = document.getElementById('homeBtn');
 export const categoriesBtn = document.getElementById('categoriesBtn');
-export const cartBtn = document.getElementById('cartBtn');
-export const profileBtn = document.getElementById('profileBtn');
+export const sheetOverlay = document.getElementById('sheet-overlay');
+export const sheetCategoriesContainer = document.getElementById('sheetCategoriesContainer');
+export const productCategorySelect = document.getElementById('productCategoryId');
+export const subcategorySelectContainer = document.getElementById('subcategorySelectContainer');
+export const productSubcategorySelect = document.getElementById('productSubcategoryId');
+export const subSubcategorySelectContainer = document.getElementById('subSubcategorySelectContainer');
+export const productSubSubcategorySelect = document.getElementById('productSubSubcategoryId');
+export const profileForm = document.getElementById('profileForm');
+export const settingsPage = document.getElementById('settingsPage');
+export const mainPage = document.getElementById('mainPage');
+export const homeBtn = document.getElementById('homeBtn');
 export const settingsBtn = document.getElementById('settingsBtn');
-
-// Settings Page Elements
 export const settingsFavoritesBtn = document.getElementById('settingsFavoritesBtn');
 export const settingsAdminLoginBtn = document.getElementById('settingsAdminLoginBtn');
 export const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
-export const termsAndPoliciesBtn = document.getElementById('termsAndPoliciesBtn');
+export const profileBtn = document.getElementById('profileBtn');
 export const contactToggle = document.getElementById('contactToggle');
-export const dynamicContactLinksContainer = document.getElementById('dynamicContactLinksContainer'); // Container for fetched links
-export const adminSocialMediaManagement = document.getElementById('adminSocialMediaManagement'); // Admin section
-export const addSocialMediaForm = document.getElementById('addSocialMediaForm'); // Admin form
-export const socialLinksListContainer = document.getElementById('socialLinksListContainer'); // Admin list
-export const socialMediaToggle = document.getElementById('socialMediaToggle'); // Admin toggle
-export const adminAnnouncementManagement = document.getElementById('adminAnnouncementManagement'); // Admin section
-export const announcementForm = document.getElementById('announcementForm'); // Admin form
-export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement'); // Admin section
-export const policiesForm = document.getElementById('policiesForm'); // Admin form
-export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement'); // Admin section
-export const adminBrandsManagement = document.getElementById('adminBrandsManagement'); // Admin section
-
-// --- Global Admin Tools Placeholder ---
-// This object will be populated by app-logic.js for admin.js to use
-window.globalAdminTools = {};
+export const adminSocialMediaManagement = document.getElementById('adminSocialMediaManagement');
+export const addSocialMediaForm = document.getElementById('addSocialMediaForm');
+export const socialLinksListContainer = document.getElementById('socialLinksListContainer');
+export const socialMediaToggle = document.getElementById('socialMediaToggle');
+export const notificationBtn = document.getElementById('notificationBtn');
+export const notificationBadge = document.getElementById('notificationBadge');
+export const notificationsSheet = document.getElementById('notificationsSheet');
+export const notificationsListContainer = document.getElementById('notificationsListContainer');
+export const adminAnnouncementManagement = document.getElementById('adminAnnouncementManagement');
+export const announcementForm = document.getElementById('announcementForm');
+export const termsAndPoliciesBtn = document.getElementById('termsAndPoliciesBtn');
+export const termsSheet = document.getElementById('termsSheet');
+export const termsContentContainer = document.getElementById('termsContentContainer');
+export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
+export const policiesForm = document.getElementById('policiesForm');
+export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
+export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
+export const adminBrandsManagement = document.getElementById('adminBrandsManagement');

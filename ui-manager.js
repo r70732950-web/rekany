@@ -1,56 +1,152 @@
-// ui-manager.js (رێکخەرێ رووکارێ)
-// بەرپرسیارەتی: هەمی کارێن نیشاندان/ڤەشارتنا ئێلێمێنتان (pages, modals, sheets),
-// نیشاندانا notifications, وەرگێران (t, setLanguage), چێکرنا ئێلێمێنتێن UI,
-// رێکخستنا header, کارێن animation.
+// ui-manager.js - Responsible for UI interactions, rendering elements, translations, etc.
+import {
+    db, state, translations,
+    sheetOverlay, loginModal, productFormModal, // Import necessary DOM elements
+    cartItemsContainer, emptyCartMessage, cartTotal, totalAmount, cartActions, // Cart UI elements
+    favoritesContainer, emptyFavoritesMessage, // Favorites UI elements
+    sheetCategoriesContainer, // Categories sheet container
+    notificationsListContainer, notificationBadge, // Notifications UI
+    termsContentContainer, // Terms UI
+    subSubcategoriesContainer, // Main page sub-subcategories (might be removed)
+    skeletonLoader, productsContainer, loader, // Product list UI elements
+} from './app-setup.js';
 
 import {
-    // DOM Elements
-    loginModal, productFormModal, productsContainer, skeletonLoader, searchInput,
-    clearSearchBtn, loginForm, productForm, formTitle, imageInputsContainer, loader,
-    cartBtn, cartItemsContainer, emptyCartMessage, cartTotal, totalAmount, cartActions,
-    favoritesContainer, emptyFavoritesMessage, categoriesBtn, sheetOverlay, sheetCategoriesContainer,
-    productCategorySelect, subcategorySelectContainer, productSubcategorySelect,
-    subSubcategorySelectContainer, productSubSubcategorySelect, profileForm, settingsPage,
-    mainPage, homeBtn, settingsBtn, settingsFavoritesBtn, settingsAdminLoginBtn,
-    settingsLogoutBtn, profileBtn, contactToggle, dynamicContactLinksContainer,
-    notificationBtn, notificationBadge, notificationsSheet, notificationsListContainer,
-    termsAndPoliciesBtn, termsSheet, termsContentContainer, subSubcategoriesContainer,
-    welcomeModal, productDetailSheet, categoriesSheet, profileSheet, favoritesSheet, cartSheet,
-    mainCategoriesContainer, subcategoriesContainer, homePageSectionsContainer,
-    headerTitle, // ZÊDEKIRÎ JI BO updateHeaderView
-    relatedProductsSection, relatedProductsContainer, // ZÊDEKIRÎ JI BO showProductDetailsUI
-    sheetImageContainer, sheetThumbnailContainer, sheetProductName, sheetProductDescription,
-    sheetProductPrice, sheetAddToCartBtn, sheetPrevBtn, sheetNextBtn, // ZÊDEKIRÎ JI BO showProductDetailsUI
+    getDoc, doc, query, collection, orderBy, limit, getDocs, where
+} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-    // State & Config
-    state, translations, FAVORITES_KEY, PROFILE_KEY // Import necessary state parts and translations
-} from './app-setup.js'; // Assuming app-setup.js is in the same directory
-
-// --- Internal Helper Functions ---
+// --- Global UI State Functions ---
 
 /**
- * Formats description text: converts newlines to <br> and URLs to clickable links.
- * @param {string} text - The input text.
- * @returns {string} - Formatted HTML string.
+ * Saves the current scroll position in the history state for the main page.
  */
-function formatDescription(text) {
-    if (!text) return '';
-    let escapedText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
-    let textWithLinks = escapedText.replace(urlRegex, (url) => {
-        const hyperLink = url.startsWith('http') ? url : `https://${url}`;
-        return `<a href="${hyperLink}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-    });
-    return textWithLinks.replace(/\n/g, '<br>');
+function saveCurrentScrollPosition() {
+    const currentState = history.state;
+    // Only save scroll position for the main page filter state
+    if (document.getElementById('mainPage')?.classList.contains('page-active') && currentState && !currentState.type) {
+        history.replaceState({ ...currentState, scroll: window.scrollY }, '');
+    }
 }
 
-// --- Translation Functions ---
+/**
+ * Updates the header view based on the current page.
+ * @param {string} pageId - The ID of the page being shown.
+ * @param {string} [title=''] - The title for subpages.
+ */
+export function updateHeaderView(pageId, title = '') {
+    const mainHeader = document.querySelector('.main-header-content');
+    const subpageHeader = document.querySelector('.subpage-header-content');
+    const headerTitle = document.getElementById('headerTitle');
+
+    if (!mainHeader || !subpageHeader || !headerTitle) return;
+
+    if (pageId === 'mainPage') {
+        mainHeader.style.display = 'flex';
+        subpageHeader.style.display = 'none';
+    } else {
+        mainHeader.style.display = 'none';
+        subpageHeader.style.display = 'flex';
+        headerTitle.textContent = title;
+    }
+}
+
+/**
+ * Shows the specified page and hides others.
+ * @param {string} pageId - The ID of the page to show.
+ * @param {string} [pageTitle=''] - Optional title for subpages.
+ */
+export function showPage(pageId, pageTitle = '') {
+    document.querySelectorAll('.page').forEach(page => {
+        const isActive = page.id === pageId;
+        page.classList.toggle('page-active', isActive);
+        page.classList.toggle('page-hidden', !isActive);
+    });
+
+    if (pageId !== 'mainPage') {
+        window.scrollTo(0, 0);
+    }
+
+    // Update header based on the page
+    if (pageId === 'settingsPage') {
+        updateHeaderView('settingsPage', t('settings_title'));
+    } else if (pageId === 'subcategoryDetailPage') {
+        updateHeaderView('subcategoryDetailPage', pageTitle);
+    } else {
+        updateHeaderView('mainPage');
+    }
+
+    const activeBtnId = pageId === 'mainPage' ? 'homeBtn' : (pageId === 'settingsPage' ? 'settingsBtn' : null);
+    if (activeBtnId) {
+        updateActiveNav(activeBtnId);
+    }
+}
+
+/**
+ * Closes all modals and bottom sheets.
+ */
+export function closeAllPopupsUI() {
+    document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
+    document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('show'));
+    if (sheetOverlay) sheetOverlay.classList.remove('show');
+    document.body.classList.remove('overlay-active');
+}
+
+/**
+ * Opens a modal or bottom sheet.
+ * @param {string} id - The ID of the element to open.
+ * @param {string} [type='sheet'] - 'sheet' or 'modal'.
+ */
+export function openPopup(id, type = 'sheet') {
+    saveCurrentScrollPosition();
+    const element = document.getElementById(id);
+    if (!element || !sheetOverlay) return;
+
+    closeAllPopupsUI(); // Close any existing popups first
+
+    if (type === 'sheet') {
+        sheetOverlay.classList.add('show');
+        element.classList.add('show');
+        // Specific rendering logic will be called from user-actions.js or app-logic.js
+        // Example placeholders:
+        // if (id === 'cartSheet') renderCart();
+        // if (id === 'favoritesSheet') renderFavoritesPage();
+        // if (id === 'categoriesSheet') renderCategoriesSheet();
+        // if (id === 'notificationsSheet') renderUserNotifications();
+        // if (id === 'termsSheet') renderPolicies();
+        if (id === 'profileSheet') { // Populate profile form if opening profile sheet
+            document.getElementById('profileName').value = state.userProfile.name || '';
+            document.getElementById('profileAddress').value = state.userProfile.address || '';
+            document.getElementById('profilePhone').value = state.userProfile.phone || '';
+        }
+    } else { // Modal
+        element.style.display = 'block';
+    }
+    document.body.classList.add('overlay-active');
+    // We push state in app-logic.js now to keep navigation logic centralized
+    // history.pushState({ type: type, id: id }, '', `#${id}`);
+}
+
+/**
+ * Updates the active state of the bottom navigation buttons.
+ * @param {string} activeBtnId - The ID of the button to mark as active.
+ */
+export function updateActiveNav(activeBtnId) {
+    document.querySelectorAll('.bottom-nav-item').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const activeBtn = document.getElementById(activeBtnId);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+}
+
+// --- Translation ---
 
 /**
  * Gets the translation for a given key in the current language.
  * @param {string} key - The translation key.
- * @param {object} replacements - Key-value pairs for placeholder replacement.
- * @returns {string} - The translated string.
+ * @param {object} [replacements={}] - Optional replacements for placeholders.
+ * @returns {string} The translated string or the key itself if not found.
  */
 export function t(key, replacements = {}) {
     let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
@@ -89,139 +185,20 @@ export function setLanguage(lang) {
         btn.classList.toggle('active', btn.dataset.lang === lang);
     });
 
-    // Clear dynamic home sections to force re-render with new language
-    // Note: The actual re-rendering logic will be triggered by the caller (app-logic.js or data-renderer.js)
-    if (homePageSectionsContainer) {
-        homePageSectionsContainer.innerHTML = '';
-    }
-
-    // Re-render category related UI elements immediately as they depend only on language
-    renderMainCategories();
-    renderCategoriesSheet();
-
-    // The caller (app-logic.js) should decide whether to re-render products or home page content
-}
-
-
-// --- Popup and Page Management ---
-
-/**
- * Closes all modals and bottom sheets and hides the overlay.
- */
-export function closeAllPopupsUI() {
-    document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
-    document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('show'));
-    if (sheetOverlay) sheetOverlay.classList.remove('show');
-    document.body.classList.remove('overlay-active');
-}
-
-/**
- * Opens a specific modal or bottom sheet.
- * Note: Does not handle history API. The caller (app-logic.js) should manage history.
- * Note: Does not trigger data loading/rendering, only shows the UI element. Caller should render content.
- * @param {string} id - The ID of the element to open.
- * @param {string} [type='sheet'] - 'sheet' or 'modal'.
- */
-export function openPopupUI(id, type = 'sheet') {
-    const element = document.getElementById(id);
-    if (!element) {
-        console.error(`Element with ID "${id}" not found for opening popup.`);
-        return;
-    }
-
-    closeAllPopupsUI(); // Close any currently open popups first
-
-    if (type === 'sheet') {
-        if (sheetOverlay) sheetOverlay.classList.add('show');
-        element.classList.add('show');
-    } else { // type === 'modal'
-        element.style.display = 'block';
-    }
-
-    document.body.classList.add('overlay-active');
-    // History pushState should be handled by the caller in app-logic.js
-}
-
-/**
- * Shows a specific page and hides others. Updates header and active nav item.
- * Note: Does not handle history API. The caller (app-logic.js) should manage history.
- * @param {string} pageId - The ID of the page to show.
- * @param {string} [pageTitle=''] - The title to display in the header for subpages.
- */
-export function showPageUI(pageId, pageTitle = '') {
-    document.querySelectorAll('.page').forEach(page => {
-        const isActive = page.id === pageId;
-        page.classList.toggle('page-active', isActive);
-        page.classList.toggle('page-hidden', !isActive);
-    });
-
-    // Scroll to top only if navigating to a *different* page than main page
-    if (pageId !== 'mainPage' && document.getElementById(pageId)?.classList.contains('page-active')) {
-         // Check if it's actually active to prevent scrolling on initial load incorrectly
-        window.scrollTo(0, 0);
-    }
-
-    // Update header based on the active page
-    if (pageId === 'settingsPage') {
-        updateHeaderView('settingsPage', t('settings_title'));
-    } else if (pageId === 'subcategoryDetailPage') {
-        updateHeaderView('subcategoryDetailPage', pageTitle);
-    } else { // mainPage or any other not explicitly handled
-        updateHeaderView('mainPage');
-    }
-
-    // Update active state in bottom navigation
-    const activeBtnId = pageId === 'mainPage' ? 'homeBtn' : (pageId === 'settingsPage' ? 'settingsBtn' : null);
-    if (activeBtnId) {
-        updateActiveNav(activeBtnId);
-    } else {
-        // If no specific button corresponds, deactivate all except maybe profile/cart if sheets are open?
-        // Simpler: Just ensure the main page/settings buttons are handled.
-    }
-     // History pushState should be handled by the caller in app-logic.js
-}
-
-/**
- * Updates the header display (main vs. subpage view and title).
- * @param {string} viewType - 'mainPage' or specific page ID like 'settingsPage', 'subcategoryDetailPage'.
- * @param {string} [title=''] - The title for subpage headers.
- */
-export function updateHeaderView(viewType, title = '') {
-    const mainHeader = document.querySelector('.main-header-content');
-    const subpageHeader = document.querySelector('.subpage-header-content');
-
-    if (!mainHeader || !subpageHeader || !headerTitle) return;
-
-    if (viewType === 'mainPage') {
-        mainHeader.style.display = 'flex';
-        subpageHeader.style.display = 'none';
-    } else { // Any subpage view
-        mainHeader.style.display = 'none';
-        subpageHeader.style.display = 'flex';
-        headerTitle.textContent = title;
-        // Reset subpage search on view change? Maybe not, keep it simple.
-    }
-}
-
-/**
- * Updates the visual active state of the bottom navigation bar.
- * @param {string} activeBtnId - The ID of the button to mark as active.
- */
-export function updateActiveNav(activeBtnId) {
-    document.querySelectorAll('.bottom-nav-item').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    const activeBtn = document.getElementById(activeBtnId);
-    if (activeBtn) {
-        activeBtn.classList.add('active');
-    }
+    // Re-render components that depend on language (will be triggered from app-logic)
+    // Example placeholders:
+    // renderHomePageContent(); or renderProducts();
+    // renderMainCategories();
+    // renderCategoriesSheet();
+    // if (cart sheet open) renderCart();
+    // if (favorites sheet open) renderFavoritesPage();
 }
 
 
 // --- Notifications ---
 
 /**
- * Shows a temporary notification message at the top right.
+ * Shows a temporary notification message.
  * @param {string} message - The message to display.
  * @param {string} [type='success'] - 'success' or 'error'.
  */
@@ -230,37 +207,60 @@ export function showNotification(message, type = 'success') {
     notification.className = `notification ${type}`;
     notification.textContent = message;
     document.body.appendChild(notification);
-    // Trigger CSS transition
+    // Trigger animation
     setTimeout(() => notification.classList.add('show'), 10);
-    // Remove after a delay
+    // Remove after duration
     setTimeout(() => {
         notification.classList.remove('show');
-        // Remove from DOM after transition finishes
+        // Remove from DOM after transition ends
         setTimeout(() => {
             if (document.body.contains(notification)) {
-                 document.body.removeChild(notification);
+                document.body.removeChild(notification);
             }
-        }, 300); // Should match CSS transition duration
-    }, 3000); // Display duration
+        }, 300);
+    }, 3000);
 }
 
 
-// --- UI Element Creation ---
+// --- UI Element Creation & Rendering ---
 
 /**
- * Creates the HTML structure for a product card.
- * Adds data-* attributes for actions, to be handled by event listeners in app-logic.js.
- * @param {object} product - The product data object.
- * @param {boolean} isAdmin - Whether the current user is an admin.
- * @param {boolean} isProdFavorite - Whether the product is in the user's favorites.
- * @returns {HTMLElement} - The product card element.
+ * Formats description text with line breaks and clickable links.
+ * @param {string} text - The description text.
+ * @returns {string} HTML formatted string.
  */
-export function createProductCardElement(product, isAdmin, isProdFavorite) {
+export function formatDescription(text) {
+    if (!text) return '';
+    // Basic escaping
+    let escapedText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // Regex to find URLs (simplified)
+    const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+    let textWithLinks = escapedText.replace(urlRegex, (url) => {
+        const hyperLink = url.startsWith('http') ? url : `https://${url}`;
+        // Ensure quotes are handled correctly in the href attribute
+        const safeUrl = hyperLink.replace(/"/g, '&quot;');
+        return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+    });
+    // Replace newlines with <br>
+    return textWithLinks.replace(/\n/g, '<br>');
+}
+
+
+/**
+ * Creates a product card HTML element.
+ * Needs functions like `isFavorite`, `addToCart`, `toggleFavorite`, `showProductDetailsWithData`, `editProduct`, `deleteProduct` passed or imported.
+ * These will likely come from user-actions.js and admin-logic via app-logic.js
+ * @param {object} product - Product data object.
+ * @param {object} actions - Object containing action functions { isFavorite, addToCart, toggleFavorite, showDetails, editProduct, deleteProduct, shareProduct }.
+ * @returns {HTMLElement} The product card element.
+ */
+export function createProductCardElement(product, actions) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
-    productCard.dataset.productId = product.id; // Essential for identifying the product
+    productCard.dataset.productId = product.id;
+    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
 
-    const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || t('product_name_placeholder', {default: 'کاڵای بێ ناو'}); // Added placeholder fallback
+    const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || t('unnamed_product', {default: 'کاڵای بێ ناو'});
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || 'https://placehold.co/300x300/e2e8f0/2d3748?text=No+Image');
 
     let priceHTML = `<div class="product-price-container"><div class="product-price">${product.price.toLocaleString()} د.ع.</div></div>`;
@@ -281,9 +281,11 @@ export function createProductCardElement(product, isAdmin, isProdFavorite) {
                 <div class="info-badge shipping-badge">
                     <i class="fas fa-truck"></i>${shippingText}
                 </div>
-            </div>`;
+            </div>
+        `;
     }
 
+    const isProdFavorite = actions.isFavorite(product.id);
     const heartIconClass = isProdFavorite ? 'fas' : 'far';
     const favoriteBtnClass = isProdFavorite ? 'favorite-btn favorited' : 'favorite-btn';
 
@@ -291,195 +293,160 @@ export function createProductCardElement(product, isAdmin, isProdFavorite) {
         <div class="product-image-container">
             <img src="${mainImage}" alt="${nameInCurrentLang}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
             ${discountBadgeHTML}
-             <button class="${favoriteBtnClass}" data-action="toggle-favorite" aria-label="Toggle favorite">
-                 <i class="${heartIconClass} fa-heart"></i>
-             </button>
-             <button class="share-btn-card" data-action="share-product" aria-label="Share product">
+            <button class="${favoriteBtnClass}" aria-label="${t('toggle_favorite', {default: 'Add/Remove Favorite'})}">
+                <i class="${heartIconClass} fa-heart"></i>
+            </button>
+            <button class="share-btn-card" aria-label="${t('share_product', {default: 'Share Product'})}">
                  <i class="fas fa-share-alt"></i>
-             </button>
+            </button>
         </div>
         <div class="product-info">
             <div class="product-name">${nameInCurrentLang}</div>
             ${priceHTML}
-            <button class="add-to-cart-btn-card" data-action="add-to-cart">
+            <button class="add-to-cart-btn-card">
                 <i class="fas fa-cart-plus"></i>
                 <span>${t('add_to_cart')}</span>
             </button>
             ${extraInfoHTML}
         </div>
         <div class="product-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
-            <button class="edit-btn" data-action="edit-product" aria-label="Edit product"><i class="fas fa-edit"></i></button>
-            <button class="delete-btn" data-action="delete-product" aria-label="Delete product"><i class="fas fa-trash"></i></button>
+            <button class="edit-btn" aria-label="${t('edit_product', {default: 'Edit Product'})}"><i class="fas fa-edit"></i></button>
+            <button class="delete-btn" aria-label="${t('delete_product', {default: 'Delete Product'})}"><i class="fas fa-trash"></i></button>
         </div>
     `;
-    // Add data-action attributes for event delegation in app-logic.js
-    // The main card click (to show details) will be handled by a listener on the container in app-logic.js
+
+    // --- Event Listeners using provided actions ---
+    const shareButton = productCard.querySelector('.share-btn-card');
+    if (shareButton) {
+        shareButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            actions.shareProduct(product); // Call the share action
+        });
+    }
+
+    productCard.addEventListener('click', (event) => {
+        const target = event.target;
+        const addToCartButton = target.closest('.add-to-cart-btn-card');
+        const editButton = target.closest('.edit-btn');
+        const deleteButton = target.closest('.delete-btn');
+        const favoriteButton = target.closest('.favorite-btn');
+        const shareBtn = target.closest('.share-btn-card');
+        const isAdminNow = sessionStorage.getItem('isAdmin') === 'true';
+
+        if (addToCartButton) {
+            actions.addToCart(product.id, addToCartButton); // Pass button for UI feedback
+        } else if (isAdminNow && editButton) {
+            actions.editProduct(product.id);
+        } else if (isAdminNow && deleteButton) {
+            actions.deleteProduct(product.id);
+        } else if (favoriteButton) {
+            actions.toggleFavorite(product.id, event);
+        } else if (shareBtn) {
+           // Share handled by its own listener now
+        } else if (!target.closest('a')) { // Prevent triggering if clicking a link in description
+            actions.showDetails(product.id);
+        }
+    });
+
     return productCard;
 }
 
 /**
- * Creates the HTML structure for a promotion card slider item.
- * Adds data-* attributes for actions.
- * @param {object} cardGroupData - Object containing an array of card objects for the group.
- * @param {object} sliderState - An object with { currentIndex } to track the current slide.
- * @returns {HTMLElement} - The promo card element.
+ * Creates a promo card slider element. Requires interaction logic.
+ * @param {object} cardData - Object containing an array of cards for the group.
+ * @param {object} sliderState - Object to hold the current index and interval ID for this specific slider instance.
+ * @param {Function} navigateToFilter - Function to handle navigation.
+ * @returns {HTMLElement | null} The promo card element or null if no cards.
  */
-export function createPromoCardElement(cardGroupData, sliderState) {
-    const cardElement = document.createElement('div');
-    cardElement.className = 'product-card promo-card-grid-item'; // Use existing styles
-
-    if (!cardGroupData || !cardGroupData.cards || cardGroupData.cards.length === 0) {
-        cardElement.innerHTML = '<p>No promo cards available.</p>'; // Handle empty case
-        return cardElement;
+export function createPromoCardElement(cardData, sliderState, navigateToFilter) {
+    if (!cardData || !cardData.cards || cardData.cards.length === 0) {
+        return null;
     }
 
-    // Ensure currentIndex is valid
-    sliderState.currentIndex = sliderState.currentIndex % cardGroupData.cards.length;
-    const currentCard = cardGroupData.cards[sliderState.currentIndex];
-    const imageUrl = currentCard.imageUrls[state.currentLanguage] || currentCard.imageUrls.ku_sorani;
+    const promoGrid = document.createElement('div');
+    promoGrid.className = 'products-container promo-slider-container'; // Added a class for potential styling
+    promoGrid.style.marginBottom = '24px';
+    // Unique ID is set in the calling function (renderPromoCardsSectionForHome)
 
-    // Set data attributes for navigation action
-    cardElement.dataset.action = "navigate-category";
-    cardElement.dataset.categoryId = currentCard.categoryId;
+    const promoCardElement = document.createElement('div');
+    promoCardElement.className = 'product-card promo-card-grid-item'; // Keep existing classes
 
-    cardElement.innerHTML = `
-        <div class="product-image-container">
-            <img src="${imageUrl}" class="product-image" loading="lazy" alt="Promotion">
-        </div>
-        ${cardGroupData.cards.length > 1 ? `
-        <button class="promo-slider-btn prev" data-action="promo-prev"><i class="fas fa-chevron-left"></i></button>
-        <button class="promo-slider-btn next" data-action="promo-next"><i class="fas fa-chevron-right"></i></button>
-        ` : ''}
-    `;
+    const updateCardContent = (index) => {
+        const currentCard = cardData.cards[index];
+        const imageUrl = currentCard.imageUrls[state.currentLanguage] || currentCard.imageUrls.ku_sorani || 'https://placehold.co/600x200/e2e8f0/2d3748?text=Promo';
+        const targetCategoryId = currentCard.categoryId;
 
-    // Add necessary data attributes to buttons for event delegation in app-logic.js
-    if (cardGroupData.cards.length > 1) {
-        cardElement.querySelector('.promo-slider-btn.prev').dataset.sliderStateIndex = sliderState.currentIndex; // Pass index if needed
-        cardElement.querySelector('.promo-slider-btn.next').dataset.sliderStateIndex = sliderState.currentIndex; // Pass index if needed
-    }
+        promoCardElement.innerHTML = `
+            <div class="product-image-container">
+                <img src="${imageUrl}" class="product-image" loading="lazy" alt="Promotion">
+            </div>
+            ${cardData.cards.length > 1 ? `
+            <button class="promo-slider-btn prev"><i class="fas fa-chevron-left"></i></button>
+            <button class="promo-slider-btn next"><i class="fas fa-chevron-right"></i></button>
+            ` : ''}
+        `;
 
-    return cardElement;
+        // Re-attach listeners for buttons if they exist
+        if (cardData.cards.length > 1) {
+            const prevBtn = promoCardElement.querySelector('.promo-slider-btn.prev');
+            const nextBtn = promoCardElement.querySelector('.promo-slider-btn.next');
+
+            if (prevBtn) {
+                prevBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    sliderState.currentIndex = (sliderState.currentIndex - 1 + cardData.cards.length) % cardData.cards.length;
+                    updateCardContent(sliderState.currentIndex);
+                    // Reset interval on manual navigation (optional)
+                    // resetInterval();
+                };
+            }
+            if (nextBtn) {
+                nextBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    sliderState.currentIndex = (sliderState.currentIndex + 1) % cardData.cards.length;
+                    updateCardContent(sliderState.currentIndex);
+                     // Reset interval on manual navigation (optional)
+                    // resetInterval();
+                };
+            }
+        }
+
+         // Click listener for the card itself (navigation)
+         promoCardElement.onclick = async (e) => {
+             if (!e.target.closest('button')) { // Don't navigate if clicking buttons
+                 const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
+                 if (targetCategoryId && categoryExists) {
+                     await navigateToFilter({
+                         category: targetCategoryId,
+                         subcategory: 'all',
+                         subSubcategory: 'all',
+                         search: ''
+                     });
+                     document.getElementById('mainCategoriesContainer')?.scrollIntoView({ behavior: 'smooth' });
+                 } else if (targetCategoryId) {
+                     console.warn(`Promo card links to non-existent category ID: ${targetCategoryId}`);
+                 }
+             }
+         };
+    };
+
+    updateCardContent(sliderState.currentIndex); // Initial render
+    promoGrid.appendChild(promoCardElement);
+
+    // Auto-rotation interval is managed in app-logic.js (renderPromoCardsSectionForHome)
+
+    return promoGrid;
 }
 
-/**
- * Updates the image displayed in a specific promo card element.
- * @param {HTMLElement} promoCardElement - The promo card element to update.
- * @param {object} cardGroupData - The full data for the promo card group.
- * @param {object} sliderState - The slider state object { currentIndex }.
- */
-export function updatePromoCardImage(promoCardElement, cardGroupData, sliderState) {
-    if (!cardGroupData || !cardGroupData.cards || cardGroupData.cards.length === 0) return;
-
-    sliderState.currentIndex = (sliderState.currentIndex + cardGroupData.cards.length) % cardGroupData.cards.length; // Ensure index is valid
-    const currentCard = cardGroupData.cards[sliderState.currentIndex];
-    const newImageUrl = currentCard.imageUrls[state.currentLanguage] || currentCard.imageUrls.ku_sorani;
-
-    const imgElement = promoCardElement.querySelector('.product-image');
-    if (imgElement) {
-        imgElement.src = newImageUrl;
-    }
-
-    // Update data attributes for navigation
-    promoCardElement.dataset.categoryId = currentCard.categoryId;
-
-    // Update button states if needed (though index isn't strictly necessary for prev/next logic)
-    const prevBtn = promoCardElement.querySelector('.promo-slider-btn.prev');
-    const nextBtn = promoCardElement.querySelector('.promo-slider-btn.next');
-    if(prevBtn) prevBtn.dataset.sliderStateIndex = sliderState.currentIndex;
-    if(nextBtn) nextBtn.dataset.sliderStateIndex = sliderState.currentIndex;
-}
-
-
-// --- Rendering Functions ---
 
 /**
- * Renders product cards into the main products container.
- * @param {Array} products - An array of product objects to render.
- */
-export function renderProductsUI(products) {
-    if (!productsContainer) return;
-    productsContainer.innerHTML = ''; // Clear previous products
-
-    if (!products || products.length === 0) {
-        // Optionally display a "No products found" message here
-        // productsContainer.innerHTML = '<p>هیچ کاڵایەک نەدۆزرایەوە.</p>';
-        return;
-    }
-
-    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-    products.forEach(item => {
-        const isProdFavorite = state.favorites.includes(item.id);
-        let element = createProductCardElement(item, isAdmin, isProdFavorite);
-        element.classList.add('product-card-reveal'); // Add class for animation
-        productsContainer.appendChild(element);
-    });
-
-    setupScrollAnimations(); // Re-setup animations for new elements
-    productsContainer.style.display = 'grid'; // Ensure container is visible
-    if (skeletonLoader) skeletonLoader.style.display = 'none'; // Hide skeleton
-    if (loader) loader.style.display = 'none'; // Hide loading indicator
-}
-
-/**
- * Renders the main category buttons. Uses `state.categories`.
- */
-export function renderMainCategories() {
-    if (!mainCategoriesContainer || !state.categories) return;
-    mainCategoriesContainer.innerHTML = '';
-
-    state.categories.forEach(cat => {
-        const btn = document.createElement('button');
-        btn.className = 'main-category-btn';
-        btn.dataset.categoryId = cat.id; // Use categoryId for consistency
-        btn.classList.toggle('active', state.currentCategory === cat.id);
-
-        const categoryName = cat.id === 'all'
-            ? t('all_categories_label')
-            : (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
-
-        btn.innerHTML = `<i class="${cat.icon || 'fas fa-tag'}"></i> <span>${categoryName}</span>`; // Added default icon
-
-        // Add data-action attribute instead of onclick
-        btn.dataset.action = 'filter-main-category';
-
-        mainCategoriesContainer.appendChild(btn);
-    });
-}
-
-/**
- * Renders the category list inside the 'Categories' bottom sheet. Uses `state.categories`.
- */
-export function renderCategoriesSheet() {
-    if (!sheetCategoriesContainer || !state.categories) return;
-    sheetCategoriesContainer.innerHTML = '';
-
-    state.categories.forEach(cat => {
-        const btn = document.createElement('button');
-        btn.className = 'sheet-category-btn';
-        btn.dataset.categoryId = cat.id; // Use categoryId
-        btn.classList.toggle('active', state.currentCategory === cat.id);
-
-        const categoryName = cat.id === 'all'
-            ? t('all_categories_label')
-            : (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
-
-        btn.innerHTML = `<i class="${cat.icon || 'fas fa-tag'}"></i> ${categoryName}`;
-
-        // Add data-action attribute instead of onclick
-        btn.dataset.action = 'filter-sheet-category';
-
-        sheetCategoriesContainer.appendChild(btn);
-    });
-}
-
-/**
- * Renders skeleton loading cards in a specified container.
+ * Renders skeleton loading cards.
  * @param {HTMLElement} [container=skeletonLoader] - The container to render into.
- * @param {number} [count=8] - The number of skeleton cards to render.
+ * @param {number} [count=8] - Number of skeleton cards to render.
  */
 export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
     if (!container) return;
-    container.innerHTML = ''; // Clear previous skeletons
+    container.innerHTML = ''; // Clear previous skeletons or content
     for (let i = 0; i < count; i++) {
         const skeletonCard = document.createElement('div');
         skeletonCard.className = 'skeleton-card';
@@ -491,20 +458,17 @@ export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
         `;
         container.appendChild(skeletonCard);
     }
-    container.style.display = 'grid'; // Make skeleton container visible
+    container.style.display = 'grid'; // Ensure grid layout is applied
 
-    // If rendering into the main skeleton loader, hide the actual products container
-    if (container === skeletonLoader && productsContainer) {
-        productsContainer.style.display = 'none';
+    // Hide actual content and loader when showing skeleton
+    if (container === skeletonLoader) {
+        if (productsContainer) productsContainer.style.display = 'none';
+        if (loader) loader.style.display = 'none';
     }
-     if (loader) loader.style.display = 'none'; // Hide infinite scroll loader
 }
 
-
-// --- Animations ---
-
 /**
- * Sets up IntersectionObserver to add 'visible' class to elements for animations.
+ * Sets up Intersection Observer for scroll animations.
  */
 export function setupScrollAnimations() {
     const observer = new IntersectionObserver((entries) => {
@@ -515,221 +479,451 @@ export function setupScrollAnimations() {
             }
         });
     }, {
-        threshold: 0.1 // Trigger when 10% of the element is visible
+        threshold: 0.1 // Trigger when 10% visible
     });
 
-    // Observe elements with the 'product-card-reveal' class
     document.querySelectorAll('.product-card-reveal').forEach(card => {
         observer.observe(card);
     });
 }
 
-
-// --- Specific UI Updates ---
-
 /**
- * Updates the UI of the product detail bottom sheet with product data.
+ * Displays the product details in the bottom sheet.
  * @param {object} product - The product data object.
- * @param {Array} relatedProducts - An array of related product objects.
  */
-export function showProductDetailsUI(product, relatedProducts) {
-    if (!productDetailSheet) return;
-
-    const sheetContent = productDetailSheet.querySelector('.sheet-content');
+export function showProductDetailsWithData(product) {
+    const sheetContent = document.querySelector('#productDetailSheet .sheet-content');
     if (sheetContent) sheetContent.scrollTop = 0; // Scroll to top
 
-    const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || t('product_name_placeholder', {default: 'کاڵای بێ ناو'});
+    const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || t('unnamed_product', {default: 'کاڵای بێ ناو'});
     const descriptionText = (product.description && product.description[state.currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
     const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
 
-    // --- Image Slider ---
-    if (imageContainer && thumbnailContainer && prevBtn && nextBtn) {
-        imageContainer.innerHTML = '';
-        thumbnailContainer.innerHTML = '';
-        let currentIndex = 0;
+    const imageContainer = document.getElementById('sheetImageContainer');
+    const thumbnailContainer = document.getElementById('sheetThumbnailContainer');
+    const prevBtn = document.getElementById('sheetPrevBtn');
+    const nextBtn = document.getElementById('sheetNextBtn');
 
-        if (imageUrls.length > 0) {
-            imageUrls.forEach((url, index) => {
-                const img = document.createElement('img');
-                img.src = url;
-                img.alt = nameInCurrentLang;
-                if (index === 0) img.classList.add('active');
-                imageContainer.appendChild(img);
+    imageContainer.innerHTML = '';
+    thumbnailContainer.innerHTML = '';
 
-                const thumb = document.createElement('img');
-                thumb.src = url;
-                thumb.alt = `Thumbnail ${index + 1}`;
-                thumb.className = 'thumbnail';
-                if (index === 0) thumb.classList.add('active');
-                thumb.dataset.index = index;
-                // Add data-action for event delegation
-                thumb.dataset.action = 'select-thumbnail';
-                thumbnailContainer.appendChild(thumb);
-            });
-        } else {
-             // Add a placeholder if no images
-             imageContainer.innerHTML = `<img src="https://placehold.co/400x400/e2e8f0/2d3748?text=No+Image" alt="${nameInCurrentLang}" class="active">`;
+    if (imageUrls.length > 0) {
+        imageUrls.forEach((url, index) => {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = nameInCurrentLang;
+            if (index === 0) img.classList.add('active');
+            imageContainer.appendChild(img);
+
+            const thumb = document.createElement('img');
+            thumb.src = url;
+            thumb.alt = `Thumbnail ${index + 1}`;
+            thumb.className = 'thumbnail';
+            if (index === 0) thumb.classList.add('active');
+            thumb.dataset.index = index;
+            thumbnailContainer.appendChild(thumb);
+        });
+    } else {
+        // Display placeholder if no images
+        imageContainer.innerHTML = `<img src="https://placehold.co/400x400/e2e8f0/2d3748?text=No+Image" alt="${nameInCurrentLang}" class="active">`;
+    }
+
+    let currentIndex = 0;
+    const images = imageContainer.querySelectorAll('img');
+    const thumbnails = thumbnailContainer.querySelectorAll('.thumbnail');
+
+    function updateSlider(index) {
+        if (!images[index]) return;
+        images.forEach(img => img.classList.remove('active'));
+        thumbnails.forEach(thumb => thumb.classList.remove('active'));
+        images[index].classList.add('active');
+        if (thumbnails[index]) thumbnails[index].classList.add('active'); // Check if thumbnail exists
+        currentIndex = index;
+    }
+
+    // Show/Hide slider buttons
+    if (imageUrls.length > 1) {
+        prevBtn.style.display = 'flex';
+        nextBtn.style.display = 'flex';
+        prevBtn.onclick = () => updateSlider((currentIndex - 1 + images.length) % images.length);
+        nextBtn.onclick = () => updateSlider((currentIndex + 1) % images.length);
+        thumbnails.forEach(thumb => thumb.onclick = () => updateSlider(parseInt(thumb.dataset.index)));
+    } else {
+        prevBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
+        prevBtn.onclick = null;
+        nextBtn.onclick = null;
+        thumbnails.forEach(thumb => thumb.onclick = null);
+    }
+
+    // Update text content
+    document.getElementById('sheetProductName').textContent = nameInCurrentLang;
+    document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText);
+
+    // Update price display
+    const priceContainer = document.getElementById('sheetProductPrice');
+    if (product.originalPrice && product.originalPrice > product.price) {
+        priceContainer.innerHTML = `<span style="color: var(--accent-color);">${product.price.toLocaleString()} د.ع</span> <del style="color: var(--dark-gray); font-size: 16px; margin-right: 10px;">${product.originalPrice.toLocaleString()} د.ع</del>`;
+    } else {
+        priceContainer.innerHTML = `<span>${product.price.toLocaleString()} د.ع</span>`;
+    }
+
+    // Update Add to Cart button (action will be attached in app-logic)
+    const addToCartButton = document.getElementById('sheetAddToCartBtn');
+    addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
+    // addToCartButton.onclick = () => { /* Logic from user-actions */ };
+
+    // Render related products (logic likely in data-renderer.js)
+    // renderRelatedProducts(product);
+
+    // Open the sheet (call will be made from app-logic)
+    // openPopup('productDetailSheet');
+}
+
+/**
+ * Renders related products in the product detail sheet.
+ * @param {object} currentProduct - The product currently being viewed.
+ */
+export async function renderRelatedProducts(currentProduct) {
+    const section = document.getElementById('relatedProductsSection');
+    const container = document.getElementById('relatedProductsContainer');
+    if (!section || !container) return;
+
+    container.innerHTML = ''; // Clear previous
+    section.style.display = 'none'; // Hide initially
+
+    if (!currentProduct.subcategoryId && !currentProduct.categoryId) {
+        return; // Cannot find related if no category info
+    }
+
+    let q;
+    // Prioritize most specific category match
+    if (currentProduct.subSubcategoryId) {
+        q = query(
+            collection(db, "products"),
+            where('subSubcategoryId', '==', currentProduct.subSubcategoryId),
+            where('__name__', '!=', currentProduct.id), // Exclude the current product
+            limit(6)
+        );
+    } else if (currentProduct.subcategoryId) {
+        q = query(
+            collection(db, "products"),
+            where('subcategoryId', '==', currentProduct.subcategoryId),
+            where('__name__', '!=', currentProduct.id),
+            limit(6)
+        );
+    } else { // Fallback to main category
+        q = query(
+            collection(db, "products"),
+            where('categoryId', '==', currentProduct.categoryId),
+            where('__name__', '!=', currentProduct.id),
+            limit(6)
+        );
+    }
+
+    try {
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) {
+            console.log("No related products found.");
+            return;
         }
 
-        const images = imageContainer.querySelectorAll('img');
-        const thumbnails = thumbnailContainer.querySelectorAll('.thumbnail');
+        // Need access to createProductCardElement and action functions
+        // This suggests `createProductCardElement` should be here or easily accessible
+        // Let's assume actions are globally available or passed down for now
+        const actions = window.appActions; // Placeholder for actual actions object
 
-        const showSlide = (index) => {
-            if (index < 0 || index >= images.length) return;
-            images.forEach(img => img.classList.remove('active'));
-            thumbnails.forEach(thumb => thumb.classList.remove('active'));
-            if(images[index]) images[index].classList.add('active');
-            if(thumbnails[index]) thumbnails[index].classList.add('active');
-            currentIndex = index;
+        snapshot.forEach(doc => {
+            const product = { id: doc.id, ...doc.data() };
+            // Ensure actions are passed
+            if (actions) {
+                 const card = createProductCardElement(product, actions);
+                 if (card) container.appendChild(card);
+            } else {
+                 console.warn("Actions not available for rendering related product card.");
+            }
+        });
+
+        if (container.children.length > 0) {
+            section.style.display = 'block'; // Show section if products were added
+        }
+
+    } catch (error) {
+        console.error("Error fetching related products:", error);
+    }
+}
+
+/**
+ * Renders the list of categories in the bottom sheet.
+ * Requires `MapsToFilter` function.
+ * @param {Function} navigateToFilter - Function to handle navigation/filtering.
+ */
+export function renderCategoriesSheet(navigateToFilter) {
+    if (!sheetCategoriesContainer) return;
+    sheetCategoriesContainer.innerHTML = ''; // Clear previous
+
+    state.categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'sheet-category-btn';
+        btn.dataset.category = cat.id;
+        if (state.currentCategory === cat.id) { btn.classList.add('active'); }
+
+        const categoryName = cat.id === 'all'
+            ? t('all_categories_label')
+            : (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
+
+        btn.innerHTML = `<i class="${cat.icon || 'fas fa-tag'}"></i> ${categoryName}`; // Default icon
+
+        btn.onclick = async () => {
+            // Call the navigation function passed from app-logic
+            await navigateToFilter({
+                category: cat.id,
+                subcategory: 'all',
+                subSubcategory: 'all',
+                search: ''
+            });
+             // Close popup needs to be handled by app-logic potentially
+            // closeCurrentPopup();
+             // showPage('mainPage'); // Handled by navigateToFilter/popstate
         };
 
-        // Add data-action attributes to prev/next buttons
-        prevBtn.dataset.action = 'slider-prev';
-        nextBtn.dataset.action = 'slider-next';
-        // Store current index if needed by the handler in app-logic.js
-        prevBtn.dataset.currentIndex = currentIndex;
-        nextBtn.dataset.currentIndex = currentIndex;
+        sheetCategoriesContainer.appendChild(btn);
+    });
+}
 
+/**
+ * Renders the main category buttons strip.
+ * Requires `MapsToFilter` function.
+ * @param {Function} navigateToFilter - Function to handle navigation/filtering.
+ */
+export function renderMainCategories(navigateToFilter) {
+    const container = document.getElementById('mainCategoriesContainer');
+    if (!container) return;
+    container.innerHTML = ''; // Clear previous
 
-        if (imageUrls.length > 1) {
-            prevBtn.style.display = 'flex';
-            nextBtn.style.display = 'flex';
-        } else {
-            prevBtn.style.display = 'none';
-            nextBtn.style.display = 'none';
+    state.categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'main-category-btn';
+        btn.dataset.category = cat.id;
+
+        if (state.currentCategory === cat.id) {
+            btn.classList.add('active');
         }
-    }
-    // --- End Image Slider ---
 
-    if(sheetProductName) sheetProductName.textContent = nameInCurrentLang;
-    if(sheetProductDescription) sheetProductDescription.innerHTML = formatDescription(descriptionText);
+        const categoryName = cat.id === 'all'
+            ? t('all_categories_label')
+            : (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
 
-    if (sheetProductPrice) {
-        if (product.originalPrice && product.originalPrice > product.price) {
-            sheetProductPrice.innerHTML = `<span style="color: var(--accent-color);">${product.price.toLocaleString()} د.ع</span> <del style="color: var(--dark-gray); font-size: 16px; margin-right: 10px;">${product.originalPrice.toLocaleString()} د.ع</del>`;
-        } else {
-            sheetProductPrice.innerHTML = `<span>${product.price.toLocaleString()} د.ع</span>`;
-        }
-    }
+        btn.innerHTML = `<i class="${cat.icon || 'fas fa-tag'}"></i> <span>${categoryName}</span>`; // Default icon
 
-    // --- Related Products ---
-    if (relatedContainer && relatedSection) {
-        relatedContainer.innerHTML = ''; // Clear previous related products
-        if (relatedProducts && relatedProducts.length > 0) {
-            const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-            relatedProducts.forEach(relProd => {
-                const isFav = state.favorites.includes(relProd.id);
-                const card = createProductCardElement(relProd, isAdmin, isFav);
-                relatedContainer.appendChild(card);
+        btn.onclick = async () => {
+            // Call the navigation function passed from app-logic
+            await navigateToFilter({
+                category: cat.id,
+                subcategory: 'all',
+                subSubcategory: 'all',
+                search: ''
             });
-            relatedSection.style.display = 'block';
-        } else {
-            relatedSection.style.display = 'none';
+        };
+
+        container.appendChild(btn);
+    });
+}
+
+
+/**
+ * Renders subcategory buttons based on the selected main category.
+ * Requires `showSubcategoryDetailPage` function.
+ * @param {string} categoryId - The ID of the selected main category.
+ * @param {Function} showSubcategoryDetailPage - Function to navigate to detail page.
+ */
+export async function renderSubcategories(categoryId, showSubcategoryDetailPage) {
+    const subcategoriesContainer = document.getElementById('subcategoriesContainer');
+    if (!subcategoriesContainer) return;
+    subcategoriesContainer.innerHTML = ''; // Clear previous
+    subcategoriesContainer.style.display = 'none'; // Hide by default
+
+    if (!categoryId || categoryId === 'all') {
+        return; // Don't show subcategories if 'All' or no category is selected
+    }
+
+    try {
+        const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
+        const q = query(subcategoriesQuery, orderBy("order", "asc"));
+        const querySnapshot = await getDocs(q);
+
+        const fetchedSubcategories = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        if (fetchedSubcategories.length === 0) return; // Don't show if empty
+
+        subcategoriesContainer.style.display = 'flex'; // Show the container
+
+        // Add 'All' button for this subcategory level
+        const allBtn = document.createElement('button');
+        allBtn.className = `subcategory-btn ${state.currentSubcategory === 'all' ? 'active' : ''}`;
+        const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
+        allBtn.innerHTML = `
+            <div class="subcategory-image">${allIconSvg}</div>
+            <span>${t('all_categories_label')}</span>
+        `;
+        allBtn.onclick = async () => {
+             // Need navigateToFilter here
+            // await navigateToFilter({ subcategory: 'all', subSubcategory: 'all' });
+             console.warn("navigateToFilter needed in renderSubcategories 'All' button");
+        };
+       // subcategoriesContainer.appendChild(allBtn); // Re-evaluate if 'All' is needed here vs detail page
+
+        // Add actual subcategory buttons
+        fetchedSubcategories.forEach(subcat => {
+            const subcatBtn = document.createElement('button');
+            subcatBtn.className = `subcategory-btn ${state.currentSubcategory === subcat.id ? 'active' : ''}`;
+
+            const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
+            const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+            const imageUrl = subcat.imageUrl || placeholderImg;
+
+            subcatBtn.innerHTML = `
+                <img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
+                <span>${subcatName}</span>
+            `;
+
+            subcatBtn.onclick = () => {
+                // Call the function passed from app-logic
+                showSubcategoryDetailPage(categoryId, subcat.id);
+            };
+            subcategoriesContainer.appendChild(subcatBtn);
+        });
+
+    } catch (error) {
+        console.error("Error fetching/rendering subcategories: ", error);
+        subcategoriesContainer.style.display = 'none'; // Hide on error
+    }
+}
+
+/**
+ * Renders sub-subcategory buttons on the detail page.
+ * Requires `renderProductsOnDetailPage` function.
+ * @param {string} mainCatId
+ * @param {string} subCatId
+ * @param {Function} renderProductsFn - Function to render products for the selected sub-sub category.
+ */
+export async function renderSubSubcategoriesOnDetailPage(mainCatId, subCatId, renderProductsFn) {
+    const container = document.getElementById('subSubCategoryContainerOnDetailPage');
+    if (!container) return;
+    container.innerHTML = ''; // Clear previous
+    container.style.display = 'none'; // Hide by default
+
+    try {
+        const ref = collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
+        const q = query(ref, orderBy("order", "asc"));
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+            return; // Don't show if empty
         }
+
+        container.style.display = 'flex'; // Show container
+
+        // Add 'All' button
+        const allBtn = document.createElement('button');
+        allBtn.className = `subcategory-btn active`; // Default to active
+        const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
+        allBtn.innerHTML = `<div class="subcategory-image">${allIconSvg}</div><span>${t('all_categories_label')}</span>`;
+        allBtn.dataset.id = 'all';
+        allBtn.onclick = () => {
+            container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
+            allBtn.classList.add('active');
+            const currentSearch = document.getElementById('subpageSearchInput')?.value || '';
+            renderProductsFn(subCatId, 'all', currentSearch); // Call passed function
+        };
+        container.appendChild(allBtn);
+
+        // Add specific sub-subcategory buttons
+        snapshot.forEach(doc => {
+            const subSubcat = { id: doc.id, ...doc.data() };
+            const btn = document.createElement('button');
+            btn.className = `subcategory-btn`;
+            btn.dataset.id = subSubcat.id;
+            const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
+            const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+            const imageUrl = subSubcat.imageUrl || placeholderImg;
+            btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
+
+            btn.onclick = () => {
+                container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const currentSearch = document.getElementById('subpageSearchInput')?.value || '';
+                renderProductsFn(subCatId, subSubcat.id, currentSearch); // Call passed function
+            };
+            container.appendChild(btn);
+        });
+
+    } catch (error) {
+        console.error("Error fetching/rendering sub-subcategories for detail page:", error);
+        container.style.display = 'none'; // Hide on error
     }
-    // --- End Related Products ---
-
-    // --- Add to Cart Button ---
-    if (sheetAddToCartBtn) {
-        sheetAddToCartBtn.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
-        sheetAddToCartBtn.dataset.productId = product.id; // Add product ID for listener
-        sheetAddToCartBtn.dataset.action = "add-to-cart-details"; // Action for listener
-    }
-    // --- End Add to Cart Button ---
-
-    openPopupUI('productDetailSheet'); // Show the sheet UI
 }
 
-/**
- * Creates the HTML input fields for product images in the admin form.
- * @param {string[]} [imageUrls=[]] - Array of existing image URLs.
- */
-export function createProductImageInputs(imageUrls = []) {
-     if (!imageInputsContainer) return;
-     imageInputsContainer.innerHTML = '';
-     for (let i = 0; i < 4; i++) {
-         const url = imageUrls[i] || '';
-         const isRequired = i === 0 ? 'required' : '';
-         const placeholder = i === 0 ? 'لینکی وێنەی یەکەم (سەرەکی)' : `لینکی وێنەی ${['دووەم', 'سێیەم', 'چوارەم'][i-1]}`;
-         const previewSrc = url || `https://placehold.co/40x40/e2e8f0/2d3748?text=${i + 1}`;
-         const inputGroup = document.createElement('div');
-         inputGroup.className = 'image-input-group';
-         inputGroup.innerHTML = `<input type="url" class="productImageUrl" placeholder="${placeholder}" value="${url}" ${isRequired}><img src="${previewSrc}" class="image-preview-small" alt="Image preview ${i+1}" onerror="this.src='https://placehold.co/40x40/e2e8f0/2d3748?text=Err'">`;
-
-         // Add listener to update preview on input change
-         const input = inputGroup.querySelector('input');
-         const img = inputGroup.querySelector('img');
-         input.addEventListener('input', () => {
-             const newUrl = input.value.trim();
-             img.src = newUrl || `https://placehold.co/40x40/e2e8f0/2d3748?text=${i + 1}`;
-         });
-         imageInputsContainer.appendChild(inputGroup);
-     }
-}
 
 /**
- * Updates the cart item count badge in the UI.
- * Relies on state.cart being up-to-date.
+ * Sets up the GPS button functionality.
  */
-export function updateCartCountUI() {
-    const totalItems = state.cart.reduce((total, item) => total + item.quantity, 0);
-    document.querySelectorAll('.cart-count').forEach(el => { el.textContent = totalItems; });
-}
+export function setupGpsButton() {
+    const getLocationBtn = document.getElementById('getLocationBtn');
+    const profileAddressInput = document.getElementById('profileAddress');
 
-/**
- * Toggles the visual state of a favorite button on a product card.
- * @param {string} productId - The ID of the product.
- * @param {boolean} isFavorite - The new favorite state.
- */
-export function updateFavoriteButtonUI(productId, isFavorite) {
-    const allProductCards = document.querySelectorAll(`[data-product-id="${productId}"]`);
-    allProductCards.forEach(card => {
-        const favButton = card.querySelector('.favorite-btn[data-action="toggle-favorite"]');
-        if (favButton) {
-            const heartIcon = favButton.querySelector('.fa-heart');
-            favButton.classList.toggle('favorited', isFavorite);
-            if (heartIcon) {
-                heartIcon.classList.toggle('fas', isFavorite); // Solid heart
-                heartIcon.classList.toggle('far', !isFavorite); // Outline heart
+    if (!getLocationBtn || !profileAddressInput) return;
+
+    const btnSpan = getLocationBtn.querySelector('span');
+    const originalBtnText = btnSpan?.textContent || t('get_location', {default: 'Get My Location'});
+
+    getLocationBtn.addEventListener('click', () => {
+        if (!('geolocation' in navigator)) {
+            showNotification(t('gps_not_supported', {default: 'GPS not supported by your browser'}), 'error');
+            return;
+        }
+
+        if (btnSpan) btnSpan.textContent = t('waiting', {default: '...Waiting'});
+        getLocationBtn.disabled = true;
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => { // Success Callback
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+
+                try {
+                    // Using Nominatim for reverse geocoding (requires internet)
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=${state.currentLanguage},en`); // Prioritize current lang
+                    const data = await response.json();
+
+                    if (data && data.display_name) {
+                        profileAddressInput.value = data.display_name;
+                        showNotification(t('address_retrieved', {default: 'Address Retrieved'}), 'success');
+                    } else {
+                         profileAddressInput.value = `${latitude}, ${longitude}`; // Fallback to coords
+                        showNotification(t('address_not_found_gps', {default: 'Could not find address, using coordinates'}), 'warning');
+                    }
+                } catch (error) {
+                    console.error('Reverse Geocoding Error:', error);
+                     profileAddressInput.value = `${latitude}, ${longitude}`; // Fallback to coords
+                    showNotification(t('error_getting_address_gps', {default: 'Error getting address, using coordinates'}), 'error');
+                } finally {
+                    if (btnSpan) btnSpan.textContent = originalBtnText;
+                    getLocationBtn.disabled = false;
+                }
+            },
+            (error) => { // Error Callback
+                let message = '';
+                switch (error.code) {
+                    case 1: message = t('gps_permission_denied', {default: 'GPS permission denied'}); break;
+                    case 2: message = t('gps_position_unavailable', {default: 'Location information is unavailable'}); break;
+                    case 3: message = t('gps_timeout', {default: 'Location request timed out'}); break;
+                    default: message = t('gps_unknown_error', {default: 'An unknown GPS error occurred'}); break;
+                }
+                showNotification(message, 'error');
+                if (btnSpan) btnSpan.textContent = originalBtnText;
+                getLocationBtn.disabled = false;
             }
-        }
+        );
     });
-}
-
-/**
- * Updates the UI to show/hide admin-specific elements.
- * @param {boolean} isAdmin - Whether the user is an admin.
- */
-export function updateAdminUI(isAdmin) {
-    // Show/hide edit/delete buttons on product cards
-    document.querySelectorAll('.product-actions').forEach(el => {
-         el.style.display = isAdmin ? 'flex' : 'none';
-     });
-
-    // Show/hide admin sections in settings
-    const adminSections = [
-        'adminPoliciesManagement', 'adminSocialMediaManagement', 'adminAnnouncementManagement',
-        'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
-        'adminContactMethodsManagement', 'adminShortcutRowsManagement',
-        'adminHomeLayoutManagement'
-    ];
-    adminSections.forEach(id => {
-        const section = document.getElementById(id);
-        if (section) section.style.display = isAdmin ? 'block' : 'none';
-    });
-
-    // Toggle login/logout buttons in settings and add product button
-    if (settingsLogoutBtn) settingsLogoutBtn.style.display = isAdmin ? 'flex' : 'none';
-    if (settingsAdminLoginBtn) settingsAdminLoginBtn.style.display = isAdmin ? 'none' : 'flex';
-    if (addProductBtn) addProductBtn.style.display = isAdmin ? 'flex' : 'none';
-}
-
-/**
- * Displays or hides the notification badge.
- * @param {boolean} show - Whether to show the badge.
- */
-export function showNotificationBadge(show) {
-    if (notificationBadge) {
-        notificationBadge.style.display = show ? 'block' : 'none';
-    }
 }
