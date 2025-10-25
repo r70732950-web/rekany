@@ -35,11 +35,9 @@ export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
-// === ADDED EXPORT / زیادکرا ===
 export const shortcutRowsCollection = collection(db, "shortcut_rows");
-export const homeLayoutCollection = collection(db, "home_layout"); // Also export home_layout
-export const settingsCollection = collection(db, "settings"); // For policies, contact etc.
-// =============================
+export const homeLayoutCollection = collection(db, "home_layout");
+export const settingsCollection = collection(db, "settings");
 
 // Translations Export
 export const translations = {
@@ -157,6 +155,16 @@ export const translations = {
         error_loading_admin_features: 'هەڵە لە بارکردنی تایبەتمەندییەکانی بەڕێوەبەر.',
         error_displaying_product: 'هەڵە لە نیشاندانی زانیاری کاڵا.',
         error_adding_cart: 'هەڵە لە زیادکردنی بۆ سەبەتە ڕوویدا',
+        // GPS related
+        gps_not_supported: 'وێبگەڕەکەت پشتگیری GPS ناکات',
+        loading_wait: '...چاوەڕوان بە',
+        address_received: 'ناونیشان وەرگیرا',
+        error_getting_address: 'هەڵەیەک لە وەرگرتنی ناونیشان ڕوویدا',
+        error_gps_permission: 'ڕێگەت نەدا GPS بەکاربهێنرێت',
+        error_gps_unavailable: 'شوێنەکەت نەدۆزرایەوە',
+        error_gps_timeout: 'کاتی داواکارییەکە تەواو بوو',
+        error_gps_unknown: 'هەڵەیەکی نادیار ڕوویدا لە وەرگرتنی شوێن',
+        no_image: 'وێنە+نییە',
          // ... (Add other missing keys if needed)
     },
     ku_badini: {
@@ -368,71 +376,100 @@ export const FAVORITES_KEY = "maten_store_favorites";
 export const PROFILE_KEY = "maten_store_profile";
 export const PRODUCTS_PER_PAGE = 25; // For pagination
 
-// DOM Elements Exports (Keep only those needed by multiple modules or core logic)
-// UI Manager might select its own elements internally more often
+// DOM Elements Exports
+// General UI
 export const loginModal = document.getElementById('loginModal');
-export const addProductBtn = document.getElementById('addProductBtn'); // Needed by AdminLogic/UI
-export const productFormModal = document.getElementById('productFormModal'); // Needed by AdminLogic
-export const productsContainer = document.getElementById('productsContainer'); // Needed by data-renderer
-export const skeletonLoader = document.getElementById('skeletonLoader'); // Needed by data-renderer
-export const searchInput = document.getElementById('searchInput'); // Needed by app-logic event listener
-export const clearSearchBtn = document.getElementById('clearSearchBtn'); // Needed by app-logic event listener
-export const loginForm = document.getElementById('loginForm'); // Needed by app-logic event listener
-export const productForm = document.getElementById('productForm'); // Needed by AdminLogic
-export const formTitle = document.getElementById('formTitle'); // Needed by AdminLogic
-export const imageInputsContainer = document.getElementById('imageInputsContainer'); // Needed by AdminLogic
-export const loader = document.getElementById('loader'); // Needed by data-renderer
-export const cartBtn = document.getElementById('cartBtn'); // Needed by app-logic event listener
-export const cartItemsContainer = document.getElementById('cartItemsContainer'); // Needed by user-actions (renderCart)
-export const emptyCartMessage = document.getElementById('emptyCartMessage'); // Needed by user-actions (renderCart)
-export const cartTotal = document.getElementById('cartTotal'); // Needed by user-actions (renderCart)
-export const totalAmount = document.getElementById('totalAmount'); // Needed by user-actions (renderCart)
-export const cartActions = document.getElementById('cartActions'); // Needed by user-actions (renderCartActionButtons)
-export const favoritesContainer = document.getElementById('favoritesContainer'); // Needed by user-actions (renderFavoritesPage)
-export const emptyFavoritesMessage = document.getElementById('emptyFavoritesMessage'); // Needed by user-actions (renderFavoritesPage)
-export const categoriesBtn = document.getElementById('categoriesBtn'); // Needed by app-logic event listener
-export const sheetOverlay = document.getElementById('sheet-overlay'); // Needed by app-logic/ui-manager
-export const sheetCategoriesContainer = document.getElementById('sheetCategoriesContainer'); // Needed by user-actions/ui-manager (renderCategoriesSheet)
-export const productCategorySelect = document.getElementById('productCategoryId'); // Needed by AdminLogic/app-logic event listener
-export const subcategorySelectContainer = document.getElementById('subcategorySelectContainer'); // Needed by AdminLogic
-export const productSubcategorySelect = document.getElementById('productSubcategoryId'); // Needed by AdminLogic/app-logic event listener
-export const subSubcategorySelectContainer = document.getElementById('subSubcategorySelectContainer'); // Needed by AdminLogic
-export const productSubSubcategorySelect = document.getElementById('productSubSubcategoryId'); // Needed by AdminLogic
-export const profileForm = document.getElementById('profileForm'); // Needed by app-logic event listener
-export const settingsPage = document.getElementById('settingsPage'); // Needed by app-logic (showPage)
-export const mainPage = document.getElementById('mainPage'); // Needed by app-logic (showPage)
-export const homeBtn = document.getElementById('homeBtn'); // Needed by app-logic event listener
-export const settingsBtn = document.getElementById('settingsBtn'); // Needed by app-logic event listener
-export const settingsFavoritesBtn = document.getElementById('settingsFavoritesBtn'); // Needed by app-logic event listener
-export const settingsAdminLoginBtn = document.getElementById('settingsAdminLoginBtn'); // Needed by app-logic event listener
-export const settingsLogoutBtn = document.getElementById('settingsLogoutBtn'); // Needed by app-logic event listener
-export const profileBtn = document.getElementById('profileBtn'); // Needed by app-logic event listener
-export const contactToggle = document.getElementById('contactToggle'); // Needed by app-logic event listener
-// Admin section containers needed by AdminLogic initialize/deinitialize
-export const adminSocialMediaManagement = document.getElementById('adminSocialMediaManagement');
-export const addSocialMediaForm = document.getElementById('addSocialMediaForm'); // Needed by AdminLogic event listener
-export const socialLinksListContainer = document.getElementById('socialLinksListContainer'); // Needed by AdminLogic render
-export const socialMediaToggle = document.getElementById('socialMediaToggle'); // Needed by AdminLogic event listener
-// Notification elements
-export const notificationBtn = document.getElementById('notificationBtn'); // Needed by app-logic event listener
-export const notificationBadge = document.getElementById('notificationBadge'); // Needed by user-actions (checkNewAnnouncements)
-export const notificationsSheet = document.getElementById('notificationsSheet'); // Needed? Maybe only ID needed by openPopup
-export const notificationsListContainer = document.getElementById('notificationsListContainer'); // Needed by user-actions (renderUserNotifications)
-// Admin Announcement elements
-export const adminAnnouncementManagement = document.getElementById('adminAnnouncementManagement');
-export const announcementForm = document.getElementById('announcementForm'); // Needed by AdminLogic event listener
-// Terms elements
-export const termsAndPoliciesBtn = document.getElementById('termsAndPoliciesBtn'); // Needed by app-logic event listener
-export const termsSheet = document.getElementById('termsSheet'); // Needed? Maybe only ID needed by openPopup
-export const termsContentContainer = document.getElementById('termsContentContainer'); // Needed by user-actions (renderPolicies)
-// Admin Policies elements
-export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
-export const policiesForm = document.getElementById('policiesForm'); // Needed by AdminLogic event listener
-// SubSubcategories container (removed from main page, might not need export)
-// export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
-// Admin Promo/Brand elements needed by AdminLogic
-export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
-export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
-// Subpage search elements
+export const welcomeModal = document.getElementById('welcomeModal');
+export const sheetOverlay = document.getElementById('sheet-overlay');
+export const mainPage = document.getElementById('mainPage');
+export const settingsPage = document.getElementById('settingsPage');
+export const subcategoryDetailPage = document.getElementById('subcategoryDetailPage'); // Added
+export const loader = document.getElementById('loader'); // General loader on main page
+export const skeletonLoader = document.getElementById('skeletonLoader'); // Skeleton on main page
+// Header
+export const searchInput = document.getElementById('searchInput');
+export const clearSearchBtn = document.getElementById('clearSearchBtn');
 export const subpageSearchInput = document.getElementById('subpageSearchInput');
 export const subpageClearSearchBtn = document.getElementById('subpageClearSearchBtn');
+// Bottom Nav
+export const homeBtn = document.getElementById('homeBtn');
+export const categoriesBtn = document.getElementById('categoriesBtn');
+export const cartBtn = document.getElementById('cartBtn');
+export const profileBtn = document.getElementById('profileBtn');
+export const settingsBtn = document.getElementById('settingsBtn');
+// Cart Sheet
+export const cartItemsContainer = document.getElementById('cartItemsContainer');
+export const emptyCartMessage = document.getElementById('emptyCartMessage');
+export const cartTotal = document.getElementById('cartTotal');
+export const totalAmount = document.getElementById('totalAmount');
+export const cartActions = document.getElementById('cartActions');
+// Favorites Sheet
+export const favoritesContainer = document.getElementById('favoritesContainer');
+export const emptyFavoritesMessage = document.getElementById('emptyFavoritesMessage');
+// Categories Sheet
+export const sheetCategoriesContainer = document.getElementById('sheetCategoriesContainer');
+// Profile Sheet
+export const profileForm = document.getElementById('profileForm');
+// Notifications Sheet
+export const notificationBtn = document.getElementById('notificationBtn');
+export const notificationBadge = document.getElementById('notificationBadge');
+export const notificationsSheet = document.getElementById('notificationsSheet');
+export const notificationsListContainer = document.getElementById('notificationsListContainer');
+// Terms Sheet
+export const termsAndPoliciesBtn = document.getElementById('termsAndPoliciesBtn');
+export const termsSheet = document.getElementById('termsSheet');
+export const termsContentContainer = document.getElementById('termsContentContainer');
+// Product Detail Sheet
+export const productDetailSheet = document.getElementById('productDetailSheet');
+export const sheetImageContainer = document.getElementById('sheetImageContainer');
+export const sheetThumbnailContainer = document.getElementById('sheetThumbnailContainer');
+export const sheetPrevBtn = document.getElementById('sheetPrevBtn');
+export const sheetNextBtn = document.getElementById('sheetNextBtn');
+export const sheetProductName = document.getElementById('sheetProductName');
+export const sheetProductDescription = document.getElementById('sheetProductDescription');
+export const sheetProductPrice = document.getElementById('sheetProductPrice');
+export const sheetAddToCartBtn = document.getElementById('sheetAddToCartBtn');
+export const relatedProductsSection = document.getElementById('relatedProductsSection');
+export const relatedProductsContainer = document.getElementById('relatedProductsContainer');
+// Main Page Content Area
+export const mainCategoriesContainer = document.getElementById('mainCategoriesContainer');
+export const subcategoriesContainer = document.getElementById('subcategoriesContainer');
+export const productsContainer = document.getElementById('productsContainer');
+// Subcategory Detail Page Content Area
+export const subSubCategoryContainerOnDetailPage = document.getElementById('subSubCategoryContainerOnDetailPage'); // Added
+export const productsContainerOnDetailPage = document.getElementById('productsContainerOnDetailPage'); // Added
+export const detailPageLoader = document.getElementById('detailPageLoader'); // *** ADDED EXPORT ***
+// Settings Page Elements (General)
+export const contactToggle = document.getElementById('contactToggle');
+// Settings Page Elements (Admin Login/Logout)
+export const settingsAdminLoginBtn = document.getElementById('settingsAdminLoginBtn');
+export const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
+export const addProductBtn = document.getElementById('addProductBtn');
+// Admin Forms & Containers (Needed by AdminLogic)
+export const loginForm = document.getElementById('loginForm');
+export const productFormModal = document.getElementById('productFormModal');
+export const productForm = document.getElementById('productForm');
+export const formTitle = document.getElementById('formTitle');
+export const imageInputsContainer = document.getElementById('imageInputsContainer');
+export const productCategorySelect = document.getElementById('productCategoryId');
+export const subcategorySelectContainer = document.getElementById('subcategorySelectContainer');
+export const productSubcategorySelect = document.getElementById('productSubcategoryId');
+export const subSubcategorySelectContainer = document.getElementById('subSubcategorySelectContainer');
+export const productSubSubcategorySelect = document.getElementById('productSubSubcategorySelect');
+// Admin Sections (Needed by AdminLogic)
+export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
+export const policiesForm = document.getElementById('policiesForm');
+export const adminCategoryManagement = document.getElementById('adminCategoryManagement');
+export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
+export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
+export const adminShortcutRowsManagement = document.getElementById('adminShortcutRowsManagement');
+export const adminHomeLayoutManagement = document.getElementById('adminHomeLayoutManagement');
+export const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
+export const adminSocialMediaManagement = document.getElementById('adminSocialMediaManagement');
+export const addSocialMediaForm = document.getElementById('addSocialMediaForm');
+export const socialLinksListContainer = document.getElementById('socialLinksListContainer');
+export const socialMediaToggle = document.getElementById('socialMediaToggle');
+export const adminAnnouncementManagement = document.getElementById('adminAnnouncementManagement');
+export const announcementForm = document.getElementById('announcementForm');
+export const settingsFavoritesBtn = document.getElementById('settingsFavoritesBtn'); // Added back as it's used
+
