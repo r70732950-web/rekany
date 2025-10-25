@@ -1,46 +1,50 @@
 // scroll-logic.js
-// Ev pel ji bo mentiqê têkildarî scrollkirinê ye (infinite scroll û animasyon)
+// Ev pel ji bo mentiqê têkildarî scrollkirinê ye (guhertoya çareserkirî)
 
-// Pêdivî ye ku state û searchProductsInFirestore ji app-logic werin import kirin
-// Ji ber ku app-logic.js wek module hatiye danîn, divê ew van tiştan export bike
-import { state, searchProductsInFirestore } from './app-logic.js';
+import { state } from './app-logic.js'; // Tenê state import bike
 
 /**
  * Fonksiyonek ji bo danîna IntersectionObserver ku dema bikarhêner digihîje dawiya lîsteyê,
- * bixweber berhemên zêdetir bar dike (infinite scroll).
- * @param {HTMLElement} triggerElement - Elementa HTML ku wekî trigger kar dike (mînak, divek li dawiya lîsteyê).
+ * callback-a pêşkêşkirî bang dike.
+ * @param {HTMLElement} triggerElement - Elementa HTML ku wekî trigger kar dike.
+ * @param {function} loadMoreCallback - Fonksiyona ku dema pêdivî bi barkirina zêdetir hebe tê bang kirin.
  */
-function setupScrollObserver(triggerElement) {
+function setupScrollObserver(triggerElement, loadMoreCallback) { // Callback wek parameter hat zêdekirin
     if (!triggerElement) {
         console.warn("Elementa trigger ji bo scroll observer nehat dîtin.");
         return;
     }
+    if (typeof loadMoreCallback !== 'function') {
+         console.error("loadMoreCallback ne fonksiyonek e!");
+         return;
+    }
 
     const observerOptions = {
-        root: null, // Li gorî viewport
-        threshold: 0.1 // Dema 10% ji elementê xuya bibe
+        root: null,
+        threshold: 0.1
     };
 
     const observerCallback = (entries) => {
+        // Piştrast be ku em hîn jî çavdêriyê dikin
+        if (!entries[0].target.closest('body')) {
+             console.log("Scroll trigger êdî ne di DOMê de ye, observer tê sekinandin.");
+             observer.unobserve(entries[0].target);
+             return;
+        }
+
         if (entries[0].isIntersecting) {
-            // Tenê heke barkirin ne di pêvajoyê de be û hemû berhem nehatibin barkirin
             if (!state.isLoadingMoreProducts && !state.allProductsLoaded) {
-                console.log("Triggera scrollê hat dîtin, berhemên zêdetir tên barkirin...");
-                // Banga fonksiyona lêgerînê dike ji bo anîna rûpela din
-                searchProductsInFirestore(state.currentSearch || '', false); // false nîşan dide ku ev ne lêgerîneke nû ye
+                console.log("Triggera scrollê hat dîtin, callbacka barkirina zêdetir tê bang kirin...");
+                loadMoreCallback(); // Banga callbacka ku ji app-logic hatiye
             } else if (state.isLoadingMoreProducts) {
                 console.log("Triggera scrollê hat dîtin, lê barkirin jixwe di pêvajoyê de ye.");
             } else if (state.allProductsLoaded) {
                 console.log("Triggera scrollê hat dîtin, lê hemû berhem hatine barkirin.");
-                 // Dibe ku li vir trigger were veşartin an observer were rawestandin
-                 triggerElement.style.display = 'none'; // Veşartina triggerê
+                 triggerElement.style.display = 'none'; // Veşartina triggerê dema hemû tişt hatin
+                 observer.unobserve(triggerElement); // Rawestandina çavdêriyê dema hemû tişt hatin
             }
-        } else {
-             // Ger trigger ji dîmenê derkeve û hemû berhem hatibin barkirin, piştrast bike ku veşartî ye
-             if (state.allProductsLoaded) {
-                 triggerElement.style.display = 'none';
-             }
         }
+        // Beşa 'else' ya berê hat rakirin ji ber ku dibe sedema veşartina triggerê zû
     };
 
     const observer = new IntersectionObserver(observerCallback, observerOptions);
@@ -48,37 +52,33 @@ function setupScrollObserver(triggerElement) {
     console.log("Scroll observer ji bo barkirina bêdawî hat saz kirin.");
 }
 
-/**
- * Fonksiyonek ji bo danîna IntersectionObserver ku animasyonên fade-in li ser kartên berheman
- * dema ku ew dikevin nav dîmenê, pêk tîne.
- */
+// setupScrollAnimations wekî berê dimîne
 function setupScrollAnimations() {
     const observerOptions = {
-        threshold: 0.1 // Dema 10% ji kartê xuya bibe
+        threshold: 0.1
     };
 
     const observerCallback = (entries, observer) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 entry.target.classList.add('visible');
-                observer.unobserve(entry.target); // Piştî animasyonê, êdî neşopîne
+                observer.unobserve(entry.target);
             }
         });
     };
 
+    // Observerek nû çêbike her carê ku ev fonksiyon tê bang kirin
     const observer = new IntersectionObserver(observerCallback, observerOptions);
 
-    // Li kartên ku hewceyê animasyonê ne û hêj xuya nebûne digere
-    // Divê ev piştî renderkirina kartan were bang kirin
     const cardsToAnimate = document.querySelectorAll('.product-card-reveal:not(.visible)');
     cardsToAnimate.forEach(card => {
         observer.observe(card);
     });
 
     if(cardsToAnimate.length > 0) {
-        console.log(`Scroll animation observer ji bo ${cardsToAnimate.length} kartan hat saz kirin.`);
+        // Ji bo debugê: console.log(`Scroll animation observer ji bo ${cardsToAnimate.length} kartan hat saz kirin.`);
     }
 }
 
-// Fonksiyonên ku divê ji derve werin bikaranîn export bike
+
 export { setupScrollObserver, setupScrollAnimations };
