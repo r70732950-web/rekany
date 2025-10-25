@@ -63,6 +63,7 @@ body.overlay-active {
     gap: 15px;
     /* PWA Safe Area */
     padding-top: calc(12px + env(safe-area-inset-top));
+    height: calc(65px + env(safe-area-inset-top)); /* Assuming base height is 65px */
 }
 .logo { display: flex; align-items: center; gap: 10px; }
 .logo-bottom { font-size: 22px; font-weight: bold; color: var(--primary-color); white-space: nowrap; }
@@ -122,7 +123,8 @@ body.overlay-active {
 
 /* Rêkxistina cihê vala yê jorîn ji bo hemî rûpelan */
 .main-content, #subcategoryDetailPage, .settings-page {
-    padding-top: 80px; /* Cih ji bo headerê */
+     /* Cih ji bo header + categories bar. Adjust if needed */
+    padding-top: calc(65px + env(safe-area-inset-top) + 48px); /* Header Height + ~Category Bar Height */
     /* PWA Safe Area */
     padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
@@ -136,6 +138,27 @@ body.overlay-active {
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     border-right: none;
     border-left: none;
+}
+
+.main-categories-container {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 8px 12px; /* Adjusted padding */
+    scrollbar-width: none;
+    touch-action: pan-x;
+    -ms-touch-action: pan-x;
+    overscroll-behavior-x: contain;
+    /* == KODA STICKY LI VIR ZÊDEKIRÎ == */
+    position: sticky;
+    top: calc(65px + env(safe-area-inset-top)); /* Make it stick below the header */
+    background-color: var(--light-gray); /* Match body background */
+    z-index: 50; /* Above content, below header */
+    border-bottom: 1px solid var(--section-border);
+    margin-bottom: 10px; /* Add some space below it */
+}
+.main-categories-container::-webkit-scrollbar {
+    display: none;
 }
 
 .subcategories-container {
@@ -770,22 +793,6 @@ padding-bottom: env(safe-area-inset-bottom); }
 }
 .update-now-btn:hover {
     background-color: var(--accent-light);
-}
-
-.main-categories-container {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding: 5px 12px 10px 12px;
-    scrollbar-width: none;
-    /* == KODA NÛ ZÊDEKIRÎ == */
-    /* == کۆدی نوێ زیادکرا == */
-    touch-action: pan-x; /* Destûrê dide tenê kişandina (pan) ئاسۆیی لەسەر شاشەی لەمس */
-    -ms-touch-action: pan-x; /* Ji bo Internet Explorer */
-    overscroll-behavior-x: contain; /* Rêگرتن لەوەی scrollـی ئاسۆیی کاریگەری لەسەر scrollـی دەرەوە (لاپەڕەی سەرەکی) بکات */
-}
-.main-categories-container::-webkit-scrollbar {
-    display: none;
 }
 
 .main-category-btn {
