@@ -6,40 +6,34 @@ import {
     state,
     promoGroupsCollection,
     brandGroupsCollection,
-    shortcutRowsCollection,
+    // === START: ÇAKKIRIN / FIX ===
+    // shortcutRowsCollection hate rakirin ji importê
+    // === END: ÇAKKIRIN / FIX ===
     productsCollection
 } from './app-setup.js';
-// === START: ÇAKKIRIN / FIX ===
-// Em êdî van ji app-setup import nakin
-/*
-import {
-    homePageSectionsContainer,
-    notificationsListContainer
-} from './app-setup.js';
-*/
-// === END: ÇAKKIRIN / FIX ===
 import { getDocs, collection, query, orderBy, where, doc, getDoc, limit } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { t } from './utils.js';
 import { createProductCardElement } from './product.js'; // Ji bo nîşandana kałayan
+
+// === START: ÇAKKIRIN / FIX ===
+// Em shortcutRowsCollection li vir pênase dikin
+const shortcutRowsCollection = collection(db, "shortcut_rows");
+// === END: ÇAKKIRIN / FIX ===
 
 /**
  * Fonksiyona sereke ji bo çêkirina hemî beşan di rûpela sereke de
  */
 export async function renderHomePageContent() {
-    // === START: ÇAKKIRIN / FIX ===
-    // Em konteynerê li vir dibînin
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     if (!homeSectionsContainer) {
         console.error("Konteynera rûpela sereke (homePageSectionsContainer) nehate dîtin!");
         return;
     }
-    // === END: ÇAKKIRIN / FIX ===
 
     if (state.isRenderingHomePage) return;
     state.isRenderingHomePage = true;
 
     try {
-        // Pêşî skeleton loader nîşan bide
         homeSectionsContainer.innerHTML = `
             <div class="products-container" id="skeletonLoaderHome">
                 <div class="skeleton-card"><div class="skeleton-image shimmer"></div><div class="skeleton-text shimmer"></div></div>
@@ -47,7 +41,6 @@ export async function renderHomePageContent() {
             </div>`;
         homeSectionsContainer.style.display = 'block';
 
-        // Paqijkirina intervalên sliderên berê (eger hebin)
         Object.keys(state.sliderIntervals || {}).forEach(layoutId => {
             if (state.sliderIntervals[layoutId]) {
                 clearInterval(state.sliderIntervals[layoutId]);
@@ -55,16 +48,14 @@ export async function renderHomePageContent() {
         });
         state.sliderIntervals = {};
 
-        // Anîna rêkxistina (layout) rûpela sereke ji Firestore
         const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
         const layoutSnapshot = await getDocs(layoutQuery);
 
-        homeSectionsContainer.innerHTML = ''; // Paqijkirina skeleton loader
+        homeSectionsContainer.innerHTML = '';
 
         if (layoutSnapshot.empty) {
             console.warn("Rêkxistina rûpela sereke nehatiye destnîşankirin.");
         } else {
-            // Çêkirina her beşekê li gorî rêza wê
             for (const doc of layoutSnapshot.docs) {
                 const section = doc.data();
                 let sectionElement = null;
@@ -117,11 +108,9 @@ export async function renderHomePageContent() {
  * Agahdariyan (Announcements) ji bo bikarhêneran di 'Notifications Sheet' de nîşan dide
  */
 export async function renderUserNotifications() {
-    // === START: ÇAKKIRIN / FIX ===
     const notificationsListContainer = document.getElementById('notificationsListContainer');
     if (!notificationsListContainer) return;
-    // === END: ÇAKKIRIN / FIX ===
-    
+
     const q = query(collection(db, "announcements"), orderBy("createdAt", "desc"));
     const snapshot = await getDocs(q);
 
@@ -156,9 +145,7 @@ export async function renderUserNotifications() {
         notificationsListContainer.appendChild(item);
     });
 
-    // Wexta dîtina agahdariya herî dawî tomar bike da ku nîşana sor (badge) were veşartin
     localStorage.setItem('lastSeenAnnouncementTimestamp', latestTimestamp);
-    // Nîşana sor rasterast veşêre (ji ber ku bikarhêner niha wan dibîne)
     const badge = document.getElementById('notificationBadge');
     if(badge) badge.style.display = 'none';
 }
@@ -186,13 +173,30 @@ async function renderPromoCardsSectionForHome(groupId, layoutId) {
             const sliderState = { currentIndex: 0, intervalId: null };
             const cardData = { cards };
 
-            const promoCardElement = createPromoCardElement(cardData, sliderState, 'navigate-category');
+            // Bikaranîna fonksiyonek ji product.js (an fonksiyonek alîkar a taybet li vir)
+            // Lê ji bo hêsanî, em koda çêkirina HTML li vir dubare dikin
+            const currentCard = cards[sliderState.currentIndex];
+            const imageUrl = currentCard.imageUrls[state.currentLanguage] || currentCard.imageUrls.ku_sorani;
+            const promoCardElement = document.createElement('div');
+            promoCardElement.className = 'product-card promo-card-grid-item';
+            // Zêdekirina data-action ji bo klîkê
+            promoCardElement.dataset.action = 'navigate-category';
+            promoCardElement.dataset.categoryId = currentCard.categoryId || '';
+
+            promoCardElement.innerHTML = `
+                <div class="product-image-container">
+                    <img src="${imageUrl}" class="product-image" loading="lazy" alt="Promotion">
+                </div>
+                ${cards.length > 1 ? `
+                <button class="promo-slider-btn prev" data-action="promo-prev"><i class="fas fa-chevron-left"></i></button>
+                <button class="promo-slider-btn next" data-action="promo-next"><i class="fas fa-chevron-right"></i></button>
+                ` : ''}
+            `;
             promoGrid.appendChild(promoCardElement);
 
-            if (cards.length > 1) {
-                // Funksiyona ji bo zivirandina sliderê
+            // Birêvebirina Interval (wekî berê)
+             if (cards.length > 1) {
                 const rotate = () => {
-                    // Kontrol bike ka ev beş hîn li ser rûpelê ye
                     if (!document.getElementById(promoGrid.id) || !state.sliderIntervals || !state.sliderIntervals[layoutId]) {
                         if (sliderState.intervalId) {
                             clearInterval(sliderState.intervalId);
@@ -206,24 +210,42 @@ async function renderPromoCardsSectionForHome(groupId, layoutId) {
                     const newImageUrl = cards[sliderState.currentIndex].imageUrls[state.currentLanguage] || cards[sliderState.currentIndex].imageUrls.ku_sorani;
                     const imgElement = promoCardElement.querySelector('.product-image');
                     if (imgElement) imgElement.src = newImageUrl;
+                    // Nûvekirina data-categoryId jî heke guherîbe
+                    promoCardElement.dataset.categoryId = cards[sliderState.currentIndex].categoryId || '';
                 };
 
-                // Intervala berê (eger hebe) paqij bike
                 if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
                     clearInterval(state.sliderIntervals[layoutId]);
                 }
-
-                // Intervalek nû saz bike û di state de tomar bike
                 sliderState.intervalId = setInterval(rotate, 5000);
                 if (!state.sliderIntervals) state.sliderIntervals = {};
                 state.sliderIntervals[layoutId] = sliderState.intervalId;
+
+                // Event listener ji bo bişkokan (bi rêya event delegation di app-logic.js de nayê kirin)
+                promoCardElement.addEventListener('click', (e) => {
+                    if (e.target.closest('[data-action="promo-prev"]')) {
+                        e.stopPropagation();
+                        clearInterval(sliderState.intervalId); // Rawestandina otomatîk
+                        sliderState.currentIndex = (sliderState.currentIndex - 1 + cards.length) % cards.length;
+                        const newImageUrl = cards[sliderState.currentIndex].imageUrls[state.currentLanguage] || cards[sliderState.currentIndex].imageUrls.ku_sorani;
+                        promoCardElement.querySelector('.product-image').src = newImageUrl;
+                        promoCardElement.dataset.categoryId = cards[sliderState.currentIndex].categoryId || '';
+                    } else if (e.target.closest('[data-action="promo-next"]')) {
+                        e.stopPropagation();
+                        clearInterval(sliderState.intervalId); // Rawestandina otomatîk
+                        sliderState.currentIndex = (sliderState.currentIndex + 1) % cards.length;
+                        const newImageUrl = cards[sliderState.currentIndex].imageUrls[state.currentLanguage] || cards[sliderState.currentIndex].imageUrls.ku_sorani;
+                        promoCardElement.querySelector('.product-image').src = newImageUrl;
+                        promoCardElement.dataset.categoryId = cards[sliderState.currentIndex].categoryId || '';
+                    }
+                });
             }
             return promoGrid;
         }
     } catch (error) {
         console.error(`Error rendering promo slider (Group ID: ${groupId}):`, error);
     }
-    return null; // Heke tiştek neyê dîtin, null vegerîne
+    return null;
 }
 
 /**
@@ -234,8 +256,7 @@ async function renderPromoCardsSectionForHome(groupId, layoutId) {
 async function renderBrandsSection(groupId, sectionNameObj) {
     const sectionContainer = document.createElement('div');
     sectionContainer.className = 'brands-section';
-    
-    // Sernavê beşê
+
     const title = sectionNameObj[state.currentLanguage] || sectionNameObj.ku_sorani;
     const header = document.createElement('div');
     header.className = 'section-title-header';
@@ -251,7 +272,7 @@ async function renderBrandsSection(groupId, sectionNameObj) {
         const q = query(collection(db, "brand_groups", groupId, "brands"), orderBy("order", "asc"), limit(30));
         const snapshot = await getDocs(q);
 
-        if (snapshot.empty) return null; // Heke vala be, beşê nîşan nede
+        if (snapshot.empty) return null;
 
         snapshot.forEach(doc => {
             const brand = { id: doc.id, ...doc.data() };
@@ -259,11 +280,10 @@ async function renderBrandsSection(groupId, sectionNameObj) {
 
             const item = document.createElement('div');
             item.className = 'brand-item';
-            // Zêdekirina data-action ji bo klîkê
             item.dataset.action = 'navigate-brand';
             item.dataset.categoryId = brand.categoryId || '';
             item.dataset.subcategoryId = brand.subcategoryId || '';
-            
+
             item.innerHTML = `
                 <div class="brand-image-wrapper">
                     <img src="${brand.imageUrl}" alt="${brandName}" loading="lazy" class="brand-image">
@@ -288,12 +308,10 @@ async function renderNewestProductsSection(sectionNameObj) {
     const container = document.createElement('div');
     container.className = 'dynamic-section';
     const title = sectionNameObj[state.currentLanguage] || sectionNameObj.ku_sorani || t('newest_products');
-    
-    // Sernavê beşê
+
     const header = document.createElement('div');
     header.className = 'section-title-header';
     header.innerHTML = `<h3 class="section-title-main">${title}</h3>`;
-    // TODO: Zêdekirina bişkokek 'Binêre Hemî' ku ber bi fîlterek 'Nûtirîn' ve diçe
     container.appendChild(header);
 
     try {
@@ -306,7 +324,7 @@ async function renderNewestProductsSection(sectionNameObj) {
         );
         const snapshot = await getDocs(q);
 
-        if (snapshot.empty) return null; // Heke tiştek nû nebe, nîşan nede
+        if (snapshot.empty) return null;
 
         const productsScroller = document.createElement('div');
         productsScroller.className = 'horizontal-products-container';
@@ -315,7 +333,7 @@ async function renderNewestProductsSection(sectionNameObj) {
             const card = createProductCardElement(product);
             productsScroller.appendChild(card);
         });
-        
+
         container.appendChild(productsScroller);
         return container;
 
@@ -339,13 +357,11 @@ async function renderSingleShortcutRow(rowId, sectionNameObj) {
         if (!rowDoc.exists()) return null;
 
         const rowData = { id: rowDoc.id, ...rowDoc.data() };
-        // Navê ji layoutê bikar bîne, heke nebe, navê rêzê bixwe bikar bîne
-        const rowTitle = (sectionNameObj && sectionNameObj[state.currentLanguage]) 
-                         || (rowData.title && rowData.title[state.currentLanguage]) 
-                         || (sectionNameObj && sectionNameObj.ku_sorani) 
+        const rowTitle = (sectionNameObj && sectionNameObj[state.currentLanguage])
+                         || (rowData.title && rowData.title[state.currentLanguage])
+                         || (sectionNameObj && sectionNameObj.ku_sorani)
                          || (rowData.title && rowData.title.ku_sorani);
 
-        // Sernavê rêzê
         const titleElement = document.createElement('h3');
         titleElement.className = 'shortcut-row-title';
         titleElement.textContent = rowTitle;
@@ -359,7 +375,7 @@ async function renderSingleShortcutRow(rowId, sectionNameObj) {
         const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
 
-        if (cardsSnapshot.empty) return null; // Rêza vala nîşan nede
+        if (cardsSnapshot.empty) return null;
 
         cardsSnapshot.forEach(cardDoc => {
             const cardData = cardDoc.data();
@@ -367,12 +383,11 @@ async function renderSingleShortcutRow(rowId, sectionNameObj) {
 
             const item = document.createElement('div');
             item.className = 'shortcut-card';
-            // Zêdekirina data-action ji bo klîkê
             item.dataset.action = 'navigate-filter';
             item.dataset.categoryId = cardData.categoryId || 'all';
             item.dataset.subcategoryId = cardData.subcategoryId || 'all';
             item.dataset.subSubcategoryId = cardData.subSubcategoryId || 'all';
-            
+
             item.innerHTML = `
                 <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
                 <div class="shortcut-card-name">${cardName}</div>
@@ -397,7 +412,6 @@ async function renderSingleCategoryRow(sectionData) {
     let title = name[state.currentLanguage] || name.ku_sorani;
     let targetDocRefPath;
 
-    // Diyarkirina kîjan kategorî ye armanc
     if (subSubcategoryId) {
         queryField = 'subSubcategoryId';
         queryValue = subSubcategoryId;
@@ -411,15 +425,13 @@ async function renderSingleCategoryRow(sectionData) {
         queryValue = categoryId;
         targetDocRefPath = `categories/${categoryId}`;
     } else {
-        return null; // Kategorî nehatiye diyarkirin
+        return null;
     }
 
     try {
-        // H চেষ্টা bike ku navê kategoriyê ji Firestore bistînî
         const targetSnap = await getDoc(doc(db, targetDocRefPath));
         if (targetSnap.exists()) {
              const targetData = targetSnap.data();
-             // Navê ji Firestore bikar bîne eger hebe, wekî din navê ji layoutê
              title = targetData['name_' + state.currentLanguage] || targetData.name_ku_sorani || title;
         }
 
@@ -427,34 +439,29 @@ async function renderSingleCategoryRow(sectionData) {
         container.className = 'dynamic-section';
         const header = document.createElement('div');
         header.className = 'section-title-header';
-        
+
         const titleEl = document.createElement('h3');
         titleEl.className = 'section-title-main';
         titleEl.textContent = title;
         header.appendChild(titleEl);
 
-        // Lînka 'Binêre Hemî'
         const seeAllLink = document.createElement('a');
         seeAllLink.className = 'see-all-link';
         seeAllLink.textContent = t('see_all');
-        seeAllLink.style.cursor = 'pointer'; // Ji bo nîşandana ku klîk lê dibe
-        
-        // Zêdekirina data-action ji bo klîkê
+        seeAllLink.style.cursor = 'pointer';
+
         if(subcategoryId) {
-            // Heke jêr-kategorî hebe, ber bi rûpela hûrguliyan ve biçe
             seeAllLink.dataset.action = 'navigate-subcategory-detail';
             seeAllLink.dataset.mainCatId = categoryId;
             seeAllLink.dataset.subCatId = subcategoryId;
         } else {
-             // Heke tenê kategoriya sereke be, li ser rûpela malê fîlter bike
             seeAllLink.dataset.action = 'navigate-category';
             seeAllLink.dataset.categoryId = categoryId;
         }
-        
+
         header.appendChild(seeAllLink);
         container.appendChild(header);
 
-        // Anîna kałayan ji bo vê kategoriyê
         const productsScroller = document.createElement('div');
         productsScroller.className = 'horizontal-products-container';
         container.appendChild(productsScroller);
@@ -466,7 +473,7 @@ async function renderSingleCategoryRow(sectionData) {
             limit(10)
         );
         const snapshot = await getDocs(q);
-        if (snapshot.empty) return null; // Heke vala be, nîşan nede
+        if (snapshot.empty) return null;
 
         snapshot.forEach(doc => {
             const product = { id: doc.id, ...doc.data() };
@@ -494,6 +501,7 @@ async function renderAllProductsSection(sectionNameObj) {
     const header = document.createElement('div');
     header.className = 'section-title-header';
     header.innerHTML = `<h3 class="section-title-main">${title}</h3>`;
+    // TODO: Zêdekirina lînka 'Binêre Hemî' ku ber bi fîltera 'Hemî' ve diçe
     container.appendChild(header);
 
     const productsGrid = document.createElement('div');
@@ -501,7 +509,6 @@ async function renderAllProductsSection(sectionNameObj) {
     container.appendChild(productsGrid);
 
     try {
-        // Tenê 10 kałayên herî dawî nîşan bide
         const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(10));
         const snapshot = await getDocs(q);
         if (snapshot.empty) return null;
