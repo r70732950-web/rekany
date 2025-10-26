@@ -1,5 +1,5 @@
 // app-logic.js (The New Controller)
-// ئەم فایلە هەموو مۆدیولەکان کۆدەکاتەوە و وەک کۆنترۆڵکەری سەرەکی کاردەکات.
+// ئەم فایلە هەموو مۆدیولەکان کۆدەکاتەوە و وەک کۆنترۆڵکەری سەرەki کاردەکات.
 
 // --- 1. IMPORTKIRINA GŞTÎ Û XIZMETÊN FIREBASE ---
 import {
@@ -17,7 +17,7 @@ import {
     sheetOverlay, subpageSearchInput, subpageClearSearchBtn,
     contactToggle, settingsFavoritesBtn, settingsAdminLoginBtn, settingsLogoutBtn,
     notificationBtn, termsAndPoliciesBtn, profileForm,
-    appContainer, scrollLoaderTrigger,
+    appContainer, scrollLoaderTrigger, homePageSectionsContainer
 } from './app-setup.js';
 
 import {
@@ -37,7 +37,10 @@ import {
     requestNotificationPermission
 } from './ui.js';
 import { addToCart, updateCartCount } from './cart.js';
-import { toggleFavorite } in './favorites.js';
+// === START: ÇAKKIRIN / FIX ===
+// Li rêza 40 (bi jimartina importên Firebase) 'in' ببوو بە 'from'
+import { toggleFavorite } from './favorites.js';
+// === END: ÇAKKIRIN / FIX ===
 import {
     createProductCardElement, renderSkeletonLoader, showProductDetails,
     setupScrollAnimations
@@ -589,7 +592,7 @@ async function initializeAppLogic() {
         }
         snapshot.forEach(doc => {
             const link = doc.data();
-            const name = link['name_' 'state.currentLanguage'] || link.name_ku_sorani;
+            const name = link['name_' + state.currentLanguage] || link.name_ku_sorani;
             const linkElement = document.createElement('a');
             linkElement.href = link.url;
             linkElement.target = '_blank';
@@ -777,3 +780,25 @@ onAuthStateChanged(auth, async (user) => {
 
 // Destpêkirina sepanê piştî ku DOM amade bû
 document.addEventListener('DOMContentLoaded', init);
+
+/**
+ * Fonksiyonek alîkar ji bo çavdêriya Scroll
+ */
+function setupScrollObserver() {
+    const trigger = scrollLoaderTrigger;
+    if (!trigger) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+            if (!state.isLoadingMoreProducts && !state.allProductsLoaded) {
+                 searchProductsInFirestore(state.currentSearch, false); // Barkirina rûpela din
+            }
+        }
+    }, {
+        root: null,
+        threshold: 0.1
+    });
+
+    observer.observe(trigger);
+}
+
