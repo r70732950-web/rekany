@@ -1,28 +1,31 @@
 // home.js: Fonksiyonên taybet bi çêkirina rûpela sereke
 
-// Import Firestore functions directly from Firebase SDK
+// Import Firestore functions DIRECTLY from Firebase SDK
 import {
     collection, query, orderBy, getDocs, getDoc, doc, limit, where
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-// Import necessary variables and shared functions
+// Import necessary variables and shared functions FROM app-setup.js
 import {
-    db, // Firestore instance
-    state, // Global state (for language, slider intervals)
-    promoGroupsCollection, // Collection references
+    db,                 // Firestore instance
+    state,              // Global state (for language, slider intervals)
+    promoGroupsCollection, // Specific collection references ARE exported
     brandGroupsCollection,
     shortcutRowsCollection,
     productsCollection,
-    homeLayoutCollection // Added home layout collection import
-} from './app-setup.js';
+    homeLayoutCollection
+} from './app-setup.js'; // NO 'collection' function export needed here
 
+// Import shared functions FROM app-logic.js
 import {
-    createProductCardElement, // Card creation function
-    createPromoCardElement,   // Promo Card creation function
-    t,                        // Translation function
-    navigateToFilter,         // Navigation function
-    renderSkeletonLoader      // Skeleton loader utility
+    createProductCardElement,
+    createPromoCardElement,
+    t,
+    navigateToFilter,
+    renderSkeletonLoader,
+    showSubcategoryDetailPage // Import function for navigation
 } from './app-logic.js';
+
 
 // Function to render a single promo slider section
 // Accepts groupId (which promo group to show) and layoutId (unique ID for this section instance)
@@ -120,6 +123,7 @@ async function renderBrandsSection(groupId) {
                     if (typeof showSubcategoryDetailPage === 'function') {
                          showSubcategoryDetailPage(brand.categoryId, brand.subcategoryId);
                     } else { // Fallback to navigateToFilter if detail page function unavailable
+                        console.warn("showSubcategoryDetailPage function not available in home.js, using navigateToFilter as fallback.");
                         await navigateToFilter({
                             category: brand.categoryId,
                             subcategory: brand.subcategoryId,
@@ -242,6 +246,7 @@ async function renderSingleCategoryRow(sectionData) {
                   if (typeof showSubcategoryDetailPage === 'function') {
                       showSubcategoryDetailPage(categoryId, subcategoryId);
                   } else {
+                       console.warn("showSubcategoryDetailPage function not available in home.js, using navigateToFilter as fallback.");
                       await navigateToFilter({ category: categoryId, subcategory: subcategoryId, subSubcategory: subSubcategoryId || 'all', search: '' });
                   }
              } else if (categoryId) {

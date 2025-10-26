@@ -1,24 +1,26 @@
 // categories.js: Fonksiyonên taybet bi curan (categories)
 
-// Import Firestore functions directly from Firebase SDK
+// Import Firestore functions DIRECTLY from Firebase SDK
 import {
     collection, query, orderBy, getDocs, doc, getDoc
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-// Import necessary variables and shared functions
+// Import necessary variables and shared functions FROM app-setup.js
 import {
-    db, // Firestore instance
-    state, // Global state (for language, categories)
-    categoriesCollection // Collection reference
-} from './app-setup.js';
+    db,                 // Firestore instance
+    state,              // Global state (for language, categories)
+    categoriesCollection // Specific collection reference IS exported
+} from './app-setup.js'; // NO 'collection' function export needed here
 
+// Import shared functions FROM app-logic.js
 import {
     t,                // Translation function
     navigateToFilter, // Navigation function
     closeCurrentPopup, // Popup closing function
     showPage,         // Page navigation
-    updateCategoryDependentUI // Function to update UI after categories load
-} from './app-logic.js'; // Assuming app-logic exports these
+    updateCategoryDependentUI, // Function to update UI after categories load
+    showSubcategoryDetailPage // Import function for navigation
+} from './app-logic.js';
 
 // Fetches main categories from Firestore and updates the global state
 export async function fetchCategories() {
@@ -186,6 +188,7 @@ export async function renderSubcategories(categoryId) {
                  if (typeof showSubcategoryDetailPage === 'function') {
                     showSubcategoryDetailPage(categoryId, subcat.id);
                  } else { // Fallback if detail page function isn't available
+                    console.warn("showSubcategoryDetailPage function not available in categories.js, using navigateToFilter as fallback.");
                     navigateToFilter({ subcategory: subcat.id, subSubcategory: 'all' });
                  }
             };
@@ -264,8 +267,8 @@ export async function populateAdminSubcategoriesDropdown(mainCategoryId, subCate
     select.disabled = true;
 
     if (!mainCategoryId) {
-        select.innerHTML = `<option value="" disabled selected>${defaultText}</option>`;
-        select.disabled = true;
+        select.innerHTML = `<option value="" ${includeEmptyOption ? '' : 'disabled selected'}>${defaultText}</option>`;
+        select.disabled = !includeEmptyOption; // Disable if no empty option allowed and no parent
         return;
     }
 
