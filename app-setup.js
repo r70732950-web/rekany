@@ -26,17 +26,16 @@ export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 
 // Make Firebase services and helper functions globally available for admin.js
+// Note: This bridge is populated fully in app-logic.js immediately
 window.globalAdminTools = {};
 
 // Firestore Collections Exports
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
-
-// ====== UPDATED COLLECTIONS / کۆڵێکشنە نوێکراوەکان ======
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
-// ===============================================
+export const shortcutRowsCollection = collection(db, "shortcut_rows"); // Exported for admin bridge
 
 // Translations Export
 export const translations = {
@@ -99,7 +98,7 @@ export const translations = {
         notifications_title: "ئاگەهدارییەکان",
         no_notifications_found: "هیچ ئاگەهدارییەک نییە",
         manage_announcements_title: "ناردنی ئاگەداری گشتی",
-        send_new_announcement: "ناردنی ئاگەهداری نوێ",
+        send_new_announcement: "ناردنی ئاگەداری نوێ",
         send_announcement_button: "ناردنی ئاگەهداری",
         sent_announcements: "ئاگەهدارییە نێردراوەکان",
         no_announcements_sent: "هیچ ئاگەهدارییەک نەنێردراوە",
@@ -298,26 +297,33 @@ export const translations = {
 export let state = {
     currentLanguage: localStorage.getItem('language') || 'ku_sorani',
     deferredPrompt: null,
-    cart: JSON.parse(localStorage.getItem("maten_store_cart")) || [],
-    favorites: JSON.parse(localStorage.getItem("maten_store_favorites")) || [],
-    userProfile: JSON.parse(localStorage.getItem("maten_store_profile")) || {},
+    cart: JSON.parse(localStorage.getItem(CART_KEY)) || [],
+    favorites: JSON.parse(localStorage.getItem(FAVORITES_KEY)) || [],
+    userProfile: JSON.parse(localStorage.getItem(PROFILE_KEY)) || {},
     editingProductId: null,
     products: [],
-    allPromoCards: [],
-    currentPromoCardIndex: 0,
-    promoRotationInterval: null,
     categories: [],
-    contactInfo: {},
     subcategories: [],
     lastVisibleProductDoc: null,
     isLoadingMoreProducts: false,
     allProductsLoaded: false,
     isRenderingHomePage: false,
-    productCache: {},
+    productCache: {}, // Ji bo lezkirina barkirinê
     currentCategory: 'all',
     currentSubcategory: 'all',
     currentSubSubcategory: 'all',
     currentSearch: '',
+    sliderIntervals: {}, // Ji bo birêvebirina intervalên slideran
+    currentPageId: 'mainPage', // Ji bo şopandina rûpela niha
+    currentPageParams: {},   // Ji bo parametreyên rûpela niha
+    isNavigatingBack: false, // Ji bo birêvebirina history.pushState
+    initialLoadDone: false, // Ji bo kontrolkirina barkirina destpêkê
+    filterState: { // Rewşa fîlterê ya niha
+        category: 'all',
+        subcategory: 'all',
+        subSubcategory: 'all',
+        search: ''
+    }
 };
 
 // Constants
@@ -326,8 +332,10 @@ export const FAVORITES_KEY = "maten_store_favorites";
 export const PROFILE_KEY = "maten_store_profile";
 export const PRODUCTS_PER_PAGE = 25;
 
-// DOM Elements Exports
+// DOM Elements Exports (Only general ones are exported now)
+export const appContainer = document.querySelector('.app-container');
 export const loginModal = document.getElementById('loginModal');
+export const welcomeModal = document.getElementById('welcomeModal'); // Export welcome modal
 export const addProductBtn = document.getElementById('addProductBtn');
 export const productFormModal = document.getElementById('productFormModal');
 export const productsContainer = document.getElementById('productsContainer');
@@ -336,25 +344,27 @@ export const searchInput = document.getElementById('searchInput');
 export const clearSearchBtn = document.getElementById('clearSearchBtn');
 export const loginForm = document.getElementById('loginForm');
 export const productForm = document.getElementById('productForm');
-export const formTitle = document.getElementById('formTitle');
-export const imageInputsContainer = document.getElementById('imageInputsContainer');
+// imageInputsContainer is handled within admin logic now
 export const loader = document.getElementById('loader');
 export const cartBtn = document.getElementById('cartBtn');
-export const cartItemsContainer = document.getElementById('cartItemsContainer');
-export const emptyCartMessage = document.getElementById('emptyCartMessage');
-export const cartTotal = document.getElementById('cartTotal');
-export const totalAmount = document.getElementById('totalAmount');
-export const cartActions = document.getElementById('cartActions');
-export const favoritesContainer = document.getElementById('favoritesContainer');
-export const emptyFavoritesMessage = document.getElementById('emptyFavoritesMessage');
+// cartItemsContainer, emptyCartMessage, cartTotal, totalAmount, cartActions are handled within cart.js
+export const cartItemsContainer = document.getElementById('cartItemsContainer'); // Needed by cart.js
+export const emptyCartMessage = document.getElementById('emptyCartMessage'); // Needed by cart.js
+export const cartTotal = document.getElementById('cartTotal');       // Needed by cart.js
+export const totalAmount = document.getElementById('totalAmount');     // Needed by cart.js
+export const cartActions = document.getElementById('cartActions');     // Needed by cart.js
+// favoritesContainer, emptyFavoritesMessage are handled within favorites.js
+export const favoritesContainer = document.getElementById('favoritesContainer'); // Needed by favorites.js
+export const emptyFavoritesMessage = document.getElementById('emptyFavoritesMessage'); // Needed by favorites.js
 export const categoriesBtn = document.getElementById('categoriesBtn');
 export const sheetOverlay = document.getElementById('sheet-overlay');
-export const sheetCategoriesContainer = document.getElementById('sheetCategoriesContainer');
-export const productCategorySelect = document.getElementById('productCategoryId');
-export const subcategorySelectContainer = document.getElementById('subcategorySelectContainer');
-export const productSubcategorySelect = document.getElementById('productSubcategoryId');
-export const subSubcategorySelectContainer = document.getElementById('subSubcategorySelectContainer');
-export const productSubSubcategorySelect = document.getElementById('productSubSubcategoryId');
+// sheetCategoriesContainer handled by category.js
+// productCategorySelect, subcategorySelectContainer, productSubcategorySelect, etc handled by admin logic
+export const productCategorySelect = document.getElementById('productCategoryId'); // Needed by AdminLogic
+export const subcategorySelectContainer = document.getElementById('subcategorySelectContainer'); // Needed by AdminLogic
+export const productSubcategorySelect = document.getElementById('productSubcategoryId'); // Needed by AdminLogic
+export const subSubcategorySelectContainer = document.getElementById('subSubcategorySelectContainer'); // Needed by AdminLogic
+export const productSubSubcategorySelect = document.getElementById('productSubSubcategoryId'); // Needed by AdminLogic
 export const profileForm = document.getElementById('profileForm');
 export const settingsPage = document.getElementById('settingsPage');
 export const mainPage = document.getElementById('mainPage');
@@ -365,21 +375,28 @@ export const settingsAdminLoginBtn = document.getElementById('settingsAdminLogin
 export const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
 export const profileBtn = document.getElementById('profileBtn');
 export const contactToggle = document.getElementById('contactToggle');
-export const adminSocialMediaManagement = document.getElementById('adminSocialMediaManagement');
-export const addSocialMediaForm = document.getElementById('addSocialMediaForm');
-export const socialLinksListContainer = document.getElementById('socialLinksListContainer');
-export const socialMediaToggle = document.getElementById('socialMediaToggle');
+// adminSocialMediaManagement, addSocialMediaForm, etc handled by admin logic
 export const notificationBtn = document.getElementById('notificationBtn');
-export const notificationBadge = document.getElementById('notificationBadge');
-export const notificationsSheet = document.getElementById('notificationsSheet');
-export const notificationsListContainer = document.getElementById('notificationsListContainer');
-export const adminAnnouncementManagement = document.getElementById('adminAnnouncementManagement');
-export const announcementForm = document.getElementById('announcementForm');
+// notificationBadge handled by app-logic/home
+// notificationsSheet, notificationsListContainer handled by ui/home
 export const termsAndPoliciesBtn = document.getElementById('termsAndPoliciesBtn');
+// termsSheet, termsContentContainer handled by ui/category
+// adminPoliciesManagement, policiesForm handled by admin logic
+// subSubcategoriesContainer handled by category.js
+
+// === START: ÇAKKIRIN / FIX ===
+// Exportkirina Bottom Sheets ji bo ui.js
+export const notificationsSheet = document.getElementById('notificationsSheet');
+export const cartSheet = document.getElementById('cartSheet');
+export const categoriesSheet = document.getElementById('categoriesSheet');
+export const profileSheet = document.getElementById('profileSheet');
+export const favoritesSheet = document.getElementById('favoritesSheet');
+export const productDetailSheet = document.getElementById('productDetailSheet');
 export const termsSheet = document.getElementById('termsSheet');
-export const termsContentContainer = document.getElementById('termsContentContainer');
-export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
-export const policiesForm = document.getElementById('policiesForm');
-export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
-export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
-export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
+// === END: ÇAKKIRIN / FIX ===
+
+// Exportkirina tuخمên din ên ku ji hêla modulên din ve têne bikar anîn
+export const subpageSearchInput = document.getElementById('subpageSearchInput');
+export const subpageClearSearchBtn = document.getElementById('subpageClearSearchBtn');
+export const scrollLoaderTrigger = document.getElementById('scroll-loader-trigger'); // Exported for app-logic
+export const homePageSectionsContainer = document.getElementById('homePageSectionsContainer'); // Exported for app-logic/home
