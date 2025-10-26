@@ -1,5 +1,5 @@
 // app-logic.js (The New Controller)
-// ئەم فایلە هەموو مۆدیولەکان کۆدەکاتەوە و وەک کۆنترۆڵکەری سەرەki کاردەکات.
+// ئەم فایلە هەموو mۆدیولەکان کۆدەکاتەوە و وەک کۆنترۆڵکەری سەرەki کاردەکات.
 
 // --- 1. IMPORTKIRINA GŞTÎ Û XIZMETÊN FIREBASE ---
 import {
@@ -17,7 +17,13 @@ import {
     sheetOverlay, subpageSearchInput, subpageClearSearchBtn,
     contactToggle, settingsFavoritesBtn, settingsAdminLoginBtn, settingsLogoutBtn,
     notificationBtn, termsAndPoliciesBtn, profileForm,
-    appContainer, scrollLoaderTrigger, homePageSectionsContainer
+    appContainer
+    // === START: ÇAKKIRIN / FIX ===
+    // Em êdî van ji app-setup import nakin
+    /*
+    scrollLoaderTrigger, homePageSectionsContainer
+    */
+    // === END: ÇAKKIRIN / FIX ===
 } from './app-setup.js';
 
 import {
@@ -127,6 +133,16 @@ function renderProducts() {
  * @param {boolean} [isNewSearch=false] - Gelo ev lêgerînek nû ye (ji bo paqijkirina rûpelê)
  */
 async function searchProductsInFirestore(searchTerm = '', isNewSearch = false) {
+    // === START: ÇAKKIRIN / FIX ===
+    // Em tuخمên xwe li vir dibînin, ne ji importê
+    const homePageSectionsContainer = document.getElementById('homePageSectionsContainer');
+    const scrollLoaderTrigger = document.getElementById('scroll-loader-trigger');
+    if (!homePageSectionsContainer || !scrollLoaderTrigger) {
+        console.error("Konteynerên bingehîn ên rûpelê (home/scroll) nehatin dîtin!");
+        return;
+    }
+    // === END: ÇAKKIRIN / FIX ===
+
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
 
     // 1. Biryar: Gelo Rûpela Sereke (Home) nîşan bidin an Lîsteya Kałayan?
@@ -828,8 +844,10 @@ document.addEventListener('DOMContentLoaded', init);
  * Fonksiyonek alîkar ji bo çavdêriya Scroll
  */
 function setupScrollObserver() {
-    const trigger = scrollLoaderTrigger;
-    if (!trigger) return;
+    // === START: ÇAKKIRIN / FIX ===
+    const scrollLoaderTrigger = document.getElementById('scroll-loader-trigger');
+    if (!scrollLoaderTrigger) return;
+    // === END: ÇAKKIRIN / FIX ===
 
     const observer = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting) {
@@ -842,6 +860,6 @@ function setupScrollObserver() {
         threshold: 0.1
     });
 
-    observer.observe(trigger);
+    observer.observe(scrollLoaderTrigger);
 }
 
