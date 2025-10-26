@@ -20,22 +20,16 @@ import {
     appContainer, scrollLoaderTrigger, homePageSectionsContainer
 } from './app-setup.js';
 
-// === START: ÇAKKIRIN / FIX ===
-// Importên Firebase Auth û Firestore ji hev hatin veqetandin
-
 import {
-    // Fonksiyonên Auth
     signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 
 import {
-    // Fonksiyonên Firestore (pêwîst in ji bo logîk û admin bridge)
     enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc, onSnapshot,
     query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, addDoc, runTransaction
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
-// === END: ÇAKKIRIN / FIX ===
 
 
 // --- 2. IMPORTKIRINA MODULÊN NÛ ---
@@ -44,22 +38,66 @@ import {
     setLanguage, showPage, openPopup, closeCurrentPopup, closeAllPopupsUI,
     updateHeaderView, showNotification, updateActiveNav, navigateToFilter,
     applyFilterState, handleInitialPageLoad, setupGpsButton, forceUpdate,
-    requestNotificationPermission
+    requestNotificationPermission, setupUICallbacks
 } from './ui.js';
-import { addToCart, updateCartCount } from './cart.js';
-import { toggleFavorite } from './favorites.js';
+import { addToCart, updateCartCount, renderCart, generateOrderMessage, renderCartActionButtons } from './cart.js';
+import { toggleFavorite, isFavorite, saveFavorites, renderFavoritesPage } from './favorites.js';
 import {
     createProductCardElement, renderSkeletonLoader, showProductDetails,
-    setupScrollAnimations
+    setupScrollAnimations, renderRelatedProducts
 } from './product.js';
 import {
     renderMainCategories, renderSubcategories, renderSubSubcategoriesOnDetailPage,
-    renderProductsOnDetailPage
+    renderProductsOnDetailPage, renderCategoriesSheet, renderPolicies
 } from './category.js';
-import { renderHomePageContent } from './home.js';
+import { renderHomePageContent, renderUserNotifications } from './home.js';
+
+// === START: ÇAKKIRIN / FIX ===
+// --- 3. PIRA ADMIN (ADMIN BRIDGE) ---
+// Em vê yekê tavilê li vir saz dikin, berî ku admin.js bixebite.
+
+/**
+ * Ev fonksiyon hemî pêdiviyên ku admin.js a neguhertî hewce dike, 
+ * di bin 'window.globalAdminTools' de peyda dike.
+ */
+function populateGlobalAdminTools() {
+    window.globalAdminTools = {
+        // Xizmetên Firebase
+        db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
+        collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
+
+        // Koleksiyon
+        productsCollection, categoriesCollection, announcementsCollection,
+        promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
+
+        // Fonksiyonên Alîkar
+        showNotification,
+        t,
+        openPopup,
+        closeCurrentPopup,
+        searchProductsInFirestore, // admin.js hewce dike ku vê bang bike
+
+        // Fonksiyonên Alîkar ên Nû ji bo birêvebirina state
+        clearProductCache: () => {
+            console.log("Cache paqij bû ji ber kiryara admin.");
+            state.productCache = {}; // Cache ya kałayan paqij bike
+            const homeContainer = document.getElementById('homePageSectionsContainer');
+            if(homeContainer) homeContainer.innerHTML = ''; // Rûpela sereke paqij bike da ku ji nû ve çêbibe
+        },
+        setEditingProductId: (id) => { state.editingProductId = id; },
+        getEditingProductId: () => state.editingProductId,
+        getCategories: () => state.categories, // Ji bo dropdownên admin
+        getCurrentLanguage: () => state.currentLanguage // Ji bo wergerên admin
+    };
+}
+
+// *** TAVILÊ BANG BIKE ***
+// Ev piştrast dike ku 'window.globalAdminTools' heye berî ku admin.js (defer) bixebite.
+populateGlobalAdminTools();
+// === END: ÇAKKIRIN / FIX ===
 
 
-// --- 3. FONKSIYONÊN SEREKÎ YÊN LOGÎKÊ ---
+// --- 4. FONKSIYONÊN SEREKÎ YÊN LOGÎKÊ ---
 
 /**
  * Kałakan li ser rûpelê (di productsContainer de) nîşan dide
@@ -370,7 +408,8 @@ function setupEventListeners() {
                 const catId = actionTarget.dataset.categoryId;
                 if (catId) {
                     await navigateToFilter({ category: catId, subcategory: 'all', subSubcategory: 'all', search: '' });
-                    mainCategoriesContainer.scrollIntoView({ behavior: 'smooth' });
+                    const mainCategoriesContainer = document.getElementById('mainCategoriesContainer');
+                    if (mainCategoriesContainer) mainCategoriesContainer.scrollIntoView({ behavior: 'smooth' });
                 }
                 break;
             }
@@ -548,22 +587,54 @@ function setupEventListeners() {
  * Fonksiyona sereke ji bo destpêkirina sepanê
  */
 async function initializeAppLogic() {
-    // 1. Sazkirina Pira Admin (Admin Bridge)
-    // Ev divê berî her tiştî be da ku admin.js kar bike
-    populateGlobalAdminTools();
-
-    // 2. Destpêkirina state-ên bingehîn
+    // 1. Sazkirina state-ên bingehîn
     if (!state.sliderIntervals) state.sliderIntervals = {};
     updateCartCount();
 
-    // 3. Sazkirina Guhdarên Bûyeran (Event Listeners)
+    // 2. Sazkirina Callbacks ji bo UI.js
+    // Ev piştrast dike ku modulên UI dikarin fonksiyonên logîkê bang bikin bêyî importkirina rasterast
+    setupUICallbacks({
+        renderCart: renderCart,
+        renderFavoritesPage: renderFavoritesPage,
+        renderCategoriesSheet: renderCategoriesSheet,
+        renderUserNotifications: renderUserNotifications,
+        renderPolicies: renderPolicies,
+        applyFilterState: (filterState, fromPopState, forceRender) => {
+            // Em vê di nav fonksiyonek anonîm de dipêçin da ku 'searchProductsInFirestore' a ku li jêr hatî pênase kirin bikar bînin
+            applyFilterState(filterState, fromPopState, forceRender, searchProductsInFirestore, renderMainCategories, renderSubcategories);
+        },
+        showProductDetails: showProductDetails,
+        getFcmToken: async () => {
+            try {
+                const currentToken = await getToken(messaging, {
+                    vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ'
+                });
+                if (currentToken) {
+                    console.log('FCM Token:', currentToken);
+                    await setDoc(doc(db, 'device_tokens', currentToken), { createdAt: Date.now() });
+                }
+            } catch (err) {
+                console.error('Error getting FCM token:', err);
+            }
+        }
+    });
+    
+    // 3. Sazkirina Callbacks ji bo Product.js
+    // (Pêwîst e ji bo birêvebirina kiryarên admin û cart ji nav 'showProductDetails')
+    // Ev di modulê de rasterast tê kirin ji ber ku 'product.js' hêsan e.
+    // Lê ji bo paqijiyê, em dikarin li vir jî bikin:
+    // setupProductCallbacks({
+    //    addToCart: addToCart 
+    // });
+    
+    // 4. Sazkirina Guhdarên Bûyeran (Event Listeners)
     setupEventListeners();
 
-    // 4. Sazkirina Ziman û UI ya bingehîn
+    // 5. Sazkirina Ziman û UI ya bingehîn
     setLanguage(state.currentLanguage);
     setupGpsButton(); // Ji bo bişkoja GPS di profaylê de
 
-    // 5. Destpêkirina Guhdarên Firebase (Firebase Listeners)
+    // 6. Destpêkirina Guhdarên Firebase (Firebase Listeners)
     
     // Guhdarîkirina li guhertinên kategoriyan
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
@@ -618,10 +689,11 @@ async function initializeAppLogic() {
     // Guhdarîkirin ji bo agahdariyan
     checkNewAnnouncements();
 
-    // 6. Destpêkirina PWA û Messaging
+    // 7. Destpêkirina PWA û Messaging
     setupPwaListeners();
     setupFcmListeners();
 }
+
 
 /**
  * Sazkirina Guhdarên PWA (Install Prompt û Service Worker)
@@ -707,42 +779,6 @@ function init() {
             initializeAppLogic(); // Her çawa be, dest bi sepanê bike
         });
 }
-
-// --- 4. PIRA ADMIN (ADMIN BRIDGE) ---
-/**
- * Ev fonksiyon hemî pêdiviyên ku admin.js a neguhertî hewce dike, 
- * di bin 'window.globalAdminTools' de peyda dike.
- */
-function populateGlobalAdminTools() {
-    window.globalAdminTools = {
-        // Xizmetên Firebase
-        db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
-        collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
-
-        // Koleksiyon
-        productsCollection, categoriesCollection, announcementsCollection,
-        promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
-
-        // Fonksiyonên Alîkar
-        showNotification,
-        t,
-        openPopup,
-        closeCurrentPopup,
-        searchProductsInFirestore, // admin.js hewce dike ku vê bang bike
-
-        // Fonksiyonên Alîkar ên Nû ji bo birêvebirina state
-        clearProductCache: () => {
-            console.log("Cache paqij bû ji ber kiryara admin.");
-            state.productCache = {}; // Cache ya kałayan paqij bike
-            homePageSectionsContainer.innerHTML = ''; // Rûpela sereke paqij bike da ku ji nû ve çêbibe
-        },
-        setEditingProductId: (id) => { state.editingProductId = id; },
-        getEditingProductId: () => state.editingProductId,
-        getCategories: () => state.categories, // Ji bo dropdownên admin
-        getCurrentLanguage: () => state.currentLanguage // Ji bo wergerên admin
-    };
-}
-
 
 // --- 5. GUHDARÊN GŞTÎ (GLOBAL LISTENERS) ---
 
