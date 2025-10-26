@@ -20,13 +20,23 @@ import {
     appContainer, scrollLoaderTrigger, homePageSectionsContainer
 } from './app-setup.js';
 
+// === START: ÇAKKIRIN / FIX ===
+// Importên Firebase Auth û Firestore ji hev hatin veqetandin
+
 import {
-    // Fonksiyonên Firebase (pêwîst in ji bo logîk û admin bridge)
-    enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc, onSnapshot,
-    query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, addDoc, runTransaction,
+    // Fonksiyonên Auth
     signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+
+import {
+    // Fonksiyonên Firestore (pêwîst in ji bo logîk û admin bridge)
+    enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc, onSnapshot,
+    query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, addDoc, runTransaction
+} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
+// === END: ÇAKKIRIN / FIX ===
+
 
 // --- 2. IMPORTKIRINA MODULÊN NÛ ---
 import { t, debounce } from './utils.js';
@@ -37,10 +47,7 @@ import {
     requestNotificationPermission
 } from './ui.js';
 import { addToCart, updateCartCount } from './cart.js';
-// === START: ÇAKKIRIN / FIX ===
-// Li rêza 40 (bi jimartina importên Firebase) 'in' ببوو بە 'from'
 import { toggleFavorite } from './favorites.js';
-// === END: ÇAKKIRIN / FIX ===
 import {
     createProductCardElement, renderSkeletonLoader, showProductDetails,
     setupScrollAnimations
