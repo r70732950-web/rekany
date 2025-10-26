@@ -1,14 +1,16 @@
-// app-setup.js: Pênasekirin û sazkarîyên destpêkê
+// BEŞÊ YEKEM: app-setup.js
+// Pênasekirin û sazkarîyên destpêkê
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js"; // Import specific auth functions in app-logic/admin as needed
-import { getFirestore, collection } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js"; // Import specific firestore functions in app-logic/admin as needed
-import { getMessaging } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js"; // Import specific messaging functions in app-logic as needed
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
-// Firebase Configuration (Replace with your actual config)
+// Firebase Configuration
+// تەنظیماتی Firebase
 const firebaseConfig = {
-    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", // WARNING: Consider securing API key if rules aren't sufficient
+    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", // تکایە ئەم کلیلە بە نهێنی بهێڵەرەوە
     authDomain: "maten-store.firebaseapp.com",
     projectId: "maten-store",
     storageBucket: "maten-store.appspot.com",
@@ -18,6 +20,7 @@ const firebaseConfig = {
 };
 
 // Initialization and Exports
+// دەستپێکردن و هەناردەکردنەکان
 export const app = initializeApp(firebaseConfig);
 export const analytics = getAnalytics(app);
 export const auth = getAuth(app);
@@ -25,22 +28,24 @@ export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 
 // Make Firebase services and helper functions globally available for admin.js
-// NOTE: It's generally better practice for admin.js to import directly,
-// but keeping this for compatibility with the original structure.
-window.globalAdminTools = window.globalAdminTools || {};
-Object.assign(window.globalAdminTools, { db, auth }); // Assign core services initially
-
+// وا دەکات خزمەتگوزارییەکانی Firebase و فانکشنە یارمەتیدەرەکان بۆ admin.js بەردەست بن
+window.globalAdminTools = {};
 
 // Firestore Collections Exports
+// هەناردەکردنی کۆڵێکشنەکانی Firestore
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
+
+// ====== UPDATED COLLECTIONS / کۆڵێکشنە نوێکراوەکان ======
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
-export const shortcutRowsCollection = collection(db, "shortcut_rows"); // Added based on admin.js
-export const homeLayoutCollection = collection(db, "home_layout"); // Added based on admin.js
+export const shortcutRowsCollection = collection(db, "shortcut_rows"); // زیادکرا بۆ دڵنیایی
+export const homeLayoutCollection = collection(db, "home_layout"); // زیادکرا بۆ دڵنیایی
+// ===============================================
 
 // Translations Export
+// هەناردەکردنی وەرگێڕانەکان
 export const translations = {
     ku_sorani: {
         search_placeholder: "گەڕان بە ناوی کاڵا...",
@@ -108,9 +113,6 @@ export const translations = {
         announcement_deleted_success: "ئاگەهدارییەکە سڕدرایەوە",
         announcement_delete_confirm: "دڵنیایت دەتەوێت ئەم ئاگەهدارییە بسڕیتەوە؟",
         enable_notifications: "چالاککردنی ئاگەدارییەکان",
-        notification_permission_granted: "مۆڵەتی ناردنی ئاگەداری درا",
-        notification_permission_denied: "مۆڵەت نەدرا",
-        notification_permission_error: "هەڵە لە داواکردنی مۆڵەت",
         error_generic: "هەڵەیەک ڕوویدا!",
         terms_policies_title: "مەرج و ڕێساکان",
         manage_policies_title: "بەڕێوەبردنی مەرج و ڕێساکان",
@@ -128,7 +130,6 @@ export const translations = {
         related_products_title: "کاڵای هاوشێوە",
         share_text: "سەیری ئەم کاڵایە بکە",
         share_error: "هاوبەشیپێکردن سەرکەوتوو نەبوو",
-        product_unnamed: "کاڵای بێ ناو ({id})", // Added for fallback
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -196,9 +197,6 @@ export const translations = {
         announcement_deleted_success: "ئاگەهداری هاتە ژێبرن",
         announcement_delete_confirm: "تو پشتڕاستی دێ ڤێ ئaگەهداریێ ژێبەی؟",
         enable_notifications: "چالاکرنا ئاگەهداریان",
-        notification_permission_granted: "Destûra şandina agahdariyan hate dayîn",
-        notification_permission_denied: "Destûr nehate dayîn",
-        notification_permission_error: "Çewtî di daxwaza destûrê da",
         error_generic: "خەلەتییەک چێبوو!",
         terms_policies_title: "مەرج و سیاسەت",
         manage_policies_title: "рێکخستنا مەرج و سیاسەتان",
@@ -216,7 +214,6 @@ export const translations = {
         related_products_title: "کاڵایێن وەک ئێکن",
         share_text: "بەرێخۆ بدە ڤی کاڵای",
         share_error: "پارڤەکرن سەرنەکەفت",
-        product_unnamed: "کاڵایێ بێ ناڤ ({id})", // Added for fallback
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -284,9 +281,6 @@ export const translations = {
         announcement_deleted_success: "تم حذف الإشعار",
         announcement_delete_confirm: "هل أنت متأكد من حذف هذا الإشعار؟",
         enable_notifications: "تفعيل الإشعارات",
-        notification_permission_granted: "تم منح إذن الإشعارات",
-        notification_permission_denied: "تم رفض إذن الإشعارات",
-        notification_permission_error: "خطأ في طلب إذن الإشعارات",
         error_generic: "حدث خطأ!",
         terms_policies_title: "الشروط والسياسات",
         manage_policies_title: "إدارة الشروط والسياسات",
@@ -304,43 +298,46 @@ export const translations = {
         related_products_title: "منتجات مشابهة",
         share_text: "ألق نظرة على هذا المنتج",
         share_error: "فشلت المشاركة",
-        product_unnamed: "منتج غير مسمى ({id})", // Added for fallback
     }
 };
 
 // Global State Variables (Mutable)
+// گۆڕاوە گشتییەکانی حاڵەت (دەتوانرێت بگۆڕدرێن)
 export let state = {
     currentLanguage: localStorage.getItem('language') || 'ku_sorani',
-    deferredPrompt: null, // For PWA install prompt
+    deferredPrompt: null,
     cart: JSON.parse(localStorage.getItem("maten_store_cart")) || [],
     favorites: JSON.parse(localStorage.getItem("maten_store_favorites")) || [],
     userProfile: JSON.parse(localStorage.getItem("maten_store_profile")) || {},
-    editingProductId: null, // Used by admin.js
-    products: [], // Current list of displayed products (paginated)
-    categories: [], // Includes 'all' category
-    // Subcategories are fetched dynamically, might not need global state
+    editingProductId: null,
+    products: [], // Holds currently displayed/filtered products
+    allPromoCards: [], // This might be populated differently now with home.js
+    currentPromoCardIndex: 0, // Potentially managed within home.js now
+    promoRotationInterval: null, // Potentially managed within home.js now
+    sliderIntervals: {}, // <<<<<< زیادکرا بۆ بەڕێوەبردنی ئینتەرڤاڵەکان
+    categories: [], // Holds all category data including subcategories fetched
+    contactInfo: {}, // Holds contact methods/social links
+    subcategories: [], // Holds subcategories for the *currently selected* main category
     lastVisibleProductDoc: null, // For pagination
     isLoadingMoreProducts: false,
     allProductsLoaded: false,
-    isRenderingHomePage: false, // Flag to prevent multiple home renders
-    productCache: {}, // Simple cache for product queries
-    // Current filter/search state
+    isRenderingHomePage: false, // Flag to prevent concurrent home page rendering
+    productCache: {}, // Cache for fetched product lists based on filters
     currentCategory: 'all',
     currentSubcategory: 'all',
     currentSubSubcategory: 'all',
     currentSearch: '',
-    sliderIntervals: {}, // Object to store active promo slider intervals { layoutId: intervalId }
 };
 
 // Constants
+// نەگۆڕەکان
 export const CART_KEY = "maten_store_cart";
 export const FAVORITES_KEY = "maten_store_favorites";
 export const PROFILE_KEY = "maten_store_profile";
-export const PRODUCTS_PER_PAGE = 25; // Number of products to load per page
+export const PRODUCTS_PER_PAGE = 25; // ژمارەی کاڵاکان لە هەر لاپەڕەیەکدا
 
-// DOM Elements Exports (app-logic.js primarily uses these)
-// It's often cleaner for app-logic.js to query these directly when needed,
-// but exporting them here maintains the original structure.
+// DOM Elements Exports
+// هەناردەکردنی توخمەکانی DOM
 export const loginModal = document.getElementById('loginModal');
 export const addProductBtn = document.getElementById('addProductBtn');
 export const productFormModal = document.getElementById('productFormModal');
@@ -364,11 +361,11 @@ export const emptyFavoritesMessage = document.getElementById('emptyFavoritesMess
 export const categoriesBtn = document.getElementById('categoriesBtn');
 export const sheetOverlay = document.getElementById('sheet-overlay');
 export const sheetCategoriesContainer = document.getElementById('sheetCategoriesContainer');
-// export const productCategorySelect = document.getElementById('productCategoryId'); // Defined in categories.js now
-// export const subcategorySelectContainer = document.getElementById('subcategorySelectContainer'); // Defined in categories.js now
-// export const productSubcategorySelect = document.getElementById('productSubcategoryId'); // Defined in categories.js now
-// export const subSubcategorySelectContainer = document.getElementById('subSubcategorySelectContainer'); // Defined in categories.js now
-// export const productSubSubcategorySelect = document.getElementById('productSubSubcategoryId'); // Defined in categories.js now
+export const productCategorySelect = document.getElementById('productCategoryId');
+export const subcategorySelectContainer = document.getElementById('subcategorySelectContainer');
+export const productSubcategorySelect = document.getElementById('productSubcategoryId');
+export const subSubcategorySelectContainer = document.getElementById('subSubcategorySelectContainer');
+export const productSubSubcategorySelect = document.getElementById('productSubSubcategoryId');
 export const profileForm = document.getElementById('profileForm');
 export const settingsPage = document.getElementById('settingsPage');
 export const mainPage = document.getElementById('mainPage');
@@ -379,12 +376,30 @@ export const settingsAdminLoginBtn = document.getElementById('settingsAdminLogin
 export const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
 export const profileBtn = document.getElementById('profileBtn');
 export const contactToggle = document.getElementById('contactToggle');
+export const adminSocialMediaManagement = document.getElementById('adminSocialMediaManagement');
+export const addSocialMediaForm = document.getElementById('addSocialMediaForm');
+export const socialLinksListContainer = document.getElementById('socialLinksListContainer');
+export const socialMediaToggle = document.getElementById('socialMediaToggle');
 export const notificationBtn = document.getElementById('notificationBtn');
 export const notificationBadge = document.getElementById('notificationBadge');
 export const notificationsSheet = document.getElementById('notificationsSheet');
 export const notificationsListContainer = document.getElementById('notificationsListContainer');
+export const adminAnnouncementManagement = document.getElementById('adminAnnouncementManagement');
+export const announcementForm = document.getElementById('announcementForm');
 export const termsAndPoliciesBtn = document.getElementById('termsAndPoliciesBtn');
 export const termsSheet = document.getElementById('termsSheet');
 export const termsContentContainer = document.getElementById('termsContentContainer');
-export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer'); // Still needed? Check usage
-// Admin-specific elements are typically handled within admin.js or queried directly there
+export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
+export const policiesForm = document.getElementById('policiesForm');
+export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer'); // Container for sub-subcategories on main page (if needed)
+
+// Admin section specific DOM elements (assuming they exist in index.html)
+export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
+export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
+export const adminCategoryManagement = document.getElementById('adminCategoryManagement'); // Ensure this ID exists
+export const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
+export const adminShortcutRowsManagement = document.getElementById('adminShortcutRowsManagement');
+export const adminHomeLayoutManagement = document.getElementById('adminHomeLayoutManagement');
+
+// Make createProductCardElement available for home.js (or move it here)
+// Example: export { createProductCardElement }; // If it were defined here
