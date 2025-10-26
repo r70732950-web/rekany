@@ -1,25 +1,20 @@
 // home.js - Contains logic specifically for rendering the home page sections
 
 import {
-    db, state, t,
+    db, state, // 't' لابرا لەم ئیمپۆرتە
     productsCollection, categoriesCollection,
-    promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection // Make sure collections are exported from app-setup
+    promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection, homeLayoutCollection // زیادکرا بۆ دڵنیایی
 } from './app-setup.js';
+
+// <<<<<< گۆڕانکاری لێرە >>>>>>
+// import t from app-logic.js
+import { t, navigateToFilter, showSubcategoryDetailPage, createProductCardElement } from './app-logic.js';
+// <<<<<< کۆتایی گۆڕانکاری >>>>>>
+
 
 import {
     getDocs, query, collection, doc, getDoc, orderBy, where, limit
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-
-// Import necessary functions from app-logic.js if they are general utilities
-// We assume createProductCardElement is still globally accessible or exported from app-logic/app-setup
-// If createProductCardElement is NOT globally accessible, you'll need to import it here.
-// For now, assuming it's accessible via window.createProductCardElement or similar,
-// or ideally imported from app-setup if moved there.
-// Let's assume createProductCardElement is exported from app-logic for clarity
-// NOTE: You'll need to add an export for createProductCardElement in app-logic.js
-// Alternatively, move createProductCardElement to app-setup.js and export/import from there.
-// For this example, let's assume it's globally available for simplicity, but importing is better practice.
-// If it's NOT global, add: import { createProductCardElement } from './app-logic.js';
 
 // Helper function (if needed specifically for home page rendering)
 function renderSkeletonLoaderForHome(container, count = 4) {
@@ -45,7 +40,7 @@ function renderSkeletonLoaderForHome(container, count = 4) {
 // For simplicity, let's assume `createProductCardElement` handles its own clicks or we pass necessary handlers.
 // Replicating createPromoCardElement here for self-containment, requires `MapsToFilter` potentially.
 // It's often better to keep createProductCardElement in app-logic and import it.
-// Assuming createPromoCardElement is defined elsewhere (app-logic.js or app-setup.js) and imported or globally available.
+// Assuming createProductCardElement is defined elsewhere (app-logic.js or app-setup.js) and imported or globally available.
 
 // --- Functions moved from app-logic.js ---
 
@@ -65,7 +60,7 @@ async function renderPromoCardsSectionForHome(groupId, layoutId) {
             const cardData = { cards }; // Data structure expected by createPromoCardElement
 
             // Assume createPromoCardElement exists globally or is imported
-            // If importing: import { createPromoCardElement } from './app-logic.js';
+            // If importing: import { createProductCardElement } from './app-logic.js';
              const promoCardElement = createPromoCardElementForHome(cardData, sliderState, layoutId); // Use local version
             if(!promoCardElement) return null; // Handle case where element creation fails
 
@@ -91,11 +86,15 @@ function createPromoCardElementForHome(cardData, sliderState, layoutId) {
     const cardElement = document.createElement('div');
     cardElement.className = 'product-card promo-card-grid-item'; // Applying styles
     const currentCard = cardData.cards[sliderState.currentIndex];
-    const imageUrl = currentCard.imageUrls[state.currentLanguage] || currentCard.imageUrls.ku_sorani;
+    // Check if imageUrls exists and has the language key
+    const imageUrl = (currentCard.imageUrls && currentCard.imageUrls[state.currentLanguage])
+                     || (currentCard.imageUrls && currentCard.imageUrls.ku_sorani) // Fallback to Sorani
+                     || 'https://placehold.co/600x200/cccccc/ffffff?text=Image+Not+Found'; // Fallback placeholder
+
 
     cardElement.innerHTML = `
         <div class="product-image-container">
-            <img src="${imageUrl}" class="product-image" loading="lazy" alt="Promotion">
+            <img src="${imageUrl}" class="product-image" loading="lazy" alt="Promotion" onerror="this.onerror=null; this.src='https://placehold.co/600x200/cccccc/ffffff?text=Image+Error'">
         </div>
         ${cardData.cards.length > 1 ? `
         <button class="promo-slider-btn prev"><i class="fas fa-chevron-left"></i></button>
@@ -106,10 +105,13 @@ function createPromoCardElementForHome(cardData, sliderState, layoutId) {
      // --- Click handler for navigation ---
      cardElement.addEventListener('click', async (e) => {
         if (!e.target.closest('button')) { // Ignore clicks on buttons
-            const targetCategoryId = currentCard.categoryId;
+             // Use the index from sliderState to get the *current* card being displayed
+             const currentDisplayedCard = cardData.cards[sliderState.currentIndex];
+             if (!currentDisplayedCard) return; // Safety check
+
+            const targetCategoryId = currentDisplayedCard.categoryId;
             const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
-             // Assuming navigateToFilter is imported or globally available
-             // If not, this part needs adjustment.
+             // Assuming navigateToFilter is imported
             if (categoryExists && typeof navigateToFilter === 'function') {
                 await navigateToFilter({
                     category: targetCategoryId,
@@ -133,16 +135,24 @@ function createPromoCardElementForHome(cardData, sliderState, layoutId) {
         const imgElement = cardElement.querySelector('.product-image');
 
         const updateImage = () => {
-            const newImageUrl = cardData.cards[sliderState.currentIndex].imageUrls[state.currentLanguage] || cardData.cards[sliderState.currentIndex].imageUrls.ku_sorani;
+             // Check if cards and imageUrls exist before accessing
+             const card = cardData.cards[sliderState.currentIndex];
+             const newImageUrl = (card && card.imageUrls && card.imageUrls[state.currentLanguage])
+                                || (card && card.imageUrls && card.imageUrls.ku_sorani) // Fallback to Sorani
+                                || 'https://placehold.co/600x200/cccccc/ffffff?text=Image+Not+Found'; // Fallback placeholder
+
             if(imgElement) imgElement.src = newImageUrl;
         };
+
 
         cardElement.querySelector('.promo-slider-btn.prev').addEventListener('click', (e) => {
             e.stopPropagation();
              // Clear interval when manually navigating
             if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
                  clearInterval(state.sliderIntervals[layoutId]);
-                 state.sliderIntervals[layoutId] = null; // Prevent auto-restart issues
+                 // Do NOT delete from state here, let the auto-rotation handle it if needed
+                 // delete state.sliderIntervals[layoutId];
+                 state.sliderIntervals[layoutId] = null; // Mark as manually stopped
             }
             sliderState.currentIndex = (sliderState.currentIndex - 1 + cardData.cards.length) % cardData.cards.length;
             updateImage();
@@ -153,7 +163,9 @@ function createPromoCardElementForHome(cardData, sliderState, layoutId) {
              // Clear interval when manually navigating
             if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
                  clearInterval(state.sliderIntervals[layoutId]);
-                 state.sliderIntervals[layoutId] = null; // Prevent auto-restart issues
+                 // Do NOT delete from state here
+                 // delete state.sliderIntervals[layoutId];
+                  state.sliderIntervals[layoutId] = null; // Mark as manually stopped
             }
             sliderState.currentIndex = (sliderState.currentIndex + 1) % cardData.cards.length;
             updateImage();
@@ -161,27 +173,29 @@ function createPromoCardElementForHome(cardData, sliderState, layoutId) {
 
          // --- Auto Rotation Logic ---
          const rotate = () => {
-            // Check if the element still exists and the interval is still registered
-            if (!document.getElementById(`promoSliderLayout_${layoutId}`) || !state.sliderIntervals || !state.sliderIntervals[layoutId]) {
+             // Only rotate if the interval ID in the state matches the one for this slider instance
+             // AND it hasn't been manually stopped (set to null)
+            if (!document.getElementById(`promoSliderLayout_${layoutId}`) || !state.sliderIntervals || state.sliderIntervals[layoutId] !== sliderState.intervalId) {
                 if (sliderState.intervalId) {
-                    clearInterval(sliderState.intervalId);
-                    if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
-                        delete state.sliderIntervals[layoutId]; // Clean up state if interval stopped unexpectedly
+                    clearInterval(sliderState.intervalId); // Clear this specific interval instance
+                     // Clean up state only if this was the active interval
+                     if (state.sliderIntervals && state.sliderIntervals[layoutId] === sliderState.intervalId) {
+                        delete state.sliderIntervals[layoutId];
                     }
                 }
-                return; // Stop rotation if element is gone or interval deregistered
+                return; // Stop rotation
             }
             sliderState.currentIndex = (sliderState.currentIndex + 1) % cardData.cards.length;
             updateImage();
         };
 
-        // Clear previous interval just in case
+        // Clear previous interval ID stored in the *state* for this layout ID before creating a new one
         if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
             clearInterval(state.sliderIntervals[layoutId]);
         }
 
         sliderState.intervalId = setInterval(rotate, 5000); // Start rotation
-         // Store interval ID in global state using unique layoutId
+         // Store the NEW interval ID in the global state using unique layoutId
         if (!state.sliderIntervals) state.sliderIntervals = {};
         state.sliderIntervals[layoutId] = sliderState.intervalId;
     }
@@ -192,8 +206,7 @@ function createPromoCardElementForHome(cardData, sliderState, layoutId) {
 
 async function renderBrandsSection(groupId) {
     // Needs access to `state.currentLanguage`, `MapsToFilter`, `showSubcategoryDetailPage`
-    // Assuming these are accessible via import or global scope.
-    // If importing: import { navigateToFilter, showSubcategoryDetailPage } from './app-logic.js';
+    // Assuming these are imported correctly now.
 
     const sectionContainer = document.createElement('div');
     sectionContainer.className = 'brands-section';
@@ -223,7 +236,7 @@ async function renderBrandsSection(groupId) {
             `;
 
             item.onclick = async () => {
-                 // Assuming navigateToFilter and showSubcategoryDetailPage are available
+                 // Assuming navigateToFilter and showSubcategoryDetailPage are imported
                 if (brand.subcategoryId && brand.categoryId && typeof showSubcategoryDetailPage === 'function') {
                     showSubcategoryDetailPage(brand.categoryId, brand.subcategoryId);
                 } else if(brand.categoryId && typeof navigateToFilter === 'function') {
@@ -250,7 +263,7 @@ async function renderBrandsSection(groupId) {
 
 async function renderNewestProductsSection() {
     // Needs access to `t` and `createProductCardElement`.
-    // Assuming `createProductCardElement` is available (imported or global).
+    // Assuming `createProductCardElement` is imported correctly.
     const container = document.createElement('div');
     container.className = 'dynamic-section';
     const header = document.createElement('div');
@@ -279,7 +292,7 @@ async function renderNewestProductsSection() {
             productsScroller.className = 'horizontal-products-container';
             snapshot.forEach(doc => {
                 const product = { id: doc.id, ...doc.data() };
-                 // Assuming createProductCardElement is available
+                 // Assuming createProductCardElement is imported
                 if (typeof createProductCardElement === 'function') {
                     const card = createProductCardElement(product);
                     productsScroller.appendChild(card);
@@ -299,7 +312,7 @@ async function renderNewestProductsSection() {
 
 async function renderSingleShortcutRow(rowId, sectionNameObj) {
     // Needs access to `state.currentLanguage`, `t`, `MapsToFilter`.
-    // Assuming `MapsToFilter` is available.
+    // Assuming `MapsToFilter` is imported correctly.
     const sectionContainer = document.createElement('div');
     sectionContainer.className = 'shortcut-cards-section';
 
@@ -308,8 +321,8 @@ async function renderSingleShortcutRow(rowId, sectionNameObj) {
         if (!rowDoc.exists()) return null;
 
         const rowData = { id: rowDoc.id, ...rowDoc.data() };
-         // Use name from layout data first, fallback to row title
-        const rowTitle = (sectionNameObj && sectionNameObj[state.currentLanguage]) || rowData.title[state.currentLanguage] || rowData.title.ku_sorani;
+        // Use name from layout data first, fallback to row title
+        const rowTitle = (sectionNameObj && sectionNameObj[state.currentLanguage]) || (rowData.title && rowData.title[state.currentLanguage]) || (rowData.title && rowData.title.ku_sorani) || '';
 
 
         const titleElement = document.createElement('h3');
@@ -342,7 +355,7 @@ async function renderSingleShortcutRow(rowId, sectionNameObj) {
             `;
 
             item.onclick = async () => {
-                // Assuming navigateToFilter is available
+                 // Assuming navigateToFilter is imported
                 if (typeof navigateToFilter === 'function') {
                     await navigateToFilter({
                         category: cardData.categoryId || 'all',
@@ -367,7 +380,7 @@ async function renderSingleShortcutRow(rowId, sectionNameObj) {
 
 async function renderSingleCategoryRow(sectionData) {
     // Needs `t`, `state.currentLanguage`, `createProductCardElement`, `MapsToFilter`, `showSubcategoryDetailPage`.
-    // Assuming these are available.
+    // Assuming these are imported correctly.
     const { categoryId, subcategoryId, subSubcategoryId, name } = sectionData;
     let queryField, queryValue;
     let title = name[state.currentLanguage] || name.ku_sorani;
@@ -404,7 +417,7 @@ async function renderSingleCategoryRow(sectionData) {
         seeAllLink.className = 'see-all-link';
         seeAllLink.textContent = t('see_all');
         seeAllLink.onclick = async () => {
-            // Assuming navigation functions are available
+             // Assuming navigation functions are imported
             if(subcategoryId && typeof showSubcategoryDetailPage === 'function') {
                 showSubcategoryDetailPage(categoryId, subcategoryId);
             } else if (categoryId && typeof navigateToFilter === 'function') {
@@ -431,7 +444,7 @@ async function renderSingleCategoryRow(sectionData) {
 
         snapshot.forEach(doc => {
             const product = { id: doc.id, ...doc.data() };
-             // Assuming createProductCardElement is available
+             // Assuming createProductCardElement is imported
             if (typeof createProductCardElement === 'function') {
                 const card = createProductCardElement(product);
                 productsScroller.appendChild(card);
@@ -472,7 +485,7 @@ async function renderAllProductsSection() {
 
         snapshot.forEach(doc => {
             const product = { id: doc.id, ...doc.data() };
-             // Assuming createProductCardElement is available
+             // Assuming createProductCardElement is imported
             if (typeof createProductCardElement === 'function') {
                 const card = createProductCardElement(product);
                 productsGrid.appendChild(card);
@@ -503,7 +516,7 @@ export async function renderHomePageContent() {
         // Clean up any existing intervals before rendering new ones
         clearHomePageIntervals(); // Use the exported cleanup function
 
-        const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
+        const layoutQuery = query(homeLayoutCollection, where('enabled', '==', true), orderBy('order', 'asc')); // Use imported collection
         const layoutSnapshot = await getDocs(layoutQuery);
 
         if (layoutSnapshot.empty) {
@@ -570,18 +583,3 @@ export function clearHomePageIntervals() {
     console.log("Cleared home page intervals.");
 }
 
-// --- Potentially needed imports (Add these at the top of home.js) ---
-// Make sure these are exported from app-setup.js or app-logic.js as needed
-/*
-import {
-    db, state, t, productsCollection, categoriesCollection, promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection
-} from './app-setup.js';
-
-import {
-    getDocs, query, collection, doc, getDoc, orderBy, where, limit
-} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-
-// Import functions potentially needed from app-logic.js
-// Ensure these are EXPORTED from app-logic.js
-import { navigateToFilter, showSubcategoryDetailPage, createProductCardElement } from './app-logic.js';
-*/
