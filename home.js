@@ -1,167 +1,91 @@
-// home.js: Functions specific to rendering the home page content
+// home.js: Fonksiyonên taybet bi çêkirina rûpela sereke
 
-import { db, collection, query, orderBy, getDocs, doc, getDoc, where, limit } from './app-setup.js';
-import { state, t, promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection, productsCollection } from './app-setup.js';
-// Import necessary functions from app-logic
-import { createProductCardElement, createPromoCardElement, navigateToFilter, showSubcategoryDetailPage } from './app-logic.js';
+// Import Firestore functions directly from Firebase SDK
+import {
+    collection, query, orderBy, getDocs, getDoc, doc, limit, where
+} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-// Function to render a single shortcut row section
-async function renderSingleShortcutRow(rowId, sectionNameObj) {
-    const sectionContainer = document.createElement('div');
-    sectionContainer.className = 'shortcut-cards-section';
+// Import necessary variables and shared functions
+import {
+    db, // Firestore instance
+    state, // Global state (for language, slider intervals)
+    promoGroupsCollection, // Collection references
+    brandGroupsCollection,
+    shortcutRowsCollection,
+    productsCollection,
+    homeLayoutCollection // Added home layout collection import
+} from './app-setup.js';
+
+import {
+    createProductCardElement, // Card creation function
+    createPromoCardElement,   // Promo Card creation function
+    t,                        // Translation function
+    navigateToFilter,         // Navigation function
+    renderSkeletonLoader      // Skeleton loader utility
+} from './app-logic.js';
+
+// Function to render a single promo slider section
+// Accepts groupId (which promo group to show) and layoutId (unique ID for this section instance)
+async function renderPromoCardsSectionForHome(groupId, layoutId) {
+    const promoGrid = document.createElement('div');
+    promoGrid.className = 'products-container promo-slider-container'; // Use a specific class
+    promoGrid.style.marginBottom = '24px';
+    promoGrid.id = `promoSliderLayout_${layoutId}`; // Unique ID using layoutId
 
     try {
-        const rowDoc = await getDoc(doc(db, "shortcut_rows", rowId));
-        if (!rowDoc.exists()) return null;
-
-        const rowData = { id: rowDoc.id, ...rowDoc.data() };
-        // Use section name from layout if available, otherwise fallback to row name
-        const rowTitle = (sectionNameObj && (sectionNameObj[state.currentLanguage] || sectionNameObj.ku_sorani))
-                         || rowData.title[state.currentLanguage]
-                         || rowData.title.ku_sorani;
-
-
-        const titleElement = document.createElement('h3');
-        titleElement.className = 'shortcut-row-title';
-        titleElement.textContent = rowTitle;
-        sectionContainer.appendChild(titleElement);
-
-        const cardsContainer = document.createElement('div');
-        cardsContainer.className = 'shortcut-cards-container';
-        sectionContainer.appendChild(cardsContainer);
-
-        const cardsCollectionRef = collection(db, "shortcut_rows", rowData.id, "cards");
-        const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
+        const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
+        const cards = cardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        if (cardsSnapshot.empty) {
-            return null; // Don't render empty rows
-        }
+        if (cards.length > 0) {
+            // Local state for this specific slider instance
+            const sliderState = { currentIndex: 0, intervalId: null };
+            const cardData = { cards }; // Data structure expected by createPromoCardElement
 
-        cardsSnapshot.forEach(cardDoc => {
-            const cardData = cardDoc.data();
-            const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
+            // Create the initial card element
+            const promoCardElement = createPromoCardElement(cardData, sliderState);
+            promoGrid.appendChild(promoCardElement);
 
-            const item = document.createElement('div');
-            item.className = 'shortcut-card';
-            item.innerHTML = `
-                <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
-                <div class="shortcut-card-name">${cardName}</div>
-            `;
+            // Setup automatic rotation only if more than one card
+            if (cards.length > 1) {
+                const rotate = () => {
+                    // Check if the element still exists and the interval is still registered for this layoutId
+                    if (!document.getElementById(promoGrid.id) || !state.sliderIntervals || !state.sliderIntervals[layoutId]) {
+                        if (sliderState.intervalId) {
+                            clearInterval(sliderState.intervalId); // Clear this specific interval
+                            // Ensure it's removed from global state if somehow still there
+                            if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
+                                delete state.sliderIntervals[layoutId];
+                            }
+                        }
+                        return; // Stop rotation if element removed or interval cleared globally
+                    }
+                    // Proceed with rotation
+                    sliderState.currentIndex = (sliderState.currentIndex + 1) % cards.length;
+                    const newImageUrl = cards[sliderState.currentIndex].imageUrls[state.currentLanguage] || cards[sliderState.currentIndex].imageUrls.ku_sorani;
+                    const imgElement = promoCardElement.querySelector('.product-image');
+                    if(imgElement) imgElement.src = newImageUrl; // Update image source
+                };
 
-            item.onclick = async () => {
-                await navigateToFilter({
-                    category: cardData.categoryId || 'all',
-                    subcategory: cardData.subcategoryId || 'all',
-                    subSubcategory: cardData.subSubcategoryId || 'all',
-                    search: ''
-                });
-            };
-            cardsContainer.appendChild(item);
-        });
+                // Clear any previous interval associated with this specific layoutId
+                if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
+                    clearInterval(state.sliderIntervals[layoutId]);
+                }
 
-        return sectionContainer;
-    } catch (error) {
-        console.error("Error rendering single shortcut row:", error);
-        return null;
-    }
-}
-
-// Function to render a section displaying products from a single category/subcategory
-async function renderSingleCategoryRow(sectionData) {
-    const { categoryId, subcategoryId, subSubcategoryId, name } = sectionData;
-    let queryField, queryValue;
-    let title = name[state.currentLanguage] || name.ku_sorani;
-    let targetDocRef;
-
-    // Determine the query field and value based on the most specific ID provided
-    if (subSubcategoryId) {
-        queryField = 'subSubcategoryId';
-        queryValue = subSubcategoryId;
-        targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubcategoryId}`);
-    } else if (subcategoryId) {
-        queryField = 'subcategoryId';
-        queryValue = subcategoryId;
-        targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}`);
-    } else if (categoryId) {
-        queryField = 'categoryId';
-        queryValue = categoryId;
-        targetDocRef = doc(db, `categories/${categoryId}`);
-    } else {
-        return null; // No category specified, cannot render
-    }
-
-    try {
-        // Fetch the name of the category/subcategory/subsubcategory for the title if available
-        if (targetDocRef) {
-             const targetSnap = await getDoc(targetDocRef);
-             if (targetSnap.exists()) {
-                 const targetData = targetSnap.data();
-                 // Use the fetched name if available, otherwise fallback to the name from layout data
-                 title = targetData['name_' + state.currentLanguage] || targetData.name_ku_sorani || title;
-             }
-        }
-
-
-        const container = document.createElement('div');
-        container.className = 'dynamic-section';
-        const header = document.createElement('div');
-        header.className = 'section-title-header';
-        const titleEl = document.createElement('h3');
-        titleEl.className = 'section-title-main';
-        titleEl.textContent = title; // Use the potentially updated title
-        header.appendChild(titleEl);
-
-        const seeAllLink = document.createElement('a');
-        seeAllLink.className = 'see-all-link';
-        seeAllLink.textContent = t('see_all');
-        seeAllLink.onclick = async () => {
-            // Navigate based on the most specific category ID
-            if(subcategoryId) {
-                // If subcategory or subsubcategory is selected, go to the subcategory detail page
-                showSubcategoryDetailPage(categoryId, subcategoryId);
-            } else {
-                 // If only main category is selected, filter on the main page
-                 await navigateToFilter({
-                     category: categoryId,
-                     subcategory: 'all',
-                     subSubcategory: 'all',
-                     search: ''
-                 });
-                 // Scroll to categories after navigation
-                 document.getElementById('mainCategoriesContainer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Start new interval and store its ID in the global state using layoutId
+                sliderState.intervalId = setInterval(rotate, 5000); // Rotate every 5 seconds
+                if (!state.sliderIntervals) state.sliderIntervals = {};
+                state.sliderIntervals[layoutId] = sliderState.intervalId;
             }
-        };
-        header.appendChild(seeAllLink);
-        container.appendChild(header);
-
-        const productsScroller = document.createElement('div');
-        productsScroller.className = 'horizontal-products-container';
-        container.appendChild(productsScroller);
-
-        const q = query(
-            productsCollection,
-            where(queryField, '==', queryValue), // Use the determined field and value
-            orderBy('createdAt', 'desc'),
-            limit(10)
-        );
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) return null; // Don't render if no products found
-
-        snapshot.forEach(doc => {
-            const product = { id: doc.id, ...doc.data() };
-            const card = createProductCardElement(product); // Use from app-logic
-            productsScroller.appendChild(card);
-        });
-        return container;
-
+            return promoGrid; // Return the created section element
+        }
     } catch (error) {
-        console.error(`Error fetching products for single category row:`, error);
-        return null;
+        console.error(`Error rendering promo slider for group ${groupId} (layout ${layoutId}):`, error);
     }
+    return null; // Return null if error or no cards
 }
 
-// Function to render the brands section
+// Function to render a brands section based on groupId
 async function renderBrandsSection(groupId) {
     const sectionContainer = document.createElement('div');
     sectionContainer.className = 'brands-section';
@@ -192,31 +116,37 @@ async function renderBrandsSection(groupId) {
             item.onclick = async () => {
                 // Navigate based on linked category/subcategory
                 if (brand.subcategoryId && brand.categoryId) {
-                    showSubcategoryDetailPage(brand.categoryId, brand.subcategoryId); // Use from app-logic
+                     // Assuming showSubcategoryDetailPage is exported or globally available
+                    if (typeof showSubcategoryDetailPage === 'function') {
+                         showSubcategoryDetailPage(brand.categoryId, brand.subcategoryId);
+                    } else { // Fallback to navigateToFilter if detail page function unavailable
+                        await navigateToFilter({
+                            category: brand.categoryId,
+                            subcategory: brand.subcategoryId,
+                            subSubcategory: 'all',
+                            search: ''
+                         });
+                    }
                 } else if(brand.categoryId) {
-                    await navigateToFilter({ // Use from app-logic
+                    await navigateToFilter({
                         category: brand.categoryId,
                         subcategory: 'all',
                         subSubcategory: 'all',
                         search: ''
                     });
-                     // Scroll to categories after navigation
-                     document.getElementById('mainCategoriesContainer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
                 // If no category linked, clicking does nothing for now
             };
-
             brandsContainer.appendChild(item);
         });
-
-        return sectionContainer;
+        return sectionContainer; // Return the created section
     } catch (error) {
-        console.error("Error fetching brands for group:", error);
+        console.error(`Error fetching brands for group ${groupId}:`, error);
         return null;
     }
 }
 
-// Function to render the newest products section
+// Function to render the "Newest Products" section
 async function renderNewestProductsSection() {
     const container = document.createElement('div');
     container.className = 'dynamic-section';
@@ -229,29 +159,27 @@ async function renderNewestProductsSection() {
     container.appendChild(header);
 
     try {
-        // Fetch products created within the last 15 days (adjust as needed)
+        // Fetch products added in the last 15 days (adjust timeframe as needed)
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
         const q = query(
             productsCollection,
             where('createdAt', '>=', fifteenDaysAgo),
             orderBy('createdAt', 'desc'),
-            limit(10)
+            limit(10) // Limit number shown horizontally
         );
         const snapshot = await getDocs(q);
 
+        if (snapshot.empty) return null; // Do not render if there are no new products
+
         const productsScroller = document.createElement('div');
-        if (snapshot.empty) {
-            return null; // Do not render if there are no new products
-        } else {
-            productsScroller.className = 'horizontal-products-container';
-            snapshot.forEach(doc => {
-                const product = { id: doc.id, ...doc.data() };
-                const card = createProductCardElement(product); // Use from app-logic
-                productsScroller.appendChild(card);
-            });
-        }
+        productsScroller.className = 'horizontal-products-container';
+        snapshot.forEach(doc => {
+            const product = { id: doc.id, ...doc.data() };
+            const card = createProductCardElement(product); // Use shared function
+            productsScroller.appendChild(card);
+        });
         container.appendChild(productsScroller);
-        return container;
+        return container; // Return the created section
 
     } catch (error) {
         console.error("Error fetching newest products:", error);
@@ -259,14 +187,167 @@ async function renderNewestProductsSection() {
     }
 }
 
-// Function to render the section showing all products (paginated on main page)
+// Function to render a section showing products from a specific category row
+async function renderSingleCategoryRow(sectionData) {
+    const { categoryId, subcategoryId, subSubcategoryId, name } = sectionData;
+    let queryField, queryValue;
+    let title = name[state.currentLanguage] || name.ku_sorani; // Default title from layout
+    let targetDocRefPath; // Path to fetch the accurate category name
+
+    // Determine the query field, value, and doc path based on the most specific ID
+    if (subSubcategoryId && subcategoryId && categoryId) {
+        queryField = 'subSubcategoryId';
+        queryValue = subSubcategoryId;
+        targetDocRefPath = `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubcategoryId}`;
+    } else if (subcategoryId && categoryId) {
+        queryField = 'subcategoryId';
+        queryValue = subcategoryId;
+        targetDocRefPath = `categories/${categoryId}/subcategories/${subcategoryId}`;
+    } else if (categoryId) {
+        queryField = 'categoryId';
+        queryValue = categoryId;
+        targetDocRefPath = `categories/${categoryId}`;
+    } else {
+        console.warn("Single category row section is missing categoryId in layout config.");
+        return null; // No category specified, cannot render
+    }
+
+    try {
+        // Fetch the accurate name of the category/subcategory/subsubcategory
+        if (targetDocRefPath) {
+            const targetSnap = await getDoc(doc(db, targetDocRefPath));
+            if (targetSnap.exists()) {
+                const targetData = targetSnap.data();
+                title = targetData['name_' + state.currentLanguage] || targetData.name_ku_sorani || title; // Use fetched name if available
+            }
+        }
+
+        const container = document.createElement('div');
+        container.className = 'dynamic-section';
+        const header = document.createElement('div');
+        header.className = 'section-title-header';
+        const titleEl = document.createElement('h3');
+        titleEl.className = 'section-title-main';
+        titleEl.textContent = title; // Use the potentially updated title
+        header.appendChild(titleEl);
+
+        // Add "See All" link
+        const seeAllLink = document.createElement('a');
+        seeAllLink.className = 'see-all-link';
+        seeAllLink.textContent = t('see_all');
+        seeAllLink.onclick = async () => {
+             // Navigate based on the most specific category ID available
+             if(subcategoryId && categoryId) {
+                  // If subcategory or subsubcategory is selected, go to the subcategory detail page
+                  if (typeof showSubcategoryDetailPage === 'function') {
+                      showSubcategoryDetailPage(categoryId, subcategoryId);
+                  } else {
+                      await navigateToFilter({ category: categoryId, subcategory: subcategoryId, subSubcategory: subSubcategoryId || 'all', search: '' });
+                  }
+             } else if (categoryId) {
+                  // If only main category is selected, filter on the main page
+                  await navigateToFilter({ category: categoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
+             }
+        };
+        header.appendChild(seeAllLink);
+        container.appendChild(header);
+
+        const productsScroller = document.createElement('div');
+        productsScroller.className = 'horizontal-products-container';
+        container.appendChild(productsScroller);
+
+        // Query for products in this category/subcategory/subsubcategory
+        const q = query(
+            productsCollection,
+            where(queryField, '==', queryValue), // Use the determined field and value
+            orderBy('createdAt', 'desc'),
+            limit(10) // Limit number shown horizontally
+        );
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) return null; // Don't render if no products found
+
+        snapshot.forEach(doc => {
+            const product = { id: doc.id, ...doc.data() };
+            const card = createProductCardElement(product); // Use shared function
+            productsScroller.appendChild(card);
+        });
+        return container; // Return the created section
+
+    } catch (error) {
+        console.error(`Error fetching products for single category row (${queryValue}):`, error);
+        return null;
+    }
+}
+
+// Function to render a section showing a specific shortcut row
+async function renderSingleShortcutRow(rowId, sectionNameObj) {
+    const sectionContainer = document.createElement('div');
+    sectionContainer.className = 'shortcut-cards-section';
+
+    try {
+        const rowDoc = await getDoc(doc(db, "shortcut_rows", rowId));
+        if (!rowDoc.exists()) {
+            console.warn(`Shortcut row with ID ${rowId} not found.`);
+            return null;
+        }
+
+        const rowData = { id: rowDoc.id, ...rowDoc.data() };
+        // Use name from layout config first, fallback to row's own title
+        const rowTitle = sectionNameObj?.[state.currentLanguage] || rowData.title[state.currentLanguage] || rowData.title.ku_sorani;
+
+        const titleElement = document.createElement('h3');
+        titleElement.className = 'shortcut-row-title';
+        titleElement.textContent = rowTitle;
+        sectionContainer.appendChild(titleElement);
+
+        const cardsContainer = document.createElement('div');
+        cardsContainer.className = 'shortcut-cards-container';
+        sectionContainer.appendChild(cardsContainer);
+
+        // Fetch cards within this row
+        const cardsCollectionRef = collection(db, "shortcut_rows", rowData.id, "cards");
+        const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
+        const cardsSnapshot = await getDocs(cardsQuery);
+
+        if (cardsSnapshot.empty) return null; // Don't render empty rows
+
+        cardsSnapshot.forEach(cardDoc => {
+            const cardData = cardDoc.data();
+            const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
+
+            const item = document.createElement('button'); // Use button for better accessibility
+            item.className = 'shortcut-card';
+            item.innerHTML = `
+                <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
+                <div class="shortcut-card-name">${cardName}</div>
+            `;
+
+            item.onclick = async () => {
+                // Navigate to the linked category/subcategory/subsubcategory
+                await navigateToFilter({
+                    category: cardData.categoryId || 'all',
+                    subcategory: cardData.subcategoryId || 'all',
+                    subSubcategory: cardData.subSubcategoryId || 'all',
+                    search: ''
+                });
+            };
+            cardsContainer.appendChild(item);
+        });
+
+        return sectionContainer; // Return the created section
+    } catch (error) {
+        console.error(`Error rendering single shortcut row ${rowId}:`, error);
+        return null;
+    }
+}
+
+
+// Function to render the final "All Products" section on the home page (shows initial few)
+// Note: This is different from the main product grid used for filtering/searching
 async function renderAllProductsSection() {
-    // This function now just creates the section title.
-    // The actual products will be rendered by searchProductsInFirestore in app-logic.js
-    // when no filters/search terms are active.
     const container = document.createElement('div');
-    container.className = 'dynamic-section all-products-title-section'; // Added class for identification
-    container.style.marginTop = '20px'; // Add some space before this section title
+    container.className = 'dynamic-section';
+    container.style.marginTop = '20px'; // Add space before this final section
 
     const header = document.createElement('div');
     header.className = 'section-title-header';
@@ -276,119 +357,67 @@ async function renderAllProductsSection() {
     header.appendChild(title);
     container.appendChild(header);
 
-    // No products are fetched or added here anymore.
-    // productsContainer will be used by app-logic.js for this.
-    return container;
-}
-
-
-// Function to render the promo cards slider/section
-async function renderPromoCardsSectionForHome(groupId, layoutId) {
-    const promoGrid = document.createElement('div');
-    promoGrid.className = 'products-container'; // Use grid for layout
-    promoGrid.style.marginBottom = '24px';
-    promoGrid.id = `promoSliderLayout_${layoutId}`; // Unique ID for interval management
+    const productsGrid = document.createElement('div');
+    productsGrid.className = 'products-container'; // Use the main grid style
+    container.appendChild(productsGrid);
 
     try {
-        const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
-        const cardsSnapshot = await getDocs(cardsQuery);
+        // Fetch only a small number of recent products for the preview on home
+        const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(6)); // Limit to e.g., 6
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) return null; // Don't render if no products exist
 
-        const cards = cardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        if (cards.length > 0) {
-            const sliderState = { currentIndex: 0, intervalId: null };
-            const cardData = { cards };
-
-            // Create the initial card element using the function from app-logic
-            const promoCardElement = createPromoCardElement(cardData, sliderState); // Use from app-logic
-            promoGrid.appendChild(promoCardElement);
-
-            // Setup automatic rotation if more than one card
-            if (cards.length > 1) {
-                const rotate = () => {
-                    // Check if the element still exists and the interval is still registered
-                    if (!document.getElementById(promoGrid.id) || !state.sliderIntervals || !state.sliderIntervals[layoutId]) {
-                        if (sliderState.intervalId) {
-                            clearInterval(sliderState.intervalId);
-                            // Remove from global state if it exists there
-                            if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
-                                delete state.sliderIntervals[layoutId];
-                            }
-                        }
-                        return; // Stop rotation if element is gone or interval unregistered
-                    }
-                    sliderState.currentIndex = (sliderState.currentIndex + 1) % cards.length;
-                    const newImageUrl = cards[sliderState.currentIndex].imageUrls[state.currentLanguage] || cards[sliderState.currentIndex].imageUrls.ku_sorani;
-                    const imgElement = promoCardElement.querySelector('.product-image');
-                    if(imgElement) imgElement.src = newImageUrl; // Update the image source
-                };
-
-                // Clear previous interval for this specific layoutId if it exists
-                if (state.sliderIntervals && state.sliderIntervals[layoutId]) {
-                    clearInterval(state.sliderIntervals[layoutId]);
-                }
-
-                sliderState.intervalId = setInterval(rotate, 5000); // Rotate every 5 seconds
-                // Store interval ID in the global state object using layoutId as key
-                if (!state.sliderIntervals) state.sliderIntervals = {}; // Initialize if doesn't exist
-                state.sliderIntervals[layoutId] = sliderState.intervalId;
-            }
-            return promoGrid; // Return the created section element
-        }
+        snapshot.forEach(doc => {
+            const product = { id: doc.id, ...doc.data() };
+            const card = createProductCardElement(product); // Use shared function
+            productsGrid.appendChild(card);
+        });
+        return container; // Return the created section
     } catch (error) {
-        console.error(`Error rendering promo slider for group ${groupId}:`, error);
+        console.error("Error fetching 'all products' preview for home page:", error);
+        return null;
     }
-    return null; // Return null if no cards or error
 }
 
-// Main function to render the entire home page content based on layout
+
+// Main function to render the dynamic home page content based on Firestore layout
 export async function renderHomePageContent() {
-    // Prevent multiple renders at the same time
+    // Prevent multiple concurrent renders
     if (state.isRenderingHomePage) return;
     state.isRenderingHomePage = true;
 
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
-    if (!homeSectionsContainer) {
-         console.error("Home sections container not found!");
-         state.isRenderingHomePage = false;
-         return;
+    const homeSkeletonLoader = document.getElementById('homeSkeletonLoader');
+
+    if (!homeSectionsContainer || !homeSkeletonLoader) {
+        console.error("Home page containers not found!");
+        state.isRenderingHomePage = false;
+        return;
     }
 
-
     try {
-        // Show skeleton loader while fetching layout
-        // renderSkeletonLoader(homeSectionsContainer, 4); // You might need to import this or manage loader differently
-        homeSectionsContainer.innerHTML = '<div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: block;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>'; // Simple loader
-
+        renderSkeletonLoader(homeSkeletonLoader, 4); // Show skeleton loader in its specific container
+        homeSectionsContainer.innerHTML = ''; // Clear previous dynamic content
 
         // --- Interval Cleanup ---
+        // Clear any existing slider intervals before creating new ones
         Object.keys(state.sliderIntervals || {}).forEach(layoutId => {
             if (state.sliderIntervals[layoutId]) {
                 clearInterval(state.sliderIntervals[layoutId]);
             }
         });
-        state.sliderIntervals = {}; // Reset intervals object
+        state.sliderIntervals = {}; // Reset the intervals object
         // --- End Interval Cleanup ---
 
-        homeSectionsContainer.innerHTML = ''; // Clear loader/previous content
-
-        // Fetch the home page layout configuration
-        const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
+        // Fetch the enabled layout configuration, ordered correctly
+        const layoutQuery = query(homeLayoutCollection, where('enabled', '==', true), orderBy('order', 'asc'));
         const layoutSnapshot = await getDocs(layoutQuery);
 
         if (layoutSnapshot.empty) {
             console.warn("Home page layout is not configured or all sections are disabled.");
-            // Render default sections or a message if layout is empty
-            const defaultPromo = await renderPromoCardsSectionForHome('default', 'layout_default_promo');
-            if (defaultPromo) homeSectionsContainer.appendChild(defaultPromo);
-            const defaultBrands = await renderBrandsSection('default');
-            if (defaultBrands) homeSectionsContainer.appendChild(defaultBrands);
-            const newest = await renderNewestProductsSection();
-            if (newest) homeSectionsContainer.appendChild(newest);
-            const allProductsTitle = await renderAllProductsSection(); // Just the title
-             if (allProductsTitle) homeSectionsContainer.appendChild(allProductsTitle);
+            homeSectionsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">لاپەڕەی سەرەکی ڕێکنەخراوە.</p>'; // User-friendly message
         } else {
-            // Render sections based on the fetched layout
+            // Iterate through the layout config and render sections
             for (const doc of layoutSnapshot.docs) {
                 const section = doc.data();
                 let sectionElement = null;
@@ -397,33 +426,34 @@ export async function renderHomePageContent() {
                     case 'promo_slider':
                         if (section.groupId) {
                             sectionElement = await renderPromoCardsSectionForHome(section.groupId, doc.id); // Pass layout ID
-                        } else { console.warn("Promo slider section is missing groupId in layout config."); }
+                        } else { console.warn("Promo slider section missing groupId:", doc.id); }
                         break;
                     case 'brands':
                         if (section.groupId) {
                             sectionElement = await renderBrandsSection(section.groupId);
-                        } else { console.warn("Brands section is missing groupId in layout config."); }
+                        } else { console.warn("Brands section missing groupId:", doc.id); }
                         break;
                     case 'newest_products':
                         sectionElement = await renderNewestProductsSection();
                         break;
                     case 'single_shortcut_row':
                          if (section.rowId) {
-                             sectionElement = await renderSingleShortcutRow(section.rowId, section.name);
-                         } else { console.warn("Single shortcut row section is missing rowId in layout config."); }
-                         break;
+                            sectionElement = await renderSingleShortcutRow(section.rowId, section.name); // Pass layout name obj
+                         } else { console.warn("Single shortcut row section missing rowId:", doc.id); }
+                        break;
                     case 'single_category_row':
-                        if (section.categoryId) {
-                            sectionElement = await renderSingleCategoryRow(section);
-                        } else { console.warn("Single category row section is missing categoryId in layout config."); }
+                         if (section.categoryId) {
+                            sectionElement = await renderSingleCategoryRow(section); // Pass full section data
+                         } else { console.warn("Single category row section missing categoryId:", doc.id); }
                         break;
                     case 'all_products':
-                        sectionElement = await renderAllProductsSection(); // Just the title section
+                        sectionElement = await renderAllProductsSection();
                         break;
                     default:
                         console.warn(`Unknown home layout section type: ${section.type}`);
                 }
 
+                // Append the rendered section if it was created successfully
                 if (sectionElement) {
                     homeSectionsContainer.appendChild(sectionElement);
                 }
@@ -431,8 +461,10 @@ export async function renderHomePageContent() {
         }
     } catch (error) {
         console.error("Error rendering home page content:", error);
-        homeSectionsContainer.innerHTML = `<p style="text-align: center; padding: 20px;">هەڵەیەک ڕوویدا لە کاتی بارکردنی پەڕەی سەرەکی.</p>`;
+        homeSectionsContainer.innerHTML = `<p style="text-align: center; padding: 20px;">${t('error_generic')}</p>`;
     } finally {
-        state.isRenderingHomePage = false;
+        homeSkeletonLoader.style.display = 'none'; // Hide skeleton loader
+        state.isRenderingHomePage = false; // Reset flag
     }
 }
+
