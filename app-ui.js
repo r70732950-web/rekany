@@ -26,9 +26,7 @@ import {
     // And possibly others if missed in setup.js exports initially
 } from './app-setup.js';
 
-// *** گۆڕانکاری لێرە: لابردنی importـی ڕاستەوخۆ ***
-// import { collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-
+// Import Firestore functions from app-core.js
 import {
     // Import state and core logic functions
     state, t, debounce, formatDescription,
@@ -44,9 +42,9 @@ import {
     initCore, // Import the core initializer
     // Home page section data fetchers
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
-    // *** گۆڕانکاری لێرە: زیادکردنی importـی فەنکشنەکانی Firestore لە app-core ***
+    // Firestore functions exported from app-core.js
     db, productsCollection,
-    collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter // هێنانیان لە app-core
+    collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter
 } from './app-core.js';
 
 
@@ -1011,22 +1009,21 @@ async function updateProductViewUI(isNewSearch = false) {
     skeletonLoader.style.display = 'none'; // Hide skeleton loader
 
     if (result.isHome) {
-        homeSectionsContainer.style.display = 'block';
-        productsContainer.style.display = 'none';
-        scrollTrigger.style.display = 'none';
-         if (homeSectionsContainer.innerHTML.trim() === '') {
-             await renderHomePageContentUI(); // Render home content if it's empty
-         }
+        productsContainer.style.display = 'none'; // Hide product grid
+        scrollTrigger.style.display = 'none'; // Hide scroll trigger
+        homeSectionsContainer.style.display = 'block'; // Show home sections container
+        // *** گۆڕانکاری لێرە: لابردنی مەرجی if ***
+        await renderHomePageContentUI(); // Always attempt to render home content when isHome is true
     } else {
-        homeSectionsContainer.style.display = 'none';
-        productsContainer.style.display = 'grid';
+        homeSectionsContainer.style.display = 'none'; // Hide home sections
+        productsContainer.style.display = 'grid'; // Show product grid
         if (result.error) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
         } else {
              // Append if not a new search, replace if it is
              renderProductsUI(isNewSearch ? null : result.products);
         }
-        scrollTrigger.style.display = result.allLoaded ? 'none' : 'block';
+        scrollTrigger.style.display = result.allLoaded ? 'none' : 'block'; // Show/hide scroll trigger
     }
 
     // Update category button states AFTER fetching and rendering
@@ -1763,7 +1760,7 @@ async function renderContactLinksUI() {
     // Fetch social links data (assuming fetchSocialLinks exists in app-core.js or similar)
     // For now, using direct fetch here, but ideally from core
      try {
-         // *** گۆڕانکاری لێرە: collection بەکارهێنرا ***
+         // *** Ensure collection is correctly imported/available ***
          const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
          const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
          const snapshot = await getDocs(q); // Use getDocs for one-time fetch if real-time not needed
