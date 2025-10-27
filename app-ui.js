@@ -1012,7 +1012,7 @@ async function updateProductViewUI(isNewSearch = false) {
         productsContainer.style.display = 'none'; // Hide product grid
         scrollTrigger.style.display = 'none'; // Hide scroll trigger
         homeSectionsContainer.style.display = 'block'; // Show home sections container
-        // *** گۆڕانکاری لێرە: لابردنی مەرجی if ***
+        // *** گۆڕانکاری لێرە: لابردنی مەرجی if، هەمیشە هەوڵی render دەدەین ***
         await renderHomePageContentUI(); // Always attempt to render home content when isHome is true
     } else {
         homeSectionsContainer.style.display = 'none'; // Hide home sections
@@ -1042,12 +1042,12 @@ async function renderHomePageContentUI() {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     if (!homeSectionsContainer) return;
 
-    homeSectionsContainer.innerHTML = ''; // Clear previous
-    renderSkeletonLoader(homeSectionsContainer, 3); // Show skeleton
+    // *** گۆڕانکاری لێرە: دانانی نیشاندەری بارکردن لەناو container ***
+    homeSectionsContainer.innerHTML = `<div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: block;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;">...خەریکی بارکردنی بەشەکانە</p></div>`;
 
     const layout = await fetchHomeLayout(); // Fetch layout from core
 
-    homeSectionsContainer.innerHTML = ''; // Clear skeleton
+    homeSectionsContainer.innerHTML = ''; // لابردنی نیشاندەری بارکردن
 
     if (!layout || layout.length === 0) {
         console.warn("Home page layout is empty or failed to load.");
@@ -1097,6 +1097,11 @@ async function renderHomePageContentUI() {
         } catch(error) {
             console.error(`Error rendering home section type ${section.type}:`, error);
              // Optionally add a placeholder indicating an error for this section
+            sectionElement = document.createElement('div');
+            sectionElement.style.padding = '20px';
+            sectionElement.style.textAlign = 'center';
+            sectionElement.style.color = 'red';
+            sectionElement.textContent = `هەڵە لە بارکردنی بەشی: ${section.type}`;
         }
 
         if (sectionElement) {
