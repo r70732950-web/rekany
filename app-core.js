@@ -729,9 +729,10 @@ export {
     fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, // Data fetching
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
     setLanguageCore, // Language setting
-    requestNotificationPermissionCore, checkNewAnnouncementsCore, // Removed updateLastSeen... from here
+    requestNotificationPermissionCore, // Removed checkNewAnnouncementsCore from here
     handleInstallPrompt, forceUpdateCore, // PWA & SW
     // History functions are exported above
     // Core cart/favorites/profile functions are exported above
 };
 // *** DAWÎYA SERRRASTKIRINÊ ***
+
