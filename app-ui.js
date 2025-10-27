@@ -1856,13 +1856,4 @@ function setupGpsButtonUI() {
 
 // --- Start UI Initialization ---
 document.addEventListener('DOMContentLoaded', initializeUI);
-```
-
-**کورتەی گۆڕانکارییەکان:**
-
-1.  فەنکشنەکانی `collection`, `doc`, `getDoc`, `query`, `where`, `orderBy`, `getDocs`, `limit`, `startAfter` لە `import { ... } from './app-core.js'` لابران.
-2.  `import`ێکی نوێ زیادکرا لە سەرەوەی فایلەکە بۆ هێنانی ئەو فەنکشنانە ڕاستەوخۆ لە لینکی فایەربەیسەوە:
-    ```javascript
-    import { collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-    
 
