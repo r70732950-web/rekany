@@ -1,15 +1,15 @@
-// BEŞÊ YEKEM: app-setup.js (Çakkirî bo globalAdminTools)
+// BEŞÊ YEKEM: app-setup.js (Çakkirî bo exportên UI û globalAdminTools)
 // Pênasekirin û sazkarîyên destpêkê
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js"; // Added runTransaction
+import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
 // Firebase Configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE",
+    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", // Ensure this key is correct and secured if necessary
     authDomain: "maten-store.firebaseapp.com",
     projectId: "maten-store",
     storageBucket: "maten-store.appspot.com",
@@ -289,6 +289,7 @@ export const translations = {
     }
 };
 
+
 // Global State Variables (Mutable) - Exported for app-core.js and app-ui.js
 export let state = {
     currentLanguage: localStorage.getItem('language') || 'ku_sorani',
@@ -312,7 +313,6 @@ export let state = {
     currentProductId: null, // Used by app-ui
     sliderIntervals: {}, // Used by app-ui & app-core
     contactInfo: {}, // Might be needed?
-    // Remove properties only needed internally by core/ui if possible later
 };
 
 // Constants - Exported
@@ -321,10 +321,10 @@ export const FAVORITES_KEY = "maten_store_favorites";
 export const PROFILE_KEY = "maten_store_profile";
 export const PRODUCTS_PER_PAGE = 25;
 
-// DOM Elements Exports (Keep only those possibly needed outside app-ui.js, like modals maybe?)
-// For now, keep exports as they were for safety, can refine later.
+// DOM Elements Exports
+// === General UI Elements ===
 export const loginModal = document.getElementById('loginModal');
-export const addProductBtn = document.getElementById('addProductBtn');
+export const addProductBtn = document.getElementById('addProductBtn'); // Used by admin check in UI
 export const productFormModal = document.getElementById('productFormModal');
 export const productsContainer = document.getElementById('productsContainer');
 export const skeletonLoader = document.getElementById('skeletonLoader');
@@ -361,51 +361,71 @@ export const settingsAdminLoginBtn = document.getElementById('settingsAdminLogin
 export const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
 export const profileBtn = document.getElementById('profileBtn');
 export const contactToggle = document.getElementById('contactToggle');
-export const adminSocialMediaManagement = document.getElementById('adminSocialMediaManagement');
-export const addSocialMediaForm = document.getElementById('addSocialMediaForm');
-export const socialLinksListContainer = document.getElementById('socialLinksListContainer');
-export const socialMediaToggle = document.getElementById('socialMediaToggle');
 export const notificationBtn = document.getElementById('notificationBtn');
 export const notificationBadge = document.getElementById('notificationBadge');
 export const notificationsSheet = document.getElementById('notificationsSheet');
 export const notificationsListContainer = document.getElementById('notificationsListContainer');
-export const adminAnnouncementManagement = document.getElementById('adminAnnouncementManagement');
-export const announcementForm = document.getElementById('announcementForm');
 export const termsAndPoliciesBtn = document.getElementById('termsAndPoliciesBtn');
 export const termsSheet = document.getElementById('termsSheet');
 export const termsContentContainer = document.getElementById('termsContentContainer');
+export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer'); // Main page sub-subcat container
+
+// === Admin UI Elements ===
 export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
 export const policiesForm = document.getElementById('policiesForm');
-export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
+export const adminSocialMediaManagement = document.getElementById('adminSocialMediaManagement');
+export const addSocialMediaForm = document.getElementById('addSocialMediaForm');
+export const socialLinksListContainer = document.getElementById('socialLinksListContainer');
+export const socialMediaToggle = document.getElementById('socialMediaToggle');
+export const adminAnnouncementManagement = document.getElementById('adminAnnouncementManagement');
+export const announcementForm = document.getElementById('announcementForm');
+export const announcementsListContainer = document.getElementById('announcementsListContainer'); // Used by admin.js
 export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
+export const addPromoGroupForm = document.getElementById('addPromoGroupForm');
+export const promoGroupsListContainer = document.getElementById('promoGroupsListContainer');
+export const addPromoCardForm = document.getElementById('addPromoCardForm');
 export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
-// Add other DOM elements as needed
+export const addBrandGroupForm = document.getElementById('addBrandGroupForm');
+export const brandGroupsListContainer = document.getElementById('brandGroupsListContainer');
+export const addBrandForm = document.getElementById('addBrandForm');
+export const adminCategoryManagement = document.getElementById('adminCategoryManagement');
+export const categoryListContainer = document.getElementById('categoryListContainer');
+export const addCategoryForm = document.getElementById('addCategoryForm');
+export const addSubcategoryForm = document.getElementById('addSubcategoryForm');
+export const addSubSubcategoryForm = document.getElementById('addSubSubcategoryForm');
+export const editCategoryForm = document.getElementById('editCategoryForm');
+export const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
+export const contactMethodsListContainer = document.getElementById('contactMethodsListContainer');
+export const adminShortcutRowsManagement = document.getElementById('adminShortcutRowsManagement');
+export const shortcutRowsListContainer = document.getElementById('shortcutRowsListContainer');
+export const addShortcutRowForm = document.getElementById('addShortcutRowForm');
+export const addCardToRowForm = document.getElementById('addCardToRowForm');
+export const adminHomeLayoutManagement = document.getElementById('adminHomeLayoutManagement');
+export const homeLayoutListContainer = document.getElementById('homeLayoutListContainer');
+export const addHomeSectionBtn = document.getElementById('addHomeSectionBtn');
+export const addHomeSectionModal = document.getElementById('addHomeSectionModal');
+export const addHomeSectionForm = document.getElementById('addHomeSectionForm');
 
 
-// *** ZÊDEKIRÎ / ADDED: Populate globalAdminTools here ***
+// *** Populate globalAdminTools here ***
+// Moved from app-core.js to ensure availability before admin.js (defer) runs
 window.globalAdminTools = {
     // Firebase Services & Functions needed by admin.js
     db, auth,
     doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection,
-    query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction, // Ensure all needed functions are here
+    query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
 
     // Collections needed by admin.js
     productsCollection, categoriesCollection, announcementsCollection,
-    promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection, // Add new collections
+    promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
 
     // Core State Accessors/Mutators needed by admin.js
-    // Note: Direct state mutation from admin.js is discouraged, use functions if possible
-    setEditingProductId: (id) => { state.editingProductId = id; }, // Example mutator
-    getEditingProductId: () => state.editingProductId,      // Example accessor
-    getCategories: () => state.categories,                 // Example accessor
-    getCurrentLanguage: () => state.currentLanguage,       // Example accessor
+    setEditingProductId: (id) => { state.editingProductId = id; },
+    getEditingProductId: () => state.editingProductId,
+    getCategories: () => state.categories,
+    getCurrentLanguage: () => state.currentLanguage,
 
-    // Core Helper Functions needed by admin.js (like 't' and 'showNotification')
-    // Option 1: Re-implement simplified versions in admin.js if needed
-    // Option 2: Expose them here (simpler for now, but couples admin to UI notifications)
-    // Option 3: Use custom events from admin.js to trigger UI actions in app-ui.js (cleaner but more complex)
-
-    // For simplicity, let's expose t and showNotification for now, but remove UI-specific ones like openPopup
+    // Core Helper Functions needed by admin.js
     t: (key, replacements = {}) => { // Re-export 't' function
         let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
         for (const placeholder in replacements) {
@@ -414,7 +434,6 @@ window.globalAdminTools = {
         return translation;
     },
     showNotification: (message, type = 'success') => { // Re-export basic notification logic
-        // This relies on the notification CSS classes being globally available
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         notification.textContent = message;
@@ -427,13 +446,14 @@ window.globalAdminTools = {
     },
      clearProductCache: () => { // Keep this helper
          console.log("Product cache and home page cleared due to admin action.");
-         state.productCache = {}; // Clear the cache
+         state.productCache = {};
          const homeContainer = document.getElementById('homePageSectionsContainer');
          if (homeContainer) {
-             homeContainer.innerHTML = ''; // Clear home page to force re-render
+             homeContainer.innerHTML = '';
          }
-         // Optionally trigger re-render if needed, potentially via custom event
+         // Notify UI layer to trigger re-render
          document.dispatchEvent(new Event('clearCacheTriggerRender'));
      },
 };
-// *** DAWÎYA BEŞÊ ZÊDEKIRÎ / END OF ADDED SECTION ***
+// *** END OF globalAdminTools SECTION ***
+
