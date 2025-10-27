@@ -2,6 +2,7 @@
 // Logika bingehîn, danûstendina daneyan, û rêveberiya state
 
 import {
+    // *** گۆڕانکاری لێرە: db لێرە هاوردەکراوە ***
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
@@ -10,7 +11,6 @@ import {
 } from './app-setup.js';
 
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-// *** گۆڕانکاری لێرە: زیادکردنی exportـە پێویستەکان ***
 import {
     enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc,
     onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where,
@@ -656,23 +656,23 @@ export function navigateToFilterCore(newState) {
 
 // --- Initialization ---
 
-// *** گۆڕانکاری لێرە: ئەم فانکشنە کرا بە async ***
+// *** This function is now async ***
 async function initializeCoreLogic() {
     if (!state.sliderIntervals) state.sliderIntervals = {};
-    // *** گۆڕانکاری لێرە: چاوەڕێی fetchCategories دەبین ***
+    // *** We await fetchCategories here ***
     await fetchCategories();
     // Fetch initial contact methods, social links, etc. if needed globally
 }
 
 // Call this once on app load
-// *** گۆڕانکاری لێرە: ئەم فانکشنە کرا بە async و Promise دەگەڕێنێتەوە ***
+// *** This function is now async and returns a Promise ***
 export async function initCore() {
     // Return the promise chain
     return enableIndexedDbPersistence(db)
         .then(() => console.log("Firestore offline persistence enabled."))
         .catch((err) => console.warn("Firestore Persistence failed:", err.code))
         .finally(async () => { // Make the finally block async
-            // *** گۆڕانکاری لێرە: چاوەڕێی initializeCoreLogic دەبین ***
+            // *** Await the core logic setup ***
             await initializeCoreLogic(); // Await the core logic setup
 
             // Setup listeners *after* core logic (like categories) is ready
@@ -738,7 +738,7 @@ export async function initCore() {
 
 
 // Expose necessary core functions and state for UI and Admin layers
-// *** گۆڕانکاری لێرە: زیادکردنی exportـە پێویستەکان ***
+// *** گۆڕانکاری لێرە: زیادکردنی db بۆ export ***
 export {
     state, // Export the mutable state object
     handleLogin, handleLogout, // Authentication
@@ -753,7 +753,9 @@ export {
     // Core cart/favorites/profile functions are exported above
 
     // *** Export Firestore functions needed by app-ui.js and admin.js ***
-    db, productsCollection,
+    db, // <-- db لێرە زیادکرا
+    productsCollection,
     collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
     query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction
 };
+
