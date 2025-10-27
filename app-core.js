@@ -722,14 +722,16 @@ export function initCore() {
 
 
 // Expose necessary core functions and state for UI and Admin layers
+// *** CHAKKIRÎ: Export-a dawî hate serrastkirin ***
 export {
     state, // Export the mutable state object
     handleLogin, handleLogout, // Authentication
     fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, // Data fetching
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
     setLanguageCore, // Language setting
-    requestNotificationPermissionCore, checkNewAnnouncementsCore, updateLastSeenAnnouncementTimestamp, // Notifications
+    requestNotificationPermissionCore, checkNewAnnouncementsCore, // Removed updateLastSeen... from here
     handleInstallPrompt, forceUpdateCore, // PWA & SW
     // History functions are exported above
     // Core cart/favorites/profile functions are exported above
 };
+// *** DAWÎYA SERRRASTKIRINÊ ***

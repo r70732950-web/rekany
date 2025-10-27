@@ -1,10 +1,10 @@
-// BEŞÊ YEKEM: app-setup.js
+// BEŞÊ YEKEM: app-setup.js (Çakkirî bo globalAdminTools)
 // Pênasekirin û sazkarîyên destpêkê
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js"; // Added runTransaction
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
 // Firebase Configuration
@@ -18,25 +18,20 @@ const firebaseConfig = {
     measurementId: "G-1PV3DRY2V2"
 };
 
-// Initialization and Exports
+// Initialization and Exports (for app-core.js and app-ui.js)
 export const app = initializeApp(firebaseConfig);
 export const analytics = getAnalytics(app);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 
-// Make Firebase services and helper functions globally available for admin.js
-window.globalAdminTools = {};
-
-// Firestore Collections Exports
+// Firestore Collections Exports (for app-core.js and app-ui.js)
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
-// *** DÊRA ZÊDEKIRÎ / ADDED LINE ***
 export const shortcutRowsCollection = collection(db, "shortcut_rows");
-// **********************************
 
 // Translations Export
 export const translations = {
@@ -294,22 +289,17 @@ export const translations = {
     }
 };
 
-// Global State Variables (Mutable)
+// Global State Variables (Mutable) - Exported for app-core.js and app-ui.js
 export let state = {
     currentLanguage: localStorage.getItem('language') || 'ku_sorani',
     deferredPrompt: null,
     cart: JSON.parse(localStorage.getItem("maten_store_cart")) || [],
     favorites: JSON.parse(localStorage.getItem("maten_store_favorites")) || [],
     userProfile: JSON.parse(localStorage.getItem("maten_store_profile")) || {},
-    editingProductId: null,
+    editingProductId: null, // Used by Admin
     products: [],
-    allPromoCards: [],
-    currentPromoCardIndex: 0,
-    promoRotationInterval: null,
-    sliderIntervals: {}, // Initialize for slider fix v2
-    categories: [],
-    contactInfo: {},
-    subcategories: [],
+    categories: [], // Populated by app-core
+    subcategories: [], // Populated by app-core
     lastVisibleProductDoc: null,
     isLoadingMoreProducts: false,
     allProductsLoaded: false,
@@ -319,17 +309,20 @@ export let state = {
     currentSubcategory: 'all',
     currentSubSubcategory: 'all',
     currentSearch: '',
-    currentProductId: null, // Keep track of product being viewed in detail sheet
+    currentProductId: null, // Used by app-ui
+    sliderIntervals: {}, // Used by app-ui & app-core
+    contactInfo: {}, // Might be needed?
+    // Remove properties only needed internally by core/ui if possible later
 };
 
-// Constants
+// Constants - Exported
 export const CART_KEY = "maten_store_cart";
 export const FAVORITES_KEY = "maten_store_favorites";
 export const PROFILE_KEY = "maten_store_profile";
 export const PRODUCTS_PER_PAGE = 25;
 
-// DOM Elements Exports (Keep only those needed by OTHER files, UI elements used only by app-ui.js are not exported)
-// Note: Keeping most exports for now, might refine later if needed.
+// DOM Elements Exports (Keep only those possibly needed outside app-ui.js, like modals maybe?)
+// For now, keep exports as they were for safety, can refine later.
 export const loginModal = document.getElementById('loginModal');
 export const addProductBtn = document.getElementById('addProductBtn');
 export const productFormModal = document.getElementById('productFormModal');
@@ -387,3 +380,60 @@ export const subSubcategoriesContainer = document.getElementById('subSubcategori
 export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
 export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
 // Add other DOM elements as needed
+
+
+// *** ZÊDEKIRÎ / ADDED: Populate globalAdminTools here ***
+window.globalAdminTools = {
+    // Firebase Services & Functions needed by admin.js
+    db, auth,
+    doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection,
+    query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction, // Ensure all needed functions are here
+
+    // Collections needed by admin.js
+    productsCollection, categoriesCollection, announcementsCollection,
+    promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection, // Add new collections
+
+    // Core State Accessors/Mutators needed by admin.js
+    // Note: Direct state mutation from admin.js is discouraged, use functions if possible
+    setEditingProductId: (id) => { state.editingProductId = id; }, // Example mutator
+    getEditingProductId: () => state.editingProductId,      // Example accessor
+    getCategories: () => state.categories,                 // Example accessor
+    getCurrentLanguage: () => state.currentLanguage,       // Example accessor
+
+    // Core Helper Functions needed by admin.js (like 't' and 'showNotification')
+    // Option 1: Re-implement simplified versions in admin.js if needed
+    // Option 2: Expose them here (simpler for now, but couples admin to UI notifications)
+    // Option 3: Use custom events from admin.js to trigger UI actions in app-ui.js (cleaner but more complex)
+
+    // For simplicity, let's expose t and showNotification for now, but remove UI-specific ones like openPopup
+    t: (key, replacements = {}) => { // Re-export 't' function
+        let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
+        for (const placeholder in replacements) {
+            translation = translation.replace(`{${placeholder}}`, replacements[placeholder]);
+        }
+        return translation;
+    },
+    showNotification: (message, type = 'success') => { // Re-export basic notification logic
+        // This relies on the notification CSS classes being globally available
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.classList.add('show'), 10);
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => document.body.removeChild(notification), 300);
+        }, 3000);
+    },
+     clearProductCache: () => { // Keep this helper
+         console.log("Product cache and home page cleared due to admin action.");
+         state.productCache = {}; // Clear the cache
+         const homeContainer = document.getElementById('homePageSectionsContainer');
+         if (homeContainer) {
+             homeContainer.innerHTML = ''; // Clear home page to force re-render
+         }
+         // Optionally trigger re-render if needed, potentially via custom event
+         document.dispatchEvent(new Event('clearCacheTriggerRender'));
+     },
+};
+// *** DAWÎYA BEŞÊ ZÊDEKIRÎ / END OF ADDED SECTION ***
