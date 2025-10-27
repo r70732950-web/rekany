@@ -4,7 +4,7 @@
 import {
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
-    promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection, // Add shortcutRowsCollection
+    promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
     translations, state,
     CART_KEY, FAVORITES_KEY, PROFILE_KEY, PRODUCTS_PER_PAGE,
 } from './app-setup.js';
@@ -722,13 +722,13 @@ export function initCore() {
 
 
 // Expose necessary core functions and state for UI and Admin layers
-// *** CHAKKIRÎ: Export-a dawî hate serrastkirin ***
+// *** CHAKKIRÎ: Export-a dawî hate serrastkirin (tenê exportên dubare hatin rakirin) ***
 export {
     state, // Export the mutable state object
     handleLogin, handleLogout, // Authentication
     fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, // Data fetching
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
-    setLanguageCore, // Language setting
+    // Removed setLanguageCore from here
     requestNotificationPermissionCore, // Removed checkNewAnnouncementsCore from here
     handleInstallPrompt, forceUpdateCore, // PWA & SW
     // History functions are exported above
