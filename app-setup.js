@@ -32,11 +32,11 @@ window.globalAdminTools = {};
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
-
-// ====== UPDATED COLLECTIONS / کۆڵێکشنە نوێکراوەکان ======
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
-// ===============================================
+// *** DÊRA ZÊDEKIRÎ / ADDED LINE ***
+export const shortcutRowsCollection = collection(db, "shortcut_rows");
+// **********************************
 
 // Translations Export
 export const translations = {
@@ -95,7 +95,7 @@ export const translations = {
         product_added_to_favorites: "زیادکرا بۆ لیستی دڵخوازەکان",
         product_removed_from_favorites: "لە لیستی دڵخوازەکان سڕدرایەوە",
         manage_categories_title: "بەڕێوەبردنی جۆرەکان",
-		manage_contact_methods_title: "بەڕێوەبردنی شێوازەکانی ناردنی داواکاری",
+        manage_contact_methods_title: "بەڕێوەبردنی شێوازەکانی ناردنی داواکاری",
         notifications_title: "ئاگەهدارییەکان",
         no_notifications_found: "هیچ ئاگەهدارییەک نییە",
         manage_announcements_title: "ناردنی ئاگەداری گشتی",
@@ -179,7 +179,7 @@ export const translations = {
         product_added_to_favorites: "هاتە زێدەکرن بۆ لیستا حەزژێکریان",
         product_removed_from_favorites: "ژ لیستا حەزژێکریان هاتە ژێبرن",
         manage_categories_title: "рێکخستنا جوران",
-		manage_contact_methods_title: "рێکخستنا رێکێن فرێکرنا داخازیێ",
+        manage_contact_methods_title: "рێکخستنا رێکێن فرێکرنا داخازیێ",
         notifications_title: "ئاگەهداری",
         no_notifications_found: "چ ئاگەهداری نینن",
         manage_announcements_title: "рێکخستنا ئاگەهداریان",
@@ -263,7 +263,7 @@ export const translations = {
         product_added_to_favorites: "تمت الإضافة إلى المفضلة",
         product_removed_from_favorites: "تمت الإزالة من المفضلة",
         manage_categories_title: "إدارة الفئات",
-		manage_contact_methods_title: "إدارة طرق إرسال الطلب",
+        manage_contact_methods_title: "إدارة طرق إرسال الطلب",
         notifications_title: "الإشعارات",
         no_notifications_found: "لا توجد إشعارات",
         manage_announcements_title: "إدارة الإشعارات العامة",
@@ -306,6 +306,7 @@ export let state = {
     allPromoCards: [],
     currentPromoCardIndex: 0,
     promoRotationInterval: null,
+    sliderIntervals: {}, // Initialize for slider fix v2
     categories: [],
     contactInfo: {},
     subcategories: [],
@@ -318,6 +319,7 @@ export let state = {
     currentSubcategory: 'all',
     currentSubSubcategory: 'all',
     currentSearch: '',
+    currentProductId: null, // Keep track of product being viewed in detail sheet
 };
 
 // Constants
@@ -326,7 +328,8 @@ export const FAVORITES_KEY = "maten_store_favorites";
 export const PROFILE_KEY = "maten_store_profile";
 export const PRODUCTS_PER_PAGE = 25;
 
-// DOM Elements Exports
+// DOM Elements Exports (Keep only those needed by OTHER files, UI elements used only by app-ui.js are not exported)
+// Note: Keeping most exports for now, might refine later if needed.
 export const loginModal = document.getElementById('loginModal');
 export const addProductBtn = document.getElementById('addProductBtn');
 export const productFormModal = document.getElementById('productFormModal');
@@ -383,3 +386,4 @@ export const policiesForm = document.getElementById('policiesForm');
 export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
 export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
 export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
+// Add other DOM elements as needed
