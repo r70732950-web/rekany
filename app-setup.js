@@ -1,15 +1,15 @@
-// BEŞÊ YEKEM: app-setup.js (Çakkirî bo exportên UI û globalAdminTools)
+// BEŞÊ YEKEM: app-setup.js
 // Pênasekirin û sazkarîyên destpêkê
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
 // Firebase Configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", // Ensure this key is correct and secured if necessary
+    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE",
     authDomain: "maten-store.firebaseapp.com",
     projectId: "maten-store",
     storageBucket: "maten-store.appspot.com",
@@ -18,20 +18,25 @@ const firebaseConfig = {
     measurementId: "G-1PV3DRY2V2"
 };
 
-// Initialization and Exports (for app-core.js and app-ui.js)
+// Initialization and Exports
 export const app = initializeApp(firebaseConfig);
 export const analytics = getAnalytics(app);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 
-// Firestore Collections Exports (for app-core.js and app-ui.js)
+// Make Firebase services and helper functions globally available for admin.js
+window.globalAdminTools = {};
+
+// Firestore Collections Exports
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
+
+// ====== UPDATED COLLECTIONS / کۆڵێکشنە نوێکراوەکان ======
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
-export const shortcutRowsCollection = collection(db, "shortcut_rows");
+// ===============================================
 
 // Translations Export
 export const translations = {
@@ -90,7 +95,7 @@ export const translations = {
         product_added_to_favorites: "زیادکرا بۆ لیستی دڵخوازەکان",
         product_removed_from_favorites: "لە لیستی دڵخوازەکان سڕدرایەوە",
         manage_categories_title: "بەڕێوەبردنی جۆرەکان",
-        manage_contact_methods_title: "بەڕێوەبردنی شێوازەکانی ناردنی داواکاری",
+		manage_contact_methods_title: "بەڕێوەبردنی شێوازەکانی ناردنی داواکاری",
         notifications_title: "ئاگەهدارییەکان",
         no_notifications_found: "هیچ ئاگەهدارییەک نییە",
         manage_announcements_title: "ناردنی ئاگەداری گشتی",
@@ -174,7 +179,7 @@ export const translations = {
         product_added_to_favorites: "هاتە زێدەکرن بۆ لیستا حەزژێکریان",
         product_removed_from_favorites: "ژ لیستا حەزژێکریان هاتە ژێبرن",
         manage_categories_title: "рێکخستنا جوران",
-        manage_contact_methods_title: "рێکخستنا رێکێن فرێکرنا داخازیێ",
+		manage_contact_methods_title: "рێکخستنا رێکێن فرێکرنا داخازیێ",
         notifications_title: "ئاگەهداری",
         no_notifications_found: "چ ئاگەهداری نینن",
         manage_announcements_title: "рێکخستنا ئاگەهداریان",
@@ -258,7 +263,7 @@ export const translations = {
         product_added_to_favorites: "تمت الإضافة إلى المفضلة",
         product_removed_from_favorites: "تمت الإزالة من المفضلة",
         manage_categories_title: "إدارة الفئات",
-        manage_contact_methods_title: "إدارة طرق إرسال الطلب",
+		manage_contact_methods_title: "إدارة طرق إرسال الطلب",
         notifications_title: "الإشعارات",
         no_notifications_found: "لا توجد إشعارات",
         manage_announcements_title: "إدارة الإشعارات العامة",
@@ -289,18 +294,21 @@ export const translations = {
     }
 };
 
-
-// Global State Variables (Mutable) - Exported for app-core.js and app-ui.js
+// Global State Variables (Mutable)
 export let state = {
     currentLanguage: localStorage.getItem('language') || 'ku_sorani',
     deferredPrompt: null,
     cart: JSON.parse(localStorage.getItem("maten_store_cart")) || [],
     favorites: JSON.parse(localStorage.getItem("maten_store_favorites")) || [],
     userProfile: JSON.parse(localStorage.getItem("maten_store_profile")) || {},
-    editingProductId: null, // Used by Admin
+    editingProductId: null,
     products: [],
-    categories: [], // Populated by app-core
-    subcategories: [], // Populated by app-core
+    allPromoCards: [],
+    currentPromoCardIndex: 0,
+    promoRotationInterval: null,
+    categories: [],
+    contactInfo: {},
+    subcategories: [],
     lastVisibleProductDoc: null,
     isLoadingMoreProducts: false,
     allProductsLoaded: false,
@@ -310,21 +318,17 @@ export let state = {
     currentSubcategory: 'all',
     currentSubSubcategory: 'all',
     currentSearch: '',
-    currentProductId: null, // Used by app-ui
-    sliderIntervals: {}, // Used by app-ui & app-core
-    contactInfo: {}, // Might be needed?
 };
 
-// Constants - Exported
+// Constants
 export const CART_KEY = "maten_store_cart";
 export const FAVORITES_KEY = "maten_store_favorites";
 export const PROFILE_KEY = "maten_store_profile";
 export const PRODUCTS_PER_PAGE = 25;
 
 // DOM Elements Exports
-// === General UI Elements ===
 export const loginModal = document.getElementById('loginModal');
-export const addProductBtn = document.getElementById('addProductBtn'); // Used by admin check in UI
+export const addProductBtn = document.getElementById('addProductBtn');
 export const productFormModal = document.getElementById('productFormModal');
 export const productsContainer = document.getElementById('productsContainer');
 export const skeletonLoader = document.getElementById('skeletonLoader');
@@ -361,99 +365,21 @@ export const settingsAdminLoginBtn = document.getElementById('settingsAdminLogin
 export const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
 export const profileBtn = document.getElementById('profileBtn');
 export const contactToggle = document.getElementById('contactToggle');
-export const notificationBtn = document.getElementById('notificationBtn');
-export const notificationBadge = document.getElementById('notificationBadge');
-export const notificationsSheet = document.getElementById('notificationsSheet');
-export const notificationsListContainer = document.getElementById('notificationsListContainer');
-export const termsAndPoliciesBtn = document.getElementById('termsAndPoliciesBtn');
-export const termsSheet = document.getElementById('termsSheet');
-export const termsContentContainer = document.getElementById('termsContentContainer');
-export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer'); // Main page sub-subcat container
-
-// === Admin UI Elements ===
-export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
-export const policiesForm = document.getElementById('policiesForm');
 export const adminSocialMediaManagement = document.getElementById('adminSocialMediaManagement');
 export const addSocialMediaForm = document.getElementById('addSocialMediaForm');
 export const socialLinksListContainer = document.getElementById('socialLinksListContainer');
 export const socialMediaToggle = document.getElementById('socialMediaToggle');
+export const notificationBtn = document.getElementById('notificationBtn');
+export const notificationBadge = document.getElementById('notificationBadge');
+export const notificationsSheet = document.getElementById('notificationsSheet');
+export const notificationsListContainer = document.getElementById('notificationsListContainer');
 export const adminAnnouncementManagement = document.getElementById('adminAnnouncementManagement');
 export const announcementForm = document.getElementById('announcementForm');
-export const announcementsListContainer = document.getElementById('announcementsListContainer'); // Used by admin.js
+export const termsAndPoliciesBtn = document.getElementById('termsAndPoliciesBtn');
+export const termsSheet = document.getElementById('termsSheet');
+export const termsContentContainer = document.getElementById('termsContentContainer');
+export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
+export const policiesForm = document.getElementById('policiesForm');
+export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
 export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
-export const addPromoGroupForm = document.getElementById('addPromoGroupForm');
-export const promoGroupsListContainer = document.getElementById('promoGroupsListContainer');
-export const addPromoCardForm = document.getElementById('addPromoCardForm');
 export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
-export const addBrandGroupForm = document.getElementById('addBrandGroupForm');
-export const brandGroupsListContainer = document.getElementById('brandGroupsListContainer');
-export const addBrandForm = document.getElementById('addBrandForm');
-export const adminCategoryManagement = document.getElementById('adminCategoryManagement');
-export const categoryListContainer = document.getElementById('categoryListContainer');
-export const addCategoryForm = document.getElementById('addCategoryForm');
-export const addSubcategoryForm = document.getElementById('addSubcategoryForm');
-export const addSubSubcategoryForm = document.getElementById('addSubSubcategoryForm');
-export const editCategoryForm = document.getElementById('editCategoryForm');
-export const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
-export const contactMethodsListContainer = document.getElementById('contactMethodsListContainer');
-export const adminShortcutRowsManagement = document.getElementById('adminShortcutRowsManagement');
-export const shortcutRowsListContainer = document.getElementById('shortcutRowsListContainer');
-export const addShortcutRowForm = document.getElementById('addShortcutRowForm');
-export const addCardToRowForm = document.getElementById('addCardToRowForm');
-export const adminHomeLayoutManagement = document.getElementById('adminHomeLayoutManagement');
-export const homeLayoutListContainer = document.getElementById('homeLayoutListContainer');
-export const addHomeSectionBtn = document.getElementById('addHomeSectionBtn');
-export const addHomeSectionModal = document.getElementById('addHomeSectionModal');
-export const addHomeSectionForm = document.getElementById('addHomeSectionForm');
-
-
-// *** Populate globalAdminTools here ***
-// Moved from app-core.js to ensure availability before admin.js (defer) runs
-window.globalAdminTools = {
-    // Firebase Services & Functions needed by admin.js
-    db, auth,
-    doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection,
-    query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
-
-    // Collections needed by admin.js
-    productsCollection, categoriesCollection, announcementsCollection,
-    promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
-
-    // Core State Accessors/Mutators needed by admin.js
-    setEditingProductId: (id) => { state.editingProductId = id; },
-    getEditingProductId: () => state.editingProductId,
-    getCategories: () => state.categories,
-    getCurrentLanguage: () => state.currentLanguage,
-
-    // Core Helper Functions needed by admin.js
-    t: (key, replacements = {}) => { // Re-export 't' function
-        let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
-        for (const placeholder in replacements) {
-            translation = translation.replace(`{${placeholder}}`, replacements[placeholder]);
-        }
-        return translation;
-    },
-    showNotification: (message, type = 'success') => { // Re-export basic notification logic
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.textContent = message;
-        document.body.appendChild(notification);
-        setTimeout(() => notification.classList.add('show'), 10);
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => document.body.removeChild(notification), 300);
-        }, 3000);
-    },
-     clearProductCache: () => { // Keep this helper
-         console.log("Product cache and home page cleared due to admin action.");
-         state.productCache = {};
-         const homeContainer = document.getElementById('homePageSectionsContainer');
-         if (homeContainer) {
-             homeContainer.innerHTML = '';
-         }
-         // Notify UI layer to trigger re-render
-         document.dispatchEvent(new Event('clearCacheTriggerRender'));
-     },
-};
-// *** END OF globalAdminTools SECTION ***
-
