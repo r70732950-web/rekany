@@ -26,6 +26,9 @@ import {
     // And possibly others if missed in setup.js exports initially
 } from './app-setup.js';
 
+// *** گۆڕانکاری لێرە: فەنکشنەکانی فایەربەیس ڕاستەوخۆ لێرە import کران ***
+import { collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
 import {
     // Import state and core logic functions
     state, t, debounce, formatDescription,
@@ -41,9 +44,10 @@ import {
     initCore, // Import the core initializer
     // Home page section data fetchers
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
-    // Firebase related imports needed for UI layer tasks (like fetching specific data for details page)
-    db, doc, getDoc, collection, query, where, orderBy, getDocs, limit, startAfter, productsCollection
-} from './app-core.js'; // Import necessary Firestore functions
+    // *** گۆڕانکاری لێرە: فەنکشنەکانی فایەربەیس لەم importـە لابران ***
+    db, productsCollection // تەنها db و productsCollection مان پێویستە
+} from './app-core.js';
+
 
 // --- UI Helper Functions ---
 
@@ -1852,3 +1856,13 @@ function setupGpsButtonUI() {
 
 // --- Start UI Initialization ---
 document.addEventListener('DOMContentLoaded', initializeUI);
+```
+
+**کورتەی گۆڕانکارییەکان:**
+
+1.  فەنکشنەکانی `collection`, `doc`, `getDoc`, `query`, `where`, `orderBy`, `getDocs`, `limit`, `startAfter` لە `import { ... } from './app-core.js'` لابران.
+2.  `import`ێکی نوێ زیادکرا لە سەرەوەی فایلەکە بۆ هێنانی ئەو فەنکشنانە ڕاستەوخۆ لە لینکی فایەربەیسەوە:
+    ```javascript
+    import { collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+    
+
