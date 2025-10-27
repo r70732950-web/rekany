@@ -10,7 +10,12 @@ import {
 } from './app-setup.js';
 
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, addDoc, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+// *** گۆڕانکاری لێرە: زیادکردنی exportـە پێویستەکان ***
+import {
+    enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc,
+    onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where,
+    startAfter, addDoc, runTransaction
+} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
 // --- Exported Helper Functions ---
@@ -733,6 +738,7 @@ export async function initCore() {
 
 
 // Expose necessary core functions and state for UI and Admin layers
+// *** گۆڕانکاری لێرە: زیادکردنی exportـە پێویستەکان ***
 export {
     state, // Export the mutable state object
     handleLogin, handleLogout, // Authentication
@@ -745,4 +751,9 @@ export {
     handleInstallPrompt, forceUpdateCore, // PWA & SW
     // History functions are exported above
     // Core cart/favorites/profile functions are exported above
+
+    // *** Export Firestore functions needed by app-ui.js and admin.js ***
+    db, productsCollection,
+    collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
+    query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction
 };

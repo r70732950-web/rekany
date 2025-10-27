@@ -26,8 +26,8 @@ import {
     // And possibly others if missed in setup.js exports initially
 } from './app-setup.js';
 
-// *** گۆڕانکاری لێرە: فەنکشنەکانی فایەربەیس ڕاستەوخۆ لێرە import کران ***
-import { collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+// *** گۆڕانکاری لێرە: لابردنی importـی ڕاستەوخۆ ***
+// import { collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
 import {
     // Import state and core logic functions
@@ -44,8 +44,9 @@ import {
     initCore, // Import the core initializer
     // Home page section data fetchers
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
-    // *** گۆڕانکاری لێرە: فەنکشنەکانی فایەربەیس لەم importـە لابران ***
-    db, productsCollection // تەنها db و productsCollection مان پێویستە
+    // *** گۆڕانکاری لێرە: زیادکردنی importـی فەنکشنەکانی Firestore لە app-core ***
+    db, productsCollection,
+    collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter // هێنانیان لە app-core
 } from './app-core.js';
 
 
@@ -1660,12 +1661,8 @@ window.addEventListener('popstate', async (event) => {
 
 // Initial UI setup on Load
 async function initializeUI() {
-    // *** گۆڕانکاری لێرە: await زیادکرا ***
+    // *** چاوەڕوانی initCore دەکەین ***
     await initCore(); // Initialize core logic first (enables persistence, fetches initial data)
-
-    // // Wait briefly for core init and initial data fetch (categories)
-    // // A more robust solution might use events or promises from initCore
-    // await new Promise(resolve => setTimeout(resolve, 200)); // <-- لابرا یان کرایە کۆمێنت
 
     // Initial language application (static text)
     setLanguageCore(state.currentLanguage); // Set core state
@@ -1766,6 +1763,7 @@ async function renderContactLinksUI() {
     // Fetch social links data (assuming fetchSocialLinks exists in app-core.js or similar)
     // For now, using direct fetch here, but ideally from core
      try {
+         // *** گۆڕانکاری لێرە: collection بەکارهێنرا ***
          const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
          const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
          const snapshot = await getDocs(q); // Use getDocs for one-time fetch if real-time not needed
