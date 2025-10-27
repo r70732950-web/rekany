@@ -8,9 +8,8 @@ import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, upda
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
 // Firebase Configuration
-// تەنظیماتی Firebase
 const firebaseConfig = {
-    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", // تکایە ئەم کلیلە بە نهێنی بهێڵەرەوە
+    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE",
     authDomain: "maten-store.firebaseapp.com",
     projectId: "maten-store",
     storageBucket: "maten-store.appspot.com",
@@ -20,7 +19,6 @@ const firebaseConfig = {
 };
 
 // Initialization and Exports
-// دەستپێکردن و هەناردەکردنەکان
 export const app = initializeApp(firebaseConfig);
 export const analytics = getAnalytics(app);
 export const auth = getAuth(app);
@@ -28,11 +26,9 @@ export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 
 // Make Firebase services and helper functions globally available for admin.js
-// وا دەکات خزمەتگوزارییەکانی Firebase و فانکشنە یارمەتیدەرەکان بۆ admin.js بەردەست بن
 window.globalAdminTools = {};
 
 // Firestore Collections Exports
-// هەناردەکردنی کۆڵێکشنەکانی Firestore
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
@@ -40,12 +36,9 @@ export const announcementsCollection = collection(db, "announcements");
 // ====== UPDATED COLLECTIONS / کۆڵێکشنە نوێکراوەکان ======
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
-export const shortcutRowsCollection = collection(db, "shortcut_rows"); // زیادکرا بۆ دڵنیایی
-export const homeLayoutCollection = collection(db, "home_layout"); // زیادکرا بۆ دڵنیایی
 // ===============================================
 
 // Translations Export
-// هەناردەکردنی وەرگێڕانەکان
 export const translations = {
     ku_sorani: {
         search_placeholder: "گەڕان بە ناوی کاڵا...",
@@ -302,7 +295,6 @@ export const translations = {
 };
 
 // Global State Variables (Mutable)
-// گۆڕاوە گشتییەکانی حاڵەت (دەتوانرێت بگۆڕدرێن)
 export let state = {
     currentLanguage: localStorage.getItem('language') || 'ku_sorani',
     deferredPrompt: null,
@@ -310,19 +302,18 @@ export let state = {
     favorites: JSON.parse(localStorage.getItem("maten_store_favorites")) || [],
     userProfile: JSON.parse(localStorage.getItem("maten_store_profile")) || {},
     editingProductId: null,
-    products: [], // Holds currently displayed/filtered products
-    allPromoCards: [], // This might be populated differently now with home.js
-    currentPromoCardIndex: 0, // Potentially managed within home.js now
-    promoRotationInterval: null, // Potentially managed within home.js now
-    sliderIntervals: {}, // <<<<<< زیادکرا بۆ بەڕێوەبردنی ئینتەرڤاڵەکان
-    categories: [], // Holds all category data including subcategories fetched
-    contactInfo: {}, // Holds contact methods/social links
-    subcategories: [], // Holds subcategories for the *currently selected* main category
-    lastVisibleProductDoc: null, // For pagination
+    products: [],
+    allPromoCards: [],
+    currentPromoCardIndex: 0,
+    promoRotationInterval: null,
+    categories: [],
+    contactInfo: {},
+    subcategories: [],
+    lastVisibleProductDoc: null,
     isLoadingMoreProducts: false,
     allProductsLoaded: false,
-    isRenderingHomePage: false, // Flag to prevent concurrent home page rendering
-    productCache: {}, // Cache for fetched product lists based on filters
+    isRenderingHomePage: false,
+    productCache: {},
     currentCategory: 'all',
     currentSubcategory: 'all',
     currentSubSubcategory: 'all',
@@ -330,14 +321,12 @@ export let state = {
 };
 
 // Constants
-// نەگۆڕەکان
 export const CART_KEY = "maten_store_cart";
 export const FAVORITES_KEY = "maten_store_favorites";
 export const PROFILE_KEY = "maten_store_profile";
-export const PRODUCTS_PER_PAGE = 25; // ژمارەی کاڵاکان لە هەر لاپەڕەیەکدا
+export const PRODUCTS_PER_PAGE = 25;
 
 // DOM Elements Exports
-// هەناردەکردنی توخمەکانی DOM
 export const loginModal = document.getElementById('loginModal');
 export const addProductBtn = document.getElementById('addProductBtn');
 export const productFormModal = document.getElementById('productFormModal');
@@ -391,15 +380,6 @@ export const termsSheet = document.getElementById('termsSheet');
 export const termsContentContainer = document.getElementById('termsContentContainer');
 export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
 export const policiesForm = document.getElementById('policiesForm');
-export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer'); // Container for sub-subcategories on main page (if needed)
-
-// Admin section specific DOM elements (assuming they exist in index.html)
+export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer');
 export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
 export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
-export const adminCategoryManagement = document.getElementById('adminCategoryManagement'); // Ensure this ID exists
-export const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
-export const adminShortcutRowsManagement = document.getElementById('adminShortcutRowsManagement');
-export const adminHomeLayoutManagement = document.getElementById('adminHomeLayoutManagement');
-
-// Make createProductCardElement available for home.js (or move it here)
-// Example: export { createProductCardElement }; // If it were defined here
