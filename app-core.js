@@ -125,13 +125,13 @@ async function fetchProductById(productId) {
     }
 }
 
+// *** ÇAKKIRÎ / CORRECTED ***
 async function fetchRelatedProducts(currentProduct) {
     if (!currentProduct.subcategoryId && !currentProduct.categoryId) return [];
 
-    let q;
     const baseQuery = collection(db, "products");
-    let conditions = [where('__name__', '!=', currentProduct.id)];
-    let orderByField = 'createdAt'; // Default sort
+    let conditions = [where('__name__', '!=', currentProduct.id)]; // Inequality filter
+    let orderByClauses = [orderBy('__name__')]; // First orderBy MUST be on the inequality field
 
     if (currentProduct.subSubcategoryId) {
         conditions.push(where('subSubcategoryId', '==', currentProduct.subSubcategoryId));
@@ -141,7 +141,10 @@ async function fetchRelatedProducts(currentProduct) {
         conditions.push(where('categoryId', '==', currentProduct.categoryId));
     }
 
-    q = query(baseQuery, ...conditions, orderBy(orderByField, 'desc'), limit(6));
+    // Add secondary ordering
+    orderByClauses.push(orderBy('createdAt', 'desc'));
+
+    const q = query(baseQuery, ...conditions, ...orderByClauses, limit(6));
 
     try {
         const snapshot = await getDocs(q);
@@ -151,6 +154,8 @@ async function fetchRelatedProducts(currentProduct) {
         return [];
     }
 }
+// *** DAWÎYA ÇAKKIRINÊ / END CORRECTION ***
+
 
 // Fetches products based on current filters and pagination state
 async function fetchProducts(searchTerm = '', isNewSearch = false) {
@@ -722,17 +727,17 @@ export function initCore() {
 
 
 // Expose necessary core functions and state for UI and Admin layers
-// *** CHAKKIRÎ: Export-a dawî hate serrastkirin (tenê exportên dubare hatin rakirin) ***
 export {
     state, // Export the mutable state object
     handleLogin, handleLogout, // Authentication
     fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, // Data fetching
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
-    // Removed setLanguageCore from here
-    requestNotificationPermissionCore, // Removed checkNewAnnouncementsCore from here
+    // setLanguageCore exported where it's defined
+    requestNotificationPermissionCore,
+    // checkNewAnnouncementsCore exported where it's defined
+    // updateLastSeenAnnouncementTimestamp exported where it's defined
     handleInstallPrompt, forceUpdateCore, // PWA & SW
     // History functions are exported above
     // Core cart/favorites/profile functions are exported above
 };
-// *** DAWÎYA SERRRASTKIRINÊ ***
 
