@@ -978,7 +978,7 @@ async function handleCategorySelection(categoryId, subcategoryId = 'all') {
     // Navigate using the core function, which updates state and history
     await navigateToFilterCore({
         category: categoryId,
-        subcategory: subcategoryId, // Reset subcategory when main category changes
+        subcategory: subcategoryId, // Use the provided subcategory
         subSubcategory: 'all', // Reset sub-subcategory
         search: '' // Clear search
     });
@@ -1012,8 +1012,8 @@ async function updateProductViewUI(isNewSearch = false) {
         productsContainer.style.display = 'none'; // Hide product grid
         scrollTrigger.style.display = 'none'; // Hide scroll trigger
         homeSectionsContainer.style.display = 'block'; // Show home sections container
-        // *** گۆڕانکاری لێرە: Only render home content IF it's a new search OR the container is empty ***
-        if (isNewSearch || homeSectionsContainer.innerHTML.trim() === '') {
+        // *** Render home content ONLY if new search OR container is empty ***
+        if (isNewSearch || homeSectionsContainer.innerHTML.trim() === '' || homeSectionsContainer.querySelector('#loader')) {
             await renderHomePageContentUI(); // Render home content
         }
     } else {
@@ -1296,7 +1296,7 @@ async function createSingleShortcutRowElement(rowId, sectionNameObj) {
                    search: ''
               });
               // *** گۆڕانکاری لێرە: لابردنی updateProductViewUI ***
-              //await updateProductViewUI(true); // Trigger UI update - لابرا
+              await updateProductViewUI(true); // Trigger UI update (Re-added, let's test if popstate alone is enough)
          };
          cardsContainer.appendChild(item);
      });
@@ -1379,7 +1379,7 @@ function setupUIEventListeners() {
             history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
             showPage('mainPage');
         }
-        // *** گۆڕانکاری لێرە: تەنها navigate دەکەین، updateProductViewUI خۆی بانگ دەکرێت ***
+        // *** Reset filters and trigger refresh ***
         await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
         await updateProductViewUI(true); // Ensure home renders fresh
     };
