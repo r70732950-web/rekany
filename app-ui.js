@@ -1012,8 +1012,10 @@ async function updateProductViewUI(isNewSearch = false) {
         productsContainer.style.display = 'none'; // Hide product grid
         scrollTrigger.style.display = 'none'; // Hide scroll trigger
         homeSectionsContainer.style.display = 'block'; // Show home sections container
-        // *** گۆڕانکاری لێرە: لابردنی مەرجی if، هەمیشە هەوڵی render دەدەین ***
-        await renderHomePageContentUI(); // Always attempt to render home content when isHome is true
+        // *** گۆڕانکاری لێرە: Only render home content IF it's a new search OR the container is empty ***
+        if (isNewSearch || homeSectionsContainer.innerHTML.trim() === '') {
+            await renderHomePageContentUI(); // Render home content
+        }
     } else {
         homeSectionsContainer.style.display = 'none'; // Hide home sections
         productsContainer.style.display = 'grid'; // Show product grid
@@ -1037,17 +1039,18 @@ async function updateProductViewUI(isNewSearch = false) {
     }
 }
 
+
 // Function to render home page sections (UI Part)
 async function renderHomePageContentUI() {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     if (!homeSectionsContainer) return;
 
-    // *** گۆڕانکاری لێرە: دانانی نیشاندەری بارکردن لەناو container ***
+    // *** Show loader inside the container ***
     homeSectionsContainer.innerHTML = `<div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: block;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;">...خەریکی بارکردنی بەشەکانە</p></div>`;
 
     const layout = await fetchHomeLayout(); // Fetch layout from core
 
-    homeSectionsContainer.innerHTML = ''; // لابردنی نیشاندەری بارکردن
+    homeSectionsContainer.innerHTML = ''; // Clear loader
 
     if (!layout || layout.length === 0) {
         console.warn("Home page layout is empty or failed to load.");
@@ -1200,7 +1203,8 @@ async function createPromoSliderElement(groupId, layoutId) {
             const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
             if (categoryExists) {
                 await handleCategorySelection(targetCategoryId);
-                document.getElementById('mainCategoriesContainer')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                // No scrollIntoView needed here as it triggers full refresh
+                // document.getElementById('mainCategoriesContainer')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         }
     });
@@ -1291,7 +1295,8 @@ async function createSingleShortcutRowElement(rowId, sectionNameObj) {
                    subSubcategory: cardData.subSubcategoryId || 'all',
                    search: ''
               });
-              await updateProductViewUI(true); // Trigger UI update
+              // *** گۆڕانکاری لێرە: لابردنی updateProductViewUI ***
+              //await updateProductViewUI(true); // Trigger UI update - لابرا
          };
          cardsContainer.appendChild(item);
      });
@@ -1374,7 +1379,9 @@ function setupUIEventListeners() {
             history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
             showPage('mainPage');
         }
-        await handleCategorySelection('all'); // Go to home means reset filters
+        // *** گۆڕانکاری لێرە: تەنها navigate دەکەین، updateProductViewUI خۆی بانگ دەکرێت ***
+        await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
+        await updateProductViewUI(true); // Ensure home renders fresh
     };
 
     settingsBtn.onclick = () => {
@@ -1412,7 +1419,7 @@ function setupUIEventListeners() {
     // Main Search
     const debouncedSearch = debounce(async (term) => {
         // Navigate first (updates state and history)
-        navigateToFilterCore({ search: term });
+        await navigateToFilterCore({ search: term }); // Use await
         // Then update the UI based on the new state
         await updateProductViewUI(true);
     }, 500);
