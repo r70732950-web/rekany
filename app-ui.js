@@ -41,7 +41,9 @@ import {
     initCore, // Import the core initializer
     // Home page section data fetchers
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
-} from './app-core.js';
+    // Firebase related imports needed for UI layer tasks (like fetching specific data for details page)
+    db, doc, getDoc, collection, query, where, orderBy, getDocs, limit, startAfter, productsCollection
+} from './app-core.js'; // Import necessary Firestore functions
 
 // --- UI Helper Functions ---
 
@@ -89,11 +91,11 @@ function showPage(pageId, pageTitle = '') {
 
     // Update header based on the page
      if (pageId === 'settingsPage') {
-        updateHeaderView('settingsPage', t('settings_title'));
+         updateHeaderView('settingsPage', t('settings_title'));
     } else if (pageId === 'subcategoryDetailPage') {
-        updateHeaderView('subcategoryDetailPage', pageTitle);
+         updateHeaderView('subcategoryDetailPage', pageTitle);
     } else { // Includes mainPage
-        updateHeaderView('mainPage');
+         updateHeaderView('mainPage');
     }
 
     // Update active state in bottom navigation
@@ -252,29 +254,29 @@ function createProductCardElementUI(product) {
 
     // --- Attach Event Listeners Directly Here ---
      productCard.querySelector('.share-btn-card').addEventListener('click', async (event) => {
-        event.stopPropagation();
-        const productUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
-        const shareData = {
-            title: nameInCurrentLang,
-            text: `${t('share_text')}: ${nameInCurrentLang}`,
-            url: productUrl,
-        };
-        try {
-            if (navigator.share) {
-                await navigator.share(shareData);
-            } else {
-                 const textArea = document.createElement('textarea');
-                 textArea.value = productUrl;
-                 document.body.appendChild(textArea);
-                 textArea.select();
-                 try { document.execCommand('copy'); showNotification('لينكى کاڵا کۆپى کرا!', 'success'); }
-                 catch (err) { showNotification('کۆپیکردن سەرکەوتوو نەبوو!', 'error'); }
-                 document.body.removeChild(textArea);
-            }
-        } catch (err) {
-            console.error('Share error:', err);
-             if (err.name !== 'AbortError') showNotification(t('share_error'), 'error');
-        }
+         event.stopPropagation();
+         const productUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
+         const shareData = {
+             title: nameInCurrentLang,
+             text: `${t('share_text')}: ${nameInCurrentLang}`,
+             url: productUrl,
+         };
+         try {
+             if (navigator.share) {
+                 await navigator.share(shareData);
+             } else {
+                  const textArea = document.createElement('textarea');
+                   textArea.value = productUrl;
+                   document.body.appendChild(textArea);
+                   textArea.select();
+                   try { document.execCommand('copy'); showNotification('لينكى کاڵا کۆپى کرا!', 'success'); }
+                   catch (err) { showNotification('کۆپیکردن سەرکەوتوو نەبوو!', 'error'); }
+                   document.body.removeChild(textArea);
+             }
+         } catch (err) {
+             console.error('Share error:', err);
+              if (err.name !== 'AbortError') showNotification(t('share_error'), 'error');
+         }
     });
 
     productCard.querySelector('.favorite-btn').addEventListener('click', (event) => {
@@ -336,7 +338,7 @@ function renderProductsUI(newProductsOnly = false) {
     if (!container) return;
 
     // If only rendering new products (infinite scroll), append them
-    if (newProductsOnly) {
+    if (newProductsOnly && Array.isArray(newProductsOnly)) { // Check if it's an array
         newProductsOnly.forEach(item => {
             let element = createProductCardElementUI(item);
             element.classList.add('product-card-reveal'); // Add animation class
@@ -358,6 +360,7 @@ function renderProductsUI(newProductsOnly = false) {
 
     setupScrollAnimations(); // Re-setup animations for newly added cards
 }
+
 
 function renderCartUI() {
     cartItemsContainer.innerHTML = '';
@@ -513,7 +516,7 @@ function renderCategoriesSheetUI() {
 
         btn.onclick = async () => {
              await handleCategorySelection(cat.id); // Separate handler
-             closeCurrentPopup();
+              closeCurrentPopup();
         };
 
         sheetCategoriesContainer.appendChild(btn);
@@ -551,95 +554,95 @@ function renderMainCategoriesUI() {
 // Renders subcategories based on fetched data
 function renderSubcategoriesUI(subcategoriesData) {
      const subcategoriesContainer = document.getElementById('subcategoriesContainer');
-     subcategoriesContainer.innerHTML = ''; // Clear previous
+      subcategoriesContainer.innerHTML = ''; // Clear previous
 
-     if (!subcategoriesData || subcategoriesData.length === 0) {
-         subcategoriesContainer.style.display = 'none'; // Hide if no subcategories
-         return;
-     }
+      if (!subcategoriesData || subcategoriesData.length === 0) {
+           subcategoriesContainer.style.display = 'none'; // Hide if no subcategories
+           return;
+      }
 
-     subcategoriesContainer.style.display = 'flex'; // Show if there are subcategories
+      subcategoriesContainer.style.display = 'flex'; // Show if there are subcategories
 
-     // Add "All" button for the current category's subcategories
-     const allBtn = document.createElement('button');
-     allBtn.className = `subcategory-btn ${state.currentSubcategory === 'all' ? 'active' : ''}`;
-     const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
-     allBtn.innerHTML = `
-         <div class="subcategory-image">${allIconSvg}</div>
-         <span>${t('all_categories_label')}</span>
-     `;
-     allBtn.onclick = async () => {
-         // When "All" subcategory is clicked, just filter products for the main category
-         await handleCategorySelection(state.currentCategory, 'all');
-     };
-     subcategoriesContainer.appendChild(allBtn);
+      // Add "All" button for the current category's subcategories
+      const allBtn = document.createElement('button');
+      allBtn.className = `subcategory-btn ${state.currentSubcategory === 'all' ? 'active' : ''}`;
+      const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
+      allBtn.innerHTML = `
+          <div class="subcategory-image">${allIconSvg}</div>
+          <span>${t('all_categories_label')}</span>
+      `;
+      allBtn.onclick = async () => {
+          // When "All" subcategory is clicked, just filter products for the main category
+          await handleCategorySelection(state.currentCategory, 'all');
+      };
+      subcategoriesContainer.appendChild(allBtn);
 
-     // Add buttons for each actual subcategory
-     subcategoriesData.forEach(subcat => {
-         const subcatBtn = document.createElement('button');
-         subcatBtn.className = `subcategory-btn ${state.currentSubcategory === subcat.id ? 'active' : ''}`;
-         const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
-         const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-         const imageUrl = subcat.imageUrl || placeholderImg;
+      // Add buttons for each actual subcategory
+      subcategoriesData.forEach(subcat => {
+          const subcatBtn = document.createElement('button');
+          subcatBtn.className = `subcategory-btn ${state.currentSubcategory === subcat.id ? 'active' : ''}`;
+          const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
+          const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+          const imageUrl = subcat.imageUrl || placeholderImg;
 
-         subcatBtn.innerHTML = `
-             <img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
-             <span>${subcatName}</span>
-         `;
-         subcatBtn.onclick = () => {
-             // Navigate to the subcategory detail page
-             showSubcategoryDetailPageUI(state.currentCategory, subcat.id);
-         };
-         subcategoriesContainer.appendChild(subcatBtn);
-     });
+          subcatBtn.innerHTML = `
+               <img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
+               <span>${subcatName}</span>
+          `;
+          subcatBtn.onclick = () => {
+              // Navigate to the subcategory detail page
+              showSubcategoryDetailPageUI(state.currentCategory, subcat.id);
+          };
+          subcategoriesContainer.appendChild(subcatBtn);
+      });
  }
 
  // Renders sub-subcategories on the detail page
  async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
-     const container = document.getElementById('subSubCategoryContainerOnDetailPage');
-     container.innerHTML = ''; // Clear previous
+      const container = document.getElementById('subSubCategoryContainerOnDetailPage');
+      container.innerHTML = ''; // Clear previous
 
-     const subSubcategoriesData = await fetchSubSubcategories(mainCatId, subCatId);
+      const subSubcategoriesData = await fetchSubSubcategories(mainCatId, subCatId);
 
-     if (!subSubcategoriesData || subSubcategoriesData.length === 0) {
-         container.style.display = 'none';
-         return;
-     }
+      if (!subSubcategoriesData || subSubcategoriesData.length === 0) {
+          container.style.display = 'none';
+          return;
+      }
 
-     container.style.display = 'flex';
+      container.style.display = 'flex';
 
-     // Add "All" button
-     const allBtn = document.createElement('button');
-     allBtn.className = `subcategory-btn active`; // Default to active
-     allBtn.dataset.id = 'all';
-     const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
-     allBtn.innerHTML = `<div class="subcategory-image">${allIconSvg}</div><span>${t('all_categories_label')}</span>`;
-     allBtn.onclick = () => {
-         container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
-         allBtn.classList.add('active');
-         const currentSearch = document.getElementById('subpageSearchInput').value;
-         renderProductsOnDetailPageUI(subCatId, 'all', currentSearch); // Fetch products for the parent subcategory
-     };
-     container.appendChild(allBtn);
+      // Add "All" button
+      const allBtn = document.createElement('button');
+      allBtn.className = `subcategory-btn active`; // Default to active
+      allBtn.dataset.id = 'all';
+      const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
+      allBtn.innerHTML = `<div class="subcategory-image">${allIconSvg}</div><span>${t('all_categories_label')}</span>`;
+      allBtn.onclick = () => {
+          container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
+          allBtn.classList.add('active');
+          const currentSearch = document.getElementById('subpageSearchInput').value;
+          renderProductsOnDetailPageUI(subCatId, 'all', currentSearch); // Fetch products for the parent subcategory
+      };
+      container.appendChild(allBtn);
 
-     // Add buttons for each sub-subcategory
-     subSubcategoriesData.forEach(subSubcat => {
-         const btn = document.createElement('button');
-         btn.className = `subcategory-btn`;
-         btn.dataset.id = subSubcat.id;
-         const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
-         const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-         const imageUrl = subSubcat.imageUrl || placeholderImg;
-         btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
+      // Add buttons for each sub-subcategory
+      subSubcategoriesData.forEach(subSubcat => {
+          const btn = document.createElement('button');
+          btn.className = `subcategory-btn`;
+          btn.dataset.id = subSubcat.id;
+          const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
+          const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+          const imageUrl = subSubcat.imageUrl || placeholderImg;
+          btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
 
-         btn.onclick = () => {
-             container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
-             btn.classList.add('active');
-             const currentSearch = document.getElementById('subpageSearchInput').value;
-             renderProductsOnDetailPageUI(subCatId, subSubcat.id, currentSearch); // Fetch products for this specific sub-subcategory
-         };
-         container.appendChild(btn);
-     });
+          btn.onclick = () => {
+              container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
+              btn.classList.add('active');
+              const currentSearch = document.getElementById('subpageSearchInput').value;
+              renderProductsOnDetailPageUI(subCatId, subSubcat.id, currentSearch); // Fetch products for this specific sub-subcategory
+          };
+          container.appendChild(btn);
+      });
  }
 
  // Renders products on the detail page based on fetched data
@@ -693,7 +696,7 @@ function renderSubcategoriesUI(subcategoriesData) {
      } finally {
          loader.style.display = 'none';
      }
- }
+}
 
 
 async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHistory = false) {
@@ -1067,7 +1070,7 @@ async function renderHomePageContentUI() {
                     break;
                 case 'brands':
                      if (section.groupId) {
-                        sectionElement = await createBrandsSectionElement(section.groupId);
+                         sectionElement = await createBrandsSectionElement(section.groupId);
                     } else console.warn("Brands section missing groupId:", section);
                     break;
                 case 'newest_products':
@@ -1075,8 +1078,8 @@ async function renderHomePageContentUI() {
                     break;
                 case 'single_shortcut_row':
                      if (section.rowId) {
-                        sectionElement = await createSingleShortcutRowElement(section.rowId, section.name);
-                     } else console.warn("Shortcut row missing rowId:", section);
+                         sectionElement = await createSingleShortcutRowElement(section.rowId, section.name);
+                      } else console.warn("Shortcut row missing rowId:", section);
                     break;
                 case 'single_category_row':
                     if (section.categoryId) {
@@ -1084,7 +1087,7 @@ async function renderHomePageContentUI() {
                     } else console.warn("Category row missing categoryId:", section);
                     break;
                  case 'all_products':
-                     sectionElement = await createAllProductsSectionElement();
+                      sectionElement = await createAllProductsSectionElement();
                     break;
                 default:
                     console.warn(`Unknown home layout section type: ${section.type}`);
@@ -1271,17 +1274,17 @@ async function createSingleShortcutRowElement(rowId, sectionNameObj) {
          const item = document.createElement('div');
          item.className = 'shortcut-card';
          item.innerHTML = `
-             <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
-             <div class="shortcut-card-name">${cardName}</div>
+              <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
+              <div class="shortcut-card-name">${cardName}</div>
          `;
          item.onclick = async () => {
-             await navigateToFilterCore({ // Use core navigation
-                 category: cardData.categoryId || 'all',
-                 subcategory: cardData.subcategoryId || 'all',
-                 subSubcategory: cardData.subSubcategoryId || 'all',
-                 search: ''
-             });
-             await updateProductViewUI(true); // Trigger UI update
+              await navigateToFilterCore({ // Use core navigation
+                   category: cardData.categoryId || 'all',
+                   subcategory: cardData.subcategoryId || 'all',
+                   subSubcategory: cardData.subSubcategoryId || 'all',
+                   search: ''
+              });
+              await updateProductViewUI(true); // Trigger UI update
          };
          cardsContainer.appendChild(item);
      });
@@ -1503,7 +1506,7 @@ function setupUIEventListeners() {
                  const result = await fetchProducts(state.currentSearch, false); // Fetch next page
                  loader.style.display = 'none'; // Hide loader after fetching
                  if(result && result.products.length > 0) {
-                     renderProductsUI(result.products); // Append new products
+                      renderProductsUI(result.products); // Append new products
                  }
                  // Update scroll trigger visibility based on allLoaded status from core
                  scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
@@ -1542,6 +1545,14 @@ function setupUIEventListeners() {
         updateNowBtn.onclick = () => {
              e.detail.registration?.waiting?.postMessage({ action: 'skipWaiting' });
         };
+    });
+
+    // Listener to re-render home page when admin makes changes
+    document.addEventListener('clearCacheTriggerRender', async () => {
+        console.log("UI received clearCacheTriggerRender event.");
+        if(state.currentCategory === 'all' && !state.currentSearch) {
+            await updateProductViewUI(true); // Re-render the home view
+        }
     });
 
     // GPS Button in Profile
@@ -1585,6 +1596,10 @@ async function handleSetLanguage(lang) {
          window.AdminLogic.renderContactMethodsAdmin?.();
          window.AdminLogic.renderCategoryManagementUI?.();
          // Add other admin list rerenders if needed (promo, brand, shortcut)
+         window.AdminLogic.renderPromoGroupsAdminList?.();
+         window.AdminLogic.renderBrandGroupsAdminList?.();
+         window.AdminLogic.renderShortcutRowsAdminList?.();
+         window.AdminLogic.renderHomeLayoutAdmin?.();
     }
 }
 
@@ -1641,17 +1656,18 @@ window.addEventListener('popstate', async (event) => {
 
 // Initial UI setup on Load
 async function initializeUI() {
-    initCore(); // Initialize core logic first (enables persistence, fetches initial data)
+    // *** گۆڕانکاری لێرە: await زیادکرا ***
+    await initCore(); // Initialize core logic first (enables persistence, fetches initial data)
 
-    // Wait briefly for core init and initial data fetch (categories)
-    // A more robust solution might use events or promises from initCore
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // // Wait briefly for core init and initial data fetch (categories)
+    // // A more robust solution might use events or promises from initCore
+    // await new Promise(resolve => setTimeout(resolve, 200)); // <-- لابرا یان کرایە کۆمێنت
 
     // Initial language application (static text)
     setLanguageCore(state.currentLanguage); // Set core state
      document.querySelectorAll('[data-translate-key]').forEach(element => { // Apply static text
-        const key = element.dataset.translateKey;
-        const translation = t(key);
+         const key = element.dataset.translateKey;
+         const translation = t(key);
          if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') { if(element.placeholder) element.placeholder = translation; }
          else { element.textContent = translation; }
     });
@@ -1665,7 +1681,7 @@ async function initializeUI() {
     setupUIEventListeners();
 
     // Handle initial page load based on URL (hash/query params) AFTER core init
-    handleInitialPageLoadUI();
+    handleInitialPageLoadUI(); // Categories should be ready now
 
     // Render dynamic contact links
     renderContactLinksUI();
@@ -1699,10 +1715,11 @@ async function handleInitialPageLoadUI() {
          const mainCatId = ids[1];
          const subCatId = ids[2];
          // Ensure categories are loaded before showing detail page
-         if (state.categories.length > 1) {
+         if (state.categories.length > 1) { // Check if categories are loaded (state.categories includes 'all')
              await showSubcategoryDetailPageUI(mainCatId, subCatId, true); // true = fromHistory/initial load
          } else {
-             // Fallback to main page if categories aren't ready (should be rare)
+             // Fallback to main page if categories aren't ready (should be rare now)
+             console.warn("Categories not ready on initial load, showing main page instead of detail.");
              showPage('mainPage');
              await updateProductViewUI(true);
          }
@@ -1729,14 +1746,14 @@ async function handleInitialPageLoadUI() {
              }
          }
 
-        // Check if a specific product detail needs to be shown
-         const productId = params.get('product');
-         if (productId) {
-             const product = await fetchProductById(productId);
-             if (product) {
-                 setTimeout(() => showProductDetailsUI(product), 300); // Delay slightly
-             }
-         }
+         // Check if a specific product detail needs to be shown
+          const productId = params.get('product');
+          if (productId) {
+              const product = await fetchProductById(productId);
+              if (product) {
+                  setTimeout(() => showProductDetailsUI(product), 300); // Delay slightly
+              }
+          }
     }
 }
 
@@ -1766,8 +1783,8 @@ async function renderContactLinksUI() {
              linkElement.className = 'settings-item';
              linkElement.innerHTML = `
                  <div>
-                     <i class="${link.icon}" style="margin-left: 10px;"></i>
-                     <span>${name}</span>
+                      <i class="${link.icon}" style="margin-left: 10px;"></i>
+                      <span>${name}</span>
                  </div>
                  <i class="fas fa-external-link-alt"></i>
              `;
@@ -1798,36 +1815,36 @@ function setupGpsButtonUI() {
          getLocationBtn.disabled = true;
 
          navigator.geolocation.getCurrentPosition(
-             async (position) => { // Success callback
-                 const { latitude, longitude } = position.coords;
-                 try {
-                     const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`);
-                     const data = await response.json();
-                     if (data && data.display_name) {
-                         profileAddressInput.value = data.display_name;
-                         showNotification('ناونیشان وەرگیرا', 'success');
-                     } else {
-                         showNotification('نەتوانرا ناونیشان بدۆزرێتەوە', 'error');
-                     }
-                 } catch (error) {
-                     console.error('Reverse Geocoding Error:', error);
-                     showNotification('هەڵەیەک لە وەرگرتنی ناونیشان ڕوویدا', 'error');
-                 } finally {
-                      if(btnSpan) btnSpan.textContent = originalBtnText;
-                     getLocationBtn.disabled = false;
-                 }
-             },
-             (error) => { // Error callback
-                 let message = t('error_generic'); // Default error
-                 switch (error.code) {
-                     case 1: message = 'ڕێگەت نەدا GPS بەکاربهێنرێت'; break;
-                     case 2: message = 'شوێنەکەت نەدۆزرایەوە'; break;
-                     case 3: message = 'کاتی داواکارییەکە تەواو بوو'; break;
-                 }
-                 showNotification(message, 'error');
-                  if(btnSpan) btnSpan.textContent = originalBtnText;
-                 getLocationBtn.disabled = false;
-             }
+              async (position) => { // Success callback
+                  const { latitude, longitude } = position.coords;
+                  try {
+                      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`);
+                      const data = await response.json();
+                      if (data && data.display_name) {
+                          profileAddressInput.value = data.display_name;
+                          showNotification('ناونیشان وەرگیرا', 'success');
+                      } else {
+                          showNotification('نەتوانرا ناونیشان بدۆزرێتەوە', 'error');
+                      }
+                  } catch (error) {
+                      console.error('Reverse Geocoding Error:', error);
+                      showNotification('هەڵەیەک لە وەرگرتنی ناونیشان ڕوویدا', 'error');
+                  } finally {
+                       if(btnSpan) btnSpan.textContent = originalBtnText;
+                      getLocationBtn.disabled = false;
+                  }
+              },
+              (error) => { // Error callback
+                  let message = t('error_generic'); // Default error
+                  switch (error.code) {
+                      case 1: message = 'ڕێگەت نەدا GPS بەکاربهێنرێت'; break;
+                      case 2: message = 'شوێنەکەت نەدۆزرایەوە'; break;
+                      case 3: message = 'کاتی داواکارییەکە تەواو بوو'; break;
+                  }
+                  showNotification(message, 'error');
+                   if(btnSpan) btnSpan.textContent = originalBtnText;
+                  getLocationBtn.disabled = false;
+              }
          );
      });
 }

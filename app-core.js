@@ -651,20 +651,26 @@ export function navigateToFilterCore(newState) {
 
 // --- Initialization ---
 
+// *** گۆڕانکاری لێرە: ئەم فانکشنە کرا بە async ***
 async function initializeCoreLogic() {
     if (!state.sliderIntervals) state.sliderIntervals = {};
+    // *** گۆڕانکاری لێرە: چاوەڕێی fetchCategories دەبین ***
     await fetchCategories();
     // Fetch initial contact methods, social links, etc. if needed globally
 }
 
 // Call this once on app load
-export function initCore() {
-    enableIndexedDbPersistence(db)
+// *** گۆڕانکاری لێرە: ئەم فانکشنە کرا بە async و Promise دەگەڕێنێتەوە ***
+export async function initCore() {
+    // Return the promise chain
+    return enableIndexedDbPersistence(db)
         .then(() => console.log("Firestore offline persistence enabled."))
         .catch((err) => console.warn("Firestore Persistence failed:", err.code))
-        .finally(() => {
-            initializeCoreLogic();
-            // Listen for auth changes to manage admin state
+        .finally(async () => { // Make the finally block async
+            // *** گۆڕانکاری لێرە: چاوەڕێی initializeCoreLogic دەبین ***
+            await initializeCoreLogic(); // Await the core logic setup
+
+            // Setup listeners *after* core logic (like categories) is ready
             onAuthStateChanged(auth, async (user) => {
                 const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3"; // Replace with your Admin UID
                 const isAdmin = user && user.uid === adminUID;
@@ -679,7 +685,7 @@ export function initCore() {
                     sessionStorage.removeItem('isAdmin');
                      if (user) { await signOut(auth); } // Sign out non-admins
                     if (wasAdmin && window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
-                        window.AdminLogic.deinitialize();
+                         window.AdminLogic.deinitialize();
                     }
                 }
                 // Notify UI layer about auth change
@@ -692,37 +698,37 @@ export function initCore() {
                 // Notify UI layer to display the message
                 document.dispatchEvent(new CustomEvent('fcmMessage', { detail: payload }));
             });
-        });
 
-    // PWA install prompt
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        state.deferredPrompt = e;
-        console.log('`beforeinstallprompt` event fired.');
-        document.dispatchEvent(new Event('installPromptReady')); // Notify UI
-    });
-
-    // Service Worker update logic
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').then(registration => {
-            console.log('SW registered.');
-            registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                console.log('New SW found!', newWorker);
-                newWorker.addEventListener('statechange', () => {
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        // New SW waiting to activate. Notify UI.
-                        document.dispatchEvent(new CustomEvent('swUpdateReady', { detail: { registration } }));
-                    }
-                });
+             // PWA install prompt setup (can run earlier, but keeping it grouped)
+             window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                state.deferredPrompt = e;
+                console.log('`beforeinstallprompt` event fired.');
+                document.dispatchEvent(new Event('installPromptReady')); // Notify UI
             });
-        }).catch(err => console.error('SW registration failed: ', err));
 
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-             console.log('New SW activated. Reloading...');
-             window.location.reload();
+            // Service Worker setup (can run earlier)
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('SW registered.');
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        console.log('New SW found!', newWorker);
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // New SW waiting to activate. Notify UI.
+                                document.dispatchEvent(new CustomEvent('swUpdateReady', { detail: { registration } }));
+                            }
+                        });
+                    });
+                }).catch(err => console.error('SW registration failed: ', err));
+
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                     console.log('New SW activated. Reloading...');
+                     window.location.reload();
+                });
+            }
         });
-    }
 }
 
 
@@ -740,4 +746,3 @@ export {
     // History functions are exported above
     // Core cart/favorites/profile functions are exported above
 };
-
