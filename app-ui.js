@@ -918,16 +918,34 @@ function setupUIEventListeners() {
     homeBtn.onclick = async () => {
         const isMainPageActive = mainPage.classList.contains('page-active');
         if (!isMainPageActive) {
-            // If not on main page, navigate back to it and refresh home sections/products
-            history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
+            // If not on main page, simply show the main page.
+            // Use history.back() if the previous state was the main page,
+            // otherwise push a new state. Let popstate handle rendering.
+            const previousState = history.state; // Get state before potential push
+            history.pushState({ type: 'page', id: 'mainPage', scroll: 0 }, '', window.location.pathname.split('?')[0]); // Push a clean main page state
             showPage('mainPage');
-            await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-            await updateProductViewUI(true); // Ensure home renders fresh
+            // Check if we need to reset filters (e.g., coming from settings)
+            if (previousState?.type === 'page' && previousState.id !== 'mainPage') {
+                await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
+                await updateProductViewUI(true); // Force refresh home view
+            } else {
+                 // Try rendering based on existing state (might be coming from detail page)
+                 applyFilterStateCore(state); // Ensure core state matches history
+                 await updateProductViewUI(false); // Render based on current state
+                 setTimeout(() => window.scrollTo(0, state.lastScrollPosition || 0), 50); // Restore scroll
+            }
         } else {
-            // If already on the main page, just scroll to top
+            // If already on the main page, just scroll to top smoothly.
             window.scrollTo({ top: 0, behavior: 'smooth' });
+             // Optionally reset filters ONLY if currently filtered
+             if (state.currentCategory !== 'all' || state.currentSubcategory !== 'all' || state.currentSubSubcategory !== 'all' || state.currentSearch !== '') {
+                  // Only reset if filters are active
+                  await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
+                  await updateProductViewUI(true); // Refresh to show all
+             }
         }
     };
+    // *** کۆتایی چاکسازی homeBtn.onclick ***
 
     settingsBtn.onclick = () => {
         history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
@@ -1205,14 +1223,17 @@ window.addEventListener('popstate', async (event) => {
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
              // Re-open the specific popup
              openPopup(popState.id, popState.type);
-        } else { // It's a filter state for the main page
+        } else { // It's a filter state for the main page (popState.type is likely null or undefined)
              showPage('mainPage'); // Ensure main page is visible
              applyFilterStateCore(popState); // Apply the state logically
              // *** چاککراو: گۆڕینی true بۆ false ***
              await updateProductViewUI(false); // Re-render without treating as new search
-             // Restore scroll position
+             // Restore scroll position from the popped state
              if (typeof popState.scroll === 'number') {
-                 setTimeout(() => window.scrollTo(0, popState.scroll), 50); // Small delay
+                 // **Use requestAnimationFrame for smoother scroll restoration after render**
+                 requestAnimationFrame(() => {
+                     window.scrollTo(0, popState.scroll);
+                 });
              }
         }
     } else {
