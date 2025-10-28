@@ -912,29 +912,30 @@ function handleToggleFavoriteUI(productId) {
 
 // --- Setup Functions ---
 
+// ... (handleSetLanguage, Popstate listener, initializeUI, handleInitialPageLoadUI, renderContactLinksUI, setupGpsButtonUI remain largely the same, ensuring they call the imported home.js functions where needed) ...
 function setupUIEventListeners() {
-    // *** چاککراوی کۆتایی: homeBtn.onclick ***
+    // *** چاککراو: گۆڕینی homeBtn.onclick ***
     homeBtn.onclick = async () => {
         const isMainPageActive = mainPage.classList.contains('page-active');
-
         if (!isMainPageActive) {
-            // If coming from another page (Settings, Detail Page etc.)
-            // Show main page AND reset filters to default view
+            // If coming from another page (Settings, Detail Page)
+            // Show main page and reset filters to default view
             history.pushState({ type: 'page', id: 'mainPage', scroll: 0 }, '', window.location.pathname.split('?')[0]); // Push a clean main page state
             showPage('mainPage');
             await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
             await updateProductViewUI(true); // Ensure home renders fresh default view
         } else {
-            // --- Behavior when ALREADY on main page ---
-            // Just scroll to the top smoothly IF scrolled down. Do nothing else.
-            const scrolledDown = window.scrollY > 0;
-            if (scrolledDown) {
-                 window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-            // If already at top, do nothing. Filters are NOT reset. View is NOT refreshed.
+            // If already on the main page (regardless of filters)
+            // Just scroll to the top smoothly. Do not reset filters or refresh.
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // *** لابرا: بەشی ڕێسێتکردنی فلتەر کاتێک لە پەڕەی سەرەکیت ***
+            /*
+             if (state.currentCategory !== 'all' || state.currentSubcategory !== 'all' || state.currentSubSubcategory !== 'all' || state.currentSearch !== '') {
+                  await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
+                  await updateProductViewUI(true);
+             }
+            */
         }
-         // Ensure the home button is marked as active
-         updateActiveNav('homeBtn');
     };
     // *** کۆتایی چاکسازی homeBtn.onclick ***
 
@@ -1182,7 +1183,7 @@ async function handleSetLanguage(lang) {
     }
 }
 
-// *** چاککراوی کۆتایی: popstate ***
+// *** چاککراو: گۆڕینی updateProductViewUI(true) بۆ updateProductViewUI(false) ***
 window.addEventListener('popstate', async (event) => {
     closeAllPopupsUI(); // Close any open popups when navigating back/forward
     const popState = event.state;
@@ -1217,19 +1218,14 @@ window.addEventListener('popstate', async (event) => {
         } else { // It's a filter state for the main page (popState.type is likely null or undefined)
              showPage('mainPage'); // Ensure main page is visible
              applyFilterStateCore(popState); // Apply the state logically
-             // *** چاککراو: تەنها جۆرەکان نوێ بکەرەوە، نەک هەموو پەڕەکە ***
-             renderMainCategoriesUI();
-             const subcats = await fetchSubcategories(state.currentCategory);
-             await renderSubcategoriesUI(subcats); // Re-render subcats based on popped state
-
+             // *** چاککراو: گۆڕینی true بۆ false ***
+             await updateProductViewUI(false); // Re-render without treating as new search
              // Restore scroll position from the popped state
              if (typeof popState.scroll === 'number') {
+                 // **Use requestAnimationFrame for smoother scroll restoration after render**
                  requestAnimationFrame(() => {
                      window.scrollTo(0, popState.scroll);
                  });
-             } else {
-                // If no scroll position in state, scroll to top
-                window.scrollTo(0, 0);
              }
         }
     } else {
@@ -1237,7 +1233,7 @@ window.addEventListener('popstate', async (event) => {
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
         showPage('mainPage');
         applyFilterStateCore(defaultState);
-        await updateProductViewUI(true); // Initial load should always render
+        await updateProductViewUI(true); // (imported from home.js) - Initial load should be true
     }
 });
 
@@ -1315,7 +1311,7 @@ async function handleInitialPageLoadUI() {
          };
          history.replaceState(initialState, ''); // Set initial history state for main page
          applyFilterStateCore(initialState); // Apply the state
-         await updateProductViewUI(true); // Render content based on state (imported from home.js) - *Initial load should render*
+         await updateProductViewUI(true); // Render content based on state (imported from home.js)
 
          // Check if a specific popup needs to be opened on initial load
          const element = document.getElementById(hash);
