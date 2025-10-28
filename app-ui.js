@@ -913,7 +913,7 @@ function handleToggleFavoriteUI(productId) {
 // --- Setup Functions ---
 
 function setupUIEventListeners() {
-    // *** چاککراو: گۆڕینی homeBtn.onclick ***
+    // *** چاککراوی کۆتایی: homeBtn.onclick ***
     homeBtn.onclick = async () => {
         const isMainPageActive = mainPage.classList.contains('page-active');
 
@@ -926,12 +926,12 @@ function setupUIEventListeners() {
             await updateProductViewUI(true); // Ensure home renders fresh default view
         } else {
             // --- Behavior when ALREADY on main page ---
-            // Just scroll to the top smoothly. Do not reset filters or refresh.
+            // Just scroll to the top smoothly IF scrolled down. Do nothing else.
             const scrolledDown = window.scrollY > 0;
             if (scrolledDown) {
                  window.scrollTo({ top: 0, behavior: 'smooth' });
             }
-            // If already at top, do nothing.
+            // If already at top, do nothing. Filters are NOT reset. View is NOT refreshed.
         }
          // Ensure the home button is marked as active
          updateActiveNav('homeBtn');
