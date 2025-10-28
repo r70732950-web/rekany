@@ -925,19 +925,29 @@ function setupUIEventListeners() {
             await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
             await updateProductViewUI(true); // Ensure home renders fresh default view
         } else {
-            // If already on the main page (regardless of filters)
-            // Just scroll to the top smoothly. Do not reset filters or refresh.
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            // *** لابرا: بەشی ڕێسێتکردنی فلتەر کاتێک لە پەڕەی سەرەکیت ***
-            /*
-             if (state.currentCategory !== 'all' || state.currentSubcategory !== 'all' || state.currentSubSubcategory !== 'all' || state.currentSearch !== '') {
-                  await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-                  await updateProductViewUI(true);
-             }
-            */
+            // --- Behavior when ALREADY on main page ---
+            // 1. Check if filters are currently active OR scrolled down
+            const filtersActive = state.currentCategory !== 'all'
+                               || state.currentSubcategory !== 'all'
+                               || state.currentSubSubcategory !== 'all'
+                               || state.currentSearch !== '';
+            const scrolledDown = window.scrollY > 0;
+
+            if (filtersActive) {
+                 // If filters are active, reset them and refresh the view
+                await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
+                await updateProductViewUI(true); // Force refresh to show all
+            } else if (scrolledDown) {
+                // If no filters active but scrolled down, just scroll to top smoothly
+                 window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            // If already at top with no filters, do nothing.
         }
+         // Ensure the home button is marked as active
+         updateActiveNav('homeBtn');
     };
     // *** کۆتایی چاکسازی homeBtn.onclick ***
+
 
     settingsBtn.onclick = () => {
         history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
