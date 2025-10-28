@@ -914,40 +914,22 @@ function handleToggleFavoriteUI(productId) {
 
 // ... (handleSetLanguage, Popstate listener, initializeUI, handleInitialPageLoadUI, renderContactLinksUI, setupGpsButtonUI remain largely the same, ensuring they call the imported home.js functions where needed) ...
 function setupUIEventListeners() {
-    // *** چاککراو: گۆڕینی homeBtn.onclick ***
+    // *** چاککراو: گەڕاندنەوەی لۆژیکی کۆن بۆ homeBtn.onclick ***
     homeBtn.onclick = async () => {
         const isMainPageActive = mainPage.classList.contains('page-active');
         if (!isMainPageActive) {
-            // If coming from another page (Settings, Detail Page)
-            // Show main page and reset filters to default view
-            history.pushState({ type: 'page', id: 'mainPage', scroll: 0 }, '', window.location.pathname.split('?')[0]); // Push a clean main page state
+            // If coming from another page, show main page and reset filters
+            history.pushState({ type: 'page', id: 'mainPage', scroll: 0 }, '', window.location.pathname.split('?')[0]);
             showPage('mainPage');
-            await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-            await updateProductViewUI(true); // Ensure home renders fresh default view
-        } else {
-            // --- Behavior when ALREADY on main page ---
-            // 1. Check if filters are currently active OR scrolled down
-            const filtersActive = state.currentCategory !== 'all'
-                               || state.currentSubcategory !== 'all'
-                               || state.currentSubSubcategory !== 'all'
-                               || state.currentSearch !== '';
-            const scrolledDown = window.scrollY > 0;
-
-            if (filtersActive) {
-                 // If filters are active, reset them and refresh the view
-                await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-                await updateProductViewUI(true); // Force refresh to show all
-            } else if (scrolledDown) {
-                // If no filters active but scrolled down, just scroll to top smoothly
-                 window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-            // If already at top with no filters, do nothing.
+            // Fallthrough to reset filters
         }
-         // Ensure the home button is marked as active
-         updateActiveNav('homeBtn');
+        // Always reset filters when home button is clicked (original behavior)
+        await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
+        await updateProductViewUI(true); // Ensure home renders fresh default view
+        // Ensure the home button is marked as active
+        updateActiveNav('homeBtn');
     };
     // *** کۆتایی چاکسازی homeBtn.onclick ***
-
 
     settingsBtn.onclick = () => {
         history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
