@@ -999,9 +999,14 @@
         <button id="update-now-btn" class="update-now-btn">نوێی بکەرەوە</button>
     </div>
 
+
     <script type="module" src="app-setup.js"></script>
     <script type="module" src="app-core.js"></script>
+    <!-- NEW: Include home.js -->
+    <script type="module" src="home.js"></script>
+    <!-- app-ui.js now depends on home.js for some UI updates -->
     <script type="module" src="app-ui.js"></script>
+    <!-- admin.js should be last or defer as it uses globalAdminTools -->
     <script src="admin.js" defer></script>
 </body>
 </html>
