@@ -913,7 +913,7 @@ function handleToggleFavoriteUI(productId) {
 // --- Setup Functions ---
 
 function setupUIEventListeners() {
-    // *** چاککراوی کۆتایی: homeBtn.onclick ***
+    // *** چاککراوی کۆتاییتر: homeBtn.onclick ***
     homeBtn.onclick = async () => {
         const isMainPageActive = mainPage.classList.contains('page-active');
 
@@ -922,16 +922,23 @@ function setupUIEventListeners() {
             // Show main page AND reset filters to default view
             history.pushState({ type: 'page', id: 'mainPage', scroll: 0 }, '', window.location.pathname.split('?')[0]); // Push a clean main page state
             showPage('mainPage');
+            // Reset filters ONLY if coming back from another page
             await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
             await updateProductViewUI(true); // Ensure home renders fresh default view
         } else {
             // --- Behavior when ALREADY on main page ---
-            // DO NOTHING. Neither scroll nor reset filters nor refresh.
+            // Just scroll to the top smoothly IF scrolled down. Do nothing else.
+            const scrolledDown = window.scrollY > 0;
+            if (scrolledDown) {
+                 window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            // If already at top, do nothing. Filters are NOT reset. View is NOT refreshed.
         }
          // Ensure the home button is marked as active
          updateActiveNav('homeBtn');
     };
     // *** کۆتایی چاکسازی homeBtn.onclick ***
+
 
     settingsBtn.onclick = () => {
         history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
