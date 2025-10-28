@@ -313,8 +313,6 @@ export let state = {
     currentProductId: null, // Used by app-ui
     sliderIntervals: {}, // Used by app-ui & app-core
     contactInfo: {}, // Might be needed?
-    // *** NEW STATE VARIABLE ***
-    historyStateBeforePopup: null // To store history state before opening a popup/sheet
 };
 
 // Constants - Exported
@@ -458,3 +456,4 @@ window.globalAdminTools = {
      },
 };
 // *** END OF globalAdminTools SECTION ***
+
