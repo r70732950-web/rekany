@@ -1,7 +1,7 @@
 // app-ui.js
 // Rêveberiya UI Giştî, girêdana bûyeran (event listeners), û nûvekirina DOM
 
-// ... (imports remain the same as previous version) ...
+// ... (Import statements remain the same as previous version) ...
 import {
     // Import DOM elements needed for general UI updates
     loginModal, addProductBtn, productFormModal, skeletonLoader, searchInput,
@@ -26,34 +26,31 @@ import {
     homeLayoutListContainer, addHomeSectionBtn, addHomeSectionModal, addHomeSectionForm,
 } from './app-setup.js';
 
-// Import Firestore functions from app-core.js
 import {
     // Import state and core logic functions
     state, t, debounce, formatDescription,
     handleLogin, handleLogout,
-    fetchCategories, fetchProductById, fetchProducts, // fetchProducts might still be needed for detail page? Keep for now.
-    fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, fetchSubSubcategories, // Added fetchSubSubcategories
+    fetchCategories, fetchProductById, fetchProducts,
+    fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, fetchSubSubcategories,
     addToCartCore, updateCartQuantityCore, removeFromCartCore, generateOrderMessageCore,
-    toggleFavoriteCore, isFavorite, saveFavorites, // Exported saveFavorites for renderFavoritesPageUI
+    toggleFavoriteCore, isFavorite, saveFavorites,
     saveProfileCore, setLanguageCore,
     requestNotificationPermissionCore, checkNewAnnouncementsCore, updateLastSeenAnnouncementTimestamp,
     handleInstallPrompt, forceUpdateCore,
     saveCurrentScrollPositionCore, applyFilterStateCore, navigateToFilterCore,
-    initCore, // Import the core initializer
+    initCore,
     // Firestore functions exported from app-core.js
-    db, // db needed for renderContactLinksUI
-    collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection // Added productsCollection
+    db,
+    collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection
 } from './app-core.js';
 
-// واردکردنی فانکشنەکانی پەڕەی سەرەکی لە home.js
-// *** NOTE: home.js functions are used in setupUIEventListeners and initializeUI ***
 import {
     renderHomePageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
-} from './home.js';
-
+} from './home.js'; // Import functions from home.js
 
 // --- UI Helper Functions ---
 
+// ... (showNotification, updateHeaderView, showPage, closeAllPopupsUI, openPopup, closeCurrentPopup, updateActiveNav, updateCartCountUI remain the same) ...
 function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
@@ -176,9 +173,11 @@ function updateCartCountUI() {
     document.querySelectorAll('.cart-count').forEach(el => { el.textContent = totalItems; });
 }
 
+
 // --- Rendering Functions (UI specific) ---
 
-// *** UPDATED: Export the function ***
+// Moved renderSkeletonLoader here as it's general and needed by multiple parts
+// *** Make sure it is EXPORTED ***
 export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
     if (!container) {
         console.error("Skeleton loader container not found:", container);
@@ -198,9 +197,11 @@ export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
     }
     container.style.display = 'grid'; // Ensure it's visible
 }
-// *** REMOVED: window assignment removed ***
+// Remove global assignment: window.renderSkeletonLoader = renderSkeletonLoader; // NO LONGER NEEDED
 
-// *** UPDATED: Export the function ***
+
+// Moved createProductCardElementUI here as it's used in multiple places (home, favorites, detail page)
+// *** Make sure it is EXPORTED ***
 export function createProductCardElementUI(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
@@ -327,9 +328,11 @@ export function createProductCardElementUI(product) {
 
     return productCard;
 }
-// *** REMOVED: window assignment removed ***
+// Remove global assignment: window.createProductCardElementUI = createProductCardElementUI; // NO LONGER NEEDED
 
-// *** UPDATED: Export the function ***
+
+// Moved setupScrollAnimations here as it's general UI and needed by home.js
+// *** Make sure it is EXPORTED ***
 export function setupScrollAnimations() { // Exported
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -346,9 +349,11 @@ export function setupScrollAnimations() { // Exported
         observer.observe(card);
     });
 }
-// *** REMOVED: window assignment removed ***
+// Remove global assignment: window.setupScrollAnimations = setupScrollAnimations; // NO LONGER NEEDED
 
+// renderProductsUI removed (logic moved to home.js as renderProductsGridUI)
 
+// ... (renderCartUI, renderCartActionButtonsUI, renderFavoritesPageUI, renderCategoriesSheetUI remain the same) ...
 function renderCartUI() {
     cartItemsContainer.innerHTML = '';
     if (state.cart.length === 0) {
@@ -518,6 +523,7 @@ function renderCategoriesSheetUI() {
     });
 }
 
+
  // Renders sub-subcategories on the **detail page** (kept here)
  async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
       const container = document.getElementById('subSubCategoryContainerOnDetailPage');
@@ -620,7 +626,7 @@ function renderCategoriesSheetUI() {
 
 
 // Displays the subcategory detail page (kept here)
-// *** UPDATED: Export the function ***
+// *** Make sure it is EXPORTED ***
 export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHistory = false) { // Exported
     let subCatName = 'Details'; // Default title
     try {
@@ -656,9 +662,9 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
 
     loader.style.display = 'none'; // Hide loader after content is loaded
 }
-// *** REMOVED: window assignment removed ***
+// Remove global assignment: window.showSubcategoryDetailPageUI = showSubcategoryDetailPageUI; // NO LONGER NEEDED
 
-
+// ... (showProductDetailsUI, renderRelatedProductsUI, renderPoliciesUI, renderUserNotificationsUI, updateAdminUIAuth remain mostly the same) ...
 async function showProductDetailsUI(productData) {
     const product = productData || await fetchProductById(state.currentProductId); // Fetch if needed
     if (!product) { showNotification(t('product_not_found_error'), 'error'); return; }
@@ -841,11 +847,13 @@ function updateAdminUIAuth(isAdmin) {
             if (product) showProductDetailsUI(product); // Re-render detail sheet
         });
     }
-    // Note: Main product grid rerender is now handled by updateProductViewUI in home.js
+    // Note: Main product grid rerender is handled by updateProductViewUI in home.js
 }
+
 
 // --- UI Event Handlers ---
 
+// ... (handleAddToCartUI, handleUpdateQuantityUI, handleRemoveFromCartUI, handleToggleFavoriteUI remain the same) ...
 async function handleAddToCartUI(productId, buttonElement) {
     const result = await addToCartCore(productId); // Call core logic
     showNotification(result.message, result.success ? 'success' : 'error');
@@ -901,17 +909,19 @@ function handleToggleFavoriteUI(productId) {
     }
 }
 
+
 // --- Setup Functions ---
 
+// ... (setupUIEventListeners, handleSetLanguage, Popstate listener, initializeUI, handleInitialPageLoadUI, renderContactLinksUI, setupGpsButtonUI remain largely the same, ensuring they call the imported home.js functions where needed) ...
 function setupUIEventListeners() {
     homeBtn.onclick = async () => {
         if (!document.getElementById('mainPage').classList.contains('page-active')) {
             history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
             showPage('mainPage');
         }
-        // Reset filters and trigger refresh (using imported function from home.js)
+        // Reset filters and trigger refresh (using imported function)
         await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-        await updateProductViewUI(true); // Ensure home renders fresh
+        await updateProductViewUI(true); // Ensure home renders fresh (imported from home.js)
     };
 
     settingsBtn.onclick = () => {
@@ -1054,16 +1064,14 @@ function setupUIEventListeners() {
                  const result = await fetchProducts(state.currentSearch, false); // Fetch next page
                  loader.style.display = 'none'; // Hide loader after fetching
                  if(result && result.products.length > 0) {
-                      // *** UPDATED: Call the render function imported from home.js ***
-                      // We need to import or expose renderProductsGridUI from home.js
-                      // Assuming renderProductsGridUI is exported from home.js
-                      // import { renderProductsGridUI } from './home.js'; // Needs to be added at top
-                      // renderProductsGridUI(result.products); // Call imported function
-                      // For now, continue using window as a bridge if direct import is complex
-                      if (window.renderProductsGridUI) {
-                         window.renderProductsGridUI(result.products);
+                      // Call the render function from home.js to append
+                      // Assuming it's imported correctly now
+                      // Check if home.js has exposed renderProductsGridUI, otherwise, call updateProductViewUI
+                      if (typeof updateProductViewUI === 'function') { // Check if imported function exists
+                           // updateProductViewUI handles appending if isNewSearch is false
+                           await updateProductViewUI(false); // Let updateProductView handle appending
                       } else {
-                         console.error("renderProductsGridUI not found on window");
+                           console.error("updateProductViewUI not found or imported correctly from home.js");
                       }
                  }
                  // Update scroll trigger visibility based on allLoaded status from core
@@ -1117,7 +1125,6 @@ function setupUIEventListeners() {
     setupGpsButtonUI();
 }
 
-// Handles language change and triggers necessary UI updates
 async function handleSetLanguage(lang) {
     setLanguageCore(lang); // Update core state and localStorage
 
@@ -1138,6 +1145,7 @@ async function handleSetLanguage(lang) {
     });
 
     // Re-render dynamic content that depends on language
+    // renderMainCategoriesUI(); // Now handled by updateProductViewUI call below
     renderCategoriesSheetUI(); // Re-render sheet categories
     if (document.getElementById('cartSheet').classList.contains('show')) renderCartUI();
     if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPageUI();
@@ -1160,7 +1168,6 @@ async function handleSetLanguage(lang) {
     }
 }
 
-// History/Navigation Handler (Popstate)
 window.addEventListener('popstate', async (event) => {
     closeAllPopupsUI(); // Close any open popups when navigating back/forward
     const popState = event.state;
@@ -1211,7 +1218,6 @@ window.addEventListener('popstate', async (event) => {
 });
 
 
-// Initial UI setup on Load
 async function initializeUI() {
     // Await core initialization first
     await initCore(); // Initialize core logic (enables persistence, fetches initial data)
@@ -1251,7 +1257,6 @@ async function initializeUI() {
     }
 }
 
-// Handles initial page state based on URL, triggering necessary rendering
 async function handleInitialPageLoadUI() {
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(window.location.search);
@@ -1400,7 +1405,6 @@ function setupGpsButtonUI() {
          );
      });
 }
-
 
 // --- Start UI Initialization ---
 document.addEventListener('DOMContentLoaded', initializeUI);
