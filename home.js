@@ -137,15 +137,10 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
              <img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
              <span>${subcatName}</span>
         `;
+        // *** چاککراو: کردنەوەی پەڕەی نوێ ***
         subcatBtn.onclick = async () => {
-             // Filter by this subcategory and potentially show sub-subcategories
-             await navigateToFilterCore({
-                 category: state.currentCategory,
-                 subcategory: subcat.id,
-                 subSubcategory: 'all', // Reset sub-sub when sub changes
-                 search: ''
-             });
-             await updateProductViewUI(true); // This will call renderSubSubcategoriesUI if needed
+            // Directly open the subcategory detail page
+            showSubcategoryDetailPageUI(state.currentCategory, subcat.id);
         };
         subcategoriesContainer.appendChild(subcatBtn);
     });
@@ -186,7 +181,7 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
         <span>${t('all_categories_label')}</span>
     `;
     allBtn.onclick = async () => {
-         // Filter by the parent subcategory
+         // Filter by the parent subcategory ON THE MAIN PAGE
          await navigateToFilterCore({
              category: state.currentCategory,
              subcategory: state.currentSubcategory,
@@ -207,15 +202,14 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
         const imageUrl = subSubcat.imageUrl || placeholderImg;
         btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
 
+        // *** چاککراو: کردنەوەی پەڕەی نوێی جۆری لاوەکی باوک ***
         btn.onclick = async () => {
-             // Filter by this specific sub-subcategory
-             await navigateToFilterCore({
-                 category: state.currentCategory,
-                 subcategory: state.currentSubcategory,
-                 subSubcategory: subSubcat.id,
-                 search: ''
-             });
-             await updateProductViewUI(true);
+             // Open the PARENT subcategory detail page
+             showSubcategoryDetailPageUI(state.currentCategory, state.currentSubcategory);
+             // Note: This will initially show all products for the subcategory.
+             // The user would need to click the sub-subcategory again on the detail page
+             // to filter further, unless showSubcategoryDetailPageUI is modified
+             // to accept and pre-filter by subSubcategoryId.
         };
         container.appendChild(btn);
     });
@@ -628,3 +622,4 @@ async function createAllProductsSectionElement() {
     });
     return container;
 }
+
