@@ -1007,14 +1007,7 @@
         <button id="update-now-btn" class="update-now-btn">نوێی بکەرەوە</button>
     </div>
 
-    <!-- Script imports -->
     <script type="module" src="app-setup.js"></script>
-    <script type="module" src="app-core.js"></script>
-    <!-- *** UPDATED ORDER: app-ui.js comes BEFORE home.js *** -->
-    <script type="module" src="app-ui.js"></script>
-    <script type="module" src="home.js"></script>
-    <!-- admin.js should be last or defer as it uses globalAdminTools -->
-    <script src="admin.js" defer></script>
-</body>
-</html>
+<script type="module" src="app-core.js"></script>
+<script type="module" src="ui-core.js"></script> <script type="module" src="ui-render.js"></script> <script type="module" src="home.js"></script> <script src="admin.js" defer></script> ```
 
