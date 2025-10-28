@@ -1,15 +1,21 @@
-// BEŞÊ YEKEM: app-setup.js (Çakkirî bo exportên UI û globalAdminTools)
+// app-setup.js
 // Pênasekirin û sazkarîyên destpêkê
+// (Initialization and initial configurations)
 
+// Firebase Imports
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+import { getFirestore, collection } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getMessaging } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
+// Import Firestore functions needed for globalAdminTools
+import { doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, query, orderBy, onSnapshot, getDocs, where, limit, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 
-// Firebase Configuration
+
+// Firebase Configuration (Same as provided)
 const firebaseConfig = {
-    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", // Ensure this key is correct and secured if necessary
+    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", // Ensure security if needed
     authDomain: "maten-store.firebaseapp.com",
     projectId: "maten-store",
     storageBucket: "maten-store.appspot.com",
@@ -18,22 +24,24 @@ const firebaseConfig = {
     measurementId: "G-1PV3DRY2V2"
 };
 
-// Initialization and Exports (for app-core.js and app-ui.js)
+// Firebase Initialization and Exports
 export const app = initializeApp(firebaseConfig);
 export const analytics = getAnalytics(app);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 
-// Firestore Collections Exports (for app-core.js and app-ui.js)
+// Firestore Collections Exports
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
 export const shortcutRowsCollection = collection(db, "shortcut_rows");
+export const settingsCollection = collection(db, "settings"); // Added for consistency
+export const homeLayoutCollection = collection(db, "home_layout"); // Added for consistency
 
-// Translations Export
+// Translations Export (Same as provided)
 export const translations = {
     ku_sorani: {
         search_placeholder: "گەڕان بە ناوی کاڵا...",
@@ -298,33 +306,33 @@ export let state = {
     favorites: JSON.parse(localStorage.getItem("maten_store_favorites")) || [],
     userProfile: JSON.parse(localStorage.getItem("maten_store_profile")) || {},
     editingProductId: null, // Used by Admin
-    products: [],
+    products: [], // Populated by app-core
     categories: [], // Populated by app-core
-    subcategories: [], // Populated by app-core
-    lastVisibleProductDoc: null,
-    isLoadingMoreProducts: false,
-    allProductsLoaded: false,
-    isRenderingHomePage: false,
-    productCache: {},
-    currentCategory: 'all',
-    currentSubcategory: 'all',
-    currentSubSubcategory: 'all',
-    currentSearch: '',
-    currentProductId: null, // Used by app-ui
-    sliderIntervals: {}, // Used by app-ui & app-core
-    contactInfo: {}, // Might be needed?
+    subcategories: [], // Populated by app-core (might not be needed globally now?)
+    lastVisibleProductDoc: null, // Used for pagination in app-core
+    isLoadingMoreProducts: false, // Used for pagination in app-core
+    allProductsLoaded: false, // Used for pagination in app-core
+    isRenderingHomePage: false, // Used by home.js/app-core? Check usage
+    productCache: {}, // Used by app-core for product fetching
+    currentCategory: 'all', // Filter state managed by app-core/app-ui
+    currentSubcategory: 'all', // Filter state managed by app-core/app-ui
+    currentSubSubcategory: 'all', // Filter state managed by app-core/app-ui
+    currentSearch: '', // Filter state managed by app-core/app-ui
+    currentProductId: null, // Used by ui-render (product detail sheet)
+    sliderIntervals: {}, // Used by ui-render (promo slider)
+    // contactInfo: {}, // Might not be needed in global state
 };
 
 // Constants - Exported
 export const CART_KEY = "maten_store_cart";
 export const FAVORITES_KEY = "maten_store_favorites";
 export const PROFILE_KEY = "maten_store_profile";
-export const PRODUCTS_PER_PAGE = 25;
+export const PRODUCTS_PER_PAGE = 25; // Used for pagination in app-core
 
-// DOM Elements Exports
+// DOM Elements Exports (Ensure all required elements are listed)
 // === General UI Elements ===
 export const loginModal = document.getElementById('loginModal');
-export const addProductBtn = document.getElementById('addProductBtn'); // Used by admin check in UI
+export const addProductBtn = document.getElementById('addProductBtn');
 export const productFormModal = document.getElementById('productFormModal');
 export const productsContainer = document.getElementById('productsContainer');
 export const skeletonLoader = document.getElementById('skeletonLoader');
@@ -368,47 +376,86 @@ export const notificationsListContainer = document.getElementById('notifications
 export const termsAndPoliciesBtn = document.getElementById('termsAndPoliciesBtn');
 export const termsSheet = document.getElementById('termsSheet');
 export const termsContentContainer = document.getElementById('termsContentContainer');
-export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer'); // Main page sub-subcat container
+export const mainCategoriesContainer = document.getElementById('mainCategoriesContainer'); // Needed by home.js
+export const subcategoriesContainer = document.getElementById('subcategoriesContainer'); // Needed by home.js
+export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer'); // Needed by home.js
+export const homePageSectionsContainer = document.getElementById('homePageSectionsContainer'); // Needed by home.js
+export const welcomeModal = document.getElementById('welcomeModal'); // Needed by ui-core.js
+export const profileNameInput = document.getElementById('profileName'); // Needed by ui-core.js
+export const profileAddressInput = document.getElementById('profileAddress'); // Needed by ui-core.js
+export const profilePhoneInput = document.getElementById('profilePhone'); // Needed by ui-core.js
+export const getLocationBtn = document.getElementById('getLocationBtn'); // Needed by ui-core.js
+export const installAppBtn = document.getElementById('installAppBtn'); // Needed by ui-core.js
+export const enableNotificationsBtn = document.getElementById('enableNotificationsBtn'); // Needed by ui-core.js
+export const forceUpdateBtn = document.getElementById('forceUpdateBtn'); // Needed by ui-core.js
+export const updateNotification = document.getElementById('update-notification'); // Needed by ui-core.js
+export const updateNowBtn = document.getElementById('update-now-btn'); // Needed by ui-core.js
+export const scrollLoaderTrigger = document.getElementById('scroll-loader-trigger'); // Needed by ui-core.js
+export const headerBackBtn = document.getElementById('headerBackBtn'); // Needed by ui-core.js
+export const subpageSearchInput = document.getElementById('subpageSearchInput'); // Needed by ui-core.js
+export const subpageClearSearchBtn = document.getElementById('subpageClearSearchBtn'); // Needed by ui-core.js
+export const dynamicContactLinksContainer = document.getElementById('dynamicContactLinksContainer'); // Needed by ui-core.js
 
-// === Admin UI Elements ===
+// === Product Detail Sheet Elements (Needed by ui-render) ===
+export const productDetailSheet = document.getElementById('productDetailSheet');
+export const sheetImageContainer = document.getElementById('sheetImageContainer');
+export const sheetThumbnailContainer = document.getElementById('sheetThumbnailContainer');
+export const sheetPrevBtn = document.getElementById('sheetPrevBtn');
+export const sheetNextBtn = document.getElementById('sheetNextBtn');
+export const sheetProductName = document.getElementById('sheetProductName');
+export const sheetProductPrice = document.getElementById('sheetProductPrice');
+export const sheetProductDescription = document.getElementById('sheetProductDescription');
+export const sheetAddToCartBtn = document.getElementById('sheetAddToCartBtn');
+export const relatedProductsSection = document.getElementById('relatedProductsSection');
+export const relatedProductsContainer = document.getElementById('relatedProductsContainer');
+
+// === Subcategory Detail Page Elements (Needed by ui-render) ===
+export const subcategoryDetailPage = document.getElementById('subcategoryDetailPage');
+export const subSubCategoryContainerOnDetailPage = document.getElementById('subSubCategoryContainerOnDetailPage');
+export const productsContainerOnDetailPage = document.getElementById('productsContainerOnDetailPage');
+export const detailPageLoader = document.getElementById('detailPageLoader');
+
+// === Admin UI Elements (Needed by admin.js via globalAdminTools or directly) ===
 export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
-export const policiesForm = document.getElementById('policiesForm');
+export const policiesForm = document.getElementById('policiesForm'); // Also used by admin.js
 export const adminSocialMediaManagement = document.getElementById('adminSocialMediaManagement');
-export const addSocialMediaForm = document.getElementById('addSocialMediaForm');
-export const socialLinksListContainer = document.getElementById('socialLinksListContainer');
-export const socialMediaToggle = document.getElementById('socialMediaToggle');
+export const addSocialMediaForm = document.getElementById('addSocialMediaForm'); // Also used by admin.js
+export const socialLinksListContainer = document.getElementById('socialLinksListContainer'); // Also used by admin.js
+export const socialMediaToggle = document.getElementById('socialMediaToggle'); // Also used by admin.js
 export const adminAnnouncementManagement = document.getElementById('adminAnnouncementManagement');
-export const announcementForm = document.getElementById('announcementForm');
-export const announcementsListContainer = document.getElementById('announcementsListContainer'); // Used by admin.js
+export const announcementForm = document.getElementById('announcementForm'); // Also used by admin.js
+export const announcementsListContainer = document.getElementById('announcementsListContainer'); // Also used by admin.js
 export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
-export const addPromoGroupForm = document.getElementById('addPromoGroupForm');
-export const promoGroupsListContainer = document.getElementById('promoGroupsListContainer');
-export const addPromoCardForm = document.getElementById('addPromoCardForm');
+export const addPromoGroupForm = document.getElementById('addPromoGroupForm'); // Also used by admin.js
+export const promoGroupsListContainer = document.getElementById('promoGroupsListContainer'); // Also used by admin.js
+export const addPromoCardForm = document.getElementById('addPromoCardForm'); // Also used by admin.js
 export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
-export const addBrandGroupForm = document.getElementById('addBrandGroupForm');
-export const brandGroupsListContainer = document.getElementById('brandGroupsListContainer');
-export const addBrandForm = document.getElementById('addBrandForm');
+export const addBrandGroupForm = document.getElementById('addBrandGroupForm'); // Also used by admin.js
+export const brandGroupsListContainer = document.getElementById('brandGroupsListContainer'); // Also used by admin.js
+export const addBrandForm = document.getElementById('addBrandForm'); // Also used by admin.js
 export const adminCategoryManagement = document.getElementById('adminCategoryManagement');
-export const categoryListContainer = document.getElementById('categoryListContainer');
-export const addCategoryForm = document.getElementById('addCategoryForm');
-export const addSubcategoryForm = document.getElementById('addSubcategoryForm');
-export const addSubSubcategoryForm = document.getElementById('addSubSubcategoryForm');
-export const editCategoryForm = document.getElementById('editCategoryForm');
+export const categoryListContainer = document.getElementById('categoryListContainer'); // Also used by admin.js
+export const addCategoryForm = document.getElementById('addCategoryForm'); // Also used by admin.js
+export const addSubcategoryForm = document.getElementById('addSubcategoryForm'); // Also used by admin.js
+export const addSubSubcategoryForm = document.getElementById('addSubSubcategoryForm'); // Also used by admin.js
+export const editCategoryForm = document.getElementById('editCategoryForm'); // Also used by admin.js
+export const editCategoryModal = document.getElementById('editCategoryModal'); // Needed by admin.js
 export const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
-export const contactMethodsListContainer = document.getElementById('contactMethodsListContainer');
+export const contactMethodsListContainer = document.getElementById('contactMethodsListContainer'); // Also used by admin.js
+export const addContactMethodForm = document.getElementById('addContactMethodForm'); // Also used by admin.js
 export const adminShortcutRowsManagement = document.getElementById('adminShortcutRowsManagement');
-export const shortcutRowsListContainer = document.getElementById('shortcutRowsListContainer');
-export const addShortcutRowForm = document.getElementById('addShortcutRowForm');
-export const addCardToRowForm = document.getElementById('addCardToRowForm');
+export const shortcutRowsListContainer = document.getElementById('shortcutRowsListContainer'); // Also used by admin.js
+export const addShortcutRowForm = document.getElementById('addShortcutRowForm'); // Also used by admin.js
+export const addCardToRowForm = document.getElementById('addCardToRowForm'); // Also used by admin.js
 export const adminHomeLayoutManagement = document.getElementById('adminHomeLayoutManagement');
-export const homeLayoutListContainer = document.getElementById('homeLayoutListContainer');
-export const addHomeSectionBtn = document.getElementById('addHomeSectionBtn');
-export const addHomeSectionModal = document.getElementById('addHomeSectionModal');
-export const addHomeSectionForm = document.getElementById('addHomeSectionForm');
+export const homeLayoutListContainer = document.getElementById('homeLayoutListContainer'); // Also used by admin.js
+export const addHomeSectionBtn = document.getElementById('addHomeSectionBtn'); // Also used by admin.js
+export const addHomeSectionModal = document.getElementById('addHomeSectionModal'); // Also used by admin.js
+export const addHomeSectionForm = document.getElementById('addHomeSectionForm'); // Also used by admin.js
 
 
-// *** Populate globalAdminTools here ***
-// Moved from app-core.js to ensure availability before admin.js (defer) runs
+// *** Populate globalAdminTools ***
+// This object makes necessary functions and variables accessible to admin.js (loaded with defer)
 window.globalAdminTools = {
     // Firebase Services & Functions needed by admin.js
     db, auth,
@@ -418,22 +465,23 @@ window.globalAdminTools = {
     // Collections needed by admin.js
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
+    homeLayoutCollection, settingsCollection, // Added missing ones
 
     // Core State Accessors/Mutators needed by admin.js
     setEditingProductId: (id) => { state.editingProductId = id; },
     getEditingProductId: () => state.editingProductId,
-    getCategories: () => state.categories,
+    getCategories: () => state.categories, // Provide access to loaded categories
     getCurrentLanguage: () => state.currentLanguage,
 
-    // Core Helper Functions needed by admin.js
-    t: (key, replacements = {}) => { // Re-export 't' function
+    // Core Helper Functions needed by admin.js (Defined locally for clarity)
+    t: (key, replacements = {}) => {
         let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
         for (const placeholder in replacements) {
             translation = translation.replace(`{${placeholder}}`, replacements[placeholder]);
         }
         return translation;
     },
-    showNotification: (message, type = 'success') => { // Re-export basic notification logic
+    showNotification: (message, type = 'success') => { // Re-define basic notification logic here
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         notification.textContent = message;
@@ -444,16 +492,21 @@ window.globalAdminTools = {
             setTimeout(() => document.body.removeChild(notification), 300);
         }, 3000);
     },
-     clearProductCache: () => { // Keep this helper
-         console.log("Product cache and home page cleared due to admin action.");
-         state.productCache = {};
-         const homeContainer = document.getElementById('homePageSectionsContainer');
-         if (homeContainer) {
-             homeContainer.innerHTML = '';
-         }
-         // Notify UI layer to trigger re-render
-         document.dispatchEvent(new Event('clearCacheTriggerRender'));
-     },
+    // Make UI control functions available to admin if needed
+    openPopup: window.openPopup, // Assuming ui-core makes this global
+    closeCurrentPopup: window.closeCurrentPopup, // Assuming ui-core makes this global
+    // clearProductCache needs to be defined if it's not exported from app-core
+    clearProductCache: () => {
+        console.log("Product cache and home page cleared due to admin action.");
+        state.productCache = {}; // Clear core state cache
+        const homeContainer = document.getElementById('homePageSectionsContainer');
+        if (homeContainer) {
+            homeContainer.innerHTML = ''; // Clear rendered home sections
+        }
+        // Notify UI layer (e.g., app-core or ui-core) to trigger re-render if needed
+        document.dispatchEvent(new Event('clearCacheTriggerRender'));
+    },
 };
 // *** END OF globalAdminTools SECTION ***
 
+console.log("app-setup.js loaded");
