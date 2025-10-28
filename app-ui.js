@@ -918,16 +918,17 @@ function setupUIEventListeners() {
     homeBtn.onclick = async () => {
         const isMainPageActive = mainPage.classList.contains('page-active');
         if (!isMainPageActive) {
-            // If coming from another page, show main page and reset filters
-            history.pushState({ type: 'page', id: 'mainPage', scroll: 0 }, '', window.location.pathname.split('?')[0]);
+            // If coming from another page (Settings, Detail Page etc.)
+            // Show main page and reset filters to default view
+            history.pushState({ type: 'page', id: 'mainPage', scroll: 0 }, '', window.location.pathname.split('?')[0]); // Push a clean main page state
             showPage('mainPage');
-            // Fallthrough to reset filters
+            // Fallthrough to reset filters below
         }
-        // Always reset filters when home button is clicked (original behavior)
+        // Always reset filters when home button is clicked, regardless of current page
         await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
         await updateProductViewUI(true); // Ensure home renders fresh default view
-        // Ensure the home button is marked as active
-        updateActiveNav('homeBtn');
+         // Ensure the home button is marked as active AFTER potentially showing the page and refreshing
+         updateActiveNav('homeBtn');
     };
     // *** کۆتایی چاکسازی homeBtn.onclick ***
 
