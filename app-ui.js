@@ -41,11 +41,11 @@ import {
     initCore,
     // Firestore functions exported from app-core.js
     db,
-    collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection
+    collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection, setDoc, deleteDoc, addDoc, updateDoc, onSnapshot, runTransaction // Added missing imports
 } from './app-core.js';
 
 import {
-    renderHomePageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
+    renderHomePageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI, // Ensure fetchSubcategories is NOT imported here if it's from app-core
 } from './home.js'; // Import functions from home.js
 
 // --- UI Helper Functions ---
@@ -99,7 +99,7 @@ function showPage(pageId, pageTitle = '') {
     } else if (pageId === 'subcategoryDetailPage') {
          updateHeaderView('subcategoryDetailPage', pageTitle);
     } else { // Includes mainPage
-         updateHeaderView('mainPage');
+          updateHeaderView('mainPage');
     }
 
     // Update active state in bottom navigation
@@ -532,8 +532,8 @@ function renderCategoriesSheetUI() {
       const subSubcategoriesData = await fetchSubSubcategories(mainCatId, subCatId); // Use function from app-core
 
       if (!subSubcategoriesData || subSubcategoriesData.length === 0) {
-          container.style.display = 'none';
-          return;
+           container.style.display = 'none';
+           return;
       }
 
       container.style.display = 'flex';
@@ -545,30 +545,30 @@ function renderCategoriesSheetUI() {
       const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
       allBtn.innerHTML = `<div class="subcategory-image">${allIconSvg}</div><span>${t('all_categories_label')}</span>`;
       allBtn.onclick = () => {
-          container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
-          allBtn.classList.add('active');
-          const currentSearch = document.getElementById('subpageSearchInput').value;
-          renderProductsOnDetailPageUI(subCatId, 'all', currentSearch); // Fetch products for the parent subcategory
+           container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
+           allBtn.classList.add('active');
+           const currentSearch = document.getElementById('subpageSearchInput').value;
+           renderProductsOnDetailPageUI(subCatId, 'all', currentSearch); // Fetch products for the parent subcategory
       };
       container.appendChild(allBtn);
 
       // Add buttons for each sub-subcategory
       subSubcategoriesData.forEach(subSubcat => {
-          const btn = document.createElement('button');
-          btn.className = `subcategory-btn`;
-          btn.dataset.id = subSubcat.id;
-          const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
-          const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-          const imageUrl = subSubcat.imageUrl || placeholderImg;
-          btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
+           const btn = document.createElement('button');
+           btn.className = `subcategory-btn`;
+           btn.dataset.id = subSubcat.id;
+           const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
+           const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+           const imageUrl = subSubcat.imageUrl || placeholderImg;
+           btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
 
-          btn.onclick = () => {
-              container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
-              btn.classList.add('active');
-              const currentSearch = document.getElementById('subpageSearchInput').value;
-              renderProductsOnDetailPageUI(subCatId, subSubcat.id, currentSearch); // Fetch products for this specific sub-subcategory
-          };
-          container.appendChild(btn);
+           btn.onclick = () => {
+                container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const currentSearch = document.getElementById('subpageSearchInput').value;
+                renderProductsOnDetailPageUI(subCatId, subSubcat.id, currentSearch); // Fetch products for this specific sub-subcategory
+           };
+           container.appendChild(btn);
       });
  }
 
@@ -586,16 +586,16 @@ function renderCategoriesSheetUI() {
          let orderByClauses = [];
 
          if (subSubCatId === 'all') {
-             conditions.push(where("subcategoryId", "==", subCatId));
+              conditions.push(where("subcategoryId", "==", subCatId));
          } else {
-             conditions.push(where("subSubcategoryId", "==", subSubCatId));
+              conditions.push(where("subSubcategoryId", "==", subSubCatId));
          }
 
          const finalSearchTerm = searchTerm.trim().toLowerCase();
          if (finalSearchTerm) {
-             conditions.push(where('searchableName', '>=', finalSearchTerm));
-             conditions.push(where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
-             orderByClauses.push(orderBy("searchableName", "asc"));
+              conditions.push(where('searchableName', '>=', finalSearchTerm));
+              conditions.push(where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
+              orderByClauses.push(orderBy("searchableName", "asc"));
          }
          orderByClauses.push(orderBy("createdAt", "desc")); // Always sort by creation date
 
@@ -609,12 +609,12 @@ function renderCategoriesSheetUI() {
          productsContainer.innerHTML = ''; // Clear skeleton/previous content
 
          if (products.length === 0) {
-             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+              productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
          } else {
-             products.forEach(product => {
-                 const card = createProductCardElementUI(product); // Use function from this file
-                 productsContainer.appendChild(card);
-             });
+              products.forEach(product => {
+                   const card = createProductCardElementUI(product); // Use function from this file
+                   productsContainer.appendChild(card);
+              });
          }
      } catch (error) {
          console.error(`Error rendering products on detail page:`, error);
@@ -912,17 +912,31 @@ function handleToggleFavoriteUI(productId) {
 
 // --- Setup Functions ---
 
-// ... (setupUIEventListeners, handleSetLanguage, Popstate listener, initializeUI, handleInitialPageLoadUI, renderContactLinksUI, setupGpsButtonUI remain largely the same, ensuring they call the imported home.js functions where needed) ...
 function setupUIEventListeners() {
+    // *** چاککراوی کۆتایی: homeBtn.onclick ***
     homeBtn.onclick = async () => {
-        if (!document.getElementById('mainPage').classList.contains('page-active')) {
-            history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
+        const isMainPageActive = mainPage.classList.contains('page-active');
+
+        if (!isMainPageActive) {
+            // If coming from another page (Settings, Detail Page etc.)
+            // Show main page AND reset filters to default view
+            history.pushState({ type: 'page', id: 'mainPage', scroll: 0 }, '', window.location.pathname.split('?')[0]); // Push a clean main page state
             showPage('mainPage');
+            await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
+            await updateProductViewUI(true); // Ensure home renders fresh default view
+        } else {
+            // --- Behavior when ALREADY on main page ---
+            // Just scroll to the top smoothly IF scrolled down. Do nothing else.
+            const scrolledDown = window.scrollY > 0;
+            if (scrolledDown) {
+                 window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            // If already at top, do nothing. Filters are NOT reset. View is NOT refreshed.
         }
-        // Reset filters and trigger refresh (using imported function)
-        await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-        await updateProductViewUI(true); // Ensure home renders fresh (imported from home.js)
+         // Ensure the home button is marked as active
+         updateActiveNav('homeBtn');
     };
+    // *** کۆتایی چاکسازی homeBtn.onclick ***
 
     settingsBtn.onclick = () => {
         history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
@@ -1168,6 +1182,7 @@ async function handleSetLanguage(lang) {
     }
 }
 
+// *** چاککراوی کۆتایی: popstate ***
 window.addEventListener('popstate', async (event) => {
     closeAllPopupsUI(); // Close any open popups when navigating back/forward
     const popState = event.state;
@@ -1197,23 +1212,33 @@ window.addEventListener('popstate', async (event) => {
              }
 
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
-            // Re-open the specific popup
-            openPopup(popState.id, popState.type);
-        } else { // It's a filter state for the main page
-            showPage('mainPage'); // Ensure main page is visible
-            applyFilterStateCore(popState); // Apply the state logically
-            await updateProductViewUI(true); // Re-render products based on popped state (imported from home.js)
-            // Restore scroll position
-            if (typeof popState.scroll === 'number') {
-                 setTimeout(() => window.scrollTo(0, popState.scroll), 50); // Small delay
-            }
+             // Re-open the specific popup
+             openPopup(popState.id, popState.type);
+        } else { // It's a filter state for the main page (popState.type is likely null or undefined)
+             showPage('mainPage'); // Ensure main page is visible
+             applyFilterStateCore(popState); // Apply the state logically
+             // *** چاککراو: تەنها جۆرەکان نوێ بکەرەوە، نەک هەموو پەڕەکە ***
+             renderMainCategoriesUI();
+             // *** گۆڕانکاری لێرە: پێویستە fetchSubcategories لە app-core هاوردە بکرێت ***
+             const subcats = await fetchSubcategories(state.currentCategory); // Use imported fetchSubcategories
+             await renderSubcategoriesUI(subcats); // Re-render subcats based on popped state
+
+             // Restore scroll position from the popped state
+             if (typeof popState.scroll === 'number') {
+                 requestAnimationFrame(() => {
+                     window.scrollTo(0, popState.scroll);
+                 });
+             } else {
+                // If no scroll position in state, scroll to top
+                window.scrollTo(0, 0);
+             }
         }
     } else {
         // No state, go to default main page view
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
         showPage('mainPage');
         applyFilterStateCore(defaultState);
-        await updateProductViewUI(true); // (imported from home.js)
+        await updateProductViewUI(true); // Initial load should always render
     }
 });
 
@@ -1275,23 +1300,23 @@ async function handleInitialPageLoadUI() {
          if (state.categories.length > 1) { // Check if categories are loaded (state.categories includes 'all')
               await showSubcategoryDetailPageUI(mainCatId, subCatId, true); // true = fromHistory/initial load
          } else {
-             // Fallback to main page if categories aren't ready (should be rare now)
-             console.warn("Categories not ready on initial load, showing main page instead of detail.");
-             showPage('mainPage');
-             await updateProductViewUI(true); // (imported from home.js)
+              // Fallback to main page if categories aren't ready (should be rare now)
+              console.warn("Categories not ready on initial load, showing main page instead of detail.");
+              showPage('mainPage');
+              await updateProductViewUI(true); // (imported from home.js)
          }
     } else { // Default to main page
          showPage('mainPage');
          const initialState = {
-             category: params.get('category') || 'all',
-             subcategory: params.get('subcategory') || 'all',
-             subSubcategory: params.get('subSubcategory') || 'all',
-             search: params.get('search') || '',
-             scroll: 0
+              category: params.get('category') || 'all',
+              subcategory: params.get('subcategory') || 'all',
+              subSubcategory: params.get('subSubcategory') || 'all',
+              search: params.get('search') || '',
+              scroll: 0
          };
          history.replaceState(initialState, ''); // Set initial history state for main page
          applyFilterStateCore(initialState); // Apply the state
-         await updateProductViewUI(true); // Render content based on state (imported from home.js)
+         await updateProductViewUI(true); // Render content based on state (imported from home.js) - *Initial load should render*
 
          // Check if a specific popup needs to be opened on initial load
          const element = document.getElementById(hash);
@@ -1326,26 +1351,26 @@ async function renderContactLinksUI() {
          contactLinksContainer.innerHTML = ''; // Clear previous links
 
          if (snapshot.empty) {
-             contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هیچ لینکی پەیوەندی نییە.</p>';
-             return;
+              contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هیچ لینکی پەیوەندی نییە.</p>';
+              return;
          }
 
          snapshot.forEach(doc => {
-             const link = doc.data();
-             const name = link['name_' + state.currentLanguage] || link.name_ku_sorani;
+              const link = doc.data();
+              const name = link['name_' + state.currentLanguage] || link.name_ku_sorani;
 
-             const linkElement = document.createElement('a');
-             linkElement.href = link.url;
-             linkElement.target = '_blank';
-             linkElement.className = 'settings-item';
-             linkElement.innerHTML = `
-                  <div>
+              const linkElement = document.createElement('a');
+              linkElement.href = link.url;
+              linkElement.target = '_blank';
+              linkElement.className = 'settings-item';
+              linkElement.innerHTML = `
+                   <div>
                        <i class="${link.icon}" style="margin-left: 10px;"></i>
                        <span>${name}</span>
-                  </div>
-                  <i class="fas fa-external-link-alt"></i>
-             `;
-             contactLinksContainer.appendChild(linkElement);
+                   </div>
+                   <i class="fas fa-external-link-alt"></i>
+              `;
+              contactLinksContainer.appendChild(linkElement);
          });
      } catch (error) {
          console.error("Error fetching/rendering social links:", error);
@@ -1364,8 +1389,8 @@ function setupGpsButtonUI() {
 
      getLocationBtn.addEventListener('click', () => {
          if (!('geolocation' in navigator)) {
-             showNotification('وێبگەڕەکەت پشتگیری GPS ناکات', 'error');
-             return;
+              showNotification('وێبگەڕەکەت پشتگیری GPS ناکات', 'error');
+              return;
          }
 
          if(btnSpan) btnSpan.textContent = '...چاوەڕوان بە';
@@ -1378,17 +1403,17 @@ function setupGpsButtonUI() {
                         const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`);
                         const data = await response.json();
                         if (data && data.display_name) {
-                            profileAddressInput.value = data.display_name;
-                            showNotification('ناونیشان وەرگیرا', 'success');
+                             profileAddressInput.value = data.display_name;
+                             showNotification('ناونیشان وەرگیرا', 'success');
                         } else {
-                            showNotification('نەتوانرا ناونیشان بدۆزرێتەوە', 'error');
+                             showNotification('نەتوانرا ناونیشان بدۆزرێتەوە', 'error');
                         }
                    } catch (error) {
                         console.error('Reverse Geocoding Error:', error);
                         showNotification('هەڵەیەک لە وەرگرتنی ناونیشان ڕوویدا', 'error');
                    } finally {
-                         if(btnSpan) btnSpan.textContent = originalBtnText;
-                        getLocationBtn.disabled = false;
+                        if(btnSpan) btnSpan.textContent = originalBtnText;
+                       getLocationBtn.disabled = false;
                    }
               },
               (error) => { // Error callback
@@ -1403,7 +1428,7 @@ function setupGpsButtonUI() {
                    getLocationBtn.disabled = false;
               }
          );
-     });
+    });
 }
 
 // --- Start UI Initialization ---
