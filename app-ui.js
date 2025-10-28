@@ -31,7 +31,7 @@ import {
     state, t, debounce, formatDescription,
     handleLogin, handleLogout,
     fetchCategories, fetchProductById, fetchProducts,
-    fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, fetchSubSubcategories,
+    fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, fetchSubSubcategories, fetchSubcategories, // Added fetchSubcategories
     addToCartCore, updateCartQuantityCore, removeFromCartCore, generateOrderMessageCore,
     toggleFavoriteCore, isFavorite, saveFavorites,
     saveProfileCore, setLanguageCore,
@@ -45,7 +45,7 @@ import {
 } from './app-core.js';
 
 import {
-    renderHomePageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI, // Ensure fetchSubcategories is NOT imported here if it's from app-core
+    renderHomePageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
 } from './home.js'; // Import functions from home.js
 
 // --- UI Helper Functions ---
@@ -926,12 +926,7 @@ function setupUIEventListeners() {
             await updateProductViewUI(true); // Ensure home renders fresh default view
         } else {
             // --- Behavior when ALREADY on main page ---
-            // Just scroll to the top smoothly IF scrolled down. Do nothing else.
-            const scrolledDown = window.scrollY > 0;
-            if (scrolledDown) {
-                 window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-            // If already at top, do nothing. Filters are NOT reset. View is NOT refreshed.
+            // DO NOTHING. Neither scroll nor reset filters nor refresh.
         }
          // Ensure the home button is marked as active
          updateActiveNav('homeBtn');
