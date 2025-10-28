@@ -1,5 +1,5 @@
 // home.js
-// Logika UI تایبەت بە پەڕەی سەرەکی (Home Page)
+// Logika UI تایبەت بە پەڕەی سەرەکی (Home Page) - نوێکراوە بۆ بارکردنی هاوتەریب
 
 import {
     state, t, debounce,
@@ -11,10 +11,11 @@ import {
     db, doc, getDoc // Firestore functions needed locally
 } from './app-core.js';
 
-// *** هاوردەکردنی فانکشنە هاوبەشەکان لە app-ui.js ***
+// *** هاوردەکردنی فانکشنە هاوبەشەکان لە ui-render.js ***
+// ** تێبینی: وا دادەنێین ui-render.js بوونی هەیە و ئەم فانکشنانەی تێدایە **
 import {
     renderSkeletonLoader, createProductCardElementUI, setupScrollAnimations, showSubcategoryDetailPageUI
-} from './app-ui.js';
+} from './ui-render.js'; // ** دڵنیابە ناوی فایلەکە ڕاستە **
 
 // --- UI Rendering Functions for Home Page ---
 
@@ -80,7 +81,7 @@ export function renderMainCategoriesUI() {
              });
              // Then trigger UI update
              await updateProductViewUI(true); // true indicates a new filter/search
-        };
+         };
 
         container.appendChild(btn);
     });
@@ -109,9 +110,9 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
     allBtn.dataset.id = 'all'; // Add dataset id
     const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
     allBtn.innerHTML = `
-        <div class="subcategory-image">${allIconSvg}</div>
-        <span>${t('all_categories_label')}</span>
-    `;
+         <div class="subcategory-image">${allIconSvg}</div>
+         <span>${t('all_categories_label')}</span>
+     `;
     allBtn.onclick = async () => {
          // When "All" subcategory is clicked, just filter products for the main category
          await navigateToFilterCore({
@@ -126,23 +127,23 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
 
     // Add buttons for each actual subcategory
     subcategoriesData.forEach(subcat => {
-        const subcatBtn = document.createElement('button');
-        subcatBtn.className = `subcategory-btn ${state.currentSubcategory === subcat.id ? 'active' : ''}`;
-        subcatBtn.dataset.id = subcat.id; // Add dataset id
-        const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
-        const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-        const imageUrl = subcat.imageUrl || placeholderImg;
+         const subcatBtn = document.createElement('button');
+         subcatBtn.className = `subcategory-btn ${state.currentSubcategory === subcat.id ? 'active' : ''}`;
+         subcatBtn.dataset.id = subcat.id; // Add dataset id
+         const subcatName = subcat['name_' + state.currentLanguage] || subcat.name_ku_sorani;
+         const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+         const imageUrl = subcat.imageUrl || placeholderImg;
 
-        subcatBtn.innerHTML = `
-             <img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
-             <span>${subcatName}</span>
-        `;
-        // *** چاککراو: کردنەوەی پەڕەی نوێ ***
-        subcatBtn.onclick = async () => {
-            // Directly open the subcategory detail page
-            showSubcategoryDetailPageUI(state.currentCategory, subcat.id);
-        };
-        subcategoriesContainer.appendChild(subcatBtn);
+         subcatBtn.innerHTML = `
+              <img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
+              <span>${subcatName}</span>
+          `;
+         // *** چاککراو: کردنەوەی پەڕەی نوێ ***
+         subcatBtn.onclick = async () => {
+             // Directly open the subcategory detail page
+             showSubcategoryDetailPageUI(state.currentCategory, subcat.id);
+         };
+         subcategoriesContainer.appendChild(subcatBtn);
     });
 
      // Render sub-subcategories if a specific subcategory is selected
@@ -177,9 +178,9 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
     allBtn.dataset.id = 'all'; // Add dataset id
     const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
     allBtn.innerHTML = `
-        <div class="subcategory-image">${allIconSvg}</div>
-        <span>${t('all_categories_label')}</span>
-    `;
+         <div class="subcategory-image">${allIconSvg}</div>
+         <span>${t('all_categories_label')}</span>
+     `;
     allBtn.onclick = async () => {
          // Filter by the parent subcategory ON THE MAIN PAGE
          await navigateToFilterCore({
@@ -194,24 +195,24 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
 
     // Add buttons for each sub-subcategory
     subSubcategoriesData.forEach(subSubcat => {
-        const btn = document.createElement('button');
-        btn.className = `subcategory-btn ${state.currentSubSubcategory === subSubcat.id ? 'active' : ''}`;
-        btn.dataset.id = subSubcat.id; // Add dataset id
-        const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
-        const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-        const imageUrl = subSubcat.imageUrl || placeholderImg;
-        btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
+         const btn = document.createElement('button');
+         btn.className = `subcategory-btn ${state.currentSubSubcategory === subSubcat.id ? 'active' : ''}`;
+         btn.dataset.id = subSubcat.id; // Add dataset id
+         const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
+         const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+         const imageUrl = subSubcat.imageUrl || placeholderImg;
+         btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
 
-        // *** چاککراو: کردنەوەی پەڕەی نوێی جۆری لاوەکی باوک ***
-        btn.onclick = async () => {
-             // Open the PARENT subcategory detail page
-             showSubcategoryDetailPageUI(state.currentCategory, state.currentSubcategory);
-             // Note: This will initially show all products for the subcategory.
-             // The user would need to click the sub-subcategory again on the detail page
-             // to filter further, unless showSubcategoryDetailPageUI is modified
-             // to accept and pre-filter by subSubcategoryId.
-        };
-        container.appendChild(btn);
+         // *** چاککراو: کردنەوەی پەڕەی نوێی جۆری لاوەکی باوک ***
+         btn.onclick = async () => {
+              // Open the PARENT subcategory detail page
+              showSubcategoryDetailPageUI(state.currentCategory, state.currentSubcategory);
+              // Note: This will initially show all products for the subcategory.
+              // The user would need to click the sub-subcategory again on the detail page
+              // to filter further, unless showSubcategoryDetailPageUI is modified
+              // to accept and pre-filter by subSubcategoryId.
+          };
+         container.appendChild(btn);
     });
 }
 
@@ -282,25 +283,25 @@ export async function updateProductViewUI(isNewSearch = false) {
 }
 
 
-// Function to render home page sections (UI Part)
+// Function to render home page sections (UI Part) - ** نوێکراوە **
 export async function renderHomePageContentUI() {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     if (!homeSectionsContainer) return;
 
-    // Show loader inside the container if it's empty (handles direct calls too)
+    // Show loader inside the container if it's empty
     if (homeSectionsContainer.innerHTML.trim() === '') {
         homeSectionsContainer.innerHTML = `<div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: block;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;">...خەریکی بارکردنی بەشەکانە</p></div>`;
     }
 
-    const layout = await fetchHomeLayout(); // Fetch layout from core
+    const layout = await fetchHomeLayout(); // 1. Fetch layout first
 
     homeSectionsContainer.innerHTML = ''; // Clear loader/previous content
 
     if (!layout || layout.length === 0) {
         console.warn("Home page layout is empty or failed to load.");
-        // Render a fallback (e.g., just the 'all products' section)
-         const allProductsSection = await createAllProductsSectionElement();
-         if(allProductsSection) homeSectionsContainer.appendChild(allProductsSection);
+        // Render fallback if needed (e.g., all products)
+        const allProductsSection = await createAllProductsSectionElement([]); // Pass empty array initially
+        if(allProductsSection) homeSectionsContainer.appendChild(allProductsSection);
         return;
     }
 
@@ -308,61 +309,91 @@ export async function renderHomePageContentUI() {
     Object.values(state.sliderIntervals || {}).forEach(clearInterval);
     state.sliderIntervals = {};
 
-    for (const section of layout) {
-        let sectionElement = null;
-        try {
-             switch (section.type) {
-                 case 'promo_slider':
-                     if (section.groupId) {
-                         sectionElement = await createPromoSliderElement(section.groupId, section.id);
-                     } else console.warn("Promo slider missing groupId:", section);
-                     break;
-                 case 'brands':
-                     if (section.groupId) {
-                          sectionElement = await createBrandsSectionElement(section.groupId);
-                     } else console.warn("Brands section missing groupId:", section);
-                     break;
-                 case 'newest_products':
-                     sectionElement = await createNewestProductsSectionElement();
-                     break;
-                 case 'single_shortcut_row':
-                     if (section.rowId) {
-                           sectionElement = await createSingleShortcutRowElement(section.rowId, section.name); // Pass name obj
-                         } else console.warn("Shortcut row missing rowId:", section);
-                     break;
-                 case 'single_category_row':
-                     if (section.categoryId) {
-                         sectionElement = await createSingleCategoryRowElement(section); // Pass full section data
-                     } else console.warn("Category row missing categoryId:", section);
-                     break;
-                  case 'all_products':
-                       sectionElement = await createAllProductsSectionElement();
-                     break;
-                 default:
-                     console.warn(`Unknown home layout section type: ${section.type}`);
-             }
-        } catch(error) {
-             console.error(`Error rendering home section type ${section.type}:`, error);
-              // Optionally add a placeholder indicating an error for this section
-             sectionElement = document.createElement('div');
-             sectionElement.style.padding = '20px';
-             sectionElement.style.textAlign = 'center';
-             sectionElement.style.color = 'red';
-             sectionElement.textContent = `هەڵە لە بارکردنی بەشی: ${section.type}`;
+    // 2. Create an array of fetch promises based on the layout
+    const dataFetchPromises = layout.map(section => {
+        switch (section.type) {
+            case 'promo_slider':
+                return section.groupId ? fetchPromoGroupCards(section.groupId) : Promise.resolve(null);
+            case 'brands':
+                return section.groupId ? fetchBrandGroupBrands(section.groupId) : Promise.resolve(null);
+            case 'newest_products':
+                return fetchNewestProducts();
+            case 'single_shortcut_row':
+                return section.rowId ? fetchShortcutRowCards(section.rowId) : Promise.resolve(null);
+            case 'single_category_row':
+                return section.categoryId ? fetchCategoryRowProducts(section) : Promise.resolve(null);
+            case 'all_products':
+                return fetchInitialProductsForHome();
+            default:
+                console.warn(`Unknown home layout section type: ${section.type}`);
+                return Promise.resolve(null); // Return null for unknown types
         }
+    });
 
-        if (sectionElement) {
-            homeSectionsContainer.appendChild(sectionElement);
-        }
+    try {
+        // 3. Wait for all data to be fetched in parallel
+        const allDataResults = await Promise.all(dataFetchPromises);
+
+        // 4. Iterate through the layout *again* and build elements using the fetched data
+        layout.forEach((section, index) => {
+            const fetchedData = allDataResults[index]; // Get data corresponding to this section
+            let sectionElement = null;
+
+            // Handle cases where data fetching failed or returned null/empty
+            if (fetchedData === null || (Array.isArray(fetchedData) && fetchedData.length === 0)) {
+                console.warn(`No data found or error fetching for section type: ${section.type} (ID: ${section.groupId || section.rowId || section.categoryId || 'N/A'})`);
+                // Optionally skip rendering or render a placeholder
+                return; // Skip rendering this section
+            }
+
+            try {
+                switch (section.type) {
+                    case 'promo_slider':
+                        sectionElement = createPromoSliderElement(fetchedData, section.id); // Pass fetched cards and layout ID
+                        break;
+                    case 'brands':
+                        sectionElement = createBrandsSectionElement(fetchedData); // Pass fetched brands
+                        break;
+                    case 'newest_products':
+                        sectionElement = createNewestProductsSectionElement(fetchedData); // Pass fetched products
+                        break;
+                    case 'single_shortcut_row':
+                        sectionElement = createSingleShortcutRowElement(fetchedData, section); // Pass fetched cards and section info
+                        break;
+                    case 'single_category_row':
+                        sectionElement = createSingleCategoryRowElement(fetchedData, section); // Pass fetched products and section info
+                        break;
+                    case 'all_products':
+                         sectionElement = createAllProductsSectionElement(fetchedData); // Pass fetched products
+                        break;
+                    // No default needed as unknown types are handled above
+                }
+            } catch(error) {
+                 console.error(`Error creating UI element for section type ${section.type}:`, error);
+                 sectionElement = document.createElement('div');
+                 sectionElement.style.padding = '20px'; sectionElement.style.textAlign = 'center'; sectionElement.style.color = 'red';
+                 sectionElement.textContent = `هەڵە لە دروستکردنی بەشی: ${section.type}`;
+            }
+
+            if (sectionElement) {
+                homeSectionsContainer.appendChild(sectionElement);
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching data for home layout sections:", error);
+        homeSectionsContainer.innerHTML = `<p style="text-align:center; padding: 20px; color: red;">هەڵەیەک لە بارکردنی بەشەکانی پەڕەی سەرەکی ڕوویدا.</p>`;
     }
-    setupScrollAnimations(); // Re-apply scroll animations for newly rendered cards within sections
+
+    setupScrollAnimations(); // Re-apply scroll animations
 }
 
-// --- UI Element Creation Functions for Home Page ---
+// --- UI Element Creation Functions for Home Page (Modified to accept data) ---
 
-async function createPromoSliderElement(groupId, layoutId) {
-    const cards = await fetchPromoGroupCards(groupId);
-    if (!cards || cards.length === 0) return null;
+// ** نوێکراو: داتا وەردەگرێت **
+function createPromoSliderElement(cards, layoutId) {
+    // Data (cards) is already fetched and passed in
+    // No need for: const cards = await fetchPromoGroupCards(groupId);
 
     const promoGrid = document.createElement('div');
     promoGrid.className = 'products-container'; // Use grid for single item layout
@@ -370,7 +401,7 @@ async function createPromoSliderElement(groupId, layoutId) {
     promoGrid.id = `promoSliderLayout_${layoutId}`; // Unique ID
 
     const sliderState = { currentIndex: 0, intervalId: null };
-    const cardData = { cards };
+    const cardData = { cards }; // Use passed-in cards
 
     const promoCardElement = document.createElement('div');
     promoCardElement.className = 'product-card promo-card-grid-item'; // Styles for container
@@ -457,9 +488,10 @@ async function createPromoSliderElement(groupId, layoutId) {
     return promoGrid;
 }
 
-async function createBrandsSectionElement(groupId) {
-    const brands = await fetchBrandGroupBrands(groupId);
-    if (!brands || brands.length === 0) return null;
+// ** نوێکراو: داتا وەردەگرێت **
+function createBrandsSectionElement(brands) {
+    // Data (brands) is already fetched and passed in
+    // No need for: const brands = await fetchBrandGroupBrands(groupId);
 
     const sectionContainer = document.createElement('div');
     sectionContainer.className = 'brands-section';
@@ -472,36 +504,37 @@ async function createBrandsSectionElement(groupId) {
         const item = document.createElement('div');
         item.className = 'brand-item';
         item.innerHTML = `
-            <div class="brand-image-wrapper">
-                <img src="${brand.imageUrl}" alt="${brandName}" loading="lazy" class="brand-image">
-            </div>
-            <span>${brandName}</span>
-        `;
+             <div class="brand-image-wrapper">
+                 <img src="${brand.imageUrl}" alt="${brandName}" loading="lazy" class="brand-image">
+             </div>
+             <span>${brandName}</span>
+         `;
         item.onclick = async () => {
-             if (brand.subcategoryId && brand.categoryId) {
-                 showSubcategoryDetailPageUI(brand.categoryId, brand.subcategoryId); // Use imported function
-             } else if(brand.categoryId) {
-                  await navigateToFilterCore({ category: brand.categoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
-                  await updateProductViewUI(true); // Trigger full refresh
-             }
+              if (brand.subcategoryId && brand.categoryId) {
+                   showSubcategoryDetailPageUI(brand.categoryId, brand.subcategoryId); // Use imported function
+              } else if(brand.categoryId) {
+                    await navigateToFilterCore({ category: brand.categoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
+                    await updateProductViewUI(true); // Trigger full refresh
+              }
         };
         brandsContainer.appendChild(item);
     });
     return sectionContainer;
 }
 
-async function createNewestProductsSectionElement() {
-    const products = await fetchNewestProducts();
-    if (!products || products.length === 0) return null;
+// ** نوێکراو: داتا وەردەگرێت **
+function createNewestProductsSectionElement(products) {
+    // Data (products) is already fetched and passed in
+    // No need for: const products = await fetchNewestProducts();
 
     const container = document.createElement('div');
     container.className = 'dynamic-section';
     container.innerHTML = `
-        <div class="section-title-header">
-            <h3 class="section-title-main">${t('newest_products')}</h3>
-            </div>
-        <div class="horizontal-products-container"></div>
-    `;
+         <div class="section-title-header">
+             <h3 class="section-title-main">${t('newest_products')}</h3>
+             </div>
+         <div class="horizontal-products-container"></div>
+     `;
     const productsScroller = container.querySelector('.horizontal-products-container');
     products.forEach(product => {
         const card = createProductCardElementUI(product); // Use imported function
@@ -510,81 +543,92 @@ async function createNewestProductsSectionElement() {
     return container;
 }
 
-async function createSingleShortcutRowElement(rowId, sectionNameObj) { // Receive name object
-     const rowDocRef = doc(db, "shortcut_rows", rowId);
-     const rowDocSnap = await getDoc(rowDocRef);
-     if (!rowDocSnap.exists()) return null;
+// ** نوێکراو: داتا وەردەگرێت **
+// Use a separate function to fetch the row title if needed, maybe not necessary now
+async function createSingleShortcutRowElement(cards, sectionData) {
+    // Data (cards) is already fetched and passed in
+    // No need for: const cards = await fetchShortcutRowCards(rowId);
+    const rowId = sectionData.rowId;
 
-     const rowData = rowDocSnap.data();
-     const cards = await fetchShortcutRowCards(rowId);
-     if (!cards || cards.length === 0) return null;
+    // Fetch row data just for the title (consider caching this if needed frequently)
+    let rowTitle = (sectionData.name && sectionData.name[state.currentLanguage]) || (sectionData.name && sectionData.name.ku_sorani);
+    if (!rowTitle) {
+        try {
+            const rowDocRef = doc(db, "shortcut_rows", rowId);
+            const rowDocSnap = await getDoc(rowDocRef);
+            if (rowDocSnap.exists()) {
+                const rowData = rowDocSnap.data();
+                rowTitle = rowData.title[state.currentLanguage] || rowData.title.ku_sorani || 'Cards';
+            } else { rowTitle = 'Cards'; }
+        } catch { rowTitle = 'Cards'; }
+    }
 
-     const sectionContainer = document.createElement('div');
-     sectionContainer.className = 'shortcut-cards-section';
-     // Use sectionNameObj from layout first, fallback to rowData title
-     const rowTitle = (sectionNameObj && sectionNameObj[state.currentLanguage]) || rowData.title[state.currentLanguage] || rowData.title.ku_sorani;
-     sectionContainer.innerHTML = `<h3 class="shortcut-row-title">${rowTitle}</h3><div class="shortcut-cards-container"></div>`;
-     const cardsContainer = sectionContainer.querySelector('.shortcut-cards-container');
 
-     cards.forEach(cardData => {
+    const sectionContainer = document.createElement('div');
+    sectionContainer.className = 'shortcut-cards-section';
+    sectionContainer.innerHTML = `<h3 class="shortcut-row-title">${rowTitle}</h3><div class="shortcut-cards-container"></div>`;
+    const cardsContainer = sectionContainer.querySelector('.shortcut-cards-container');
+
+    cards.forEach(cardData => {
          const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
          const item = document.createElement('div');
          item.className = 'shortcut-card';
          item.innerHTML = `
-             <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
-             <div class="shortcut-card-name">${cardName}</div>
-         `;
+              <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
+              <div class="shortcut-card-name">${cardName}</div>
+          `;
          item.onclick = async () => {
               await navigateToFilterCore({ // Use core navigation
-                   category: cardData.categoryId || 'all',
-                   subcategory: cardData.subcategoryId || 'all',
-                   subSubcategory: cardData.subSubcategoryId || 'all',
-                   search: ''
+                  category: cardData.categoryId || 'all',
+                  subcategory: cardData.subcategoryId || 'all',
+                  subSubcategory: cardData.subSubcategoryId || 'all',
+                  search: ''
               });
               await updateProductViewUI(true); // Trigger UI update
          };
          cardsContainer.appendChild(item);
-     });
-     return sectionContainer;
+    });
+    return sectionContainer;
 }
 
-async function createSingleCategoryRowElement(sectionData) {
+// ** نوێکراو: داتا وەردەگرێت **
+async function createSingleCategoryRowElement(products, sectionData) {
+    // Data (products) is already fetched and passed in
+    // No need for: const products = await fetchCategoryRowProducts(sectionData);
     const { categoryId, subcategoryId, subSubcategoryId, name } = sectionData; // name is from layout
-    const products = await fetchCategoryRowProducts(sectionData);
-    if (!products || products.length === 0) return null;
 
     let title = (name && name[state.currentLanguage]) || (name && name.ku_sorani); // Use layout name first
 
     // Try to get a more specific title from category data if layout name wasn't specific enough
     if (!title) {
-        try {
-            let targetDocRef;
-            if (subSubcategoryId) targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubcategoryId}`);
-            else if (subcategoryId) targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}`);
-            else targetDocRef = doc(db, `categories/${categoryId}`);
-            const targetSnap = await getDoc(targetDocRef);
-            if (targetSnap.exists()) {
-                 const targetData = targetSnap.data();
-                 title = targetData['name_' + state.currentLanguage] || targetData.name_ku_sorani || 'کاڵاکان'; // Fallback title
-            } else {
-                 title = 'کاڵاکان'; // Fallback if ref doesn't exist
-            }
-        } catch(e) {
-            console.warn("Could not fetch specific title for category row", e);
-            title = 'کاڵاکان'; // Fallback on error
-        }
+         try {
+             let targetDocRef;
+             if (subSubcategoryId) targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubcategoryId}`);
+             else if (subcategoryId) targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}`);
+             else targetDocRef = doc(db, `categories/${categoryId}`);
+             const targetSnap = await getDoc(targetDocRef);
+             if (targetSnap.exists()) {
+                  const targetData = targetSnap.data();
+                  title = targetData['name_' + state.currentLanguage] || targetData.name_ku_sorani || 'کاڵاکان'; // Fallback title
+             } else {
+                  title = 'کاڵاکان'; // Fallback if ref doesn't exist
+             }
+         } catch(e) {
+             console.warn("Could not fetch specific title for category row", e);
+             title = 'کاڵاکان'; // Fallback on error
+         }
     }
 
 
     const container = document.createElement('div');
     container.className = 'dynamic-section';
     container.innerHTML = `
-        <div class="section-title-header">
-            <h3 class="section-title-main">${title}</h3>
-            <a class="see-all-link">${t('see_all')}</a>
-        </div>
-        <div class="horizontal-products-container"></div>
-    `;
+         <div class="section-title-header">
+             <h3 class="section-title-main">${title}</h3>
+             <a class="see-all-link">${t('see_all')}</a>
+         </div>
+         <div class="horizontal-products-container"></div>
+     `;
     const productsScroller = container.querySelector('.horizontal-products-container');
     products.forEach(product => {
         const card = createProductCardElementUI(product); // Use imported function
@@ -593,7 +637,7 @@ async function createSingleCategoryRowElement(sectionData) {
 
     container.querySelector('.see-all-link').onclick = async () => {
          if(subcategoryId) { // Includes subSubcategoryId case, go to detail page
-             showSubcategoryDetailPageUI(categoryId, subcategoryId); // Use imported function
+              showSubcategoryDetailPageUI(categoryId, subcategoryId); // Use imported function
          } else { // Only main category, filter main page
               await navigateToFilterCore({ category: categoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
               await updateProductViewUI(true); // Trigger full refresh
@@ -602,19 +646,21 @@ async function createSingleCategoryRowElement(sectionData) {
     return container;
 }
 
-async function createAllProductsSectionElement() {
-    const products = await fetchInitialProductsForHome();
-    if (!products || products.length === 0) return null;
+// ** نوێکراو: داتا وەردەگرێت **
+function createAllProductsSectionElement(products) {
+    // Data (products) is already fetched and passed in
+    // No need for: const products = await fetchInitialProductsForHome();
+    if (!products || products.length === 0) return null; // Check if data is valid
 
     const container = document.createElement('div');
     container.className = 'dynamic-section';
     container.style.marginTop = '20px'; // Add some space before this section
     container.innerHTML = `
-        <div class="section-title-header">
-            <h3 class="section-title-main">${t('all_products_section_title')}</h3>
-            </div>
-        <div class="products-container"></div>
-    `;
+         <div class="section-title-header">
+             <h3 class="section-title-main">${t('all_products_section_title')}</h3>
+             </div>
+         <div class="products-container"></div>
+     `;
     const productsGrid = container.querySelector('.products-container');
     products.forEach(product => {
         const card = createProductCardElementUI(product); // Use imported function
@@ -623,3 +669,5 @@ async function createAllProductsSectionElement() {
     return container;
 }
 
+// Ensure the main update function is exported or called appropriately
+export { updateProductViewUI };
