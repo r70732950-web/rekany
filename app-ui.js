@@ -916,9 +916,10 @@ function setupUIEventListeners() {
     // *** چاککراو: گۆڕینی homeBtn.onclick ***
     homeBtn.onclick = async () => {
         const isMainPageActive = mainPage.classList.contains('page-active');
+
         if (!isMainPageActive) {
             // If coming from another page (Settings, Detail Page etc.)
-            // Show main page and reset filters to default view
+            // Show main page AND reset filters to default view
             history.pushState({ type: 'page', id: 'mainPage', scroll: 0 }, '', window.location.pathname.split('?')[0]); // Push a clean main page state
             showPage('mainPage');
             await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
@@ -926,13 +927,16 @@ function setupUIEventListeners() {
         } else {
             // --- Behavior when ALREADY on main page ---
             // Just scroll to the top smoothly. Do not reset filters or refresh.
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const scrolledDown = window.scrollY > 0;
+            if (scrolledDown) {
+                 window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            // If already at top, do nothing.
         }
          // Ensure the home button is marked as active
          updateActiveNav('homeBtn');
     };
     // *** کۆتایی چاکسازی homeBtn.onclick ***
-
 
     settingsBtn.onclick = () => {
         history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
@@ -1178,8 +1182,7 @@ async function handleSetLanguage(lang) {
     }
 }
 
-// *** چاککراو: گۆڕینی updateProductViewUI(true) بۆ updateProductViewUI(false) ***
-// *** چاککراوی زیاتر: هیچ updateProductViewUI بانگ ناکرێت کاتێک دەگەڕێیتەوە بۆ mainPage ***
+// *** چاککراوی کۆتایی: popstate ***
 window.addEventListener('popstate', async (event) => {
     closeAllPopupsUI(); // Close any open popups when navigating back/forward
     const popState = event.state;
@@ -1214,19 +1217,19 @@ window.addEventListener('popstate', async (event) => {
         } else { // It's a filter state for the main page (popState.type is likely null or undefined)
              showPage('mainPage'); // Ensure main page is visible
              applyFilterStateCore(popState); // Apply the state logically
-             // *** لابرا: updateProductViewUI(false) ***
-             // await updateProductViewUI(false); // DO NOT RE-RENDER VIEW on popstate back to main page filter
-             // *** نوێ: نوێکردنەوەی تەنها بەشە پێویستەکان (وەک دوگمەکانی جۆر) ***
+             // *** چاککراو: تەنها جۆرەکان نوێ بکەرەوە، نەک هەموو پەڕەکە ***
              renderMainCategoriesUI();
              const subcats = await fetchSubcategories(state.currentCategory);
              await renderSubcategoriesUI(subcats); // Re-render subcats based on popped state
 
              // Restore scroll position from the popped state
              if (typeof popState.scroll === 'number') {
-                 // **Use requestAnimationFrame for smoother scroll restoration after render**
                  requestAnimationFrame(() => {
                      window.scrollTo(0, popState.scroll);
                  });
+             } else {
+                // If no scroll position in state, scroll to top
+                window.scrollTo(0, 0);
              }
         }
     } else {
@@ -1234,7 +1237,7 @@ window.addEventListener('popstate', async (event) => {
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
         showPage('mainPage');
         applyFilterStateCore(defaultState);
-        await updateProductViewUI(true); // (imported from home.js) - Initial load should be true
+        await updateProductViewUI(true); // Initial load should always render
     }
 });
 
