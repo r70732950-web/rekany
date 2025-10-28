@@ -918,31 +918,23 @@ function setupUIEventListeners() {
     homeBtn.onclick = async () => {
         const isMainPageActive = mainPage.classList.contains('page-active');
         if (!isMainPageActive) {
-            // If not on main page, simply show the main page.
-            // Use history.back() if the previous state was the main page,
-            // otherwise push a new state. Let popstate handle rendering.
-            const previousState = history.state; // Get state before potential push
+            // If coming from another page (Settings, Detail Page)
+            // Show main page and reset filters to default view
             history.pushState({ type: 'page', id: 'mainPage', scroll: 0 }, '', window.location.pathname.split('?')[0]); // Push a clean main page state
             showPage('mainPage');
-            // Check if we need to reset filters (e.g., coming from settings)
-            if (previousState?.type === 'page' && previousState.id !== 'mainPage') {
-                await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-                await updateProductViewUI(true); // Force refresh home view
-            } else {
-                 // Try rendering based on existing state (might be coming from detail page)
-                 applyFilterStateCore(state); // Ensure core state matches history
-                 await updateProductViewUI(false); // Render based on current state
-                 setTimeout(() => window.scrollTo(0, state.lastScrollPosition || 0), 50); // Restore scroll
-            }
+            await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
+            await updateProductViewUI(true); // Ensure home renders fresh default view
         } else {
-            // If already on the main page, just scroll to top smoothly.
+            // If already on the main page (regardless of filters)
+            // Just scroll to the top smoothly. Do not reset filters or refresh.
             window.scrollTo({ top: 0, behavior: 'smooth' });
-             // Optionally reset filters ONLY if currently filtered
+            // *** لابرا: بەشی ڕێسێتکردنی فلتەر کاتێک لە پەڕەی سەرەکیت ***
+            /*
              if (state.currentCategory !== 'all' || state.currentSubcategory !== 'all' || state.currentSubSubcategory !== 'all' || state.currentSearch !== '') {
-                  // Only reset if filters are active
                   await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-                  await updateProductViewUI(true); // Refresh to show all
+                  await updateProductViewUI(true);
              }
+            */
         }
     };
     // *** کۆتایی چاکسازی homeBtn.onclick ***
