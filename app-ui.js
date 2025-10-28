@@ -912,7 +912,6 @@ function handleToggleFavoriteUI(productId) {
 
 // --- Setup Functions ---
 
-// ... (handleSetLanguage, Popstate listener, initializeUI, handleInitialPageLoadUI, renderContactLinksUI, setupGpsButtonUI remain largely the same, ensuring they call the imported home.js functions where needed) ...
 function setupUIEventListeners() {
     // *** چاککراو: گەڕاندنەوەی لۆژیکی کۆن بۆ homeBtn.onclick ***
     homeBtn.onclick = async () => {
@@ -922,15 +921,28 @@ function setupUIEventListeners() {
             // Show main page and reset filters to default view
             history.pushState({ type: 'page', id: 'mainPage', scroll: 0 }, '', window.location.pathname.split('?')[0]); // Push a clean main page state
             showPage('mainPage');
-            // Fallthrough to reset filters below
+            // Fallthrough to reset filters below (original logic)
         }
-        // Always reset filters when home button is clicked, regardless of current page
-        await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-        await updateProductViewUI(true); // Ensure home renders fresh default view
+        // Always reset filters when home button is clicked, regardless of current page (original logic)
+        // Only reset if filters are *currently* active to avoid unnecessary refresh
+        const filtersCurrentlyActive = state.currentCategory !== 'all'
+                                     || state.currentSubcategory !== 'all'
+                                     || state.currentSubSubcategory !== 'all'
+                                     || state.currentSearch !== '';
+
+        if (!isMainPageActive || filtersCurrentlyActive) {
+            // Reset filters ONLY if coming from another page OR if filters are active on main page
+            await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
+            await updateProductViewUI(true); // Ensure home renders fresh default view
+        } else {
+             // If already on main page AND no filters active, just scroll to top
+             window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
          // Ensure the home button is marked as active AFTER potentially showing the page and refreshing
          updateActiveNav('homeBtn');
     };
     // *** کۆتایی چاکسازی homeBtn.onclick ***
+
 
     settingsBtn.onclick = () => {
         history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
