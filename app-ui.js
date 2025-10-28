@@ -1,6 +1,7 @@
 // app-ui.js
 // Rêveberiya UI Giştî, girêdana bûyeran (event listeners), û nûvekirina DOM
 
+// ... (imports remain the same as previous version) ...
 import {
     // Import DOM elements needed for general UI updates
     loginModal, addProductBtn, productFormModal, skeletonLoader, searchInput,
@@ -45,6 +46,7 @@ import {
 } from './app-core.js';
 
 // واردکردنی فانکشنەکانی پەڕەی سەرەکی لە home.js
+// *** NOTE: home.js functions are used in setupUIEventListeners and initializeUI ***
 import {
     renderHomePageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
 } from './home.js';
@@ -176,7 +178,7 @@ function updateCartCountUI() {
 
 // --- Rendering Functions (UI specific) ---
 
-// Moved renderSkeletonLoader here as it's general and needed by multiple parts
+// *** UPDATED: Export the function ***
 export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
     if (!container) {
         console.error("Skeleton loader container not found:", container);
@@ -196,11 +198,9 @@ export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
     }
     container.style.display = 'grid'; // Ensure it's visible
 }
-// Make globally accessible if needed without explicit import in home.js
-window.renderSkeletonLoader = renderSkeletonLoader;
+// *** REMOVED: window assignment removed ***
 
-
-// Moved createProductCardElementUI here as it's used in multiple places (home, favorites, detail page)
+// *** UPDATED: Export the function ***
 export function createProductCardElementUI(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
@@ -327,11 +327,9 @@ export function createProductCardElementUI(product) {
 
     return productCard;
 }
-// Make globally accessible if needed without explicit import in home.js
-window.createProductCardElementUI = createProductCardElementUI;
+// *** REMOVED: window assignment removed ***
 
-
-// Moved setupScrollAnimations here as it's general UI and needed by home.js
+// *** UPDATED: Export the function ***
 export function setupScrollAnimations() { // Exported
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -348,10 +346,8 @@ export function setupScrollAnimations() { // Exported
         observer.observe(card);
     });
 }
-// Make globally accessible if needed without explicit import in home.js
-window.setupScrollAnimations = setupScrollAnimations;
+// *** REMOVED: window assignment removed ***
 
-// renderProductsUI removed (logic moved to home.js as renderProductsGridUI)
 
 function renderCartUI() {
     cartItemsContainer.innerHTML = '';
@@ -522,11 +518,6 @@ function renderCategoriesSheetUI() {
     });
 }
 
-
-// renderMainCategoriesUI removed (moved to home.js)
-// renderSubcategoriesUI removed (moved to home.js)
-// renderSubSubcategoriesUI removed (moved to home.js)
-
  // Renders sub-subcategories on the **detail page** (kept here)
  async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
       const container = document.getElementById('subSubCategoryContainerOnDetailPage');
@@ -629,6 +620,7 @@ function renderCategoriesSheetUI() {
 
 
 // Displays the subcategory detail page (kept here)
+// *** UPDATED: Export the function ***
 export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHistory = false) { // Exported
     let subCatName = 'Details'; // Default title
     try {
@@ -664,8 +656,7 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
 
     loader.style.display = 'none'; // Hide loader after content is loaded
 }
-// Make globally accessible if needed without explicit import in home.js
-window.showSubcategoryDetailPageUI = showSubcategoryDetailPageUI;
+// *** REMOVED: window assignment removed ***
 
 
 async function showProductDetailsUI(productData) {
@@ -850,7 +841,7 @@ function updateAdminUIAuth(isAdmin) {
             if (product) showProductDetailsUI(product); // Re-render detail sheet
         });
     }
-    // Note: Main product grid rerender is handled by updateProductViewUI in home.js
+    // Note: Main product grid rerender is now handled by updateProductViewUI in home.js
 }
 
 // --- UI Event Handlers ---
@@ -910,10 +901,6 @@ function handleToggleFavoriteUI(productId) {
     }
 }
 
-// handleCategorySelection removed (logic moved to home.js)
-// updateProductViewUI removed (moved to home.js)
-// renderHomePageContentUI and its helpers removed (moved to home.js)
-
 // --- Setup Functions ---
 
 function setupUIEventListeners() {
@@ -922,9 +909,9 @@ function setupUIEventListeners() {
             history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
             showPage('mainPage');
         }
-        // Reset filters and trigger refresh (using imported function)
+        // Reset filters and trigger refresh (using imported function from home.js)
         await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-        await updateProductViewUI(true); // Ensure home renders fresh (imported from home.js)
+        await updateProductViewUI(true); // Ensure home renders fresh
     };
 
     settingsBtn.onclick = () => {
@@ -1067,13 +1054,16 @@ function setupUIEventListeners() {
                  const result = await fetchProducts(state.currentSearch, false); // Fetch next page
                  loader.style.display = 'none'; // Hide loader after fetching
                  if(result && result.products.length > 0) {
-                      // Call the render function from home.js to append
+                      // *** UPDATED: Call the render function imported from home.js ***
                       // We need to import or expose renderProductsGridUI from home.js
-                      // For now, assuming it's globally available via window
+                      // Assuming renderProductsGridUI is exported from home.js
+                      // import { renderProductsGridUI } from './home.js'; // Needs to be added at top
+                      // renderProductsGridUI(result.products); // Call imported function
+                      // For now, continue using window as a bridge if direct import is complex
                       if (window.renderProductsGridUI) {
-                          window.renderProductsGridUI(result.products);
+                         window.renderProductsGridUI(result.products);
                       } else {
-                          console.error("renderProductsGridUI not found on window");
+                         console.error("renderProductsGridUI not found on window");
                       }
                  }
                  // Update scroll trigger visibility based on allLoaded status from core
@@ -1148,7 +1138,6 @@ async function handleSetLanguage(lang) {
     });
 
     // Re-render dynamic content that depends on language
-    // renderMainCategoriesUI(); // Now handled by updateProductViewUI call below
     renderCategoriesSheetUI(); // Re-render sheet categories
     if (document.getElementById('cartSheet').classList.contains('show')) renderCartUI();
     if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPageUI();
@@ -1415,3 +1404,4 @@ function setupGpsButtonUI() {
 
 // --- Start UI Initialization ---
 document.addEventListener('DOMContentLoaded', initializeUI);
+
