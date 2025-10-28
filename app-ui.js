@@ -913,7 +913,7 @@ function handleToggleFavoriteUI(productId) {
 // --- Setup Functions ---
 
 function setupUIEventListeners() {
-    // *** چاککراو: گەڕاندنەوەی لۆژیکی کۆن بۆ homeBtn.onclick ***
+    // *** چاککراو: گۆڕینی homeBtn.onclick ***
     homeBtn.onclick = async () => {
         const isMainPageActive = mainPage.classList.contains('page-active');
         if (!isMainPageActive) {
@@ -921,24 +921,14 @@ function setupUIEventListeners() {
             // Show main page and reset filters to default view
             history.pushState({ type: 'page', id: 'mainPage', scroll: 0 }, '', window.location.pathname.split('?')[0]); // Push a clean main page state
             showPage('mainPage');
-            // Fallthrough to reset filters below (original logic)
-        }
-        // Always reset filters when home button is clicked, regardless of current page (original logic)
-        // Only reset if filters are *currently* active to avoid unnecessary refresh
-        const filtersCurrentlyActive = state.currentCategory !== 'all'
-                                     || state.currentSubcategory !== 'all'
-                                     || state.currentSubSubcategory !== 'all'
-                                     || state.currentSearch !== '';
-
-        if (!isMainPageActive || filtersCurrentlyActive) {
-            // Reset filters ONLY if coming from another page OR if filters are active on main page
             await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
             await updateProductViewUI(true); // Ensure home renders fresh default view
         } else {
-             // If already on main page AND no filters active, just scroll to top
-             window.scrollTo({ top: 0, behavior: 'smooth' });
+            // --- Behavior when ALREADY on main page ---
+            // Just scroll to the top smoothly. Do not reset filters or refresh.
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-         // Ensure the home button is marked as active AFTER potentially showing the page and refreshing
+         // Ensure the home button is marked as active
          updateActiveNav('homeBtn');
     };
     // *** کۆتایی چاکسازی homeBtn.onclick ***
@@ -1189,6 +1179,7 @@ async function handleSetLanguage(lang) {
 }
 
 // *** چاککراو: گۆڕینی updateProductViewUI(true) بۆ updateProductViewUI(false) ***
+// *** چاککراوی زیاتر: هیچ updateProductViewUI بانگ ناکرێت کاتێک دەگەڕێیتەوە بۆ mainPage ***
 window.addEventListener('popstate', async (event) => {
     closeAllPopupsUI(); // Close any open popups when navigating back/forward
     const popState = event.state;
@@ -1223,8 +1214,13 @@ window.addEventListener('popstate', async (event) => {
         } else { // It's a filter state for the main page (popState.type is likely null or undefined)
              showPage('mainPage'); // Ensure main page is visible
              applyFilterStateCore(popState); // Apply the state logically
-             // *** چاککراو: گۆڕینی true بۆ false ***
-             await updateProductViewUI(false); // Re-render without treating as new search
+             // *** لابرا: updateProductViewUI(false) ***
+             // await updateProductViewUI(false); // DO NOT RE-RENDER VIEW on popstate back to main page filter
+             // *** نوێ: نوێکردنەوەی تەنها بەشە پێویستەکان (وەک دوگمەکانی جۆر) ***
+             renderMainCategoriesUI();
+             const subcats = await fetchSubcategories(state.currentCategory);
+             await renderSubcategoriesUI(subcats); // Re-render subcats based on popped state
+
              // Restore scroll position from the popped state
              if (typeof popState.scroll === 'number') {
                  // **Use requestAnimationFrame for smoother scroll restoration after render**
@@ -1316,7 +1312,7 @@ async function handleInitialPageLoadUI() {
          };
          history.replaceState(initialState, ''); // Set initial history state for main page
          applyFilterStateCore(initialState); // Apply the state
-         await updateProductViewUI(true); // Render content based on state (imported from home.js)
+         await updateProductViewUI(true); // Render content based on state (imported from home.js) - *Initial load should render*
 
          // Check if a specific popup needs to be opened on initial load
          const element = document.getElementById(hash);
