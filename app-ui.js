@@ -912,21 +912,20 @@ function handleToggleFavoriteUI(productId) {
 
 // --- Setup Functions ---
 
-// ... (setupUIEventListeners, handleSetLanguage, Popstate listener, initializeUI, handleInitialPageLoadUI, renderContactLinksUI, setupGpsButtonUI remain largely the same, ensuring they call the imported home.js functions where needed) ...
+// ... (handleSetLanguage, Popstate listener, initializeUI, handleInitialPageLoadUI, renderContactLinksUI, setupGpsButtonUI remain largely the same, ensuring they call the imported home.js functions where needed) ...
 function setupUIEventListeners() {
+    // *** چاککراو: گۆڕینی homeBtn.onclick ***
     homeBtn.onclick = async () => {
-        if (!document.getElementById('mainPage').classList.contains('page-active')) {
-             history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
-             showPage('mainPage');
-             // Reset filters and trigger refresh (using imported function)
-             await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-             await updateProductViewUI(true); // Ensure home renders fresh (imported from home.js)
+        const isMainPageActive = mainPage.classList.contains('page-active');
+        if (!isMainPageActive) {
+            // If not on main page, navigate back to it and refresh home sections/products
+            history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
+            showPage('mainPage');
+            await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
+            await updateProductViewUI(true); // Ensure home renders fresh
         } else {
-            // If already on the main page, maybe just scroll to top?
+            // If already on the main page, just scroll to top
             window.scrollTo({ top: 0, behavior: 'smooth' });
-            // Or if you want to force refresh home:
-            // await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-            // await updateProductViewUI(true);
         }
     };
 
@@ -1416,3 +1415,4 @@ function setupGpsButtonUI() {
 
 // --- Start UI Initialization ---
 document.addEventListener('DOMContentLoaded', initializeUI);
+
