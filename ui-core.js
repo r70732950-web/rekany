@@ -22,7 +22,7 @@ import {
     handleInstallPrompt, forceUpdateCore, saveCurrentScrollPositionCore,
     applyFilterStateCore, navigateToFilterCore, initCore,
     fetchContactMethods, // Needed for renderContactLinksUI
-    // Firestore needed for renderContactLinksUI
+    // Firestore needed for renderContactLinksUI and popstate title fetch
     db, collection, query, orderBy, getDocs, doc, getDoc, signOut // signOut needed for logout button
 } from './app-core.js';
 
@@ -31,7 +31,9 @@ import {
     renderCartUI, renderFavoritesPageUI, renderCategoriesSheetUI,
     renderUserNotificationsUI, renderPoliciesUI, renderCartActionButtonsUI,
     showProductDetailsUI, // Needed for direct product link loading
-    showSubcategoryDetailPageUI // Needed for direct subcategory link loading
+    showSubcategoryDetailPageUI, // Needed for direct subcategory link loading
+    // *** KODA NÛ: `renderProductsOnDetailPageUI` ji `ui-render.js` tê ***
+    renderProductsOnDetailPageUI
 } from './ui-render.js';
 
 import {
@@ -79,9 +81,11 @@ export function showPage(pageId, pageTitle = '') {
         page.classList.toggle('page-hidden', !isActive);
     });
 
-    if (pageId !== 'mainPage') {
-        window.scrollTo(0, 0);
-    }
+    // Only scroll to top if navigating to a *different* page (not returning to main page potentially)
+    // Scroll restoration is handled manually in popstate
+    // if (pageId !== 'mainPage') {
+    //     window.scrollTo(0, 0);
+    // }
 
     if (pageId === 'settingsPage') {
          updateHeaderView('settingsPage', t('settings_title'));
@@ -103,15 +107,18 @@ export function closeAllPopupsUI() {
     document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
     document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('show'));
     sheetOverlay.classList.remove('show');
-    document.body.classList.remove('overlay-active');
+    document.body.classList.remove('overlay-active'); // Ensure overlay class is removed
 }
 
 export function openPopup(id, type = 'sheet') {
-    saveCurrentScrollPositionCore();
+    // === KODA NÛ: Pêşî scrollê biparêze berî vekirina popup ===
+    saveCurrentScrollPositionCore(); // Ji app-core.js
+    // === DAWÎYA KODA NÛ ===
+
     const element = document.getElementById(id);
     if (!element) return;
 
-    closeAllPopupsUI();
+    closeAllPopupsUI(); // Pêşî hemû popupên din bigire
 
     if (type === 'sheet') {
         sheetOverlay.classList.add('show');
@@ -127,21 +134,28 @@ export function openPopup(id, type = 'sheet') {
             document.getElementById('profileAddress').value = state.userProfile.address || '';
             document.getElementById('profilePhone').value = state.userProfile.phone || '';
         }
+        // Note: Product detail sheet content is usually rendered *before* calling openPopup
     } else { // type === 'modal'
         element.style.display = 'block';
     }
-    document.body.classList.add('overlay-active');
+    document.body.classList.add('overlay-active'); // Add overlay class to body
 
-    history.pushState({ type: type, id: id }, '', `#${id}`);
+    // Push state ONLY if it's not already the current state (prevents duplicate entries)
+    if (!history.state || history.state.id !== id) {
+        history.pushState({ type: type, id: id }, '', `#${id}`);
+    }
 }
 // Make globally available if needed by admin.js
 if(window.globalAdminTools) window.globalAdminTools.openPopup = openPopup;
 
 
 export function closeCurrentPopup() {
+    // Check if the current history state corresponds to a popup
     if (history.state && (history.state.type === 'sheet' || history.state.type === 'modal')) {
+        // Go back in history, which triggers the popstate listener to close the UI
         history.back();
     } else {
+        // If history state is not a popup, directly close UI elements (fallback)
         closeAllPopupsUI();
     }
 }
@@ -258,7 +272,15 @@ function setupGpsButtonUI() {
              async (position) => { // Success
                  const { latitude, longitude } = position.coords;
                  try {
-                     const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`);
+                     // Use a CORS proxy if Nominatim direct access is blocked
+                     // Example proxy (replace with your own or a reliable public one if needed):
+                     // const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+                     // const apiUrl = `${proxyUrl}https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`;
+                     const apiUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`;
+                     const response = await fetch(apiUrl);
+                     if (!response.ok) {
+                         throw new Error(`HTTP error! status: ${response.status}`);
+                     }
                      const data = await response.json();
                      if (data && data.display_name) {
                          profileAddressInput.value = data.display_name;
@@ -322,6 +344,7 @@ function setupUIEventListeners() {
             history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
             showPage('mainPage'); // Use function from this file
         }
+        // Reset filters *before* rendering
         await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
         await updateProductViewUI(true); // From home.js
     };
@@ -383,12 +406,9 @@ function setupUIEventListeners() {
             const activeSubSubBtn = document.querySelector('#subSubCategoryContainerOnDetailPage .subcategory-btn.active');
             const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.id || 'all') : 'all';
             // Need renderProductsOnDetailPageUI from ui-render.js
-            // Assuming it's imported correctly
-            if (typeof renderProductsOnDetailPageUI === 'function') {
-                await renderProductsOnDetailPageUI(subCatId, subSubCatId, term);
-            } else {
-                 console.error("renderProductsOnDetailPageUI not imported correctly from ui-render.js");
-            }
+            // *** KODA NÛ: `renderProductsOnDetailPageUI` jixwe ji `ui-render.js` tê ***
+            // Kontrol ne hewce ye
+            await renderProductsOnDetailPageUI(subCatId, subSubCatId, term);
         }
     }, 500);
     subpageSearchInput.oninput = () => {
@@ -451,6 +471,8 @@ function setupUIEventListeners() {
             const isMainPageActive = mainPage?.classList.contains('page-active');
             const homeSectionsHidden = document.getElementById('homePageSectionsContainer')?.style.display === 'none';
 
+            // Load more ONLY if on main page, home sections are hidden (meaning product grid is visible),
+            // and not already loading or finished loading
             if (entries[0].isIntersecting && isMainPageActive && homeSectionsHidden && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
                 loader.style.display = 'block';
                 await updateProductViewUI(false); // Call from home.js to fetch and append
@@ -493,24 +515,28 @@ function setupUIEventListeners() {
 
     document.addEventListener('clearCacheTriggerRender', async () => {
         console.log("UI received clearCacheTriggerRender event.");
-        if (state.currentCategory === 'all' && !state.currentSearch) {
-            await updateProductViewUI(true); // Re-render home view (from home.js)
-        }
+        // Force a full re-render of the current view, whatever it is
+        await updateProductViewUI(true);
     });
 
     // GPS Button Setup
     setupGpsButtonUI(); // Use function from this file
 }
 
-// Popstate listener for handling back/forward navigation
+// === KODA GUHERTÎ: Popstate Listener ji bo Çareserkirina Leqeta Scroll ===
 window.addEventListener('popstate', async (event) => {
-    closeAllPopupsUI(); // Close any open popups
+    // --- START: KODA NÛ ---
+    // Kontrol bike ka popupek VEKIRÎ bû BERÎ ku closeAllPopupsUI() were gazîkirin
+    const wasPopupOpen = document.body.classList.contains('overlay-active');
+    // --- DAWÎ: KODA NÛ ---
+
+    closeAllPopupsUI(); // Pêşî hemû popupan bigire
     const popState = event.state;
 
     if (popState) {
         if (popState.type === 'page') {
+            // Logika navigasyonê ya rûpelan wekî xwe dimîne
             let pageTitle = popState.title;
-            // Refetch title for detail page if needed
             if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
                 try {
                     const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
@@ -522,35 +548,45 @@ window.addEventListener('popstate', async (event) => {
                     }
                 } catch(e) { console.error("Could not refetch title on popstate", e) }
             }
-            showPage(popState.id, pageTitle); // Show target page (from this file)
+            showPage(popState.id, pageTitle); // Rûpela armanc nîşan bide
 
-            // Re-render detail page content if navigating back to it
+            // Naveroka rûpela hûrguliyan ji nû ve render bike eger vedigere wê
             if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
-                await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true); // From ui-render.js
+                await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
             }
 
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
-            openPopup(popState.id, popState.type); // Re-open popup (from this file)
-        } else { // Filter state for main page
-            showPage('mainPage'); // Ensure main page visible (from this file)
-            applyFilterStateCore(popState); // Apply state logic
+            // Ger vedigere statekê ku divê popupek vekirî be (ji bo nimûne, lînka rasterast), wê veke
+            // Lêbelê, gava ku tenê popupek tê girtin (bi `history.back()`), ev ê neyê xebitandin ji ber ku stateya berê nayê hilanîn.
+            // Em tenê piştrast dikin ku UI tê girtin. `closeAllPopupsUI` berê vê dike.
+            // openPopup(popState.id, popState.type);
+        } else { // State filterê ji bo rûpela sereke (bi îhtîmal ev state ye ku em vedigerinê)
+            showPage('mainPage'); // Piştrast bike ku rûpela sereke xuya ye
+            applyFilterStateCore(popState); // Logika state bicîh bîne
+            await updateProductViewUI(true); // Berheman ji nû ve render bike
 
-            // *** گوهۆڕین ل ڤێرە: دێ ل هیڤیا دوماهیک هاتنا نیشاندانا UI مینین ***
-            await updateProductViewUI(true); // Re-render products (from home.js)
-
-            // *** گوهۆڕین ل ڤێرە: سکڕۆلکرن پاشی دوماهیک هاتنێ دهێتە کرن ***
-            if (typeof popState.scroll === 'number') {
-                // setTimeout 0 پشتراست دکەت کۆ پشتی نیشاندانێ سکڕۆل دبیت
-                setTimeout(() => window.scrollTo(0, popState.scroll), 0);
+            // --- START: KODA GUHERTÎ JI BO VEGERANDINA SCROLLÊ ---
+            // Cihê scrollê YEKSER vegere eger ji popupekê vedigere statekê ku scroll tê de tomarkirî ye
+            if (wasPopupOpen && typeof popState.scroll === 'number') {
+                window.scrollTo({ top: popState.scroll, behavior: 'instant' }); // 'instant' bikar bîne
+                console.log("Scroll vegeriya:", popState.scroll);
+            } else if (typeof popState.scroll === 'number') {
+                // Eger di navbera stateyên filterê de digere, dibe ku derengiya biçûk bihêle (an jî 'instant')
+                setTimeout(() => window.scrollTo({ top: popState.scroll, behavior: 'auto' }), 50); // yan 'instant'
             }
+            // --- DAWÎ: KODA GUHERTÎ JI BO VEGERANDINA SCROLLÊ ---
         }
-    } else { // No state, default to main page
+    } else { // No state, vegere rûpela sereke ya default
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
-        showPage('mainPage'); // From this file
+        showPage('mainPage');
         applyFilterStateCore(defaultState);
-        await updateProductViewUI(true); // From home.js
+        await updateProductViewUI(true);
+        // --- START: KODA NÛ ---
+        window.scrollTo({ top: 0, behavior: 'instant' }); // Ji bo barkirina default scroll bike jor
+        // --- DAWÎ: KODA NÛ ---
     }
 });
+// === DAWÎYA KODA GUHERTÎ ===
 
 // Handles initial page load based on URL after core logic is ready
 async function handleInitialPageLoadUI() {
@@ -560,6 +596,7 @@ async function handleInitialPageLoadUI() {
     const isSubcategoryDetail = hash.startsWith('subcategory_');
 
     if (isSettings) {
+        // Replace state to avoid going "back" to main page immediately
         history.replaceState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', `#${hash}`);
         showPage('settingsPage', t('settings_title')); // From this file
     } else if (isSubcategoryDetail) {
@@ -567,7 +604,19 @@ async function handleInitialPageLoadUI() {
         const mainCatId = ids[1];
         const subCatId = ids[2];
         if (state.categories.length > 1) { // Check if categories are loaded
-            await showSubcategoryDetailPageUI(mainCatId, subCatId, true); // From ui-render.js
+            // Replace state for direct link
+            // Fetch title before replacing state
+            let subCatName = 'Details';
+            try {
+                const subCatRef = doc(db, "categories", mainCatId, "subcategories", subCatId);
+                const subCatSnap = await getDoc(subCatRef);
+                if (subCatSnap.exists()) {
+                    const subCat = subCatSnap.data();
+                    subCatName = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
+                }
+            } catch (e) { console.error("Could not fetch subcategory name for initial load:", e); }
+            history.replaceState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#${hash}`);
+            await showSubcategoryDetailPageUI(mainCatId, subCatId, true); // From ui-render.js (true for fromHistory)
         } else {
             console.warn("Categories not ready, showing main page.");
             showPage('mainPage'); // From this file
@@ -576,7 +625,8 @@ async function handleInitialPageLoadUI() {
     } else { // Default to main page
         showPage('mainPage'); // From this file
         const initialState = { category: params.get('category') || 'all', subcategory: params.get('subcategory') || 'all', subSubcategory: params.get('subSubcategory') || 'all', search: params.get('search') || '', scroll: 0 };
-        history.replaceState(initialState, '');
+        // Replace initial empty state with filter state
+        history.replaceState(initialState, '', `?${params.toString()}`); // Keep query params if they exist
         applyFilterStateCore(initialState);
         await updateProductViewUI(true); // From home.js
 
@@ -584,13 +634,21 @@ async function handleInitialPageLoadUI() {
         if (element) { // Check if hash corresponds to a popup
             const isSheet = element.classList.contains('bottom-sheet');
             const isModal = element.classList.contains('modal');
-            if (isSheet || isModal) openPopup(hash, isSheet ? 'sheet' : 'modal'); // From this file
+            if (isSheet || isModal) {
+                // Ensure the main page content is loaded before opening the popup
+                await new Promise(resolve => setTimeout(resolve, 50)); // Small delay
+                openPopup(hash, isSheet ? 'sheet' : 'modal'); // From this file
+            }
         }
 
         const productId = params.get('product'); // Check for direct product link
         if (productId) {
-            const product = await fetchProductById(productId);
-            if (product) setTimeout(() => showProductDetailsUI(product), 300); // From ui-render.js
+            const product = await fetchProductById(productId); // From app-core.js
+            if (product) {
+                // Ensure main page content is loaded first
+                await new Promise(resolve => setTimeout(resolve, 50));
+                showProductDetailsUI(product); // From ui-render.js
+            }
         }
     }
 }
@@ -615,8 +673,8 @@ async function initializeUI() {
     renderContactLinksUI(); // From this file
 
     // Check for new notifications
-    const announcements = await fetchAnnouncements();
-     if(announcements.length > 0 && checkNewAnnouncementsCore(announcements[0].createdAt)) {
+    const announcements = await fetchAnnouncements(); // From app-core.js
+     if(announcements.length > 0 && checkNewAnnouncementsCore(announcements[0].createdAt)) { // From app-core.js
          notificationBadge.style.display = 'block';
      }
 
@@ -636,5 +694,6 @@ window.openPopup = openPopup;
 window.closeCurrentPopup = closeCurrentPopup;
 window.updateCartCountUI = updateCartCountUI;
 window.showNotification = showNotification;
-window.navigateToFilterCore = navigateToFilterCore; // From app-core, needed by category sheet render
-window.updateProductViewUI = updateProductViewUI; // From home.js, needed by category sheet render
+// These are needed by renderCategoriesSheetUI in ui-render.js
+window.navigateToFilterCore = navigateToFilterCore; // From app-core
+window.updateProductViewUI = updateProductViewUI; // From home.js

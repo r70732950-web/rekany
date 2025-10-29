@@ -1,6 +1,12 @@
 // BEŞÊ YEKEM: app-setup.js (Çakkirî bo exportên UI û globalAdminTools)
 // Pênasekirin û sazkarîyên destpêkê
 
+// === KODA NÛ JI BO ÇARESERKIRINA LEQETA SCROLL ===
+// Vê yekê rê li ber gerokê digire ku bixweber cihê scrollê sererast bike dema ku dîrok tê guhertin.
+// Ev ji bo pêşîgirtina li bazdana scrollê pêwîst e dema ku popup têne girtin.
+history.scrollRestoration = 'manual';
+// === DAWÎYA KODA NÛ ===
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
@@ -445,7 +451,7 @@ window.globalAdminTools = {
         }, 3000);
     },
     // === KODA ÇAKKIRÎ: Fonksiyona Paqijkirina Cache ===
-    clearProductCache: () => { 
+    clearProductCache: () => { 
         console.log("Product cache and home page cleared due to admin action.");
         state.productCache = {}; // Cachea filterê paqij bike
         const homeContainer = document.getElementById('homePageSectionsContainer');
