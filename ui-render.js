@@ -1,6 +1,5 @@
 // ui-render.js
 // Fonksiyonên taybet bo renderkirina beşên UI
-// (تەنها فانکشنەکانی تایبەت بە دروستکردن و نوێکردنەوەی بەشە دیاریکراوەکانی UI لێرەدان)
 
 import {
     // DOM Elements needed for rendering specific parts
@@ -8,13 +7,17 @@ import {
     favoritesContainer, emptyFavoritesMessage, sheetCategoriesContainer,
     notificationsListContainer, notificationBadge, termsContentContainer,
     skeletonLoader, // Exported from setup
-    // loginModal, addProductBtn, productFormModal, productsContainer, searchInput,
-    // clearSearchBtn, loginForm, productForm, formTitle, loader,
-    // cartBtn, categoriesBtn, sheetOverlay,
-    // productCategorySelect, subcategorySelectContainer, productSubcategorySelect, subSubcategorySelectContainer,
-    // productSubSubcategorySelect, profileForm, settingsPage, mainPage, homeBtn, settingsBtn,
-    // settingsFavoritesBtn, settingsAdminLoginBtn, settingsLogoutBtn, profileBtn, contactToggle,
-    // notificationBtn, notificationsSheet, termsAndPoliciesBtn, termsSheet,
+    imageInputsContainer, // Used in createProductCardElementUI for admin edit? No, only in admin.js
+    // Potentially needed from setup for specific renders
+    loginModal, addProductBtn, productFormModal, productsContainer, searchInput,
+    clearSearchBtn, loginForm, productForm, formTitle, loader,
+    cartBtn, categoriesBtn, sheetOverlay,
+    productCategorySelect, subcategorySelectContainer, productSubcategorySelect, subSubcategorySelectContainer,
+    productSubSubcategorySelect, profileForm, settingsPage, mainPage, homeBtn, settingsBtn,
+    settingsFavoritesBtn, settingsAdminLoginBtn, settingsLogoutBtn, profileBtn, contactToggle,
+    notificationBtn, notificationsSheet, termsAndPoliciesBtn, termsSheet,
+    // Admin elements potentially needed if rendering logic moves here (less likely now)
+    // subSubcategoriesContainer // Main page one from setup
 } from './app-setup.js';
 
 import {
@@ -30,17 +33,13 @@ import {
 
 // --- UI Rendering Functions (EXPORTED) ---
 
-/**
- * Pêşandana skeleton loader di konteynerek diyar de.
- * @param {HTMLElement} container - Konteynera ku dê skeleton tê de bêne pêşandan.
- * @param {number} count - Hejmara kartên skeleton ku bêne çêkirin.
- */
+// Renders skeleton loader (Used by multiple files)
 export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
     if (!container) {
         console.error("Skeleton loader container not found:", container);
         return;
     }
-    container.innerHTML = ''; // Paqijkirina skeletonên berê
+    container.innerHTML = ''; // Clear previous skeletons
     for (let i = 0; i < count; i++) {
         const skeletonCard = document.createElement('div');
         skeletonCard.className = 'skeleton-card';
@@ -52,14 +51,10 @@ export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
         `;
         container.appendChild(skeletonCard);
     }
-    container.style.display = 'grid'; // Piştrastkirina ku xuya ye
+    container.style.display = 'grid'; // Ensure it's visible
 }
 
-/**
- * Çêkirina elementek kartê hilberê bi hemî fonksiyonên pêwîst.
- * @param {object} product - Objekta hilberê ji Firestore.
- * @returns {HTMLElement} - Elementa kartê hilberê ya çêkirî.
- */
+// Creates a product card element (Used by multiple files)
 export function createProductCardElementUI(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
@@ -67,7 +62,7 @@ export function createProductCardElementUI(product) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
 
     const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
-    const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || 'https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە');
+    const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || 'https://placehold.co/300x300/e2e8f0/2d3748?text=No+Image');
 
     let priceHTML = `<div class="product-price-container"><div class="product-price">${product.price.toLocaleString()} د.ع.</div></div>`;
     let discountBadgeHTML = '';
@@ -120,12 +115,13 @@ export function createProductCardElementUI(product) {
         </div>
     `;
 
-    // --- Girêdana Listeneran rasterast li vir ---
-    // Bişkoja Parvekirinê
+    // --- Attach Event Listeners Directly Here ---
+    // Share Button
     productCard.querySelector('.share-btn-card').addEventListener('click', async (event) => {
        event.stopPropagation();
-       // Bikaranîna window.showNotification ji ui-core.js
-       const showNotification = window.showNotification || (() => console.error('showNotification not found'));
+       // Import showNotification if not available globally/via setup
+       // Or rely on it being available via ui-core.js (assuming ui-core loads first/exports it)
+       const { showNotification } = await import('./ui-core.js'); // Dynamic import might be needed if load order varies
        const productUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
        const shareData = {
            title: nameInCurrentLang,
@@ -134,15 +130,15 @@ export function createProductCardElementUI(product) {
        };
        try {
            if (navigator.share) {
-               await navigator.share(shareData);
+                await navigator.share(shareData);
            } else {
-               const textArea = document.createElement('textarea');
-               textArea.value = productUrl;
-               document.body.appendChild(textArea);
-               textArea.select();
-               try { document.execCommand('copy'); showNotification('لینكى کاڵا کۆپى کرا!', 'success'); }
-               catch (err) { showNotification('کۆپیکردن سەرکەوتوو نەبوو!', 'error'); }
-               document.body.removeChild(textArea);
+                const textArea = document.createElement('textarea');
+                 textArea.value = productUrl;
+                 document.body.appendChild(textArea);
+                 textArea.select();
+                 try { document.execCommand('copy'); showNotification('لينكى کاڵا کۆپى کرا!', 'success'); }
+                 catch (err) { showNotification('کۆپیکردن سەرکەوتوو نەبوو!', 'error'); }
+                 document.body.removeChild(textArea);
            }
        } catch (err) {
            console.error('Share error:', err);
@@ -150,47 +146,45 @@ export function createProductCardElementUI(product) {
        }
     });
 
-    // Bişkoja Favorî
+    // Favorite Button
     productCard.querySelector('.favorite-btn').addEventListener('click', (event) => {
         event.stopPropagation();
-        handleToggleFavoriteUI(product.id); // Gazî kirina handlerê navxweyî
+        handleToggleFavoriteUI(product.id); // Call local handler
     });
 
-    // Bişkoja Zêdekirina bo Sebetê
+    // Add to Cart Button
     productCard.querySelector('.add-to-cart-btn-card').addEventListener('click', (event) => {
         event.stopPropagation();
-        handleAddToCartUI(product.id, event.currentTarget); // Gazî kirina handlerê navxweyî
+        handleAddToCartUI(product.id, event.currentTarget); // Call local handler
     });
 
-    // Bişkojên Admin
+    // Admin Buttons
     if (isAdmin) {
         productCard.querySelector('.edit-btn')?.addEventListener('click', (event) => {
             event.stopPropagation();
              if (window.AdminLogic && window.AdminLogic.editProduct) {
-                 window.AdminLogic.editProduct(product.id);
+                  window.AdminLogic.editProduct(product.id);
              }
         });
         productCard.querySelector('.delete-btn')?.addEventListener('click', (event) => {
             event.stopPropagation();
              if (window.AdminLogic && window.AdminLogic.deleteProduct) {
-                 window.AdminLogic.deleteProduct(product.id);
+                  window.AdminLogic.deleteProduct(product.id);
              }
         });
     }
 
-    // Klik li ser Kartê (Detay)
+    // Card Click (Details)
     productCard.addEventListener('click', (event) => {
         if (!event.target.closest('button')) {
-            showProductDetailsUI(product); // Gazî kirina fonksiyona ji vê pelê
+            showProductDetailsUI(product); // Call function from this file
         }
     });
 
     return productCard;
 }
 
-/**
- * Sazkirina animasyonên scroll reveal ji bo elementan.
- */
+// Sets up scroll reveal animations (Used by multiple files)
 export function setupScrollAnimations() {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -206,9 +200,7 @@ export function setupScrollAnimations() {
     });
 }
 
-/**
- * Pêşandana naveroka pelika (sheet) sebetê kirînê.
- */
+// Renders the cart sheet content
 export function renderCartUI() {
     cartItemsContainer.innerHTML = '';
     if (state.cart.length === 0) {
@@ -221,7 +213,7 @@ export function renderCartUI() {
     emptyCartMessage.style.display = 'none';
     cartTotal.style.display = 'block';
     cartActions.style.display = 'block';
-    renderCartActionButtonsUI(); // Pêşandana bişkokên çalakiyê (ji vê pelê)
+    renderCartActionButtonsUI(); // Render action buttons (from this file)
 
     let total = 0;
     state.cart.forEach(item => {
@@ -257,13 +249,11 @@ export function renderCartUI() {
     cartItemsContainer.querySelectorAll('.cart-item-remove').forEach(btn => btn.onclick = (e) => handleRemoveFromCartUI(e.currentTarget.dataset.id));
 }
 
-/**
- * Pêşandana bişkokên ji bo şandina naveroka sebetê.
- */
+// Renders buttons for sending cart content
 export async function renderCartActionButtonsUI() {
     const container = document.getElementById('cartActions');
     container.innerHTML = '';
-    const methods = await fetchContactMethods(); // Assume fetchContactMethods is in app-core
+    const methods = await fetchContactMethods();
 
     if (!methods || methods.length === 0) {
         container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
@@ -272,12 +262,12 @@ export async function renderCartActionButtonsUI() {
 
     methods.forEach(method => {
         const btn = document.createElement('button');
-        btn.className = 'whatsapp-btn'; // Use a generic class name or update based on type
+        btn.className = 'whatsapp-btn'; // Use a generic class
         btn.style.backgroundColor = method.color;
         const name = method['name_' + state.currentLanguage] || method.name_ku_sorani;
         btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
         btn.onclick = () => {
-            const message = generateOrderMessageCore(); // Assume this is in app-core
+            const message = generateOrderMessageCore();
             if (!message) return;
             let link = '';
             const encodedMessage = encodeURIComponent(message);
@@ -286,9 +276,8 @@ export async function renderCartActionButtonsUI() {
                 case 'whatsapp': link = `https://wa.me/${value}?text=${encodedMessage}`; break;
                 case 'viber': link = `viber://chat?number=%2B${value}&text=${encodedMessage}`; break;
                 case 'telegram': link = `https://t.me/${value}?text=${encodedMessage}`; break;
-                case 'phone': link = `tel:${value}`; break; // No message for phone call
-                case 'url': link = value; break; // Custom URL (might not support message)
-                default: console.warn("Unknown contact method type:", method.type);
+                case 'phone': link = `tel:${value}`; break;
+                case 'url': link = value; break;
             }
             if (link) window.open(link, '_blank');
         };
@@ -296,9 +285,7 @@ export async function renderCartActionButtonsUI() {
     });
 }
 
-/**
- * Pêşandana naveroka pelika (sheet) lîsta hez jê kirîyan (favorî).
- */
+// Renders the favorites sheet content
 export async function renderFavoritesPageUI() {
     favoritesContainer.innerHTML = '';
     if (state.favorites.length === 0) {
@@ -309,10 +296,10 @@ export async function renderFavoritesPageUI() {
 
     emptyFavoritesMessage.style.display = 'none';
     favoritesContainer.style.display = 'grid';
-    renderSkeletonLoader(favoritesContainer, 4); // Use function from this file
+    renderSkeletonLoader(favoritesContainer, 4);
 
     try {
-        const fetchPromises = state.favorites.map(id => fetchProductById(id)); // Assume fetchProductById is in app-core
+        const fetchPromises = state.favorites.map(id => fetchProductById(id));
         const favoritedProducts = (await Promise.all(fetchPromises)).filter(p => p !== null);
         favoritesContainer.innerHTML = '';
 
@@ -320,9 +307,8 @@ export async function renderFavoritesPageUI() {
             emptyFavoritesMessage.style.display = 'block';
             favoritesContainer.style.display = 'none';
             state.favorites = [];
-            saveFavorites(); // Assume saveFavorites is in app-core
+            saveFavorites();
         } else {
-            // Remove IDs from state.favorites if the product no longer exists
             if (favoritedProducts.length !== state.favorites.length) {
                 state.favorites = favoritedProducts.map(p => p.id);
                 saveFavorites();
@@ -338,15 +324,13 @@ export async function renderFavoritesPageUI() {
     }
 }
 
-/**
- * Pêşandana naveroka pelika (sheet) kategoriyan.
- */
+// Renders the categories sheet content
 export function renderCategoriesSheetUI() {
     sheetCategoriesContainer.innerHTML = '';
-    // Assume navigateToFilterCore, updateProductViewUI, closeCurrentPopup are globally available via ui-core.js
-    const navigateToFilterCore = window.navigateToFilterCore || (() => console.error('navigateToFilterCore not found'));
-    const updateProductViewUI = window.updateProductViewUI || (() => console.error('updateProductViewUI not found'));
-    const closeCurrentPopup = window.closeCurrentPopup || (() => console.error('closeCurrentPopup not found'));
+    // Import needed functions dynamically if not always available
+    // const { navigateToFilterCore } = await import('./app-core.js'); // If needed
+    // const { updateProductViewUI } = await import('./home.js'); // If needed
+    // const { closeCurrentPopup } = await import('./ui-core.js'); // If needed
 
     state.categories.forEach(cat => {
         const btn = document.createElement('button');
@@ -358,25 +342,27 @@ export function renderCategoriesSheetUI() {
             : (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
         btn.innerHTML = `<i class="${cat.icon}"></i> ${categoryName}`;
         btn.onclick = async () => {
-            await navigateToFilterCore({
-                category: cat.id, subcategory: 'all', subSubcategory: 'all', search: ''
-            });
-            await updateProductViewUI(true); // Call function from home.js (made global)
-            closeCurrentPopup(); // Call function from ui-core.js (made global)
+            // Need access to navigateToFilterCore, updateProductViewUI, closeCurrentPopup
+            // Assuming they are globally available or imported in the calling context (ui-core.js)
+            if (window.navigateToFilterCore && window.updateProductViewUI && window.closeCurrentPopup) {
+                 await window.navigateToFilterCore({
+                     category: cat.id, subcategory: 'all', subSubcategory: 'all', search: ''
+                 });
+                 await window.updateProductViewUI(true);
+                 window.closeCurrentPopup();
+            } else {
+                console.error("Required functions for category sheet click not found.");
+            }
         };
         sheetCategoriesContainer.appendChild(btn);
     });
 }
 
-/**
- * Pêşandana bin-bin-kategoriyan (sub-subcategories) li ser rûpela detayan.
- * @param {string} mainCatId - ID ya kategoriya sereke.
- * @param {string} subCatId - ID ya bin-kategoriyê.
- */
+// Renders sub-subcategories on the detail page
 async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
     const container = document.getElementById('subSubCategoryContainerOnDetailPage');
     container.innerHTML = '';
-    const subSubcategoriesData = await fetchSubSubcategories(mainCatId, subCatId); // Assume fetchSubSubcategories is in app-core
+    const subSubcategoriesData = await fetchSubSubcategories(mainCatId, subCatId);
 
     if (!subSubcategoriesData || subSubcategoriesData.length === 0) {
         container.style.display = 'none';
@@ -386,7 +372,7 @@ async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
 
     // Add "All" button
     const allBtn = document.createElement('button');
-    allBtn.className = `subcategory-btn active`; // Start with 'All' active
+    allBtn.className = `subcategory-btn active`;
     allBtn.dataset.id = 'all';
     const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
     allBtn.innerHTML = `<div class="subcategory-image">${allIconSvg}</div><span>${t('all_categories_label')}</span>`;
@@ -417,12 +403,7 @@ async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
     });
 }
 
-/**
- * Pêşandana hilberan li ser rûpela detayan li gorî fîlteran.
- * @param {string} subCatId - ID ya bin-kategoriyê.
- * @param {string} [subSubCatId='all'] - ID ya bin-bin-kategoriyê (optional).
- * @param {string} [searchTerm=''] - Peyva lêgerînê (optional).
- */
+// Renders products on the detail page
 async function renderProductsOnDetailPageUI(subCatId, subSubCatId = 'all', searchTerm = '') {
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const loader = document.getElementById('detailPageLoader');
@@ -442,12 +423,9 @@ async function renderProductsOnDetailPageUI(subCatId, subSubCatId = 'all', searc
         if (finalSearchTerm) {
             conditions.push(where('searchableName', '>=', finalSearchTerm));
             conditions.push(where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
-            // Ji ber ku lêgerîn heye, yekem rêzkirin divê li gorî wê be
             orderByClauses.push(orderBy("searchableName", "asc"));
         }
-        // Her tim rêzkirina duyemîn li gorî createdAt be
         orderByClauses.push(orderBy("createdAt", "desc"));
-
         let detailQuery = query(productsCollection, ...conditions, ...orderByClauses);
         const productSnapshot = await getDocs(detailQuery);
         const products = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -469,15 +447,14 @@ async function renderProductsOnDetailPageUI(subCatId, subSubCatId = 'all', searc
     }
 }
 
-/**
- * Pêşandana rûpela detayan a bin-kategoriyê.
- * @param {string} mainCatId - ID ya kategoriya sereke.
- * @param {string} subCatId - ID ya bin-kategoriyê.
- * @param {boolean} [fromHistory=false] - Nîşan dide ka navîgasyon ji dîrokê ye yan na.
- */
+// Displays the subcategory detail page (calls rendering functions from this file)
 export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHistory = false) {
-    // Assume showPage is globally available via ui-core.js
-    const showPage = window.showPage || (() => console.error('showPage not found'));
+    // Need access to showPage from ui-core.js
+    // Assuming it's globally available or imported in calling context
+    if (!window.showPage) {
+        console.error("showPage function not available for showSubcategoryDetailPageUI");
+        return;
+    }
 
     let subCatName = 'Details';
     try {
@@ -490,12 +467,9 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     } catch (e) { console.error("Could not fetch subcategory name:", e); }
 
     if (!fromHistory) {
-        // Use full URL path for history state
-        const url = new URL(window.location);
-        url.hash = `#subcategory_${mainCatId}_${subCatId}`;
-        history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', url.toString());
+        history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
     }
-    showPage('subcategoryDetailPage', subCatName); // Call global showPage
+    window.showPage('subcategoryDetailPage', subCatName); // Call showPage (assumed global/imported)
 
     const loader = document.getElementById('detailPageLoader');
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
@@ -503,7 +477,7 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     loader.style.display = 'block';
     productsContainer.innerHTML = '';
     subSubContainer.innerHTML = '';
-    document.getElementById('subpageSearchInput').value = ''; // Reset search
+    document.getElementById('subpageSearchInput').value = '';
     document.getElementById('subpageClearSearchBtn').style.display = 'none';
 
     await renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId); // Use function from this file
@@ -511,26 +485,23 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     loader.style.display = 'none';
 }
 
-/**
- * Pêşandana naveroka pelika (sheet) detayan a hilberê.
- * @param {object} productData - Objekta hilberê ya ku bê pêşandan.
- */
-export async function showProductDetailsUI(productData) { // Exported because direct link needs it
-    // Assume openPopup is globally available via ui-core.js
-    const openPopup = window.openPopup || (() => console.error('openPopup not found'));
-    const showNotification = window.showNotification || (() => console.error('showNotification not found'));
-
-    // Fetch product data if not provided (e.g., from direct link)
-    const product = productData || await fetchProductById(state.currentProductId); // Assume state.currentProductId is managed elsewhere if needed
-
+// Renders the product detail sheet content
+async function showProductDetailsUI(productData) {
+    // Need access to openPopup from ui-core.js
+    if (!window.openPopup) {
+         console.error("openPopup function not available for showProductDetailsUI");
+         return;
+    }
+    const product = productData || await fetchProductById(state.currentProductId);
     if (!product) {
-        showNotification(t('product_not_found_error'), 'error');
+        // Need showNotification from ui-core.js
+        if(window.showNotification) window.showNotification(t('product_not_found_error'), 'error');
         return;
     }
-    state.currentProductId = product.id; // Update current product ID in state
+    state.currentProductId = product.id;
 
     const sheetContent = document.querySelector('#productDetailSheet .sheet-content');
-    if (sheetContent) sheetContent.scrollTop = 0; // Reset scroll
+    if (sheetContent) sheetContent.scrollTop = 0;
 
     const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
     const descriptionText = (product.description && product.description[state.currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
@@ -540,19 +511,13 @@ export async function showProductDetailsUI(productData) { // Exported because di
     const thumbnailContainer = document.getElementById('sheetThumbnailContainer');
     imageContainer.innerHTML = '';
     thumbnailContainer.innerHTML = '';
-
-    // Render images and thumbnails
     if (imageUrls.length > 0) {
         imageUrls.forEach((url, index) => {
             const img = document.createElement('img'); img.src = url; img.alt = nameInCurrentLang; if (index === 0) img.classList.add('active'); imageContainer.appendChild(img);
             const thumb = document.createElement('img'); thumb.src = url; thumb.alt = `Thumbnail ${index + 1}`; thumb.className = 'thumbnail'; if (index === 0) thumb.classList.add('active'); thumb.dataset.index = index; thumbnailContainer.appendChild(thumb);
         });
-    } else {
-        // Add placeholder if no images
-        const img = document.createElement('img'); img.src = 'https://placehold.co/400x400/e2e8f0/2d3748?text=وێنە+نییە'; img.alt = nameInCurrentLang; img.classList.add('active'); imageContainer.appendChild(img);
     }
 
-    // Slider logic setup
     let currentIndex = 0;
     const images = imageContainer.querySelectorAll('img');
     const thumbnails = thumbnailContainer.querySelectorAll('.thumbnail');
@@ -560,26 +525,22 @@ export async function showProductDetailsUI(productData) { // Exported because di
     const nextBtn = document.getElementById('sheetNextBtn');
 
     function updateSlider(index) {
-        if (!images[index] || !thumbnails[index]) return; // Check if index is valid for both
+        if (!images[index] || !thumbnails[index]) return;
         images.forEach(img => img.classList.remove('active')); thumbnails.forEach(thumb => thumb.classList.remove('active'));
         images[index].classList.add('active'); thumbnails[index].classList.add('active'); currentIndex = index;
     }
 
     const showSliderBtns = imageUrls.length > 1;
     prevBtn.style.display = showSliderBtns ? 'flex' : 'none'; nextBtn.style.display = showSliderBtns ? 'flex' : 'none';
-
-    // Clear previous listeners before attaching new ones
     prevBtn.onclick = null; nextBtn.onclick = null; thumbnails.forEach(thumb => thumb.onclick = null);
-
     if (showSliderBtns) {
         prevBtn.onclick = () => updateSlider((currentIndex - 1 + images.length) % images.length);
         nextBtn.onclick = () => updateSlider((currentIndex + 1) % images.length);
     }
     thumbnails.forEach(thumb => thumb.onclick = () => updateSlider(parseInt(thumb.dataset.index)));
 
-    // Update text content
     document.getElementById('sheetProductName').textContent = nameInCurrentLang;
-    document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText); // Assume formatDescription is in app-core
+    document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText);
     const priceContainer = document.getElementById('sheetProductPrice');
     if (product.originalPrice && product.originalPrice > product.price) {
         priceContainer.innerHTML = `<span style="color: var(--accent-color);">${product.price.toLocaleString()} د.ع</span> <del style="color: var(--dark-gray); font-size: 16px; margin-right: 10px;">${product.originalPrice.toLocaleString()} د.ع</del>`;
@@ -587,44 +548,35 @@ export async function showProductDetailsUI(productData) { // Exported because di
         priceContainer.innerHTML = `<span>${product.price.toLocaleString()} د.ع</span>`;
     }
 
-    // Setup Add to Cart button
     const addToCartButton = document.getElementById('sheetAddToCartBtn');
     addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
     addToCartButton.onclick = () => handleAddToCartUI(product.id, addToCartButton); // Use local handler
 
-    // Render related products
     renderRelatedProductsUI(product); // Use function from this file
-
-    // Open the sheet
-    openPopup('productDetailSheet'); // Call global openPopup
+    window.openPopup('productDetailSheet'); // Call global openPopup
 }
 
-/**
- * Pêşandana hilberên pêwendîdar di pelika (sheet) detayan de.
- * @param {object} currentProduct - Objekta hilberê ya niha.
- */
+// Renders related products in the detail sheet
 async function renderRelatedProductsUI(currentProduct) {
     const section = document.getElementById('relatedProductsSection');
     const container = document.getElementById('relatedProductsContainer');
-    container.innerHTML = ''; // Clear previous
-    section.style.display = 'none'; // Hide initially
-    const relatedProducts = await fetchRelatedProducts(currentProduct); // Assume fetchRelatedProducts is in app-core
+    container.innerHTML = '';
+    section.style.display = 'none';
+    const relatedProducts = await fetchRelatedProducts(currentProduct);
 
     if (relatedProducts && relatedProducts.length > 0) {
         relatedProducts.forEach(product => {
             const card = createProductCardElementUI(product); // Use exported function
             container.appendChild(card);
         });
-        section.style.display = 'block'; // Show section if products exist
+        section.style.display = 'block';
     }
 }
 
-/**
- * Pêşandana polîtîkayan di pelika (sheet) mercan de.
- */
+// Renders policies in the terms sheet
 export async function renderPoliciesUI() {
     termsContentContainer.innerHTML = `<p>${t('loading_policies')}</p>`;
-    const policies = await fetchPolicies(); // Assume fetchPolicies is in app-core
+    const policies = await fetchPolicies();
     if (policies) {
         const content = policies[state.currentLanguage] || policies.ku_sorani || '';
         termsContentContainer.innerHTML = content ? content.replace(/\n/g, '<br>') : `<p>${t('no_policies_found')}</p>`;
@@ -633,16 +585,13 @@ export async function renderPoliciesUI() {
     }
 }
 
-/**
- * Pêşandana agahdariyan (notifications) ji bo bikarhêneran di pelika (sheet) agahdariyan de.
- */
+// Renders user notifications in the notifications sheet
 export async function renderUserNotificationsUI() {
-    const announcements = await fetchAnnouncements(); // Assume fetchAnnouncements is in app-core
+    const announcements = await fetchAnnouncements();
     notificationsListContainer.innerHTML = '';
 
     if (!announcements || announcements.length === 0) {
         notificationsListContainer.innerHTML = `<div class="cart-empty"><i class="fas fa-bell-slash"></i><p>${t('no_notifications_found')}</p></div>`;
-        notificationBadge.style.display = 'none'; // Hide badge if no notifications
         return;
     }
 
@@ -660,38 +609,36 @@ export async function renderUserNotificationsUI() {
                 <span class="notification-title">${title}</span>
                 <span class="notification-date">${formattedDate}</span>
             </div>
-            <p class="notification-content">${content.replace(/\n/g, '<br>')}</p>
+            <p class="notification-content">${content}</p>
         `;
         notificationsListContainer.appendChild(item);
     });
 
-    // Update last seen timestamp and hide badge after viewing
-    updateLastSeenAnnouncementTimestamp(latestTimestamp); // Assume this is in app-core
+    updateLastSeenAnnouncementTimestamp(latestTimestamp);
     notificationBadge.style.display = 'none';
 }
 
 // --- UI Event Handlers (Internal to Rendering Logic) ---
-// These functions handle events triggered by elements created in this file
-// They rely on functions made globally available by ui-core.js (showNotification, updateCartCountUI)
 
+// Handles Add to Cart clicks from rendered elements
 async function handleAddToCartUI(productId, buttonElement) {
-    const showNotification = window.showNotification || (() => console.error('showNotification not found'));
-    const updateCartCountUI = window.updateCartCountUI || (() => console.error('updateCartCountUI not found'));
+    // Need access to showNotification from ui-core.js
+    const { showNotification } = await import('./ui-core.js');
+    // Need access to updateCartCountUI from ui-core.js
+    const { updateCartCountUI } = await import('./ui-core.js');
 
-    const result = await addToCartCore(productId); // Assume addToCartCore is in app-core
+    const result = await addToCartCore(productId);
     showNotification(result.message, result.success ? 'success' : 'error');
     if (result.success) {
         updateCartCountUI(); // Update global count
-
-        // Button animation feedback
         if (buttonElement && !buttonElement.disabled) {
             const originalContent = buttonElement.innerHTML;
             buttonElement.disabled = true;
-            buttonElement.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`; // Loading state
+            buttonElement.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
             setTimeout(() => {
-                buttonElement.innerHTML = `<i class="fas fa-check"></i> <span>${t('added_to_cart')}</span>`; // Added state
+                buttonElement.innerHTML = `<i class="fas fa-check"></i> <span>${t('added_to_cart')}</span>`;
                 setTimeout(() => {
-                    buttonElement.innerHTML = originalContent; // Reset after a delay
+                    buttonElement.innerHTML = originalContent;
                     buttonElement.disabled = false;
                 }, 1500);
             }, 500);
@@ -699,31 +646,36 @@ async function handleAddToCartUI(productId, buttonElement) {
     }
 }
 
+// Handles quantity changes in the cart
 function handleUpdateQuantityUI(productId, change) {
-    const updateCartCountUI = window.updateCartCountUI || (() => console.error('updateCartCountUI not found'));
+    // Need access to updateCartCountUI from ui-core.js
+    // const { updateCartCountUI } = await import('./ui-core.js'); // Assuming it's imported in the calling context
 
-    if (updateCartQuantityCore(productId, change)) { // Assume updateCartQuantityCore is in app-core
+    if (updateCartQuantityCore(productId, change)) {
         renderCartUI(); // Re-render cart UI (from this file)
-        updateCartCountUI(); // Update overall count (global)
+        if(window.updateCartCountUI) window.updateCartCountUI(); // Update overall count (assumed global/imported)
     }
 }
 
+// Handles item removal from the cart
 function handleRemoveFromCartUI(productId) {
-    const updateCartCountUI = window.updateCartCountUI || (() => console.error('updateCartCountUI not found'));
+     // Need access to updateCartCountUI from ui-core.js
+    // const { updateCartCountUI } = await import('./ui-core.js'); // Assuming it's imported in the calling context
 
-    if (removeFromCartCore(productId)) { // Assume removeFromCartCore is in app-core
+    if (removeFromCartCore(productId)) {
         renderCartUI(); // Re-render cart UI (from this file)
-        updateCartCountUI(); // Update overall count (global)
+         if(window.updateCartCountUI) window.updateCartCountUI(); // Update overall count (assumed global/imported)
     }
 }
 
+// Handles toggling favorite status from rendered elements
 function handleToggleFavoriteUI(productId) {
-    const showNotification = window.showNotification || (() => console.error('showNotification not found'));
+    // Need access to showNotification from ui-core.js
+    // const { showNotification } = await import('./ui-core.js'); // Assuming it's imported in the calling context
 
-    const result = toggleFavoriteCore(productId); // Assume toggleFavoriteCore is in app-core
-    showNotification(result.message, result.favorited ? 'success' : 'error');
+    const result = toggleFavoriteCore(productId);
+    if(window.showNotification) window.showNotification(result.message, result.favorited ? 'success' : 'error');
 
-    // Update heart icon on all cards with this product ID
     document.querySelectorAll(`[data-product-id="${productId}"] .favorite-btn`).forEach(btn => {
         btn.classList.toggle('favorited', result.favorited);
         const icon = btn.querySelector('.fa-heart');
@@ -733,7 +685,6 @@ function handleToggleFavoriteUI(productId) {
         }
     });
 
-    // If the favorites sheet is currently open, re-render it
     if (document.getElementById('favoritesSheet')?.classList.contains('show')) {
         renderFavoritesPageUI(); // Re-render favorites (from this file)
     }
