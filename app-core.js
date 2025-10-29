@@ -10,7 +10,7 @@ import {
     CART_KEY, FAVORITES_KEY, PROFILE_KEY, PRODUCTS_PER_PAGE,
 } from './app-setup.js';
 
-import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js"; // signOut imported here
 import {
     enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc,
     onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where,
@@ -894,7 +894,7 @@ export async function initCore() {
 
 
 // Expose necessary core functions and state for UI and Admin layers
-// *** گۆڕانکاری لێرە: زیادکردنی db و getHomeCacheData بۆ export ***
+// *** گۆڕانکاری لێرە: زیادکردنی signOut و getHomeCacheData بۆ export ***
 export {
     state, // Export the mutable state object
     handleLogin, handleLogout, // Authentication
@@ -915,7 +915,8 @@ export {
     productsCollection,
     collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
     query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction,
-    // === KODA ÇAKKIRÎ: Fonksiyona cache lê zêde bû ===
-    getHomeCacheData // <-- getHomeCacheData لێرە زیادکرا
+    // === KODA ÇAKKIRÎ: Fonksiyona cache û signOut lê zêde bûn ===
+    getHomeCacheData, // <-- getHomeCacheData لێرە زیادکرا
+    signOut // <-- signOut لێرە زیادکرا
 };
 
