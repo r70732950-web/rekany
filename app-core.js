@@ -10,7 +10,7 @@ import {
     CART_KEY, FAVORITES_KEY, PROFILE_KEY, PRODUCTS_PER_PAGE,
 } from './app-setup.js';
 
-import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js"; // signOut imported here
+import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import {
     enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc,
     onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where,
@@ -854,11 +854,11 @@ export async function initCore() {
             });
 
              // Listen for foreground FCM messages
-            onMessage(messaging, (payload) => {
+            onMessage(messaging, (payload) => { // This is line 890
                 console.log('Foreground message received: ', payload);
                 // Notify UI layer to display the message
                 document.dispatchEvent(new CustomEvent('fcmMessage', { detail: payload }));
-            });
+            }); // Closing parenthesis for onMessage
 
              // PWA install prompt setup (can run earlier, but keeping it grouped)
              window.addEventListener('beforeinstallprompt', (e) => {
@@ -894,7 +894,7 @@ export async function initCore() {
 
 
 // Expose necessary core functions and state for UI and Admin layers
-// *** گۆڕانکاری لێرە: زیادکردنی signOut و getHomeCacheData بۆ export ***
+// *** گۆڕانکاری لێرە: زیادکردنی db بۆ export ***
 export {
     state, // Export the mutable state object
     handleLogin, handleLogout, // Authentication
@@ -914,9 +914,6 @@ export {
     db, // <-- db لێرە زیادکرا
     productsCollection,
     collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
-    query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction,
-    // === KODA ÇAKKIRÎ: Fonksiyona cache û signOut lê zêde bûn ===
-    getHomeCacheData, // <-- getHomeCacheData لێرە زیادکرا
-    signOut // <-- signOut لێرە زیادکرا
+    query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction
 };
 
