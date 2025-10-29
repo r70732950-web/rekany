@@ -8,14 +8,14 @@ import {
     fetchSubcategories, navigateToFilterCore,
     fetchProducts,
     fetchSubSubcategories, // *** زیادکرا: هاوردەکردنی فانکشنی دروست ***
-    db, doc, getDoc // Firestore functions needed locally
+    db, doc, getDoc, getHomeCacheData // *** زیادکرا: getHomeCacheData ***
 } from './app-core.js';
 
 // *** هاوردەکردنی فانکشنە هاوبەشەکان لە ui-render.js *** // *** گۆڕانکاری لێرە: UI import path ***
 import {
     renderSkeletonLoader, createProductCardElementUI, setupScrollAnimations,
     showSubcategoryDetailPageUI // *** گۆڕانکاری لێرە: showSubcategoryDetailPageUI لێرە هاوردەکراوە ***
-} from './ui-render.js';
+} from './ui-render.js'; // *** گۆڕانکاری لێرە: Path چاککرا ***
 
 // --- UI Rendering Functions for Home Page ---
 
@@ -247,6 +247,7 @@ export async function updateProductViewUI(isNewSearch = false, scrollToPosition 
         skeletonLoader.style.display = 'none';
         scrollTrigger.style.display = 'none';
     }
+
 
     // Fetch products based on current state (state updated by navigateToFilterCore)
     // fetchProducts now returns { isHome: true } if it should show home sections
@@ -635,3 +636,4 @@ async function createAllProductsSectionElement() {
     });
     return container;
 }
+
