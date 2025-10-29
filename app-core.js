@@ -68,7 +68,7 @@ function getValidHomeCache() {
       localStorage.removeItem(HOME_CACHE_KEY); // Cachea kevn jê bibe
       return null;
     }
-    
+
     return cache; // Cache derbasdar e
   } catch (e) {
     console.warn("Cachea malperê nehat dîtin:", e);
@@ -376,7 +376,7 @@ async function fetchHomeLayout() {
         const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
         const layoutSnapshot = await getDocs(layoutQuery);
         const data = layoutSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
+
         setHomeCacheData(cacheKey, data); // Di cache de tomar bike
         return data;
     } catch (error) {
@@ -398,7 +398,7 @@ async function fetchPromoGroupCards(groupId) {
         const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
         const data = cardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
+
         setHomeCacheData(cacheKey, data);
         return data;
     } catch (error) {
@@ -414,13 +414,13 @@ async function fetchBrandGroupBrands(groupId) {
         // console.log(`CACHE HIT: fetchBrandGroupBrands ${groupId}`);
         return cachedData;
     }
-    
+
     // console.log(`CACHE MISS: fetchBrandGroupBrands ${groupId}`);
     try {
         const q = query(collection(db, "brand_groups", groupId, "brands"), orderBy("order", "asc"), limit(30));
         const snapshot = await getDocs(q);
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
+
         setHomeCacheData(cacheKey, data);
         return data;
     } catch (error) {
@@ -436,7 +436,7 @@ async function fetchNewestProducts(limitCount = 10) {
         // console.log("CACHE HIT: fetchNewestProducts");
         return cachedData;
     }
-    
+
     // console.log("CACHE MISS: fetchNewestProducts");
     try {
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
@@ -448,7 +448,7 @@ async function fetchNewestProducts(limitCount = 10) {
         );
         const snapshot = await getDocs(q);
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
+
         setHomeCacheData(cacheKey, data);
         return data;
     } catch (error) {
@@ -464,14 +464,14 @@ async function fetchShortcutRowCards(rowId) {
         // console.log(`CACHE HIT: fetchShortcutRowCards ${rowId}`);
         return cachedData;
     }
-    
+
     // console.log(`CACHE MISS: fetchShortcutRowCards ${rowId}`);
     try {
         const cardsCollectionRef = collection(db, "shortcut_rows", rowId, "cards");
         const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
         const data = cardsSnapshot.docs.map(cardDoc => ({ id: cardDoc.id, ...cardDoc.data() }));
-        
+
         setHomeCacheData(cacheKey, data);
         return data;
     } catch(error) {
@@ -482,13 +482,13 @@ async function fetchShortcutRowCards(rowId) {
 
 async function fetchCategoryRowProducts(sectionData) {
     // Ji ber ku dibe ku sectionData tevlihev be, em ID-ya layoutê wekî kilîl bikar tînin
-    const cacheKey = `categoryRow_${sectionData.id}`; 
+    const cacheKey = `categoryRow_${sectionData.id}`;
     const cachedData = getHomeCacheData(cacheKey);
     if (cachedData) {
         // console.log(`CACHE HIT: fetchCategoryRowProducts ${sectionData.id}`);
         return cachedData;
     }
-    
+
     // console.log(`CACHE MISS: fetchCategoryRowProducts ${sectionData.id}`);
     const { categoryId, subcategoryId, subSubcategoryId } = sectionData;
     let queryField, queryValue;
@@ -515,7 +515,7 @@ async function fetchCategoryRowProducts(sectionData) {
         );
         const snapshot = await getDocs(q);
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
+
         setHomeCacheData(cacheKey, data);
         return data;
     } catch (error) {
@@ -531,13 +531,13 @@ async function fetchInitialProductsForHome(limitCount = 10) {
         // console.log("CACHE HIT: fetchInitialProductsForHome");
         return cachedData;
     }
-    
+
     // console.log("CACHE MISS: fetchInitialProductsForHome");
      try {
         const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(limitCount));
         const snapshot = await getDocs(q);
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
+
         setHomeCacheData(cacheKey, data);
         return data;
     } catch (error) {
@@ -752,7 +752,7 @@ async function forceUpdateCore() {
             }
             // === KODA NÛ: Paqijkirina Cachea Malperê ===
             localStorage.removeItem(HOME_CACHE_KEY);
-            
+
             return { success: true, message: t('update_success') };
         } catch (error) {
             console.error('Error during force update:', error);
@@ -854,12 +854,13 @@ export async function initCore() {
             });
 
              // Listen for foreground FCM messages
-            onMessage(messaging, (payload) => {
+            onMessage(messaging, (payload) => { // This is line 890
                 console.log('Foreground message received: ', payload);
                 // Notify UI layer to display the message
                 document.dispatchEvent(new CustomEvent('fcmMessage', { detail: payload }));
-form-group
-            // PWA install prompt setup (can run earlier, but keeping it grouped)
+            }); // Closing parenthesis for onMessage
+
+             // PWA install prompt setup (can run earlier, but keeping it grouped)
              window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
                 state.deferredPrompt = e;
@@ -876,7 +877,7 @@ form-group
                         console.log('New SW found!', newWorker);
                         newWorker.addEventListener('statechange', () => {
                             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-section-title-main
+                                // New SW waiting to activate. Notify UI.
                                 document.dispatchEvent(new CustomEvent('swUpdateReady', { detail: { registration } }));
                             }
                         });
@@ -915,3 +916,4 @@ export {
     collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
     query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction
 };
+
