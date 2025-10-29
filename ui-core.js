@@ -2,16 +2,7 @@
 // Logika giştî ya UI, girêdana bûyeran, û rêveberiya navbeynkariyê
 
 import {
-    // DOM Elements needed for general UI management & event listeners
-    loginModal, addProductBtn, productFormModal, searchInput, clearSearchBtn,
-    loginForm, profileForm, settingsPage, mainPage, homeBtn, settingsBtn,
-    settingsFavoritesBtn, settingsAdminLoginBtn, settingsLogoutBtn, profileBtn,
-    cartBtn, categoriesBtn, sheetOverlay, contactToggle, notificationBtn,
-    notificationBadge, termsAndPoliciesBtn,
-    // Admin elements needed for visibility toggling
-    adminPoliciesManagement, adminSocialMediaManagement, adminAnnouncementManagement,
-    adminPromoCardsManagement, adminBrandsManagement, adminCategoryManagement,
-    adminContactMethodsManagement, adminShortcutRowsManagement, adminHomeLayoutManagement,
+  
 } from './app-setup.js';
 
 import {
@@ -317,14 +308,28 @@ export function updateAdminUIAuth(isAdmin) {
 // --- Setup Functions ---
 
 function setupUIEventListeners() {
+    // *** ÇAKKIRÎ: Logika bişkoja Home hat başkirin ***
     homeBtn.onclick = async () => {
-        if (!mainPage.classList.contains('page-active')) {
-            history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
-            showPage('mainPage'); // Use function from this file
+        const isAlreadyHome = mainPage.classList.contains('page-active');
+        const isAlreadyOnAllFilter = state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all' && state.currentSearch === '';
+
+        if (!isAlreadyHome) {
+            // Ger li ser rûpelek din be (mînak: Settings), vegere rûpela serekî
+            showPage('mainPage'); // Pêşî rûpelê nîşan bide
         }
-        await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-        await updateProductViewUI(true); // From home.js
+        
+        if (!isAlreadyHome || !isAlreadyOnAllFilter) {
+            // Ger ji rûpelek din hatî, AN li ser fîlterekê bûyî
+            // Fîlterê vegere 'all' û nûve bike
+            await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
+            await updateProductViewUI(true); // from home.js
+        } else if (isAlreadyHome && isAlreadyOnAllFilter) {
+            // Ger jixwe li ser rûpela serekî û fîltera 'all' bûyî, tenê skrol bike jor
+            console.log("Already on home, scrolling to top.");
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     };
+    // *** DAWÎYA ÇAKKIRINÊ ***
 
     settingsBtn.onclick = () => {
         history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
@@ -457,10 +462,6 @@ function setupUIEventListeners() {
                 await updateProductViewUI(false); // Call from home.js to fetch and append
                 loader.style.display = 'none';
                 scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
-Note: The following line might need `await` depending on `updateProductViewUI`'s implementation in `home.js`
-                await updateProductViewUI(false); // Call from home.js to fetch and append
-                loader.style.display = 'none';
-                scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
             }
         }, { threshold: 0.1 });
         observer.observe(scrollTrigger);
@@ -525,7 +526,7 @@ window.addEventListener('popstate', async (event) => {
                         pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
                         history.replaceState({ ...popState, title: pageTitle }, '', window.location.href);
                     }
-                } catch(e) { console.error("Could not refetch title on popstate", e) }
+          	} catch(e) { console.error("Could not refetch title on popstate", e) }
             }
             showPage(popState.id, pageTitle); // Show target page (from this file)
 
@@ -540,26 +541,23 @@ window.addEventListener('popstate', async (event) => {
             showPage('mainPage'); // Ensure main page is visible
             
             // --- ÇAKKIRÎ: Ji bo pêşîgirtina li nûvekirina nen pêwîst ---
-            // Berhevdana rewşa fîltera nû (popState) bi rewşa heyî (state)
+            // 1. Berî fîlteran berhev bike
             const newFilter = `${popState.category || 'all'}-${popState.subcategory || 'all'}-${popState.subSubcategory || 'all'}-${popState.search || ''}`;
+ci.e. `state`
             const oldFilter = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${state.currentSearch}`;
             
-            // Rewşa nû bicîh bîne
+            // 2. Tenê piştî berhevkirinê rewşa nû bicîh bîne
             applyFilterStateCore(popState); // Apply state logic
             
             if (newFilter !== oldFilter) {
                 // Ger fîlter hatibe guhertin (mînak: ji Kat A paşde bo Kat B), nûve bike
-                console.log("Popstate: Fîlter guherî. Ji nû ve tê barkirin.", newFilter);
+            	console.log("Popstate: Fîlter guherî. Ji nû ve tê barkirin.", newFilter);
                 await updateProductViewUI(true); // Re-render products (from home.js)
             } else {
-                // Ger fîlter nehatibe guhertin (mînak: girtina popup an vegera ji Settings)
-                // Tenê skrolê vegerîne, nûve neke.
-                console.log("Popstate: Fîlter neguherî. Tenê skrol tê vegerandin.");
-            }
-
-            if (typeof popState.scroll === 'number') {
-                // Demekê bide da ku nûvekirin (eger hebe) biqede
-                setTimeout(() => window.scrollTo(0, popState.scroll), 100);
+                // Ger fîlter eynî be (mînak: girtina popup an vegera ji Settings)
+            	// DIVÊ em nûve NEKIN.
+            	console.log("Popstate: Fîlter neguherî. Tenê skrol tê vegerandin.");
+}, 50);
             }
             // --- DAWÎYA ÇAKKIRINÊ ---
         }
@@ -657,3 +655,4 @@ window.updateCartCountUI = updateCartCountUI;
 window.showNotification = showNotification;
 window.navigateToFilterCore = navigateToFilterCore; // From app-core, needed by category sheet render
 window.updateProductViewUI = updateProductViewUI; // From home.js, needed by category sheet render
+
