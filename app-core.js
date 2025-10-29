@@ -1,5 +1,5 @@
 // app-core.js
-// Logika bingehîn, danûstendina daneyan, û rêveberiya state - Fixed Firestore Exports
+// Logika bingehîn, danûstendina daneyan, û rêveberiya state - Fixed Duplicate Export
 
 import {
     db, auth, messaging,
@@ -10,7 +10,6 @@ import {
 } from './app-setup.js';
 
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-// *** FIX: Import necessary Firestore functions here ***
 import {
     enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc,
     onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where,
@@ -52,7 +51,6 @@ export function formatDescription(text) {
 
 export function saveCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
-    // Note: Updating UI count is handled in ui-core.js
 }
 
 export function saveFavorites() {
@@ -65,7 +63,7 @@ export function isFavorite(productId) {
 
 // --- Authentication ---
 
-export async function handleLogin(email, password) {
+export async function handleLogin(email, password) { // Exported individually
     try {
         await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
@@ -73,21 +71,20 @@ export async function handleLogin(email, password) {
     }
 }
 
-export async function handleLogout() {
+export async function handleLogout() { // Exported individually
     await signOut(auth);
 }
 
-
 // --- Firestore Data Fetching & Manipulation ---
 
-export async function fetchCategories() {
+export async function fetchCategories() { // Exported individually
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     const snapshot = await getDocs(categoriesQuery);
     const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     state.categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories];
 }
 
-export async function fetchSubcategories(categoryId) {
+export async function fetchSubcategories(categoryId) { // Exported individually
     if (categoryId === 'all') return [];
     try {
         const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
@@ -100,7 +97,7 @@ export async function fetchSubcategories(categoryId) {
     }
 }
 
-export async function fetchSubSubcategories(mainCatId, subCatId) {
+export async function fetchSubSubcategories(mainCatId, subCatId) { // Exported individually
     if (!mainCatId || !subCatId) return [];
     try {
         const ref = collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
@@ -113,7 +110,7 @@ export async function fetchSubSubcategories(mainCatId, subCatId) {
     }
 }
 
-export async function fetchProductById(productId) {
+export async function fetchProductById(productId) { // Exported individually
     try {
         const docRef = doc(db, "products", productId);
         const docSnap = await getDoc(docRef);
@@ -129,7 +126,7 @@ export async function fetchProductById(productId) {
     }
 }
 
-export async function fetchRelatedProducts(currentProduct) {
+export async function fetchRelatedProducts(currentProduct) { // Exported individually
     if (!currentProduct.subcategoryId && !currentProduct.categoryId) return [];
 
     const baseQuery = collection(db, "products");
@@ -157,7 +154,7 @@ export async function fetchRelatedProducts(currentProduct) {
     }
 }
 
-export async function fetchProducts(searchTerm = '', isNewSearch = false) {
+export async function fetchProducts(searchTerm = '', isNewSearch = false) { // Exported individually
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
 
     if (shouldShowHomeSections) {
@@ -185,7 +182,7 @@ export async function fetchProducts(searchTerm = '', isNewSearch = false) {
     state.isLoadingMoreProducts = true;
 
     try {
-        let productsQuery = collection(db, "products"); // Use imported collection here
+        let productsQuery = collection(db, "products");
         let conditions = [];
         let orderByClauses = [];
 
@@ -208,15 +205,15 @@ export async function fetchProducts(searchTerm = '', isNewSearch = false) {
         orderByClauses.push(orderBy("createdAt", "desc"));
 
 
-        let finalQuery = query(productsQuery, ...conditions, ...orderByClauses); // Use imported query, where, orderBy
+        let finalQuery = query(productsQuery, ...conditions, ...orderByClauses);
 
         if (state.lastVisibleProductDoc && !isNewSearch) {
-            finalQuery = query(finalQuery, startAfter(state.lastVisibleProductDoc)); // Use imported startAfter
+            finalQuery = query(finalQuery, startAfter(state.lastVisibleProductDoc));
         }
 
-        finalQuery = query(finalQuery, limit(PRODUCTS_PER_PAGE)); // Use imported limit
+        finalQuery = query(finalQuery, limit(PRODUCTS_PER_PAGE));
 
-        const productSnapshot = await getDocs(finalQuery); // Use imported getDocs
+        const productSnapshot = await getDocs(finalQuery);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         state.lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
@@ -244,10 +241,10 @@ export async function fetchProducts(searchTerm = '', isNewSearch = false) {
 }
 
 
-export async function fetchPolicies() {
+export async function fetchPolicies() { // Exported individually
     try {
-        const docRef = doc(db, "settings", "policies"); // Use imported doc
-        const docSnap = await getDoc(docRef); // Use imported getDoc
+        const docRef = doc(db, "settings", "policies");
+        const docSnap = await getDoc(docRef);
         if (docSnap.exists() && docSnap.data().content) {
             return docSnap.data().content;
         }
@@ -258,10 +255,10 @@ export async function fetchPolicies() {
     }
 }
 
-export async function fetchAnnouncements() {
+export async function fetchAnnouncements() { // Exported individually
     try {
-        const q = query(announcementsCollection, orderBy("createdAt", "desc")); // Use imported query, orderBy
-        const snapshot = await getDocs(q); // Use imported getDocs
+        const q = query(announcementsCollection, orderBy("createdAt", "desc"));
+        const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
         console.error("Error fetching announcements:", error);
@@ -269,11 +266,11 @@ export async function fetchAnnouncements() {
     }
 }
 
-export async function fetchContactMethods() {
+export async function fetchContactMethods() { // Exported individually
     try {
-        const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods'); // Use imported collection
-        const q = query(methodsCollection, orderBy("createdAt")); // Use imported query, orderBy
-        const snapshot = await getDocs(q); // Use imported getDocs
+        const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
+        const q = query(methodsCollection, orderBy("createdAt"));
+        const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
         console.error("Error fetching contact methods:", error);
@@ -282,10 +279,10 @@ export async function fetchContactMethods() {
 }
 
 
-export async function fetchHomeLayout() {
+export async function fetchHomeLayout() { // Exported individually
     try {
-        const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc')); // Use imported query, collection, where, orderBy
-        const layoutSnapshot = await getDocs(layoutQuery); // Use imported getDocs
+        const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
+        const layoutSnapshot = await getDocs(layoutQuery);
         return layoutSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
         console.error("Error fetching home layout:", error);
@@ -293,10 +290,10 @@ export async function fetchHomeLayout() {
     }
 }
 
-export async function fetchPromoGroupCards(groupId) {
+export async function fetchPromoGroupCards(groupId) { // Exported individually
     try {
-        const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc")); // Use imported query, collection, orderBy
-        const cardsSnapshot = await getDocs(cardsQuery); // Use imported getDocs
+        const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
+        const cardsSnapshot = await getDocs(cardsQuery);
         return cardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
         console.error(`Error fetching promo cards for group ${groupId}:`, error);
@@ -304,10 +301,10 @@ export async function fetchPromoGroupCards(groupId) {
     }
 }
 
-export async function fetchBrandGroupBrands(groupId) {
+export async function fetchBrandGroupBrands(groupId) { // Exported individually
     try {
-        const q = query(collection(db, "brand_groups", groupId, "brands"), orderBy("order", "asc"), limit(30)); // Use imported query, collection, orderBy, limit
-        const snapshot = await getDocs(q); // Use imported getDocs
+        const q = query(collection(db, "brand_groups", groupId, "brands"), orderBy("order", "asc"), limit(30));
+        const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
         console.error(`Error fetching brands for group ${groupId}:`, error);
@@ -315,16 +312,16 @@ export async function fetchBrandGroupBrands(groupId) {
     }
 }
 
-export async function fetchNewestProducts(limitCount = 10) {
+export async function fetchNewestProducts(limitCount = 10) { // Exported individually
     try {
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
         const q = query(
             productsCollection,
-            where('createdAt', '>=', fifteenDaysAgo), // Use imported where
-            orderBy('createdAt', 'desc'), // Use imported orderBy
-            limit(limitCount) // Use imported limit
+            where('createdAt', '>=', fifteenDaysAgo),
+            orderBy('createdAt', 'desc'),
+            limit(limitCount)
         );
-        const snapshot = await getDocs(q); // Use imported getDocs
+        const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
         console.error("Error fetching newest products:", error);
@@ -332,11 +329,11 @@ export async function fetchNewestProducts(limitCount = 10) {
     }
 }
 
-export async function fetchShortcutRowCards(rowId) {
+export async function fetchShortcutRowCards(rowId) { // Exported individually
     try {
-        const cardsCollectionRef = collection(db, "shortcut_rows", rowId, "cards"); // Use imported collection
-        const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc")); // Use imported query, orderBy
-        const cardsSnapshot = await getDocs(cardsQuery); // Use imported getDocs
+        const cardsCollectionRef = collection(db, "shortcut_rows", rowId, "cards");
+        const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
+        const cardsSnapshot = await getDocs(cardsQuery);
         return cardsSnapshot.docs.map(cardDoc => ({ id: cardDoc.id, ...cardDoc.data() }));
     } catch(error) {
         console.error(`Error fetching shortcut cards for row ${rowId}:`, error);
@@ -344,7 +341,7 @@ export async function fetchShortcutRowCards(rowId) {
     }
 }
 
-export async function fetchCategoryRowProducts(sectionData) {
+export async function fetchCategoryRowProducts(sectionData) { // Exported individually
     const { categoryId, subcategoryId, subSubcategoryId } = sectionData;
     let queryField, queryValue;
 
@@ -358,17 +355,17 @@ export async function fetchCategoryRowProducts(sectionData) {
         queryField = 'categoryId';
         queryValue = categoryId;
     } else {
-        return []; // No category specified
+        return [];
     }
 
     try {
         const q = query(
             productsCollection,
-            where(queryField, '==', queryValue), // Use imported where
-            orderBy('createdAt', 'desc'), // Use imported orderBy
-            limit(10) // Use imported limit
+            where(queryField, '==', queryValue),
+            orderBy('createdAt', 'desc'),
+            limit(10)
         );
-        const snapshot = await getDocs(q); // Use imported getDocs
+        const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
         console.error(`Error fetching products for single category row:`, error);
@@ -376,10 +373,10 @@ export async function fetchCategoryRowProducts(sectionData) {
     }
 }
 
-export async function fetchInitialProductsForHome(limitCount = 10) {
+export async function fetchInitialProductsForHome(limitCount = 10) { // Exported individually
      try {
-         const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(limitCount)); // Use imported query, orderBy, limit
-         const snapshot = await getDocs(q); // Use imported getDocs
+         const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(limitCount));
+         const snapshot = await getDocs(q);
          return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
         console.error("Error fetching initial products for home page:", error);
@@ -390,7 +387,7 @@ export async function fetchInitialProductsForHome(limitCount = 10) {
 
 // --- Cart Logic ---
 
-export async function addToCartCore(productId) {
+export async function addToCartCore(productId) { // Exported individually
     let product = state.products.find(p => p.id === productId);
 
     if (!product) {
@@ -420,7 +417,7 @@ export async function addToCartCore(productId) {
     return { success: true, message: t('product_added_to_cart') };
 }
 
-export function updateCartQuantityCore(productId, change) {
+export function updateCartQuantityCore(productId, change) { // Exported individually
     const cartItemIndex = state.cart.findIndex(item => item.id === productId);
     if (cartItemIndex > -1) {
         state.cart[cartItemIndex].quantity += change;
@@ -433,7 +430,7 @@ export function updateCartQuantityCore(productId, change) {
     return false;
 }
 
-export function removeFromCartCore(productId) {
+export function removeFromCartCore(productId) { // Exported individually
     const initialLength = state.cart.length;
     state.cart = state.cart.filter(item => item.id !== productId);
     if (state.cart.length < initialLength) {
@@ -443,7 +440,7 @@ export function removeFromCartCore(productId) {
     return false;
 }
 
-export function generateOrderMessageCore() {
+export function generateOrderMessageCore() { // Exported individually
     if (state.cart.length === 0) return "";
 
     let total = 0;
@@ -471,7 +468,7 @@ export function generateOrderMessageCore() {
 
 // --- Favorites Logic ---
 
-export function toggleFavoriteCore(productId) {
+export function toggleFavoriteCore(productId) { // Exported individually
     const isCurrentlyFavorite = isFavorite(productId);
     if (isCurrentlyFavorite) {
         state.favorites = state.favorites.filter(id => id !== productId);
@@ -486,7 +483,7 @@ export function toggleFavoriteCore(productId) {
 
 // --- Profile Logic ---
 
-export function saveProfileCore(profileData) {
+export function saveProfileCore(profileData) { // Exported individually
     state.userProfile = {
         name: profileData.name || '',
         address: profileData.address || '',
@@ -497,7 +494,7 @@ export function saveProfileCore(profileData) {
 }
 
 // --- Language ---
-export function setLanguageCore(lang) {
+export function setLanguageCore(lang) { // Exported individually
     state.currentLanguage = lang;
     localStorage.setItem('language', lang);
     document.documentElement.lang = lang.startsWith('ar') ? 'ar' : 'ku';
@@ -509,7 +506,7 @@ export function setLanguageCore(lang) {
 
 // --- Notifications ---
 
-export async function requestNotificationPermissionCore() {
+export async function requestNotificationPermissionCore() { // Exported individually
     console.log('Requesting notification permission...');
     try {
         const permission = await Notification.requestPermission();
@@ -536,10 +533,10 @@ export async function requestNotificationPermissionCore() {
     }
 }
 
-async function saveTokenToFirestore(token) {
+async function saveTokenToFirestore(token) { // Not exported, internal helper
     try {
         const tokensCollection = collection(db, 'device_tokens');
-        await setDoc(doc(tokensCollection, token), { // Use imported setDoc, doc, collection
+        await setDoc(doc(tokensCollection, token), {
             createdAt: Date.now()
         });
         console.log('Token saved to Firestore.');
@@ -549,18 +546,18 @@ async function saveTokenToFirestore(token) {
 }
 
 
-export function checkNewAnnouncementsCore(latestAnnouncementTimestamp) {
+export function checkNewAnnouncementsCore(latestAnnouncementTimestamp) { // Exported individually
     const lastSeenTimestamp = localStorage.getItem('lastSeenAnnouncementTimestamp') || 0;
     return latestAnnouncementTimestamp > lastSeenTimestamp;
 }
 
-export function updateLastSeenAnnouncementTimestamp(timestamp) {
+export function updateLastSeenAnnouncementTimestamp(timestamp) { // Exported individually
      localStorage.setItem('lastSeenAnnouncementTimestamp', timestamp);
 }
 
 // --- PWA & Service Worker ---
 
-export async function handleInstallPrompt(installBtn) {
+export async function handleInstallPrompt(installBtn) { // Exported individually
     if (state.deferredPrompt) {
         installBtn.style.display = 'none';
         state.deferredPrompt.prompt();
@@ -570,7 +567,7 @@ export async function handleInstallPrompt(installBtn) {
     }
 }
 
-export async function forceUpdateCore() {
+export async function forceUpdateCore() { // Exported individually
     if (confirm(t('update_confirm'))) {
         try {
             if ('serviceWorker' in navigator) {
@@ -596,21 +593,21 @@ export async function forceUpdateCore() {
 
 // --- Navigation / History ---
 
-export function saveCurrentScrollPositionCore() {
+export function saveCurrentScrollPositionCore() { // Exported individually
     const currentState = history.state;
     if (document.getElementById('mainPage')?.classList.contains('page-active') && currentState && !currentState.type) {
         history.replaceState({ ...currentState, scroll: window.scrollY }, '');
     }
 }
 
-export function applyFilterStateCore(filterState) {
+export function applyFilterStateCore(filterState) { // Exported individually
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
     state.currentSubSubcategory = filterState.subSubcategory || 'all';
     state.currentSearch = filterState.search || '';
 }
 
-export function navigateToFilterCore(newState) {
+export function navigateToFilterCore(newState) { // Exported individually
     history.replaceState({
         category: state.currentCategory,
         subcategory: state.currentSubcategory,
@@ -636,12 +633,12 @@ export function navigateToFilterCore(newState) {
 
 // --- Initialization ---
 
-async function initializeCoreLogic() {
+async function initializeCoreLogic() { // Not exported, internal helper
     if (!state.sliderIntervals) state.sliderIntervals = {};
     await fetchCategories();
 }
 
-export async function initCore() {
+export async function initCore() { // Exported individually
     return enableIndexedDbPersistence(db)
         .then(() => console.log("Firestore offline persistence enabled."))
         .catch((err) => console.warn("Firestore Persistence failed:", err.code))
@@ -703,27 +700,16 @@ export async function initCore() {
 }
 
 
-// Expose necessary core functions and state for UI and Admin layers
-// *** FIX: Added necessary Firestore functions to the export list ***
+// *** FIX: Removed duplicate export of saveProfileCore ***
+// *** FIX: Explicitly export Firestore functions needed elsewhere ***
 export {
     state,
-    handleLogin, handleLogout,
-    fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods,
-    fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
-    setLanguageCore,
-    requestNotificationPermissionCore,
-    checkNewAnnouncementsCore,
-    updateLastSeenAnnouncementTimestamp,
-    handleInstallPrompt, forceUpdateCore,
-    saveCurrentScrollPositionCore,
-    applyFilterStateCore,
-    navigateToFilterCore,
-    addToCartCore, updateCartQuantityCore, removeFromCartCore, generateOrderMessageCore,
-    toggleFavoriteCore,
-    saveProfileCore,
     // Firestore functions needed by ui-core.js, ui-render.js, and admin.js
     collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
     query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction,
-    signOut
+    signOut // Ensure signOut is exported here if needed by ui-core
 };
+
+// Functions like handleLogin, fetchCategories, etc., are already exported individually above
+// using `export async function ...`
 
