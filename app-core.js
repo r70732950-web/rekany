@@ -21,7 +21,6 @@ import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/f
 
 // --- DESTPÊKA KODA KAŞKIRINÊ (CACHE) YA NÛ ---
 const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 خولەک
-// export const CACHE_PREFIX = 'product_cache_'; // <-- KODA KEVN: Ev hate rakirin
 
 /**
  * Datan ji localStorage ya kaşkirî (cached) distîne.
@@ -824,9 +823,7 @@ export async function initCore() {
                             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                                 // New SW waiting to activate. Notify UI.
                                 document.dispatchEvent(new CustomEvent('swUpdateReady', { detail: { registration } }));
-              _state === 'installed' && navigator.serviceWorker.controller) {
-                                // New SW waiting to activate. Notify UI.
-                                document.dispatchEvent(new CustomEvent('swUpdateReady', { detail: { registration } }));
+// *** DESTPÊKA ÇAKKIRINÊ: Koda dubare û karakterên xerab hatin rakirin ***
                             }
                         });
                     });
@@ -836,6 +833,7 @@ export async function initCore() {
                      console.log('New SW activated. Reloading...');
                      window.location.reload();
                 });
+// *** DAWÎYA ÇAKKIRINÊ ***
             }
         });
 }
@@ -852,7 +850,6 @@ export {
     requestNotificationPermissionCore,
     // checkNewAnnouncementsCore exported where it's defined
     // updateLastSeenAnnouncementTimestamp exported where it's defined
-  M`
     handleInstallPrompt, forceUpdateCore, // PWA & SW
     // History functions are exported above
     // Core cart/favorites/profile functions are exported above
