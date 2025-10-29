@@ -854,11 +854,11 @@ export async function initCore() {
             });
 
              // Listen for foreground FCM messages
-            onMessage(messaging, (payload) => { // This is line 890
+            onMessage(messaging, (payload) => {
                 console.log('Foreground message received: ', payload);
                 // Notify UI layer to display the message
                 document.dispatchEvent(new CustomEvent('fcmMessage', { detail: payload }));
-            }); // Closing parenthesis for onMessage
+            });
 
              // PWA install prompt setup (can run earlier, but keeping it grouped)
              window.addEventListener('beforeinstallprompt', (e) => {
@@ -894,7 +894,7 @@ export async function initCore() {
 
 
 // Expose necessary core functions and state for UI and Admin layers
-// *** گۆڕانکاری لێرە: زیادکردنی db بۆ export ***
+// *** گۆڕانکاری لێرە: زیادکردنی db و getHomeCacheData بۆ export ***
 export {
     state, // Export the mutable state object
     handleLogin, handleLogout, // Authentication
@@ -914,6 +914,8 @@ export {
     db, // <-- db لێرە زیادکرا
     productsCollection,
     collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
-    query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction
+    query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction,
+    // === KODA ÇAKKIRÎ: Fonksiyona cache lê zêde bû ===
+    getHomeCacheData // <-- getHomeCacheData لێرە زیادکرا
 };
 
