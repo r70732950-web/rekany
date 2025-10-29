@@ -80,7 +80,9 @@ function updateHeaderView(pageId, title = '') {
     }
 }
 
+// *** MODIFIED showPage function ***
 function showPage(pageId, pageTitle = '') {
+    state.currentPageId = pageId; // *** زیادکرا: شوێنی پەڕەی ئێستا بگرە ***
     document.querySelectorAll('.page').forEach(page => {
         const isActive = page.id === pageId;
         page.classList.toggle('page-active', isActive);
@@ -108,7 +110,6 @@ function showPage(pageId, pageTitle = '') {
     if (activeBtnId) {
        updateActiveNav(activeBtnId);
     }
-    // Note: Other nav items (cart, profile, categories) handle their active state via openPopup
 }
 
 
@@ -1150,87 +1151,68 @@ async function handleSetLanguage(lang) {
     }
 }
 
-// *** MODIFIED popstate listener ***
+// *** MODIFIED popstate listener (The main fix) ***
 window.addEventListener('popstate', async (event) => {
     const wasPopupOpen = state.currentPopupState !== null; // Check if a popup was open *before* this popstate event
-    state.currentPopupState = null; // Reset the tracked popup state after checking
+    const previousPageId = state.currentPageId; // <-- Track what page we *were* on
 
+    state.currentPopupState = null; // Reset the tracked popup state after checking
     closeAllPopupsUI(); // Always close any visually open popups
 
     const popState = event.state;
 
     if (popState) {
         if (popState.type === 'page') {
-             let pageTitle = popState.title;
-             // Refetch title for detail page if needed (logic remains the same)
-             if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
-                 try {
-                     const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
-                     const subCatSnap = await getDoc(subCatRef);
-                     if (subCatSnap.exists()) {
-                         const subCat = subCatSnap.data();
-                         pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
-                         history.replaceState({ ...popState, title: pageTitle }, '', window.location.href);
-                     }
-                 } catch(e) { console.error("Could not refetch title on popstate", e) }
-             }
-             // Show the target page
-             showPage(popState.id, pageTitle);
-
-              // If navigating back to the subcategory detail page, re-render its content
-             if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
-                 await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true); // true = fromHistory
-             }
-
-        } else if (popState.type === 'sheet' || popState.type === 'modal') {
-             // A popup state was popped. Since we always close popups on popstate,
-             // we don't need to re-open it here. The user is now back on the underlying page.
-             // We need to ensure the underlying page (likely mainPage) is shown and scroll restored.
-             console.log("Popstate: Popped a popup state, ensuring main page is active.");
-             showPage('mainPage'); // Or determine the correct underlying page if needed
-             // Restore scroll position for the underlying page
-             const underlyingState = history.state || {}; // Get the state *before* the popup
-             const scrollPos = underlyingState.scroll || 0;
-              requestAnimationFrame(() => {
-                 window.scrollTo({ top: scrollPos, behavior: 'instant' });
-             });
-             // No need to call updateProductViewUI here, the content should still be there.
-
-        } else { // It's a filter state for the main page
-            showPage('mainPage'); // Ensure main page is visible
-            applyFilterStateCore(popState); // Apply the state logically
-
-            // *** Decision point: Only refresh fully if we didn't just close a popup ***
-            if (!wasPopupOpen) {
-                 console.log("Popstate: Navigating between filter states, triggering full refresh.");
-                 await updateProductViewUI(true); // Full refresh for filter changes
-            } else {
-                 // We just closed a popup, UI should mostly be intact.
-                 // Just update category buttons and restore scroll.
-                 console.log("Popstate: Returned from popup, only updating category buttons.");
-                 renderMainCategoriesUI(); // Ensure imported or defined
-                 const subcats = await fetchSubcategories(state.currentCategory); // Ensure imported or defined
-                 await renderSubcategoriesUI(subcats); // Ensure imported or defined
+            // Navigating TO a page (e.g., forward button, or back TO a page)
+            showPage(popState.id, popState.title); // showPage will update state.currentPageId
+            if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
+                await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
             }
+        } else if (popState.type === 'sheet' || popState.type === 'modal') {
+            // This should not happen on 'back' clicks if 'closeCurrentPopup' is used properly.
+            // But if it does (e.g., user hits back, then forward), re-open the popup.
+            openPopup(popState.id, popState.type); // openPopup updates state.currentPageId and state.currentPopupState
+        } else {
+            // Arriving at a main page filter state (either from another filter, a popup, or a page)
+            showPage('mainPage'); // Updates state.currentPageId to 'mainPage'
+            applyFilterStateCore(popState); // Apply the logical filter state
+
+            // *** NEW LOGIC ***
+            // We refresh *only* if we were *not* coming back from a popup AND *not* coming back from another page.
+            // We *only* want to refresh if we are navigating between main page filter states.
+            const cameFromPopup = wasPopupOpen;
+            const cameFromPage = previousPageId !== 'mainPage';
+
+            if (!cameFromPopup && !cameFromPage) {
+                // This means we were already on 'mainPage' and popped to another 'mainPage' filter state
+                console.log("Popstate: Navigating between filter states, triggering full refresh.");
+                await updateProductViewUI(true);
+            } else {
+                // This means we just came back from a popup (like product detail) OR a page (like Settings)
+                // We DO NOT want a full refresh. Just restore UI buttons.
+                console.log(`Popstate: Returned from ${cameFromPopup ? 'popup' : (cameFromPage ? 'page' : 'unknown')}, skipping full refresh.`);
+                renderMainCategoriesUI();
+                const subcats = await fetchSubcategories(state.currentCategory);
+                await renderSubcategoriesUI(subcats);
+            }
+            // *** END NEW LOGIC ***
 
             // Restore scroll position
             if (typeof popState.scroll === 'number') {
-                console.log("Popstate: Restoring scroll to:", popState.scroll);
                 requestAnimationFrame(() => {
                     window.scrollTo({ top: popState.scroll, behavior: 'instant' });
                 });
             } else {
-                 console.log("Popstate: No scroll position found in state.");
                  requestAnimationFrame(() => {
                      window.scrollTo({ top: 0, behavior: 'instant' });
                  });
             }
         }
     } else {
-        // No state, go to default main page view (logic remains the same)
+        // No state, go to default main page view
         console.log("Popstate: No state found, loading default main page.");
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
-        showPage('mainPage');
+        showPage('mainPage'); // Updates state.currentPageId
         applyFilterStateCore(defaultState);
         await updateProductViewUI(true);
         requestAnimationFrame(() => {
@@ -1430,3 +1412,4 @@ function setupGpsButtonUI() {
 
 // --- Start UI Initialization ---
 document.addEventListener('DOMContentLoaded', initializeUI);
+

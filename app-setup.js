@@ -311,6 +311,7 @@ export let state = {
     currentSubSubcategory: 'all',
     currentSearch: '',
     currentProductId: null, // Used by app-ui
+    currentPageId: 'mainPage', // *** زیادکرا: بۆ زانینی پەڕەی ئێستا ***
     currentPopupState: null, // *** زیادکرا: شوێنی دۆخی ئێستای پۆپئەپ بگرە ***
     sliderIntervals: {}, // Used by app-ui & app-core
     contactInfo: {}, // Might be needed?
@@ -457,3 +458,4 @@ window.globalAdminTools = {
      },
 };
 // *** END OF globalAdminTools SECTION ***
+
