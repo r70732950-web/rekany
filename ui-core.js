@@ -2,7 +2,16 @@
 // Logika giştî ya UI, girêdana bûyeran, û rêveberiya navbeynkariyê
 
 import {
-  
+    // DOM Elements needed for general UI management & event listeners
+    loginModal, addProductBtn, productFormModal, searchInput, clearSearchBtn,
+    loginForm, profileForm, settingsPage, mainPage, homeBtn, settingsBtn,
+    settingsFavoritesBtn, settingsAdminLoginBtn, settingsLogoutBtn, profileBtn,
+    cartBtn, categoriesBtn, sheetOverlay, contactToggle, notificationBtn,
+    notificationBadge, termsAndPoliciesBtn,
+    // Admin elements needed for visibility toggling
+    adminPoliciesManagement, adminSocialMediaManagement, adminAnnouncementManagement,
+    adminPromoCardsManagement, adminBrandsManagement, adminCategoryManagement,
+    adminContactMethodsManagement, adminShortcutRowsManagement, adminHomeLayoutManagement,
 } from './app-setup.js';
 
 import {
@@ -14,7 +23,8 @@ import {
     applyFilterStateCore, navigateToFilterCore, initCore,
     fetchContactMethods, // Needed for renderContactLinksUI
     // Firestore needed for renderContactLinksUI
-    db, collection, query, orderBy, getDocs, doc, getDoc, signOut // signOut needed for logout button
+    db, collection, query, orderBy, getDocs, doc, getDoc, signOut, // signOut needed for logout button
+    fetchSubcategories // *** KODA NÛ: Ji bo popstate listener pêwîst e ***
 } from './app-core.js';
 
 import {
@@ -308,28 +318,25 @@ export function updateAdminUIAuth(isAdmin) {
 // --- Setup Functions ---
 
 function setupUIEventListeners() {
-    // *** ÇAKKIRÎ: Logika bişkoja Home hat başkirin ***
+    // *** KODA ÇAKKIRÎ: Logika bişkojka Home hat başkirin ***
     homeBtn.onclick = async () => {
         const isAlreadyHome = mainPage.classList.contains('page-active');
         const isAlreadyOnAllFilter = state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all' && state.currentSearch === '';
-
-        if (!isAlreadyHome) {
-            // Ger li ser rûpelek din be (mînak: Settings), vegere rûpela serekî
-            showPage('mainPage'); // Pêşî rûpelê nîşan bide
-        }
         
-        if (!isAlreadyHome || !isAlreadyOnAllFilter) {
-            // Ger ji rûpelek din hatî, AN li ser fîlterekê bûyî
-            // Fîlterê vegere 'all' û nûve bike
-            await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-            await updateProductViewUI(true); // from home.js
-        } else if (isAlreadyHome && isAlreadyOnAllFilter) {
-            // Ger jixwe li ser rûpela serekî û fîltera 'all' bûyî, tenê skrol bike jor
-            console.log("Already on home, scrolling to top.");
+        if (isAlreadyHome && isAlreadyOnAllFilter) {
+            // Jixwe li ser rûpela serekî ye, tenê skrol bike jor
+            console.log("Jixwe li ser malê ye, skrol dike jor.");
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            // Ne li ser rûpela serekî ye, an li ser fîlterekê ye. Bicih bibe malê.
+            if (!isAlreadyHome) {
+                showPage('mainPage'); // Pêşî rûpelê nîşan bide
+            }
+            await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
+            await updateProductViewUI(true); // Ji ber ku ev lêgerînek nû ye, nûve bike.
         }
     };
-    // *** DAWÎYA ÇAKKIRINÊ ***
+    // *** DAWÎYA KODA ÇAKKIRÎ ***
 
     settingsBtn.onclick = () => {
         history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
@@ -508,15 +515,15 @@ function setupUIEventListeners() {
     setupGpsButtonUI(); // Use function from this file
 }
 
-// Popstate listener for handling back/forward navigation
+// *** KODA ÇAKKIRÎ: Popstate listener bi tevahî hate nûve kirin ***
 window.addEventListener('popstate', async (event) => {
-    closeAllPopupsUI(); // Close any open popups
+    closeAllPopupsUI(); // Berî her tiştî hemî popupan bigire
     const popState = event.state;
 
     if (popState) {
         if (popState.type === 'page') {
+            // Ev ji bo vegera rûpelên mîna Settings e
             let pageTitle = popState.title;
-            // Refetch title for detail page if needed
             if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
                 try {
                     const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
@@ -528,46 +535,69 @@ window.addEventListener('popstate', async (event) => {
                     }
           	} catch(e) { console.error("Could not refetch title on popstate", e) }
             }
-            showPage(popState.id, pageTitle); // Show target page (from this file)
-
-            // Re-render detail page content if navigating back to it
+            showPage(popState.id, pageTitle);
             if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
-                await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true); // From ui-render.js
+                await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
             }
 
-        } else if (popState.type === 'sheet' || popState.type === 'modal') {
-            openPopup(popState.id, popState.type); // Re-open popup (from this file)
-      } else { // Filter state for main page
-            showPage('mainPage'); // Ensure main page is visible
+    	} else if (popState.type === 'sheet' || popState.type === 'modal') {
+            // Ev ji bo vekirina popupê bi bişkoja "pêş" (forward) e.
+            openPopup(popState.id, popState.type);
+
+    	} else {
+            // Ev beşa herî girîng e: Vegera li rûpela serekî (mainPage)
+            showPage('mainPage');
             
-            // --- ÇAKKIRÎ: Ji bo pêşîgirtina li nûvekirina nen pêwîst ---
-            // 1. Berî fîlteran berhev bike
-            const newFilter = `${popState.category || 'all'}-${popState.subcategory || 'all'}-${popState.subSubcategory || 'all'}-${popState.search || ''}`;
-ci.e. `state`
-            const oldFilter = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${state.currentSearch}`;
+            // 1. Rewşa (state) ku em jê re vedigerin bicîh bîne
+            applyFilterStateCore(popState);
             
-            // 2. Tenê piştî berhevkirinê rewşa nû bicîh bîne
-            applyFilterStateCore(popState); // Apply state logic
-            
-            if (newFilter !== oldFilter) {
-                // Ger fîlter hatibe guhertin (mînak: ji Kat A paşde bo Kat B), nûve bike
-            	console.log("Popstate: Fîlter guherî. Ji nû ve tê barkirin.", newFilter);
-                await updateProductViewUI(true); // Re-render products (from home.js)
+            // 2. Kontrol bike ka em vedigerin rûpela serekî (Home) an rûpelek fîlterkirî
+            const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
+            const productsContainer = document.getElementById('productsContainer');
+            const shouldShowHome = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
+
+            if (shouldShowHome) {
+                // Em vedigerin rûpela serekî.
+            	console.log("Popstate: Vegera li Rûpela Serekî. Konteynir têne nîşandan.");
+                homeSectionsContainer.style.display = 'block';
+                productsContainer.style.display = 'none';
+                // Ger beşên serekî vala bin (mînak, piştî barkirina rûpelê fîlterkirî), wan ji nû ve ava bike.
+                if (homeSectionsContainer.innerHTML.trim() === '') {
+                	console.log("Popstate: Beşên serekî vala bûn, ji nû ve têne barkirin.");
+                    await renderHomePageContentUI(); // Ji home.js
+                }
             } else {
-                // Ger fîlter eynî be (mînak: girtina popup an vegera ji Settings)
-            	// DIVÊ em nûve NEKIN.
-            	console.log("Popstate: Fîlter neguherî. Tenê skrol tê vegerandin.");
-}, 50);
+                // Em vedigerin rûpelek fîlterkirî.
+            	console.log("Popstate: Vegera li Dîtina Fîlterkirî.");
+                homeSectionsContainer.style.display = 'none';
+                productsContainer.style.display = 'grid';
+                // Ger grida hilberan vala be, divê em wê ji nû ve bar bikin.
+                if (productsContainer.innerHTML.trim() === '') {
+                	console.log("Popstate: Grida hilberan vala bû, ji nû ve tê barkirin.");
+                    await updateProductViewUI(true); // Wekî lêgerînek nû bar bike
+                }
             }
-            // --- DAWÎYA ÇAKKIRINÊ ---
+
+            // 3. Barên kategoriyê nûve bike da ku rewşa çalak nîşan bide
+            renderMainCategoriesUI();
+            const subcats = await fetchSubcategories(state.currentCategory);
+            await renderSubcategoriesUI(subcats);
+
+            // 4. Skrolê vegerîne
+            if (typeof popState.scroll === 'number') {
+            	console.log(`Popstate: Skrol vedigere ${popState.scroll}`);
+                setTimeout(() => window.scrollTo(0, popState.scroll), 50);
+            }
         }
-    } else { // No state, default to main page
+    } else {
+        // Rewşa default (mînak, barkirina yekemîn)
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
-        showPage('mainPage'); // From this file
+        showPage('mainPage'); // Ji vî fîlî
         applyFilterStateCore(defaultState);
-        await updateProductViewUI(true); // From home.js
+        await updateProductViewUI(true); // Ji home.js
     }
 });
+// *** DAWÎYA KODA ÇAKKIRÎ YA POPSTATE ***
 
 // Handles initial page load based on URL after core logic is ready
 async function handleInitialPageLoadUI() {
