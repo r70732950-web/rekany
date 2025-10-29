@@ -311,6 +311,7 @@ export let state = {
     currentSubSubcategory: 'all',
     currentSearch: '',
     currentProductId: null, // Used by app-ui
+    currentPopupState: null, // *** زیادکرا: شوێنی دۆخی ئێستای پۆپئەپ بگرە ***
     sliderIntervals: {}, // Used by app-ui & app-core
     contactInfo: {}, // Might be needed?
 };
@@ -445,15 +446,14 @@ window.globalAdminTools = {
         }, 3000);
     },
      clearProductCache: () => { // Keep this helper
-         console.log("Product cache and home page cleared due to admin action.");
-         state.productCache = {};
-         const homeContainer = document.getElementById('homePageSectionsContainer');
-         if (homeContainer) {
-             homeContainer.innerHTML = '';
-         }
-         // Notify UI layer to trigger re-render
-         document.dispatchEvent(new Event('clearCacheTriggerRender'));
+          console.log("Product cache and home page cleared due to admin action.");
+          state.productCache = {};
+          const homeContainer = document.getElementById('homePageSectionsContainer');
+          if (homeContainer) {
+              homeContainer.innerHTML = '';
+          }
+          // Notify UI layer to trigger re-render
+          document.dispatchEvent(new Event('clearCacheTriggerRender'));
      },
 };
 // *** END OF globalAdminTools SECTION ***
-

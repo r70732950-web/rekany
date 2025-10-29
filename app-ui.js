@@ -1,7 +1,6 @@
 // app-ui.js
 // Rêveberiya UI Giştî, girêdana bûyeran (event listeners), û nûvekirina DOM
 
-// ... (Import statements remain the same as previous version) ...
 import {
     // Import DOM elements needed for general UI updates
     loginModal, addProductBtn, productFormModal, skeletonLoader, searchInput,
@@ -28,9 +27,10 @@ import {
 
 import {
     // Import state and core logic functions
-    state, t, debounce, formatDescription,
+    state, // *** Import state from app-setup ***
+    t, debounce, formatDescription,
     handleLogin, handleLogout,
-    fetchCategories, fetchProductById, fetchProducts,
+    fetchCategories, fetchProductById, fetchProducts, fetchSubcategories, // *** fetchSubcategories imported ***
     fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, fetchSubSubcategories,
     addToCartCore, updateCartQuantityCore, removeFromCartCore, generateOrderMessageCore,
     toggleFavoriteCore, isFavorite, saveFavorites,
@@ -50,7 +50,6 @@ import {
 
 // --- UI Helper Functions ---
 
-// ... (showNotification, updateHeaderView, showPage, closeAllPopupsUI, openPopup, closeCurrentPopup, updateActiveNav, updateCartCountUI remain the same) ...
 function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
@@ -90,7 +89,9 @@ function showPage(pageId, pageTitle = '') {
 
     // Scroll to top for new pages, except main page which handles scroll separately
     if (pageId !== 'mainPage') {
-        window.scrollTo(0, 0);
+         requestAnimationFrame(() => { // Ensure layout is updated before scrolling
+             window.scrollTo({ top: 0, behavior: 'instant' });
+         });
     }
 
     // Update header based on the page
@@ -99,7 +100,7 @@ function showPage(pageId, pageTitle = '') {
     } else if (pageId === 'subcategoryDetailPage') {
          updateHeaderView('subcategoryDetailPage', pageTitle);
     } else { // Includes mainPage
-         updateHeaderView('mainPage');
+          updateHeaderView('mainPage');
     }
 
     // Update active state in bottom navigation
@@ -125,6 +126,10 @@ function openPopup(id, type = 'sheet') {
 
     closeAllPopupsUI(); // Close any currently open popups first
 
+    // *** MODIFIED: Store the state that will be pushed ***
+    const newState = { type: type, id: id };
+    state.currentPopupState = newState; // Keep track of the currently open popup
+
     if (type === 'sheet') {
         sheetOverlay.classList.add('show');
         element.classList.add('show');
@@ -145,8 +150,9 @@ function openPopup(id, type = 'sheet') {
     document.body.classList.add('overlay-active'); // Prevent body scroll
 
     // Push state for back button navigation
-    history.pushState({ type: type, id: id }, '', `#${id}`);
+    history.pushState(newState, '', `#${id}`);
 }
+
 
 function closeCurrentPopup() {
     // If the current history state represents a popup, go back
@@ -155,8 +161,11 @@ function closeCurrentPopup() {
     } else {
         // Otherwise, just close everything (fallback)
         closeAllPopupsUI();
+        // Clear the tracked popup state
+        state.currentPopupState = null;
     }
 }
+
 
 function updateActiveNav(activeBtnId) {
     document.querySelectorAll('.bottom-nav-item').forEach(btn => {
@@ -176,8 +185,6 @@ function updateCartCountUI() {
 
 // --- Rendering Functions (UI specific) ---
 
-// Moved renderSkeletonLoader here as it's general and needed by multiple parts
-// *** Make sure it is EXPORTED ***
 export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
     if (!container) {
         console.error("Skeleton loader container not found:", container);
@@ -197,11 +204,7 @@ export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
     }
     container.style.display = 'grid'; // Ensure it's visible
 }
-// Remove global assignment: window.renderSkeletonLoader = renderSkeletonLoader; // NO LONGER NEEDED
 
-
-// Moved createProductCardElementUI here as it's used in multiple places (home, favorites, detail page)
-// *** Make sure it is EXPORTED ***
 export function createProductCardElementUI(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
@@ -328,11 +331,7 @@ export function createProductCardElementUI(product) {
 
     return productCard;
 }
-// Remove global assignment: window.createProductCardElementUI = createProductCardElementUI; // NO LONGER NEEDED
 
-
-// Moved setupScrollAnimations here as it's general UI and needed by home.js
-// *** Make sure it is EXPORTED ***
 export function setupScrollAnimations() { // Exported
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -349,11 +348,7 @@ export function setupScrollAnimations() { // Exported
         observer.observe(card);
     });
 }
-// Remove global assignment: window.setupScrollAnimations = setupScrollAnimations; // NO LONGER NEEDED
 
-// renderProductsUI removed (logic moved to home.js as renderProductsGridUI)
-
-// ... (renderCartUI, renderCartActionButtonsUI, renderFavoritesPageUI, renderCategoriesSheetUI remain the same) ...
 function renderCartUI() {
     cartItemsContainer.innerHTML = '';
     if (state.cart.length === 0) {
@@ -532,8 +527,8 @@ function renderCategoriesSheetUI() {
       const subSubcategoriesData = await fetchSubSubcategories(mainCatId, subCatId); // Use function from app-core
 
       if (!subSubcategoriesData || subSubcategoriesData.length === 0) {
-          container.style.display = 'none';
-          return;
+           container.style.display = 'none';
+           return;
       }
 
       container.style.display = 'flex';
@@ -545,30 +540,30 @@ function renderCategoriesSheetUI() {
       const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
       allBtn.innerHTML = `<div class="subcategory-image">${allIconSvg}</div><span>${t('all_categories_label')}</span>`;
       allBtn.onclick = () => {
-          container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
-          allBtn.classList.add('active');
-          const currentSearch = document.getElementById('subpageSearchInput').value;
-          renderProductsOnDetailPageUI(subCatId, 'all', currentSearch); // Fetch products for the parent subcategory
+           container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
+           allBtn.classList.add('active');
+           const currentSearch = document.getElementById('subpageSearchInput').value;
+           renderProductsOnDetailPageUI(subCatId, 'all', currentSearch); // Fetch products for the parent subcategory
       };
       container.appendChild(allBtn);
 
       // Add buttons for each sub-subcategory
       subSubcategoriesData.forEach(subSubcat => {
-          const btn = document.createElement('button');
-          btn.className = `subcategory-btn`;
-          btn.dataset.id = subSubcat.id;
-          const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
-          const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-          const imageUrl = subSubcat.imageUrl || placeholderImg;
-          btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
+           const btn = document.createElement('button');
+           btn.className = `subcategory-btn`;
+           btn.dataset.id = subSubcat.id;
+           const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
+           const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+           const imageUrl = subSubcat.imageUrl || placeholderImg;
+           btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
 
-          btn.onclick = () => {
-              container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
-              btn.classList.add('active');
-              const currentSearch = document.getElementById('subpageSearchInput').value;
-              renderProductsOnDetailPageUI(subCatId, subSubcat.id, currentSearch); // Fetch products for this specific sub-subcategory
-          };
-          container.appendChild(btn);
+           btn.onclick = () => {
+                container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const currentSearch = document.getElementById('subpageSearchInput').value;
+                renderProductsOnDetailPageUI(subCatId, subSubcat.id, currentSearch); // Fetch products for this specific sub-subcategory
+           };
+           container.appendChild(btn);
       });
  }
 
@@ -626,7 +621,6 @@ function renderCategoriesSheetUI() {
 
 
 // Displays the subcategory detail page (kept here)
-// *** Make sure it is EXPORTED ***
 export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHistory = false) { // Exported
     let subCatName = 'Details'; // Default title
     try {
@@ -662,9 +656,7 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
 
     loader.style.display = 'none'; // Hide loader after content is loaded
 }
-// Remove global assignment: window.showSubcategoryDetailPageUI = showSubcategoryDetailPageUI; // NO LONGER NEEDED
 
-// ... (showProductDetailsUI, renderRelatedProductsUI, renderPoliciesUI, renderUserNotificationsUI, updateAdminUIAuth remain mostly the same) ...
 async function showProductDetailsUI(productData) {
     const product = productData || await fetchProductById(state.currentProductId); // Fetch if needed
     if (!product) { showNotification(t('product_not_found_error'), 'error'); return; }
@@ -853,7 +845,6 @@ function updateAdminUIAuth(isAdmin) {
 
 // --- UI Event Handlers ---
 
-// ... (handleAddToCartUI, handleUpdateQuantityUI, handleRemoveFromCartUI, handleToggleFavoriteUI remain the same) ...
 async function handleAddToCartUI(productId, buttonElement) {
     const result = await addToCartCore(productId); // Call core logic
     showNotification(result.message, result.success ? 'success' : 'error');
@@ -912,7 +903,6 @@ function handleToggleFavoriteUI(productId) {
 
 // --- Setup Functions ---
 
-// ... (setupUIEventListeners, handleSetLanguage, Popstate listener, initializeUI, handleInitialPageLoadUI, renderContactLinksUI, setupGpsButtonUI remain largely the same, ensuring they call the imported home.js functions where needed) ...
 function setupUIEventListeners() {
     homeBtn.onclick = async () => {
         if (!document.getElementById('mainPage').classList.contains('page-active')) {
@@ -1051,7 +1041,7 @@ function setupUIEventListeners() {
         }
     });
 
-    // --- Infinite Scroll --- (Remains here as it triggers fetch which calls home.js render)
+    // --- Infinite Scroll ---
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
     if (scrollTrigger) {
         const observer = new IntersectionObserver(async (entries) => {
@@ -1064,15 +1054,8 @@ function setupUIEventListeners() {
                  const result = await fetchProducts(state.currentSearch, false); // Fetch next page
                  loader.style.display = 'none'; // Hide loader after fetching
                  if(result && result.products.length > 0) {
-                      // Call the render function from home.js to append
-                      // Assuming it's imported correctly now
-                      // Check if home.js has exposed renderProductsGridUI, otherwise, call updateProductViewUI
-                      if (typeof updateProductViewUI === 'function') { // Check if imported function exists
-                           // updateProductViewUI handles appending if isNewSearch is false
-                           await updateProductViewUI(false); // Let updateProductView handle appending
-                      } else {
-                           console.error("updateProductViewUI not found or imported correctly from home.js");
-                      }
+                     // updateProductViewUI handles appending if isNewSearch is false
+                     await updateProductViewUI(false);
                  }
                  // Update scroll trigger visibility based on allLoaded status from core
                  scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
@@ -1145,7 +1128,6 @@ async function handleSetLanguage(lang) {
     });
 
     // Re-render dynamic content that depends on language
-    // renderMainCategoriesUI(); // Now handled by updateProductViewUI call below
     renderCategoriesSheetUI(); // Re-render sheet categories
     if (document.getElementById('cartSheet').classList.contains('show')) renderCartUI();
     if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPageUI();
@@ -1168,24 +1150,28 @@ async function handleSetLanguage(lang) {
     }
 }
 
+// *** MODIFIED popstate listener ***
 window.addEventListener('popstate', async (event) => {
-    closeAllPopupsUI(); // Close any open popups when navigating back/forward
+    const wasPopupOpen = state.currentPopupState !== null; // Check if a popup was open *before* this popstate event
+    state.currentPopupState = null; // Reset the tracked popup state after checking
+
+    closeAllPopupsUI(); // Always close any visually open popups
+
     const popState = event.state;
 
     if (popState) {
         if (popState.type === 'page') {
              let pageTitle = popState.title;
-             // Refetch title for detail page if needed
+             // Refetch title for detail page if needed (logic remains the same)
              if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
                  try {
-                      const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
-                      const subCatSnap = await getDoc(subCatRef);
-                      if (subCatSnap.exists()) {
-                           const subCat = subCatSnap.data();
-                           pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
-                           // Update the state title so it's correct next time
-                           history.replaceState({ ...popState, title: pageTitle }, '', window.location.href);
-                      }
+                     const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
+                     const subCatSnap = await getDoc(subCatRef);
+                     if (subCatSnap.exists()) {
+                         const subCat = subCatSnap.data();
+                         pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
+                         history.replaceState({ ...popState, title: pageTitle }, '', window.location.href);
+                     }
                  } catch(e) { console.error("Could not refetch title on popstate", e) }
              }
              // Show the target page
@@ -1197,23 +1183,59 @@ window.addEventListener('popstate', async (event) => {
              }
 
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
-            // Re-open the specific popup
-            openPopup(popState.id, popState.type);
+             // A popup state was popped. Since we always close popups on popstate,
+             // we don't need to re-open it here. The user is now back on the underlying page.
+             // We need to ensure the underlying page (likely mainPage) is shown and scroll restored.
+             console.log("Popstate: Popped a popup state, ensuring main page is active.");
+             showPage('mainPage'); // Or determine the correct underlying page if needed
+             // Restore scroll position for the underlying page
+             const underlyingState = history.state || {}; // Get the state *before* the popup
+             const scrollPos = underlyingState.scroll || 0;
+              requestAnimationFrame(() => {
+                 window.scrollTo({ top: scrollPos, behavior: 'instant' });
+             });
+             // No need to call updateProductViewUI here, the content should still be there.
+
         } else { // It's a filter state for the main page
             showPage('mainPage'); // Ensure main page is visible
             applyFilterStateCore(popState); // Apply the state logically
-            await updateProductViewUI(true); // Re-render products based on popped state (imported from home.js)
+
+            // *** Decision point: Only refresh fully if we didn't just close a popup ***
+            if (!wasPopupOpen) {
+                 console.log("Popstate: Navigating between filter states, triggering full refresh.");
+                 await updateProductViewUI(true); // Full refresh for filter changes
+            } else {
+                 // We just closed a popup, UI should mostly be intact.
+                 // Just update category buttons and restore scroll.
+                 console.log("Popstate: Returned from popup, only updating category buttons.");
+                 renderMainCategoriesUI(); // Ensure imported or defined
+                 const subcats = await fetchSubcategories(state.currentCategory); // Ensure imported or defined
+                 await renderSubcategoriesUI(subcats); // Ensure imported or defined
+            }
+
             // Restore scroll position
             if (typeof popState.scroll === 'number') {
-                 setTimeout(() => window.scrollTo(0, popState.scroll), 50); // Small delay
+                console.log("Popstate: Restoring scroll to:", popState.scroll);
+                requestAnimationFrame(() => {
+                    window.scrollTo({ top: popState.scroll, behavior: 'instant' });
+                });
+            } else {
+                 console.log("Popstate: No scroll position found in state.");
+                 requestAnimationFrame(() => {
+                     window.scrollTo({ top: 0, behavior: 'instant' });
+                 });
             }
         }
     } else {
-        // No state, go to default main page view
+        // No state, go to default main page view (logic remains the same)
+        console.log("Popstate: No state found, loading default main page.");
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
         showPage('mainPage');
         applyFilterStateCore(defaultState);
-        await updateProductViewUI(true); // (imported from home.js)
+        await updateProductViewUI(true);
+        requestAnimationFrame(() => {
+             window.scrollTo({ top: 0, behavior: 'instant' });
+        });
     }
 });
 
@@ -1339,11 +1361,11 @@ async function renderContactLinksUI() {
              linkElement.target = '_blank';
              linkElement.className = 'settings-item';
              linkElement.innerHTML = `
-                  <div>
-                       <i class="${link.icon}" style="margin-left: 10px;"></i>
-                       <span>${name}</span>
-                  </div>
-                  <i class="fas fa-external-link-alt"></i>
+                 <div>
+                     <i class="${link.icon}" style="margin-left: 10px;"></i>
+                     <span>${name}</span>
+                 </div>
+                 <i class="fas fa-external-link-alt"></i>
              `;
              contactLinksContainer.appendChild(linkElement);
          });
@@ -1378,17 +1400,17 @@ function setupGpsButtonUI() {
                         const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`);
                         const data = await response.json();
                         if (data && data.display_name) {
-                            profileAddressInput.value = data.display_name;
-                            showNotification('ناونیشان وەرگیرا', 'success');
+                             profileAddressInput.value = data.display_name;
+                             showNotification('ناونیشان وەرگیرا', 'success');
                         } else {
-                            showNotification('نەتوانرا ناونیشان بدۆزرێتەوە', 'error');
+                             showNotification('نەتوانرا ناونیشان بدۆزرێتەوە', 'error');
                         }
                    } catch (error) {
                         console.error('Reverse Geocoding Error:', error);
                         showNotification('هەڵەیەک لە وەرگرتنی ناونیشان ڕوویدا', 'error');
                    } finally {
-                         if(btnSpan) btnSpan.textContent = originalBtnText;
-                        getLocationBtn.disabled = false;
+                        if(btnSpan) btnSpan.textContent = originalBtnText;
+                       getLocationBtn.disabled = false;
                    }
               },
               (error) => { // Error callback
@@ -1403,9 +1425,8 @@ function setupGpsButtonUI() {
                    getLocationBtn.disabled = false;
               }
          );
-     });
+    });
 }
 
 // --- Start UI Initialization ---
 document.addEventListener('DOMContentLoaded', initializeUI);
-
