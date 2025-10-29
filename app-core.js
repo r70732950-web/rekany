@@ -1,7 +1,8 @@
 // app-core.js
-// Logika bingehîn, danûstendina daneyan, û rêveberiya state - Fixed Duplicate Export
+// Logika bingehîn, danûstendina daneyan, û rêveberiya state
 
 import {
+    // *** گۆڕانکاری لێرە: db لێرە هاوردەکراوە ***
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
@@ -51,6 +52,7 @@ export function formatDescription(text) {
 
 export function saveCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
+    // Note: Updating UI count is handled in app-ui.js
 }
 
 export function saveFavorites() {
@@ -63,28 +65,30 @@ export function isFavorite(productId) {
 
 // --- Authentication ---
 
-export async function handleLogin(email, password) { // Exported individually
+async function handleLogin(email, password) {
     try {
         await signInWithEmailAndPassword(auth, email, password);
+        // Admin logic initialization will happen via onAuthStateChanged
     } catch (error) {
-        throw new Error(t('login_error'));
+        throw new Error(t('login_error')); // Throw error to be caught in UI layer
     }
 }
 
-export async function handleLogout() { // Exported individually
+async function handleLogout() {
     await signOut(auth);
+    // UI updates handled by onAuthStateChanged listener
 }
 
 // --- Firestore Data Fetching & Manipulation ---
 
-export async function fetchCategories() { // Exported individually
+async function fetchCategories() {
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     const snapshot = await getDocs(categoriesQuery);
     const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    state.categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories];
+    state.categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories]; // Add 'All' category
 }
 
-export async function fetchSubcategories(categoryId) { // Exported individually
+async function fetchSubcategories(categoryId) {
     if (categoryId === 'all') return [];
     try {
         const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
@@ -97,7 +101,7 @@ export async function fetchSubcategories(categoryId) { // Exported individually
     }
 }
 
-export async function fetchSubSubcategories(mainCatId, subCatId) { // Exported individually
+async function fetchSubSubcategories(mainCatId, subCatId) {
     if (!mainCatId || !subCatId) return [];
     try {
         const ref = collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
@@ -110,7 +114,7 @@ export async function fetchSubSubcategories(mainCatId, subCatId) { // Exported i
     }
 }
 
-export async function fetchProductById(productId) { // Exported individually
+async function fetchProductById(productId) {
     try {
         const docRef = doc(db, "products", productId);
         const docSnap = await getDoc(docRef);
@@ -126,21 +130,23 @@ export async function fetchProductById(productId) { // Exported individually
     }
 }
 
-export async function fetchRelatedProducts(currentProduct) { // Exported individually
+// *** ÇAKKIRÎ / CORRECTED ***
+async function fetchRelatedProducts(currentProduct) {
     if (!currentProduct.subcategoryId && !currentProduct.categoryId) return [];
 
     const baseQuery = collection(db, "products");
-    let conditions = [where('__name__', '!=', currentProduct.id)];
-    let orderByClauses = [orderBy('__name__')];
+    let conditions = [where('__name__', '!=', currentProduct.id)]; // Inequality filter
+    let orderByClauses = [orderBy('__name__')]; // First orderBy MUST be on the inequality field
 
     if (currentProduct.subSubcategoryId) {
         conditions.push(where('subSubcategoryId', '==', currentProduct.subSubcategoryId));
     } else if (currentProduct.subcategoryId) {
         conditions.push(where('subcategoryId', '==', currentProduct.subcategoryId));
-    } else {
+    } else { // Only categoryId exists
         conditions.push(where('categoryId', '==', currentProduct.categoryId));
     }
 
+    // Add secondary ordering
     orderByClauses.push(orderBy('createdAt', 'desc'));
 
     const q = query(baseQuery, ...conditions, ...orderByClauses, limit(6));
@@ -153,23 +159,28 @@ export async function fetchRelatedProducts(currentProduct) { // Exported individ
         return [];
     }
 }
+// *** DAWÎYA ÇAKKIRINÊ / END CORRECTION ***
 
-export async function fetchProducts(searchTerm = '', isNewSearch = false) { // Exported individually
+
+// Fetches products based on current filters and pagination state
+async function fetchProducts(searchTerm = '', isNewSearch = false) {
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
 
     if (shouldShowHomeSections) {
+        // Signal UI to render home sections
         return { isHome: true, products: [], allLoaded: true };
     }
 
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
     if (isNewSearch && state.productCache[cacheKey]) {
+        // Return cached data for new search
         state.products = state.productCache[cacheKey].products;
         state.lastVisibleProductDoc = state.productCache[cacheKey].lastVisible;
         state.allProductsLoaded = state.productCache[cacheKey].allLoaded;
         return { isHome: false, products: state.products, allLoaded: state.allProductsLoaded };
     }
 
-    if (state.isLoadingMoreProducts) return null;
+    if (state.isLoadingMoreProducts) return null; // Prevent concurrent loading
 
     if (isNewSearch) {
         state.allProductsLoaded = false;
@@ -177,7 +188,7 @@ export async function fetchProducts(searchTerm = '', isNewSearch = false) { // E
         state.products = [];
     }
 
-    if (state.allProductsLoaded && !isNewSearch) return null;
+    if (state.allProductsLoaded && !isNewSearch) return null; // Already loaded all
 
     state.isLoadingMoreProducts = true;
 
@@ -200,8 +211,10 @@ export async function fetchProducts(searchTerm = '', isNewSearch = false) { // E
         if (finalSearchTerm) {
             conditions.push(where('searchableName', '>=', finalSearchTerm));
             conditions.push(where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
+            // If searching, first orderBy must match inequality field
             orderByClauses.push(orderBy("searchableName", "asc"));
         }
+        // Always add createdAt sort for consistent pagination
         orderByClauses.push(orderBy("createdAt", "desc"));
 
 
@@ -221,6 +234,7 @@ export async function fetchProducts(searchTerm = '', isNewSearch = false) { // E
 
         if (isNewSearch) {
             state.products = newProducts;
+            // Cache the result of the new search
             state.productCache[cacheKey] = {
                 products: state.products,
                 lastVisible: state.lastVisibleProductDoc,
@@ -228,20 +242,20 @@ export async function fetchProducts(searchTerm = '', isNewSearch = false) { // E
             };
         } else {
             state.products = [...state.products, ...newProducts];
+            // Update cache for subsequent loads? Maybe not necessary if infinite scroll works reliably.
         }
 
         return { isHome: false, products: newProducts, allLoaded: state.allProductsLoaded };
 
     } catch (error) {
         console.error("Error fetching products:", error);
-        return { isHome: false, products: [], allLoaded: true, error: true };
+        return { isHome: false, products: [], allLoaded: true, error: true }; // Indicate error
     } finally {
         state.isLoadingMoreProducts = false;
     }
 }
 
-
-export async function fetchPolicies() { // Exported individually
+async function fetchPolicies() {
     try {
         const docRef = doc(db, "settings", "policies");
         const docSnap = await getDoc(docRef);
@@ -255,7 +269,7 @@ export async function fetchPolicies() { // Exported individually
     }
 }
 
-export async function fetchAnnouncements() { // Exported individually
+async function fetchAnnouncements() {
     try {
         const q = query(announcementsCollection, orderBy("createdAt", "desc"));
         const snapshot = await getDocs(q);
@@ -266,7 +280,7 @@ export async function fetchAnnouncements() { // Exported individually
     }
 }
 
-export async function fetchContactMethods() { // Exported individually
+async function fetchContactMethods() {
     try {
         const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
         const q = query(methodsCollection, orderBy("createdAt"));
@@ -278,8 +292,7 @@ export async function fetchContactMethods() { // Exported individually
     }
 }
 
-
-export async function fetchHomeLayout() { // Exported individually
+async function fetchHomeLayout() {
     try {
         const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
         const layoutSnapshot = await getDocs(layoutQuery);
@@ -290,7 +303,7 @@ export async function fetchHomeLayout() { // Exported individually
     }
 }
 
-export async function fetchPromoGroupCards(groupId) { // Exported individually
+async function fetchPromoGroupCards(groupId) {
     try {
         const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
@@ -301,7 +314,7 @@ export async function fetchPromoGroupCards(groupId) { // Exported individually
     }
 }
 
-export async function fetchBrandGroupBrands(groupId) { // Exported individually
+async function fetchBrandGroupBrands(groupId) {
     try {
         const q = query(collection(db, "brand_groups", groupId, "brands"), orderBy("order", "asc"), limit(30));
         const snapshot = await getDocs(q);
@@ -312,7 +325,7 @@ export async function fetchBrandGroupBrands(groupId) { // Exported individually
     }
 }
 
-export async function fetchNewestProducts(limitCount = 10) { // Exported individually
+async function fetchNewestProducts(limitCount = 10) {
     try {
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
         const q = query(
@@ -329,7 +342,7 @@ export async function fetchNewestProducts(limitCount = 10) { // Exported individ
     }
 }
 
-export async function fetchShortcutRowCards(rowId) { // Exported individually
+async function fetchShortcutRowCards(rowId) {
     try {
         const cardsCollectionRef = collection(db, "shortcut_rows", rowId, "cards");
         const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
@@ -341,7 +354,7 @@ export async function fetchShortcutRowCards(rowId) { // Exported individually
     }
 }
 
-export async function fetchCategoryRowProducts(sectionData) { // Exported individually
+async function fetchCategoryRowProducts(sectionData) {
     const { categoryId, subcategoryId, subSubcategoryId } = sectionData;
     let queryField, queryValue;
 
@@ -355,7 +368,7 @@ export async function fetchCategoryRowProducts(sectionData) { // Exported indivi
         queryField = 'categoryId';
         queryValue = categoryId;
     } else {
-        return [];
+        return []; // No category specified
     }
 
     try {
@@ -373,21 +386,20 @@ export async function fetchCategoryRowProducts(sectionData) { // Exported indivi
     }
 }
 
-export async function fetchInitialProductsForHome(limitCount = 10) { // Exported individually
+async function fetchInitialProductsForHome(limitCount = 10) {
      try {
-         const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(limitCount));
-         const snapshot = await getDocs(q);
-         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(limitCount));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
         console.error("Error fetching initial products for home page:", error);
         return [];
     }
 }
 
-
 // --- Cart Logic ---
 
-export async function addToCartCore(productId) { // Exported individually
+export async function addToCartCore(productId) {
     let product = state.products.find(p => p.id === productId);
 
     if (!product) {
@@ -407,7 +419,7 @@ export async function addToCartCore(productId) { // Exported individually
     } else {
         state.cart.push({
             id: product.id,
-            name: product.name,
+            name: product.name, // Keep the multilingual object
             price: product.price,
             image: mainImage,
             quantity: 1
@@ -417,30 +429,30 @@ export async function addToCartCore(productId) { // Exported individually
     return { success: true, message: t('product_added_to_cart') };
 }
 
-export function updateCartQuantityCore(productId, change) { // Exported individually
+export function updateCartQuantityCore(productId, change) {
     const cartItemIndex = state.cart.findIndex(item => item.id === productId);
     if (cartItemIndex > -1) {
         state.cart[cartItemIndex].quantity += change;
         if (state.cart[cartItemIndex].quantity <= 0) {
-            state.cart.splice(cartItemIndex, 1);
+            state.cart.splice(cartItemIndex, 1); // Remove item if quantity is zero or less
         }
         saveCart();
-        return true;
+        return true; // Indicate success
     }
-    return false;
+    return false; // Item not found
 }
 
-export function removeFromCartCore(productId) { // Exported individually
+export function removeFromCartCore(productId) {
     const initialLength = state.cart.length;
     state.cart = state.cart.filter(item => item.id !== productId);
     if (state.cart.length < initialLength) {
         saveCart();
-        return true;
+        return true; // Indicate success
     }
-    return false;
+    return false; // Item not found
 }
 
-export function generateOrderMessageCore() { // Exported individually
+export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
     let total = 0;
@@ -468,7 +480,7 @@ export function generateOrderMessageCore() { // Exported individually
 
 // --- Favorites Logic ---
 
-export function toggleFavoriteCore(productId) { // Exported individually
+export function toggleFavoriteCore(productId) {
     const isCurrentlyFavorite = isFavorite(productId);
     if (isCurrentlyFavorite) {
         state.favorites = state.favorites.filter(id => id !== productId);
@@ -483,7 +495,7 @@ export function toggleFavoriteCore(productId) { // Exported individually
 
 // --- Profile Logic ---
 
-export function saveProfileCore(profileData) { // Exported individually
+export function saveProfileCore(profileData) {
     state.userProfile = {
         name: profileData.name || '',
         address: profileData.address || '',
@@ -494,11 +506,12 @@ export function saveProfileCore(profileData) { // Exported individually
 }
 
 // --- Language ---
-export function setLanguageCore(lang) { // Exported individually
+export function setLanguageCore(lang) {
     state.currentLanguage = lang;
     localStorage.setItem('language', lang);
     document.documentElement.lang = lang.startsWith('ar') ? 'ar' : 'ku';
     document.documentElement.dir = 'rtl';
+    // Clear cache as language affects rendered content
     state.productCache = {};
     const homeContainer = document.getElementById('homePageSectionsContainer');
     if (homeContainer) homeContainer.innerHTML = '';
@@ -506,14 +519,14 @@ export function setLanguageCore(lang) { // Exported individually
 
 // --- Notifications ---
 
-export async function requestNotificationPermissionCore() { // Exported individually
+async function requestNotificationPermissionCore() {
     console.log('Requesting notification permission...');
     try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
             console.log('Notification permission granted.');
             const currentToken = await getToken(messaging, {
-                vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ'
+                vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ' // Your VAPID key
             });
             if (currentToken) {
                 console.log('FCM Token:', currentToken);
@@ -533,11 +546,13 @@ export async function requestNotificationPermissionCore() { // Exported individu
     }
 }
 
-async function saveTokenToFirestore(token) { // Not exported, internal helper
+async function saveTokenToFirestore(token) {
     try {
         const tokensCollection = collection(db, 'device_tokens');
+        // Use the token itself as the document ID to prevent duplicates
         await setDoc(doc(tokensCollection, token), {
             createdAt: Date.now()
+            // You might want to add more info here later, like userID if users log in
         });
         console.log('Token saved to Firestore.');
     } catch (error) {
@@ -545,29 +560,29 @@ async function saveTokenToFirestore(token) { // Not exported, internal helper
     }
 }
 
-
-export function checkNewAnnouncementsCore(latestAnnouncementTimestamp) { // Exported individually
+// Check for new announcements compared to last seen timestamp
+export function checkNewAnnouncementsCore(latestAnnouncementTimestamp) {
     const lastSeenTimestamp = localStorage.getItem('lastSeenAnnouncementTimestamp') || 0;
     return latestAnnouncementTimestamp > lastSeenTimestamp;
 }
 
-export function updateLastSeenAnnouncementTimestamp(timestamp) { // Exported individually
+export function updateLastSeenAnnouncementTimestamp(timestamp) {
      localStorage.setItem('lastSeenAnnouncementTimestamp', timestamp);
 }
 
 // --- PWA & Service Worker ---
 
-export async function handleInstallPrompt(installBtn) { // Exported individually
+async function handleInstallPrompt(installBtn) {
     if (state.deferredPrompt) {
-        installBtn.style.display = 'none';
+        installBtn.style.display = 'none'; // Hide button after prompting
         state.deferredPrompt.prompt();
         const { outcome } = await state.deferredPrompt.userChoice;
         console.log(`User response to the install prompt: ${outcome}`);
-        state.deferredPrompt = null;
+        state.deferredPrompt = null; // Clear the saved prompt
     }
 }
 
-export async function forceUpdateCore() { // Exported individually
+async function forceUpdateCore() {
     if (confirm(t('update_confirm'))) {
         try {
             if ('serviceWorker' in navigator) {
@@ -588,26 +603,30 @@ export async function forceUpdateCore() { // Exported individually
             return { success: false, message: t('error_generic') };
         }
     }
-    return { success: false, message: 'Update cancelled.' };
+    return { success: false, message: 'Update cancelled.' }; // User cancelled
 }
 
 // --- Navigation / History ---
 
-export function saveCurrentScrollPositionCore() { // Exported individually
+export function saveCurrentScrollPositionCore() {
     const currentState = history.state;
+    // Only save scroll position for the main page filter state
     if (document.getElementById('mainPage')?.classList.contains('page-active') && currentState && !currentState.type) {
         history.replaceState({ ...currentState, scroll: window.scrollY }, '');
     }
 }
 
-export function applyFilterStateCore(filterState) { // Exported individually
+// Applies filter state (category, search, etc.) but doesn't handle UI rendering directly
+export function applyFilterStateCore(filterState) {
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
     state.currentSubSubcategory = filterState.subSubcategory || 'all';
     state.currentSearch = filterState.search || '';
+    // Note: Fetching products based on this state is handled separately
 }
 
-export function navigateToFilterCore(newState) { // Exported individually
+export function navigateToFilterCore(newState) {
+    // Save current scroll before changing state
     history.replaceState({
         category: state.currentCategory,
         subcategory: state.currentSubcategory,
@@ -616,8 +635,10 @@ export function navigateToFilterCore(newState) { // Exported individually
         scroll: window.scrollY
     }, '');
 
+    // Combine current state with new changes, reset scroll for new view
     const finalState = { ...history.state, ...newState, scroll: 0 };
 
+    // Update URL query parameters
     const params = new URLSearchParams();
     if (finalState.category && finalState.category !== 'all') params.set('category', finalState.category);
     if (finalState.subcategory && finalState.subcategory !== 'all') params.set('subcategory', finalState.subcategory);
@@ -625,28 +646,38 @@ export function navigateToFilterCore(newState) { // Exported individually
     if (finalState.search) params.set('search', finalState.search);
     const newUrl = `${window.location.pathname}?${params.toString()}`;
 
+    // Push the new state and URL to history
     history.pushState(finalState, '', newUrl);
 
+    // Apply the new state logically (fetching data is separate)
     applyFilterStateCore(finalState);
 }
 
 
 // --- Initialization ---
 
-async function initializeCoreLogic() { // Not exported, internal helper
+// *** This function is now async ***
+async function initializeCoreLogic() {
     if (!state.sliderIntervals) state.sliderIntervals = {};
+    // *** We await fetchCategories here ***
     await fetchCategories();
+    // Fetch initial contact methods, social links, etc. if needed globally
 }
 
-export async function initCore() { // Exported individually
+// Call this once on app load
+// *** This function is now async and returns a Promise ***
+export async function initCore() {
+    // Return the promise chain
     return enableIndexedDbPersistence(db)
         .then(() => console.log("Firestore offline persistence enabled."))
         .catch((err) => console.warn("Firestore Persistence failed:", err.code))
-        .finally(async () => {
-            await initializeCoreLogic();
+        .finally(async () => { // Make the finally block async
+            // *** Await the core logic setup ***
+            await initializeCoreLogic(); // Await the core logic setup
 
+            // Setup listeners *after* core logic (like categories) is ready
             onAuthStateChanged(auth, async (user) => {
-                const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3";
+                const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3"; // Replace with your Admin UID
                 const isAdmin = user && user.uid === adminUID;
                 const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
 
@@ -657,59 +688,74 @@ export async function initCore() { // Exported individually
                     }
                 } else {
                     sessionStorage.removeItem('isAdmin');
-                     if (user) { await signOut(auth); }
+                     if (user) { await signOut(auth); } // Sign out non-admins
                     if (wasAdmin && window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
                          window.AdminLogic.deinitialize();
                     }
                 }
+                // Notify UI layer about auth change
                 document.dispatchEvent(new CustomEvent('authChange', { detail: { isAdmin } }));
             });
 
+             // Listen for foreground FCM messages
             onMessage(messaging, (payload) => {
                 console.log('Foreground message received: ', payload);
+                // Notify UI layer to display the message
                 document.dispatchEvent(new CustomEvent('fcmMessage', { detail: payload }));
             });
 
+             // PWA install prompt setup (can run earlier, but keeping it grouped)
              window.addEventListener('beforeinstallprompt', (e) => {
-                 e.preventDefault();
-                 state.deferredPrompt = e;
-                 console.log('`beforeinstallprompt` event fired.');
-                 document.dispatchEvent(new Event('installPromptReady'));
-             });
+                e.preventDefault();
+                state.deferredPrompt = e;
+                console.log('`beforeinstallprompt` event fired.');
+                document.dispatchEvent(new Event('installPromptReady')); // Notify UI
+            });
 
-             if ('serviceWorker' in navigator) {
-                 navigator.serviceWorker.register('/sw.js').then(registration => {
-                     console.log('SW registered.');
-                     registration.addEventListener('updatefound', () => {
-                         const newWorker = registration.installing;
-                         console.log('New SW found!', newWorker);
-                         newWorker.addEventListener('statechange', () => {
-                             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                 document.dispatchEvent(new CustomEvent('swUpdateReady', { detail: { registration } }));
-                             }
-                         });
-                     });
-                 }).catch(err => console.error('SW registration failed: ', err));
+            // Service Worker setup (can run earlier)
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('SW registered.');
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        console.log('New SW found!', newWorker);
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // New SW waiting to activate. Notify UI.
+                                document.dispatchEvent(new CustomEvent('swUpdateReady', { detail: { registration } }));
+                            }
+                        });
+                    });
+                }).catch(err => console.error('SW registration failed: ', err));
 
-                 navigator.serviceWorker.addEventListener('controllerchange', () => {
-                      console.log('New SW activated. Reloading...');
-                      window.location.reload();
-                 });
-             }
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                     console.log('New SW activated. Reloading...');
+                     window.location.reload();
+                });
+            }
         });
 }
 
 
-// *** FIX: Removed duplicate export of saveProfileCore ***
-// *** FIX: Explicitly export Firestore functions needed elsewhere ***
+// Expose necessary core functions and state for UI and Admin layers
+// *** گۆڕانکاری لێرە: زیادکردنی db بۆ export ***
 export {
-    state,
-    // Firestore functions needed by ui-core.js, ui-render.js, and admin.js
-    collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
-    query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction,
-    signOut // Ensure signOut is exported here if needed by ui-core
-};
+    state, // Export the mutable state object
+    handleLogin, handleLogout, // Authentication
+    fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, // Data fetching
+    fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
+    // setLanguageCore exported where it's defined
+    requestNotificationPermissionCore,
+    // checkNewAnnouncementsCore exported where it's defined
+    // updateLastSeenAnnouncementTimestamp exported where it's defined
+    handleInstallPrompt, forceUpdateCore, // PWA & SW
+    // History functions are exported above
+    // Core cart/favorites/profile functions are exported above
 
-// Functions like handleLogin, fetchCategories, etc., are already exported individually above
-// using `export async function ...`
+    // *** Export Firestore functions needed by app-ui.js and admin.js ***
+    db, // <-- db لێرە زیادکرا
+    productsCollection,
+    collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
+    query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction
+};
 

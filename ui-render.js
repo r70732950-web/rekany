@@ -132,7 +132,7 @@ export function createProductCardElementUI(product) {
            if (navigator.share) {
                 await navigator.share(shareData);
            } else {
-                 const textArea = document.createElement('textarea');
+                const textArea = document.createElement('textarea');
                  textArea.value = productUrl;
                  document.body.appendChild(textArea);
                  textArea.select();
@@ -351,7 +351,7 @@ export function renderCategoriesSheetUI() {
                  await window.updateProductViewUI(true);
                  window.closeCurrentPopup();
             } else {
-                 console.error("Required functions for category sheet click not found.");
+                console.error("Required functions for category sheet click not found.");
             }
         };
         sheetCategoriesContainer.appendChild(btn);
@@ -486,8 +486,7 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
 }
 
 // Renders the product detail sheet content
-// *** FIX: Add export keyword ***
-export async function showProductDetailsUI(productData) {
+async function showProductDetailsUI(productData) {
     // Need access to openPopup from ui-core.js
     if (!window.openPopup) {
          console.error("openPopup function not available for showProductDetailsUI");
@@ -556,7 +555,6 @@ export async function showProductDetailsUI(productData) {
     renderRelatedProductsUI(product); // Use function from this file
     window.openPopup('productDetailSheet'); // Call global openPopup
 }
-
 
 // Renders related products in the detail sheet
 async function renderRelatedProductsUI(currentProduct) {
