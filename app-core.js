@@ -2,12 +2,13 @@
 // Logika bingehîn, danûstendina daneyan, û rêveberiya state
 
 import {
-    // *** گۆڕانکاری لێرە: db لێرە هاوردەکراوە ***
+    // *** گۆڕانکاری لێرە: db و CACHE_PREFIX لێرە هاوردەکراون ***
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
     translations, state,
     CART_KEY, FAVORITES_KEY, PROFILE_KEY, PRODUCTS_PER_PAGE,
+    CACHE_PREFIX // <-- KODA NÛ: Ji app-setup.js hate anîn
 } from './app-setup.js';
 
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
@@ -20,7 +21,7 @@ import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/f
 
 // --- DESTPÊKA KODA KAŞKIRINÊ (CACHE) YA NÛ ---
 const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 خولەک
-export const CACHE_PREFIX = 'product_cache_'; // Pêşgira ji bo paqijkirinê
+// export const CACHE_PREFIX = 'product_cache_'; // <-- KODA KEVN: Ev hate rakirin
 
 /**
  * Datan ji localStorage ya kaşkirî (cached) distîne.
@@ -607,7 +608,7 @@ export function setLanguageCore(lang) {
     // Clear 5-min localStorage product cache
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key.startsWith(CACHE_PREFIX)) {
+        if (key && key.startsWith(CACHE_PREFIX)) {
             localStorage.removeItem(key);
         }
     }
@@ -721,7 +722,7 @@ export function applyFilterStateCore(filterState) {
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
     state.currentSubSubcategory = filterState.subSubcategory || 'all';
-*   state.currentSearch = filterState.search || '';
+    state.currentSearch = filterState.search || '';
     // Note: Fetching products based on this state is handled separately
 }
 
@@ -823,6 +824,9 @@ export async function initCore() {
                             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                                 // New SW waiting to activate. Notify UI.
                                 document.dispatchEvent(new CustomEvent('swUpdateReady', { detail: { registration } }));
+              _state === 'installed' && navigator.serviceWorker.controller) {
+                                // New SW waiting to activate. Notify UI.
+                                document.dispatchEvent(new CustomEvent('swUpdateReady', { detail: { registration } }));
                             }
                         });
                     });
@@ -848,6 +852,7 @@ export {
     requestNotificationPermissionCore,
     // checkNewAnnouncementsCore exported where it's defined
     // updateLastSeenAnnouncementTimestamp exported where it's defined
+  M`
     handleInstallPrompt, forceUpdateCore, // PWA & SW
     // History functions are exported above
     // Core cart/favorites/profile functions are exported above
@@ -858,3 +863,4 @@ export {
     collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
     query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction
 };
+
