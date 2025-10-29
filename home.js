@@ -1,5 +1,5 @@
 // home.js
-// Logika UI تایبەت بە پەڕەی سەرەکی (Home Page)
+// Logika UI تایبەت بە پەڕەی سەرەکی (Home Page) - Optimized Loading
 
 import {
     state, t, debounce,
@@ -11,10 +11,10 @@ import {
     db, doc, getDoc // Firestore functions needed locally
 } from './app-core.js';
 
-// *** هاوردەکردنی فانکشنە هاوبەشەکان لە app-ui.js ***
+// *** هاوردەکردنی فانکشنە هاوبەشەکان لە ui-render.js (Assume ui-render.js exists) ***
 import {
     renderSkeletonLoader, createProductCardElementUI, setupScrollAnimations, showSubcategoryDetailPageUI
-} from './app-ui.js';
+} from './ui-render.js'; // Use ui-render.js
 
 // --- UI Rendering Functions for Home Page ---
 
@@ -45,7 +45,7 @@ function renderProductsGridUI(newProductsOnly = false) {
     }
     setupScrollAnimations(); // Use imported function
 }
-// Make globally accessible if infinite scroll in app-ui.js needs it
+// Make globally accessible if infinite scroll in ui-core.js needs it
 // Consider refactoring infinite scroll trigger if possible
 window.renderProductsGridUI = renderProductsGridUI;
 
@@ -223,16 +223,21 @@ export async function updateProductViewUI(isNewSearch = false) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const productsContainer = document.getElementById('productsContainer'); // Main product grid container
     const skeletonLoader = document.getElementById('skeletonLoader'); // Main skeleton loader
+    console.log('[updateProductViewUI] Called. isNewSearch:', isNewSearch, 'Current State:', { ...state }); // Debug log
 
     // Show skeleton loader for new searches/filters that ARE NOT the home view
     const shouldShowHome = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
+    console.log('[updateProductViewUI] shouldShowHome:', shouldShowHome); // Debug log
+
     if (isNewSearch && !shouldShowHome) {
+        console.log('[updateProductViewUI] Showing skeleton for product grid.'); // Debug log
         homeSectionsContainer.style.display = 'none'; // Hide home sections
         productsContainer.style.display = 'none'; // Hide product grid
         renderSkeletonLoader(skeletonLoader); // Use imported function
         skeletonLoader.style.display = 'grid'; // Show skeleton
         scrollTrigger.style.display = 'none'; // Hide scroll trigger during initial load
     } else if (isNewSearch && shouldShowHome) {
+        console.log('[updateProductViewUI] Showing loader for home sections.'); // Debug log
         // For home view, show a loader *inside* the home container
         homeSectionsContainer.innerHTML = `<div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: block;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;">...خەریکی بارکردنی بەشەکانە</p></div>`;
         homeSectionsContainer.style.display = 'block';
@@ -245,20 +250,25 @@ export async function updateProductViewUI(isNewSearch = false) {
     // Fetch products based on current state (state updated by navigateToFilterCore)
     // fetchProducts now returns { isHome: true } if it should show home sections
     const result = await fetchProducts(state.currentSearch, isNewSearch);
+    console.log('[updateProductViewUI] fetchProducts result:', result); // Debug log
 
     if (result === null && !isNewSearch) return; // Loading is already in progress or all loaded for infinite scroll
 
     skeletonLoader.style.display = 'none'; // Hide main skeleton loader
 
     if (result.isHome) {
+        console.log('[updateProductViewUI] Rendering home page content.'); // Debug log
         productsContainer.style.display = 'none'; // Hide product grid
         scrollTrigger.style.display = 'none'; // Hide scroll trigger
         homeSectionsContainer.style.display = 'block'; // Show home sections container
         // Render home content ONLY if new search OR container is empty/has loader
         if (isNewSearch || homeSectionsContainer.innerHTML.trim() === '' || homeSectionsContainer.querySelector('#loader')) {
             await renderHomePageContentUI(); // Render home content (defined below)
+        } else {
+             console.log('[updateProductViewUI] Skipping home content re-render as it seems loaded.'); // Debug log
         }
     } else {
+        console.log('[updateProductViewUI] Rendering product grid.'); // Debug log
         homeSectionsContainer.style.display = 'none'; // Hide home sections
         productsContainer.style.display = 'grid'; // Show product grid
         if (result.error) {
@@ -282,25 +292,23 @@ export async function updateProductViewUI(isNewSearch = false) {
 }
 
 
-// Function to render home page sections (UI Part)
+// Function to render home page sections (UI Part) - OPTIMIZED WITH Promise.all
 export async function renderHomePageContentUI() {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     if (!homeSectionsContainer) return;
 
-    // Show loader inside the container if it's empty (handles direct calls too)
+    // Show loader inside the container if it's empty
     if (homeSectionsContainer.innerHTML.trim() === '') {
         homeSectionsContainer.innerHTML = `<div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: block;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;">...خەریکی بارکردنی بەشەکانە</p></div>`;
     }
 
     const layout = await fetchHomeLayout(); // Fetch layout from core
-
     homeSectionsContainer.innerHTML = ''; // Clear loader/previous content
 
     if (!layout || layout.length === 0) {
         console.warn("Home page layout is empty or failed to load.");
-        // Render a fallback (e.g., just the 'all products' section)
-         const allProductsSection = await createAllProductsSectionElement();
-         if(allProductsSection) homeSectionsContainer.appendChild(allProductsSection);
+        const allProductsSection = await createAllProductsSectionElement(); // Fallback
+        if (allProductsSection) homeSectionsContainer.appendChild(allProductsSection);
         return;
     }
 
@@ -308,57 +316,73 @@ export async function renderHomePageContentUI() {
     Object.values(state.sliderIntervals || {}).forEach(clearInterval);
     state.sliderIntervals = {};
 
-    for (const section of layout) {
-        let sectionElement = null;
+    // Create promises for each section's element creation
+    const sectionPromises = layout.map(section => {
+        let promise = Promise.resolve(null); // Default to null if type is unknown or missing data
         try {
-             switch (section.type) {
-                 case 'promo_slider':
-                     if (section.groupId) {
-                         sectionElement = await createPromoSliderElement(section.groupId, section.id);
-                     } else console.warn("Promo slider missing groupId:", section);
-                     break;
-                 case 'brands':
-                     if (section.groupId) {
-                          sectionElement = await createBrandsSectionElement(section.groupId);
-                     } else console.warn("Brands section missing groupId:", section);
-                     break;
-                 case 'newest_products':
-                     sectionElement = await createNewestProductsSectionElement();
-                     break;
-                 case 'single_shortcut_row':
-                     if (section.rowId) {
-                           sectionElement = await createSingleShortcutRowElement(section.rowId, section.name); // Pass name obj
-                         } else console.warn("Shortcut row missing rowId:", section);
-                     break;
-                 case 'single_category_row':
-                     if (section.categoryId) {
-                         sectionElement = await createSingleCategoryRowElement(section); // Pass full section data
-                     } else console.warn("Category row missing categoryId:", section);
-                     break;
-                  case 'all_products':
-                       sectionElement = await createAllProductsSectionElement();
-                     break;
-                 default:
-                     console.warn(`Unknown home layout section type: ${section.type}`);
-             }
+            switch (section.type) {
+                case 'promo_slider':
+                    if (section.groupId) promise = createPromoSliderElement(section.groupId, section.id);
+                    else console.warn("Promo slider missing groupId:", section);
+                    break;
+                case 'brands':
+                    if (section.groupId) promise = createBrandsSectionElement(section.groupId);
+                    else console.warn("Brands section missing groupId:", section);
+                    break;
+                case 'newest_products':
+                    promise = createNewestProductsSectionElement();
+                    break;
+                case 'single_shortcut_row':
+                    if (section.rowId) promise = createSingleShortcutRowElement(section.rowId, section.name);
+                    else console.warn("Shortcut row missing rowId:", section);
+                    break;
+                case 'single_category_row':
+                    if (section.categoryId) promise = createSingleCategoryRowElement(section);
+                    else console.warn("Category row missing categoryId:", section);
+                    break;
+                case 'all_products':
+                     promise = createAllProductsSectionElement();
+                    break;
+                default:
+                    console.warn(`Unknown home layout section type: ${section.type}`);
+            }
         } catch(error) {
-             console.error(`Error rendering home section type ${section.type}:`, error);
-              // Optionally add a placeholder indicating an error for this section
-             sectionElement = document.createElement('div');
-             sectionElement.style.padding = '20px';
-             sectionElement.style.textAlign = 'center';
-             sectionElement.style.color = 'red';
-             sectionElement.textContent = `هەڵە لە بارکردنی بەشی: ${section.type}`;
+             console.error(`Error creating promise for section type ${section.type}:`, error);
+             // Create an error placeholder element promise
+             promise = Promise.resolve(createErrorPlaceholderElement(section.type));
         }
+        // Attach the original order to the promise result
+        return promise.then(element => ({ element, order: section.order }));
+    });
 
-        if (sectionElement) {
-            homeSectionsContainer.appendChild(sectionElement);
+    // Wait for all section elements to be created (or fail)
+    const sectionResults = await Promise.all(sectionPromises);
+
+    // Sort results based on original order (just in case Promise.all doesn't preserve it)
+    sectionResults.sort((a, b) => a.order - b.order);
+
+    // Append elements in the correct order
+    sectionResults.forEach(result => {
+        if (result.element) {
+            homeSectionsContainer.appendChild(result.element);
         }
-    }
-    setupScrollAnimations(); // Re-apply scroll animations for newly rendered cards within sections
+    });
+
+    setupScrollAnimations(); // Re-apply scroll animations
 }
 
-// --- UI Element Creation Functions for Home Page ---
+// Helper function to create an error placeholder
+function createErrorPlaceholderElement(sectionType) {
+    const errorElement = document.createElement('div');
+    errorElement.style.padding = '20px';
+    errorElement.style.textAlign = 'center';
+    errorElement.style.color = 'red';
+    errorElement.textContent = `هەڵە لە بارکردنی بەشی: ${sectionType}`;
+    return errorElement;
+}
+
+
+// --- UI Element Creation Functions for Home Page (Remain mostly the same, just ensure they are async) ---
 
 async function createPromoSliderElement(groupId, layoutId) {
     const cards = await fetchPromoGroupCards(groupId);
@@ -421,7 +445,7 @@ async function createPromoSliderElement(groupId, layoutId) {
              if (!document.getElementById(promoGrid.id) || !state.sliderIntervals || !state.sliderIntervals[layoutId]) {
                  if (sliderState.intervalId) clearInterval(sliderState.intervalId); // Clear this specific interval
                  if (state.sliderIntervals && state.sliderIntervals[layoutId]) delete state.sliderIntervals[layoutId]; // Remove from global state
-                return;
+                 return;
              }
             sliderState.currentIndex = (sliderState.currentIndex + 1) % cards.length;
             updateImage(sliderState.currentIndex);
@@ -447,8 +471,8 @@ async function createPromoSliderElement(groupId, layoutId) {
             const targetCategoryId = currentCard.categoryId;
             const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
             if (categoryExists) {
-                 await navigateToFilterCore({ category: targetCategoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
-                 await updateProductViewUI(true); // Trigger full refresh
+                await navigateToFilterCore({ category: targetCategoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
+                await updateProductViewUI(true); // Trigger full refresh
             }
         }
     });
@@ -536,10 +560,10 @@ async function createSingleShortcutRowElement(rowId, sectionNameObj) { // Receiv
          `;
          item.onclick = async () => {
               await navigateToFilterCore({ // Use core navigation
-                   category: cardData.categoryId || 'all',
-                   subcategory: cardData.subcategoryId || 'all',
-                   subSubcategory: cardData.subSubcategoryId || 'all',
-                   search: ''
+                 category: cardData.categoryId || 'all',
+                 subcategory: cardData.subcategoryId || 'all',
+                 subSubcategory: cardData.subSubcategoryId || 'all',
+                 search: ''
               });
               await updateProductViewUI(true); // Trigger UI update
          };
@@ -592,19 +616,20 @@ async function createSingleCategoryRowElement(sectionData) {
     });
 
     container.querySelector('.see-all-link').onclick = async () => {
-         if(subcategoryId) { // Includes subSubcategoryId case, go to detail page
+        if(subcategoryId) { // Includes subSubcategoryId case, go to detail page
              showSubcategoryDetailPageUI(categoryId, subcategoryId); // Use imported function
-         } else { // Only main category, filter main page
-              await navigateToFilterCore({ category: categoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
-              await updateProductViewUI(true); // Trigger full refresh
-         }
+        } else { // Only main category, filter main page
+             await navigateToFilterCore({ category: categoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
+             await updateProductViewUI(true); // Trigger full refresh
+        }
     };
     return container;
 }
 
 async function createAllProductsSectionElement() {
-    const products = await fetchInitialProductsForHome();
-    if (!products || products.length === 0) return null;
+    const products = await fetchInitialProductsForHome(); // Fetch only a few initially
+    // If you want NO products here initially, just return the container structure
+    // if (!products || products.length === 0) return null; // Optionally hide if no initial products
 
     const container = document.createElement('div');
     container.className = 'dynamic-section';
@@ -613,13 +638,16 @@ async function createAllProductsSectionElement() {
         <div class="section-title-header">
             <h3 class="section-title-main">${t('all_products_section_title')}</h3>
             </div>
-        <div class="products-container"></div>
+        <div class="products-container" id="homeAllProductsGrid"></div> <!-- Give it a unique ID -->
     `;
-    const productsGrid = container.querySelector('.products-container');
-    products.forEach(product => {
-        const card = createProductCardElementUI(product); // Use imported function
-        productsGrid.appendChild(card);
-    });
+    const productsGrid = container.querySelector('#homeAllProductsGrid');
+     if (products && products.length > 0) {
+        products.forEach(product => {
+            const card = createProductCardElementUI(product); // Use imported function
+            productsGrid.appendChild(card);
+        });
+     } else {
+         productsGrid.innerHTML = '<p style="text-align:center; padding: 20px;">هیچ کاڵایەک نەدۆزرایەوە.</p>'; // Or a loader
+     }
     return container;
 }
-

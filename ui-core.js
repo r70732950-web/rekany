@@ -1,5 +1,5 @@
 // ui-core.js
-// Logika giştî ya UI, girêdana bûyeran, û rêveberiya navbeynkariyê
+// Logika giştî ya UI, girêdana bûyeran, û rêveberiya navbeynkariyê - WITH DEBUG LOGS
 
 import {
     // DOM Elements needed for general UI management & event listeners
@@ -73,6 +73,7 @@ export function updateHeaderView(pageId, title = '') {
 }
 
 export function showPage(pageId, pageTitle = '') {
+    console.log(`[showPage] Called for pageId: ${pageId}, title: ${pageTitle}`); // Debug log
     document.querySelectorAll('.page').forEach(page => {
         const isActive = page.id === pageId;
         page.classList.toggle('page-active', isActive);
@@ -318,12 +319,24 @@ export function updateAdminUIAuth(isAdmin) {
 
 function setupUIEventListeners() {
     homeBtn.onclick = async () => {
+        console.log("[homeBtn.onclick] Clicked."); // Debug log
         if (!mainPage.classList.contains('page-active')) {
-            history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
-            showPage('mainPage'); // Use function from this file
+             console.log("[homeBtn.onclick] Main page not active, showing it."); // Debug log
+             // Check if current state is already home, if so, replace instead of push
+             if (history.state && history.state.type === 'page' && history.state.id === 'mainPage') {
+                 history.replaceState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
+             } else {
+                 history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
+             }
+             showPage('mainPage'); // Use function from this file
+        } else {
+            console.log("[homeBtn.onclick] Main page already active."); // Debug log
         }
+        // Always reset filters when home button is explicitly clicked
+        console.log("[homeBtn.onclick] Resetting filters via navigateToFilterCore."); // Debug log
         await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-        await updateProductViewUI(true); // From home.js
+        console.log("[homeBtn.onclick] Calling updateProductViewUI(true)."); // Debug log
+        await updateProductViewUI(true); // From home.js (Force refresh)
     };
 
     settingsBtn.onclick = () => {
@@ -331,7 +344,10 @@ function setupUIEventListeners() {
         showPage('settingsPage', t('settings_title')); // Use function from this file
     };
 
-    document.getElementById('headerBackBtn').onclick = () => { history.back(); };
+    document.getElementById('headerBackBtn').onclick = () => {
+         console.log("[headerBackBtn.onclick] Going back."); // Debug log
+         history.back();
+    };
 
     profileBtn.onclick = () => { openPopup('profileSheet'); updateActiveNav('profileBtn'); }; // Use functions from this file
     cartBtn.onclick = () => { openPopup('cartSheet'); updateActiveNav('cartBtn'); }; // Use functions from this file
@@ -383,8 +399,8 @@ function setupUIEventListeners() {
             const activeSubSubBtn = document.querySelector('#subSubCategoryContainerOnDetailPage .subcategory-btn.active');
             const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.id || 'all') : 'all';
             // Need renderProductsOnDetailPageUI from ui-render.js
-            // Assuming it's imported correctly
-            if (typeof renderProductsOnDetailPageUI === 'function') {
+            // Assuming it's globally available or imported via ui-render.js
+            if (typeof renderProductsOnDetailPageUI === 'function') { // Check if function exists
                 await renderProductsOnDetailPageUI(subCatId, subSubCatId, term);
             } else {
                  console.error("renderProductsOnDetailPageUI not imported correctly from ui-render.js");
@@ -452,6 +468,7 @@ function setupUIEventListeners() {
             const homeSectionsHidden = document.getElementById('homePageSectionsContainer')?.style.display === 'none';
 
             if (entries[0].isIntersecting && isMainPageActive && homeSectionsHidden && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
+                console.log("[InfiniteScroll] Triggered."); // Debug log
                 loader.style.display = 'block';
                 await updateProductViewUI(false); // Call from home.js to fetch and append
                 loader.style.display = 'none';
@@ -492,9 +509,12 @@ function setupUIEventListeners() {
     });
 
     document.addEventListener('clearCacheTriggerRender', async () => {
-        console.log("UI received clearCacheTriggerRender event.");
-        if (state.currentCategory === 'all' && !state.currentSearch) {
-            await updateProductViewUI(true); // Re-render home view (from home.js)
+        console.log("[clearCacheTriggerRender] Event received. Checking if home view needs update."); // Debug log
+        if (state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all' && !state.currentSearch) {
+             console.log("[clearCacheTriggerRender] Home view detected, calling updateProductViewUI(true)."); // Debug log
+             await updateProductViewUI(true); // Re-render home view (from home.js)
+        } else {
+            console.log("[clearCacheTriggerRender] Not home view, update skipped."); // Debug log
         }
     });
 
@@ -504,11 +524,13 @@ function setupUIEventListeners() {
 
 // Popstate listener for handling back/forward navigation
 window.addEventListener('popstate', async (event) => {
+    console.log("[Popstate] Event triggered. History state:", event.state); // Debug log
     closeAllPopupsUI(); // Close any open popups
     const popState = event.state;
 
     if (popState) {
         if (popState.type === 'page') {
+             console.log(`[Popstate] Navigating to page: ${popState.id}`); // Debug log
             let pageTitle = popState.title;
             // Refetch title for detail page if needed
             if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
@@ -526,68 +548,90 @@ window.addEventListener('popstate', async (event) => {
 
             // Re-render detail page content if navigating back to it
             if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
+                console.log(`[Popstate] Re-rendering subcategory detail page: ${popState.subCatId}`); // Debug log
                 await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true); // From ui-render.js
             }
 
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
+             console.log(`[Popstate] Re-opening popup: ${popState.id}`); // Debug log
             openPopup(popState.id, popState.type); // Re-open popup (from this file)
         } else { // Filter state for main page
+             console.log("[Popstate] Applying filter state for main page:", popState); // Debug log
             showPage('mainPage'); // Ensure main page visible (from this file)
             applyFilterStateCore(popState); // Apply state logic
+            console.log("[Popstate] Calling updateProductViewUI(true) for main page filter state."); // Debug log
             await updateProductViewUI(true); // Re-render products (from home.js)
             if (typeof popState.scroll === 'number') {
                 setTimeout(() => window.scrollTo(0, popState.scroll), 50);
             }
         }
     } else { // No state, default to main page
+        console.log("[Popstate] No state found, defaulting to main page."); // Debug log
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
         showPage('mainPage'); // From this file
         applyFilterStateCore(defaultState);
+        console.log("[Popstate] Calling updateProductViewUI(true) for default main page state."); // Debug log
         await updateProductViewUI(true); // From home.js
     }
 });
 
 // Handles initial page load based on URL after core logic is ready
 async function handleInitialPageLoadUI() {
+    console.log("[handleInitialPageLoadUI] Starting initial load check."); // Debug log
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(window.location.search);
     const isSettings = hash === 'settingsPage';
     const isSubcategoryDetail = hash.startsWith('subcategory_');
 
     if (isSettings) {
+        console.log("[handleInitialPageLoadUI] Loading settings page."); // Debug log
         history.replaceState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', `#${hash}`);
         showPage('settingsPage', t('settings_title')); // From this file
     } else if (isSubcategoryDetail) {
+        console.log("[handleInitialPageLoadUI] Loading subcategory detail page."); // Debug log
         const ids = hash.split('_');
         const mainCatId = ids[1];
         const subCatId = ids[2];
         if (state.categories.length > 1) { // Check if categories are loaded
             await showSubcategoryDetailPageUI(mainCatId, subCatId, true); // From ui-render.js
         } else {
-            console.warn("Categories not ready, showing main page.");
+            console.warn("[handleInitialPageLoadUI] Categories not ready for subcategory page, showing main page."); // Debug log
             showPage('mainPage'); // From this file
             await updateProductViewUI(true); // From home.js
         }
     } else { // Default to main page
+        console.log("[handleInitialPageLoadUI] Loading main page (default)."); // Debug log
         showPage('mainPage'); // From this file
         const initialState = { category: params.get('category') || 'all', subcategory: params.get('subcategory') || 'all', subSubcategory: params.get('subSubcategory') || 'all', search: params.get('search') || '', scroll: 0 };
+        console.log("[handleInitialPageLoadUI] Initial filter state:", initialState); // Debug log
         history.replaceState(initialState, '');
         applyFilterStateCore(initialState);
+        console.log("[handleInitialPageLoadUI] Calling updateProductViewUI(true) for initial main page load."); // Debug log
         await updateProductViewUI(true); // From home.js
 
         const element = document.getElementById(hash);
         if (element) { // Check if hash corresponds to a popup
             const isSheet = element.classList.contains('bottom-sheet');
             const isModal = element.classList.contains('modal');
-            if (isSheet || isModal) openPopup(hash, isSheet ? 'sheet' : 'modal'); // From this file
+            if (isSheet || isModal) {
+                 console.log(`[handleInitialPageLoadUI] Opening initial popup: ${hash}`); // Debug log
+                 openPopup(hash, isSheet ? 'sheet' : 'modal'); // From this file
+            }
         }
 
         const productId = params.get('product'); // Check for direct product link
         if (productId) {
+            console.log(`[handleInitialPageLoadUI] Found product ID in URL: ${productId}. Fetching...`); // Debug log
             const product = await fetchProductById(productId);
-            if (product) setTimeout(() => showProductDetailsUI(product), 300); // From ui-render.js
+            if (product) {
+                 console.log(`[handleInitialPageLoadUI] Product found, showing details.`); // Debug log
+                 setTimeout(() => showProductDetailsUI(product), 300); // From ui-render.js
+            } else {
+                console.warn(`[handleInitialPageLoadUI] Product ${productId} not found.`); // Debug log
+            }
         }
     }
+     console.log("[handleInitialPageLoadUI] Finished initial load check."); // Debug log
 }
 
 // Initializes the entire UI layer after DOM is ready
@@ -633,3 +677,5 @@ window.updateCartCountUI = updateCartCountUI;
 window.showNotification = showNotification;
 window.navigateToFilterCore = navigateToFilterCore; // From app-core, needed by category sheet render
 window.updateProductViewUI = updateProductViewUI; // From home.js, needed by category sheet render
+// Make renderProductsOnDetailPageUI globally accessible if needed by subpage search in this file
+// window.renderProductsOnDetailPageUI = renderProductsOnDetailPageUI; // Assuming it's defined in ui-render.js and imported
