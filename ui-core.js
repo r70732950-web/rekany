@@ -23,7 +23,8 @@ import {
     applyFilterStateCore, navigateToFilterCore, initCore,
     fetchContactMethods, // Needed for renderContactLinksUI
     // Firestore needed for renderContactLinksUI
-    db, collection, query, orderBy, getDocs, doc, getDoc, signOut // signOut needed for logout button
+    db, collection, query, orderBy, getDocs, doc, getDoc,
+    signOut // *** KODA ÇAKKIRÎ: 'sign0ut' bû 'signOut' ***
 } from './app-core.js';
 
 import {
@@ -636,3 +637,4 @@ window.updateCartCountUI = updateCartCountUI;
 window.showNotification = showNotification;
 window.navigateToFilterCore = navigateToFilterCore; // From app-core, needed by category sheet render
 window.updateProductViewUI = updateProductViewUI; // From home.js, needed by category sheet render
+
