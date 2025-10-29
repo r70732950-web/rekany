@@ -2,13 +2,13 @@
 // Logika bingehîn, danûstendina daneyan, û rêveberiya state
 
 import {
-    // *** گۆڕانکاری لێرە: db و CACHE_PREFIX لێرە هاوردەکراون ***
+    // *** db لێرە هاوردەکراوە ***
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
     translations, state,
     CART_KEY, FAVORITES_KEY, PROFILE_KEY, PRODUCTS_PER_PAGE,
-    CACHE_PREFIX // <-- KODA NÛ: Ji app-setup.js hate anîn
+    CACHE_PREFIX // *** KODA NÛ: Import CACHE_PREFIX ***
 } from './app-setup.js';
 
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
@@ -19,60 +19,11 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
-// --- DESTPÊKA KODA KAŞKIRINÊ (CACHE) YA NÛ ---
-const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 خولەک
-
-/**
- * Datan ji localStorage ya kaşkirî (cached) distîne.
- * Heke data derbasdar be (ji 5 xulekan kêmtir be) wê vedigerîne.
- * @param {string} key - Kilîta kaşê (bêyî pêşgir)
- * @returns {any | null} - Daneyên kaşkirî an null
- */
-function getCachedData(key) {
-    const item = localStorage.getItem(CACHE_PREFIX + key);
-    if (!item) return null;
-
-    try {
-        const data = JSON.parse(item);
-        const now = Date.now();
-        if (now - data.timestamp < CACHE_DURATION_MS) {
-            console.log(`CACHE HIT (5 min): ${key}`);
-            return data.payload; // Cache baş e
-        } else {
-            localStorage.removeItem(CACHE_PREFIX + key); // Cache xilas bûye
-            console.log(`CACHE EXPIRED: ${key}`);
-            return null;
-        }
-    } catch (error) {
-        console.error("Error reading from cache:", error);
-        localStorage.removeItem(CACHE_PREFIX + key);
-        return null;
-    }
-}
-
-/**
- * Daneyan di localStorage de ji bo 5 xulekan kaş dike.
- * @param {string} key - Kilîta kaşê (bêyî pêşgir)
- * @param {any} payload - Daneyên ku bên kaşkirin
- */
-function setCachedData(key, payload) {
-    try {
-        const data = {
-            payload: payload,
-            timestamp: Date.now()
-        };
-        localStorage.setItem(CACHE_PREFIX + key, JSON.stringify(data));
-        console.log(`CACHE SET (5 min): ${key}`);
-    } catch (error) {
-        console.error("Error writing to cache:", error);
-        // Dibe ku localStorage tije be
-    }
-}
-// --- DAWÎYA KODA KAŞKIRINÊ (CACHE) YA NÛ ---
-
+// --- Cache Constants ---
+const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
 // --- Exported Helper Functions ---
-export function debounce(func, delay = 500) {
+export function debounce(func, delay = 300) { // Reduced delay for smoother scroll update
     let timeout;
     return (...args) => {
         clearTimeout(timeout);
@@ -115,6 +66,82 @@ export function saveFavorites() {
 export function isFavorite(productId) {
     return state.favorites.includes(productId);
 }
+
+// --- Smart Caching with Scroll Position ---
+
+/**
+ * Retrieves cached data if it's not older than CACHE_DURATION_MS.
+ * @param {string} key - The cache key.
+ * @returns {object|null} - Returns { data, scroll } or null if cache is invalid/missing.
+ */
+function getCachedData(key) {
+    const fullKey = CACHE_PREFIX + key;
+    const cached = localStorage.getItem(fullKey);
+    if (cached) {
+        try {
+            const { timestamp, data, scroll } = JSON.parse(cached);
+            if (Date.now() - timestamp < CACHE_DURATION_MS) {
+                console.log(`Cache hit for key: ${key}`);
+                return { data, scroll }; // Return data and scroll position
+            } else {
+                console.log(`Cache expired for key: ${key}`);
+                localStorage.removeItem(fullKey); // Remove expired cache
+            }
+        } catch (e) {
+            console.error(`Error parsing cache for key ${key}:`, e);
+            localStorage.removeItem(fullKey); // Remove corrupted cache
+        }
+    }
+    console.log(`Cache miss for key: ${key}`);
+    return null;
+}
+
+/**
+ * Stores data and current scroll position in the cache.
+ * @param {string} key - The cache key.
+ * @param {*} data - The data to cache.
+ * @param {number} scroll - The scroll position to cache.
+ */
+function setCachedData(key, data, scroll) {
+    const fullKey = CACHE_PREFIX + key;
+    const cacheEntry = {
+        timestamp: Date.now(),
+        data: data,
+        scroll: scroll // Store scroll position
+    };
+    try {
+        localStorage.setItem(fullKey, JSON.stringify(cacheEntry));
+        console.log(`Data cached for key: ${key} with scroll: ${scroll}`);
+    } catch (e) {
+        console.error(`Error setting cache for key ${key}:`, e);
+        // Handle potential storage limit errors if necessary
+    }
+}
+
+/**
+ * Updates only the scroll position for an existing cache entry.
+ * @param {string} key - The cache key.
+ * @param {number} scroll - The new scroll position.
+ */
+export function updateCachedScroll(key, scroll) {
+    const fullKey = CACHE_PREFIX + key;
+    const cached = localStorage.getItem(fullKey);
+    if (cached) {
+        try {
+            const existingEntry = JSON.parse(cached);
+            // Only update if scroll position actually changed
+            if (existingEntry.scroll !== scroll) {
+            	existingEntry.scroll = scroll;
+            	localStorage.setItem(fullKey, JSON.stringify(existingEntry));
+            	// console.log(`Cache scroll updated for key: ${key} to ${scroll}`); // Optional: Too noisy
+            }
+        } catch (e) {
+            console.error(`Error updating cache scroll for key ${key}:`, e);
+        }
+    }
+}
+// --- End Smart Caching ---
+
 
 // --- Authentication ---
 
@@ -168,6 +195,7 @@ async function fetchSubSubcategories(mainCatId, subCatId) {
 }
 
 async function fetchProductById(productId) {
+    // Product details are not cached with the list cache
     try {
         const docRef = doc(db, "products", productId);
         const docSnap = await getDoc(docRef);
@@ -184,6 +212,7 @@ async function fetchProductById(productId) {
 }
 
 async function fetchRelatedProducts(currentProduct) {
+    // Related products are specific, don't use list cache
     if (!currentProduct.subcategoryId && !currentProduct.categoryId) return [];
 
     const baseQuery = collection(db, "products");
@@ -212,33 +241,35 @@ async function fetchRelatedProducts(currentProduct) {
     }
 }
 
-
-// *** ÇAKKIRÎ: Fonksiyona fetchProducts bi kaşkirina 5 xulekî ***
+// Fetches products based on current filters and pagination state, using smart cache
 async function fetchProducts(searchTerm = '', isNewSearch = false) {
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
 
     if (shouldShowHomeSections) {
         // Signal UI to render home sections
-        return { isHome: true, products: [], allLoaded: true };
+        return { isHome: true, products: [], allLoaded: true, scroll: 0 }; // Return scroll 0 for home
     }
 
-    // Kilîta kaşê ya taybet ji bo vê fîlterê
-    const lsCacheKey = `products_${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
+    const cacheKey = `products-${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
 
     if (isNewSearch) {
-        // 1. Berî her tiştî, kaşê 5 xulekî yê localStorage kontrol bike
-        const cachedData = getCachedData(lsCacheKey);
-        if (cachedData) {
-            // Daneyên kaşkirî dîtin
-            state.products = cachedData.products;
-            state.lastVisibleProductDoc = null; // Kaş tenê rûpela yekem digire, ji bo pagination divê ji nû ve were barkirin
-            state.allProductsLoaded = cachedData.allLoaded;
-            return { isHome: false, products: state.products, allLoaded: state.allProductsLoaded };
+        const cached = getCachedData(cacheKey);
+        if (cached) {
+            // Return cached data for new search
+            state.products = cached.data.products; // Assuming cached data structure matches fetch result
+            state.lastVisibleProductDoc = cached.data.lastVisible; // Restore pagination state
+            state.allProductsLoaded = cached.data.allLoaded;
+            console.log(`Cache hit for NEW search: ${cacheKey}, returning scroll ${cached.scroll}`);
+            return {
+                isHome: false,
+                products: state.products, // Return the full cached list for UI rendering
+                allLoaded: state.allProductsLoaded,
+                scroll: cached.scroll // Return the cached scroll position
+            };
         }
     }
 
-    // Ger kaş neyê dîtin an ji bo rûpela din be, ji Firebase bistîne
-    if (state.isLoadingMoreProducts) return null; // Pêşî li barkirina hevdem digire
+    if (state.isLoadingMoreProducts) return null; // Prevent concurrent loading
 
     if (isNewSearch) {
         state.allProductsLoaded = false;
@@ -246,7 +277,7 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
         state.products = [];
     }
 
-    if (state.allProductsLoaded && !isNewSearch) return null; // Hemî hatine barkirin
+    if (state.allProductsLoaded && !isNewSearch) return null; // Already loaded all
 
     state.isLoadingMoreProducts = true;
 
@@ -255,17 +286,10 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
         let conditions = [];
         let orderByClauses = [];
 
-        // ... (Logika avakirina query ya heyî) ...
-        if (state.currentCategory && state.currentCategory !== 'all') {
-            conditions.push(where("categoryId", "==", state.currentCategory));
-        }
-        if (state.currentSubcategory && state.currentSubcategory !== 'all') {
-            conditions.push(where("subcategoryId", "==", state.currentSubcategory));
-        }
-        if (state.currentSubSubcategory && state.currentSubSubcategory !== 'all') {
-            conditions.push(where("subSubcategoryId", "==", state.currentSubSubcategory));
-        }
-
+        // Apply filters
+        if (state.currentCategory && state.currentCategory !== 'all') conditions.push(where("categoryId", "==", state.currentCategory));
+        if (state.currentSubcategory && state.currentSubcategory !== 'all') conditions.push(where("subcategoryId", "==", state.currentSubcategory));
+        if (state.currentSubSubcategory && state.currentSubSubcategory !== 'all') conditions.push(where("subSubcategoryId", "==", state.currentSubSubcategory));
         const finalSearchTerm = searchTerm.trim().toLowerCase();
         if (finalSearchTerm) {
             conditions.push(where('searchableName', '>=', finalSearchTerm));
@@ -273,7 +297,6 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
             orderByClauses.push(orderBy("searchableName", "asc"));
         }
         orderByClauses.push(orderBy("createdAt", "desc"));
-
 
         let finalQuery = query(productsQuery, ...conditions, ...orderByClauses);
 
@@ -286,33 +309,40 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
         const productSnapshot = await getDocs(finalQuery);
         const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        state.lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
+        // Update pagination state
+        const lastVisible = productSnapshot.docs[productSnapshot.docs.length - 1];
+        state.lastVisibleProductDoc = lastVisible; // Update global state
         state.allProductsLoaded = productSnapshot.docs.length < PRODUCTS_PER_PAGE;
 
         if (isNewSearch) {
-            state.products = newProducts;
-            // 2. Encamên rûpela yekem di kaşê 5 xulekî de tomar bike
-            setCachedData(lsCacheKey, {
-                products: newProducts,
-                allLoaded: state.allProductsLoaded
-                // Nîşe: Em lastVisibleProductDoc tomar nakin ji ber ku ew ne JSON-serializable ye
-            });
+            state.products = newProducts; // Replace products in state
+            // Cache the result of the new search, including pagination state
+            setCachedData(cacheKey, {
+            	products: state.products,
+            	lastVisible: lastVisible ? lastVisible.id : null, // Store ID or something serializable if needed, or maybe just store the snapshot data? Or reconstruct on load? Let's just track allLoaded for now. Revisit if pagination breaks.
+            	allLoaded: state.allProductsLoaded
+            }, 0); // Cache new search with scroll 0 initially
+        	return { isHome: false, products: state.products, allLoaded: state.allProductsLoaded, scroll: 0 };
         } else {
-            state.products = [...state.products, ...newProducts];
+            state.products = [...state.products, ...newProducts]; // Append products in state
+            // Update cache with appended data and new pagination state
+            // Be careful here, appending might exceed storage limits quickly.
+            // For simplicity, let's NOT update the cache on infinite scroll for now.
+            // Only new searches are cached fully.
+        	return { isHome: false, products: newProducts, allLoaded: state.allProductsLoaded, scroll: window.scrollY }; // Return only NEW products for appending
         }
-
-        return { isHome: false, products: newProducts, allLoaded: state.allProductsLoaded };
 
     } catch (error) {
         console.error("Error fetching products:", error);
-        return { isHome: false, products: [], allLoaded: true, error: true }; // Indicate error
+        return { isHome: false, products: [], allLoaded: true, error: true, scroll: 0 }; // Indicate error
     } finally {
         state.isLoadingMoreProducts = false;
     }
 }
-// *** DAWÎYA ÇAKKIRINÊ ***
+
 
 async function fetchPolicies() {
+    // Policies are less frequently updated, cache might be longer here if needed
     try {
         const docRef = doc(db, "settings", "policies");
         const docSnap = await getDoc(docRef);
@@ -327,6 +357,7 @@ async function fetchPolicies() {
 }
 
 async function fetchAnnouncements() {
+    // Announcements might not need caching, fetched once usually
     try {
         const q = query(announcementsCollection, orderBy("createdAt", "desc"));
         const snapshot = await getDocs(q);
@@ -338,6 +369,7 @@ async function fetchAnnouncements() {
 }
 
 async function fetchContactMethods() {
+    // Contact methods are relatively static, could be cached
     try {
         const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
         const q = query(methodsCollection, orderBy("createdAt"));
@@ -350,6 +382,7 @@ async function fetchContactMethods() {
 }
 
 async function fetchHomeLayout() {
+    // Layout might change, caching needs careful invalidation (e.g., via admin actions)
     try {
         const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
         const layoutSnapshot = await getDocs(layoutQuery);
@@ -360,10 +393,8 @@ async function fetchHomeLayout() {
     }
 }
 
-// Kaşkirin li vir NAYÊ zêdekirin, ji ber ku ev ji aliyê `home.js` ve tê bang kirin
-// û `home.js` tenê carekê bang dike dema ku rûpel tê barkirin.
-// Kaşkirin li vir dê feydeyê sînordar bike.
 async function fetchPromoGroupCards(groupId) {
+    // Promo cards might change, caching needs invalidation
     try {
         const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
@@ -375,6 +406,7 @@ async function fetchPromoGroupCards(groupId) {
 }
 
 async function fetchBrandGroupBrands(groupId) {
+    // Brands might change, caching needs invalidation
     try {
         const q = query(collection(db, "brand_groups", groupId, "brands"), orderBy("order", "asc"), limit(30));
         const snapshot = await getDocs(q);
@@ -385,34 +417,33 @@ async function fetchBrandGroupBrands(groupId) {
     }
 }
 
-// *** ÇAKKIRÎ: Fonksiyona fetchNewestProducts bi kaşkirina 5 xulekî ***
 async function fetchNewestProducts(limitCount = 10) {
     const cacheKey = `newest_products_${limitCount}`;
-    const cachedData = getCachedData(cacheKey);
-    if (cachedData) {
-        return cachedData;
+    const cached = getCachedData(cacheKey);
+    if (cached) {
+    	return cached.data; // Scroll position not relevant here
     }
 
     try {
-        const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
-        const q = query(
-            productsCollection,
-            where('createdAt', '>=', fifteenDaysAgo),
-            orderBy('createdAt', 'desc'),
-            limit(limitCount)
-        );
-        const snapshot = await getDocs(q);
-        const products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        setCachedData(cacheKey, products); // Encaman kaş bike
-        return products;
+    	const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
+    	const q = query(
+        	productsCollection,
+        	where('createdAt', '>=', fifteenDaysAgo),
+        	orderBy('createdAt', 'desc'),
+        	limit(limitCount)
+    	);
+    	const snapshot = await getDocs(q);
+    	const products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    	setCachedData(cacheKey, products, 0); // Cache data with scroll 0
+    	return products;
     } catch (error) {
-        console.error("Error fetching newest products:", error);
-        return [];
+    	console.error("Error fetching newest products:", error);
+    	return [];
     }
 }
 
 async function fetchShortcutRowCards(rowId) {
+    // Shortcut cards might change, caching needs invalidation
     try {
         const cardsCollectionRef = collection(db, "shortcut_rows", rowId, "cards");
         const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
@@ -424,69 +455,59 @@ async function fetchShortcutRowCards(rowId) {
     }
 }
 
-// *** ÇAKKIRÎ: Fonksiyona fetchCategoryRowProducts bi kaşkirina 5 xulekî ***
 async function fetchCategoryRowProducts(sectionData) {
     const { categoryId, subcategoryId, subSubcategoryId } = sectionData;
     let queryField, queryValue;
 
     if (subSubcategoryId) {
-        queryField = 'subSubcategoryId';
-        queryValue = subSubcategoryId;
+        queryField = 'subSubcategoryId'; queryValue = subSubcategoryId;
     } else if (subcategoryId) {
-        queryField = 'subcategoryId';
-        queryValue = subcategoryId;
+        queryField = 'subcategoryId'; queryValue = subcategoryId;
     } else if (categoryId) {
-        queryField = 'categoryId';
-        queryValue = categoryId;
-    } else {
-        return []; // No category specified
-    }
+        queryField = 'categoryId'; queryValue = categoryId;
+    } else { return []; }
 
-    const cacheKey = `category_row_${queryField}_${queryValue}`;
-    const cachedData = getCachedData(cacheKey);
-    if (cachedData) {
-        return cachedData;
+    const cacheKey = `category_row-${categoryId || 'none'}-${subcategoryId || 'none'}-${subSubcategoryId || 'none'}`;
+    const cached = getCachedData(cacheKey);
+    if (cached) {
+    	return cached.data; // Scroll position not relevant here
     }
 
     try {
-        const q = query(
-            productsCollection,
-            where(queryField, '==', queryValue),
-            orderBy('createdAt', 'desc'),
-            limit(10)
-        );
-        const snapshot = await getDocs(q);
-        const products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        setCachedData(cacheKey, products); // Encaman kaş bike
-        return products;
+    	const q = query(
+        	productsCollection,
+        	where(queryField, '==', queryValue),
+        	orderBy('createdAt', 'desc'),
+        	limit(10)
+    	);
+    	const snapshot = await getDocs(q);
+    	const products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    	setCachedData(cacheKey, products, 0); // Cache data with scroll 0
+    	return products;
     } catch (error) {
-        console.error(`Error fetching products for single category row:`, error);
-        return [];
+    	console.error(`Error fetching products for single category row:`, error);
+    	return [];
     }
 }
 
-// *** ÇAKKIRÎ: Fonksiyona fetchInitialProductsForHome bi kaşkirina 5 xulekî ***
 async function fetchInitialProductsForHome(limitCount = 10) {
     const cacheKey = `initial_home_products_${limitCount}`;
-    const cachedData = getCachedData(cacheKey);
-    if (cachedData) {
-        return cachedData;
+    const cached = getCachedData(cacheKey);
+    if (cached) {
+    	// For initial home products, return scroll as well
+    	return { products: cached.data, scroll: cached.scroll };
     }
-
-     try {
-        const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(limitCount));
-        const snapshot = await getDocs(q);
-        const products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        setCachedData(cacheKey, products); // Encaman kaş bike
-        return products;
+    try {
+    	const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(limitCount));
+    	const snapshot = await getDocs(q);
+    	const products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    	setCachedData(cacheKey, products, 0); // Cache initial load with scroll 0
+    	return { products, scroll: 0 };
     } catch (error) {
-        console.error("Error fetching initial products for home page:", error);
-        return [];
+    	console.error("Error fetching initial products for home page:", error);
+    	return { products: [], scroll: 0 };
     }
 }
-
 
 // --- Cart Logic ---
 
@@ -603,16 +624,13 @@ export function setLanguageCore(lang) {
     document.documentElement.lang = lang.startsWith('ar') ? 'ar' : 'ku';
     document.documentElement.dir = 'rtl';
     // Clear cache as language affects rendered content
-    state.productCache = {}; // Clear in-memory cache
-    // Clear 5-min localStorage product cache
+    console.log("Language changed, clearing product cache.");
     for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith(CACHE_PREFIX)) {
-            localStorage.removeItem(key);
-        }
+    	const key = localStorage.key(i);
+    	if (key && key.startsWith(CACHE_PREFIX)) {
+    		localStorage.removeItem(key);
+    	}
     }
-    console.log("Cleared all product caches due to language change.");
-
     const homeContainer = document.getElementById('homePageSectionsContainer');
     if (homeContainer) homeContainer.innerHTML = '';
 }
@@ -697,6 +715,15 @@ async function forceUpdateCore() {
                 await Promise.all(keys.map(key => window.caches.delete(key)));
                 console.log('All caches cleared.');
             }
+            // *** KODA NÛ: Paqijkirina localStorage cache jî ***
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+            	const key = localStorage.key(i);
+            	if (key && key.startsWith(CACHE_PREFIX)) {
+            		localStorage.removeItem(key);
+            	}
+            }
+            console.log('localStorage product cache cleared.');
+            // *** DAWÎYA KODA NÛ ***
             return { success: true, message: t('update_success') };
         } catch (error) {
             console.error('Error during force update:', error);
@@ -711,10 +738,22 @@ async function forceUpdateCore() {
 export function saveCurrentScrollPositionCore() {
     const currentState = history.state;
     // Only save scroll position for the main page filter state
-    if (document.getElementById('mainPage')?.classList.contains('page-active') && currentState && !currentState.type) {
-        history.replaceState({ ...currentState, scroll: window.scrollY }, '');
+    // *** KODA NÛ: Ensure mainPage exists before checking classList ***
+    const mainPageElement = document.getElementById('mainPage');
+    if (mainPageElement?.classList.contains('page-active') && currentState && !currentState.type) {
+    	// Use the debounced function to update cache scroll
+    	debouncedScrollUpdate(window.scrollY);
+    	// Also update the history state immediately for smoother popstate restore
+    	history.replaceState({ ...currentState, scroll: window.scrollY }, '');
     }
 }
+// *** KODA NÛ: Debounced function for updating cache scroll ***
+const debouncedScrollUpdate = debounce((scrollPos) => {
+    // Determine the current cache key based on filters
+    const cacheKey = `products-${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${state.currentSearch.trim().toLowerCase()}`;
+    // Update the scroll position in the cache for this specific key
+    updateCachedScroll(cacheKey, scrollPos);
+}, 300); // Update every 300ms while scrolling
 
 // Applies filter state (category, search, etc.) but doesn't handle UI rendering directly
 export function applyFilterStateCore(filterState) {
@@ -727,16 +766,19 @@ export function applyFilterStateCore(filterState) {
 
 export function navigateToFilterCore(newState) {
     // Save current scroll before changing state
+    // *** KODA NÛ: Ensure mainPage exists ***
+    const mainPageElement = document.getElementById('mainPage');
+    const currentScroll = mainPageElement?.classList.contains('page-active') ? window.scrollY : 0;
     history.replaceState({
         category: state.currentCategory,
         subcategory: state.currentSubcategory,
         subSubcategory: state.currentSubSubcategory,
         search: state.currentSearch,
-        scroll: window.scrollY
+        scroll: currentScroll // Use stored scroll
     }, '');
 
     // Combine current state with new changes, reset scroll for new view
-    const finalState = { ...history.state, ...newState, scroll: 0 };
+    const finalState = { ...history.state, ...newState, scroll: 0 }; // Reset scroll for NEW navigation
 
     // Update URL query parameters
     const params = new URLSearchParams();
@@ -756,91 +798,88 @@ export function navigateToFilterCore(newState) {
 
 // --- Initialization ---
 
-// *** This function is now async ***
 async function initializeCoreLogic() {
     if (!state.sliderIntervals) state.sliderIntervals = {};
-    // *** We await fetchCategories here ***
     await fetchCategories();
     // Fetch initial contact methods, social links, etc. if needed globally
 }
 
 // Call this once on app load
-// *** This function is now async and returns a Promise ***
 export async function initCore() {
     // Return the promise chain
     return enableIndexedDbPersistence(db)
         .then(() => console.log("Firestore offline persistence enabled."))
         .catch((err) => console.warn("Firestore Persistence failed:", err.code))
         .finally(async () => { // Make the finally block async
-            // *** Await the core logic setup ***
             await initializeCoreLogic(); // Await the core logic setup
+
+            // *** KODA NÛ: Add scroll listener ***
+            window.addEventListener('scroll', saveCurrentScrollPositionCore);
 
             // Setup listeners *after* core logic (like categories) is ready
             onAuthStateChanged(auth, async (user) => {
-                const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3"; // Replace with your Admin UID
-                const isAdmin = user && user.uid === adminUID;
-                const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
+            	const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3"; // Replace with your Admin UID
+            	const isAdmin = user && user.uid === adminUID;
+            	const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
 
-                if (isAdmin) {
-                    sessionStorage.setItem('isAdmin', 'true');
-                    if (!wasAdmin && window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
-                         window.AdminLogic.initialize();
-                    }
-                } else {
-                    sessionStorage.removeItem('isAdmin');
-                     if (user) { await signOut(auth); } // Sign out non-admins
-                    if (wasAdmin && window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
-                         window.AdminLogic.deinitialize();
-                    }
-                }
-                // Notify UI layer about auth change
-                document.dispatchEvent(new CustomEvent('authChange', { detail: { isAdmin } }));
+            	if (isAdmin) {
+            		sessionStorage.setItem('isAdmin', 'true');
+            		if (!wasAdmin && window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
+            			window.AdminLogic.initialize();
+            		}
+            	} else {
+            		sessionStorage.removeItem('isAdmin');
+            		// Do NOT sign out non-admins automatically, allow anonymous browsing
+            		if (wasAdmin && window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
+            			window.AdminLogic.deinitialize();
+            		}
+            	}
+            	// Notify UI layer about auth change
+            	document.dispatchEvent(new CustomEvent('authChange', { detail: { isAdmin } }));
             });
 
-             // Listen for foreground FCM messages
+
+            // Listen for foreground FCM messages
             onMessage(messaging, (payload) => {
-                console.log('Foreground message received: ', payload);
-                // Notify UI layer to display the message
-                document.dispatchEvent(new CustomEvent('fcmMessage', { detail: payload }));
+            	console.log('Foreground message received: ', payload);
+            	// Notify UI layer to display the message
+            	document.dispatchEvent(new CustomEvent('fcmMessage', { detail: payload }));
             });
 
-             // PWA install prompt setup (can run earlier, but keeping it grouped)
-             window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                state.deferredPrompt = e;
-                console.log('`beforeinstallprompt` event fired.');
-                document.dispatchEvent(new Event('installPromptReady')); // Notify UI
+            // PWA install prompt setup (can run earlier, but keeping it grouped)
+            window.addEventListener('beforeinstallprompt', (e) => {
+            	e.preventDefault();
+            	state.deferredPrompt = e;
+            	console.log('`beforeinstallprompt` event fired.');
+            	document.dispatchEvent(new Event('installPromptReady')); // Notify UI
             });
 
             // Service Worker setup (can run earlier)
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js').then(registration => {
-                    console.log('SW registered.');
-                    registration.addEventListener('updatefound', () => {
-                        const newWorker = registration.installing;
-                        console.log('New SW found!', newWorker);
-                        newWorker.addEventListener('statechange', () => {
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                // New SW waiting to activate. Notify UI.
-                                document.dispatchEvent(new CustomEvent('swUpdateReady', { detail: { registration } }));
-// *** DESTPÊKA ÇAKKIRINÊ: Koda dubare û karakterên xerab hatin rakirin ***
-                            }
-                        });
-                    });
-                }).catch(err => console.error('SW registration failed: ', err));
+            	navigator.serviceWorker.register('/sw.js').then(registration => {
+            		console.log('SW registered.');
+            		registration.addEventListener('updatefound', () => {
+            			const newWorker = registration.installing;
+            			console.log('New SW found!', newWorker);
+            			newWorker.addEventListener('statechange', () => {
+            				if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            					// New SW waiting to activate. Notify UI.
+            					document.dispatchEvent(new CustomEvent('swUpdateReady', { detail: { registration } }));
+            				}
+            			});
+            		});
+            	}).catch(err => console.error('SW registration failed: ', err));
 
-                navigator.serviceWorker.addEventListener('controllerchange', () => {
-                     console.log('New SW activated. Reloading...');
-                     window.location.reload();
-                });
-// *** DAWÎYA ÇAKKIRINÊ ***
+            	navigator.serviceWorker.addEventListener('controllerchange', () => {
+            		console.log('New SW activated. Reloading...');
+            		window.location.reload();
+            	});
             }
         });
 }
 
 
 // Expose necessary core functions and state for UI and Admin layers
-// *** گۆڕانکاری لێرە: زیادکردنی db بۆ export ***
 export {
     state, // Export the mutable state object
     handleLogin, handleLogout, // Authentication

@@ -23,8 +23,7 @@ import {
     applyFilterStateCore, navigateToFilterCore, initCore,
     fetchContactMethods, // Needed for renderContactLinksUI
     // Firestore needed for renderContactLinksUI
-    db, collection, query, orderBy, getDocs, doc, getDoc, signOut, // signOut needed for logout button
-    fetchSubcategories // *** KODA NÛ: Ji bo popstate listener pêwîst e ***
+    db, collection, query, orderBy, getDocs, doc, getDoc, signOut // signOut needed for logout button
 } from './app-core.js';
 
 import {
@@ -80,9 +79,10 @@ export function showPage(pageId, pageTitle = '') {
         page.classList.toggle('page-hidden', !isActive);
     });
 
-    if (pageId !== 'mainPage') {
-        window.scrollTo(0, 0);
-    }
+    // *** KODA ÇAKKIRÎ: Skrola ji bo rûpelên din neşîne serî ***
+    // if (pageId !== 'mainPage') {
+    // 	window.scrollTo(0, 0);
+    // }
 
     if (pageId === 'settingsPage') {
          updateHeaderView('settingsPage', t('settings_title'));
@@ -108,7 +108,9 @@ export function closeAllPopupsUI() {
 }
 
 export function openPopup(id, type = 'sheet') {
-    saveCurrentScrollPositionCore();
+    // *** KODA ÇAKKIRÎ: Dema ku popup vedibe, skrolê tomarkirî hilîne ***
+    // saveCurrentScrollPositionCore(); // Ev êdî ne pêwîst e ji ber ku skrol bi domdarî tê tomarkirin
+
     const element = document.getElementById(id);
     if (!element) return;
 
@@ -318,25 +320,29 @@ export function updateAdminUIAuth(isAdmin) {
 // --- Setup Functions ---
 
 function setupUIEventListeners() {
-    // *** KODA ÇAKKIRÎ: Logika bişkojka Home hat başkirin ***
+    // *** KODA ÇAKKIRÎ: homeBtn.onclick ***
     homeBtn.onclick = async () => {
-        const isAlreadyHome = mainPage.classList.contains('page-active');
-        const isAlreadyOnAllFilter = state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all' && state.currentSearch === '';
-        
-        if (isAlreadyHome && isAlreadyOnAllFilter) {
-            // Jixwe li ser rûpela serekî ye, tenê skrol bike jor
-            console.log("Jixwe li ser malê ye, skrol dike jor.");
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-            // Ne li ser rûpela serekî ye, an li ser fîlterekê ye. Bicih bibe malê.
-            if (!isAlreadyHome) {
-                showPage('mainPage'); // Pêşî rûpelê nîşan bide
-            }
-            await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-            await updateProductViewUI(true); // Ji ber ku ev lêgerînek nû ye, nûve bike.
-        }
+    	const isAlreadyHome = mainPage.classList.contains('page-active');
+    	const isHomeFilter = state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all' && !state.currentSearch;
+
+    	if (isAlreadyHome && isHomeFilter) {
+    		// Jixwe li ser rûpela serekî ye û fîlter tune, tenê skrol bike jor
+    		console.log("Already on home, scrolling top.");
+    		window.scrollTo({ top: 0, behavior: 'smooth' });
+    	} else {
+    		// Ne li ser rûpela serekî ye an fîlter çalak e, navîgasyon bike û nûve bike
+    		console.log("Navigating to home filter.");
+    		// Pêşî rewşa dîrokê biguherîne
+    		history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
+    		// Paşê rûpelê nîşan bide
+    		showPage('mainPage'); // Fonksiyona ji vê pelê bikar bîne
+    		// Paşê logîka navîgasyonê ya bingehîn bikar bîne
+    		await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
+    		// Di dawiyê de dîmenê nûve bike (ev dê kaşê bikar bîne û skrolê sererast bike)
+    		await updateProductViewUI(true); // Ji home.js
+    	}
     };
-    // *** DAWÎYA KODA ÇAKKIRÎ ***
+
 
     settingsBtn.onclick = () => {
         history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
@@ -395,12 +401,11 @@ function setupUIEventListeners() {
             const activeSubSubBtn = document.querySelector('#subSubCategoryContainerOnDetailPage .subcategory-btn.active');
             const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.id || 'all') : 'all';
             // Need renderProductsOnDetailPageUI from ui-render.js
-            // Assuming it's imported correctly
-            if (typeof renderProductsOnDetailPageUI === 'function') {
-                await renderProductsOnDetailPageUI(subCatId, subSubCatId, term);
+            // Assuming it's globally available or imported in calling context
+            if (typeof window.renderProductsOnDetailPageUI === 'function') {
+            	await window.renderProductsOnDetailPageUI(subCatId, subSubCatId, term);
             } else {
-                 // This log won't appear if renderProductsOnDetailPageUI is correctly imported in ui-render.js
-                 console.error("renderProductsOnDetailPageUI not imported correctly from ui-render.js");
+            	console.error("renderProductsOnDetailPageUI not found globally.");
             }
         }
     }, 500);
@@ -461,18 +466,24 @@ function setupUIEventListeners() {
     const loader = document.getElementById('loader'); // Assuming loader is in setup
     if (scrollTrigger && loader) {
         const observer = new IntersectionObserver(async (entries) => {
-            const isMainPageActive = mainPage?.classList.contains('page-active');
-            const homeSectionsHidden = document.getElementById('homePageSectionsContainer')?.style.display === 'none';
+        	// Têbînî: Barkirina bêtir tenê divê hebe gava ku rûpela serekî çalak be
+        	// Û gava ku beşên serekî neyên nîşandan (ango rûpelek fîlterkirî ye)
+        	const isMainPageActive = mainPage?.classList.contains('page-active');
+        	const homeSectionsHidden = document.getElementById('homePageSectionsContainer')?.style.display === 'none';
 
-            if (entries[0].isIntersecting && isMainPageActive && homeSectionsHidden && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
-                loader.style.display = 'block';
-                await updateProductViewUI(false); // Call from home.js to fetch and append
-                loader.style.display = 'none';
-                scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
-            }
+        	if (entries[0].isIntersecting && isMainPageActive && homeSectionsHidden && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
+        		console.log("Triggering infinite scroll...");
+        		loader.style.display = 'block';
+        		await updateProductViewUI(false); // Call from home.js to fetch and append
+        		loader.style.display = 'none';
+        		scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
+        	}
         }, { threshold: 0.1 });
         observer.observe(scrollTrigger);
+    } else {
+    	console.warn("Infinite scroll trigger or loader not found.");
     }
+
 
     // --- Custom Event Listeners (from app-core) ---
     document.addEventListener('authChange', (e) => {
@@ -506,98 +517,55 @@ function setupUIEventListeners() {
 
     document.addEventListener('clearCacheTriggerRender', async () => {
         console.log("UI received clearCacheTriggerRender event.");
-        if (state.currentCategory === 'all' && !state.currentSearch) {
-            await updateProductViewUI(true); // Re-render home view (from home.js)
-        }
+        // Trigger full re-render regardless of current category
+    	await updateProductViewUI(true); // Re-render view (from home.js)
     });
 
     // GPS Button Setup
     setupGpsButtonUI(); // Use function from this file
 }
 
-// *** KODA ÇAKKIRÎ: Popstate listener bi tevahî hate nûve kirin ***
+// *** KODA ÇAKKIRÎ: Popstate listener ***
 window.addEventListener('popstate', async (event) => {
-    closeAllPopupsUI(); // Berî her tiştî hemî popupan bigire
-    const popState = event.state;
+    console.log("Popstate event fired:", event.state);
+    closeAllPopupsUI(); // Pêşî hemî popupan bigire
 
-    if (popState) {
-        if (popState.type === 'page') {
-            // Ev ji bo vegera rûpelên mîna Settings e
-            let pageTitle = popState.title;
-            if (popState.id === 'subcategoryDetailPage' && !pageTitle && popState.mainCatId && popState.subCatId) {
-                try {
-                    const subCatRef = doc(db, "categories", popState.mainCatId, "subcategories", popState.subCatId);
-                    const subCatSnap = await getDoc(subCatRef);
-                    if (subCatSnap.exists()) {
-                        const subCat = subCatSnap.data();
-                        pageTitle = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
-                        history.replaceState({ ...popState, title: pageTitle }, '', window.location.href);
-                    }
-          	} catch(e) { console.error("Could not refetch title on popstate", e) }
-            }
-            showPage(popState.id, pageTitle);
-            if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
-                await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
-            }
+    const popState = event.state || {}; // Ger state tune be, objectek vala bikar bîne
 
-    	} else if (popState.type === 'sheet' || popState.type === 'modal') {
-            // Ev ji bo vekirina popupê bi bişkoja "pêş" (forward) e.
-            openPopup(popState.id, popState.type);
+    // Ger em vedigerin rûpelekê (ne popup)
+    if (!popState.type || popState.type === 'page') {
+    	let targetPageId = popState.id || 'mainPage';
+    	let pageTitle = popState.title || '';
 
-    	} else {
-            // Ev beşa herî girîng e: Vegera li rûpela serekî (mainPage)
-            showPage('mainPage');
-            
-            // 1. Rewşa (state) ku em jê re vedigerin bicîh bîne
-            applyFilterStateCore(popState);
-            
-            // 2. Kontrol bike ka em vedigerin rûpela serekî (Home) an rûpelek fîlterkirî
-            const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
-            const productsContainer = document.getElementById('productsContainer');
-            const shouldShowHome = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
+    	// Rewşa fîlterê ya armanc (target filter state) destnîşan bike
+    	// Ger vedigere rûpela serekî (home), fîlterên 'all' bikar bîne
+    	// Ger vedigere rûpelek fîlterkirî (ji dîrokê), fîlterên tomarkirî bikar bîne
+    	const targetFilterState = targetPageId === 'mainPage'
+    		? { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' }
+    		: { category: popState.category, subcategory: popState.subcategory, subSubcategory: popState.subSubcategory, search: popState.search };
 
-            if (shouldShowHome) {
-                // Em vedigerin rûpela serekî.
-            	console.log("Popstate: Vegera li Rûpela Serekî. Konteynir têne nîşandan.");
-                homeSectionsContainer.style.display = 'block';
-                productsContainer.style.display = 'none';
-                // Ger beşên serekî vala bin (mînak, piştî barkirina rûpelê fîlterkirî), wan ji nû ve ava bike.
-                if (homeSectionsContainer.innerHTML.trim() === '') {
-                	console.log("Popstate: Beşên serekî vala bûn, ji nû ve têne barkirin.");
-                    await renderHomePageContentUI(); // Ji home.js
-                }
-            } else {
-                // Em vedigerin rûpelek fîlterkirî.
-            	console.log("Popstate: Vegera li Dîtina Fîlterkirî.");
-                homeSectionsContainer.style.display = 'none';
-                productsContainer.style.display = 'grid';
-                // Ger grida hilberan vala be, divê em wê ji nû ve bar bikin.
-                if (productsContainer.innerHTML.trim() === '') {
-                	console.log("Popstate: Grida hilberan vala bû, ji nû ve tê barkirin.");
-                    await updateProductViewUI(true); // Wekî lêgerînek nû bar bike
-                }
-            }
+    	// Rewşa fîlterê ya core nûve bike
+    	applyFilterStateCore(targetFilterState);
 
-            // 3. Barên kategoriyê nûve bike da ku rewşa çalak nîşan bide
-            renderMainCategoriesUI();
-            const subcats = await fetchSubcategories(state.currentCategory);
-            await renderSubcategoriesUI(subcats);
+    	// Ger vedigere rûpela detail ya subcategory
+    	if (targetPageId === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
+    		await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true); // true = ji dîrokê
+    	}
+    	// Ger vedigere rûpela settings
+    	else if (targetPageId === 'settingsPage') {
+    		showPage('settingsPage', t('settings_title'));
+    	}
+    	// Ger vedigere rûpela serekî (home) an rûpelek fîlterkirî
+    	else {
+    		showPage('mainPage'); // Her gav rûpela serekî ya HTML nîşan bide
+    		// UI nûve bike. Ev dê kaşê kontrol bike û skrolê sererast bike.
+    		await updateProductViewUI(true); // true = lêgerînek/navîgasyonek nû
+    	}
 
-            // 4. Skrolê vegerîne
-            if (typeof popState.scroll === 'number') {
-            	console.log(`Popstate: Skrol vedigere ${popState.scroll}`);
-                setTimeout(() => window.scrollTo(0, popState.scroll), 50);
-            }
-        }
-    } else {
-        // Rewşa default (mînak, barkirina yekemîn)
-        const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
-        showPage('mainPage'); // Ji vî fîlî
-        applyFilterStateCore(defaultState);
-        await updateProductViewUI(true); // Ji home.js
     }
+    // Têbînî: Ger popState.type 'sheet' an 'modal' be, em tiştek nakin ji ber ku closeAllPopupsUI() jixwe ew girtine.
 });
-// *** DAWÎYA KODA ÇAKKIRÎ YA POPSTATE ***
+
 
 // Handles initial page load based on URL after core logic is ready
 async function handleInitialPageLoadUI() {
@@ -607,40 +575,54 @@ async function handleInitialPageLoadUI() {
     const isSubcategoryDetail = hash.startsWith('subcategory_');
 
     if (isSettings) {
-        history.replaceState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', `#${hash}`);
-        showPage('settingsPage', t('settings_title')); // From this file
+    	history.replaceState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', `#${hash}`);
+    	showPage('settingsPage', t('settings_title')); // From this file
     } else if (isSubcategoryDetail) {
-        const ids = hash.split('_');
-        const mainCatId = ids[1];
-        const subCatId = ids[2];
-        if (state.categories.length > 1) { // Check if categories are loaded
-            await showSubcategoryDetailPageUI(mainCatId, subCatId, true); // From ui-render.js
-        } else {
-            console.warn("Categories not ready, showing main page.");
-            showPage('mainPage'); // From this file
-            await updateProductViewUI(true); // From home.js
-        }
+    	const ids = hash.split('_');
+    	const mainCatId = ids[1];
+    	const subCatId = ids[2];
+    	if (state.categories.length > 1) { // Check if categories are loaded
+    		// Ger rasterast were vê rûpelê, dîroka rast biafirîne
+    		history.replaceState({ type: 'page', id: 'subcategoryDetailPage', title: '', mainCatId: mainCatId, subCatId: subCatId }, '', `#${hash}`);
+    		await showSubcategoryDetailPageUI(mainCatId, subCatId, true); // From ui-render.js (true = ji dîrokê)
+    	} else {
+    		console.warn("Categories not ready, showing main page.");
+    		history.replaceState({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 }, '', window.location.pathname);
+    		showPage('mainPage'); // From this file
+    		await updateProductViewUI(true); // From home.js
+    	}
     } else { // Default to main page
-        showPage('mainPage'); // From this file
-        const initialState = { category: params.get('category') || 'all', subcategory: params.get('subcategory') || 'all', subSubcategory: params.get('subSubcategory') || 'all', search: params.get('search') || '', scroll: 0 };
-        history.replaceState(initialState, '');
-        applyFilterStateCore(initialState);
-        await updateProductViewUI(true); // From home.js
+    	const initialState = {
+    		category: params.get('category') || 'all',
+    		subcategory: params.get('subcategory') || 'all',
+    		subSubcategory: params.get('subSubcategory') || 'all',
+    		search: params.get('search') || '',
+    		scroll: 0 // Destpêkê skrol 0 ye
+    	};
+    	history.replaceState(initialState, '', window.location.pathname + window.location.search); // URL ya heyî biparêze
+    	applyFilterStateCore(initialState);
+    	showPage('mainPage'); // From this file
+    	await updateProductViewUI(true); // From home.js ( dê kaşê bikar bîne ger hebe)
 
-        const element = document.getElementById(hash);
-        if (element) { // Check if hash corresponds to a popup
-            const isSheet = element.classList.contains('bottom-sheet');
-            const isModal = element.classList.contains('modal');
-            if (isSheet || isModal) openPopup(hash, isSheet ? 'sheet' : 'modal'); // From this file
-        }
+    	const element = document.getElementById(hash);
+    	if (element) { // Check if hash corresponds to a popup
+    		const isSheet = element.classList.contains('bottom-sheet');
+    		const isModal = element.classList.contains('modal');
+    		if (isSheet || isModal) {
+    			// Dîroka rast ji bo popupê biafirîne
+    			history.replaceState({ type: isSheet ? 'sheet' : 'modal', id: hash }, '', `#${hash}`);
+    			openPopup(hash, isSheet ? 'sheet' : 'modal'); // From this file
+    		}
+    	}
 
-        const productId = params.get('product'); // Check for direct product link
-        if (productId) {
-            const product = await fetchProductById(productId);
-            if (product) setTimeout(() => showProductDetailsUI(product), 300); // From ui-render.js
-        }
+    	const productId = params.get('product'); // Check for direct product link
+    	if (productId) {
+    		const product = await fetchProductById(productId);
+    		if (product) setTimeout(() => showProductDetailsUI(product), 300); // From ui-render.js
+    	}
     }
 }
+
 
 // Initializes the entire UI layer after DOM is ready
 async function initializeUI() {
@@ -656,7 +638,7 @@ async function initializeUI() {
     setupUIEventListeners(); // From this file
 
     // Handle initial page view based on URL (hash/query params)
-    handleInitialPageLoadUI(); // From this file (calls rendering functions)
+    await handleInitialPageLoadUI(); // From this file (calls rendering functions) - needs await
 
     // Render dynamic contact links
     renderContactLinksUI(); // From this file
@@ -678,11 +660,16 @@ async function initializeUI() {
 document.addEventListener('DOMContentLoaded', initializeUI);
 
 // Make functions needed by other modules globally accessible (alternative to complex exports/imports)
-window.showPage = showPage;
-window.openPopup = openPopup;
-window.closeCurrentPopup = closeCurrentPopup;
-window.updateCartCountUI = updateCartCountUI;
-window.showNotification = showNotification;
-window.navigateToFilterCore = navigateToFilterCore; // From app-core, needed by category sheet render
-window.updateProductViewUI = updateProductViewUI; // From home.js, needed by category sheet render
+// window.showPage = showPage; // Removed, internal use mostly
+// window.openPopup = openPopup; // Already in globalAdminTools
+// window.closeCurrentPopup = closeCurrentPopup; // Already in globalAdminTools
+// window.updateCartCountUI = updateCartCountUI; // Kept for now
+// window.showNotification = showNotification; // Already in globalAdminTools
+// window.navigateToFilterCore = navigateToFilterCore; // Make available if needed elsewhere
+// window.updateProductViewUI = updateProductViewUI; // Make available if needed elsewhere
+
+// *** KODA NÛ: Fonksiyona `renderProductsOnDetailPageUI` ji `ui-render.js` li ser window zêde bike ***
+// Ji ber ku ew di `debouncedSubpageSearch` de tê bikaranîn
+import { renderProductsOnDetailPageUI } from './ui-render.js';
+window.renderProductsOnDetailPageUI = renderProductsOnDetailPageUI;
 
