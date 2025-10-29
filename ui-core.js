@@ -19,7 +19,7 @@ import {
     state, t, debounce,
     handleLogin, handleLogout, saveProfileCore, setLanguageCore,
     requestNotificationPermissionCore, checkNewAnnouncementsCore,
-    handleInstallPrompt, forceUpdateCore, saveCurrentScrollPositionCore,
+    handleInstallPrompt, forceUpdateCore, saveCurrentScrollPositionCore, // <-- saveCurrentScrollPositionCore used here now
     applyFilterStateCore, navigateToFilterCore, initCore,
     fetchContactMethods, // Needed for renderContactLinksUI
     // Firestore needed for renderContactLinksUI
@@ -84,16 +84,16 @@ export function showPage(pageId, pageTitle = '') {
     }
 
     if (pageId === 'settingsPage') {
-         updateHeaderView('settingsPage', t('settings_title'));
+        updateHeaderView('settingsPage', t('settings_title'));
     } else if (pageId === 'subcategoryDetailPage') {
-         updateHeaderView('subcategoryDetailPage', pageTitle);
+        updateHeaderView('subcategoryDetailPage', pageTitle);
     } else { // Includes mainPage
-         updateHeaderView('mainPage');
+        updateHeaderView('mainPage');
     }
 
     const activeBtnId = pageId === 'mainPage' ? 'homeBtn' : (pageId === 'settingsPage' ? 'settingsBtn' : null);
     if (activeBtnId) {
-       updateActiveNav(activeBtnId);
+        updateActiveNav(activeBtnId);
     }
 }
 // Make globally available if needed? (Less likely)
@@ -107,7 +107,7 @@ export function closeAllPopupsUI() {
 }
 
 export function openPopup(id, type = 'sheet') {
-    saveCurrentScrollPositionCore();
+    saveCurrentScrollPositionCore(); // <-- ** گۆڕانکاری لێرە ناکرێت، چونکە ئەمە بۆ پۆپ-ئەپەکانە **
     const element = document.getElementById(id);
     if (!element) return;
 
@@ -225,11 +225,11 @@ async function renderContactLinksUI() {
             linkElement.target = '_blank';
             linkElement.className = 'settings-item';
             linkElement.innerHTML = `
-                 <div>
-                     <i class="${link.icon}" style="margin-left: 10px;"></i>
-                     <span>${name}</span>
-                 </div>
-                 <i class="fas fa-external-link-alt"></i>
+                <div>
+                    <i class="${link.icon}" style="margin-left: 10px;"></i>
+                    <span>${name}</span>
+                </div>
+                <i class="fas fa-external-link-alt"></i>
             `;
             contactLinksContainer.appendChild(linkElement);
         });
@@ -326,10 +326,13 @@ function setupUIEventListeners() {
         await updateProductViewUI(true); // From home.js
     };
 
+    // --- 👇 گۆڕانکاری یەکەم لێرەدایە 👇 ---
     settingsBtn.onclick = () => {
+        saveCurrentScrollPositionCore(); // <-- **ئەم دێڕە زیادکرا**
         history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
         showPage('settingsPage', t('settings_title')); // Use function from this file
     };
+    // --- 👆 کۆتایی گۆڕانکاری یەکەم 👆 ---
 
     document.getElementById('headerBackBtn').onclick = () => { history.back(); };
 
@@ -487,7 +490,7 @@ function setupUIEventListeners() {
         const updateNowBtn = document.getElementById('update-now-btn');
         updateNotification.classList.add('show');
         updateNowBtn.onclick = () => {
-             e.detail.registration?.waiting?.postMessage({ action: 'skipWaiting' });
+            e.detail.registration?.waiting?.postMessage({ action: 'skipWaiting' });
         };
     });
 
@@ -531,12 +534,17 @@ window.addEventListener('popstate', async (event) => {
 
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             openPopup(popState.id, popState.type); // Re-open popup (from this file)
-        } else { // Filter state for main page
+        } else { // Filter state for main page (returning to home)
             showPage('mainPage'); // Ensure main page visible (from this file)
             applyFilterStateCore(popState); // Apply state logic
-            await updateProductViewUI(true); // Re-render products (from home.js)
+
+            // --- 👇 گۆڕانکاری دووەم لێرەدایە 👇 ---
+            // await updateProductViewUI(true); // Re-render products (from home.js) <-- **ئەم دێڕە کۆمێنت کرا**
+            // --- 👆 کۆتایی گۆڕانکاری دووەم 👆 ---
+
             if (typeof popState.scroll === 'number') {
-                setTimeout(() => window.scrollTo(0, popState.scroll), 50);
+                // Kêmek dem zêde kir ji bo piştrastbûnê
+                setTimeout(() => window.scrollTo(0, popState.scroll), 100);
             }
         }
     } else { // No state, default to main page
@@ -546,6 +554,7 @@ window.addEventListener('popstate', async (event) => {
         await updateProductViewUI(true); // From home.js
     }
 });
+
 
 // Handles initial page load based on URL after core logic is ready
 async function handleInitialPageLoadUI() {
@@ -584,7 +593,7 @@ async function handleInitialPageLoadUI() {
 
         const productId = params.get('product'); // Check for direct product link
         if (productId) {
-            const product = await fetchProductById(productId);
+            const product = await fetchProductById(productId); // Ensure fetchProductById is available/imported
             if (product) setTimeout(() => showProductDetailsUI(product), 300); // From ui-render.js
         }
     }
@@ -610,7 +619,7 @@ async function initializeUI() {
     renderContactLinksUI(); // From this file
 
     // Check for new notifications
-    const announcements = await fetchAnnouncements();
+    const announcements = await fetchAnnouncements(); // Ensure fetchAnnouncements is available/imported
      if(announcements.length > 0 && checkNewAnnouncementsCore(announcements[0].createdAt)) {
          notificationBadge.style.display = 'block';
      }
