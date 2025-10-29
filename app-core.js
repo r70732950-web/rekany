@@ -1,5 +1,5 @@
 // app-core.js
-// Logika bingehîn, danûstendina daneyan, û rêveberiya state
+// Logika bingehîn, danûstendina daneyan, û rêveberiya state - Fixed signOut Export
 
 import {
     // *** گۆڕانکاری لێرە: db لێرە هاوردەکراوە ***
@@ -10,6 +10,7 @@ import {
     CART_KEY, FAVORITES_KEY, PROFILE_KEY, PRODUCTS_PER_PAGE,
 } from './app-setup.js';
 
+// *** FIX: Import signOut from firebase/auth here where it's used ***
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import {
     enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc,
@@ -52,7 +53,7 @@ export function formatDescription(text) {
 
 export function saveCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
-    // Note: Updating UI count is handled in app-ui.js
+    // Note: Updating UI count is handled in ui-core.js
 }
 
 export function saveFavorites() {
@@ -65,7 +66,8 @@ export function isFavorite(productId) {
 
 // --- Authentication ---
 
-async function handleLogin(email, password) {
+// *** FIX: Make handleLogin & handleLogout exportable ***
+export async function handleLogin(email, password) { // Added export
     try {
         await signInWithEmailAndPassword(auth, email, password);
         // Admin logic initialization will happen via onAuthStateChanged
@@ -74,21 +76,22 @@ async function handleLogin(email, password) {
     }
 }
 
-async function handleLogout() {
+export async function handleLogout() { // Added export
     await signOut(auth);
     // UI updates handled by onAuthStateChanged listener
 }
 
+
 // --- Firestore Data Fetching & Manipulation ---
 
-async function fetchCategories() {
+export async function fetchCategories() { // Added export
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     const snapshot = await getDocs(categoriesQuery);
     const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     state.categories = [{ id: 'all', icon: 'fas fa-th' }, ...fetchedCategories]; // Add 'All' category
 }
 
-async function fetchSubcategories(categoryId) {
+export async function fetchSubcategories(categoryId) { // Added export
     if (categoryId === 'all') return [];
     try {
         const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
@@ -101,7 +104,7 @@ async function fetchSubcategories(categoryId) {
     }
 }
 
-async function fetchSubSubcategories(mainCatId, subCatId) {
+export async function fetchSubSubcategories(mainCatId, subCatId) { // Added export
     if (!mainCatId || !subCatId) return [];
     try {
         const ref = collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
@@ -114,7 +117,7 @@ async function fetchSubSubcategories(mainCatId, subCatId) {
     }
 }
 
-async function fetchProductById(productId) {
+export async function fetchProductById(productId) { // Added export
     try {
         const docRef = doc(db, "products", productId);
         const docSnap = await getDoc(docRef);
@@ -131,7 +134,7 @@ async function fetchProductById(productId) {
 }
 
 // *** ÇAKKIRÎ / CORRECTED ***
-async function fetchRelatedProducts(currentProduct) {
+export async function fetchRelatedProducts(currentProduct) { // Added export
     if (!currentProduct.subcategoryId && !currentProduct.categoryId) return [];
 
     const baseQuery = collection(db, "products");
@@ -163,7 +166,7 @@ async function fetchRelatedProducts(currentProduct) {
 
 
 // Fetches products based on current filters and pagination state
-async function fetchProducts(searchTerm = '', isNewSearch = false) {
+export async function fetchProducts(searchTerm = '', isNewSearch = false) { // Added export
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
 
     if (shouldShowHomeSections) {
@@ -255,7 +258,7 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
     }
 }
 
-async function fetchPolicies() {
+export async function fetchPolicies() { // Added export
     try {
         const docRef = doc(db, "settings", "policies");
         const docSnap = await getDoc(docRef);
@@ -269,7 +272,7 @@ async function fetchPolicies() {
     }
 }
 
-async function fetchAnnouncements() {
+export async function fetchAnnouncements() { // Added export
     try {
         const q = query(announcementsCollection, orderBy("createdAt", "desc"));
         const snapshot = await getDocs(q);
@@ -280,7 +283,7 @@ async function fetchAnnouncements() {
     }
 }
 
-async function fetchContactMethods() {
+export async function fetchContactMethods() { // Added export
     try {
         const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
         const q = query(methodsCollection, orderBy("createdAt"));
@@ -292,7 +295,7 @@ async function fetchContactMethods() {
     }
 }
 
-async function fetchHomeLayout() {
+export async function fetchHomeLayout() { // Added export
     try {
         const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
         const layoutSnapshot = await getDocs(layoutQuery);
@@ -303,7 +306,7 @@ async function fetchHomeLayout() {
     }
 }
 
-async function fetchPromoGroupCards(groupId) {
+export async function fetchPromoGroupCards(groupId) { // Added export
     try {
         const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
@@ -314,7 +317,7 @@ async function fetchPromoGroupCards(groupId) {
     }
 }
 
-async function fetchBrandGroupBrands(groupId) {
+export async function fetchBrandGroupBrands(groupId) { // Added export
     try {
         const q = query(collection(db, "brand_groups", groupId, "brands"), orderBy("order", "asc"), limit(30));
         const snapshot = await getDocs(q);
@@ -325,7 +328,7 @@ async function fetchBrandGroupBrands(groupId) {
     }
 }
 
-async function fetchNewestProducts(limitCount = 10) {
+export async function fetchNewestProducts(limitCount = 10) { // Added export
     try {
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
         const q = query(
@@ -342,7 +345,7 @@ async function fetchNewestProducts(limitCount = 10) {
     }
 }
 
-async function fetchShortcutRowCards(rowId) {
+export async function fetchShortcutRowCards(rowId) { // Added export
     try {
         const cardsCollectionRef = collection(db, "shortcut_rows", rowId, "cards");
         const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
@@ -354,7 +357,7 @@ async function fetchShortcutRowCards(rowId) {
     }
 }
 
-async function fetchCategoryRowProducts(sectionData) {
+export async function fetchCategoryRowProducts(sectionData) { // Added export
     const { categoryId, subcategoryId, subSubcategoryId } = sectionData;
     let queryField, queryValue;
 
@@ -386,16 +389,17 @@ async function fetchCategoryRowProducts(sectionData) {
     }
 }
 
-async function fetchInitialProductsForHome(limitCount = 10) {
+export async function fetchInitialProductsForHome(limitCount = 10) { // Added export
      try {
-        const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(limitCount));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+         const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(limitCount));
+         const snapshot = await getDocs(q);
+         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
         console.error("Error fetching initial products for home page:", error);
         return [];
     }
 }
+
 
 // --- Cart Logic ---
 
@@ -519,7 +523,7 @@ export function setLanguageCore(lang) {
 
 // --- Notifications ---
 
-async function requestNotificationPermissionCore() {
+export async function requestNotificationPermissionCore() { // Added export
     console.log('Requesting notification permission...');
     try {
         const permission = await Notification.requestPermission();
@@ -572,7 +576,7 @@ export function updateLastSeenAnnouncementTimestamp(timestamp) {
 
 // --- PWA & Service Worker ---
 
-async function handleInstallPrompt(installBtn) {
+export async function handleInstallPrompt(installBtn) { // Added export
     if (state.deferredPrompt) {
         installBtn.style.display = 'none'; // Hide button after prompting
         state.deferredPrompt.prompt();
@@ -582,7 +586,7 @@ async function handleInstallPrompt(installBtn) {
     }
 }
 
-async function forceUpdateCore() {
+export async function forceUpdateCore() { // Added export
     if (confirm(t('update_confirm'))) {
         try {
             if ('serviceWorker' in navigator) {
@@ -706,56 +710,56 @@ export async function initCore() {
 
              // PWA install prompt setup (can run earlier, but keeping it grouped)
              window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                state.deferredPrompt = e;
-                console.log('`beforeinstallprompt` event fired.');
-                document.dispatchEvent(new Event('installPromptReady')); // Notify UI
-            });
+                 e.preventDefault();
+                 state.deferredPrompt = e;
+                 console.log('`beforeinstallprompt` event fired.');
+                 document.dispatchEvent(new Event('installPromptReady')); // Notify UI
+             });
 
-            // Service Worker setup (can run earlier)
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js').then(registration => {
-                    console.log('SW registered.');
-                    registration.addEventListener('updatefound', () => {
-                        const newWorker = registration.installing;
-                        console.log('New SW found!', newWorker);
-                        newWorker.addEventListener('statechange', () => {
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                // New SW waiting to activate. Notify UI.
-                                document.dispatchEvent(new CustomEvent('swUpdateReady', { detail: { registration } }));
-                            }
-                        });
-                    });
-                }).catch(err => console.error('SW registration failed: ', err));
+             // Service Worker setup (can run earlier)
+             if ('serviceWorker' in navigator) {
+                 navigator.serviceWorker.register('/sw.js').then(registration => {
+                     console.log('SW registered.');
+                     registration.addEventListener('updatefound', () => {
+                         const newWorker = registration.installing;
+                         console.log('New SW found!', newWorker);
+                         newWorker.addEventListener('statechange', () => {
+                             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                 // New SW waiting to activate. Notify UI.
+                                 document.dispatchEvent(new CustomEvent('swUpdateReady', { detail: { registration } }));
+                             }
+                         });
+                     });
+                 }).catch(err => console.error('SW registration failed: ', err));
 
-                navigator.serviceWorker.addEventListener('controllerchange', () => {
-                     console.log('New SW activated. Reloading...');
-                     window.location.reload();
-                });
-            }
+                 navigator.serviceWorker.addEventListener('controllerchange', () => {
+                      console.log('New SW activated. Reloading...');
+                      window.location.reload();
+                 });
+             }
         });
 }
 
 
 // Expose necessary core functions and state for UI and Admin layers
-// *** گۆڕانکاری لێرە: زیادکردنی db بۆ export ***
+// *** FIX: Added signOut to the export list ***
 export {
     state, // Export the mutable state object
-    handleLogin, handleLogout, // Authentication
-    fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, // Data fetching
-    fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
+    // handleLogin, handleLogout, // Authentication (Already exported above)
+    // fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, // Data fetching (Already exported above)
+    // fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome, // (Already exported above)
     // setLanguageCore exported where it's defined
-    requestNotificationPermissionCore,
+    // requestNotificationPermissionCore, // (Already exported above)
     // checkNewAnnouncementsCore exported where it's defined
     // updateLastSeenAnnouncementTimestamp exported where it's defined
-    handleInstallPrompt, forceUpdateCore, // PWA & SW
+    // handleInstallPrompt, forceUpdateCore, // PWA & SW (Already exported above)
     // History functions are exported above
     // Core cart/favorites/profile functions are exported above
 
-    // *** Export Firestore functions needed by app-ui.js and admin.js ***
-    db, // <-- db لێرە زیادکرا
-    productsCollection,
-    collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
-    query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction
+    // *** Export Firestore functions needed by ui-core.js and admin.js ***
+    // db, // db is already exported from app-setup.js and re-exported isn't needed here if imported directly in other files.
+    // productsCollection, // Exported from app-setup.js
+    // collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, // (Already exported above)
+    // query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction, // (Already exported above)
+    signOut // <-- signOut زیادکرا لێرە
 };
-
