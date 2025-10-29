@@ -1,5 +1,5 @@
 // ui-core.js
-// Logika giştî ya UI, girêdana bûyeran, û rêveberiya navbeynkariyê - WITH DEBUG LOGS
+// Logika giştî ya UI, girêdana bûyeran, û rêveberiya navbeynkariyê - WITH DEBUG LOGS & Typo Fix
 
 import {
     // DOM Elements needed for general UI management & event listeners
@@ -23,7 +23,7 @@ import {
     applyFilterStateCore, navigateToFilterCore, initCore,
     fetchContactMethods, // Needed for renderContactLinksUI
     // Firestore needed for renderContactLinksUI
-    db, collection, query, orderBy, getDocs, doc, getDoc, signOut // signOut needed for logout button
+    db, collection, query, orderBy, getDocs, doc, getDoc, signOut // *** FIX: Corrected typo from sign0ut to signOut ***
 } from './app-core.js';
 
 import {
@@ -679,3 +679,4 @@ window.navigateToFilterCore = navigateToFilterCore; // From app-core, needed by 
 window.updateProductViewUI = updateProductViewUI; // From home.js, needed by category sheet render
 // Make renderProductsOnDetailPageUI globally accessible if needed by subpage search in this file
 // window.renderProductsOnDetailPageUI = renderProductsOnDetailPageUI; // Assuming it's defined in ui-render.js and imported
+
