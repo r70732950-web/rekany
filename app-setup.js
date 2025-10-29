@@ -1,10 +1,9 @@
 // BEŞÊ YEKEM: app-setup.js (Çakkirî bo exportên UI û globalAdminTools)
 // Pênasekirin û sazkarîyên destpêkê
 
-// === KODA NÛ JI BO ÇARESERKIRINA LEQETA SCROLL ===
-// Vê yekê rê li ber gerokê digire ku bixweber cihê scrollê sererast bike dema ku dîrok tê guhertin.
-// Ev ji bo pêşîgirtina li bazdana scrollê pêwîst e dema ku popup têne girtin.
+// === KODA NÛ JI BO ÇARESERKIRINA LEQETA SCROLL v3 ===
 history.scrollRestoration = 'manual';
+window.lastScrollPositionBeforePopup = 0; // Guherbara gerdûnî ji bo tomarkirina cihê scrollê
 // === DAWÎYA KODA NÛ ===
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
@@ -13,6 +12,7 @@ import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from
 import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
+// ... (Firebase Config, Exports, Translations, State, Constants, DOM Elements, globalAdminTools wekî xwe dimînin) ...
 // Firebase Configuration
 const firebaseConfig = {
     apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", // Ensure this key is correct and secured if necessary
@@ -295,7 +295,6 @@ export const translations = {
     }
 };
 
-
 // Global State Variables (Mutable) - Exported for app-core.js and app-ui.js
 export let state = {
     currentLanguage: localStorage.getItem('language') || 'ku_sorani',
@@ -467,3 +466,4 @@ window.globalAdminTools = {
     // === KODA ÇAKKIRÎ: Dawî ===
 };
 // *** END OF globalAdminTools SECTION ***
+

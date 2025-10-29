@@ -32,8 +32,7 @@ import {
     renderUserNotificationsUI, renderPoliciesUI, renderCartActionButtonsUI,
     showProductDetailsUI, // Needed for direct product link loading
     showSubcategoryDetailPageUI, // Needed for direct subcategory link loading
-    // *** KODA NÛ: `renderProductsOnDetailPageUI` ji `ui-render.js` tê ***
-    renderProductsOnDetailPageUI
+    renderProductsOnDetailPageUI // Needed for subpage search
 } from './ui-render.js';
 
 import {
@@ -81,12 +80,6 @@ export function showPage(pageId, pageTitle = '') {
         page.classList.toggle('page-hidden', !isActive);
     });
 
-    // Only scroll to top if navigating to a *different* page (not returning to main page potentially)
-    // Scroll restoration is handled manually in popstate
-    // if (pageId !== 'mainPage') {
-    //     window.scrollTo(0, 0);
-    // }
-
     if (pageId === 'settingsPage') {
          updateHeaderView('settingsPage', t('settings_title'));
     } else if (pageId === 'subcategoryDetailPage') {
@@ -103,17 +96,27 @@ export function showPage(pageId, pageTitle = '') {
 // Make globally available if needed? (Less likely)
 // window.showPage = showPage;
 
+// === START: KODA GUHERTÎ JI BO ÇARESERKIRINA LEQETA SCROLL v3 ===
 export function closeAllPopupsUI() {
+    const wasOpen = document.body.classList.contains('overlay-active'); // Kontrol bike ka popupek vekirî bû
     document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
     document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('show'));
     sheetOverlay.classList.remove('show');
-    document.body.classList.remove('overlay-active'); // Ensure overlay class is removed
+    document.body.classList.remove('overlay-active'); // PÊŞÎ klasê jê bibe
+
+    // PAŞAN, scrollê vegere eger popupek vekirî bû
+    if (wasOpen) {
+        setTimeout(() => {
+            window.scrollTo({ top: window.lastScrollPositionBeforePopup || 0, behavior: 'instant' });
+            console.log("Scroll restored by closeAllPopupsUI to:", window.lastScrollPositionBeforePopup);
+        }, 0); // Demeke pir kurt bes e ji bo ku gerok layoutê ji nû ve hesab bike
+    }
 }
 
 export function openPopup(id, type = 'sheet') {
-    // === KODA NÛ: Pêşî scrollê biparêze berî vekirina popup ===
-    saveCurrentScrollPositionCore(); // Ji app-core.js
-    // === DAWÎYA KODA NÛ ===
+    // Scrollê TOMAR BIKE berî guhertina UI
+    window.lastScrollPositionBeforePopup = window.scrollY;
+    console.log("Scroll saved before opening popup:", window.lastScrollPositionBeforePopup);
 
     const element = document.getElementById(id);
     if (!element) return;
@@ -138,13 +141,15 @@ export function openPopup(id, type = 'sheet') {
     } else { // type === 'modal'
         element.style.display = 'block';
     }
-    document.body.classList.add('overlay-active'); // Add overlay class to body
+    document.body.classList.add('overlay-active'); // Klasê ZÊDE bike piştî tomarkirina scrollê
 
     // Push state ONLY if it's not already the current state (prevents duplicate entries)
     if (!history.state || history.state.id !== id) {
         history.pushState({ type: type, id: id }, '', `#${id}`);
     }
 }
+// === DAWÎYA KODA GUHERTÎ ===
+
 // Make globally available if needed by admin.js
 if(window.globalAdminTools) window.globalAdminTools.openPopup = openPopup;
 
@@ -272,10 +277,6 @@ function setupGpsButtonUI() {
              async (position) => { // Success
                  const { latitude, longitude } = position.coords;
                  try {
-                     // Use a CORS proxy if Nominatim direct access is blocked
-                     // Example proxy (replace with your own or a reliable public one if needed):
-                     // const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-                     // const apiUrl = `${proxyUrl}https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`;
                      const apiUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`;
                      const response = await fetch(apiUrl);
                      if (!response.ok) {
@@ -405,10 +406,7 @@ function setupUIEventListeners() {
             const subCatId = ids[2];
             const activeSubSubBtn = document.querySelector('#subSubCategoryContainerOnDetailPage .subcategory-btn.active');
             const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.id || 'all') : 'all';
-            // Need renderProductsOnDetailPageUI from ui-render.js
-            // *** KODA NÛ: `renderProductsOnDetailPageUI` jixwe ji `ui-render.js` tê ***
-            // Kontrol ne hewce ye
-            await renderProductsOnDetailPageUI(subCatId, subSubCatId, term);
+            await renderProductsOnDetailPageUI(subCatId, subSubCatId, term); // from ui-render.js
         }
     }, 500);
     subpageSearchInput.oninput = () => {
@@ -523,14 +521,11 @@ function setupUIEventListeners() {
     setupGpsButtonUI(); // Use function from this file
 }
 
-// === KODA GUHERTÎ: Popstate Listener ji bo Çareserkirina Leqeta Scroll ===
+// === KODA GUHERTÎ: Popstate Listener ji bo Çareserkirina Leqeta Scroll v3 ===
 window.addEventListener('popstate', async (event) => {
-    // --- START: KODA NÛ ---
-    // Kontrol bike ka popupek VEKIRÎ bû BERÎ ku closeAllPopupsUI() were gazîkirin
-    const wasPopupOpen = document.body.classList.contains('overlay-active');
-    // --- DAWÎ: KODA NÛ ---
+    // closeAllPopupsUI() dê scrollê vegere eger pêwîst be
+    closeAllPopupsUI();
 
-    closeAllPopupsUI(); // Pêşî hemû popupan bigire
     const popState = event.state;
 
     if (popState) {
@@ -556,37 +551,30 @@ window.addEventListener('popstate', async (event) => {
             }
 
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
-            // Ger vedigere statekê ku divê popupek vekirî be (ji bo nimûne, lînka rasterast), wê veke
-            // Lêbelê, gava ku tenê popupek tê girtin (bi `history.back()`), ev ê neyê xebitandin ji ber ku stateya berê nayê hilanîn.
-            // Em tenê piştrast dikin ku UI tê girtin. `closeAllPopupsUI` berê vê dike.
+            // Ger vedigere statekê ku divê popupek vekirî be (ji bo nimûne, lînka rasterast), wê veke.
+            // Lêbelê, ev ê di pir rewşan de ne hewce be ji ber ku gava em `history.back()` dikin, stateya berê nayê hilanîn.
             // openPopup(popState.id, popState.type);
         } else { // State filterê ji bo rûpela sereke (bi îhtîmal ev state ye ku em vedigerinê)
             showPage('mainPage'); // Piştrast bike ku rûpela sereke xuya ye
             applyFilterStateCore(popState); // Logika state bicîh bîne
             await updateProductViewUI(true); // Berheman ji nû ve render bike
 
-            // --- START: KODA GUHERTÎ JI BO VEGERANDINA SCROLLÊ ---
-            // Cihê scrollê YEKSER vegere eger ji popupekê vedigere statekê ku scroll tê de tomarkirî ye
-            if (wasPopupOpen && typeof popState.scroll === 'number') {
-                window.scrollTo({ top: popState.scroll, behavior: 'instant' }); // 'instant' bikar bîne
-                console.log("Scroll vegeriya:", popState.scroll);
-            } else if (typeof popState.scroll === 'number') {
-                // Eger di navbera stateyên filterê de digere, dibe ku derengiya biçûk bihêle (an jî 'instant')
-                setTimeout(() => window.scrollTo({ top: popState.scroll, behavior: 'auto' }), 50); // yan 'instant'
+            // Em nema hewce ne ku scrollê li vir vegerînin ji ber ku closeAllPopupsUI() wê dike
+            // Lêbelê, em dikarin scrollê vegerînin eger di navbera filterên rûpela sereke de digere (ne ji popupekê)
+            if (typeof popState.scroll === 'number' && !document.body.classList.contains('overlay-active')) { // Kontrol bike overlay çalak e an na
+                setTimeout(() => window.scrollTo({ top: popState.scroll, behavior: 'auto' }), 50);
             }
-            // --- DAWÎ: KODA GUHERTÎ JI BO VEGERANDINA SCROLLÊ ---
         }
     } else { // No state, vegere rûpela sereke ya default
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
         showPage('mainPage');
         applyFilterStateCore(defaultState);
         await updateProductViewUI(true);
-        // --- START: KODA NÛ ---
         window.scrollTo({ top: 0, behavior: 'instant' }); // Ji bo barkirina default scroll bike jor
-        // --- DAWÎ: KODA NÛ ---
     }
 });
 // === DAWÎYA KODA GUHERTÎ ===
+
 
 // Handles initial page load based on URL after core logic is ready
 async function handleInitialPageLoadUI() {
@@ -596,16 +584,13 @@ async function handleInitialPageLoadUI() {
     const isSubcategoryDetail = hash.startsWith('subcategory_');
 
     if (isSettings) {
-        // Replace state to avoid going "back" to main page immediately
         history.replaceState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', `#${hash}`);
-        showPage('settingsPage', t('settings_title')); // From this file
+        showPage('settingsPage', t('settings_title'));
     } else if (isSubcategoryDetail) {
         const ids = hash.split('_');
         const mainCatId = ids[1];
         const subCatId = ids[2];
         if (state.categories.length > 1) { // Check if categories are loaded
-            // Replace state for direct link
-            // Fetch title before replacing state
             let subCatName = 'Details';
             try {
                 const subCatRef = doc(db, "categories", mainCatId, "subcategories", subCatId);
@@ -616,38 +601,35 @@ async function handleInitialPageLoadUI() {
                 }
             } catch (e) { console.error("Could not fetch subcategory name for initial load:", e); }
             history.replaceState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#${hash}`);
-            await showSubcategoryDetailPageUI(mainCatId, subCatId, true); // From ui-render.js (true for fromHistory)
+            await showSubcategoryDetailPageUI(mainCatId, subCatId, true); // from ui-render.js
         } else {
             console.warn("Categories not ready, showing main page.");
-            showPage('mainPage'); // From this file
-            await updateProductViewUI(true); // From home.js
+            showPage('mainPage');
+            await updateProductViewUI(true);
         }
     } else { // Default to main page
-        showPage('mainPage'); // From this file
+        showPage('mainPage');
         const initialState = { category: params.get('category') || 'all', subcategory: params.get('subcategory') || 'all', subSubcategory: params.get('subSubcategory') || 'all', search: params.get('search') || '', scroll: 0 };
-        // Replace initial empty state with filter state
-        history.replaceState(initialState, '', `?${params.toString()}`); // Keep query params if they exist
+        history.replaceState(initialState, '', `?${params.toString()}`);
         applyFilterStateCore(initialState);
-        await updateProductViewUI(true); // From home.js
+        await updateProductViewUI(true);
 
         const element = document.getElementById(hash);
-        if (element) { // Check if hash corresponds to a popup
+        if (element) {
             const isSheet = element.classList.contains('bottom-sheet');
             const isModal = element.classList.contains('modal');
             if (isSheet || isModal) {
-                // Ensure the main page content is loaded before opening the popup
-                await new Promise(resolve => setTimeout(resolve, 50)); // Small delay
-                openPopup(hash, isSheet ? 'sheet' : 'modal'); // From this file
+                await new Promise(resolve => setTimeout(resolve, 50));
+                openPopup(hash, isSheet ? 'sheet' : 'modal');
             }
         }
 
-        const productId = params.get('product'); // Check for direct product link
+        const productId = params.get('product');
         if (productId) {
-            const product = await fetchProductById(productId); // From app-core.js
+            const product = await fetchProductById(productId); // from app-core.js
             if (product) {
-                // Ensure main page content is loaded first
                 await new Promise(resolve => setTimeout(resolve, 50));
-                showProductDetailsUI(product); // From ui-render.js
+                showProductDetailsUI(product); // from ui-render.js
             }
         }
     }
@@ -697,3 +679,4 @@ window.showNotification = showNotification;
 // These are needed by renderCategoriesSheetUI in ui-render.js
 window.navigateToFilterCore = navigateToFilterCore; // From app-core
 window.updateProductViewUI = updateProductViewUI; // From home.js
+
