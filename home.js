@@ -5,8 +5,10 @@ import {
     state, t, debounce,
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts,
     fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
-    fetchSubcategories, navigateToFilterCore, // Moved from app-ui
-    fetchProducts // Keep fetchProducts as it's the core logic for filtering/pagination
+    fetchSubcategories, navigateToFilterCore,
+    fetchProducts,
+    fetchSubSubcategories, // *** زیادکرا: هاوردەکردنی فانکشنی دروست ***
+    db, doc, getDoc // Firestore functions needed locally
 } from './app-core.js';
 
 // *** هاوردەکردنی فانکشنە هاوبەشەکان لە app-ui.js ***
@@ -135,15 +137,10 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
              <img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
              <span>${subcatName}</span>
         `;
+        // *** چاککراو: کردنەوەی پەڕەی نوێ ***
         subcatBtn.onclick = async () => {
-             // Filter by this subcategory and potentially show sub-subcategories
-             await navigateToFilterCore({
-                 category: state.currentCategory,
-                 subcategory: subcat.id,
-                 subSubcategory: 'all', // Reset sub-sub when sub changes
-                 search: ''
-             });
-             await updateProductViewUI(true); // This will call renderSubSubcategoriesUI if needed
+            // Directly open the subcategory detail page
+            showSubcategoryDetailPageUI(state.currentCategory, subcat.id);
         };
         subcategoriesContainer.appendChild(subcatBtn);
     });
@@ -164,7 +161,8 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
         return;
     }
 
-    const subSubcategoriesData = await fetchSubcategories(`${mainCatId}/subcategories/${subCatId}/subSubcategories`); // Fetch sub-sub using the same function structure
+    // *** چاککراو: فانکشنی دروست بەکارهێنرا ***
+    const subSubcategoriesData = await fetchSubSubcategories(mainCatId, subCatId); // Fetch sub-sub using the correct function
 
     if (!subSubcategoriesData || subSubcategoriesData.length === 0) {
         container.style.display = 'none';
@@ -183,7 +181,7 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
         <span>${t('all_categories_label')}</span>
     `;
     allBtn.onclick = async () => {
-         // Filter by the parent subcategory
+         // Filter by the parent subcategory ON THE MAIN PAGE
          await navigateToFilterCore({
              category: state.currentCategory,
              subcategory: state.currentSubcategory,
@@ -204,15 +202,14 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
         const imageUrl = subSubcat.imageUrl || placeholderImg;
         btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
 
+        // *** چاککراو: کردنەوەی پەڕەی نوێی جۆری لاوەکی باوک ***
         btn.onclick = async () => {
-             // Filter by this specific sub-subcategory
-             await navigateToFilterCore({
-                 category: state.currentCategory,
-                 subcategory: state.currentSubcategory,
-                 subSubcategory: subSubcat.id,
-                 search: ''
-             });
-             await updateProductViewUI(true);
+             // Open the PARENT subcategory detail page
+             showSubcategoryDetailPageUI(state.currentCategory, state.currentSubcategory);
+             // Note: This will initially show all products for the subcategory.
+             // The user would need to click the sub-subcategory again on the detail page
+             // to filter further, unless showSubcategoryDetailPageUI is modified
+             // to accept and pre-filter by subSubcategoryId.
         };
         container.appendChild(btn);
     });
@@ -321,21 +318,21 @@ export async function renderHomePageContentUI() {
                      } else console.warn("Promo slider missing groupId:", section);
                      break;
                  case 'brands':
-                      if (section.groupId) {
-                           sectionElement = await createBrandsSectionElement(section.groupId);
+                     if (section.groupId) {
+                          sectionElement = await createBrandsSectionElement(section.groupId);
                      } else console.warn("Brands section missing groupId:", section);
                      break;
                  case 'newest_products':
                      sectionElement = await createNewestProductsSectionElement();
                      break;
                  case 'single_shortcut_row':
-                      if (section.rowId) {
+                     if (section.rowId) {
                            sectionElement = await createSingleShortcutRowElement(section.rowId, section.name); // Pass name obj
-                       } else console.warn("Shortcut row missing rowId:", section);
+                         } else console.warn("Shortcut row missing rowId:", section);
                      break;
                  case 'single_category_row':
                      if (section.categoryId) {
-                          sectionElement = await createSingleCategoryRowElement(section); // Pass full section data
+                         sectionElement = await createSingleCategoryRowElement(section); // Pass full section data
                      } else console.warn("Category row missing categoryId:", section);
                      break;
                   case 'all_products':
@@ -534,8 +531,8 @@ async function createSingleShortcutRowElement(rowId, sectionNameObj) { // Receiv
          const item = document.createElement('div');
          item.className = 'shortcut-card';
          item.innerHTML = `
-              <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
-              <div class="shortcut-card-name">${cardName}</div>
+             <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
+             <div class="shortcut-card-name">${cardName}</div>
          `;
          item.onclick = async () => {
               await navigateToFilterCore({ // Use core navigation
@@ -596,7 +593,7 @@ async function createSingleCategoryRowElement(sectionData) {
 
     container.querySelector('.see-all-link').onclick = async () => {
          if(subcategoryId) { // Includes subSubcategoryId case, go to detail page
-              showSubcategoryDetailPageUI(categoryId, subcategoryId); // Use imported function
+             showSubcategoryDetailPageUI(categoryId, subcategoryId); // Use imported function
          } else { // Only main category, filter main page
               await navigateToFilterCore({ category: categoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
               await updateProductViewUI(true); // Trigger full refresh
