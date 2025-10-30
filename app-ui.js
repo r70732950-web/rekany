@@ -121,37 +121,35 @@ function closeAllPopupsUI() {
 }
 
 function openPopup(id, type = 'sheet') {
-    saveCurrentScrollPositionCore(); // Save main page scroll position
+    saveCurrentScrollPositionCore(); // Use core function
     const element = document.getElementById(id);
     if (!element) return;
 
     closeAllPopupsUI(); // Close any currently open popups first
 
-    // Store the state that will be pushed
+    // *** MODIFIED: Store the state that will be pushed ***
     const newState = { type: type, id: id };
     state.currentPopupState = newState; // Keep track of the currently open popup
 
     if (type === 'sheet') {
-        // IMPORTANT FIX: Reset the inner scroll position of the sheet
-        // Do this BEFORE adding the 'show' class to ensure it's applied
+        // *** چاکسازی: سکڕۆڵی ناوەوەی پۆپئەپەکە سفر بکەوە ***
         const sheetContent = element.querySelector('.sheet-content');
         if (sheetContent) {
-            // Force scroll to top immediately
-            sheetContent.scrollTop = 0;
+            // *** چاکسازی: requestAnimationFrame بەکارهێنان بۆ دڵنیابوون ***
+            requestAnimationFrame(() => {
+                sheetContent.scrollTop = 0;
+                // دووبارە دڵنیابوونەوە بۆ دوای animation
+                setTimeout(() => {
+                    if (sheetContent) {
+                        sheetContent.scrollTop = 0;
+                    }
+                }, 100);
+            });
         }
+        // *** کۆتایی چاکسازی ***
 
-        // Then show the sheet
         sheetOverlay.classList.add('show');
         element.classList.add('show');
-        
-        // Force another scroll reset after the show class is added
-        // This handles cases where the show class might affect layout
-        if (sheetContent) {
-            setTimeout(() => {
-                sheetContent.scrollTop = 0;
-            }, 0);
-        }
-        
         // Trigger rendering content specifically for the opened sheet
         if (id === 'cartSheet') renderCartUI();
         if (id === 'favoritesSheet') renderFavoritesPageUI();
