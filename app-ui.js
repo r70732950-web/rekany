@@ -132,12 +132,20 @@ function openPopup(id, type = 'sheet') {
     state.currentPopupState = newState; // Keep track of the currently open popup
 
     if (type === 'sheet') {
-        // *** چاکسازی: سکڕۆڵی ناوەوەی پۆپئەپەکە سفر بکەوە ***
+        
+        // *** چاکسازی دووەم ***
+        // Sifirkirina skrola giştî ya `.sheet-content`
         const sheetContent = element.querySelector('.sheet-content');
         if (sheetContent) {
             sheetContent.scrollTop = 0;
         }
-        // *** کۆتایی چاکسازی ***
+
+        // Bi taybetî skrola konteynirê polê sifir bike (`sheetCategoriesContainer`),
+        // چونkە ew bixwe ye ku di nav 'sheet'a xwe de skrol dibe.
+        if (id === 'categoriesSheet' && sheetCategoriesContainer) {
+            sheetCategoriesContainer.scrollTop = 0;
+        }
+        // *** کۆتایی چاکسازی دووەم ***
 
         sheetOverlay.classList.add('show');
         element.classList.add('show');
