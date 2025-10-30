@@ -638,7 +638,7 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
 
     // Push state only if navigating forward
     if (!fromHistory) {
-         // /* GUHERTIN */ Em scrollê xezne nakin li vir ji ber ku `openPopup` jixwe dike
+         // Em li vir scrollê xezne nakin ji ber ku `openPopup` jixwe dike
          // lê me ew di `home.js` de ji bo klîkên subcategory zêde kir.
          history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
     }
@@ -1161,67 +1161,57 @@ async function handleSetLanguage(lang) {
     }
 }
 
-// *** MODIFIED popstate listener (The main fix) ***
+// /* GUHERTIN */ Ev guhertoya herî dawî û rastkirî ya popstate listener e
 window.addEventListener('popstate', async (event) => {
-    const wasPopupOpen = state.currentPopupState !== null; // Check if a popup was open *before* this popstate event
-    const previousPageId = state.currentPageId; // <-- Track what page we *were* on
+    // const wasPopupOpen = state.currentPopupState !== null; // Em êdî hewceyî vê nînin
+    // const previousPageId = state.currentPageId; // Em êdî hewceyî vê nînin
 
-    state.currentPopupState = null; // Reset the tracked popup state after checking
-    closeAllPopupsUI(); // Always close any visually open popups
+    state.currentPopupState = null; // Her tim popup-a heyî reset bike
+    closeAllPopupsUI(); // Her tim hemû popupan bigire
 
     const popState = event.state;
 
     if (popState) {
         if (popState.type === 'page') {
-            // Navigating TO a page (e.g., forward button, or back TO a page)
-            showPage(popState.id, popState.title); // showPage will update state.currentPageId
+            // Dema ku em vedigerin rûpelek (mîna Rêkixistin an rûpela Detail)
+            showPage(popState.id, popState.title);
             if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
                 await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
             }
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
-            // This should not happen on 'back' clicks if 'closeCurrentPopup' is used properly.
-            // But if it does (e.g., user hits back, then forward), re-open the popup.
-            openPopup(popState.id, popState.type); // openPopup updates state.currentPageId and state.currentPopupState
+            // Dema ku em bi bişkoja 'Pêşve' (Forward) vedigerin popup-ekê
+            openPopup(popState.id, popState.type);
         } else {
-            // Arriving at a main page filter state (either from another filter, a popup, or a page)
-            showPage('mainPage'); // Updates state.currentPageId to 'mainPage'
-            applyFilterStateCore(popState); // Apply the logical filter state
+            // Dema ku em vedigerin rewşek fîlterê ya rûpela serekî (Mînak: piştî klîkkirina li ser reklamê)
+            showPage('mainPage'); // Pêşî rûpela serekî nîşan bide
+            applyFilterStateCore(popState); // Rewşa fîlterê (state) nû bike (mînak: state.currentCategory = 'all')
 
-            const cameFromPopup = wasPopupOpen;
-            const cameFromPage = previousPageId !== 'mainPage';
+            // Naha, UI-yê li gorî rewşa nû nû bike
+            // Em her gav `isNewSearch=true` derbas dikin da ku UI nû bibe
+            // Em `shouldScrollToTop=false` derbas dikin da ku em rê nedin ku ew bixweber skrol bike jor
+            console.log("Popstate: Vegeriyan rewşa rûpela serekî. UI nû dibe...");
+            await updateProductViewUI(true, false); 
 
-            if (!cameFromPopup && !cameFromPage) {
-                // This means we were already on 'mainPage' and popped to another 'mainPage' filter state
-                console.log("Popstate: Navigating between filter states, triggering refresh WITHOUT scroll.");
-                await updateProductViewUI(true, false); // REFRESH, DON'T SCROLL
-            } else {
-                // This means we just came back from a popup (like product detail) OR a page (like Settings)
-                // We DO NOT want a full refresh. Just restore UI buttons.
-                console.log(`Popstate: Returned from ${cameFromPopup ? 'popup' : (cameFromPage ? 'page' : 'unknown')}, skipping full refresh.`);
-                renderMainCategoriesUI();
-                const subcats = await fetchSubcategories(state.currentCategory);
-                await renderSubcategoriesUI(subcats);
-            }
-
-            // Restore scroll position
-            // /* GUHERTIN */: Ev logîk jixwe rast bû, lê naha divê `popState.scroll` xwedî nirx be
-            if (typeof popState.scroll === 'number') {
-                console.log(`Popstate: Restoring scroll to ${popState.scroll}`);
+            // Piştî ku UI hate nûkirin, naha em diçin cihê skrola tomarkirî
+            if (popState && typeof popState.scroll === 'number') {
+                console.log(`Popstate: Skrol vedigere bo ${popState.scroll}`);
                 requestAnimationFrame(() => {
+                    // 'instant' bikar bînin da ku bikarhêner hest bi vegerê bike
                     window.scrollTo({ top: popState.scroll, behavior: 'instant' });
                 });
             } else {
-                 console.log("Popstate: No scroll position found, scrolling to top.");
-                 requestAnimationFrame(() => {
-                     window.scrollTo({ top: 0, behavior: 'instant' });
-                 });
+                // Heke ji ber sedemekê skrol nehatibe tomarkirin, diçin jor
+                console.log("Popstate: Cihê skrolê nehat dîtin, diçe jor.");
+                requestAnimationFrame(() => {
+                    window.scrollTo({ top: 0, behavior: 'instant' });
+                });
             }
         }
     } else {
-        // No state, go to default main page view
-        console.log("Popstate: No state found, loading default main page.");
+        // Rewşa destpêkê (default)
+        console.log("Popstate: Rewş (state) nehat dîtin, rûpela serekî ya destpêkê tê barkirin.");
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
-        showPage('mainPage'); // Updates state.currentPageId
+        showPage('mainPage');
         applyFilterStateCore(defaultState);
         await updateProductViewUI(true, true);
         requestAnimationFrame(() => {
@@ -1302,7 +1292,8 @@ async function handleInitialPageLoadUI() {
              search: params.get('search') || '',
              scroll: 0
          };
-         history.replaceState(initialState, ''); // Set initial history state for main page
+         // /* GUHERTIN */ Em `scroll: 0` didin `replaceState`
+         history.replaceState(initialState, '', ''); // Set initial history state for main page
          applyFilterStateCore(initialState); // Apply the state
          await updateProductViewUI(true, true); // Render content based on state (imported from home.js)
 
