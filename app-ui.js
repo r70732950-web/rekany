@@ -135,16 +135,7 @@ function openPopup(id, type = 'sheet') {
         // *** چاکسازی: سکڕۆڵی ناوەوەی پۆپئەپەکە سفر بکەوە ***
         const sheetContent = element.querySelector('.sheet-content');
         if (sheetContent) {
-            // *** چاکسازی: requestAnimationFrame بەکارهێنان بۆ دڵنیابوون ***
-            requestAnimationFrame(() => {
-                sheetContent.scrollTop = 0;
-                // دووبارە دڵنیابوونەوە بۆ دوای animation
-                setTimeout(() => {
-                    if (sheetContent) {
-                        sheetContent.scrollTop = 0;
-                    }
-                }, 100);
-            });
+            sheetContent.scrollTop = 0;
         }
         // *** کۆتایی چاکسازی ***
 
