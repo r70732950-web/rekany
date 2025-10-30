@@ -133,22 +133,36 @@ function openPopup(id, type = 'sheet') {
 
     if (type === 'sheet') {
         
-        // *** چاکسازی دووەم ***
-        // Sifirkirina skrola giştî ya `.sheet-content`
+        // --- ÇARESERIYA SÊYEM (Aggressive Scroll Reset) ---
+        
+        // 1. Pêşî, hewl bide ku elementa .sheet-content-a giştî sifir bikî
         const sheetContent = element.querySelector('.sheet-content');
         if (sheetContent) {
             sheetContent.scrollTop = 0;
         }
 
-        // Bi taybetî skrola konteynirê polê sifir bike (`sheetCategoriesContainer`),
-        // چونkە ew bixwe ye ku di nav 'sheet'a xwe de skrol dibe.
+        // 2. Dûv re, bi taybetî hewl bide ku konteynirê polan (categories) sifir bikî
+        // Ev ji 'app-setup.js' tê import kirin
         if (id === 'categoriesSheet' && sheetCategoriesContainer) {
             sheetCategoriesContainer.scrollTop = 0;
         }
-        // *** کۆتایی چاکسازی دووەم ***
+        // --- KOTAHIYA ÇARESERIYÊ ---
 
         sheetOverlay.classList.add('show');
         element.classList.add('show');
+
+        // 3. Wekî rezervek, em dikarin piştî demek kurt dîsa hewl bidin
+        // Ji bo ku piştrast bin ku ew piştî 'display: block' tê sepandin
+        requestAnimationFrame(() => {
+            if (sheetContent) {
+                sheetContent.scrollTop = 0;
+            }
+            if (id === 'categoriesSheet' && sheetCategoriesContainer) {
+                sheetCategoriesContainer.scrollTop = 0;
+            }
+        });
+
+
         // Trigger rendering content specifically for the opened sheet
         if (id === 'cartSheet') renderCartUI();
         if (id === 'favoritesSheet') renderFavoritesPageUI();
