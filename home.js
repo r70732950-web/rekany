@@ -7,8 +7,10 @@ import {
     fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
     fetchSubcategories, navigateToFilterCore,
     fetchProducts,
-    fetchSubSubcategories, // *** زیادکرا: هاوردەکردنی فانکشنی دروست ***
-    db, doc, getDoc // Firestore functions needed locally
+    fetchSubSubcategories, // *** زیادکرا: هاوردەکردنی فانکشی دروست ***
+    db, doc, getDoc, // Firestore functions needed locally
+    // /* GUHERTIN */ Pêwîst e em vê core functionê import bikin
+    saveCurrentScrollPositionCore 
 } from './app-core.js';
 
 // *** هاوردەکردنی فانکشنە هاوبەشەکان لە app-ui.js ***
@@ -71,6 +73,8 @@ export function renderMainCategoriesUI() {
         btn.innerHTML = `<i class="${cat.icon}"></i> <span>${categoryName}</span>`;
 
         btn.onclick = async () => {
+             // /* GUHERTIN */ Pêşî scrollê xezne bike
+             saveCurrentScrollPositionCore();
              // Navigate first using core logic
              await navigateToFilterCore({
                  category: cat.id,
@@ -79,7 +83,7 @@ export function renderMainCategoriesUI() {
                  search: '' // Clear search
              });
              // Then trigger UI update
-             await updateProductViewUI(true, true); // true indicates a new filter/search, true for scroll // /* GUHERTIN */
+             await updateProductViewUI(true, true); // true indicates a new filter/search, true for scroll
         };
 
         container.appendChild(btn);
@@ -113,6 +117,8 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
         <span>${t('all_categories_label')}</span>
     `;
     allBtn.onclick = async () => {
+         // /* GUHERTIN */ Pêşî scrollê xezne bike
+         saveCurrentScrollPositionCore();
          // When "All" subcategory is clicked, just filter products for the main category
          await navigateToFilterCore({
              category: state.currentCategory, // Keep main category
@@ -120,7 +126,7 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
              subSubcategory: 'all',
              search: ''
          });
-         await updateProductViewUI(true, true); // /* GUHERTIN */
+         await updateProductViewUI(true, true); 
     };
     subcategoriesContainer.appendChild(allBtn);
 
@@ -139,6 +145,8 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
         `;
         // *** چاککراو: کردنەوەی پەڕەی نوێ ***
         subcatBtn.onclick = async () => {
+            // /* GUHERTIN */ Pêşî scrollê xezne bike (ji bo dema ku vedigere)
+            saveCurrentScrollPositionCore();
             // Directly open the subcategory detail page
             showSubcategoryDetailPageUI(state.currentCategory, subcat.id);
         };
@@ -181,6 +189,8 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
         <span>${t('all_categories_label')}</span>
     `;
     allBtn.onclick = async () => {
+         // /* GUHERTIN */ Pêşî scrollê xezne bike
+         saveCurrentScrollPositionCore();
          // Filter by the parent subcategory ON THE MAIN PAGE
          await navigateToFilterCore({
              category: state.currentCategory,
@@ -188,7 +198,7 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
              subSubcategory: 'all',
              search: ''
          });
-         await updateProductViewUI(true, true); // /* GUHERTIN */
+         await updateProductViewUI(true, true); 
     };
     container.appendChild(allBtn);
 
@@ -204,12 +214,10 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
 
         // *** چاککراو: کردنەوەی پەڕەی نوێی جۆری لاوەکی باوک ***
         btn.onclick = async () => {
+             // /* GUHERTIN */ Pêşî scrollê xezne bike (ji bo dema ku vedigere)
+             saveCurrentScrollPositionCore();
              // Open the PARENT subcategory detail page
              showSubcategoryDetailPageUI(state.currentCategory, state.currentSubcategory);
-             // Note: This will initially show all products for the subcategory.
-             // The user would need to click the sub-subcategory again on the detail page
-             // to filter further, unless showSubcategoryDetailPageUI is modified
-             // to accept and pre-filter by subSubcategoryId.
         };
         container.appendChild(btn);
     });
@@ -218,20 +226,13 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
 
 // Handles applying the current filter state to the UI (fetching & rendering home/products)
 // This function now orchestrates rendering between home sections and product grid
-// /* GUHERTIN */ Parameterek nû lê zêde kir: shouldScrollToTop
 export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop = true) {
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const productsContainer = document.getElementById('productsContainer'); // Main product grid container
     const skeletonLoader = document.getElementById('skeletonLoader'); // Main skeleton loader
 
-    /* GUHERTIN: Destpêk */
-    // Em kontrol dikin ka gelo naveroka rûpela serekî jixwe hatiye barkirin,
-    // da ku em wê ji nû ve bar nekin heke ne pêwîst be.
-    // Em kontrol dikin ka ew vala ye an tenê loader têde ye.
     const homeContentLoaded = homeSectionsContainer.innerHTML.trim() !== '' && !homeSectionsContainer.querySelector('#loader');
-    /* GUHERTIN: Dawî */
-
 
     // Show skeleton loader for new searches/filters that ARE NOT the home view
     const shouldShowHome = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
@@ -243,9 +244,6 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
         skeletonLoader.style.display = 'grid'; // Show skeleton
         scrollTrigger.style.display = 'none'; // Hide scroll trigger during initial load
     } else if (isNewSearch && shouldShowHome) {
-        /* GUHERTIN: Destpêk */
-        // Berê, her gav loader dihat nîşandan dema ku vedigeriya mal.
-        // Niha, em tenê loader-ê nîşan didin heke naveroka serekî *hîn nehatiye barkirin*.
         if (!homeContentLoaded) {
             // (Orjînal) Loader-ê nîşan bide ji ber ku naverok tune
             homeSectionsContainer.innerHTML = `<div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: block;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;">...خەریکی بارکردنی بەشەکانە</p></div>`;
@@ -260,7 +258,6 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
             skeletonLoader.style.display = 'none';
             scrollTrigger.style.display = 'none';
         }
-        /* GUHERTIN: Dawî */
     }
 
 
@@ -277,14 +274,9 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
         scrollTrigger.style.display = 'none'; // Hide scroll trigger
         homeSectionsContainer.style.display = 'block'; // Show home sections container
         
-        /* GUHERTIN: Destpêk */
-        // Me `isNewSearch` ji vê mercê rakir.
-        // Em naxwazin `renderHomePageContentUI` ji nû ve bixebitînin heke naverok jixwe hebe,
-        // tenê heke ew bi rastî vala be (cara yekem) an hîn jî loader têde be.
         if (homeSectionsContainer.innerHTML.trim() === '' || homeSectionsContainer.querySelector('#loader')) {
             await renderHomePageContentUI(); // Render home content (defined below)
         }
-        /* GUHERTIN: Dawî */
     } else {
         homeSectionsContainer.style.display = 'none'; // Hide home sections
         productsContainer.style.display = 'grid'; // Show product grid
@@ -303,7 +295,6 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
     await renderSubcategoriesUI(subcats); // Render subcategory buttons and potentially sub-sub
 
     // Scroll logic
-    // /* GUHERTIN */ Tenê heke `shouldScrollToTop` rast be (true) سکڕۆڵ بکە.
     if (isNewSearch && shouldScrollToTop) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -475,8 +466,10 @@ async function createPromoSliderElement(groupId, layoutId) {
             const targetCategoryId = currentCard.categoryId;
             const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
             if (categoryExists) {
+                 // /* GUHERTIN */ Pêşî scrollê xezne bike
+                 saveCurrentScrollPositionCore();
                  await navigateToFilterCore({ category: targetCategoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
-                 await updateProductViewUI(true, true); // Trigger full refresh /* GUHERTIN */
+                 await updateProductViewUI(true, true); // Trigger full refresh
             }
         }
     });
@@ -506,11 +499,13 @@ async function createBrandsSectionElement(groupId) {
             <span>${brandName}</span>
         `;
         item.onclick = async () => {
+             // /* GUHERTIN */ Pêşî scrollê xezne bike
+             saveCurrentScrollPositionCore();
              if (brand.subcategoryId && brand.categoryId) {
                  showSubcategoryDetailPageUI(brand.categoryId, brand.subcategoryId); // Use imported function
              } else if(brand.categoryId) {
                   await navigateToFilterCore({ category: brand.categoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
-                  await updateProductViewUI(true, true); // Trigger full refresh /* GUHERTIN */
+                  await updateProductViewUI(true, true); // Trigger full refresh
              }
         };
         brandsContainer.appendChild(item);
@@ -563,13 +558,15 @@ async function createSingleShortcutRowElement(rowId, sectionNameObj) { // Receiv
              <div class="shortcut-card-name">${cardName}</div>
          `;
          item.onclick = async () => {
+              // /* GUHERTIN */ Pêşî scrollê xezne bike
+              saveCurrentScrollPositionCore();
               await navigateToFilterCore({ // Use core navigation
                    category: cardData.categoryId || 'all',
                    subcategory: cardData.subcategoryId || 'all',
                    subSubcategory: cardData.subSubcategoryId || 'all',
                    search: ''
               });
-              await updateProductViewUI(true, true); // Trigger UI update /* GUHERTIN */
+              await updateProductViewUI(true, true); // Trigger UI update
          };
          cardsContainer.appendChild(item);
      });
@@ -589,7 +586,7 @@ async function createSingleCategoryRowElement(sectionData) {
             let targetDocRef;
             if (subSubcategoryId) targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubcategoryId}`);
             else if (subcategoryId) targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}`);
-            else targetDocRef = doc(db, `categories`);
+            else targetDocRef = doc(db, `categories/${categoryId}`);
             const targetSnap = await getDoc(targetDocRef);
             if (targetSnap.exists()) {
                  const targetData = targetSnap.data();
@@ -620,11 +617,13 @@ async function createSingleCategoryRowElement(sectionData) {
     });
 
     container.querySelector('.see-all-link').onclick = async () => {
+         // /* GUHERTIN */ Pêşî scrollê xezne bike
+         saveCurrentScrollPositionCore();
          if(subcategoryId) { // Includes subSubcategoryId case, go to detail page
               showSubcategoryDetailPageUI(categoryId, subcategoryId); // Use imported function
          } else { // Only main category, filter main page
               await navigateToFilterCore({ category: categoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
-              await updateProductViewUI(true, true); // Trigger full refresh /* GUHERTIN */
+              await updateProductViewUI(true, true); // Trigger full refresh
          }
     };
     return container;

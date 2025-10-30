@@ -503,6 +503,8 @@ function renderCategoriesSheetUI() {
         btn.innerHTML = `<i class="${cat.icon}"></i> ${categoryName}`;
 
         btn.onclick = async () => {
+             // /* GUHERTIN */ Pêşî scrollê xezne bike
+             saveCurrentScrollPositionCore();
              // Navigate first using core logic
              await navigateToFilterCore({
                  category: cat.id,
@@ -511,7 +513,7 @@ function renderCategoriesSheetUI() {
                  search: '' // Clear search
              });
              // Then trigger UI update (imported from home.js)
-             await updateProductViewUI(true, true); // true indicates a new filter/search // /* GUHERTIN */
+             await updateProductViewUI(true, true); // true indicates a new filter/search
              closeCurrentPopup();
         };
 
@@ -636,6 +638,8 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
 
     // Push state only if navigating forward
     if (!fromHistory) {
+         // /* GUHERTIN */ Em scrollê xezne nakin li vir ji ber ku `openPopup` jixwe dike
+         // lê me ew di `home.js` de ji bo klîkên subcategory zêde kir.
          history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
     }
     showPage('subcategoryDetailPage', subCatName); // Show the page and set title
@@ -910,12 +914,16 @@ function setupUIEventListeners() {
             history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
             showPage('mainPage');
         }
+        // /* GUHERTIN */ Pêşî scrollê xezne bike (eger li cihekî din be)
+        saveCurrentScrollPositionCore();
         // Reset filters and trigger refresh (using imported function)
         await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-        await updateProductViewUI(true, true); // Ensure home renders fresh (imported from home.js) // /* GUHERTIN */
+        await updateProductViewUI(true, true); // Ensure home renders fresh (imported from home.js)
     };
 
     settingsBtn.onclick = () => {
+        // /* GUHERTIN */ Pêşî scrollê xezne bike
+        saveCurrentScrollPositionCore();
         history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
         showPage('settingsPage', t('settings_title'));
     };
@@ -949,10 +957,12 @@ function setupUIEventListeners() {
 
     // Main Search (on home page)
     const debouncedSearch = debounce(async (term) => {
+        // /* GUHERTIN */ Pêşî scrollê xezne bike
+        saveCurrentScrollPositionCore();
         // Navigate first (updates state and history)
         await navigateToFilterCore({ search: term }); // Use await
         // Then update the UI based on the new state (imported from home.js)
-        await updateProductViewUI(true, true); // /* GUHERTIN */
+        await updateProductViewUI(true, true); 
     }, 500);
     searchInput.oninput = () => {
         const searchTerm = searchInput.value;
@@ -1056,7 +1066,7 @@ function setupUIEventListeners() {
                  loader.style.display = 'none'; // Hide loader after fetching
                  if(result && result.products.length > 0) {
                      // updateProductViewUI handles appending if isNewSearch is false
-                     await updateProductViewUI(false); // /* GUHERTIN */: This is correct (false), no need for second param
+                     await updateProductViewUI(false); 
                  }
                  // Update scroll trigger visibility based on allLoaded status from core
                  scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
@@ -1101,7 +1111,7 @@ function setupUIEventListeners() {
     document.addEventListener('clearCacheTriggerRender', async () => {
         console.log("UI received clearCacheTriggerRender event.");
         if(state.currentCategory === 'all' && !state.currentSearch) {
-             await updateProductViewUI(true, true); // Re-render the home view (imported from home.js) // /* GUHERTIN */
+             await updateProductViewUI(true, true); // Re-render the home view (imported from home.js)
         }
     });
 
@@ -1133,7 +1143,7 @@ async function handleSetLanguage(lang) {
     if (document.getElementById('cartSheet').classList.contains('show')) renderCartUI();
     if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPageUI();
     // Re-render product list or home page sections (imported from home.js)
-    await updateProductViewUI(true, true); // Treat as new search to fetch/render everything in new lang // /* GUHERTIN */
+    await updateProductViewUI(true, true); // Treat as new search to fetch/render everything in new lang
     // Rerender contact links in settings
     await renderContactLinksUI();
 
@@ -1177,17 +1187,13 @@ window.addEventListener('popstate', async (event) => {
             showPage('mainPage'); // Updates state.currentPageId to 'mainPage'
             applyFilterStateCore(popState); // Apply the logical filter state
 
-            // *** NEW LOGIC ***
-            // We refresh *only* if we were *not* coming back from a popup AND *not* coming back from another page.
-            // We *only* want to refresh if we are navigating between main page filter states.
             const cameFromPopup = wasPopupOpen;
             const cameFromPage = previousPageId !== 'mainPage';
 
             if (!cameFromPopup && !cameFromPage) {
                 // This means we were already on 'mainPage' and popped to another 'mainPage' filter state
                 console.log("Popstate: Navigating between filter states, triggering refresh WITHOUT scroll.");
-                // /* GUHERTIN */ isNewSearch=true, lê shouldScrollToTop=false
-                await updateProductViewUI(true, false); 
+                await updateProductViewUI(true, false); // REFRESH, DON'T SCROLL
             } else {
                 // This means we just came back from a popup (like product detail) OR a page (like Settings)
                 // We DO NOT want a full refresh. Just restore UI buttons.
@@ -1196,14 +1202,16 @@ window.addEventListener('popstate', async (event) => {
                 const subcats = await fetchSubcategories(state.currentCategory);
                 await renderSubcategoriesUI(subcats);
             }
-            // *** END NEW LOGIC ***
 
             // Restore scroll position
+            // /* GUHERTIN */: Ev logîk jixwe rast bû, lê naha divê `popState.scroll` xwedî nirx be
             if (typeof popState.scroll === 'number') {
+                console.log(`Popstate: Restoring scroll to ${popState.scroll}`);
                 requestAnimationFrame(() => {
                     window.scrollTo({ top: popState.scroll, behavior: 'instant' });
                 });
             } else {
+                 console.log("Popstate: No scroll position found, scrolling to top.");
                  requestAnimationFrame(() => {
                      window.scrollTo({ top: 0, behavior: 'instant' });
                  });
@@ -1215,7 +1223,7 @@ window.addEventListener('popstate', async (event) => {
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
         showPage('mainPage'); // Updates state.currentPageId
         applyFilterStateCore(defaultState);
-        await updateProductViewUI(true, true); // /* GUHERTIN */
+        await updateProductViewUI(true, true);
         requestAnimationFrame(() => {
              window.scrollTo({ top: 0, behavior: 'instant' });
         });
@@ -1283,7 +1291,7 @@ async function handleInitialPageLoadUI() {
              // Fallback to main page if categories aren't ready (should be rare now)
              console.warn("Categories not ready on initial load, showing main page instead of detail.");
              showPage('mainPage');
-             await updateProductViewUI(true, true); // (imported from home.js) // /* GUHERTIN */
+             await updateProductViewUI(true, true); // (imported from home.js)
          }
     } else { // Default to main page
          showPage('mainPage');
@@ -1296,7 +1304,7 @@ async function handleInitialPageLoadUI() {
          };
          history.replaceState(initialState, ''); // Set initial history state for main page
          applyFilterStateCore(initialState); // Apply the state
-         await updateProductViewUI(true, true); // Render content based on state (imported from home.js) // /* GUHERTIN */
+         await updateProductViewUI(true, true); // Render content based on state (imported from home.js)
 
          // Check if a specific popup needs to be opened on initial load
          const element = document.getElementById(hash);
@@ -1413,3 +1421,4 @@ function setupGpsButtonUI() {
 
 // --- Start UI Initialization ---
 document.addEventListener('DOMContentLoaded', initializeUI);
+
