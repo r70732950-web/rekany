@@ -120,38 +120,48 @@ function closeAllPopupsUI() {
     document.body.classList.remove('overlay-active');
 }
 
-function openPopup(id, type = 'sheet') {
-    saveCurrentScrollPositionCore(); // Use core function
-    const element = document.getElementById(id);
-    if (!element) return;
+ function openPopup(id, type = 'sheet') {
+    saveCurrentScrollPositionCore(); // Use core function
+    const element = document.getElementById(id);
+    if (!element) return;
 
-    closeAllPopupsUI(); // Close any currently open popups first
+    closeAllPopupsUI(); // Close any currently open popups first
 
-    // *** MODIFIED: Store the state that will be pushed ***
-    const newState = { type: type, id: id };
-    state.currentPopupState = newState; // Keep track of the currently open popup
+    // *** MODIFIED: Store the state that will be pushed ***
+    const newState = { type: type, id: id };
+    state.currentPopupState = newState; // Keep track of the currently open popup
 
-    if (type === 'sheet') {
-        sheetOverlay.classList.add('show');
-        element.classList.add('show');
-        // Trigger rendering content specifically for the opened sheet
-        if (id === 'cartSheet') renderCartUI();
-        if (id === 'favoritesSheet') renderFavoritesPageUI();
-        if (id === 'categoriesSheet') renderCategoriesSheetUI();
-        if (id === 'notificationsSheet') renderUserNotificationsUI();
-        if (id === 'termsSheet') renderPoliciesUI();
-        if (id === 'profileSheet') {
-            document.getElementById('profileName').value = state.userProfile.name || '';
-            document.getElementById('profileAddress').value = state.userProfile.address || '';
-            document.getElementById('profilePhone').value = state.userProfile.phone || '';
-        }
-    } else { // type === 'modal'
-        element.style.display = 'block';
-    }
-    document.body.classList.add('overlay-active'); // Prevent body scroll
+    if (type === 'sheet') {
+        sheetOverlay.classList.add('show');
+        element.classList.add('show');
 
-    // Push state for back button navigation
-    history.pushState(newState, '', `#${id}`);
+        // *** 💡 چارەسەری زیادکراو لێرەدایە ***
+        // گەڕاندنەوەی سکڕۆڵی ناو پۆپئەپەکە بۆ سەرەوە
+        const sheetContent = element.querySelector('.sheet-content');
+        if (sheetContent) {
+            sheetContent.scrollTop = 0;
+        }
+        // *** 💡 کۆتایی چارەسەری ***
+
+        // Trigger rendering content specifically for the opened sheet
+        if (id === 'cartSheet') renderCartUI();
+        if (id === 'favoritesSheet') renderFavoritesPageUI();
+        if (id === 'categoriesSheet') renderCategoriesSheetUI();
+        if (id === 'notificationsSheet') renderUserNotificationsUI();
+        if (id === 'termsSheet') renderPoliciesUI();
+        if (id === 'profileSheet') {
+            document.getElementById('profileName').value = state.userProfile.name || '';
+            document.getElementById('profileAddress').value = state.userProfile.address || '';
+            document.getElementById('profilePhone').value = state.userProfile.phone || '';
+        }
+    } else { // type === 'modal'
+        element.style.display = 'block';
+    }
+    document.body.classList.add('overlay-active'); // Prevent body scroll
+
+    // Push state for back button navigation
+    history.pushState(newState, '', `#${id}`);
+}
 }
 
 
@@ -503,8 +513,6 @@ function renderCategoriesSheetUI() {
         btn.innerHTML = `<i class="${cat.icon}"></i> ${categoryName}`;
 
         btn.onclick = async () => {
-             // /* GUHERTIN */ Pêşî scrollê xezne bike
-             saveCurrentScrollPositionCore();
              // Navigate first using core logic
              await navigateToFilterCore({
                  category: cat.id,
@@ -513,7 +521,7 @@ function renderCategoriesSheetUI() {
                  search: '' // Clear search
              });
              // Then trigger UI update (imported from home.js)
-             await updateProductViewUI(true, true); // true indicates a new filter/search
+             await updateProductViewUI(true, true); // true indicates a new filter/search // /* GUHERTIN */
              closeCurrentPopup();
         };
 
@@ -638,8 +646,6 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
 
     // Push state only if navigating forward
     if (!fromHistory) {
-         // Em li vir scrollê xezne nakin ji ber ku `openPopup` jixwe dike
-         // lê me ew di `home.js` de ji bo klîkên subcategory zêde kir.
          history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
     }
     showPage('subcategoryDetailPage', subCatName); // Show the page and set title
@@ -914,16 +920,12 @@ function setupUIEventListeners() {
             history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
             showPage('mainPage');
         }
-        // /* GUHERTIN */ Pêşî scrollê xezne bike (eger li cihekî din be)
-        saveCurrentScrollPositionCore();
         // Reset filters and trigger refresh (using imported function)
         await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-        await updateProductViewUI(true, true); // Ensure home renders fresh (imported from home.js)
+        await updateProductViewUI(true, true); // Ensure home renders fresh (imported from home.js) // /* GUHERTIN */
     };
 
     settingsBtn.onclick = () => {
-        // /* GUHERTIN */ Pêşî scrollê xezne bike
-        saveCurrentScrollPositionCore();
         history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
         showPage('settingsPage', t('settings_title'));
     };
@@ -957,12 +959,10 @@ function setupUIEventListeners() {
 
     // Main Search (on home page)
     const debouncedSearch = debounce(async (term) => {
-        // /* GUHERTIN */ Pêşî scrollê xezne bike
-        saveCurrentScrollPositionCore();
         // Navigate first (updates state and history)
         await navigateToFilterCore({ search: term }); // Use await
         // Then update the UI based on the new state (imported from home.js)
-        await updateProductViewUI(true, true); 
+        await updateProductViewUI(true, true); // /* GUHERTIN */
     }, 500);
     searchInput.oninput = () => {
         const searchTerm = searchInput.value;
@@ -1066,7 +1066,7 @@ function setupUIEventListeners() {
                  loader.style.display = 'none'; // Hide loader after fetching
                  if(result && result.products.length > 0) {
                      // updateProductViewUI handles appending if isNewSearch is false
-                     await updateProductViewUI(false); 
+                     await updateProductViewUI(false); // /* GUHERTIN */: This is correct (false), no need for second param
                  }
                  // Update scroll trigger visibility based on allLoaded status from core
                  scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
@@ -1111,7 +1111,7 @@ function setupUIEventListeners() {
     document.addEventListener('clearCacheTriggerRender', async () => {
         console.log("UI received clearCacheTriggerRender event.");
         if(state.currentCategory === 'all' && !state.currentSearch) {
-             await updateProductViewUI(true, true); // Re-render the home view (imported from home.js)
+             await updateProductViewUI(true, true); // Re-render the home view (imported from home.js) // /* GUHERTIN */
         }
     });
 
@@ -1143,7 +1143,7 @@ async function handleSetLanguage(lang) {
     if (document.getElementById('cartSheet').classList.contains('show')) renderCartUI();
     if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPageUI();
     // Re-render product list or home page sections (imported from home.js)
-    await updateProductViewUI(true, true); // Treat as new search to fetch/render everything in new lang
+    await updateProductViewUI(true, true); // Treat as new search to fetch/render everything in new lang // /* GUHERTIN */
     // Rerender contact links in settings
     await renderContactLinksUI();
 
@@ -1161,59 +1161,71 @@ async function handleSetLanguage(lang) {
     }
 }
 
-// /* GUHERTIN */ Ev guhertoya herî dawî û rastkirî ya popstate listener e
+// *** MODIFIED popstate listener (The main fix) ***
 window.addEventListener('popstate', async (event) => {
-    // const wasPopupOpen = state.currentPopupState !== null; // Em êdî hewceyî vê nînin
-    // const previousPageId = state.currentPageId; // Em êdî hewceyî vê nînin
+    const wasPopupOpen = state.currentPopupState !== null; // Check if a popup was open *before* this popstate event
+    const previousPageId = state.currentPageId; // <-- Track what page we *were* on
 
-    state.currentPopupState = null; // Her tim popup-a heyî reset bike
-    closeAllPopupsUI(); // Her tim hemû popupan bigire
+    state.currentPopupState = null; // Reset the tracked popup state after checking
+    closeAllPopupsUI(); // Always close any visually open popups
 
     const popState = event.state;
 
     if (popState) {
         if (popState.type === 'page') {
-            // Dema ku em vedigerin rûpelek (mîna Rêkixistin an rûpela Detail)
-            showPage(popState.id, popState.title);
+            // Navigating TO a page (e.g., forward button, or back TO a page)
+            showPage(popState.id, popState.title); // showPage will update state.currentPageId
             if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
                 await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
             }
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
-            // Dema ku em bi bişkoja 'Pêşve' (Forward) vedigerin popup-ekê
-            openPopup(popState.id, popState.type);
+            // This should not happen on 'back' clicks if 'closeCurrentPopup' is used properly.
+            // But if it does (e.g., user hits back, then forward), re-open the popup.
+            openPopup(popState.id, popState.type); // openPopup updates state.currentPageId and state.currentPopupState
         } else {
-            // Dema ku em vedigerin rewşek fîlterê ya rûpela serekî (Mînak: piştî klîkkirina li ser reklamê)
-            showPage('mainPage'); // Pêşî rûpela serekî nîşan bide
-            applyFilterStateCore(popState); // Rewşa fîlterê (state) nû bike (mînak: state.currentCategory = 'all')
+            // Arriving at a main page filter state (either from another filter, a popup, or a page)
+            showPage('mainPage'); // Updates state.currentPageId to 'mainPage'
+            applyFilterStateCore(popState); // Apply the logical filter state
 
-            // Naha, UI-yê li gorî rewşa nû nû bike
-            // Em her gav `isNewSearch=true` derbas dikin da ku UI nû bibe
-            // Em `shouldScrollToTop=false` derbas dikin da ku em rê nedin ku ew bixweber skrol bike jor
-            console.log("Popstate: Vegeriyan rewşa rûpela serekî. UI nû dibe...");
-            await updateProductViewUI(true, false); 
+            // *** NEW LOGIC ***
+            // We refresh *only* if we were *not* coming back from a popup AND *not* coming back from another page.
+            // We *only* want to refresh if we are navigating between main page filter states.
+            const cameFromPopup = wasPopupOpen;
+            const cameFromPage = previousPageId !== 'mainPage';
 
-            // Piştî ku UI hate nûkirin, naha em diçin cihê skrola tomarkirî
-            if (popState && typeof popState.scroll === 'number') {
-                console.log(`Popstate: Skrol vedigere bo ${popState.scroll}`);
+            if (!cameFromPopup && !cameFromPage) {
+                // This means we were already on 'mainPage' and popped to another 'mainPage' filter state
+                console.log("Popstate: Navigating between filter states, triggering refresh WITHOUT scroll.");
+                // /* GUHERTIN */ isNewSearch=true, lê shouldScrollToTop=false
+                await updateProductViewUI(true, false); 
+            } else {
+                // This means we just came back from a popup (like product detail) OR a page (like Settings)
+                // We DO NOT want a full refresh. Just restore UI buttons.
+                console.log(`Popstate: Returned from ${cameFromPopup ? 'popup' : (cameFromPage ? 'page' : 'unknown')}, skipping full refresh.`);
+                renderMainCategoriesUI();
+                const subcats = await fetchSubcategories(state.currentCategory);
+                await renderSubcategoriesUI(subcats);
+            }
+            // *** END NEW LOGIC ***
+
+            // Restore scroll position
+            if (typeof popState.scroll === 'number') {
                 requestAnimationFrame(() => {
-                    // 'instant' bikar bînin da ku bikarhêner hest bi vegerê bike
                     window.scrollTo({ top: popState.scroll, behavior: 'instant' });
                 });
             } else {
-                // Heke ji ber sedemekê skrol nehatibe tomarkirin, diçin jor
-                console.log("Popstate: Cihê skrolê nehat dîtin, diçe jor.");
-                requestAnimationFrame(() => {
-                    window.scrollTo({ top: 0, behavior: 'instant' });
-                });
+                 requestAnimationFrame(() => {
+                     window.scrollTo({ top: 0, behavior: 'instant' });
+                 });
             }
         }
     } else {
-        // Rewşa destpêkê (default)
-        console.log("Popstate: Rewş (state) nehat dîtin, rûpela serekî ya destpêkê tê barkirin.");
+        // No state, go to default main page view
+        console.log("Popstate: No state found, loading default main page.");
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
-        showPage('mainPage');
+        showPage('mainPage'); // Updates state.currentPageId
         applyFilterStateCore(defaultState);
-        await updateProductViewUI(true, true);
+        await updateProductViewUI(true, true); // /* GUHERTIN */
         requestAnimationFrame(() => {
              window.scrollTo({ top: 0, behavior: 'instant' });
         });
@@ -1281,7 +1293,7 @@ async function handleInitialPageLoadUI() {
              // Fallback to main page if categories aren't ready (should be rare now)
              console.warn("Categories not ready on initial load, showing main page instead of detail.");
              showPage('mainPage');
-             await updateProductViewUI(true, true); // (imported from home.js)
+             await updateProductViewUI(true, true); // (imported from home.js) // /* GUHERTIN */
          }
     } else { // Default to main page
          showPage('mainPage');
@@ -1292,10 +1304,9 @@ async function handleInitialPageLoadUI() {
              search: params.get('search') || '',
              scroll: 0
          };
-         // /* GUHERTIN */ Em `scroll: 0` didin `replaceState`
-         history.replaceState(initialState, '', ''); // Set initial history state for main page
+         history.replaceState(initialState, ''); // Set initial history state for main page
          applyFilterStateCore(initialState); // Apply the state
-         await updateProductViewUI(true, true); // Render content based on state (imported from home.js)
+         await updateProductViewUI(true, true); // Render content based on state (imported from home.js) // /* GUHERTIN */
 
          // Check if a specific popup needs to be opened on initial load
          const element = document.getElementById(hash);
@@ -1412,4 +1423,3 @@ function setupGpsButtonUI() {
 
 // --- Start UI Initialization ---
 document.addEventListener('DOMContentLoaded', initializeUI);
-
