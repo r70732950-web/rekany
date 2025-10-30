@@ -133,26 +133,22 @@ function openPopup(id, type = 'sheet') {
 
     if (type === 'sheet') {
         
-        // --- ÇARESERIYA SÊYEM (Aggressive Scroll Reset) ---
-        
-        // 1. Pêşî, hewl bide ku elementa .sheet-content-a giştî sifir bikî
+        // --- ÇARESERIYA DAWÎ (Gelek Agresîv) ---
         const sheetContent = element.querySelector('.sheet-content');
+        
+        // 1. PÊŞÎ: Berî ku 'show' lê zêde bibe, her tiştî sifir bike
         if (sheetContent) {
             sheetContent.scrollTop = 0;
         }
-
-        // 2. Dûv re, bi taybetî hewl bide ku konteynirê polan (categories) sifir bikî
-        // Ev ji 'app-setup.js' tê import kirin
         if (id === 'categoriesSheet' && sheetCategoriesContainer) {
             sheetCategoriesContainer.scrollTop = 0;
         }
-        // --- KOTAHIYA ÇARESERIYÊ ---
+        // ---
 
         sheetOverlay.classList.add('show');
-        element.classList.add('show');
+        element.classList.add('show'); 
 
-        // 3. Wekî rezervek, em dikarin piştî demek kurt dîsa hewl bidin
-        // Ji bo ku piştrast bin ku ew piştî 'display: block' tê sepandin
+        // 2. NAVBER: Piştî ku 'show' lê zêde bû, tavilê di 'frame'-a din de dîsa sifir bike
         requestAnimationFrame(() => {
             if (sheetContent) {
                 sheetContent.scrollTop = 0;
@@ -161,12 +157,23 @@ function openPopup(id, type = 'sheet') {
                 sheetCategoriesContainer.scrollTop = 0;
             }
         });
-
+        // ---
 
         // Trigger rendering content specifically for the opened sheet
         if (id === 'cartSheet') renderCartUI();
         if (id === 'favoritesSheet') renderFavoritesPageUI();
-        if (id === 'categoriesSheet') renderCategoriesSheetUI();
+        if (id === 'categoriesSheet') {
+            renderCategoriesSheetUI();
+            // 3. PAŞÎ: Piştî ku naverok hate çêkirin, dîsa sifir bike (ji bo piştrastbûnê)
+            requestAnimationFrame(() => {
+                 if (sheetCategoriesContainer) {
+                     sheetCategoriesContainer.scrollTop = 0;
+                 }
+                 if (sheetContent) { // Û dêûbavê wê jî
+                    sheetContent.scrollTop = 0;
+                }
+            });
+        }
         if (id === 'notificationsSheet') renderUserNotificationsUI();
         if (id === 'termsSheet') renderPoliciesUI();
         if (id === 'profileSheet') {
@@ -693,8 +700,17 @@ async function showProductDetailsUI(productData) {
 
     state.currentProductId = product.id; // Keep track of the currently viewed product
 
+    // *** ÇARESERÎ ZÊDE KIRIN ***
+    // Piştrast bike ku skrola pop-up-a hûrguliyan jî ji jor dest pê dike
      const sheetContent = document.querySelector('#productDetailSheet .sheet-content');
-    if (sheetContent) sheetContent.scrollTop = 0; // Scroll to top
+     if (sheetContent) {
+         // Em wê tavilê û dîsa di nav rAF de datînin da ku piştrast bin
+         sheetContent.scrollTop = 0;
+         requestAnimationFrame(() => {
+             sheetContent.scrollTop = 0;
+         });
+     }
+    // *** KOTAHIYA ÇARESERIYÊ ***
 
     const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
     const descriptionText = (product.description && product.description[state.currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
