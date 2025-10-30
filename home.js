@@ -79,7 +79,7 @@ export function renderMainCategoriesUI() {
                  search: '' // Clear search
              });
              // Then trigger UI update
-             await updateProductViewUI(true); // true indicates a new filter/search
+             await updateProductViewUI(true, true); // true indicates a new filter/search, true for scroll // /* GUHERTIN */
         };
 
         container.appendChild(btn);
@@ -120,7 +120,7 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
              subSubcategory: 'all',
              search: ''
          });
-         await updateProductViewUI(true);
+         await updateProductViewUI(true, true); // /* GUHERTIN */
     };
     subcategoriesContainer.appendChild(allBtn);
 
@@ -188,7 +188,7 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
              subSubcategory: 'all',
              search: ''
          });
-         await updateProductViewUI(true);
+         await updateProductViewUI(true, true); // /* GUHERTIN */
     };
     container.appendChild(allBtn);
 
@@ -218,7 +218,8 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
 
 // Handles applying the current filter state to the UI (fetching & rendering home/products)
 // This function now orchestrates rendering between home sections and product grid
-export async function updateProductViewUI(isNewSearch = false) {
+// /* GUHERTIN */ Parameterek nû lê zêde kir: shouldScrollToTop
+export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop = true) {
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const productsContainer = document.getElementById('productsContainer'); // Main product grid container
@@ -302,7 +303,8 @@ export async function updateProductViewUI(isNewSearch = false) {
     await renderSubcategoriesUI(subcats); // Render subcategory buttons and potentially sub-sub
 
     // Scroll logic
-    if (isNewSearch) {
+    // /* GUHERTIN */ Tenê heke `shouldScrollToTop` rast be (true) سکڕۆڵ بکە.
+    if (isNewSearch && shouldScrollToTop) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
@@ -474,7 +476,7 @@ async function createPromoSliderElement(groupId, layoutId) {
             const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
             if (categoryExists) {
                  await navigateToFilterCore({ category: targetCategoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
-                 await updateProductViewUI(true); // Trigger full refresh
+                 await updateProductViewUI(true, true); // Trigger full refresh /* GUHERTIN */
             }
         }
     });
@@ -508,7 +510,7 @@ async function createBrandsSectionElement(groupId) {
                  showSubcategoryDetailPageUI(brand.categoryId, brand.subcategoryId); // Use imported function
              } else if(brand.categoryId) {
                   await navigateToFilterCore({ category: brand.categoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
-                  await updateProductViewUI(true); // Trigger full refresh
+                  await updateProductViewUI(true, true); // Trigger full refresh /* GUHERTIN */
              }
         };
         brandsContainer.appendChild(item);
@@ -567,7 +569,7 @@ async function createSingleShortcutRowElement(rowId, sectionNameObj) { // Receiv
                    subSubcategory: cardData.subSubcategoryId || 'all',
                    search: ''
               });
-              await updateProductViewUI(true); // Trigger UI update
+              await updateProductViewUI(true, true); // Trigger UI update /* GUHERTIN */
          };
          cardsContainer.appendChild(item);
      });
@@ -587,7 +589,7 @@ async function createSingleCategoryRowElement(sectionData) {
             let targetDocRef;
             if (subSubcategoryId) targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubcategoryId}`);
             else if (subcategoryId) targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}`);
-            else targetDocRef = doc(db, `categories/${categoryId}`);
+            else targetDocRef = doc(db, `categories`);
             const targetSnap = await getDoc(targetDocRef);
             if (targetSnap.exists()) {
                  const targetData = targetSnap.data();
@@ -622,7 +624,7 @@ async function createSingleCategoryRowElement(sectionData) {
               showSubcategoryDetailPageUI(categoryId, subcategoryId); // Use imported function
          } else { // Only main category, filter main page
               await navigateToFilterCore({ category: categoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
-              await updateProductViewUI(true); // Trigger full refresh
+              await updateProductViewUI(true, true); // Trigger full refresh /* GUHERTIN */
          }
     };
     return container;
@@ -648,3 +650,4 @@ async function createAllProductsSectionElement() {
     });
     return container;
 }
+
