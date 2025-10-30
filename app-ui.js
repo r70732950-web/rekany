@@ -120,48 +120,45 @@ function closeAllPopupsUI() {
     document.body.classList.remove('overlay-active');
 }
 
- function openPopup(id, type = 'sheet') {
-    saveCurrentScrollPositionCore(); // Use core function
-    const element = document.getElementById(id);
-    if (!element) return;
+function openPopup(id, type = 'sheet') {
+    saveCurrentScrollPositionCore(); // Use core function
+    const element = document.getElementById(id);
+    if (!element) return;
 
-    closeAllPopupsUI(); // Close any currently open popups first
+    closeAllPopupsUI(); // Close any currently open popups first
 
-    // *** MODIFIED: Store the state that will be pushed ***
-    const newState = { type: type, id: id };
-    state.currentPopupState = newState; // Keep track of the currently open popup
+    // *** MODIFIED: Store the state that will be pushed ***
+    const newState = { type: type, id: id };
+    state.currentPopupState = newState; // Keep track of the currently open popup
 
-    if (type === 'sheet') {
-        sheetOverlay.classList.add('show');
-        element.classList.add('show');
+    if (type === 'sheet') {
+        // *** چاکسازی: سکڕۆڵی ناوەوەی پۆپئەپەکە سفر بکەوە ***
+        const sheetContent = element.querySelector('.sheet-content');
+        if (sheetContent) {
+            sheetContent.scrollTop = 0;
+        }
+        // *** کۆتایی چاکسازی ***
 
-        // *** 💡 چارەسەری زیادکراو لێرەدایە ***
-        // گەڕاندنەوەی سکڕۆڵی ناو پۆپئەپەکە بۆ سەرەوە
-        const sheetContent = element.querySelector('.sheet-content');
-        if (sheetContent) {
-            sheetContent.scrollTop = 0;
-        }
-        // *** 💡 کۆتایی چارەسەری ***
+        sheetOverlay.classList.add('show');
+        element.classList.add('show');
+        // Trigger rendering content specifically for the opened sheet
+        if (id === 'cartSheet') renderCartUI();
+        if (id === 'favoritesSheet') renderFavoritesPageUI();
+        if (id === 'categoriesSheet') renderCategoriesSheetUI();
+        if (id === 'notificationsSheet') renderUserNotificationsUI();
+        if (id === 'termsSheet') renderPoliciesUI();
+        if (id === 'profileSheet') {
+            document.getElementById('profileName').value = state.userProfile.name || '';
+            document.getElementById('profileAddress').value = state.userProfile.address || '';
+            document.getElementById('profilePhone').value = state.userProfile.phone || '';
+        }
+    } else { // type === 'modal'
+        element.style.display = 'block';
+    }
+    document.body.classList.add('overlay-active'); // Prevent body scroll
 
-        // Trigger rendering content specifically for the opened sheet
-        if (id === 'cartSheet') renderCartUI();
-        if (id === 'favoritesSheet') renderFavoritesPageUI();
-        if (id === 'categoriesSheet') renderCategoriesSheetUI();
-        if (id === 'notificationsSheet') renderUserNotificationsUI();
-        if (id === 'termsSheet') renderPoliciesUI();
-        if (id === 'profileSheet') {
-            document.getElementById('profileName').value = state.userProfile.name || '';
-            document.getElementById('profileAddress').value = state.userProfile.address || '';
-            document.getElementById('profilePhone').value = state.userProfile.phone || '';
-        }
-    } else { // type === 'modal'
-        element.style.display = 'block';
-    }
-    document.body.classList.add('overlay-active'); // Prevent body scroll
-
-    // Push state for back button navigation
-    history.pushState(newState, '', `#${id}`);
-}
+    // Push state for back button navigation
+    history.pushState(newState, '', `#${id}`);
 }
 
 
