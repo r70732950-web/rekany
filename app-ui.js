@@ -80,7 +80,7 @@ function updateHeaderView(pageId, title = '') {
     }
 }
 
-// *** START: Gۆڕانکاری لێرە کرا ***
+// *** START: Gۆڕanlکاری lێرە kra ***
 function showPage(pageId, pageTitle = '') {
     state.currentPageId = pageId; 
     document.querySelectorAll('.page').forEach(page => {
@@ -114,7 +114,7 @@ function showPage(pageId, pageTitle = '') {
        updateActiveNav(activeBtnId);
     }
 }
-// *** END: Gۆڕانکاری لێرە کرا ***
+// *** END: Gۆڕanlکاری lێرە kra ***
 
 
 function closeAllPopupsUI() {
@@ -135,7 +135,7 @@ function closeAllPopupsUI() {
     // *** DAWÎYA GUHERTINÊ ***
 }
 
-// *** START: Gۆڕانکاری لێرە کرا ***
+// *** START: Gۆڕanlکاری lێرە kra ***
 function openPopup(id, type = 'sheet') {
     // 1. Cihê skrolê yê rûpela heyî tomar bike (Skrôla lapele calakeke pashekeut bike)
     saveCurrentScrollPositionCore(); 
@@ -144,12 +144,19 @@ function openPopup(id, type = 'sheet') {
 
     closeAllPopupsUI(); // Close any currently open popups first
 
-    // 2. Rûpela çalak vegerîne jor DA KU popup her gav li jor xuya bibe
-    // 2. لاپەڕە چالاکەکە بگەڕێنەوە سەرەوە BО ئەوەی پۆپئەپ هەمیشە لە سەرەوە دەربکەوێت
+    // 2. Rûpela çalak vegerîne jor (TENÊ JI BO 'categoriesSheet')
+    // 2. لاپەڕە چالاکەکە بگەڕێنەوە سەرەوە (تەنها بۆ 'categoriesSheet')
+    // ***************************************************************
+    // *** DESTPÊKA GUHERTINA JI BO KÊŞEYA SKROLA POPUPÊ ***
+    // *** PO EV BEŞ HATE GUHERTIN ***
     const activePage = document.getElementById(state.currentPageId);
-    if (activePage) {
+    // Tenê eger 'categoriesSheet' hat vekirin, rûpelê skrol bike jor
+    // تەنها ئەگەر 'categoriesSheet' کرایەوە، لاپەڕەکە سکڕۆڵ بکە سەرەوە
+    if (activePage && id === 'categoriesSheet') { 
         activePage.scrollTo({ top: 0, behavior: 'instant' });
     }
+    // *** DAWÎYA GUHERTINÊ ***
+    // ***************************************************************
     // *** END 2 ***
 
     const newState = { type: type, id: id };
@@ -182,7 +189,7 @@ function openPopup(id, type = 'sheet') {
 
     history.pushState(newState, '', `#${id}`);
 }
-// *** END: Gۆڕانکاری لێرە کرا ***
+// *** END: Gۆڕanlکاری lێرە kra ***
 
 
 function closeCurrentPopup() {
@@ -518,7 +525,7 @@ async function renderFavoritesPageUI() {
     }
 }
 
-// *** START: Gۆڕانکاری لێرە کرا ***
+// *** START: Gۆڕanlکاری lێرە kra ***
 function renderCategoriesSheetUI() {
     sheetCategoriesContainer.innerHTML = '';
 
@@ -574,7 +581,7 @@ function renderCategoriesSheetUI() {
         sheetCategoriesContainer.appendChild(btn);
     });
 }
-// *** END: Gۆڕانکاری لێرە کرا ***
+// *** END: Gۆڕanlکاری lێرە kra ***
 
 
  // Renders sub-subcategories on the **detail page** (kept here)
@@ -1208,7 +1215,7 @@ async function handleSetLanguage(lang) {
     }
 }
 
-// *** START: Gۆڕانکاری لێرە کرا (Logica Popstate bi tevahî hate nûve kirin) ***
+// *** START: Gۆڕanlکاری lێرە kra (Logica Popstate bi tevahî hate nûve kirin) ***
 // *** دەستپێک: گۆڕانکاری لێرە کرا (لۆجیکی Popstate بە تەواوی نوێکرایەوە) ***
 window.addEventListener('popstate', async (event) => {
     const wasPopupOpen = state.currentPopupState !== null; 
@@ -1313,8 +1320,8 @@ window.addEventListener('popstate', async (event) => {
         });
     }
 });
-// *** END: Gۆڕانکاری lێرە کرا ***
-// *** کۆتایی: Gۆڕانکاری lێرە کرا ***
+// *** END: Gۆڕanlکاری lێرە kra ***
+// *** کۆتایی: Gۆڕanlکاری lێرە kra ***
 
 
 async function initializeUI() {
