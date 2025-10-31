@@ -358,22 +358,22 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
     const subcats = await fetchSubcategories(state.currentCategory);
     await renderSubcategoriesUI(subcats); // Render subcategory buttons and potentially sub-sub
 
-    // *** 💡 DESTPÊKA ÇAKKIRINÊ (SCROLL FIX) 💡 ***
+    // *** 💡 DESTPÊKA ÇAKKIRINÊ (SCROLL FIX - AUTO) 💡 ***
     // Logica Scrollkirinê
     // /* GUHERTIN */ Tenê heke `shouldScrollToTop` rast be (true) سکڕۆڵ بکە.
     if (isNewSearch && shouldScrollToTop) {
-        // Bişkojka 'window.scrollTo' hat guhertin bo 'mainPage.scrollTo'
-        // 'window.scrollTo' گۆڕدرا بۆ 'mainPage.scrollTo'
+        // 'behavior: "smooth"' hat guhertin bo 'behavior: "auto"'
+        // 'behavior: "smooth"' گۆڕدرا بۆ 'behavior: "auto"'
         const activePage = document.getElementById('mainPage');
         if (activePage) {
-            activePage.scrollTo({ top: 0, behavior: 'smooth' });
+            activePage.scrollTo({ top: 0, behavior: 'auto' }); // <-- *** گۆڕانکاری لێرە کرا ***
         } else {
             // Wekî paşverû heke 'mainPage' neyê dîtin
             console.warn('Could not find #mainPage to scroll.');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            window.scrollTo({ top: 0, behavior: 'auto' }); // <-- *** گۆڕانکاری لێرە کرا ***
         }
     }
-    // *** 💡 DAWÎYA ÇAKKIRINÊ (SCROLL FIX) 💡 ***
+    // *** 💡 DAWÎYA ÇAKKIRINÊ (SCROLL FIX - AUTO) 💡 ***
 }
 
 
@@ -658,7 +658,7 @@ async function createSingleCategoryRowElement(sectionData) {
         if (subSubcategoryId) {
             targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubcategoryId}`);
         } else if (subcategoryId) {
-            targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subCategoriId}`);
+            targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}`);
         } else {
              // *** ÇAKKIRIN: Pêdivî ye ku em ID-ya kategoriyê diyar bikin ***
              // *** چاککراو: پێویستە IDی جۆرەکە دیاری بکەین ***
