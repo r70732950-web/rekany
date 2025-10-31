@@ -123,14 +123,16 @@ function closeAllPopupsUI() {
     sheetOverlay.classList.remove('show');
     document.body.classList.remove('overlay-active');
     
-    // Piştî girtina popup, filtera li bendê paqij bike eger hebe
-    // دوای داخستنی پۆپئەپ، فلتەری چاوەڕوانکراو پاک بکەوە ئەگەر هەبێت
-    // Ev girîng e heke bikarhêner bi tikandina li derve popupê bigire
-    // ئەمە گرنگە ئەگەر بەکارهێنەر بە کلیککردن لە دەرەوە پۆپئەپەکە دابخات
-    if (state.pendingFilterNav) {
-        console.log("Popup closed without applying filter. Clearing pending filter.");
-        state.pendingFilterNav = null;
-    }
+    // *** DESTPÊKA GUHERTINÊ ***
+    // [BEŞA KU FILTER PAQIJ DIKIR HAT RAKIRIN]
+    // Ev blok hate rakirin ji ber ku ew 'pendingFilterNav' paqij dikir
+    // berî ku 'popstate' handler bikaribe wê bi kar bîne.
+    //
+    // if (state.pendingFilterNav) {
+    //    console.log("Popup closed without applying filter. Clearing pending filter.");
+    //    state.pendingFilterNav = null;
+    // }
+    // *** DAWÎYA GUHERTINÊ ***
 }
 
 // *** START: Gۆڕانکاری لێرە کرا ***
@@ -1301,8 +1303,8 @@ window.addEventListener('popstate', async (event) => {
         });
     }
 });
-// *** END: Gۆڕانکاری لێرە کرا ***
-// *** کۆتایی: گۆڕانکاری لێرە کرا ***
+// *** END: Gۆڕانکاری lێرە کرا ***
+// *** کۆتایی: Gۆڕانکاری lێرە کرا ***
 
 
 async function initializeUI() {
