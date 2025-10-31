@@ -495,6 +495,8 @@ async function renderFavoritesPageUI() {
     }
 }
 
+// *** START: Gۆڕانکاری لێرە کرا ***
+// *** دەستپێک: گۆڕانکاری لێرە کرا ***
 function renderCategoriesSheetUI() {
     sheetCategoriesContainer.innerHTML = '';
     state.categories.forEach(cat => {
@@ -503,11 +505,20 @@ function renderCategoriesSheetUI() {
         btn.dataset.category = cat.id;
         if (state.currentCategory === cat.id) { btn.classList.add('active'); }
 
-        const categoryName = cat.id === 'all'
-            ? t('all_categories_label')
-            : (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
+        let categoryName = '';
+        let categoryIcon = '';
 
-        btn.innerHTML = `<i class="${cat.icon}"></i> ${categoryName}`;
+        if (cat.id === 'all') {
+            categoryName = t('nav_home'); // Navê "Serekî" bikar bîne (ناوی "سەرەکی" بەکاردەهێنێت)
+            categoryIcon = 'fas fa-home';  // Îkona "Home" bikar bîne (ئایکۆنی "ماڵەوە" بەکاردەهێنێت)
+        } else {
+            categoryName = (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
+            categoryIcon = cat.icon;
+        }
+
+        btn.innerHTML = `<i class="${categoryIcon}"></i> ${categoryName}`;
+        // *** END: Gۆڕانکاری لێرە کرا ***
+        // *** کۆتایی: گۆڕانکاری لێرە کرا ***
 
         btn.onclick = async () => {
              // Navigate first using core logic
