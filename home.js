@@ -16,6 +16,24 @@ import {
     renderSkeletonLoader, createProductCardElementUI, setupScrollAnimations, showSubcategoryDetailPageUI
 } from './app-ui.js';
 
+// *** 💡 فانکشنی یاریدەدەری نوێ لێرە زیادکرا 💡 ***
+// --- Helper Functions ---
+
+/**
+ * Resets the horizontal scroll position of a container element.
+ * @param {HTMLElement} containerElement The container to scroll.
+ */
+function resetScrollPosition(containerElement) {
+    if (containerElement) {
+        containerElement.scrollTo({
+            left: 0,
+            behavior: 'smooth' // 'smooth' scrolls it back nicely
+        });
+    }
+}
+// *** 💡 کۆتایی بەشی زیادکراو 💡 ***
+
+
 // --- UI Rendering Functions for Home Page ---
 
 // Renders product cards in the main grid (replaces original renderProductsUI)
@@ -73,6 +91,7 @@ export function renderMainCategoriesUI() {
     // Logica onclick ji bo "Serekî"
     // لۆجیکی onclick بۆ "سەرەکی"
     homeBtn.onclick = async () => {
+         resetScrollPosition(container); // *** 💡 لێرە زیادکرا 💡 ***
          await navigateToFilterCore({
              category: 'all',
              subcategory: 'all',
@@ -101,6 +120,7 @@ export function renderMainCategoriesUI() {
         btn.innerHTML = `<i class="${categoryIcon}"></i> <span>${categoryName}</span>`;
 
         btn.onclick = async () => {
+             resetScrollPosition(container); // *** 💡 لێرە زیادکرا 💡 ***
              await navigateToFilterCore({
                  category: cat.id,
                  subcategory: 'all',
@@ -145,6 +165,7 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
         <span>${t('all_categories_label')}</span>
     `;
     allBtn.onclick = async () => {
+         resetScrollPosition(subcategoriesContainer); // *** 💡 لێرە زیادکرا 💡 ***
          // When "All" subcategory is clicked, just filter products for the main category
          await navigateToFilterCore({
              category: state.currentCategory, // Keep main category
@@ -171,6 +192,7 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
         `;
         // *** چاککراو: کردنەوەی پەڕەی نوێ ***
         subcatBtn.onclick = async () => {
+            resetScrollPosition(subcategoriesContainer); // *** 💡 لێرە زیادکرا 💡 ***
             // Directly open the subcategory detail page
             showSubcategoryDetailPageUI(state.currentCategory, subcat.id);
         };
@@ -213,6 +235,7 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
         <span>${t('all_categories_label')}</span>
     `;
     allBtn.onclick = async () => {
+         resetScrollPosition(container); // *** 💡 لێرە زیادکرا 💡 ***
          // Filter by the parent subcategory ON THE MAIN PAGE
          await navigateToFilterCore({
              category: state.currentCategory,
@@ -236,6 +259,7 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
 
         // *** چاککراو: کردنەوەی پەڕەی نوێی جۆری لاوەکی باوک ***
         btn.onclick = async () => {
+             resetScrollPosition(container); // *** 💡 لێرە زیادکرا 💡 ***
              // Open the PARENT subcategory detail page
              showSubcategoryDetailPageUI(state.currentCategory, state.currentSubcategory);
              // Note: This will initially show all products for the subcategory.
