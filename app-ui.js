@@ -50,7 +50,9 @@ import {
 
 // --- UI Helper Functions ---
 
-function showNotification(message, type = 'success') {
+// *** DESTPÊK: Fonksiyon hate EXPORT kirin da ku admin.js bikaribe bibîne ***
+export function showNotification(message, type = 'success') {
+// *** DAWÎ: Fonksiyon hate EXPORT kirin ***
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     notification.textContent = message;
@@ -65,10 +67,14 @@ function showNotification(message, type = 'success') {
     }, 3000);
 }
 
+// *** START: Gۆڕanlکاری lێرە kra (Çareseriya ji bo Settings Page) ***
 function updateHeaderView(pageId, title = '') {
     const mainHeader = document.querySelector('.main-header-content');
     const subpageHeader = document.querySelector('.subpage-header-content');
     const headerTitle = document.getElementById('headerTitle');
+    // *** DESTPÊK: Lêgerrîna li (.subpage-search) hate zêdekirin ***
+    const subpageSearch = document.querySelector('.subpage-search'); // Bara lêgerînê bibîne
+    // *** DAWÎ: Lêgerrîna li (.subpage-search) hate zêdekirin ***
 
     if (pageId === 'mainPage') {
         mainHeader.style.display = 'flex';
@@ -77,10 +83,21 @@ function updateHeaderView(pageId, title = '') {
         mainHeader.style.display = 'none';
         subpageHeader.style.display = 'flex';
         headerTitle.textContent = title;
+
+        // *** DESTPÊK: Guhertina ji bo veşartina lêgerînê li 'Settings' ***
+        // Ev mantiq piştrast dike ku bara lêgerînê TENÊ li ser rûpelên lawekî yên pêwîst xuya dike
+        if (subpageSearch) {
+            if (pageId === 'settingsPage') {
+                subpageSearch.style.display = 'none'; // Li 'Settings' veşêre
+            } else {
+                subpageSearch.style.display = 'block'; // Li rûpelên din ên lawekî nîşan bide (mînak, hûrguliyên kategoriyê)
+            }
+        }
+        // *** DAWÎ: Guhertina ji bo veşartina lêgerînê li 'Settings' ***
     }
 }
+// *** END: Gۆڕanlکاری lێرە kra ***
 
-// *** START: Gۆڕanlکاری lێرە kra ***
 function showPage(pageId, pageTitle = '') {
     state.currentPageId = pageId; 
     document.querySelectorAll('.page').forEach(page => {
@@ -114,7 +131,6 @@ function showPage(pageId, pageTitle = '') {
        updateActiveNav(activeBtnId);
     }
 }
-// *** END: Gۆڕanlکاری lێرە kra ***
 
 
 function closeAllPopupsUI() {
@@ -123,19 +139,11 @@ function closeAllPopupsUI() {
     sheetOverlay.classList.remove('show');
     document.body.classList.remove('overlay-active');
     
-    // *** DESTPÊKA GUHERTINÊ ***
     // [BEŞA KU FILTER PAQIJ DIKIR HAT RAKIRIN]
     // Ev blok hate rakirin ji ber ku ew 'pendingFilterNav' paqij dikir
     // berî ku 'popstate' handler bikaribe wê bi kar bîne.
-    //
-    // if (state.pendingFilterNav) {
-    //    console.log("Popup closed without applying filter. Clearing pending filter.");
-    //    state.pendingFilterNav = null;
-    // }
-    // *** DAWÎYA GUHERTINÊ ***
 }
 
-// *** START: Gۆڕanlکاری lێرە kra ***
 // =================================================================
 // === ÇARESERÎ 1: `openPopup` HATE `export` KIRIN ===
 // =================================================================
@@ -149,18 +157,12 @@ export function openPopup(id, type = 'sheet') {
 
     // 2. Rûpela çalak vegerîne jor (TENÊ JI BO 'categoriesSheet')
     // 2. لاپەڕە چالاکەکە بگەڕێنەوە سەرەوە (تەنها بۆ 'categoriesSheet')
-    // ***************************************************************
-    // *** DESTPÊKA GUHERTINA JI BO KÊŞEYA SKROLA POPUPÊ ***
-    // *** PO EV BEŞ HATE GUHERTIN ***
     const activePage = document.getElementById(state.currentPageId);
     // Tenê eger 'categoriesSheet' hat vekirin, rûpelê skrol bike jor
     // تەنها ئەگەر 'categoriesSheet' کرایەوە، لاپەڕەکە سکڕۆڵ بکە سەرەوە
     if (activePage && id === 'categoriesSheet') { 
         activePage.scrollTo({ top: 0, behavior: 'instant' });
     }
-    // *** DAWÎYA GUHERTINÊ ***
-    // ***************************************************************
-    // *** END 2 ***
 
     const newState = { type: type, id: id };
     state.currentPopupState = newState; 
@@ -192,7 +194,6 @@ export function openPopup(id, type = 'sheet') {
 
     history.pushState(newState, '', `#${id}`);
 }
-// *** END: Gۆڕanlکاری lێرە kra ***
 
 
 // =================================================================
@@ -531,12 +532,12 @@ async function renderFavoritesPageUI() {
     }
 }
 
-// *** START: Gۆڕanlکاری lێرە kra ***
+// *** START: Gۆڕanlکاری lێرە kra (Logica pendingFilterNav) ***
 function renderCategoriesSheetUI() {
     sheetCategoriesContainer.innerHTML = '';
 
     // 1. Bişkoja "Serekî" (Home) bi destî lê zêde bike
-    // 1. زیادکردنی دوگمەی "سەرەکی" (Home) بە شێوەی دەستی
+    // 1. زیادکردنی دوگمەی "سەرەki" (Home) بە شێوەی دەستی
     const homeBtn = document.createElement('button');
     homeBtn.className = 'sheet-category-btn';
     homeBtn.dataset.category = 'all'; 
@@ -982,7 +983,7 @@ function setupUIEventListeners() {
         }
         // Reset filters and trigger refresh (using imported function)
         await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-        await updateProductViewUI(true, true); // Ensure home renders fresh (imported from home.js) // /* GUHERTIN */
+        await updateProductViewUI(true, true); // Ensure home renders fresh (imported from home.js)
     };
 
     settingsBtn.onclick = () => {
@@ -1022,7 +1023,7 @@ function setupUIEventListeners() {
         // Navigate first (updates state and history)
         await navigateToFilterCore({ search: term }); // Use await
         // Then update the UI based on the new state (imported from home.js)
-        await updateProductViewUI(true, true); // /* GUHERTIN */
+        await updateProductViewUI(true, true); 
     }, 500);
     searchInput.oninput = () => {
         const searchTerm = searchInput.value;
@@ -1126,7 +1127,7 @@ function setupUIEventListeners() {
                  loader.style.display = 'none'; // Hide loader after fetching
                  if(result && result.products.length > 0) {
                      // updateProductViewUI handles appending if isNewSearch is false
-                     await updateProductViewUI(false); // /* GUHERTIN */: This is correct (false), no need for second param
+                     await updateProductViewUI(false); // This is correct (false), no need for second param
                  }
                  // Update scroll trigger visibility based on allLoaded status from core
                  scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
@@ -1171,7 +1172,7 @@ function setupUIEventListeners() {
     document.addEventListener('clearCacheTriggerRender', async () => {
         console.log("UI received clearCacheTriggerRender event.");
         if(state.currentCategory === 'all' && !state.currentSearch) {
-             await updateProductViewUI(true, true); // Re-render the home view (imported from home.js) // /* GUHERTIN */
+             await updateProductViewUI(true, true); // Re-render the home view (imported from home.js)
         }
     });
 
@@ -1203,7 +1204,7 @@ async function handleSetLanguage(lang) {
     if (document.getElementById('cartSheet').classList.contains('show')) renderCartUI();
     if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPageUI();
     // Re-render product list or home page sections (imported from home.js)
-    await updateProductViewUI(true, true); // Treat as new search to fetch/render everything in new lang // /* GUHERTIN */
+    await updateProductViewUI(true, true); // Treat as new search to fetch/render everything in new lang
     // Rerender contact links in settings
     await renderContactLinksUI();
 
@@ -1261,7 +1262,7 @@ window.addEventListener('popstate', async (event) => {
 
             if (!cameFromPopup && !cameFromPage) {
                 // Li ser rûpela serekî bû û çû rewşek filterê ya din
-                // لەسەر لاپەڕەی سەرەکی بوویت و چوویتە دۆخێکی تری فلتەر
+                // لەسەر لاپەڕەی سەرەki بوویت و چوویتە دۆخێکی تری فلتەر
                 console.log("Popstate: Navigating between filter states, triggering refresh WITHOUT scroll.");
                 await updateProductViewUI(true, false); // false = skrol neke jor (سکڕۆڵ مەکە سەرەوە)
             } else {
@@ -1280,7 +1281,7 @@ window.addEventListener('popstate', async (event) => {
             // *** DESTPÊKA GUHERTINA JI BO KÊŞEYA SKROLÊ ***
             // *** PO EV BEŞ HATE GUHERTIN ***
             // TENÊ skrolê vegerîne EGER fîlterek nû li bendê NEBE
-            // چاکسازی: تەنها سکڕۆڵ بگەڕێنەوە ئەگەر فلتەرێکی نوێ چاوەڕێ نەبێت
+            // چاکسازی: تەنها سکڕۆڵ بگەڕێنەوە ئەگər فلتەرێکی نوێ چاوەڕێ نەبێت
             if (!state.pendingFilterNav) { 
                 if (typeof popState.scroll === 'number') {
                     requestAnimationFrame(() => {
@@ -1390,7 +1391,7 @@ async function handleInitialPageLoadUI() {
              // Fallback to main page if categories aren't ready (should be rare now)
              console.warn("Categories not ready on initial load, showing main page instead of detail.");
              showPage('mainPage');
-             await updateProductViewUI(true, true); // (imported from home.js) // /* GUHERTIN */
+             await updateProductViewUI(true, true); // (imported from home.js)
          }
     } else { // Default to main page
          showPage('mainPage');
@@ -1403,7 +1404,7 @@ async function handleInitialPageLoadUI() {
          };
          history.replaceState(initialState, ''); // Set initial history state for main page
          applyFilterStateCore(initialState); // Apply the state
-         await updateProductViewUI(true, true); // Render content based on state (imported from home.js) // /* GUHERTIN */
+         await updateProductViewUI(true, true); // Render content based on state (imported from home.js)
 
          // Check if a specific popup needs to be opened on initial load
          const element = document.getElementById(hash);
@@ -1534,6 +1535,7 @@ if (!window.globalAdminTools) {
 // Fonksyonên pêwîst li ser 'window' tomar bike da ku admin.js bikaribe bibîne
 window.globalAdminTools.openPopup = openPopup;
 window.globalAdminTools.closeCurrentPopup = closeCurrentPopup;
+window.globalAdminTools.showNotification = showNotification; // *** Ev hate zêdekirin ***
 
-console.log('openPopup & closeCurrentPopup ji bo admin.js hatin zêdekirin.');
+console.log('openPopup, closeCurrentPopup, & showNotification ji bo admin.js hatin zêdekirin.');
 // ======== DAWÎYA PIRA ========
