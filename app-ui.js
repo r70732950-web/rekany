@@ -1520,3 +1520,20 @@ function setupGpsButtonUI() {
 
 // --- Start UI Initialization ---
 document.addEventListener('DOMContentLoaded', initializeUI);
+
+
+// ======== PIRA JI BO ADMIN.JS (ÇARESERÎ) ========
+// Ev kod fonksyonên ku ji app-ui.js hatine 'export' kirin
+// ji bo faylê admin.js (ku module nîne) berdest dike.
+
+// Heke globalAdminTools hîn nehatibe çêkirin, wê çêbike
+if (!window.globalAdminTools) {
+    window.globalAdminTools = {};
+}
+
+// Fonksyonên pêwîst li ser 'window' tomar bike da ku admin.js bikaribe bibîne
+window.globalAdminTools.openPopup = openPopup;
+window.globalAdminTools.closeCurrentPopup = closeCurrentPopup;
+
+console.log('openPopup & closeCurrentPopup ji bo admin.js hatin zêdekirin.');
+// ======== DAWÎYA PIRA ========
