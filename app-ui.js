@@ -1262,16 +1262,26 @@ window.addEventListener('popstate', async (event) => {
 
             // *** Logica Vegerandina Skrolê (Logica nû) ***
             // *** لۆجیکی گەڕاندنەوەی سکڕۆڵ (لۆجیکی نوێ) ***
-            if (typeof popState.scroll === 'number') {
-                requestAnimationFrame(() => {
-                    // Rûpela çalak skrol bike (پەڕە چالاکەکە سکڕۆڵ بکە)
-                    activePage.scrollTo({ top: popState.scroll, behavior: 'instant' });
-                });
-            } else {
-                requestAnimationFrame(() => {
-                    activePage.scrollTo({ top: 0, behavior: 'instant' });
-                });
+            
+            // ***************************************************************
+            // *** DESTPÊKA GUHERTINA JI BO KÊŞEYA SKROLÊ ***
+            // *** PO EV BEŞ HATE GUHERTIN ***
+            // TENÊ skrolê vegerîne EGER fîlterek nû li bendê NEBE
+            // چاکسازی: تەنها سکڕۆڵ بگەڕێنەوە ئەگەر فلتەرێکی نوێ چاوەڕێ نەبێت
+            if (!state.pendingFilterNav) { 
+                if (typeof popState.scroll === 'number') {
+                    requestAnimationFrame(() => {
+                        // Rûpela çalak skrol bike (پەڕە چالاکەکە سکڕۆڵ بکە)
+                        activePage.scrollTo({ top: popState.scroll, behavior: 'instant' });
+                    });
+                } else {
+                    requestAnimationFrame(() => {
+                        activePage.scrollTo({ top: 0, behavior: 'instant' });
+                    });
+                }
             }
+            // *** DAWÎYA GUHERTINÊ ***
+            // ***************************************************************
             
             // *** Logica Fîltera Li Bendê (Logica nû) ***
             // *** لۆجیکی فلتەری چاوەڕوانکراو (لۆجیکی نوێ) ***
