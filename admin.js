@@ -1,4 +1,4 @@
-// فایلی admin.js (چاککراو بۆ کێشەی کارتی کورت)
+// فایلی admin.js (چاککراو بۆ کێشەی کارتی کورت و پڕکردنەوەی درۆپداونەکان)
 
 const {
     db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit,
@@ -829,10 +829,10 @@ window.AdminLogic = {
                 
                 rowElement.innerHTML = `
                     <div class="admin-list-group-header">
-                        <strong><i class="fas fa-layer-group"></i> ${row.title.ku_sorani} (ڕیز: ${row.order})</strong>
+                        <strong><I class="fas fa-layer-group"></I> ${row.title.ku_sorani} (ڕیز: ${row.order})</strong>
                         <div>
-                            <button class="edit-row-btn edit-btn small-btn" data-id="${row.id}"><i class="fas fa-edit"></i></button>
-                            <button class="delete-row-btn delete-btn small-btn" data-id="${row.id}"><i class="fas fa-trash"></i></button>
+                            <button class="edit-row-btn edit-btn small-btn" data-id="${row.id}"><I class="fas fa-edit"></I></button>
+                            <button class="delete-row-btn delete-btn small-btn" data-id="${row.id}"><I class="fas fa-trash"></I></button>
                         </div>
                     </div>
                     <div class="cards-list-container" style="padding: 10px;">...خەریکی بارکردنی کارتەکانە</div>
@@ -853,8 +853,8 @@ window.AdminLogic = {
                             cardElement.innerHTML = `
                                 <span>- ${card.name.ku_sorani} (ڕیز: ${card.order})</span>
                                 <div>
-                                    <button class="edit-card-btn edit-btn small-btn" data-row-id="${row.id}" data-card-id="${card.id}"><i class="fas fa-edit"></i></button>
-                                    <button class="delete-card-btn delete-btn small-btn" data-row-id="${row.id}" data-card-id="${card.id}"><i class="fas fa-trash"></i></button>
+                                    <button class="edit-card-btn edit-btn small-btn" data-row-id="${row.id}" data-card-id="${card.id}"><I class="fas fa-edit"></I></button>
+                                    <button class="delete-card-btn delete-btn small-btn" data-row-id="${row.id}" data-card-id="${card.id}"><I class="fas fa-trash"></I></button>
                                 </div>
                             `;
                             cardsContainer.appendChild(cardElement);
@@ -900,6 +900,7 @@ window.AdminLogic = {
         }
     },
 
+    // *** DESTPÊKA GUHERTINÊ: Fonksiyona `editShortcutCard` hate çêkirin `async` و `setTimeout` hate rakirin ***
     editShortcutCard: async function(rowId, cardId) {
         const cardSnap = await getDoc(doc(db, "shortcut_rows", rowId, "cards", cardId));
         if (cardSnap.exists()) {
@@ -915,17 +916,17 @@ window.AdminLogic = {
             const mainCatSelect = document.getElementById('shortcutCardMainCategory');
             mainCatSelect.value = card.categoryId || '';
             
-            mainCatSelect.dispatchEvent(new Event('change')); 
-
-            setTimeout(() => {
-                const subCatSelect = document.getElementById('shortcutCardSubcategory');
-                subCatSelect.value = card.subcategoryId || '';
-                subCatSelect.dispatchEvent(new Event('change'));
-                
-                setTimeout(() => {
-                    document.getElementById('shortcutCardSubSubcategory').value = card.subSubcategoryId || '';
-                }, 500);
-            }, 500);
+            // Li şûna `dispatchEvent` و `setTimeout`, em rasterast bangî fonksiyonên nû dikin
+            // لەبری `dispatchEvent` و `setTimeout`، ئێمە ڕاستەوخۆ بانگی فانکشنە نوێیەکان دەکەین
+            await this.populateShortcutSubcategories(card.categoryId);
+            
+            const subCatSelect = document.getElementById('shortcutCardSubcategory');
+            subCatSelect.value = card.subcategoryId || '';
+            
+            await this.populateShortcutSubSubcategories(card.categoryId, card.subcategoryId);
+            
+            document.getElementById('shortcutCardSubSubcategory').value = card.subSubcategoryId || '';
+            // *** DAWÎYA GUHERTINÊ ***
 
             document.getElementById('addCardToRowForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوەی کارت';
             document.getElementById('cancelCardEditBtn').style.display = 'inline-block';
@@ -945,6 +946,65 @@ window.AdminLogic = {
             }
         }
     },
+    
+    // *** DESTPÊKA GUHERTINÊ: Du (2) fonksiyonên nû yên alîkar ji bo pirkirina dropdownan hatin zêdekirin ***
+    // *** دەستپێک: دوو (٢) فانکشنی نوێی یاریدەدەر بۆ پڕکردنەوەی درۆپداونەکان زیادکران ***
+    populateShortcutSubcategories: async function(mainCatId) {
+        // Hêvîdarim IDyên konteyneran rast bin li gorî HTMLya te
+        // هیوادارم ئایدی کۆنتێنەرەکان ڕاست بن بەپێی HTMLـەکەت
+        const subCatContainer = document.getElementById('shortcutCardSubcategoryContainer'); 
+        const subCatSelect = document.getElementById('shortcutCardSubcategory');
+        const subSubCatContainer = document.getElementById('shortcutCardSubSubcategoryContainer');
+        
+        if (!subCatContainer || !subCatSelect || !subSubCatContainer) {
+            console.warn("Elementên dropdowna 'shortcutCard' nehatin dîtin. (shortcutCardSubcategoryContainer, shortcutCardSubcategory, shortcutCardSubSubcategoryContainer)");
+            return;
+        }
+
+        subSubCatContainer.style.display = 'none'; // Veşartina jêr-jêr-jۆر
+        document.getElementById('shortcutCardSubSubcategory').innerHTML = ''; // Paqijkirina jêr-jêr-jۆر
+
+        if (mainCatId) {
+            subCatContainer.style.display = 'block';
+            subCatSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
+            const subCatQuery = query(collection(db, "categories", mainCatId, "subcategories"), orderBy("order", "asc"));
+            const snapshot = await getDocs(subCatQuery);
+            subCatSelect.innerHTML = '<option value="">-- هەموو لاوەکییەکان --</option>';
+            snapshot.forEach(doc => {
+                const subcat = { id: doc.id, ...doc.data() };
+                subCatSelect.appendChild(new Option(subcat.name_ku_sorani, subcat.id));
+            });
+        } else {
+            subCatContainer.style.display = 'none';
+            subCatSelect.innerHTML = '';
+        }
+    },
+    
+    populateShortcutSubSubcategories: async function(mainCatId, subCatId) {
+        const subSubCatContainer = document.getElementById('shortcutCardSubSubcategoryContainer');
+        const subSubCatSelect = document.getElementById('shortcutCardSubSubcategory');
+
+        if (!subSubCatContainer || !subSubCatSelect) {
+            console.warn("Elementên dropdowna 'shortcutCard' (subSub) nehatin dîtin.");
+            return;
+        }
+
+        if (mainCatId && subCatId) {
+            subSubCatContainer.style.display = 'block';
+            subSubCatSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
+            const subSubCatQuery = query(collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories"), orderBy("order", "asc"));
+            const snapshot = await getDocs(subSubCatQuery);
+            subSubCatSelect.innerHTML = '<option value="">-- هەموو ژێر-ژێر-جۆرەکان --</option>';
+            snapshot.forEach(doc => {
+                const subSubcat = { id: doc.id, ...doc.data() };
+                subSubCatSelect.appendChild(new Option(subSubcat.name_ku_sorani, subSubcat.id));
+            });
+        } else {
+            subSubCatContainer.style.display = 'none';
+            subSubCatSelect.innerHTML = '';
+        }
+    },
+    // *** DAWÎYA GUHERTINÊ ***
     // === END: NEW FUNCTIONS FOR SHORTCUT CARD MANAGEMENT ===
     
     updateShortcutCardCategoryDropdowns: function() {
@@ -1800,6 +1860,24 @@ window.AdminLogic = {
             }
         });
         // --- END: NEW EVENT LISTENER FOR SHORTCUT ROWS ---
+
+        // *** DESTPÊKA GUHERTINÊ: Guhdarên bûyerê yên wenda (missing event listeners) ji bo dropdownên qertafên kurt lê zêde kirin ***
+        // *** دەستپێک: گوێگرە ونبووەکانی درۆپداونی کارتی کورتکراوە زیادکران ***
+        const shortcutMainCatSelect = document.getElementById('shortcutCardMainCategory');
+        shortcutMainCatSelect.addEventListener('change', (e) => {
+            // Banga fonksiyona alîkar dike
+            // بانگی فانکشنی یاریدەدەر دەکات
+            self.populateShortcutSubcategories(e.target.value);
+        });
+
+        const shortcutSubCatSelect = document.getElementById('shortcutCardSubcategory');
+        shortcutSubCatSelect.addEventListener('change', (e) => {
+            const mainCatId = shortcutMainCatSelect.value;
+            // Banga fonksiyona alîkar dike
+            // بانگی فانکشنی یاریدەدەر دەکات
+            self.populateShortcutSubSubcategories(mainCatId, e.target.value);
+        });
+        // *** DAWÎYA GUHERTINÊ ***
 
         this.listenersAttached = true;
     }
