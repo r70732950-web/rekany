@@ -132,32 +132,46 @@ async function fetchProductById(productId) {
     }
 }
 
-// *** ÇAKKIRÎ / CORRECTED ***
+// *** ÇAKKIRÎ LI GOR ŞÎROVEYA TE (Corrected According to Your Explanation) ***
 async function fetchRelatedProducts(currentProduct) {
     if (!currentProduct.subcategoryId && !currentProduct.categoryId) return [];
 
     const baseQuery = collection(db, "products");
-    let conditions = [where('__name__', '!=', currentProduct.id)]; // Inequality filter
-    let orderByClauses = [orderBy('__name__')]; // First orderBy MUST be on the inequality field
+    let conditions = [];
+    let orderByClauses = []; 
 
+    // Pêşî mercên kategoriyê saz bikin (Set category conditions first)
+    // یەکەم جار مەرجەکانی بەشەکان دادەنێین
     if (currentProduct.subSubcategoryId) {
         conditions.push(where('subSubcategoryId', '==', currentProduct.subSubcategoryId));
     } else if (currentProduct.subcategoryId) {
         conditions.push(where('subcategoryId', '==', currentProduct.subcategoryId));
-    } else { // Only categoryId exists
+    } else { // Tenê categoryId heye
         conditions.push(where('categoryId', '==', currentProduct.categoryId));
     }
 
-    // Add secondary ordering
+    // Em êdî hewcedariya me bi '__name__' nîne
+    // ئیتر پێویستمان بە فلتەرکردن بە '__name__' نییە
     orderByClauses.push(orderBy('createdAt', 'desc'));
 
-    const q = query(baseQuery, ...conditions, ...orderByClauses, limit(6));
+    // Wek ku te got, em ê 7-an bixwazin (As you said, we will request 7)
+    // وەک خۆت وتت، داوای 7 دانە دەکەین
+    const q = query(baseQuery, ...conditions, ...orderByClauses, limit(7));
 
     try {
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const allRelated = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Naha, em ê kaڵaya heyî bi JavaSript fîlter bikin û 6 hilbijêrin
+        // ئێستا، کاڵای ئێستا بە جاڤاسکریپت فلتەر دەکەین و 6 دانە هەڵدەبژێرین
+        const filteredProducts = allRelated
+            .filter(product => product.id !== currentProduct.id) // Kaڵaya heyî derxe (Remove the current product)
+            .slice(0, 6); // Tenê 6-an bigire (Take only 6)
+
+        return filteredProducts;
+        
     } catch (error) {
-        console.error("Error fetching related products:", error);
+        console.error("Error fetching related products (new method):", error);
         return [];
     }
 }
