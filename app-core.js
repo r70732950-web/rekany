@@ -42,7 +42,7 @@ export function formatDescription(text) {
     let escapedText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
     let textWithLinks = escapedText.replace(urlRegex, (url) => {
-        const hyperLink = url.startsWith('http') ? url : `https://${url}`;
+        const hyperLink = url.startsWith('http') ? url : `https://www.${url}`;
         return `<a href="${hyperLink}" target="_blank" rel="noopener noreferrer">${url}</a>`;
     });
     return textWithLinks.replace(/\n/g, '<br>');
@@ -81,8 +81,6 @@ async function handleLogout() {
 
 // --- Firestore Data Fetching & Manipulation ---
 
-// *** START: Gۆڕانکاری لێرە کرا ***
-// *** دەستپێک: گۆڕانکاری لێرە کرا ***
 async function fetchCategories() {
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     const snapshot = await getDocs(categoriesQuery);
@@ -91,8 +89,6 @@ async function fetchCategories() {
     // ئێمە ئیتر بە شێوەیەکی ئۆتۆماتیکی 'all' زیاد ناکەین. ئەمە بە شێوەی لۆجیکی لەناو UI چارەسەر دەکرێت.
     state.categories = fetchedCategories;
 }
-// *** END: Gۆڕانکاری لێرە کرا ***
-// *** کۆتایی: گۆڕانکاری لێرە کرا ***
 
 async function fetchSubcategories(categoryId) {
     if (categoryId === 'all') return []; // Ev rast e, ji bo "Home" divê em ti jêr-kategorî nîşan nedin (ئەمە دروستە، بۆ "سەرەکی" پێویست ناکات هیچ جۆرێکی لاوەکی نیشان بدەین)
@@ -614,13 +610,24 @@ async function forceUpdateCore() {
 
 // --- Navigation / History ---
 
+// *** START: Gۆڕانکاری لێرە کرا ***
+// *** دەستپێک: گۆڕانکاری لێرە کرا ***
 export function saveCurrentScrollPositionCore() {
     const currentState = history.state;
+    // Em êdî ne window.scrollY, lê scrollTop a rûpela çalak tomar dikin
+    // ئێمە ئیتر window.scrollY پاشەکەوت ناکەین، بەڵکو scrollTopـی پەڕە چالاکەکە پاشەکەوت دەکەین
+    const activePage = document.getElementById(state.currentPageId); 
+
     // Only save scroll position for the main page filter state
-    if (document.getElementById('mainPage')?.classList.contains('page-active') && currentState && !currentState.type) {
-        history.replaceState({ ...currentState, scroll: window.scrollY }, '');
+    // Tenê ji bo rûpela serekî (mainPage) û dema ku ew filterek e (ne popup) tomar bike
+    // تەنها بۆ لاپەڕەی سەرەکی و کاتێک فلتەرە (نەک پۆپئەپ) پاشەکەوتی بکە
+    if (activePage && state.currentPageId === 'mainPage' && currentState && !currentState.type) {
+        // scrollTop a elementa rûpelê tomar bike (scrollTopـی توخمی لاپەڕەکە پاشەکەوت بکە)
+        history.replaceState({ ...currentState, scroll: activePage.scrollTop }, '');
     }
 }
+// *** END: Gۆڕانکاری لێرە کرا ***
+// *** کۆتایی: گۆڕانکاری لێرە کرا ***
 
 // Applies filter state (category, search, etc.) but doesn't handle UI rendering directly
 export function applyFilterStateCore(filterState) {
@@ -633,16 +640,17 @@ export function applyFilterStateCore(filterState) {
 
 export function navigateToFilterCore(newState) {
     // Save current scroll before changing state
-    history.replaceState({
-        category: state.currentCategory,
-        subcategory: state.currentSubcategory,
-        subSubcategory: state.currentSubSubcategory,
-        search: state.currentSearch,
-        scroll: window.scrollY
-    }, '');
+    // *** Gۆڕانکاری: Em ê fonksiyona xwe ya nû ya saveCurrentScrollPositionCore bikar bînin ***
+    // *** گۆڕانکاری: ئێمە فانکشنە نوێیەکەمان saveCurrentScrollPositionCore بەکاردەهێنین ***
+    saveCurrentScrollPositionCore(); 
+    // Berê (Previous): history.replaceState({ ... history.state, scroll: window.scrollY }, '');
 
     // Combine current state with new changes, reset scroll for new view
-    const finalState = { ...history.state, ...newState, scroll: 0 };
+    // Em êdî 'scroll: 0' li vir dananîn, ji ber ku dibe ku em nexwazin tavilê skrol bikin
+    // ئێمە ئیتر 'scroll: 0' لێرە دانانێین، چونکە لەوانەیە نەمانەوێت دەستبەجێ سکڕۆڵ بکەین
+    const finalState = { ...history.state, ...newState }; 
+    // Berê (Previous): const finalState = { ...history.state, ...newState, scroll: 0 };
+
 
     // Update URL query parameters
     const params = new URLSearchParams();

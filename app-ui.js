@@ -80,9 +80,9 @@ function updateHeaderView(pageId, title = '') {
     }
 }
 
-// *** MODIFIED showPage function ***
+// *** START: Gۆڕانکاری لێرە کرا ***
 function showPage(pageId, pageTitle = '') {
-    state.currentPageId = pageId; // *** زیادکرا: شوێنی پەڕەی ئێستا بگرە ***
+    state.currentPageId = pageId; 
     document.querySelectorAll('.page').forEach(page => {
         const isActive = page.id === pageId;
         page.classList.toggle('page-active', isActive);
@@ -92,7 +92,10 @@ function showPage(pageId, pageTitle = '') {
     // Scroll to top for new pages, except main page which handles scroll separately
     if (pageId !== 'mainPage') {
          requestAnimationFrame(() => { // Ensure layout is updated before scrolling
-             window.scrollTo({ top: 0, behavior: 'instant' });
+             // Em êdî ne window, lê rûpela çalak skrol dikin
+             // ئێمە ئیتر window سکڕۆڵ ناکەین، بەڵکو پەڕە چالاکەکە سکڕۆڵ دەکەین
+             const activePage = document.getElementById(pageId);
+             if(activePage) activePage.scrollTo({ top: 0, behavior: 'instant' });
          });
     }
 
@@ -111,6 +114,7 @@ function showPage(pageId, pageTitle = '') {
        updateActiveNav(activeBtnId);
     }
 }
+// *** END: Gۆڕانکاری لێرە کرا ***
 
 
 function closeAllPopupsUI() {
@@ -118,29 +122,46 @@ function closeAllPopupsUI() {
     document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('show'));
     sheetOverlay.classList.remove('show');
     document.body.classList.remove('overlay-active');
+    
+    // Piştî girtina popup, filtera li bendê paqij bike eger hebe
+    // دوای داخستنی پۆپئەپ، فلتەری چاوەڕوانکراو پاک بکەوە ئەگەر هەبێت
+    // Ev girîng e heke bikarhêner bi tikandina li derve popupê bigire
+    // ئەمە گرنگە ئەگەر بەکارهێنەر بە کلیککردن لە دەرەوە پۆپئەپەکە دابخات
+    if (state.pendingFilterNav) {
+        console.log("Popup closed without applying filter. Clearing pending filter.");
+        state.pendingFilterNav = null;
+    }
 }
 
+// *** START: Gۆڕانکاری لێرە کرا ***
 function openPopup(id, type = 'sheet') {
-    saveCurrentScrollPositionCore(); // Use core function
+    // 1. Cihê skrolê yê rûpela heyî tomar bike (Skrôla lapele calakeke pashekeut bike)
+    saveCurrentScrollPositionCore(); 
     const element = document.getElementById(id);
     if (!element) return;
 
     closeAllPopupsUI(); // Close any currently open popups first
 
-    // *** MODIFIED: Store the state that will be pushed ***
+    // 2. Rûpela çalak vegerîne jor DA KU popup her gav li jor xuya bibe
+    // 2. لاپەڕە چالاکەکە بگەڕێنەوە سەرەوە BО ئەوەی پۆپئەپ هەمیشە لە سەرەوە دەربکەوێت
+    const activePage = document.getElementById(state.currentPageId);
+    if (activePage) {
+        activePage.scrollTo({ top: 0, behavior: 'instant' });
+    }
+    // *** END 2 ***
+
     const newState = { type: type, id: id };
-    state.currentPopupState = newState; // Keep track of the currently open popup
+    state.currentPopupState = newState; 
 
     if (type === 'sheet') {
-        // *** چاکسازی: سکڕۆڵی ناوەوەی پۆپئەپەکە سفر بکەوە ***
         const sheetContent = element.querySelector('.sheet-content');
         if (sheetContent) {
             sheetContent.scrollTop = 0;
         }
-        // *** کۆتایی چاکسازی ***
 
         sheetOverlay.classList.add('show');
         element.classList.add('show');
+        
         // Trigger rendering content specifically for the opened sheet
         if (id === 'cartSheet') renderCartUI();
         if (id === 'favoritesSheet') renderFavoritesPageUI();
@@ -157,9 +178,9 @@ function openPopup(id, type = 'sheet') {
     }
     document.body.classList.add('overlay-active'); // Prevent body scroll
 
-    // Push state for back button navigation
     history.pushState(newState, '', `#${id}`);
 }
+// *** END: Gۆڕانکاری لێرە کرا ***
 
 
 function closeCurrentPopup() {
@@ -496,7 +517,6 @@ async function renderFavoritesPageUI() {
 }
 
 // *** START: Gۆڕانکاری لێرە کرا ***
-// *** دەستپێک: گۆڕانکاری لێرە کرا ***
 function renderCategoriesSheetUI() {
     sheetCategoriesContainer.innerHTML = '';
 
@@ -504,25 +524,22 @@ function renderCategoriesSheetUI() {
     // 1. زیادکردنی دوگمەی "سەرەکی" (Home) بە شێوەی دەستی
     const homeBtn = document.createElement('button');
     homeBtn.className = 'sheet-category-btn';
-    homeBtn.dataset.category = 'all'; // Ew hîn jî nirxa 'all' ji bo logica filterê bikar tîne (هێشتا نرخی 'all' بەکاردەهێنێت)
+    homeBtn.dataset.category = 'all'; 
     homeBtn.innerHTML = `<i class="fas fa-home"></i> ${t('nav_home')}`;
     
-    // Bişkoja "Serekî" çalak bike heke kategoriya heyî 'all' be
-    // دوگمەی "سەرەکی" چالاک بکە ئەگەر جۆری ئێستا 'all' بێت
     if (state.currentCategory === 'all') {
         homeBtn.classList.add('active');
     }
     
-    // Logica onclick ji bo "Serekî"
-    // لۆجیکی onclick بۆ "سەرەکی"
     homeBtn.onclick = async () => {
-         await navigateToFilterCore({
+         // 1. Fîlterê di stateyê de tomar bike (فلتەرەکە لە state پاشەکەوت بکە)
+         state.pendingFilterNav = {
              category: 'all',
              subcategory: 'all',
              subSubcategory: 'all',
              search: ''
-         });
-         await updateProductViewUI(true, true);
+         };
+         // 2. Tenê popupê bigire (تەنها پۆپئەپەکە دابخە)
          closeCurrentPopup();
     };
     sheetCategoriesContainer.appendChild(homeBtn);
@@ -541,13 +558,14 @@ function renderCategoriesSheetUI() {
         btn.innerHTML = `<i class="${categoryIcon}"></i> ${categoryName}`;
 
         btn.onclick = async () => {
-             await navigateToFilterCore({
+             // 1. Fîlterê di stateyê de tomar bike (فلتەرەکە لە state پاشەکەوت بکە)
+             state.pendingFilterNav = {
                  category: cat.id,
                  subcategory: 'all',
                  subSubcategory: 'all',
                  search: ''
-             });
-             await updateProductViewUI(true, true);
+             };
+             // 2. Tenê popupê bigire (تەنها پۆپئەپەکە دابخە)
              closeCurrentPopup();
         };
 
@@ -555,7 +573,6 @@ function renderCategoriesSheetUI() {
     });
 }
 // *** END: Gۆڕانکاری لێرە کرا ***
-// *** کۆتایی: گۆڕانکاری لێرە کرا ***
 
 
  // Renders sub-subcategories on the **detail page** (kept here)
@@ -1189,76 +1206,103 @@ async function handleSetLanguage(lang) {
     }
 }
 
-// *** MODIFIED popstate listener (The main fix) ***
+// *** START: Gۆڕانکاری لێرە کرا (Logica Popstate bi tevahî hate nûve kirin) ***
+// *** دەستپێک: گۆڕانکاری لێرە کرا (لۆجیکی Popstate بە تەواوی نوێکرایەوە) ***
 window.addEventListener('popstate', async (event) => {
-    const wasPopupOpen = state.currentPopupState !== null; // Check if a popup was open *before* this popstate event
-    const previousPageId = state.currentPageId; // <-- Track what page we *were* on
+    const wasPopupOpen = state.currentPopupState !== null; 
+    const previousPageId = state.currentPageId; 
 
-    state.currentPopupState = null; // Reset the tracked popup state after checking
-    closeAllPopupsUI(); // Always close any visually open popups
+    state.currentPopupState = null; 
+    closeAllPopupsUI(); // Her gav hemî popupên dîtbar bigire (هەمیشە هەموو پۆپئەپە دیارەکان دابخە)
 
     const popState = event.state;
+    const activePage = document.getElementById(state.currentPageId); // Rûpela çalak a *niha* bistîne (پەڕەی چالاکی *ئێستا* وەربگرە)
+    
+    if (!activePage) {
+        console.error("Popstate error: Could not find active page element.");
+        return;
+    }
 
     if (popState) {
         if (popState.type === 'page') {
-            // Navigating TO a page (e.g., forward button, or back TO a page)
-            showPage(popState.id, popState.title); // showPage will update state.currentPageId
+            // Vegerîna li rûpelek (mînak, Settings)
+            // گەڕانەوە بۆ پەڕەیەک (بۆ نموونە، ڕێکخستنەکان)
+            showPage(popState.id, popState.title); 
             if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
                 await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
             }
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
-            // This should not happen on 'back' clicks if 'closeCurrentPopup' is used properly.
-            // But if it does (e.g., user hits back, then forward), re-open the popup.
-            openPopup(popState.id, popState.type); // openPopup updates state.currentPageId and state.currentPopupState
+            // Ev rewş divê çênebe eger em bişkoja 'paş' bikar bînin, lê ji bo pêşveçûnê
+            // ئەم حاڵەتە نابێت ڕووبدات ئەگەر دوگمەی 'گەڕانەوە' بەکاربهێنین، بەڵام بۆ 'پێشەوە'
+            openPopup(popState.id, popState.type); 
         } else {
-            // Arriving at a main page filter state (either from another filter, a popup, or a page)
-            showPage('mainPage'); // Updates state.currentPageId to 'mainPage'
-            applyFilterStateCore(popState); // Apply the logical filter state
+            // Gihîştina rewşek filterê ya rûpela serekî (mainPage)
+            // گەیشتن بە دۆخێکی فلتەری لاپەڕەی سەرەki
+            showPage('mainPage'); 
+            applyFilterStateCore(popState); 
 
-            // *** NEW LOGIC ***
-            // We refresh *only* if we were *not* coming back from a popup AND *not* coming back from another page.
-            // We *only* want to refresh if we are navigating between main page filter states.
             const cameFromPopup = wasPopupOpen;
             const cameFromPage = previousPageId !== 'mainPage';
 
             if (!cameFromPopup && !cameFromPage) {
-                // This means we were already on 'mainPage' and popped to another 'mainPage' filter state
+                // Li ser rûpela serekî bû û çû rewşek filterê ya din
+                // لەسەر لاپەڕەی سەرەکی بوویت و چوویتە دۆخێکی تری فلتەر
                 console.log("Popstate: Navigating between filter states, triggering refresh WITHOUT scroll.");
-                // /* GUHERTIN */ isNewSearch=true, lê shouldScrollToTop=false
-                await updateProductViewUI(true, false); 
+                await updateProductViewUI(true, false); // false = skrol neke jor (سکڕۆڵ مەکە سەرەوە)
             } else {
-                // This means we just came back from a popup (like product detail) OR a page (like Settings)
-                // We DO NOT want a full refresh. Just restore UI buttons.
-                console.log(`Popstate: Returned from ${cameFromPopup ? 'popup' : (cameFromPage ? 'page' : 'unknown')}, skipping full refresh.`);
+                // Ji popupê an rûpelek din vegeriya
+                // لە پۆپئەپێک یان پەڕەیەکی تر گەڕایتەوە
+                console.log(`Popstate: Returned from ${cameFromPopup ? 'popup' : (cameFromPage ? 'page' : 'unknown')}, restoring UI without full refresh.`);
                 renderMainCategoriesUI();
                 const subcats = await fetchSubcategories(state.currentCategory);
                 await renderSubcategoriesUI(subcats);
             }
-            // *** END NEW LOGIC ***
 
-            // Restore scroll position
+            // *** Logica Vegerandina Skrolê (Logica nû) ***
+            // *** لۆجیکی گەڕاندنەوەی سکڕۆڵ (لۆجیکی نوێ) ***
             if (typeof popState.scroll === 'number') {
                 requestAnimationFrame(() => {
-                    window.scrollTo({ top: popState.scroll, behavior: 'instant' });
+                    // Rûpela çalak skrol bike (پەڕە چالاکەکە سکڕۆڵ بکە)
+                    activePage.scrollTo({ top: popState.scroll, behavior: 'instant' });
                 });
             } else {
-                 requestAnimationFrame(() => {
-                     window.scrollTo({ top: 0, behavior: 'instant' });
-                 });
+                requestAnimationFrame(() => {
+                    activePage.scrollTo({ top: 0, behavior: 'instant' });
+                });
+            }
+            
+            // *** Logica Fîltera Li Bendê (Logica nû) ***
+            // *** لۆجیکی فلتەری چاوەڕوانکراو (لۆجیکی نوێ) ***
+            if (state.pendingFilterNav) {
+                console.log("Found pending filter navigation. Applying now.");
+                const filterToApply = state.pendingFilterNav;
+                state.pendingFilterNav = null; // Berî navîgasyonê paqij bike (پێش گواستنەوە پاکی بکەوە)
+                
+                // Hinekî bisekine da ku vegerandina skrolê biqede, paşê fîlterê bicîh bîne
+                // کەمێک بوەستە با گەڕانەوەی سکڕۆڵ تەواو بێت، پاشان فلتەرەکە جێبەجێ بکە
+                setTimeout(async () => {
+                    await navigateToFilterCore(filterToApply);
+                    await updateProductViewUI(true, true); // true, true = lêgerîna nû, skrol bike jor (گەڕانی نوێ، سکڕۆڵ بکە سەرەوە)
+                }, 50); // 50ms derengî (50 میلی چرکە دواکەوتن)
             }
         }
     } else {
-        // No state, go to default main page view
+        // Rewşa destpêkê (default)
+        // دۆخی سەرەتایی
         console.log("Popstate: No state found, loading default main page.");
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
-        showPage('mainPage'); // Updates state.currentPageId
+        showPage('mainPage'); 
         applyFilterStateCore(defaultState);
-        await updateProductViewUI(true, true); // /* GUHERTIN */
+        await updateProductViewUI(true, true); 
         requestAnimationFrame(() => {
-             window.scrollTo({ top: 0, behavior: 'instant' });
+             // Rûpela çalak skrol bike jor (پەڕە چالاکەکە سکڕۆڵ بکە سەرەوە)
+             const homePage = document.getElementById('mainPage');
+             if(homePage) homePage.scrollTo({ top: 0, behavior: 'instant' });
         });
     }
 });
+// *** END: Gۆڕانکاری لێرە کرا ***
+// *** کۆتایی: گۆڕانکاری لێرە کرا ***
 
 
 async function initializeUI() {
@@ -1315,7 +1359,7 @@ async function handleInitialPageLoadUI() {
          const mainCatId = ids[1];
          const subCatId = ids[2];
          // Ensure categories are loaded before showing detail page
-         if (state.categories.length > 0) { // Check if categories are loaded
+         if (state.categories.length > 0) { // Check if categories are loaded (state.categories includes 'all')
               await showSubcategoryDetailPageUI(mainCatId, subCatId, true); // true = fromHistory/initial load
          } else {
              // Fallback to main page if categories aren't ready (should be rare now)
