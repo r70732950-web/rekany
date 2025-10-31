@@ -50,11 +50,42 @@ function renderProductsGridUI(newProductsOnly = false) {
 window.renderProductsGridUI = renderProductsGridUI;
 
 // Renders main category buttons (Top horizontal scroll)
+// *** START: Gۆڕانکاری لێرە کرا ***
+// *** دەستپێک: گۆڕانکاری لێرە کرا ***
 export function renderMainCategoriesUI() {
     const container = document.getElementById('mainCategoriesContainer');
     if (!container) return;
     container.innerHTML = '';
 
+    // 1. Bişkoja "Serekî" (Home) bi destî lê zêde bike
+    // 1. زیادکردنی دوگمەی "سەرەکی" (Home) بە شێوەی دەستی
+    const homeBtn = document.createElement('button');
+    homeBtn.className = 'main-category-btn';
+    homeBtn.dataset.category = 'all'; // Ew hîn jî nirxa 'all' ji bo logica filterê bikar tîne (هێشتا نرخی 'all' بەکاردەهێنێت بۆ لۆجیکی فلتەر)
+    homeBtn.innerHTML = `<i class="fas fa-home"></i> <span>${t('nav_home')}</span>`;
+
+    // Bişkoja "Serekî" çalak bike heke kategoriya heyî 'all' be
+    // دوگمەی "سەرەکی" چالاک بکە ئەگەر جۆری ئێستا 'all' بێت
+    if (state.currentCategory === 'all') {
+        homeBtn.classList.add('active');
+    }
+
+    // Logica onclick ji bo "Serekî"
+    // لۆجیکی onclick بۆ "سەرەکی"
+    homeBtn.onclick = async () => {
+         await navigateToFilterCore({
+             category: 'all',
+             subcategory: 'all',
+             subSubcategory: 'all',
+             search: ''
+         });
+         await updateProductViewUI(true, true);
+    };
+    container.appendChild(homeBtn);
+
+
+    // 2. Hemî kategoriyên din ji stateyê lê zêde bike
+    // 2. زیادکردنی هەموو جۆرەکانی تر لە state
     state.categories.forEach(cat => {
         const btn = document.createElement('button');
         btn.className = 'main-category-btn';
@@ -64,44 +95,26 @@ export function renderMainCategoriesUI() {
             btn.classList.add('active');
         }
 
-        // *** START: Logica nû ji bo cûdakirina "Home" ***
-        // *** دەستپێک: لۆجیکی نوێ بۆ جیاکردنەوەی "سەرەکی" ***
-        let categoryName = '';
-        let categoryIcon = '';
-
-        if (cat.id === 'all') {
-            categoryName = t('nav_home'); // Navê "Serekî" bikar bîne (ناوی "سەرەکی" بەکاردەهێنێت)
-            categoryIcon = 'fas fa-home'; // Îkona "Home" bikar bîne (ئایکۆنی "ماڵەوە" بەکاردەهێنێت)
-        } else {
-            categoryName = (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
-            categoryIcon = cat.icon;
-        }
+        const categoryName = (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
+        const categoryIcon = cat.icon;
 
         btn.innerHTML = `<i class="${categoryIcon}"></i> <span>${categoryName}</span>`;
-        // *** END: Logica nû ***
-        // *** کۆتایی: لۆجیکی نوێ ***
 
         btn.onclick = async () => {
-             // Ev logica hanê jixwe rast e.
-             // Dema ku cat.id 'all' be, ew ê filteran paqij bike û rûpela malê nîşan bide.
-             // Dema ku ew kategoriyek din be, ew ê filter bike û hilberan nîşan bide.
-             
-             // ئەم لۆجیکە وەک خۆی دروستە.
-             // کاتێک cat.id 'all' بێت، فلتەرەکان پاک دەکاتەوە و لاپەڕەی سەرەکی نیشان دەدات.
-             // کاتێک جۆرێکی تر بێت، فلتەر دەکات و کاڵاکان نیشان دەدات.
              await navigateToFilterCore({
                  category: cat.id,
-                 subcategory: 'all', // Reset subcategory when main category changes
-                 subSubcategory: 'all', // Reset sub-subcategory
-                 search: '' // Clear search
+                 subcategory: 'all',
+                 subSubcategory: 'all',
+                 search: ''
              });
-             // Then trigger UI update
-             await updateProductViewUI(true, true); // true indicates a new filter/search, true for scroll // /* GUHERTIN */
+             await updateProductViewUI(true, true);
         };
 
         container.appendChild(btn);
     });
 }
+// *** END: Gۆڕانکاری لێرە کرا ***
+// *** کۆتایی: گۆڕانکاری لێرە کرا ***
 
 
 // Renders subcategories based on fetched data (Second horizontal scroll)
@@ -113,6 +126,8 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
     subSubcategoriesContainer.innerHTML = ''; // Clear sub-sub
     subSubcategoriesContainer.style.display = 'none'; // Hide sub-sub initially
 
+    // Ev logica hanê rast e: heke kategoriya 'all' (Serekî) were hilbijartin, ti jêr-kategorî nîşan nede
+    // ئەم لۆجیکە دروستە: ئەگەر 'all' (سەرەکی) هەڵبژێردرابێت، هیچ جۆرێکی لاوەکی نیشان مەدە
     if (!subcategoriesData || subcategoriesData.length === 0 || state.currentCategory === 'all') {
          subcategoriesContainer.style.display = 'none'; // Hide if no subcategories or 'All' is selected
          return;

@@ -499,43 +499,63 @@ async function renderFavoritesPageUI() {
 // *** دەستپێک: گۆڕانکاری لێرە کرا ***
 function renderCategoriesSheetUI() {
     sheetCategoriesContainer.innerHTML = '';
+
+    // 1. Bişkoja "Serekî" (Home) bi destî lê zêde bike
+    // 1. زیادکردنی دوگمەی "سەرەکی" (Home) بە شێوەی دەستی
+    const homeBtn = document.createElement('button');
+    homeBtn.className = 'sheet-category-btn';
+    homeBtn.dataset.category = 'all'; // Ew hîn jî nirxa 'all' ji bo logica filterê bikar tîne (هێشتا نرخی 'all' بەکاردەهێنێت)
+    homeBtn.innerHTML = `<i class="fas fa-home"></i> ${t('nav_home')}`;
+    
+    // Bişkoja "Serekî" çalak bike heke kategoriya heyî 'all' be
+    // دوگمەی "سەرەکی" چالاک بکە ئەگەر جۆری ئێستا 'all' بێت
+    if (state.currentCategory === 'all') {
+        homeBtn.classList.add('active');
+    }
+    
+    // Logica onclick ji bo "Serekî"
+    // لۆجیکی onclick بۆ "سەرەکی"
+    homeBtn.onclick = async () => {
+         await navigateToFilterCore({
+             category: 'all',
+             subcategory: 'all',
+             subSubcategory: 'all',
+             search: ''
+         });
+         await updateProductViewUI(true, true);
+         closeCurrentPopup();
+    };
+    sheetCategoriesContainer.appendChild(homeBtn);
+
+    // 2. Hemî kategoriyên din ji stateyê lê zêde bike
+    // 2. زیادکردنی هەموو جۆرەکانی تر لە state
     state.categories.forEach(cat => {
         const btn = document.createElement('button');
         btn.className = 'sheet-category-btn';
         btn.dataset.category = cat.id;
         if (state.currentCategory === cat.id) { btn.classList.add('active'); }
 
-        let categoryName = '';
-        let categoryIcon = '';
-
-        if (cat.id === 'all') {
-            categoryName = t('nav_home'); // Navê "Serekî" bikar bîne (ناوی "سەرەکی" بەکاردەهێنێت)
-            categoryIcon = 'fas fa-home';  // Îkona "Home" bikar bîne (ئایکۆنی "ماڵەوە" بەکاردەهێنێت)
-        } else {
-            categoryName = (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
-            categoryIcon = cat.icon;
-        }
+        const categoryName = (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
+        const categoryIcon = cat.icon;
 
         btn.innerHTML = `<i class="${categoryIcon}"></i> ${categoryName}`;
-        // *** END: Gۆڕانکاری لێرە کرا ***
-        // *** کۆتایی: گۆڕانکاری لێرە کرا ***
 
         btn.onclick = async () => {
-             // Navigate first using core logic
              await navigateToFilterCore({
                  category: cat.id,
-                 subcategory: 'all', // Reset subcategory when main category changes
-                 subSubcategory: 'all', // Reset sub-subcategory
-                 search: '' // Clear search
+                 subcategory: 'all',
+                 subSubcategory: 'all',
+                 search: ''
              });
-             // Then trigger UI update (imported from home.js)
-             await updateProductViewUI(true, true); // true indicates a new filter/search // /* GUHERTIN */
+             await updateProductViewUI(true, true);
              closeCurrentPopup();
         };
 
         sheetCategoriesContainer.appendChild(btn);
     });
 }
+// *** END: Gۆڕانکاری لێرە کرا ***
+// *** کۆتایی: گۆڕانکاری لێرە کرا ***
 
 
  // Renders sub-subcategories on the **detail page** (kept here)
@@ -1295,7 +1315,7 @@ async function handleInitialPageLoadUI() {
          const mainCatId = ids[1];
          const subCatId = ids[2];
          // Ensure categories are loaded before showing detail page
-         if (state.categories.length > 1) { // Check if categories are loaded (state.categories includes 'all')
+         if (state.categories.length > 0) { // Check if categories are loaded
               await showSubcategoryDetailPageUI(mainCatId, subCatId, true); // true = fromHistory/initial load
          } else {
              // Fallback to main page if categories aren't ready (should be rare now)
