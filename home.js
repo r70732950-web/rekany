@@ -50,42 +50,11 @@ function renderProductsGridUI(newProductsOnly = false) {
 window.renderProductsGridUI = renderProductsGridUI;
 
 // Renders main category buttons (Top horizontal scroll)
-// *** START: Gۆڕانکاری لێرە کرا ***
-// *** دەستپێک: گۆڕانکاری لێرە کرا ***
 export function renderMainCategoriesUI() {
     const container = document.getElementById('mainCategoriesContainer');
     if (!container) return;
     container.innerHTML = '';
 
-    // 1. Bişkoja "Serekî" (Home) bi destî lê zêde bike
-    // 1. زیادکردنی دوگمەی "سەرەکی" (Home) بە شێوەی دەستی
-    const homeBtn = document.createElement('button');
-    homeBtn.className = 'main-category-btn';
-    homeBtn.dataset.category = 'all'; // Ew hîn jî nirxa 'all' ji bo logica filterê bikar tîne (هێشتا نرخی 'all' بەکاردەهێنێت بۆ لۆجیکی فلتەر)
-    homeBtn.innerHTML = `<i class="fas fa-home"></i> <span>${t('nav_home')}</span>`;
-
-    // Bişkoja "Serekî" çalak bike heke kategoriya heyî 'all' be
-    // دوگمەی "سەرەکی" چالاک بکە ئەگەر جۆری ئێستا 'all' بێت
-    if (state.currentCategory === 'all') {
-        homeBtn.classList.add('active');
-    }
-
-    // Logica onclick ji bo "Serekî"
-    // لۆجیکی onclick بۆ "سەرەکی"
-    homeBtn.onclick = async () => {
-         await navigateToFilterCore({
-             category: 'all',
-             subcategory: 'all',
-             subSubcategory: 'all',
-             search: ''
-         });
-         await updateProductViewUI(true, true);
-    };
-    container.appendChild(homeBtn);
-
-
-    // 2. Hemî kategoriyên din ji stateyê lê zêde bike
-    // 2. زیادکردنی هەموو جۆرەکانی تر لە state
     state.categories.forEach(cat => {
         const btn = document.createElement('button');
         btn.className = 'main-category-btn';
@@ -95,26 +64,27 @@ export function renderMainCategoriesUI() {
             btn.classList.add('active');
         }
 
-        const categoryName = (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
-        const categoryIcon = cat.icon;
+        const categoryName = cat.id === 'all'
+            ? t('all_categories_label')
+            : (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
 
-        btn.innerHTML = `<i class="${categoryIcon}"></i> <span>${categoryName}</span>`;
+        btn.innerHTML = `<i class="${cat.icon}"></i> <span>${categoryName}</span>`;
 
         btn.onclick = async () => {
+             // Navigate first using core logic
              await navigateToFilterCore({
                  category: cat.id,
-                 subcategory: 'all',
-                 subSubcategory: 'all',
-                 search: ''
+                 subcategory: 'all', // Reset subcategory when main category changes
+                 subSubcategory: 'all', // Reset sub-subcategory
+                 search: '' // Clear search
              });
-             await updateProductViewUI(true, true);
+             // Then trigger UI update
+             await updateProductViewUI(true, true); // true indicates a new filter/search, true for scroll // /* GUHERTIN */
         };
 
         container.appendChild(btn);
     });
 }
-// *** END: Gۆڕانکاری لێرە کرا ***
-// *** کۆتایی: گۆڕانکاری لێرە کرا ***
 
 
 // Renders subcategories based on fetched data (Second horizontal scroll)
@@ -126,8 +96,6 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
     subSubcategoriesContainer.innerHTML = ''; // Clear sub-sub
     subSubcategoriesContainer.style.display = 'none'; // Hide sub-sub initially
 
-    // Ev logica hanê rast e: heke kategoriya 'all' (Serekî) were hilbijartin, ti jêr-kategorî nîşan nede
-    // ئەم لۆجیکە دروستە: ئەگەر 'all' (سەرەکی) هەڵبژێردرابێت، هیچ جۆرێکی لاوەکی نیشان مەدە
     if (!subcategoriesData || subcategoriesData.length === 0 || state.currentCategory === 'all') {
          subcategoriesContainer.style.display = 'none'; // Hide if no subcategories or 'All' is selected
          return;
@@ -169,11 +137,29 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
              <img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
              <span>${subcatName}</span>
         `;
-        // *** چاککراو: کردنەوەی پەڕەی نوێ ***
+        
+        // **************************************************
+        // *** 🔴 PÊŞÎ: Ev کۆدە شاش بوو ***
+        // subcatBtn.onclick = async () => {
+        //     // Directly open the subcategory detail page
+        //     showSubcategoryDetailPageUI(state.currentCategory, subcat.id);
+        // };
+        // **************************************************
+
+        // **************************************************
+        // *** 🟢 NIHA: Ev کۆدە rast e ***
+        // *** Ew tenê rûpela serekî fîlter dike ***
         subcatBtn.onclick = async () => {
-            // Directly open the subcategory detail page
-            showSubcategoryDetailPageUI(state.currentCategory, subcat.id);
+             await navigateToFilterCore({
+                 category: state.currentCategory, // Keep main category
+                 subcategory: subcat.id, // Set this subcategory
+                 subSubcategory: 'all', // Reset sub-sub
+                 search: ''
+             });
+             await updateProductViewUI(true, true);
         };
+        // **************************************************
+
         subcategoriesContainer.appendChild(subcatBtn);
     });
 
@@ -234,15 +220,28 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
         const imageUrl = subSubcat.imageUrl || placeholderImg;
         btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
 
-        // *** چاککراو: کردنەوەی پەڕەی نوێی جۆری لاوەکی باوک ***
-        btn.onclick = async () => {
-             // Open the PARENT subcategory detail page
-             showSubcategoryDetailPageUI(state.currentCategory, state.currentSubcategory);
-             // Note: This will initially show all products for the subcategory.
-             // The user would need to click the sub-subcategory again on the detail page
-             // to filter further, unless showSubcategoryDetailPageUI is modified
-             // to accept and pre-filter by subSubcategoryId.
-        };
+        // **************************************************
+        // *** 🔴 PÊŞÎ: Ev کۆدە شاش بوو ***
+        // btn.onclick = async () => {
+        //      // Open the PARENT subcategory detail page
+        //      showSubcategoryDetailPageUI(state.currentCategory, state.currentSubcategory);
+        // };
+        // **************************************************
+
+        // **************************************************
+        // *** 🟢 NIHA: Ev کۆدە rast e ***
+        // *** Ew tenê rûpela serekî fîlter dike ***
+         btn.onclick = async () => {
+             await navigateToFilterCore({
+                 category: state.currentCategory,
+                 subcategory: state.currentSubcategory,
+                 subSubcategory: subSubcat.id, // Set this sub-sub-category
+                 search: ''
+             });
+             await updateProductViewUI(true, true);
+         };
+        // **************************************************
+
         container.appendChild(btn);
     });
 }
@@ -539,7 +538,10 @@ async function createBrandsSectionElement(groupId) {
         `;
         item.onclick = async () => {
              if (brand.subcategoryId && brand.categoryId) {
-                 showSubcategoryDetailPageUI(brand.categoryId, brand.subcategoryId); // Use imported function
+                 // *** GUHERTIN: Em êdî vê bikar naynin da ku hemî li ser heman rûpelê bin ***
+                 // showSubcategoryDetailPageUI(brand.categoryId, brand.subcategoryId);
+                 await navigateToFilterCore({ category: brand.categoryId, subcategory: brand.subcategoryId, subSubcategory: 'all', search: '' });
+                 await updateProductViewUI(true, true);
              } else if(brand.categoryId) {
                   await navigateToFilterCore({ category: brand.categoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
                   await updateProductViewUI(true, true); // Trigger full refresh /* GUHERTIN */
@@ -621,7 +623,9 @@ async function createSingleCategoryRowElement(sectionData) {
             let targetDocRef;
             if (subSubcategoryId) targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubcategoryId}`);
             else if (subcategoryId) targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}`);
-            else targetDocRef = doc(db, `categories`);
+            // *** GUHERTIN: Pêdivî ye ku em doc-a rast bistînin ***
+            else targetDocRef = doc(db, `categories/${categoryId}`); // <--- Divê ne tenê `categories` be
+            
             const targetSnap = await getDoc(targetDocRef);
             if (targetSnap.exists()) {
                  const targetData = targetSnap.data();
@@ -652,12 +656,22 @@ async function createSingleCategoryRowElement(sectionData) {
     });
 
     container.querySelector('.see-all-link').onclick = async () => {
-         if(subcategoryId) { // Includes subSubcategoryId case, go to detail page
-              showSubcategoryDetailPageUI(categoryId, subcategoryId); // Use imported function
-         } else { // Only main category, filter main page
-              await navigateToFilterCore({ category: categoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
-              await updateProductViewUI(true, true); // Trigger full refresh /* GUHERTIN */
-         }
+         // *** GUHERTIN: Em êdî vê bikar naynin da ku hemî li ser heman rûpelê bin ***
+         // if(subcategoryId) { // Includes subSubcategoryId case, go to detail page
+         //      showSubcategoryDetailPageUI(categoryId, subcategoryId); // Use imported function
+         // } else { // Only main category, filter main page
+         //      await navigateToFilterCore({ category: categoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
+         //      await updateProductViewUI(true, true); // Trigger full refresh /* GUHERTIN */
+         // }
+         
+         // *** GUHERTIN: Koda nû ya ku tenê fîlter dike ***
+         await navigateToFilterCore({ 
+             category: categoryId, 
+             subcategory: subcategoryId || 'all', 
+             subSubcategory: subSubcategoryId || 'all', 
+             search: '' 
+         });
+         await updateProductViewUI(true, true); // Trigger full refresh
     };
     return container;
 }
@@ -667,10 +681,11 @@ async function createAllProductsSectionElement() {
     if (!products || products.length === 0) return null;
 
     const container = document.createElement('div');
-    container.className = 'dynamic-section';
     container.style.marginTop = '20px'; // Add some space before this section
+    // *** GUHERTIN: Me "dynamic-section" rakir da ku ew bi tevahî were xuyang kirin ***
+    container.className = ''; 
     container.innerHTML = `
-        <div class="section-title-header">
+        <div class="section-title-header" style="padding: 0 10px;">
             <h3 class="section-title-main">${t('all_products_section_title')}</h3>
             </div>
         <div class="products-container"></div>
