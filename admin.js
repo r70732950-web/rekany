@@ -1,4 +1,4 @@
-// فایلی admin.js (چاککراو بۆ کێشەی کارتی کورت)
+// فایلی admin.js (چاککراو بۆ کێشەی IDی فۆڕمی کاڵا)
 
 const {
     db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit,
@@ -139,7 +139,7 @@ window.AdminLogic = {
         document.getElementById('productOriginalPrice').value = product.originalPrice || '';
 
         const categoryId = product.categoryId || product.category;
-        document.getElementById('productCategoryId').value = categoryId;
+        document.getElementById('productCategorySelect').value = categoryId; // *** ڕاستکراوە ***
 
         if (product.description) {
             document.getElementById('productDescriptionKuSorani').value = product.description.ku_sorani || '';
@@ -161,6 +161,7 @@ window.AdminLogic = {
             document.getElementById('shippingInfoAr').value = '';
         }
 
+        // *** ئەم دوو دێڕە IDی ڕاستیان تێدا بەکاردێت (لە فەنکشنەکانی خوارەوەدا چاککراون) ***
         await this.populateSubcategoriesDropdown(categoryId, product.subcategoryId);
         await this.populateSubSubcategoriesDropdown(categoryId, product.subcategoryId, product.subSubcategoryId);
 
@@ -197,7 +198,7 @@ window.AdminLogic = {
 
     populateSubcategoriesDropdown: async function(categoryId, selectedSubcategoryId = null) {
         const subcategorySelectContainer = document.getElementById('subcategorySelectContainer');
-        const productSubcategorySelect = document.getElementById('productSubcategoryId');
+        const productSubcategorySelect = document.getElementById('productSubcategorySelect'); // *** ڕاستکراوە ***
 
         if (!categoryId) {
             subcategorySelectContainer.style.display = 'none';
@@ -241,7 +242,7 @@ window.AdminLogic = {
 
     populateSubSubcategoriesDropdown: async function(mainCategoryId, subcategoryId, selectedSubSubcategoryId = null) {
         const container = document.getElementById('subSubcategorySelectContainer');
-        const select = document.getElementById('productSubSubcategoryId');
+        const select = document.getElementById('productSubSubcategorySelect'); // *** ڕاستکراوە ***
 
         if (!mainCategoryId || !subcategoryId) {
             container.style.display = 'none';
@@ -552,20 +553,31 @@ window.AdminLogic = {
             { id: 'parentCategorySelect', defaultText: '-- جۆرێک هەڵبژێرە --' },
             { id: 'parentMainCategorySelectForSubSub', defaultText: '-- جۆرێک هەڵبژێرە --' },
             { id: 'promoCardTargetCategory', defaultText: '-- جۆرێک هەڵبژێرە --' },
-            { id: 'brandTargetMainCategory', defaultText: '-- هەموو جۆرەکان --' }
+            { id: 'brandTargetMainCategory', defaultText: '-- هەموو جۆرەکان --' },
+            { id: 'productCategorySelect', defaultText: '-- جۆری سەرەکی هەڵبژێرە --' } // *** زیادکرا بۆ دڵنیایی ***
         ];
 
         dropdowns.forEach(d => {
             const select = document.getElementById(d.id);
             if (select) {
+                // *** زیادکرا: دڵنیا دەبینەوە کە فۆڕمی کاڵا بەتاڵ نابێتەوە ***
+                const isProductFormCategory = d.id === 'productCategorySelect';
+                const currentValue = isProductFormCategory ? select.value : null;
+
                 const firstOptionHTML = `<option value="">${d.defaultText}</option>`;
                 select.innerHTML = firstOptionHTML;
+                
                 categoriesWithoutAll.forEach(cat => {
                     const option = document.createElement('option');
                     option.value = cat.id;
                     option.textContent = cat.name_ku_sorani || cat.name_ku_badini;
                     select.appendChild(option);
                 });
+
+                // *** زیادکرا: ئەگەر پێشتر بەهایەکی هەبووبێت، بیهێڵەرەوە ***
+                if (isProductFormCategory && currentValue) {
+                    select.value = currentValue;
+                }
             }
         });
     },
@@ -1264,13 +1276,13 @@ window.AdminLogic = {
             showNotification(t('logout_success'), 'success');
         };
         
-        document.getElementById('productCategoryId').addEventListener('change', (e) => {
+        document.getElementById('productCategorySelect').addEventListener('change', (e) => { // *** ڕاستکراوە ***
             self.populateSubcategoriesDropdown(e.target.value);
             self.populateSubSubcategoriesDropdown(null, null);
         });
 
-        document.getElementById('productSubcategoryId').addEventListener('change', (e) => {
-            const mainCatId = document.getElementById('productCategoryId').value;
+        document.getElementById('productSubcategorySelect').addEventListener('change', (e) => { // *** ڕاستکراوە ***
+            const mainCatId = document.getElementById('productCategorySelect').value; // *** ڕاستکراوە ***
             self.populateSubSubcategoriesDropdown(mainCatId, e.target.value);
         });
 
@@ -1306,9 +1318,9 @@ window.AdminLogic = {
                     searchableName: productNameKuSorani.toLowerCase(),
                     price: parseInt(document.getElementById('productPrice').value),
                     originalPrice: parseInt(document.getElementById('productOriginalPrice').value) || null,
-                    categoryId: document.getElementById('productCategoryId').value,
-                    subcategoryId: document.getElementById('productSubcategoryId').value || null,
-                    subSubcategoryId: document.getElementById('productSubSubcategoryId').value || null,
+                    categoryId: document.getElementById('productCategorySelect').value, // *** ڕاستکراوە ***
+                    subcategoryId: document.getElementById('productSubcategorySelect').value || null, // *** ڕاستکراوە ***
+                    subSubcategoryId: document.getElementById('productSubSubcategorySelect').value || null, // *** ڕاستکراوە ***
                     description: productDescriptionObject,
                     imageUrls: imageUrls,
                     createdAt: Date.now(),
