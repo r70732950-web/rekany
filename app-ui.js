@@ -136,7 +136,10 @@ function closeAllPopupsUI() {
 }
 
 // *** START: Gۆڕanlکاری lێرە kra ***
-function openPopup(id, type = 'sheet') {
+// =================================================================
+// === ÇARESERÎ 1: `openPopup` HATE `export` KIRIN ===
+// =================================================================
+export function openPopup(id, type = 'sheet') {
     // 1. Cihê skrolê yê rûpela heyî tomar bike (Skrôla lapele calakeke pashekeut bike)
     saveCurrentScrollPositionCore(); 
     const element = document.getElementById(id);
@@ -192,7 +195,10 @@ function openPopup(id, type = 'sheet') {
 // *** END: Gۆڕanlکاری lێرە kra ***
 
 
-function closeCurrentPopup() {
+// =================================================================
+// === ÇARESERÎ 2: `closeCurrentPopup` HATE `export` KIRIN ===
+// =================================================================
+export function closeCurrentPopup() {
     // If the current history state represents a popup, go back
     if (history.state && (history.state.type === 'sheet' || history.state.type === 'modal')) {
         history.back();
