@@ -68,7 +68,7 @@ function renderProductsGridUI(newProductsOnly = false) {
 window.renderProductsGridUI = renderProductsGridUI;
 
 // Renders main category buttons (Top horizontal scroll)
-// *** START: Gۆڕانکاری لێرە کرا ***
+// *** START: Gۆڕانکاری lێرە kra ***
 // *** دەستپێک: گۆڕانکاری لێرە کرا ***
 export function renderMainCategoriesUI() {
     const container = document.getElementById('mainCategoriesContainer');
@@ -629,15 +629,36 @@ async function createSingleShortcutRowElement(rowId, sectionNameObj) { // Receiv
              <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
              <div class="shortcut-card-name">${cardName}</div>
          `;
+         
+         // *** DESTPÊKA ÇAKKIRINÊ (Shortcut Card Fix) ***
+         // Ev çareseriya ku te behs kir ji bo ku ew biçe rûpela hûrguliyan
+         // ئەمە ئەو چارەسەرەیە کە تۆ باست کرد بۆ ئەوەی بچێتە پەڕەی وردەکاری
          item.onclick = async () => {
-              await navigateToFilterCore({ // Use core navigation
-                   category: cardData.categoryId || 'all',
-                   subcategory: cardData.subcategoryId || 'all',
-                   subSubcategory: cardData.subSubcategoryId || 'all',
-                   search: ''
-              });
-              await updateProductViewUI(true, true); // Trigger UI update /* GUHERTIN */
+            
+            // Pêşî kontrol bike ka ew ji bo rûpelek Subcategory ya taybet e
+            // سەرەتا پشکنین بکە بزانە ئایا بۆ پەڕەیەکی جۆری لاوەکی تایبەتە
+            if (cardData.subcategoryId && cardData.categoryId) {
+                
+                // Erê, rûpela hûrguliyên Subcategory veke
+                // بەڵێ، پەڕەی وردەکاریی جۆری لاوەکی بکەوە
+                showSubcategoryDetailPageUI(cardData.categoryId, cardData.subcategoryId);
+            
+            } else {
+                
+                // Na, tenê rûpela serekî fîlter bike (wek berê)
+                // نەخێر، تەنها پەڕەی سەرەki فلتەر بکە (وەک جاران)
+                await navigateToFilterCore({
+                    category: cardData.categoryId || 'all',
+                    subcategory: cardData.subcategoryId || 'all', // Dibe ku ev 'all' be
+                    subSubcategory: cardData.subSubcategoryId || 'all',
+                    search: ''
+                });
+                await updateProductViewUI(true, true);
+MSTUbZ
+            }
          };
+         // *** DAWÎYA ÇAKKIRINÊ ***
+         
          cardsContainer.appendChild(item);
      });
      return sectionContainer;
