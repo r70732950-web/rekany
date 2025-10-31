@@ -358,11 +358,22 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
     const subcats = await fetchSubcategories(state.currentCategory);
     await renderSubcategoriesUI(subcats); // Render subcategory buttons and potentially sub-sub
 
-    // Scroll logic
+    // *** 💡 DESTPÊKA ÇAKKIRINÊ (SCROLL FIX) 💡 ***
+    // Logica Scrollkirinê
     // /* GUHERTIN */ Tenê heke `shouldScrollToTop` rast be (true) سکڕۆڵ بکە.
     if (isNewSearch && shouldScrollToTop) {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Bişkojka 'window.scrollTo' hat guhertin bo 'mainPage.scrollTo'
+        // 'window.scrollTo' گۆڕدرا بۆ 'mainPage.scrollTo'
+        const activePage = document.getElementById('mainPage');
+        if (activePage) {
+            activePage.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            // Wekî paşverû heke 'mainPage' neyê dîtin
+            console.warn('Could not find #mainPage to scroll.');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     }
+    // *** 💡 DAWÎYA ÇAKKIRINÊ (SCROLL FIX) 💡 ***
 }
 
 
@@ -647,7 +658,7 @@ async function createSingleCategoryRowElement(sectionData) {
         if (subSubcategoryId) {
             targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubcategoryId}`);
         } else if (subcategoryId) {
-            targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}`);
+            targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subCategoriId}`);
         } else {
              // *** ÇAKKIRIN: Pêdivî ye ku em ID-ya kategoriyê diyar bikin ***
              // *** چاککراو: پێویستە IDی جۆرەکە دیاری بکەین ***
