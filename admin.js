@@ -1,8 +1,9 @@
-// فایلی admin.js (چاککراو بۆ کێشەی کارتی کورت)
+// فایلی admin.js (چاککراو - هەڵە کوشندەکە لادرا)
 
 const {
     db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit,
-    showNotification, t, openPopup, closeCurrentPopup, searchProductsInFirestore,
+    showNotification, t, openPopup, closeCurrentPopup, 
+    // searchProductsInFirestore <-- Ev hate rakirin ji ber ku tune bû
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, // Ensure these are from app-setup
     setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage,
@@ -174,7 +175,9 @@ window.AdminLogic = {
             await deleteDoc(doc(db, "products", productId));
             showNotification(t('product_deleted'), 'success');
             clearProductCache();
-            searchProductsInFirestore(document.getElementById('searchInput').value, true);
+            // *** ⛔️ ЧАККРАو: Ev rêjeya jêrîn hate rakirin ji ber ku 'searchProductsInFirestore' nehatiye pênase kirin ***
+            // (⛔️ چاککراو: ئەم دێڕەی خوارەوە سڕایەوە چونکە 'searchProductsInFirestore' پێناسە نەکراوە)
+            // searchProductsInFirestore(document.getElementById('searchInput').value, true);
         } catch (error) {
             showNotification(t('product_delete_error'), 'error');
         }
@@ -1330,7 +1333,9 @@ window.AdminLogic = {
                 }
                 clearProductCache();
                 closeCurrentPopup();
-                searchProductsInFirestore(document.getElementById('searchInput').value, true);
+                // *** ⛔️ ЧАККРАو: Ev rêjeya jêrîn hate rakirin ji ber ku 'searchProductsInFirestore' nehatiye pênase kirin ***
+                // (⛔️ چاککراو: ئەم دێڕەی خوارەوە سڕایەوە چونکە 'searchProductsInFirestore' پێناسە نەکراوە)
+                // searchProductsInFirestore(document.getElementById('searchInput').value, true);
             } catch (error) {
                 showNotification(t('error_generic'), 'error');
                 console.error("Error saving product:", error);
