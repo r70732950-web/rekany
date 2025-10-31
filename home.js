@@ -133,7 +133,7 @@ export function renderMainCategoriesUI() {
         container.appendChild(btn);
     });
 }
-// *** END: Gۆڕانکاری لێرە کرا ***
+// *** END: Gۆڕانکاری lێرە kra ***
 // *** کۆتایی: گۆڕانکاری لێرە کرا ***
 
 
@@ -165,7 +165,7 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
         <span>${t('all_categories_label')}</span>
     `;
     allBtn.onclick = async () => {
-         resetScrollPosition(subcategoriesContainer); // *** 💡 لێرە زیادکرا 💡 ***
+         resetScrollPosition(subcategoriesContainer); // *** 💡 lێرە zêdekirin 💡 ***
          // When "All" subcategory is clicked, just filter products for the main category
          await navigateToFilterCore({
              category: state.currentCategory, // Keep main category
@@ -192,7 +192,7 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
         `;
         // *** چاککراو: کردنەوەی پەڕەی نوێ ***
         subcatBtn.onclick = async () => {
-            resetScrollPosition(subcategoriesContainer); // *** 💡 لێرە زیادکرا 💡 ***
+            resetScrollPosition(subcategoriesContainer); // *** 💡 lێرە zêdekirin 💡 ***
             // Directly open the subcategory detail page
             showSubcategoryDetailPageUI(state.currentCategory, subcat.id);
         };
@@ -235,7 +235,7 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
         <span>${t('all_categories_label')}</span>
     `;
     allBtn.onclick = async () => {
-         resetScrollPosition(container); // *** 💡 لێرە زیادکرا 💡 ***
+         resetScrollPosition(container); // *** 💡 lێرە zêdekirin 💡 ***
          // Filter by the parent subcategory ON THE MAIN PAGE
          await navigateToFilterCore({
              category: state.currentCategory,
@@ -259,7 +259,7 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
 
         // *** چاککراو: کردنەوەی پەڕەی نوێی جۆری لاوەکی باوک ***
         btn.onclick = async () => {
-             resetScrollPosition(container); // *** 💡 لێرە زیادکرا 💡 ***
+             resetScrollPosition(container); // *** 💡 lێرە zêdekirin 💡 ***
              // Open the PARENT subcategory detail page
              showSubcategoryDetailPageUI(state.currentCategory, state.currentSubcategory);
              // Note: This will initially show all products for the subcategory.
@@ -632,33 +632,39 @@ async function createSingleShortcutRowElement(rowId, sectionNameObj) { // Receiv
      return sectionContainer;
 }
 
+// *** DESTPÊKA GORANKARIYÊ ***
 async function createSingleCategoryRowElement(sectionData) {
-    const { categoryId, subcategoryId, subSubcategoryId, name } = sectionData; // name is from layout
+    const { categoryId, subcategoryId, subSubcategoryId, name } = sectionData; // 'name' ئیتر بەکارناهێت
     const products = await fetchCategoryRowProducts(sectionData);
     if (!products || products.length === 0) return null;
 
-    let title = (name && name[state.currentLanguage]) || (name && name.ku_sorani); // Use layout name first
+    let title = ''; // Em êdî 'name' (navê admin) bikar naynin
 
-    // Try to get a more specific title from category data if layout name wasn't specific enough
-    if (!title) {
-        try {
-            let targetDocRef;
-            if (subSubcategoryId) targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubcategoryId}`);
-            else if (subcategoryId) targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}`);
-            else targetDocRef = doc(db, `categories`);
-            const targetSnap = await getDoc(targetDocRef);
-            if (targetSnap.exists()) {
-                 const targetData = targetSnap.data();
-                 title = targetData['name_' + state.currentLanguage] || targetData.name_ku_sorani || 'کاڵاکان'; // Fallback title
-            } else {
-                 title = 'کاڵاکان'; // Fallback if ref doesn't exist
-            }
-        } catch(e) {
-            console.warn("Could not fetch specific title for category row", e);
-            title = 'کاڵاکان'; // Fallback on error
+    // Em HER DEM hewl didin ku navê rastîn ê kategoriyê ji Firestore bistînin
+    // ئێمە هەمیشە هەوڵ دەدەین ناوی ڕاستەقینەی جۆرەکە لە فایەرستۆر بهێنین
+    try {
+        let targetDocRef;
+        if (subSubcategoryId) {
+            targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubcategoryId}`);
+        } else if (subcategoryId) {
+            targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}`);
+        } else {
+             // *** ÇAKKIRIN: Pêdivî ye ku em ID-ya kategoriyê diyar bikin ***
+             // *** چاککراو: پێویستە IDی جۆرەکە دیاری بکەین ***
+            targetDocRef = doc(db, 'categories', categoryId); 
         }
+        
+        const targetSnap = await getDoc(targetDocRef);
+        if (targetSnap.exists()) {
+            const targetData = targetSnap.data();
+            title = targetData['name_' + state.currentLanguage] || targetData.name_ku_sorani || 'کاڵاکان'; // Sernavê paşverû
+        } else {
+            title = 'کاڵاکان'; // Paşverû heke ref tune be
+        }
+    } catch (e) {
+        console.warn("Could not fetch specific title for category row", e);
+        title = 'کاڵاکان'; // Paşverû li ser çewtiyê
     }
-
 
     const container = document.createElement('div');
     container.className = 'dynamic-section';
@@ -669,6 +675,7 @@ async function createSingleCategoryRowElement(sectionData) {
         </div>
         <div class="horizontal-products-container"></div>
     `;
+    
     const productsScroller = container.querySelector('.horizontal-products-container');
     products.forEach(product => {
         const card = createProductCardElementUI(product); // Use imported function
@@ -685,6 +692,7 @@ async function createSingleCategoryRowElement(sectionData) {
     };
     return container;
 }
+// *** DAWÎYA GORANKARIYÊ ***
 
 async function createAllProductsSectionElement() {
     const products = await fetchInitialProductsForHome();
