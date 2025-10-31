@@ -50,8 +50,7 @@ import {
 
 // --- UI Helper Functions ---
 
-// *** DESTPÊKA GUHERTINÊ: 'export' hate zêdekirin ***
-export function showNotification(message, type = 'success') {
+function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     notification.textContent = message;
@@ -65,7 +64,6 @@ export function showNotification(message, type = 'success') {
         setTimeout(() => document.body.removeChild(notification), 300);
     }, 3000);
 }
-// *** DAWÎYA GUHERTINÊ ***
 
 function updateHeaderView(pageId, title = '') {
     const mainHeader = document.querySelector('.main-header-content');
@@ -138,8 +136,7 @@ function closeAllPopupsUI() {
 }
 
 // *** START: Gۆڕanlکاری lێرە kra ***
-// *** DESTPÊKA GUHERTINÊ: 'export' hate zêdekirin ***
-export function openPopup(id, type = 'sheet') {
+function openPopup(id, type = 'sheet') {
     // 1. Cihê skrolê yê rûpela heyî tomar bike (Skrôla lapele calakeke pashekeut bike)
     saveCurrentScrollPositionCore(); 
     const element = document.getElementById(id);
@@ -193,11 +190,9 @@ export function openPopup(id, type = 'sheet') {
     history.pushState(newState, '', `#${id}`);
 }
 // *** END: Gۆڕanlکاری lێرە kra ***
-// *** DAWÎYA GUHERTINÊ ***
 
 
-// *** DESTPÊKA GUHERTINÊ: 'export' hate zêdekirin ***
-export function closeCurrentPopup() {
+function closeCurrentPopup() {
     // If the current history state represents a popup, go back
     if (history.state && (history.state.type === 'sheet' || history.state.type === 'modal')) {
         history.back();
@@ -208,7 +203,6 @@ export function closeCurrentPopup() {
         state.currentPopupState = null;
     }
 }
-// *** DAWÎYA GUHERTINÊ ***
 
 
 function updateActiveNav(activeBtnId) {
