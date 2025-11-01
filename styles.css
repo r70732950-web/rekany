@@ -1458,3 +1458,122 @@ input:checked + .slider:before {
 
 /* === END: KODÊN NÛ JI BO DÎZAYNA BEŞÊ ADMIN === */
 
+
+/* --- *** 💡 KODA NÛ: Stîlên ji bo File Upload 💡 *** --- */
+.file-upload-btn {
+    background-color: var(--primary-light);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: none;
+    font-weight: bold;
+    font-size: 14px;
+    transition: background-color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.file-upload-btn:hover {
+    background-color: var(--primary-color);
+}
+
+.image-preview-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+    border: 1px dashed var(--medium-gray);
+    padding: 10px;
+    border-radius: 6px;
+    min-height: 100px;
+    background-color: var(--light-gray);
+}
+
+.image-upload-preview {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1/1;
+    border-radius: 4px;
+    overflow: hidden;
+    background-color: var(--medium-gray);
+    border: 1px solid var(--section-border);
+}
+
+.image-upload-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Stîlên Progress Bar */
+.image-upload-progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.image-upload-progress-fill {
+    width: 0;
+    height: 100%;
+    background-color: var(--accent-color);
+    transition: width 0.3s ease;
+}
+
+/* Dema ku serkeftî bû */
+.image-upload-preview.upload-success .image-upload-progress-fill {
+    background-color: var(--accent-color);
+}
+.image-upload-preview.upload-success .image-upload-progress-bar {
+    opacity: 0;
+    transition: opacity 0.5s 1s; /* 1 çirke piştî uploadê veşêre */
+}
+
+.image-upload-success-check {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(255, 255, 255, 0.8);
+    color: var(--accent-color);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: none; /* Bi default veşartî ye */
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+.image-upload-preview.upload-success .image-upload-success-check {
+    display: flex; /* Dema ku URLa kevn tê barkirin nîşan bide */
+}
+.image-upload-preview:not(.upload-success) .image-upload-success-check {
+    display: none;
+}
+.image-upload-preview.upload-success img {
+     opacity: 0.7; /* Wêneyê piçekî tarî bike da ku nîşana check xuya bibe */
+}
+
+
+/* Dema ku xeta çêbû */
+.image-upload-preview.upload-error .image-upload-progress-fill {
+    background-color: var(--danger-color);
+    width: 100% !important;
+}
+.image-upload-preview.upload-error::after {
+    content: "Xeta!";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    background-color: rgba(0,0,0,0.5);
+    padding: 2px 5px;
+    border-radius: 3px;
+}
+/* --- *** 💡 DAWÎYA KODA NÛ 💡 *** --- */
