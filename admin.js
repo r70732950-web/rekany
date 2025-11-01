@@ -1,9 +1,8 @@
-// فایلی admin.js (چاککراو - نûvekirî ji bo Image Upload)
+// فایلی admin.js (چاککراو - کێشەی پڕکردنەوەی لیستی جۆرەکان چارەسەر کرا)
 
-// *** 💡 KODA NÛ: Fonksiyonên Storage zêde kirin ***
 const {
     db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
-    storage, ref, uploadBytesResumable, getDownloadURL, // <-- Fonksiyonên Storage
+    storage, ref, uploadBytesResumable, getDownloadURL, 
     showNotification, t, openPopup, closeCurrentPopup, 
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection,
@@ -13,7 +12,6 @@ const {
 
 const shortcutRowsCollection = collection(db, "shortcut_rows");
 
-// *** 💡 KODA NÛ: Guherbara ji bo hilanîna URLên wêneyên kevn di dema editkirinê de ***
 let currentEditingImageUrls = [];
 
 window.AdminLogic = {
@@ -30,7 +28,7 @@ window.AdminLogic = {
         this.renderSocialMediaLinks();
         this.renderContactMethodsAdmin();
         this.renderShortcutRowsAdminList();
-        this.updateAdminCategoryDropdowns();
+        this.updateAdminCategoryDropdowns(); // <-- ئەمە بانگ دەکرێت
         this.updateShortcutCardCategoryDropdowns();
         this.renderHomeLayoutAdmin();
         
@@ -116,43 +114,28 @@ window.AdminLogic = {
         }
     },
 
-    // *** 💡 KODA NÛ: Fonksiyona alîkar ji bo barkirina file ***
-    /**
-     * Wêneyekê bar dike bo Firebase Storage û progressê nîşan dide.
-     * @param {File} file - Fayla wêneyê ya ji inputê.
-     * @param {HTMLElement} previewElement - Elementa ku progress bar tê de ye.
-     * @returns {Promise<string>} - Promise ku URLa daxistinê (download URL) vedigerîne.
-     */
     uploadFileWithProgress: function(file, previewElement) {
         return new Promise((resolve, reject) => {
-            // Rêgehek (path) yekta ji bo fileê çêbike (mînak: products/167888654321_filename.jpg)
             const filePath = `products/${Date.now()}_${file.name}`;
             const storageRef = ref(storage, filePath);
-            
-            // Upload task dest pê bike
             const uploadTask = uploadBytesResumable(storageRef, file);
-
-            // Progress barê zêde bike li preview elementê
             const progressFill = previewElement.querySelector('.image-upload-progress-fill');
 
             uploadTask.on('state_changed', 
                 (snapshot) => {
-                    // Progressê nûve bike
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                     progressFill.style.width = progress + '%';
                 }, 
                 (error) => {
-                    // Heke xeta çêbû
                     console.error("Upload failed:", error);
                     previewElement.classList.add('upload-error');
                     reject(error);
                 }, 
                 async () => {
-                    // Heke bi serkeftî bi dawî bû
                     try {
                         const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                         previewElement.classList.add('upload-success');
-                        progressFill.style.width = '100%'; // Piştrast bike ku tije ye
+                        progressFill.style.width = '100%';
                         resolve(downloadURL);
                     } catch (error) {
                         console.error("Failed to get download URL:", error);
@@ -163,14 +146,9 @@ window.AdminLogic = {
         });
     },
 
-    // *** 💡 KODA NÛ: Fonksiyona ji bo nîşandana wêneyên hilbijartî (an yên kevn) ***
-    /**
-     * Wêneyan di preview containerê de nîşan dide.
-     * @param {Array} items - Dibe ku lîsteyek ji {File} an lîsteyek ji {string} (URL) be.
-     */
     showImagePreviews: function(items) {
         const container = document.getElementById('imagePreviewContainer');
-        container.innerHTML = ''; // Paqij bike
+        container.innerHTML = '';
         
         items.forEach((item, index) => {
             const previewWrapper = document.createElement('div');
@@ -189,7 +167,6 @@ window.AdminLogic = {
             
             container.appendChild(previewWrapper);
 
-            // Heke URL bû (ne file), piştrast bike ku wekî serkeftî nîşan dide
             if (!isFile) {
                 previewWrapper.classList.add('upload-success');
             }
@@ -211,10 +188,8 @@ window.AdminLogic = {
         document.getElementById('formTitle').textContent = 'دەستکاری کردنی کاڵا';
         document.getElementById('productForm').reset();
         
-        // *** 💡 KODA NÛ: URLên wêneyên kevn hilîne û nîşan bide ***
         currentEditingImageUrls = product.imageUrls || (product.image ? [product.image] : []);
         this.showImagePreviews(currentEditingImageUrls);
-        // *** 💡 DAWÎYA KODA NÛ ***
 
         if (product.name && typeof product.name === 'object') {
             document.getElementById('productNameKuSorani').value = product.name.ku_sorani || '';
@@ -230,16 +205,13 @@ window.AdminLogic = {
         document.getElementById('productOriginalPrice').value = product.originalPrice || '';
 
         const categoryId = product.categoryId || product.category;
-        document.getElementById('productCategoryId').value = categoryId;
+        document.getElementById('productCategoryId').value = categoryId; // <-- لێرە دادەنرێت
 
         if (product.description) {
             document.getElementById('productDescriptionKuSorani').value = product.description.ku_sorani || '';
             document.getElementById('productDescriptionKuBadini').value = product.description.ku_badini || '';
             document.getElementById('productDescriptionAr').value = product.description.ar || '';
         }
-
-        // *** ⛔️ KODA KEVN (Rakirin): Beşa createProductImageInputs hate rakirin ***
-        // self.createProductImageInputs(imageUrls); 
 
         document.getElementById('productExternalLink').value = product.externalLink || '';
 
@@ -253,6 +225,7 @@ window.AdminLogic = {
             document.getElementById('shippingInfoAr').value = '';
         }
 
+        // Dropdownـەکان پڕدەکاتەوە
         await this.populateSubcategoriesDropdown(categoryId, product.subcategoryId);
         await this.populateSubSubcategoriesDropdown(categoryId, product.subcategoryId, product.subSubcategoryId);
 
@@ -270,9 +243,6 @@ window.AdminLogic = {
             showNotification(t('product_delete_error'), 'error');
         }
     },
-
-    // *** ⛔️ KODA KEVN (Rakirin): Ev fonksiyon êdî ne pêwîst e ***
-    // createProductImageInputs: function(imageUrls = []) { ... },
 
     populateSubcategoriesDropdown: async function(categoryId, selectedSubcategoryId = null) {
         const subcategorySelectContainer = document.getElementById('subcategorySelectContainer');
@@ -622,22 +592,25 @@ window.AdminLogic = {
         }
     },
 
+    // *** 💡 KODA NÛ LI VIR ZÊDE KIRIN 💡 ***
     updateAdminCategoryDropdowns: function() {
         const categories = getCategories();
-        if (categories.length <= 1) return;
+        // Em êdî 'if (categories.length <= 1) return;' nakin, ji ber ku 'categories' dê her gav tiştek tê de hebe
         const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
 
         const dropdowns = [
             { id: 'parentCategorySelect', defaultText: '-- جۆرێک هەڵبژێرە --' },
             { id: 'parentMainCategorySelectForSubSub', defaultText: '-- جۆرێک هەڵبژێرە --' },
             { id: 'promoCardTargetCategory', defaultText: '-- جۆرێک هەڵبژێرە --' },
-            { id: 'brandTargetMainCategory', defaultText: '-- هەموو جۆرەکان --' }
+            { id: 'brandTargetMainCategory', defaultText: '-- هەموو جۆرەکان --' },
+            // *** 💡 KODA NÛ: Ev rêz hate zêdekirin da ku forma hilberê tije bibe ***
+            { id: 'productCategoryId', defaultText: '-- جۆرێ سەرەki هەڵبژێرە --' }
         ];
 
         dropdowns.forEach(d => {
             const select = document.getElementById(d.id);
             if (select) {
-                const firstOptionHTML = `<option value="">${d.defaultText}</option>`;
+                const firstOptionHTML = `<option value="" disabled selected>${d.defaultText}</option>`;
                 select.innerHTML = firstOptionHTML;
                 categoriesWithoutAll.forEach(cat => {
                     const option = document.createElement('option');
@@ -645,9 +618,12 @@ window.AdminLogic = {
                     option.textContent = cat.name_ku_sorani || cat.name_ku_badini;
                     select.appendChild(option);
                 });
+            } else {
+                console.warn(`Dropdown bi ID '${d.id}' nehate dîtin.`);
             }
         });
     },
+    // *** 💡 DAWÎYA BEŞA NÛ 💡 ***
 
     // --- PROMO SLIDER GROUP MANAGEMENT ---
     renderPromoGroupsAdminList: function() {
