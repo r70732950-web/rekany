@@ -1,16 +1,15 @@
-// BEŞÊ YEKEM: app-setup.js (Çakkirî bo Firebase Storage)
+// BEŞÊ YEKEM: app-setup.js (Çakkirî bo exportên UI û globalAdminTools)
+// Pênasekirin û sazkarîyên destpêkê
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
-// *** 💡 KODA NÛ: Modulên Storage zêde kirin ***
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
 
-// Firebase Configuration (Wekî berê dimîne)
+// Firebase Configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", 
+    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", // Ensure this key is correct and secured if necessary
     authDomain: "maten-store.firebaseapp.com",
     projectId: "maten-store",
     storageBucket: "maten-store.appspot.com",
@@ -19,15 +18,14 @@ const firebaseConfig = {
     measurementId: "G-1PV3DRY2V2"
 };
 
-// Initialization and Exports
+// Initialization and Exports (for app-core.js and app-ui.js)
 export const app = initializeApp(firebaseConfig);
 export const analytics = getAnalytics(app);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const messaging = getMessaging(app);
-export const storage = getStorage(app); // *** 💡 KODA NÛ: Storage export kirin ***
 
-// Firestore Collections Exports (Wekî berê dimîne)
+// Firestore Collections Exports (for app-core.js and app-ui.js)
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
@@ -176,7 +174,7 @@ export const translations = {
         product_added_to_favorites: "هاتە زێدەکرن بۆ لیستا حەزژێکریان",
         product_removed_from_favorites: "ژ لیستا حەزژێکریان هاتە ژێبرن",
         manage_categories_title: "рێکخستنا جوران",
-        manage_contact_methods_title: "рێکخستنا رێکێن فرێکرنا داخaziێ",
+        manage_contact_methods_title: "рێکخستنا رێکێن فرێکرنا داخازیێ",
         notifications_title: "ئاگەهداری",
         no_notifications_found: "چ ئاگەهداری نینن",
         manage_announcements_title: "рێکخستنا ئاگەهداریان",
@@ -315,7 +313,11 @@ export let state = {
     currentProductId: null, // Used by app-ui
     currentPageId: 'mainPage', // *** زیادکرا: بۆ زانینی پەڕەی ئێستا ***
     currentPopupState: null, // *** زیادکرا: شوێنی دۆخی ئێستای پۆپئەپ بگرە ***
+    // *** START: Gۆڕانکاری لێرە کرا ***
+    // *** دەستپێک: گۆڕانکاری لێرە کرا ***
     pendingFilterNav: null, // Ji bo ragirtina fîlterê heta ku popup were girtin (بۆ ڕاگرتنی فلتەر تا داخستنی پۆپئەپ)
+    // *** END: Gۆڕانکاری لێرە کرا ***
+    // *** کۆتایی: گۆڕانکاری لێرە کرا ***
     sliderIntervals: {}, // Used by app-ui & app-core
     contactInfo: {}, // Might be needed?
 };
@@ -412,16 +414,11 @@ export const addHomeSectionModal = document.getElementById('addHomeSectionModal'
 export const addHomeSectionForm = document.getElementById('addHomeSectionForm');
 
 
-// *** 💡 KODA NÛ: globalAdminTools nûve kirin ***
+// *** Populate globalAdminTools here ***
+// Moved from app-core.js to ensure availability before admin.js (defer) runs
 window.globalAdminTools = {
     // Firebase Services & Functions needed by admin.js
     db, auth,
-    // *** 💡 Storage û fonksiyonên wê zêde kirin ***
-    storage, 
-    ref, 
-    uploadBytesResumable, 
-    getDownloadURL, 
-    // *** 💡 Dawiya beşa nû ***
     doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection,
     query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
 
