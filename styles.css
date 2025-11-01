@@ -1577,31 +1577,3 @@ input:checked + .slider:before {
     border-radius: 3px;
 }
 /* --- *** 💡 DAWÎYA KODA NÛ 💡 *** --- */
-
-/* --- *** 💡 KODA NÛ: Ji bo bişkoja jêbirina preview 💡 *** --- */
-/* --- *** 💡 کۆدی نوێ: بۆ دوگمەی سڕینەوەی پێشبینی 💡 *** --- */
-.image-upload-preview .delete-preview-btn {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    width: 20px;
-    height: 20px;
-    background-color: rgba(0, 0, 0, 0.6);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    font-size: 14px;
-    line-height: 20px;
-    text-align: center;
-    cursor: pointer;
-    opacity: 0.8;
-    transition: opacity 0.2s;
-}
-
-.image-upload-preview:hover .delete-preview-btn {
-    opacity: 1;
-}
-
-.image-upload-preview .delete-preview-btn:hover {
-    background-color: rgba(200, 0, 0, 0.8);
-}
