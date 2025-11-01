@@ -24,6 +24,7 @@
 </head>
 <body>
     <div class="app-container">
+        <!-- ... (Header, Modals, Sheets, Main Content Structure remain the same) ... -->
         <header class="app-header">
             <div class="main-header-content">
                 <div class="logo">
@@ -205,11 +206,13 @@
                 <div id="subSubcategoriesContainer" class="subcategories-container" style="padding-top: 0; padding-bottom: 10px; display: none;"></div>
 
                 <div id="homePageSectionsContainer">
-                    </div>
+                    <!-- Home page dynamic sections will be rendered here by home.js -->
+                </div>
                 <div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;" data-translate-key="loading_products">...خەریکی بارکردنی کاڵاکانە</p></div>
                 <div id="skeletonLoader" class="products-container"></div>
                 <div class="products-container" id="productsContainer" style="display: none;">
-                    </div>
+                    <!-- Product grid rendered here by home.js -->
+                </div>
 
                 <div id="scroll-loader-trigger" style="height: 50px;"></div>
             </div>
@@ -218,14 +221,17 @@
         <div class="page page-hidden" id="subcategoryDetailPage">
                <div class="subcategory-detail-content">
                  <div id="subSubCategoryContainerOnDetailPage" class="subcategories-container">
-                     </div>
+                     <!-- Sub-subcategories rendered by app-ui.js -->
+                 </div>
                  <div id="productsContainerOnDetailPage" class="products-container">
-                     </div>
+                     <!-- Products rendered by app-ui.js -->
+                 </div>
                  <div id="detailPageLoader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
              </div>
         </div>
 
         <div class="settings-page page page-hidden" id="settingsPage">
+            <!-- ... (Settings content remains the same) ... -->
             <h3 class="section-title" style="margin: 0; border-radius: 8px 8px 0 0;"><i class="fas fa-cog"></i> <span data-translate-key="settings_title">ڕێکخستنەکان</span></h3>
 
             <div class="settings-group">
@@ -314,7 +320,8 @@
                 </div>
             </div>
 
-            <div class="settings-group" id="adminPoliciesManagement" style="display: none;">
+            <!-- ... (Admin sections remain the same) ... -->
+             <div class="settings-group" id="adminPoliciesManagement" style="display: none;">
                  <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                      <i class="fas fa-edit"></i> <span data-translate-key="manage_policies_title">بەڕێوەبردنی مەرج و ڕێساکان</span>
                  </h3>
@@ -798,17 +805,19 @@
                              <textarea id="announcementContentKuBadini" rows="3" required></textarea>
                          </div>
                          <div class="form-group">
-                             <label for="announcementContentAr">ناوەڕۆک (عربي):</label>
+                             <label for="announcementContentAr">ناوەڕۆک (عربی):</label>
                              <textarea id="announcementContentAr" rows="3" required></textarea>
                          </div>
                          <button type="submit" data-translate-key="send_announcement_button">ناردنی ئاگەهداری</button>
                      </form>
                      <hr style="margin: 25px 0;">
-                     <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);" data-translate-key="sent_announcements">ئاگەهدارییە nێردراوەکان</h4>
+                     <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);" data-translate-key="sent_announcements">ئاگەهدارییە نێردراوەکان</h4>
                      <div id="announcementsListContainer"></div>
                  </div>
              </div>
-        </div> <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
+        </div> <!-- Close settings-page -->
+
+        <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
 
         <div id="addHomeSectionModal" class="modal">
             <div class="modal-content">
@@ -943,17 +952,9 @@
                         <label for="productDescriptionAr">وەسف (عربي):</label>
                         <textarea id="productDescriptionAr" rows="3" required></textarea>
                     </div>
-                    
                     <div class="form-group">
-                        <label for="productFiles">وێنەکانی کاڵا (تا 4 وێنە):</label>
-                        <input type="file" id="productFiles" accept="image/png, image/jpeg, image/webp" multiple style="display: none;">
-                        <button type="button" class="file-upload-btn" onclick="document.getElementById('productFiles').click();">
-                            <i class="fas fa-upload"></i> وێنە هەڵبژێرە...
-                        </button>
-                        <small style="display: block; margin-top: 5px; color: #777;">تکایە 1 بۆ 4 وێنە هەڵبژێرە.</small>
-                        
-                        <div id="imagePreviewContainer" class="image-preview-container">
-                            </div>
+                        <label>لینکەکانی وێنەی کاڵا (تا 4 وێنە):</label>
+                        <div class="image-inputs-container" id="imageInputsContainer"></div>
                     </div>
                     <div class="form-group"><label for="productExternalLink">لینکی دەرەکی:</label><input type="text" id="productExternalLink" placeholder="بۆ نموونە، لینکی ڤیدیۆ..."></div>
 
@@ -999,15 +1000,21 @@
                  <span data-translate-key="nav_settings">ڕێکخستن</span>
              </button>
         </div>
-    </div> <div id="update-notification" class="update-notification">
+    </div> <!-- Close app-container -->
+
+    <div id="update-notification" class="update-notification">
         <span>ڤێرژنێکی نوێ بەردەستە!</span>
         <button id="update-now-btn" class="update-now-btn">نوێی بکەرەوە</button>
     </div>
 
+    <!-- Script imports -->
     <script type="module" src="app-setup.js"></script>
     <script type="module" src="app-core.js"></script>
+    <!-- *** UPDATED ORDER: app-ui.js comes BEFORE home.js *** -->
     <script type="module" src="app-ui.js"></script>
     <script type="module" src="home.js"></script>
+    <!-- admin.js should be last or defer as it uses globalAdminTools -->
     <script src="admin.js" defer></script>
 </body>
 </html>
+
