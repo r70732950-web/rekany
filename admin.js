@@ -125,6 +125,14 @@ window.AdminLogic = {
         setEditingProductId(productId);
         document.getElementById('formTitle').textContent = 'دەستکاری کردنی کاڵا';
         document.getElementById('productForm').reset();
+        
+        // ===============================================
+        // === START: ÇARESERIYA NÛ / چارەسەری نوێ ===
+        // Ev rêzik piştrast dike ku lîste di dema 'edit' de vala nabe
+        // ئەم دێڕە دڵنیا دەکاتەوە کە لیستەکە لە کاتی 'دەستکاری'دا بەتاڵ نابێتەوە
+        this.updateAdminCategoryDropdowns(); 
+        // === DAWÎ: ÇARESERIYA NÛ / کۆتایی چارەسەری نوێ ===
+        // ===============================================
 
         if (product.name && typeof product.name === 'object') {
             document.getElementById('productNameKuSorani').value = product.name.ku_sorani || '';
@@ -548,6 +556,8 @@ window.AdminLogic = {
 
     // ======================================================
     // === DESTPÊK: KODÊ NÛ Û ÇAKKIRÎ / START: NEW & FIXED CODE ===
+    // Ev fonksîyon nû ye û pirsgirêka vala çareser dike
+    // ئەم فۆنکشیۆنە نوێیە و کێشە بەتاڵەکە چارەسەر دەکات
     // ======================================================
     updateAdminCategoryDropdowns: function() {
         const categories = getCategories();
