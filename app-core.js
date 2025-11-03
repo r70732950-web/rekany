@@ -1,21 +1,24 @@
-// app-core.js (تەواو نوێکراوە بۆ Supabase)
+// app-core.js (کۆدا نوو یا Supabase)
 
 import {
-    // *** گۆڕانکاری لێرە کرا: ئێمە 'db' (supabaseClient)ـی نوێ هاوردە دەکەین ***
-    db, // ئەمە ئێستا Supabase Clientـە
-    auth, // ئەمە ئێستا Supabase Authـە
-    // ئەم ناوانە ئێستا تەنها "ناون" (string) نەک "collection"
+    // 'db' نها Supabase Client e
+    db, auth,
+    // ئەڤە نها بتنێ ناڤن (String)
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
+    // خشتێن نوو
+    subcategoriesCollection, subSubcategoriesCollection, promoCardsCollection,
+    brandsCollection, shortcutCardsCollection, homeLayoutCollection,
+    policiesCollection, socialLinksCollection, contactMethodsCollection,
+    // شتێن دی
     translations, state,
     CART_KEY, FAVORITES_KEY, PROFILE_KEY, PRODUCTS_PER_PAGE,
 } from './app-setup.js';
 
-// *** گۆڕانکاری گەورە: هەموو هاوردەکردنەکانی (import) فایەربەیس سڕدرانەوە ***
-// چیتر پێویستمان بە "firebase/app", "firebase/firestore", "firebase/auth" نییە
+// *** گرنگ: چ فەنکشنەکا Firebase ل ڤێرە نینە ***
 
 // --- Exported Helper Functions ---
-// (ئەمانە وەک خۆیان دەمێننەوە - هیچ گۆڕانکارییەک نییە)
+// (ئەڤە وەک خۆ دمینن - چ گوهۆڕین نینە)
 export function debounce(func, delay = 500) {
     let timeout;
     return (...args) => {
@@ -46,7 +49,7 @@ export function formatDescription(text) {
 }
 
 // --- Local Storage & State Management ---
-// (ئەمانە وەک خۆیان دەمێننەوە - هیچ گۆڕانکارییەک نییە)
+// (ئەڤە وەک خۆ دمینن - چ گوهۆڕین نینە)
 export function saveCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
 }
@@ -57,31 +60,31 @@ export function isFavorite(productId) {
     return state.favorites.includes(productId);
 }
 
-// --- Authentication (*** گۆڕانکاری لێرە کرا ***) ---
+// --- Authentication (*** گوهۆڕین ل ڤێرە هەیە ***) ---
 
 async function handleLogin(email, password) {
     try {
-        // *** گۆڕانکاری: فەنکشنی Supabase Auth بەکارهێنرا ***
+        // *** گوهۆڕین: فەنکشنا Supabase Auth دهێتە بکارئینان ***
         const { error } = await auth.signInWithPassword({
             email: email,
             password: password,
         });
-        if (error) throw error; // فڕێدانی هەڵە بۆ ئەوەی بگیرێت
+        if (error) throw error; // هەلدانا خەلەتیێ
     } catch (error) {
         console.error("Supabase Login Error:", error.message);
-        throw new Error(t('login_error')); // فڕێدانی هەڵە بۆ UI
+        throw new Error(t('login_error')); // هەلدانا خەلەتیێ بۆ UI
     }
 }
 
 async function handleLogout() {
-    // *** گۆڕانکاری: فەنکشنی Supabase Auth بەکارهێنرا ***
+    // *** گوهۆڕین: فەنکشنا Supabase Auth دهێتە بکارئینان ***
     await auth.signOut();
 }
 
-// --- Supabase Data Fetching (*** هەموو ئەمانە گۆڕدران ***) ---
+// --- Supabase Data Fetching (*** هەمی ئەڤە هاتینە گوهۆڕین ***) ---
 
 async function fetchCategories() {
-    // *** گۆڕانکاری: فەنکشنی Supabase Select بەکارهێنرا ***
+    // *** گوهۆڕین: فەنکشنا Supabase Select دهێتە بکارئینان ***
     const { data, error } = await db
         .from(categoriesCollection) // 'categories'
         .select('*')
@@ -98,9 +101,9 @@ async function fetchCategories() {
 async function fetchSubcategories(categoryId) {
     if (categoryId === 'all') return [];
     try {
-        // *** گۆڕانکاری: فەنکشنی Supabase Select + eq (where) بەکارهێنرا ***
+        // *** گوهۆڕین: فەنکشنا Supabase Select + eq (where) دهێتە بکارئینان ***
         const { data, error } = await db
-            .from('subcategories') // ناوی خشتەکە
+            .from(subcategoriesCollection) // 'subcategories'
             .select('*')
             .eq('category_id', categoryId) // مەرج (Where)
             .order('order', { ascending: true });
@@ -116,9 +119,9 @@ async function fetchSubcategories(categoryId) {
 async function fetchSubSubcategories(mainCatId, subCatId) {
     if (!mainCatId || !subCatId) return [];
     try {
-        // *** گۆڕانکاری: فەنکشنی Supabase Select + eq (where) بەکارهێنرا ***
+        // *** گوهۆڕین: فەنکشنا Supabase Select + eq (where) دهێتە بکارئینان ***
         const { data, error } = await db
-            .from('subSubcategories') // ناوی خشتەکە
+            .from(subSubcategoriesCollection) // 'subSubcategories'
             .select('*')
             .eq('subcategory_id', subCatId) // مەرج (Where)
             .order('order', { ascending: true });
@@ -133,15 +136,22 @@ async function fetchSubSubcategories(mainCatId, subCatId) {
 
 async function fetchProductById(productId) {
     try {
-        // *** گۆڕانکاری: فەنکشنی Supabase Select + eq + single بەکارهێنرا ***
+        // *** گوهۆڕین: فەنکشنا Supabase Select + eq + single دهێتە بکارئینان ***
         const { data, error } = await db
             .from(productsCollection) // 'products'
             .select('*')
             .eq('id', productId)
-            .single(); // .single() بۆ وەرگرتنی تەنها یەک دانە
+            .single(); // .single() بۆ وەرگرتنا بتنێ ئێک دانە
 
-        if (error) throw error;
-        return data; // 'data' ئێستا ئۆبجێکتی کاڵاکەیە
+        if (error) {
+            // ئەگەر خەلەتی "PGRST116" بیت، واتا چ کاڵا نەهاتینە دیتن
+            if (error.code === 'PGRST116') {
+                 console.warn(`Product with ID ${productId} not found.`);
+                 return null;
+            }
+            throw error; // هەلدانا خەلەتیێن دی
+        }
+        return data; // 'data' نها ئۆبجێکتێ کاڵایێ یە
     } catch (error) {
         console.error("Error fetching product by ID:", error);
         return null;
@@ -152,7 +162,7 @@ async function fetchRelatedProducts(currentProduct) {
     if (!currentProduct.subcategoryId && !currentProduct.categoryId) return [];
 
     try {
-        // *** گۆڕانکاری: فەنکشنی Supabase Select بەکارهێنرا ***
+        // *** گوهۆڕین: فەنکشنا Supabase Select دهێتە بکارئینان ***
         let query = db.from(productsCollection).select('*');
 
         if (currentProduct.subSubcategoryId) {
@@ -163,9 +173,9 @@ async function fetchRelatedProducts(currentProduct) {
             query = query.eq('categoryId', currentProduct.categoryId);
         }
 
-        // کاڵای ئێستا دەرکە و تەنها 6 دانە بهێنە
+        // کاڵایێ نها دەرکە و بتنێ 6 دانان بینە
         const { data, error } = await query
-            .neq('id', currentProduct.id) // .neq() واتە (Not Equal - یەکسان نەبێت)
+            .neq('id', currentProduct.id) // .neq() واتا (Not Equal - یەکسان نەبیت)
             .order('created_at', { ascending: false })
             .limit(6);
 
@@ -184,10 +194,12 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
         return { isHome: true, products: [], allLoaded: true };
     }
 
-    // ... (لۆجیکی کاش وەک خۆی دەمێنێتەوە) ...
+    // ... (لۆجیکێ کاشێ وەک خۆ دمینیت) ...
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
     if (isNewSearch && state.productCache[cacheKey]) {
-        // ...
+        state.products = state.productCache[cacheKey].products;
+        state.allProductsLoaded = state.productCache[cacheKey].allLoaded;
+        state.currentPage = state.productCache[cacheKey].page;
         return { isHome: false, products: state.products, allLoaded: state.allProductsLoaded };
     }
 
@@ -197,7 +209,7 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
     state.isLoadingMoreProducts = true;
 
     try {
-        // *** گۆڕانکاری: فەنکشنی Supabase Query Builder بەکارهێنرا ***
+        // *** گوهۆڕین: Supabase Query Builder دهێتە بکارئینان ***
         let query = db.from(productsCollection).select('*');
 
         if (state.currentCategory && state.currentCategory !== 'all') {
@@ -212,19 +224,19 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
 
         const finalSearchTerm = searchTerm.trim().toLowerCase();
         if (finalSearchTerm) {
-            // .ilike() بۆ گەڕانی (case-insensitive) بەکاردێت
+            // .ilike() بۆ گەڕانێ (case-insensitive) دهێتە بکارئینان
             query = query.ilike('searchableName', `%${finalSearchTerm}%`);
         }
 
-        // *** گۆڕانکاری: گۆڕینی Pagination لە 'startAfter' بۆ 'range' (Offset/Limit) ***
+        // *** گوهۆڕین: گوهۆڕینا Pagination ژ 'startAfter' بۆ 'range' (Offset/Limit) ***
         let page = 0;
         if (isNewSearch) {
             state.products = [];
             state.allProductsLoaded = false;
             page = 0;
-            state.currentPage = 0; // دۆخێکی نوێ بۆ ژمارەی لاپەڕە دادەنێین
+            state.currentPage = 0; // دۆخەکێ نوو بۆ ژمارا لاپەڕێ دادەنێین
         } else {
-            page = (state.currentPage || 0) + 1; // دەچینە لاپەڕەی داهاتوو
+            page = (state.currentPage || 0) + 1; // دچینە لاپەڕا داهاتوو
             state.currentPage = page;
         }
 
@@ -235,9 +247,9 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
         if (finalSearchTerm) {
             query = query.order('searchableName', { ascending: true });
         }
-        query = query.order('created_at', { ascending: false }); // هەمیشە ڕیزبەندی دووەم
+        query = query.order('created_at', { ascending: false }); // هەمیشە ڕیزبەندیا دووەم
 
-        // ناردنی داواکارییەکە
+        // شاندنا داخازیێ
         const { data: newProducts, error } = await query;
 
         if (error) throw error;
@@ -246,10 +258,10 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
 
         if (isNewSearch) {
             state.products = newProducts;
-            state.productCache[cacheKey] = { // پاشەکەوتکردنی کاش
+            state.productCache[cacheKey] = { // پاشەکەفتکرنا کاشێ
                 products: state.products,
-                allLoaded: state.allProductsLoaded
-                // چیتر پێویستمان بە lastVisible نییە
+                allLoaded: state.allProductsLoaded,
+                page: state.currentPage
             };
         } else {
             state.products = [...state.products, ...newProducts];
@@ -267,23 +279,26 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
 
 async function fetchPolicies() {
     try {
-        // *** گۆڕانکاری: Supabase Select + single بەکارهێنرا ***
+        // *** گوهۆڕین: Supabase Select + single دهێتە بکارئینان ***
         const { data, error } = await db
-            .from('policies')
+            .from(policiesCollection) // 'policies'
             .select('content')
-            .single(); // .single() چونکە تەنها یەک دانەیە
+            .single(); // .single() چونکی بتنێ ئێک دانەیە
 
         if (error) throw error;
         return data ? data.content : null;
     } catch (error) {
-        console.error("Error fetching policies:", error);
+        // ئەگەر چ یاسا نەبن، خەلەتیێ نیشان نادەین
+        if (error.code !== 'PGRST116') {
+            console.error("Error fetching policies:", error);
+        }
         return null;
     }
 }
 
 async function fetchAnnouncements() {
     try {
-        // *** گۆڕانکاری: Supabase Select بەکارهێنرا ***
+        // *** گوهۆڕین: Supabase Select دهێتە بکارئینان ***
         const { data, error } = await db
             .from(announcementsCollection) // 'announcements'
             .select('*')
@@ -299,11 +314,11 @@ async function fetchAnnouncements() {
 
 async function fetchContactMethods() {
     try {
-        // *** گۆڕانکاری: Supabase Select بەکارهێنرا ***
+        // *** گوهۆڕین: Supabase Select دهێتە بکارئینان ***
         const { data, error } = await db
-            .from('contact_methods')
+            .from(contactMethodsCollection) // 'contact_methods'
             .select('*')
-            .order('created_at', { ascending: true }); // لێرە created_at بەکاردێنین نەک order
+            .order('created_at', { ascending: true });
 
         if (error) throw error;
         return data;
@@ -315,9 +330,9 @@ async function fetchContactMethods() {
 
 async function fetchHomeLayout() {
     try {
-        // *** گۆڕانکاری: Supabase Select بەکارهێنرا ***
+        // *** گوهۆڕین: Supabase Select دهێتە بکارئینان ***
         const { data, error } = await db
-            .from('home_layout')
+            .from(homeLayoutCollection) // 'home_layout'
             .select('*')
             .eq('enabled', true) // مەرج (Where)
             .order('order', { ascending: true });
@@ -332,9 +347,9 @@ async function fetchHomeLayout() {
 
 async function fetchPromoGroupCards(groupId) {
     try {
-        // *** گۆڕانکاری: Supabase Select بەکارهێنرا ***
+        // *** گوهۆڕین: Supabase Select دهێتە بکارئینان ***
         const { data, error } = await db
-            .from('promo_cards')
+            .from(promoCardsCollection) // 'promo_cards'
             .select('*')
             .eq('promo_group_id', groupId)
             .order('order', { ascending: true });
@@ -349,9 +364,9 @@ async function fetchPromoGroupCards(groupId) {
 
 async function fetchBrandGroupBrands(groupId) {
     try {
-        // *** گۆڕانکاری: Supabase Select بەکارهێنرا ***
+        // *** گوهۆڕین: Supabase Select دهێتە بکارئینان ***
         const { data, error } = await db
-            .from('brands')
+            .from(brandsCollection) // 'brands'
             .select('*')
             .eq('brand_group_id', groupId)
             .order('order', { ascending: true })
@@ -367,14 +382,13 @@ async function fetchBrandGroupBrands(groupId) {
 
 async function fetchNewestProducts(limitCount = 10) {
     try {
-        // *** گۆڕانکاری: Supabase Select + RPC (بۆ بەروار) بەکاردێت ***
-        // دانانی بەرواری 15 ڕۆژ پێش ئێستا
+        // *** گوهۆڕین: Supabase Select + gte (بۆ بەروارێ) دهێتە بکارئینان ***
         const fifteenDaysAgo = new Date(Date.now() - (15 * 24 * 60 * 60 * 1000)).toISOString();
 
         const { data, error } = await db
             .from(productsCollection)
             .select('*')
-            .gte('created_at', fifteenDaysAgo) // gte = Greater than or equal
+            .gte('created_at', fifteenDaysAgo) // gte = مەزنتر یان یەکسان
             .order('created_at', { ascending: false })
             .limit(limitCount);
         
@@ -388,9 +402,9 @@ async function fetchNewestProducts(limitCount = 10) {
 
 async function fetchShortcutRowCards(rowId) {
     try {
-        // *** گۆڕانکاری: Supabase Select بەکارهێنرا ***
+        // *** گوهۆڕین: Supabase Select دهێتە بکارئینان ***
         const { data, error } = await db
-            .from('shortcut_cards')
+            .from(shortcutCardsCollection) // 'shortcut_cards'
             .select('*')
             .eq('shortcut_row_id', rowId)
             .order('order', { ascending: true });
@@ -407,7 +421,7 @@ async function fetchCategoryRowProducts(sectionData) {
     const { categoryId, subcategoryId, subSubcategoryId } = sectionData;
     
     try {
-        // *** گۆڕانکاری: Supabase Query Builder بەکارهێنرا ***
+        // *** گوهۆڕین: Supabase Query Builder دهێتە بکارئینان ***
         let query = db.from(productsCollection).select('*');
 
         if (subSubcategoryId) {
@@ -417,7 +431,7 @@ async function fetchCategoryRowProducts(sectionData) {
         } else if (categoryId) {
             query = query.eq('categoryId', categoryId);
         } else {
-            return []; // No category specified
+            return []; // چ جۆرەک نینە
         }
 
         const { data, error } = await query
@@ -434,7 +448,7 @@ async function fetchCategoryRowProducts(sectionData) {
 
 async function fetchInitialProductsForHome(limitCount = 10) {
      try {
-        // *** گۆڕانکاری: Supabase Select بەکارهێنرا ***
+        // *** گوهۆڕین: Supabase Select دهێتە بکارئینان ***
         const { data, error } = await db
             .from(productsCollection)
             .select('*')
@@ -449,22 +463,22 @@ async function fetchInitialProductsForHome(limitCount = 10) {
     }
 }
 
-// --- Cart Logic (*** هیچ گۆڕانکارییەکی پێویست نییە ***) ---
-// ئەم فەنکشنانە پشتیان بە 'state' و 'localStorage' بەستووە
+// --- Cart Logic (*** چ گوهۆڕینەکا پێدڤی نینە ***) ---
+// ئەڤ فەنکشنە پشتا خۆ ب 'state' و 'localStorage' گرێددەن
 export async function addToCartCore(productId) {
     let product = state.products.find(p => p.id === productId);
 
     if (!product) {
         console.warn("Product not found in local cache for cart. Fetching...");
-        // fetchProductById ئێستا هی Supabaseـە
+        // fetchProductById نها یا Supabase یە
         product = await fetchProductById(productId); 
         if (!product) {
             console.error(`Failed to add product ${productId} to cart: Not found.`);
             return { success: false, message: t('product_not_found_error') };
         }
     }
-    // ... (لۆجیکی زیادکردن وەک خۆی دەمێنێتەوە) ...
-    const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
+    // ... (لۆجیکێ زێدەکرنێ وەک خۆ دمینیت) ...
+    const mainImage = (product.imageUrls && product.imageUrls[0]) ? product.imageUrls[0] : (product.image || '');
     const existingItem = state.cart.find(item => item.id === productId);
 
     if (existingItem) {
@@ -483,7 +497,7 @@ export async function addToCartCore(productId) {
 }
 
 export function updateCartQuantityCore(productId, change) {
-    // ... (وەک خۆی دەمێنێتەوە) ...
+    // ... (وەک خۆ دمینیت) ...
     const cartItemIndex = state.cart.findIndex(item => item.id === productId);
     if (cartItemIndex > -1) {
         state.cart[cartItemIndex].quantity += change;
@@ -497,7 +511,7 @@ export function updateCartQuantityCore(productId, change) {
 }
 
 export function removeFromCartCore(productId) {
-    // ... (وەک خۆی دەمێنێتەوە) ...
+    // ... (وەک خۆ دمینیت) ...
     const initialLength = state.cart.length;
     state.cart = state.cart.filter(item => item.id !== productId);
     if (state.cart.length < initialLength) {
@@ -508,16 +522,33 @@ export function removeFromCartCore(productId) {
 }
 
 export function generateOrderMessageCore() {
-    // ... (وەک خۆی دەمێنێتەوە) ...
+    // ... (وەک خۆ دمینیت) ...
     if (state.cart.length === 0) return "";
-    // ... (هەموو لۆجیکی پەیامەکە) ...
+    let total = 0;
+    let message = t('order_greeting') + "\n\n";
+    state.cart.forEach(item => {
+        const itemTotal = item.price * item.quantity;
+        total += itemTotal;
+        const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
+        const itemDetails = t('order_item_details', { price: item.price.toLocaleString(), quantity: item.quantity });
+        message += `- ${itemNameInCurrentLang} | ${itemDetails}\n`;
+    });
+    message += `\n${t('order_total')}: ${total.toLocaleString()} د.ع.\n`;
+    if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
+        message += `\n${t('order_user_info')}\n`;
+        message += `${t('order_user_name')}: ${state.userProfile.name}\n`;
+        message += `${t('order_user_address')}: ${state.userProfile.address}\n`;
+        message += `${t('order_user_phone')}: ${state.userProfile.phone}\n`;
+    } else {
+        message += `\n${t('order_prompt_info')}\n`;
+    }
     return message;
 }
 
 
-// --- Favorites Logic (*** هیچ گۆڕانکارییەکی پێویست نییە ***) ---
+// --- Favorites Logic (*** چ گوهۆڕینەکا پێدڤی نینە ***) ---
 export function toggleFavoriteCore(productId) {
-    // ... (وەک خۆی دەمێنێتەوە) ...
+    // ... (وەک خۆ دمینیت) ...
     const isCurrentlyFavorite = isFavorite(productId);
     if (isCurrentlyFavorite) {
         state.favorites = state.favorites.filter(id => id !== productId);
@@ -530,9 +561,9 @@ export function toggleFavoriteCore(productId) {
     }
 }
 
-// --- Profile Logic (*** هیچ گۆڕانکارییەکی پێویست نییە ***) ---
+// --- Profile Logic (*** چ گوهۆڕینەکا پێدڤی نینە ***) ---
 export function saveProfileCore(profileData) {
-    // ... (وەک خۆی دەمێنێتەوە) ...
+    // ... (وەک خۆ دمینیت) ...
     state.userProfile = {
         name: profileData.name || '',
         address: profileData.address || '',
@@ -542,9 +573,9 @@ export function saveProfileCore(profileData) {
     return t('profile_saved');
 }
 
-// --- Language (*** هیچ گۆڕانکارییەکی پێویست نییە ***) ---
+// --- Language (*** چ گوهۆڕینەکا پێدڤی نینە ***) ---
 export function setLanguageCore(lang) {
-    // ... (وەک خۆی دەمێنێتەوە) ...
+    // ... (وەک خۆ دمینیت) ...
     state.currentLanguage = lang;
     localStorage.setItem('language', lang);
     document.documentElement.lang = lang.startsWith('ar') ? 'ar' : 'ku';
@@ -554,18 +585,16 @@ export function setLanguageCore(lang) {
     if (homeContainer) homeContainer.innerHTML = '';
 }
 
-// --- Notifications (*** گۆڕانکاری گەورە: FCM لابرا ***) ---
+// --- Notifications (*** گوهۆڕینا مەزن: FCM هاتیە راکرن ***) ---
 
-// *** تێبینی: Firebase Cloud Messaging (FCM) لابرا ***
-// Supabase سیستەمێکی جیاوازی هەیە بۆ Push Notifications کە پێویستی بە Edge Functions هەیە.
-// ئێمە ئەم بەشە بە کاتی لادەبەین بۆ ئەوەی سەرەتا گواستنەوەی داتابەیسەکە تەواو بکەین.
-// ئەم فەنکشنانە ئێستا هیچ ناکەن یان پەیامی کاتی دەگەڕێننەوە.
-
+// *** تێبینی: Firebase Cloud Messaging (FCM) هاتیە راکرن ***
+// Supabase سیستەمەکێ جودا هەیە بۆ Push Notifications کو پێدڤی ب Edge Functions هەیە.
+// مە ئەڤ بەشە ب دەمکی راکریە دا کو گوهۆڕینا داتابەیسێ خلاس بکەین.
 async function requestNotificationPermissionCore() {
     console.warn("requestNotificationPermissionCore (FCM) is not implemented for Supabase yet.");
-    return { granted: false, message: 'سیستەمی ئاگەداری هێشتا بەردەست نییە' };
+    return { granted: false, message: 'سیستەمێ ئاگەهداریان هێشتا نینە' };
 }
-// async function saveTokenToFirestore(token) { ... } // لابرا
+// async function saveTokenToFirestore(token) { ... } // هاتیە راکرن
 
 export function checkNewAnnouncementsCore(latestAnnouncementTimestamp) {
     const lastSeenTimestamp = localStorage.getItem('lastSeenAnnouncementTimestamp') || 0;
@@ -576,10 +605,10 @@ export function updateLastSeenAnnouncementTimestamp(timestamp) {
      localStorage.setItem('lastSeenAnnouncementTimestamp', timestamp);
 }
 
-// --- PWA & Service Worker (*** هیچ گۆڕانکارییەکی پێویست نییە ***) ---
-// ئەم فەنکشنانە پەیوەندییان بە وێبگەڕەکەوە هەیە نەک فایەربەیس
+// --- PWA & Service Worker (*** چ گوهۆڕینەکا پێدڤی نینە ***) ---
+// ئەڤ فەنکشنە پشتا خۆ ب وێبگەرێ گرێددەن نەک فایەربەیس
 async function handleInstallPrompt(installBtn) {
-    // ... (وەک خۆی دەمێنێتەوە) ...
+    // ... (وەک خۆ دمینیت) ...
     if (state.deferredPrompt) {
         installBtn.style.display = 'none';
         state.deferredPrompt.prompt();
@@ -590,23 +619,33 @@ async function handleInstallPrompt(installBtn) {
 }
 
 async function forceUpdateCore() {
-    // ... (وەک خۆی دەمێنێتەوە) ...
+    // ... (وەک خۆ دمینیت) ...
     if (confirm(t('update_confirm'))) {
         try {
-            // ... (لۆجیکی سڕینەوەی کاش) ...
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const registration of registrations) {
+                    await registration.unregister();
+                }
+                console.log('Service Workers unregistered.');
+            }
+            if (window.caches) {
+                const keys = await window.caches.keys();
+                await Promise.all(keys.map(key => window.caches.delete(key)));
+                console.log('All caches cleared.');
+            }
             return { success: true, message: t('update_success') };
         } catch (error) {
-            // ...
+            console.error('Error during force update:', error);
             return { success: false, message: t('error_generic') };
         }
     }
     return { success: false, message: 'Update cancelled.' };
 }
 
-// --- Navigation / History (*** هیچ گۆڕانکارییەکی پێویست نییە ***) ---
-// ئەم فەنکشنانە پەیوەندییان بە 'History API'ـی وێبگەڕەکەوە هەیە
+// --- Navigation / History (*** چ گوهۆڕینەکا پێدڤی نینە ***) ---
 export function saveCurrentScrollPositionCore() {
-    // ... (وەک خۆی دەمێنێتەوە) ...
+    // ... (وەک خۆ دمینیت) ...
     const currentState = history.state;
     const activePage = document.getElementById(state.currentPageId); 
     if (activePage && state.currentPageId === 'mainPage' && currentState && !currentState.type) {
@@ -614,14 +653,14 @@ export function saveCurrentScrollPositionCore() {
     }
 }
 export function applyFilterStateCore(filterState) {
-    // ... (وەک خۆی دەمێنێتەوە) ...
+    // ... (وەک خۆ دمینیت) ...
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
     state.currentSubSubcategory = filterState.subSubcategory || 'all';
     state.currentSearch = filterState.search || '';
 }
 export function navigateToFilterCore(newState) {
-    // ... (وەK خۆی دەمێنێتەوە) ...
+    // ... (وەک خۆ دمینیت) ...
     saveCurrentScrollPositionCore(); 
     const finalState = { ...history.state, ...newState }; 
     const params = new URLSearchParams();
@@ -639,38 +678,36 @@ export function navigateToFilterCore(newState) {
 
 async function initializeCoreLogic() {
     if (!state.sliderIntervals) state.sliderIntervals = {};
-    // *** گۆڕانکاری: ئێمە چاوەڕێی fetchCategoriesـی نوێ دەکەین ***
+    // *** گوهۆڕین: ئەم چاڤەرێی fetchCategories یا نوو دبین ***
     await fetchCategories();
 }
 
 export async function initCore() {
-    // *** گۆڕانکاری: enableIndexedDbPersistence لابرا ***
-    // Supabase خۆی کاشکردن بەڕێوەدەبات
-
+    // *** گوهۆڕین: enableIndexedDbPersistence هاتیە راکرن ***
     try {
-        await initializeCoreLogic(); // چاوەڕێی لۆجیکی سەرەki بە
+        await initializeCoreLogic(); // چاڤەرێی لۆجیکێ سەرەکی بە
 
-        // *** گۆڕانکاری: onAuthStateChanged گۆڕدرا بۆ onAuthStateChange ***
+        // *** گوهۆڕین: onAuthStateChanged هاتیە گوهۆڕین بۆ onAuthStateChange ***
         auth.onAuthStateChange(async (event, session) => {
-            const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3"; // ئەمە UIDی فایەربەیس بوو
-            
-            // *** لۆجیکی نوێی Supabase بۆ Admin ***
-            // لێرە دەبێت بزانین چۆن ئەدمین دەناسینەوە. با وادابنێین کە ئەدمین
-            // ڕۆڵێکی تایبەتی هەیە لە داتابەیس، بەڵام بۆ ئێستا، با پشت بە session ببەستین
-            
             const user = session ? session.user : null;
             let isAdmin = false;
 
             if (user) {
-                // لێرەدا دەبێت پشکنین بۆ ڕۆڵی ئەدمین بکەین، بەڵام هێشتا ئامادە نییە
-                // با وادابنێین کە چوونەژوورەوەی سەرکەوتوو واتە ئەدمینە (بۆ تاقیکردنەوە)
-                // **** تێبینی: ئەمە پێویستە دواتر بەهێزتر بکرێت ****
-                // با هەمان UIDی کۆن بەکاربهێنین ئەگەر گواستنەوەی Auth کرابێت
-                // بەڵام وا دیارە نەکراوە، بۆیە با پشت بە بوونی session ببەستین.
+                // نها ئەم دشێین پشتراست بکەین کا ئەڤ یوزەرە "ئەدمین"ە یان نە
+                // ب رێکا خشتەیا 'profiles' یا مە دروست کری
+                const { data: profile, error } = await db
+                    .from('profiles') // ناڤێ خشتەیێ
+                    .select('role')   // بتنێ ستوونا 'role' بینە
+                    .eq('id', user.id) // ل یوزەرێ نها بگەڕە
+                    .single(); // بتنێ ئێک دانە
+
+                if (error && error.code !== 'PGRST116') { // PGRST116 = چ تشت نەهاتە دیتن
+                     console.error("Error checking admin role:", error);
+                }
                 
-                // بۆ سادەیی، با وادابنێین هەرکەسێک لۆگین بکات ئەدمینە
-                // (چونکە تەنها ئەدمین لۆگین دەکات)
-                isAdmin = true; 
+                if (profile && profile.role === 'admin') {
+                    isAdmin = true;
+                }
             }
             
             const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
@@ -682,7 +719,8 @@ export async function initCore() {
                 }
             } else {
                 sessionStorage.removeItem('isAdmin');
-                if (user) { await auth.signOut(); } // دەرکردنی غەیرە-ئەدمین
+                // ئەگەر یوزەر لۆگین کربیت لێ نە ئەدمین بیت، دەرکەڤیت
+                if (user) { await auth.signOut(); } 
                 if (wasAdmin && window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
                      window.AdminLogic.deinitialize();
                 }
@@ -690,10 +728,9 @@ export async function initCore() {
             document.dispatchEvent(new CustomEvent('authChange', { detail: { isAdmin } }));
         });
 
-         // *** گۆڕانکاری: onMessage (FCM) لابرا ***
-        // onMessage(messaging, (payload) => { ... });
-
-         // PWA install prompt setup (وەک خۆی دەمێنێتەوە)
+         // *** گوهۆڕین: onMessage (FCM) هاتیە راکرن ***
+         
+         // PWA install prompt (وەک خۆ دمینیت)
          window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             state.deferredPrompt = e;
@@ -701,7 +738,7 @@ export async function initCore() {
             document.dispatchEvent(new Event('installPromptReady'));
         });
 
-        // Service Worker setup (وەک خۆی دەمێنێتەوە)
+        // Service Worker setup (وەک خۆ دمینیت)
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').then(registration => {
                 console.log('SW registered.');
@@ -727,8 +764,7 @@ export async function initCore() {
 }
 
 
-// Expose necessary core functions and state for UI and Admin layers
-// *** گۆڕانکاری: هەناردەکردنی فەنکشنە ساختەکانی فایەربەیس ***
+// هەناردەکرنا فەنکشنێن پێدڤی بۆ قاتا UI
 export {
     state,
     handleLogin, handleLogout,
@@ -736,36 +772,7 @@ export {
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
     requestNotificationPermissionCore,
     handleInstallPrompt, forceUpdateCore,
-
-    // *** هەناردەکردنی فەنکشنە ساختەکان بۆ app-ui.js و admin.js ***
-    // ئەم فەنکشنانە لە app-setup.jsـی نوێدا نین، بۆیە لێرە پێناسەیان دەکەین
-    // بۆ ئەوەی فایلەکانی تر هەڵە نەدەن
-    doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
-    collection, query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction,
-    signInWithEmailAndPassword, onAuthStateChanged, signOut,
-    getToken, onMessage
+    
+    // *** گرنگ: ئەڤە هاتیە راکرن ***
+    // چ فەنکشنەکا Firebase ناهێتە هەناردەکرن
 };
-
-// *** دروستکردنی فەنکشنە ساختەکانی فایەربەیس ***
-// ئەم فەنکشنانە چیتر هیچ ناکەن، بەڵام ڕێگری دەکەن لەوەی ئەپەکە بوەستێت
-// تاوەکو هەموو فایلەکان نوێ دەکەینەوە
-function doc() { console.warn("Firebase function 'doc' is called but not implemented."); }
-function getDoc() { console.warn("Firebase function 'getDoc' is called."); return Promise.resolve({ exists: () => false }); }
-function updateDoc() { console.warn("Firebase function 'updateDoc' is called."); return Promise.resolve(); }
-function deleteDoc() { console.warn("Firebase function 'deleteDoc' is called."); return Promise.resolve(); }
-function addDoc() { console.warn("Firebase function 'addDoc' is called."); return Promise.resolve(); }
-function setDoc() { console.warn("Firebase function 'setDoc' is called."); return Promise.resolve(); }
-function collection() { console.warn("Firebase function 'collection' is called."); }
-function query() { console.warn("Firebase function 'query' is called."); }
-function orderBy() { console.warn("Firebase function 'orderBy' is called."); }
-function onSnapshot() { console.warn("Firebase function 'onSnapshot' is called."); return () => {}; }
-function getDocs() { console.warn("Firebase function 'getDocs' is called."); return Promise.resolve({ docs: [], empty: true }); }
-function where() { console.warn("Firebase function 'where' is called."); }
-function limit() { console.warn("Firebase function 'limit' is called."); }
-function startAfter() { console.warn("Firebase function 'startAfter' is called."); }
-function runTransaction() { console.warn("Firebase function 'runTransaction' is called."); return Promise.resolve(); }
-function signInWithEmailAndPassword() { console.warn("Firebase function 'signInWithEmailAndPassword' is called."); return Promise.resolve(); }
-function onAuthStateChanged() { console.warn("Firebase function 'onAuthStateChanged' is called."); return () => {}; }
-function signOut() { console.warn("Firebase function 'signOut' is called."); return Promise.resolve(); }
-function getToken() { console.warn("Firebase function 'getToken' (FCM) is called."); return Promise.resolve(null); }
-function onMessage() { console.warn("Firebase function 'onMessage' (FCM) is called."); return () => {}; }
