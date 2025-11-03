@@ -1,49 +1,41 @@
-// admin.js (تەواو نوێکراوە بۆ Supabase)
+// admin.js (Guhertoya Supabase)
+// Ev fayl bi tevahî ji bo Supabase hatiye nûve kirin
 
-// ==== ١. هاوردەکردنی ئامرازە نوێیەکانی Supabase ====
-// ئێمە چیتر `getDoc`, `addDoc` هاوردە ناکەین
-// ئێمە پشت بەو شتانە دەبەستین کە لە 'app-setup.js'ـی نوێدا دامانناوە
+// Amûrên gerdûnî yên ku ji 'app-setup.js' (guhertoya Supabase) hatine
 const {
-    db, // ئەمە ئێستا Supabase Clientـە
-    auth, // ئەمە Supabase Authـە
-    
-    // ئەمانە ئێستا ناوی خشتەکانن (String)
+    db, auth, 
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
     subcategoriesCollection, subSubcategoriesCollection, promoCardsCollection,
     brandsCollection, shortcutCardsCollection, homeLayoutCollection,
     policiesCollection, socialLinksCollection, contactMethodsCollection,
-
-    // ئامرازە یارمەتیدەرەکان (وەک خۆیان ماونەتەوە)
+    
     showNotification, t, openPopup, closeCurrentPopup, 
     setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage,
     clearProductCache
 } = window.globalAdminTools;
 
 
-// ==== ٢. گۆڕینی هەموو فەنکشنەکان بۆ Supabase ====
-
 window.AdminLogic = {
     listenersAttached: false,
 
-    initialize: async function() {
-        console.log("Admin logic initialized (Supabase).");
-        await this.migrateAndSetupDefaultHomeLayout();
+    initialize: function() {
+        console.log("Admin logic (Supabase) initialized.");
+        this.migrateAndSetupDefaultHomeLayout(); // Ev fonksiyon dê databasea Supabase kontrol bike
         this.updateAdminUI(true);
         this.setupAdminEventListeners();
+        this.loadPoliciesForAdmin();
+        this.renderCategoryManagementUI();
+        this.renderAdminAnnouncementsList();
+        this.renderSocialMediaLinks();
+        this.renderContactMethodsAdmin();
+        this.renderShortcutRowsAdminList();
+        this.updateAdminCategoryDropdowns();
+        this.updateShortcutCardCategoryDropdowns();
+        this.renderHomeLayoutAdmin();
         
-        // هەموو فەنکشنەکانی خوێندنەوە (Read) ئێستا 'async'ـن
-        await this.loadPoliciesForAdmin();
-        await this.renderCategoryManagementUI();
-        await this.renderAdminAnnouncementsList();
-        await this.renderSocialMediaLinks();
-        await this.renderContactMethodsAdmin();
-        await this.renderShortcutRowsAdminList();
-        await this.updateAdminCategoryDropdowns();
-        await this.updateShortcutCardCategoryDropdowns();
-        await this.renderHomeLayoutAdmin();
-        await this.renderPromoGroupsAdminList();
-        await this.renderBrandGroupsAdminList();
+        this.renderPromoGroupsAdminList();
+        this.renderBrandGroupsAdminList();
     },
 
     deinitialize: function() {
@@ -51,82 +43,49 @@ window.AdminLogic = {
         this.updateAdminUI(false);
     },
 
+    // Fonksiyona ji bo mîgrasyonê ji bo Supabase hatiye nûve kirin
     migrateAndSetupDefaultHomeLayout: async function() {
-        // گۆڕینی Firestore 'getDocs' بە Supabase 'select'
-        const { data, error } = await db
-            .from(homeLayoutCollection) // 'home_layout'
-            .select('*') // هەموو ستونەکان
-            .limit(1);    // تەنها یەک دانە
+        // Kontrol bike ka 'home_layout' tiştek tê de heye
+        const { data, error, count } = await db.from(homeLayoutCollection).select('*', { count: 'exact', head: true });
 
         if (error) {
-            console.error("Error checking home_layout:", error);
+            console.error("Error checking home layout:", error);
             return;
         }
 
-        if (!data || data.length === 0) {
+        if (count === 0) {
             console.log("`home_layout` collection is empty. Creating default layout.");
             await this.createDefaultHomeLayout();
-            return;
-        }
-    
-        // لۆجیکی کۆچکردن (Migration) وەک خۆی دەمێنێتەوە چونکە پشت بە ستونەکان دەبەستێت
-        const firstDocData = data[0];
-        const isOldStructure = typeof firstDocData.name === 'string' || !firstDocData.hasOwnProperty('name');
-    
-        if (isOldStructure) {
-            console.warn("Old home_layout structure detected. Migrating to new structure...");
-            showNotification('خەریکی نوێکردنەوەی سیستەمی ڕیزبەندییە...', 'success');
-            
-            // سڕینەوەی هەموو داتاکانی `home_layout`
-            const { error: deleteError } = await db.from(homeLayoutCollection).delete().neq('id', -1); // سڕینەوەی هەموو شتێک
-            if (deleteError) console.error("Error deleting old layout:", deleteError);
-            else console.log("Old layout deleted.");
-    
-            await this.createDefaultHomeLayout();
-            console.log("New default layout created after migration.");
         } else {
             console.log("`home_layout` structure is up to date.");
+            // Têbînî: Ji ber ku ev databaseek nû ye, em hewce nakin ku strukturên kevn ên Firestore mîgrasyon bikin
         }
     },
 
+    // Fonksiyona ji bo çêkirina layouta default li Supabase
     createDefaultHomeLayout: async function() {
         const defaultLayout = [
-            { name: { ku_sorani: 'سلایدەری ڕێکلام', ku_badini: 'سلایدەرێ ڕێکلاما', ar: 'سلايدر الإعلانات' }, order: 1, type: 'promo_slider', enabled: true, groupId: 'default_id_temp_promo' }, // پێویستە ئەمە بگۆڕین
-            { name: { ku_sorani: 'بەشی براندەکان', ku_badini: 'پشکا براندا', ar: 'قسم الماركات' }, order: 2, type: 'brands', enabled: true, groupId: 'default_id_temp_brand' }, // پێویستە ئەمە بگۆڕین
+            { name: { ku_sorani: 'سلایدەری ڕێکلام', ku_badini: 'سلایدەرێ ڕێکلاما', ar: 'سلايدر الإعلانات' }, order: 1, type: 'promo_slider', enabled: true, group_id: 'default' },
+            { name: { ku_sorani: 'بەشی براندەکان', ku_badini: 'پشکا براندا', ar: 'قسم الماركات' }, order: 2, type: 'brands', enabled: true, group_id: 'default' },
             { name: { ku_sorani: 'نوێترین کاڵاکان', ku_badini: 'نووترین کاڵا', ar: 'أحدث المنتجات' }, order: 3, type: 'newest_products', enabled: true },
             { name: { ku_sorani: 'هەموو کاڵاکان', ku_badini: 'هەمی کاڵا', ar: 'كل المنتجات' }, order: 4, type: 'all_products', enabled: true }
         ];
 
-        // دروستکردنی گرووپی سەرەکی (Default)
-        // ١. گرووپی سلایدەر
-        const { data: promoGroup, error: promoError } = await db
-            .from(promoGroupsCollection)
-            .insert({ name: 'گرووپی سەرەکی' })
-            .select() // بۆ وەرگرتنەوەی داتاکە
-            .single();
+        // Dema ku 'default' group_id bikar tînin, divê em pêşî wan koman çêbikin
+        try {
+            // Em 'upsert' bikar tînin da ku heke ew jixwe hebin, çewtî çênebe
+            await db.from(promoGroupsCollection).upsert({ id: 'default', name: 'گرووپی سەرەki' }, { onConflict: 'id' });
+            await db.from(brandGroupsCollection).upsert({ id: 'default', name: 'گرووپی سەرەki' }, { onConflict: 'id' });
 
-        // ٢. گرووپی براند
-        const { data: brandGroup, error: brandError } = await db
-            .from(brandGroupsCollection)
-            .insert({ name: 'گرووپی سەرەکی' })
-            .select() // بۆ وەرگرتنەوەی داتاکە
-            .single();
-
-        if (promoError || brandError) {
-             console.error("Error creating default groups:", promoError, brandError);
-             return;
+            const { error } = await db.from(homeLayoutCollection).insert(defaultLayout);
+            if (error) throw error;
+            console.log("New default layout created in Supabase.");
+        } catch (error) {
+            console.error("Error creating default layout:", error);
         }
-        
-        // نوێکردنەوەی IDی گرووپەکان لەناو defaultLayout
-        defaultLayout[0].groupId = promoGroup.id;
-        defaultLayout[1].groupId = brandGroup.id;
-
-        // گۆڕینی `addDoc` بۆ `insert`
-        const { error: layoutError } = await db.from(homeLayoutCollection).insert(defaultLayout);
-        if (layoutError) console.error("Error saving default layout:", layoutError);
     },
     
-    // ئەم فەنکشنە وەک خۆی دەمێنێتەوە
+    // Ev fonksiyon wek xwe dimîne
     updateAdminUI: function(isAdmin) {
         document.querySelectorAll('.product-actions').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
 
@@ -156,8 +115,8 @@ window.AdminLogic = {
         }
     },
 
+    // Guhertî bo Supabase
     editProduct: async function(productId) {
-        // گۆڕینی `getDoc` بۆ `select` + `eq` + `single`
         const { data: product, error } = await db
             .from(productsCollection)
             .select('*')
@@ -166,7 +125,6 @@ window.AdminLogic = {
 
         if (error || !product) {
             showNotification(t('product_not_found_error'), 'error');
-            console.error("Error fetching product for edit:", error);
             return;
         }
 
@@ -174,71 +132,76 @@ window.AdminLogic = {
         document.getElementById('formTitle').textContent = 'دەستکاری کردنی کاڵا';
         document.getElementById('productForm').reset();
         
-        await this.updateAdminCategoryDropdowns(); // گۆڕانکاری: ئەمە ئێستا asyncـە
+        this.updateAdminCategoryDropdowns(); 
 
-        // ... (هەموو لۆجیکی پڕکردنەوەی فۆرمەکە وەک خۆی دەمێنێتەوە) ...
         if (product.name && typeof product.name === 'object') {
             document.getElementById('productNameKuSorani').value = product.name.ku_sorani || '';
             document.getElementById('productNameKuBadini').value = product.name.ku_badini || '';
             document.getElementById('productNameAr').value = product.name.ar || '';
         } else {
             document.getElementById('productNameKuSorani').value = product.name;
-            document.getElementById('productNameKuBadini').value = '';
-            document.getElementById('productNameAr').value = '';
         }
+
         document.getElementById('productPrice').value = product.price;
         document.getElementById('productOriginalPrice').value = product.originalPrice || '';
+
         const categoryId = product.categoryId || product.category;
         document.getElementById('productCategoryId').value = categoryId;
+
         if (product.description) {
             document.getElementById('productDescriptionKuSorani').value = product.description.ku_sorani || '';
             document.getElementById('productDescriptionKuBadini').value = product.description.ku_badini || '';
             document.getElementById('productDescriptionAr').value = product.description.ar || '';
         }
+
         const imageUrls = product.imageUrls || (product.image ? [product.image] : []);
         this.createProductImageInputs(imageUrls);
         document.getElementById('productExternalLink').value = product.externalLink || '';
+
         if (product.shippingInfo) {
             document.getElementById('shippingInfoKuSorani').value = product.shippingInfo.ku_sorani || '';
             document.getElementById('shippingInfoKuBadini').value = product.shippingInfo.ku_badini || '';
             document.getElementById('shippingInfoAr').value = product.shippingInfo.ar || '';
-        } else {
-            document.getElementById('shippingInfoKuSorani').value = '';
-            document.getElementById('shippingInfoKuBadini').value = '';
-            document.getElementById('shippingInfoAr').value = '';
         }
+
+        // Dropdownên pêşkeftî bar bike
         await this.populateSubcategoriesDropdown(categoryId, product.subcategoryId);
-        await this.populateSubSubcategoriesDropdown(categoryId, product.subcategoryId, product.subSubcategoryId);
-        // ... (کۆتایی لۆجیکی پڕکردنەوە) ...
+        await this.populateSubSubcategoriesDropdown(product.subcategoryId, product.subSubcategoryId);
 
         document.getElementById('productForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوە';
         openPopup('productFormModal', 'modal');
     },
 
+    // Guhertî bo Supabase
     deleteProduct: async function(productId) {
         if (!confirm(t('delete_confirm'))) return;
         try {
-            // گۆڕینی `deleteDoc` بۆ `delete` + `eq`
-            const { error } = await db
-                .from(productsCollection)
-                .delete()
-                .eq('id', productId);
-            
+            const { error } = await db.from(productsCollection).delete().eq('id', productId);
             if (error) throw error;
-
             showNotification(t('product_deleted'), 'success');
             clearProductCache();
         } catch (error) {
-            console.error("Error deleting product:", error);
             showNotification(t('product_delete_error'), 'error');
         }
     },
 
-    // ئەم فەنکشنە وەک خۆی دەمێنێتەوە
+    // Wek xwe dimîne
     createProductImageInputs: function(imageUrls = []) {
-        // ... (هیچ گۆڕانکارییەک نییە) ...
+        const imageInputsContainer = document.getElementById('imageInputsContainer');
+        imageInputsContainer.innerHTML = '';
+        for (let i = 0; i < 4; i++) {
+            const url = imageUrls[i] || '';
+            const isRequired = i === 0 ? 'required' : '';
+            const placeholder = i === 0 ? 'لینکی وێنەی یەکەم (سەرەکی)' : `لینکی وێنەی ${['دووەم', 'سێیەم', 'چوارەم'][i-1]}`;
+            const previewSrc = url || `https://placehold.co/40x40/e2e8f0/2d3748?text=${i + 1}`;
+            const inputGroup = document.createElement('div');
+            inputGroup.className = 'image-input-group';
+            inputGroup.innerHTML = `<input type="text" class="productImageUrl" placeholder="${placeholder}" value="${url}" ${isRequired}><img src="${previewSrc}" class="image-preview-small" onerror="this.src='https://placehold.co/40x40/e2e8f0/2d3748?text=Err'">`;
+            imageInputsContainer.appendChild(inputGroup);
+        }
     },
 
+    // Guhertî bo Supabase (li ser bingeha category_id)
     populateSubcategoriesDropdown: async function(categoryId, selectedSubcategoryId = null) {
         const subcategorySelectContainer = document.getElementById('subcategorySelectContainer');
         const productSubcategorySelect = document.getElementById('productSubcategoryId');
@@ -254,22 +217,21 @@ window.AdminLogic = {
         subcategorySelectContainer.style.display = 'block';
 
         try {
-            // گۆڕینی `getDocs` بۆ `select`
-            const { data: subcategories, error } = await db
+            const { data, error } = await db
                 .from(subcategoriesCollection)
-                .select('*')
+                .select('id, name_ku_sorani')
                 .eq('category_id', categoryId)
                 .order('order', { ascending: true });
-
+                
             if (error) throw error;
 
             productSubcategorySelect.innerHTML = '<option value="" disabled selected>-- جۆری لاوەکی هەڵبژێرە --</option>';
 
-            if (!subcategories || subcategories.length === 0) {
+            if (!data || data.length === 0) {
                 productSubcategorySelect.innerHTML = '<option value="" disabled selected>هیچ جۆرێکی لاوەکی نییە</option>';
                 document.getElementById('subSubcategorySelectContainer').style.display = 'none';
             } else {
-                subcategories.forEach(subcat => {
+                data.forEach(subcat => {
                     const option = document.createElement('option');
                     option.value = subcat.id;
                     option.textContent = subcat.name_ku_sorani || subcat.id;
@@ -287,11 +249,12 @@ window.AdminLogic = {
         }
     },
 
-    populateSubSubcategoriesDropdown: async function(mainCategoryId, subcategoryId, selectedSubSubcategoryId = null) {
+    // Guhertî bo Supabase (li ser bingeha subcategory_id)
+    populateSubSubcategoriesDropdown: async function(subcategoryId, selectedSubSubcategoryId = null) {
         const container = document.getElementById('subSubcategorySelectContainer');
         const select = document.getElementById('productSubSubcategoryId');
 
-        if (!mainCategoryId || !subcategoryId) {
+        if (!subcategoryId) {
             container.style.display = 'none';
             select.innerHTML = '';
             return;
@@ -302,18 +265,17 @@ window.AdminLogic = {
         container.style.display = 'block';
 
         try {
-            // گۆڕینی `getDocs` بۆ `select`
-            const { data: subSubcategories, error } = await db
+            const { data, error } = await db
                 .from(subSubcategoriesCollection)
-                .select('*')
-                .eq('subcategory_id', subcategoryId) // ئێمە بە subcategory_id گەڕان دەکەین
+                .select('id, name_ku_sorani')
+                .eq('subcategory_id', subcategoryId)
                 .order('order', { ascending: true });
             
             if (error) throw error;
 
             select.innerHTML = '<option value="">-- هیچ --</option>';
-            if (subSubcategories && subSubcategories.length > 0) {
-                subSubcategories.forEach(subSubcat => {
+            if (data && data.length > 0) {
+                data.forEach(subSubcat => {
                     const option = document.createElement('option');
                     option.value = subSubcat.id;
                     option.textContent = subSubcat.name_ku_sorani;
@@ -331,18 +293,20 @@ window.AdminLogic = {
         }
     },
 
+    // Guhertî bo Supabase
     loadPoliciesForAdmin: async function() {
         try {
-            // گۆڕینی `getDoc` بۆ `select` + `single`
-            const { data: policiesData, error } = await db
-                .from(policiesCollection) // 'policies'
+            // Texmîn dikin ku tenê rêzek ji bo polîtîkayan heye, mînak. bi id 'current'
+            const { data, error } = await db
+                .from(policiesCollection)
                 .select('content')
-                .single(); // چونکە تەنها یەک دانەیە
+                .eq('id', 'current') // Em texmîn dikin ku ID 'current' e
+                .single();
 
-            if (error && error.code !== 'PGRST116') throw error; // PGRST116 = بەتاڵە
+            if (error && error.code !== 'PGRST116') throw error; // PGRST116 = rêz nehat dîtin
 
-            if (policiesData && policiesData.content) {
-                const policies = policiesData.content;
+            if (data && data.content) {
+                const policies = data.content;
                 document.getElementById('policiesContentKuSorani').value = policies.ku_sorani || '';
                 document.getElementById('policiesContentKuBadini').value = policies.ku_badini || '';
                 document.getElementById('policiesContentAr').value = policies.ar || '';
@@ -352,41 +316,36 @@ window.AdminLogic = {
         }
     },
 
+    // Guhertî bo Supabase
     deleteAnnouncement: async function(id) {
         if (confirm(t('announcement_delete_confirm'))) {
             try {
-                // گۆڕینی `deleteDoc` بۆ `delete`
-                const { error } = await db
-                    .from(announcementsCollection)
-                    .delete()
-                    .eq('id', id);
-                
+                const { error } = await db.from(announcementsCollection).delete().eq('id', id);
                 if (error) throw error;
                 showNotification(t('announcement_deleted_success'), 'success');
-                await this.renderAdminAnnouncementsList(); // دووبارە بارکردنەوە
             } catch (e) {
                 showNotification(t('error_generic'), 'error');
             }
         }
     },
 
-    // گۆڕینی `onSnapshot` بۆ `select` (Realtime لابرا)
+    // Guhertî bo Supabase (Realtime-ê bikar nayne, lê dikare were guhertin)
+    // Ji bo sadebûnê, em ê Realtime bikar neynin û tenê listê nûve bikin
     renderAdminAnnouncementsList: async function() {
         const container = document.getElementById('announcementsListContainer');
         
-        const { data: announcements, error } = await db
+        const { data, error } = await db
             .from(announcementsCollection)
             .select('*')
             .order('created_at', { ascending: false });
 
         container.innerHTML = '';
-        if (error || !announcements || announcements.length === 0) {
+        if (error || !data || data.length === 0) {
             container.innerHTML = `<p style="text-align:center; color: var(--dark-gray);">${t('no_announcements_sent')}</p>`;
-            if (error) console.error("Error fetching announcements:", error);
             return;
         }
-
-        announcements.forEach(announcement => {
+        
+        data.forEach(announcement => {
             const title = (announcement.title && announcement.title.ku_sorani) || 'بێ ناونیشان';
             const item = document.createElement('div');
             item.className = 'admin-notification-item';
@@ -401,18 +360,13 @@ window.AdminLogic = {
         });
     },
 
+    // Guhertî bo Supabase
     deleteSocialMediaLink: async function(linkId) {
         if (confirm('دڵنیایت دەتەوێت ئەم لینکە بسڕیتەوە؟')) {
             try {
-                // گۆڕینی `deleteDoc` بۆ `delete`
-                const { error } = await db
-                    .from(socialLinksCollection)
-                    .delete()
-                    .eq('id', linkId);
-
+                const { error } = await db.from(socialLinksCollection).delete().eq('id', linkId);
                 if (error) throw error;
                 showNotification('لینکەکە سڕدرایەوە', 'success');
-                await this.renderSocialMediaLinks(); // دووبارە بارکردنەوە
             } catch (error) {
                 console.error("Error deleting social link: ", error);
                 showNotification(t('error_generic'), 'error');
@@ -420,23 +374,22 @@ window.AdminLogic = {
         }
     },
 
-    // گۆڕینی `onSnapshot` بۆ `select` (Realtime لابرا)
+    // Guhertî bo Supabase
     renderSocialMediaLinks: async function() {
         const socialLinksListContainer = document.getElementById('socialLinksListContainer');
         
-        const { data: links, error } = await db
+        const { data, error } = await db
             .from(socialLinksCollection)
             .select('*')
             .order('created_at', { ascending: false });
 
         socialLinksListContainer.innerHTML = '';
-        if (error || !links || links.length === 0) {
+        if (error || !data || data.length === 0) {
             socialLinksListContainer.innerHTML = '<p style="padding: 10px; text-align: center;">هیچ لینکێک زیاد نەکراوە.</p>';
-            if(error) console.error("Error fetching social links:", error);
             return;
         }
         
-        links.forEach(link => {
+        data.forEach(link => {
             const name = link['name_' + getCurrentLanguage()] || link.name_ku_sorani;
             const item = document.createElement('div');
             item.className = 'social-link-item';
@@ -455,18 +408,13 @@ window.AdminLogic = {
         });
     },
 
+    // Guhertî bo Supabase
     deleteContactMethod: async function(methodId) {
         if (confirm('دڵنیایت دەتەوێت ئەم شێوازە بسڕیتەوە؟')) {
             try {
-                // گۆڕینی `deleteDoc` بۆ `delete`
-                const { error } = await db
-                    .from(contactMethodsCollection)
-                    .delete()
-                    .eq('id', methodId);
-                
+                const { error } = await db.from(contactMethodsCollection).delete().eq('id', methodId);
                 if (error) throw error;
                 showNotification('شێوازەکە سڕدرایەوە', 'success');
-                await this.renderContactMethodsAdmin(); // دووبارە بارکردنەوە
             } catch (error) {
                 console.error("Error deleting contact method: ", error);
                 showNotification('هەڵەیەک لە сڕینەوە ڕوویدا', 'error');
@@ -474,23 +422,22 @@ window.AdminLogic = {
         }
     },
 
-    // گۆڕینی `onSnapshot` بۆ `select` (Realtime لابرا)
+    // Guhertî bo Supabase
     renderContactMethodsAdmin: async function() {
         const container = document.getElementById('contactMethodsListContainer');
         
-        const { data: methods, error } = await db
+        const { data, error } = await db
             .from(contactMethodsCollection)
             .select('*')
             .order('created_at', { ascending: false });
 
         container.innerHTML = '';
-        if (error || !methods || methods.length === 0) {
+        if (error || !data || data.length === 0) {
             container.innerHTML = '<p style="padding: 10px; text-align: center;">هیچ شێوازێک زیاد نەکراوە.</p>';
-            if(error) console.error("Error fetching contact methods:", error);
             return;
         }
-
-        methods.forEach(method => {
+        
+        data.forEach(method => {
             const name = method['name_' + getCurrentLanguage()] || method.name_ku_sorani;
             const item = document.createElement('div');
             item.className = 'social-link-item';
@@ -509,7 +456,7 @@ window.AdminLogic = {
         });
     },
 
-    // گۆڕینی `getDocs` بۆ `select`
+    // Guhertî bo Supabase (pir tevlihev, ji ber ku êdî 'path' tune)
     renderCategoryManagementUI: async function() {
         const container = document.getElementById('categoryListContainer');
         if (!container) return;
@@ -517,78 +464,53 @@ window.AdminLogic = {
 
         let content = '';
         
-        // ١. هێنانی جۆرە سەرەکییەکان
-        const { data: mainCategories, error: mainError } = await db
-            .from(categoriesCollection)
-            .select('*')
-            .order('order', { ascending: true });
+        // 1. Hemî kategoriyan bistîne
+        const { data: mainCategories, error: mainErr } = await db.from(categoriesCollection).select('*').order('order', { ascending: true });
+        if (mainErr) { container.innerHTML = '<p>هەڵە لە هێنانی جۆرەکان.</p>'; return; }
 
-        if (mainError) {
-             console.error("Error fetching main categories:", mainError);
-             container.innerHTML = '<p>هەڵە لە بارکردنی جۆرەکان.</p>';
-             return;
-        }
+        // 2. Hemî jêr-kategoriyan bistîne
+        const { data: subCategories, error: subErr } = await db.from(subcategoriesCollection).select('*').order('order', { ascending: true });
+        
+        // 3. Hemî jêr-jêr-kategoriyan bistîne
+        const { data: subSubCategories, error: subSubErr } = await db.from(subSubcategoriesCollection).select('*').order('order', { ascending: true });
 
         for (const mainCategory of mainCategories) {
-            // (لۆجیکی HTML وەک خۆی دەمێنێتەوە)
             content += `
                 <div class="category-manage-item" style="background: #f0f2f5; padding: 8px; border-radius: 4px; margin-bottom: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <strong><i class="${mainCategory.icon}"></i> ${mainCategory.name_ku_sorani} (ڕیزبەندی: ${mainCategory.order || 0})</strong>
                         <div>
-                            <button class="edit-btn small-btn" data-id="${mainCategory.id}" data-table="${categoriesCollection}" data-level="1"><i class="fas fa-edit"></i></button>
-                            <button class="delete-btn small-btn" data-id="${mainCategory.id}" data-table="${categoriesCollection}" data-name="${mainCategory.name_ku_sorani}"><i class="fas fa-trash"></i></button>
+                            <button class="edit-btn small-btn" data-id="${mainCategory.id}" data-level="1"><i class="fas fa-edit"></i></button>
+                            <button class="delete-btn small-btn" data-id="${mainCategory.id}" data-level="1" data-name="${mainCategory.name_ku_sorani}"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
                 </div>`;
 
-            // ٢. هێنانی جۆرە لاوەکییەکان
-            const { data: subCategories, error: subError } = await db
-                .from(subcategoriesCollection)
-                .select('*')
-                .eq('category_id', mainCategory.id)
-                .order('order', { ascending: true });
+            const filteredSubCategories = subCategories.filter(s => s.category_id === mainCategory.id);
+            for (const subCategory of filteredSubCategories) {
+                content += `
+                    <div class="category-manage-item" style="margin-right: 20px; padding: 8px; border-right: 2px solid #ccc; margin-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>- ${subCategory.name_ku_sorani} (ڕیزبەندی: ${subCategory.order || 0})</span>
+                            <div>
+                                <button class="edit-btn small-btn" data-id="${subCategory.id}" data-level="2"><i class="fas fa-edit"></i></button>
+                                <button class="delete-btn small-btn" data-id="${subCategory.id}" data-level="2" data-name="${subCategory.name_ku_sorani}"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>`;
 
-            if (subError) console.error("Error fetching subcategories:", subError);
-
-            if (subCategories) {
-                for (const subCategory of subCategories) {
-                    // (لۆجیکی HTML وەک خۆی دەمێنێتەوە)
+                const filteredSubSubCategories = subSubCategories.filter(s => s.subcategory_id === subCategory.id);
+                for (const subSubCategory of filteredSubSubCategories) {
                     content += `
-                        <div class="category-manage-item" style="margin-right: 20px; padding: 8px; border-right: 2px solid #ccc; margin-bottom: 8px;">
+                        <div class="category-manage-item" style="margin-right: 40px; padding: 8px; border-right: 2px solid #e2e8f0; margin-bottom: 8px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span>- ${subCategory.name_ku_sorani} (ڕیزبەندی: ${subCategory.order || 0})</span>
+                                <span>-- ${subSubCategory.name_ku_sorani} (ڕیزبەندی: ${subSubCategory.order || 0})</span>
                                 <div>
-                                    <button class="edit-btn small-btn" data-id="${subCategory.id}" data-table="${subcategoriesCollection}" data-level="2"><i class="fas fa-edit"></i></button>
-                                    <button class="delete-btn small-btn" data-id="${subCategory.id}" data-table="${subcategoriesCollection}" data-name="${subCategory.name_ku_sorani}"><i class="fas fa-trash"></i></button>
+                                    <button class="edit-btn small-btn" data-id="${subSubCategory.id}" data-level="3"><i class="fas fa-edit"></i></button>
+                                    <button class="delete-btn small-btn" data-id="${subSubCategory.id}" data-level="3" data-name="${subSubCategory.name_ku_sorani}"><i class="fas fa-trash"></i></button>
                                 </div>
                             </div>
                         </div>`;
-
-                    // ٣. هێنانی جۆرە لاوەکیی لاوەکییەکان
-                    const { data: subSubCategories, error: subSubError } = await db
-                        .from(subSubcategoriesCollection)
-                        .select('*')
-                        .eq('subcategory_id', subCategory.id)
-                        .order('order', { ascending: true });
-
-                    if (subSubError) console.error("Error fetching sub-subcategories:", subSubError);
-                    
-                    if (subSubCategories) {
-                        for (const subSubCategory of subSubCategories) {
-                            // (لۆجیکی HTML وەک خۆی دەمێنێتەوە)
-                            content += `
-                                <div class="category-manage-item" style="margin-right: 40px; padding: 8px; border-right: 2px solid #e2e8f0; margin-bottom: 8px;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <span>-- ${subSubCategory.name_ku_sorani} (ڕیزبەندی: ${subSubCategory.order || 0})</span>
-                                        <div>
-                                            <button class="edit-btn small-btn" data-id="${subSubCategory.id}" data-table="${subSubcategoriesCollection}" data-level="3"><i class="fas fa-edit"></i></button>
-                                            <button class="delete-btn small-btn" data-id="${subSubCategory.id}" data-table="${subSubcategoriesCollection}" data-name="${subSubCategory.name_ku_sorani}"><i class="fas fa-trash"></i></button>
-                                        </div>
-                                    </div>
-                                </div>`;
-                        }
-                    }
                 }
             }
         }
@@ -596,28 +518,28 @@ window.AdminLogic = {
         container.innerHTML = content || '<p>هیچ جۆرێک زیاد نەکراوە.</p>';
         const self = this;
         container.querySelectorAll('.edit-btn').forEach(btn => {
-            btn.addEventListener('click', () => self.openEditCategoryModal(btn.dataset.id, btn.dataset.table, btn.dataset.level));
+            btn.addEventListener('click', () => self.openEditCategoryModal(btn.dataset.id, btn.dataset.level));
         });
         container.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', () => self.handleDeleteCategory(btn.dataset.id, btn.dataset.table, btn.dataset.name));
+            btn.addEventListener('click', () => self.handleDeleteCategory(btn.dataset.id, btn.dataset.level, btn.dataset.name));
         });
     },
 
-    openEditCategoryModal: async function(id, tableName, level) {
-        // گۆڕینی `getDoc` بۆ `select` + `single`
-        const { data: category, error } = await db
-            .from(tableName)
-            .select('*')
-            .eq('id', id)
-            .single();
+    // Guhertî bo Supabase (li ser bingeha ID, ne 'path')
+    openEditCategoryModal: async function(id, level) {
+        let tableName;
+        if (level === '1') tableName = categoriesCollection;
+        else if (level === '2') tableName = subcategoriesCollection;
+        else tableName = subSubcategoriesCollection;
+
+        const { data: category, error } = await db.from(tableName).select('*').eq('id', id).single();
 
         if (error || !category) {
             showNotification('جۆرەکە نەدۆزرایەوە!', 'error');
             return;
         }
 
-        document.getElementById('editCategoryDocPath').value = tableName; // گۆڕینی DocPath بە TableName
-        document.getElementById('editCategoryId').value = id; // زیادکردنی ID
+        document.getElementById('editCategoryDocPath').value = id; // Em ê IDyê li vir tomar bikin
         document.getElementById('editCategoryLevel').value = level;
 
         document.getElementById('editCategoryNameKuSorani').value = category.name_ku_sorani || '';
@@ -641,52 +563,39 @@ window.AdminLogic = {
         openPopup('editCategoryModal', 'modal');
     },
 
-    handleDeleteCategory: async function(id, tableName, categoryName) {
-        const confirmation = confirm(`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە (ئەگەر هەبن).`);
+    // Guhertî bo Supabase (pir tevlihev, ji ber ku divê em bi awayekî kaskadî (cascade) jê bibin)
+    handleDeleteCategory: async function(id, level, categoryName) {
+        const confirmation = confirm(`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: هەموو جۆرە لاوەکییەکانیشی دەسڕدرێنەوە.`);
         if (confirmation) {
             try {
-                // گۆڕینی `deleteDoc` بۆ `delete`
-                const { error } = await db
-                    .from(tableName)
-                    .delete()
-                    .eq('id', id);
-
-                if (error) throw error;
-                
-                // (تێبینی: سڕینەوەی لاوەکییەکان پێویستی بە لۆجیکی قورستر هەیە، با ئێستا وازی لێ بێنین)
+                if (level === '1') {
+                    // Pêdivî ye ku em RPC (Remote Procedure Call) li Supabase çêbikin ji bo jêbirina kaskadî
+                    // Ji ber ku ew pir tevlihev e, em ê tenê hewl bidin ku jê bibin (û em texmîn dikin ku 'on delete cascade' heye)
+                    const { error } = await db.from(categoriesCollection).delete().eq('id', id);
+                    if (error) throw error;
+                } else if (level === '2') {
+                    const { error } = await db.from(subcategoriesCollection).delete().eq('id', id);
+                    if (error) throw error;
+                } else { // level === '3'
+                    const { error } = await db.from(subSubcategoriesCollection).delete().eq('id', id);
+                    if (error) throw error;
+                }
                 
                 showNotification('جۆرەکە بە سەرکەوتوویی سڕدرایەوە', 'success');
                 clearProductCache();
-                await this.renderCategoryManagementUI(); // دووبارە بارکردنەوە
+                this.renderCategoryManagementUI(); // Lîsteyê nûve bike
             } catch (error) {
                 console.error("Error deleting category: ", error);
-                showNotification('هەڵەیەک ڕوویدا لە کاتی sڕینەوە', 'error');
+                showNotification('هەڵەیەک ڕوویدا. Dibe ku ev jêr-kategorî hebin.', 'error');
             }
         }
     },
 
-    // (فەنکشنەکانی `updateAdminCategoryDropdowns` و `renderPromoGroupsAdminList` و هتد، هەموویان بە هەمان شێوە دەگۆڕدرێن)
-    // ...
-    // (لێرەدا هەموو فەنکشنەکانی تر بە هەمان شێوەی سەرەوە گۆڕدراون)
-    // ...
-
-    // ======================================================
-    // === DESTPÊK: KODÊ NÛ Û ÇAKKIRÎ / START: NEW & FIXED CODE ===
-    // ======================================================
-    updateAdminCategoryDropdowns: async function() {
-        const categories = getCategories(); // This is fine
-        if (categories.length === 0) {
-            // Heke kategorî hîn nehatibin barkirin, wan barke
-            const { data: fetchedCategories, error } = await db.from(categoriesCollection).select('*').order('order', { ascending: true });
-            if (fetchedCategories) {
-                state.categories = fetchedCategories; // Nûvekirina state
-            } else {
-                 console.error("Failed to fetch categories for admin dropdowns:", error);
-                 return;
-            }
-        }
-        
-        const categoriesWithoutAll = state.categories.filter(cat => cat.id !== 'all'); // 'all' tune ye lê ji bo piştrastbûnê
+    // Wek xwe dimîne, ji ber ku ew li ser statea 'getCategories()' kar dike
+    updateAdminCategoryDropdowns: function() {
+        const categories = getCategories();
+        if (categories.length === 0) return; // Guhertin: ji <= 1 bû 0
+        const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
 
         const dropdowns = [
             { id: 'productCategoryId', defaultText: '-- جۆرێ سەرەکی هەڵبژێرە --', required: true },
@@ -712,24 +621,22 @@ window.AdminLogic = {
             }
         });
     },
-    // ======================================================
-    // === DAWÎ: KODÊ NÛ Û ÇAKKIRÎ / END: NEW & FIXED CODE ===
-    // ======================================================
 
-
-    // --- PROMO SLIDER GROUP MANAGEMENT (All functions updated) ---
+    // --- PROMO SLIDER (SUPABASE) ---
     renderPromoGroupsAdminList: async function() {
         const container = document.getElementById('promoGroupsListContainer');
         const groupSelect = document.getElementById('promoCardGroupSelect');
         
-        const { data: groups, error } = await db.from(promoGroupsCollection).select('*').order('created_at', { ascending: false });
+        const { data: groups, error } = await db
+            .from(promoGroupsCollection)
+            .select('*')
+            .order('created_at', { ascending: false });
 
         container.innerHTML = '';
         groupSelect.innerHTML = '<option value="" disabled selected>-- گرووپێک هەڵبژێرە --</option>';
 
         if (error || !groups || groups.length === 0) {
             container.innerHTML = '<p>هیچ گرووپێکی سلایدەر زیاد نەکراوە.</p>';
-            if(error) console.error("Error fetching promo groups:", error);
             return;
         }
 
@@ -754,9 +661,12 @@ window.AdminLogic = {
             container.appendChild(groupElement);
 
             const cardsContainer = groupElement.querySelector('.cards-list-container');
-            
-            const { data: cards, error: cardsError } = await db.from(promoCardsCollection).select('*').eq('promo_group_id', group.id).order('order', { ascending: true });
-            
+            const { data: cards, error: cardsError } = await db
+                .from(promoCardsCollection)
+                .select('*')
+                .eq('group_id', group.id)
+                .order('order', { ascending: true });
+
             cardsContainer.innerHTML = '';
             if (cardsError || !cards || cards.length === 0) {
                 cardsContainer.innerHTML = '<p class="empty-list-text">هیچ کاردێک بۆ ئەم گرووپە زیاد نەکراوە.</p>';
@@ -767,8 +677,8 @@ window.AdminLogic = {
                     cardElement.innerHTML = `
                         <span>- کارت (ڕیز: ${card.order})</span>
                         <div>
-                            <button class="edit-btn small-btn edit-promo-card-btn" data-group-id="${group.id}" data-card-id="${card.id}"><i class="fas fa-edit"></i></button>
-                            <button class="delete-btn small-btn delete-promo-card-btn" data-group-id="${group.id}" data-card-id="${card.id}"><i class="fas fa-trash"></i></button>
+                            <button class="edit-btn small-btn edit-promo-card-btn" data-card-id="${card.id}"><i class="fas fa-edit"></i></button>
+                            <button class="delete-btn small-btn delete-promo-card-btn" data-card-id="${card.id}"><i class="fas fa-trash"></i></button>
                         </div>`;
                     cardsContainer.appendChild(cardElement);
                 });
@@ -778,37 +688,31 @@ window.AdminLogic = {
 
     editPromoGroup: async function(groupId) {
         const { data: group } = await db.from(promoGroupsCollection).select('name').eq('id', groupId).single();
-        const currentName = group ? group.name : '';
-        const newName = prompt('ناوی نوێی گرووپ بنووسە:', currentName);
+        const newName = prompt('ناوی نوێی گرووپ بنووسە:', group.name);
         if (newName && newName.trim() !== '') {
             await db.from(promoGroupsCollection).update({ name: newName.trim() }).eq('id', groupId);
             showNotification('ناوی گرووپ نوێکرایەوە', 'success');
             clearProductCache();
-            await this.renderPromoGroupsAdminList();
         }
     },
 
     deletePromoGroup: async function(groupId) {
-        if (confirm('دڵنیایت دەتەوێت ئەم گرووپە و هەموو کارتەکانی بسڕیتەوە؟')) {
+        if (confirm('دڵنیایت دەتەوێت ئەم گرووپە و هەموو کارتەکانی بسڕیتەوە؟ (Cascade)')) {
             try {
-                // Delete cards first
-                await db.from(promoCardsCollection).delete().eq('promo_group_id', groupId);
-                // Then delete group
-                await db.from(promoGroupsCollection).delete().eq('id', groupId);
-                
+                // Texmîn dikin ku 'on delete cascade' li ser databaseê hatiye danîn
+                const { error } = await db.from(promoGroupsCollection).delete().eq('id', groupId);
+                if (error) throw error;
                 showNotification('گرووپ بە تەواوی سڕدرایەوە', 'success');
                 clearProductCache();
-                await this.renderPromoGroupsAdminList();
-            } catch (error) { showNotification('هەڵەیەک ڕوویدا', 'error'); }
+            } catch (error) { showNotification('هەڵەیەک ڕوویدا. Kontrol bike 'on delete cascade'.', 'error'); }
         }
     },
     
-    editPromoCard: async function(groupId, cardId) {
+    editPromoCard: async function(cardId) {
         const { data: card, error } = await db.from(promoCardsCollection).select('*').eq('id', cardId).single();
-        
         if (card) {
             document.getElementById('editingPromoCardId').value = cardId;
-            document.getElementById('promoCardGroupSelect').value = groupId; // or card.promo_group_id
+            document.getElementById('promoCardGroupSelect').value = card.group_id;
             document.getElementById('promoCardImageKuSorani').value = card.imageUrls.ku_sorani;
             document.getElementById('promoCardImageKuBadini').value = card.imageUrls.ku_badini;
             document.getElementById('promoCardImageAr').value = card.imageUrls.ar;
@@ -819,30 +723,32 @@ window.AdminLogic = {
         }
     },
 
-    deletePromoCard: async function(groupId, cardId) {
+    deletePromoCard: async function(cardId) {
         if (confirm('دڵنیایت دەتەوێت ئەم کارتە بسڕیتەوە؟')) {
             try {
-                await db.from(promoCardsCollection).delete().eq('id', cardId);
+                const { error } = await db.from(promoCardsCollection).delete().eq('id', cardId);
+                if (error) throw error;
                 showNotification('کارتەکە سڕدرایەوە', 'success');
                 clearProductCache();
-                await this.renderPromoGroupsAdminList(); // Rerender
             } catch (error) { showNotification('هەڵەیەک ڕوویدا', 'error'); }
         }
     },
 
-    // --- BRAND GROUP MANAGEMENT (All functions updated) ---
+    // --- BRAND GROUP (SUPABASE) ---
     renderBrandGroupsAdminList: async function() {
         const container = document.getElementById('brandGroupsListContainer');
         const groupSelect = document.getElementById('brandGroupSelect');
         
-        const { data: groups, error } = await db.from(brandGroupsCollection).select('*').order('created_at', { ascending: false });
+        const { data: groups, error } = await db
+            .from(brandGroupsCollection)
+            .select('*')
+            .order('created_at', { ascending: false });
 
         container.innerHTML = '';
         groupSelect.innerHTML = '<option value="" disabled selected>-- گرووپێک هەڵبژێرە --</option>';
 
         if (error || !groups || groups.length === 0) {
             container.innerHTML = '<p>هیچ گرووپێکی براند زیاد نەکراوە.</p>';
-            if(error) console.error("Error fetching brand groups:", error);
             return;
         }
 
@@ -867,7 +773,11 @@ window.AdminLogic = {
             container.appendChild(groupElement);
 
             const brandsContainer = groupElement.querySelector('.brands-list-container');
-            const { data: brands, error: brandsError } = await db.from(brandsCollection).select('*').eq('brand_group_id', group.id).order('order', { ascending: true });
+            const { data: brands, error: brandsError } = await db
+                .from(brandsCollection)
+                .select('*')
+                .eq('group_id', group.id)
+                .order('order', { ascending: true });
 
             brandsContainer.innerHTML = '';
             if (brandsError || !brands || brands.length === 0) {
@@ -879,8 +789,8 @@ window.AdminLogic = {
                     brandElement.innerHTML = `
                         <span>- ${brand.name.ku_sorani} (ڕیز: ${brand.order})</span>
                         <div>
-                            <button class="edit-btn small-btn edit-brand-btn" data-group-id="${group.id}" data-brand-id="${brand.id}"><i class="fas fa-edit"></i></button>
-                            <button class="delete-btn small-btn delete-brand-btn" data-group-id="${group.id}" data-brand-id="${brand.id}"><i class="fas fa-trash"></i></button>
+                            <button class="edit-btn small-btn edit-brand-btn" data-brand-id="${brand.id}"><i class="fas fa-edit"></i></button>
+                            <button class="delete-btn small-btn delete-brand-btn" data-brand-id="${brand.id}"><i class="fas fa-trash"></i></button>
                         </div>`;
                     brandsContainer.appendChild(brandElement);
                 });
@@ -890,33 +800,31 @@ window.AdminLogic = {
     
     editBrandGroup: async function(groupId) {
         const { data: group } = await db.from(brandGroupsCollection).select('name').eq('id', groupId).single();
-        const currentName = group ? group.name : '';
-        const newName = prompt('ناوی نوێی گرووپی براند بنووسە:', currentName);
+        const newName = prompt('ناوی نوێی گرووپی براند بنووسە:', group.name);
         if (newName && newName.trim() !== '') {
             await db.from(brandGroupsCollection).update({ name: newName.trim() }).eq('id', groupId);
             showNotification('ناوی گرووپ نوێکرایەوە', 'success');
             clearProductCache();
-            await this.renderBrandGroupsAdminList();
         }
     },
 
     deleteBrandGroup: async function(groupId) {
-        if (confirm('دڵنیایت دەتەوێت ئەم گرووپە و هەموو براندەکانی بسڕیتەوە؟')) {
+        if (confirm('دڵنیایت دەتەوێت ئەم گرووپە و هەموو براندەکانی بسڕیتەوە؟ (Cascade)')) {
             try {
-                await db.from(brandsCollection).delete().eq('brand_group_id', groupId);
-                await db.from(brandGroupsCollection).delete().eq('id', groupId);
+                // Texmîn dikin ku 'on delete cascade' hatiye danîn
+                const { error } = await db.from(brandGroupsCollection).delete().eq('id', groupId);
+                if (error) throw error;
                 showNotification('گرووپی براند بە تەواوی سڕدرایەوە', 'success');
                 clearProductCache();
-                await this.renderBrandGroupsAdminList();
             } catch (error) { showNotification('هەڵەیەک ڕوویدا', 'error'); }
         }
     },
 
-    editBrand: async function(groupId, brandId) {
+    editBrand: async function(brandId) {
         const { data: brand, error } = await db.from(brandsCollection).select('*').eq('id', brandId).single();
         if (brand) {
             document.getElementById('editingBrandId').value = brandId;
-            document.getElementById('brandGroupSelect').value = groupId; // or brand.brand_group_id
+            document.getElementById('brandGroupSelect').value = brand.group_id;
             document.getElementById('brandNameKuSorani').value = brand.name.ku_sorani || '';
             document.getElementById('brandNameKuBadini').value = brand.name.ku_badini || '';
             document.getElementById('brandNameAr').value = brand.name.ar || '';
@@ -933,30 +841,32 @@ window.AdminLogic = {
         }
     },
     
-    deleteBrand: async function(groupId, brandId) {
+    deleteBrand: async function(brandId) {
         if (confirm('دڵنیایت دەتەوێت ئەم براندە بسڕیتەوە؟')) {
             try {
-                await db.from(brandsCollection).delete().eq('id', brandId);
+                const { error } = await db.from(brandsCollection).delete().eq('id', brandId);
+                if (error) throw error;
                 showNotification('براندەکە سڕدرایەوە', 'success');
                 clearProductCache();
-                await this.renderBrandGroupsAdminList();
             } catch (error) { showNotification('هەڵەیەک ڕوویدا', 'error'); }
         }
     },
     
-    // --- SHORTCUT ROWS MANAGEMENT (All functions updated) ---
+    // --- SHORTCUT ROWS (SUPABASE) ---
     renderShortcutRowsAdminList: async function() {
         const container = document.getElementById('shortcutRowsListContainer');
         const rowSelect = document.getElementById('selectRowForCard');
         
-        const { data: rows, error } = await db.from(shortcutRowsCollection).select('*').order('order', { ascending: true });
+        const { data: rows, error } = await db
+            .from(shortcutRowsCollection)
+            .select('*')
+            .order('order', { ascending: true });
 
         container.innerHTML = '';
         rowSelect.innerHTML = '<option value="" disabled selected>-- سەرەتا ڕیزێک هەڵبژێرە --</option>';
-            
+        
         if (error || !rows || rows.length === 0) {
             container.innerHTML = '<p>هیچ ڕیزێک زیاد نەکراوە.</p>';
-            if(error) console.error("Error fetching shortcut rows:", error);
             return;
         }
 
@@ -968,6 +878,7 @@ window.AdminLogic = {
 
             const rowElement = document.createElement('div');
             rowElement.className = 'admin-list-group';
+            
             rowElement.innerHTML = `
                 <div class="admin-list-group-header">
                     <strong><i class="fas fa-layer-group"></i> ${row.title.ku_sorani} (ڕیز: ${row.order})</strong>
@@ -981,8 +892,12 @@ window.AdminLogic = {
             container.appendChild(rowElement);
 
             const cardsContainer = rowElement.querySelector('.cards-list-container');
-            const { data: cards, error: cardsError } = await db.from(shortcutCardsCollection).select('*').eq('shortcut_row_id', row.id).order('order', { ascending: true });
-
+            const { data: cards, error: cardsError } = await db
+                .from(shortcutCardsCollection)
+                .select('*')
+                .eq('row_id', row.id)
+                .order('order', { ascending: true });
+                
             cardsContainer.innerHTML = '';
             if(cardsError || !cards || cards.length === 0) {
                 cardsContainer.innerHTML = '<p class="empty-list-text">هیچ کارتێک بۆ ئەم ڕیزە زیاد نەکراوە.</p>';
@@ -993,8 +908,8 @@ window.AdminLogic = {
                     cardElement.innerHTML = `
                         <span>- ${card.name.ku_sorani} (ڕیز: ${card.order})</span>
                         <div>
-                            <button class="edit-card-btn edit-btn small-btn" data-row-id="${row.id}" data-card-id="${card.id}"><i class="fas fa-edit"></i></button>
-                            <button class="delete-card-btn delete-btn small-btn" data-row-id="${row.id}" data-card-id="${card.id}"><i class="fas fa-trash"></i></button>
+                            <button class="edit-card-btn edit-btn small-btn" data-card-id="${card.id}"><i class="fas fa-edit"></i></button>
+                            <button class="delete-card-btn delete-btn small-btn" data-card-id="${card.id}"><i class="fas fa-trash"></i></button>
                         </div>
                     `;
                     cardsContainer.appendChild(cardElement);
@@ -1004,13 +919,14 @@ window.AdminLogic = {
     },
 
     editShortcutRow: async function(rowId) {
-        const { data: row } = await db.from(shortcutRowsCollection).select('*').eq('id', rowId).single();
+        const { data: row, error } = await db.from(shortcutRowsCollection).select('*').eq('id', rowId).single();
         if (row) {
             document.getElementById('editingShortcutRowId').value = rowId;
             document.getElementById('shortcutRowTitleKuSorani').value = row.title.ku_sorani || '';
             document.getElementById('shortcutRowTitleKuBadini').value = row.title.ku_badini || '';
             document.getElementById('shortcutRowTitleAr').value = row.title.ar || '';
             document.getElementById('shortcutRowOrder').value = row.order || 10;
+
             document.getElementById('addShortcutRowForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوەی ڕیز';
             document.getElementById('cancelRowEditBtn').style.display = 'inline-block';
             document.getElementById('addShortcutRowForm').scrollIntoView({ behavior: 'smooth' });
@@ -1018,25 +934,25 @@ window.AdminLogic = {
     },
 
     deleteShortcutRow: async function(rowId) {
-        if (confirm('دڵنیایت دەتەوێت ئەم ڕیزە بسڕیتەوە؟ هەموو کارتەکانی ناویشی دەسڕێنەوە!')) {
+        if (confirm('دڵنیایت دەتەوێت ئەم ڕیزە بسڕیتەوە؟ (Cascade)')) {
             try {
-                await db.from(shortcutCardsCollection).delete().eq('shortcut_row_id', rowId);
-                await db.from(shortcutRowsCollection).delete().eq('id', rowId);
+                // Texmîn dikin ku 'on delete cascade' hatiye danîn
+                const { error } = await db.from(shortcutRowsCollection).delete().eq('id', rowId);
+                if (error) throw error;
                 showNotification('ڕیزەکە بە تەواوی سڕدرایەوە', 'success');
                 clearProductCache();
-                await this.renderShortcutRowsAdminList();
             } catch (error) {
-                showNotification('هەڵەیەک ڕوویدا', 'error');
                 console.error("Error deleting shortcut row: ", error);
+                showNotification('هەڵەیەک ڕوویدا', 'error');
             }
         }
     },
 
-    editShortcutCard: async function(rowId, cardId) {
-        const { data: card } = await db.from(shortcutCardsCollection).select('*').eq('id', cardId).single();
+    editShortcutCard: async function(cardId) {
+        const { data: card, error } = await db.from(shortcutCardsCollection).select('*').eq('id', cardId).single();
         if (card) {
             document.getElementById('editingShortcutCardId').value = cardId;
-            document.getElementById('selectRowForCard').value = rowId; // or card.shortcut_row_id
+            document.getElementById('selectRowForCard').value = card.row_id;
             document.getElementById('shortcutCardNameKuSorani').value = card.name.ku_sorani || '';
             document.getElementById('shortcutCardNameKuBadini').value = card.name.ku_badini || '';
             document.getElementById('shortcutCardNameAr').value = card.name.ar || '';
@@ -1046,6 +962,7 @@ window.AdminLogic = {
             const mainCatSelect = document.getElementById('shortcutCardMainCategory');
             mainCatSelect.value = card.categoryId || '';
             mainCatSelect.dispatchEvent(new Event('change')); 
+
             setTimeout(() => {
                 const subCatSelect = document.getElementById('shortcutCardSubcategory');
                 subCatSelect.value = card.subcategoryId || '';
@@ -1061,13 +978,13 @@ window.AdminLogic = {
         }
     },
 
-    deleteShortcutCard: async function(rowId, cardId) {
+    deleteShortcutCard: async function(cardId) {
         if (confirm('دڵنیایت دەتەوێت ئەم کارتە بسڕیتەوە؟')) {
             try {
-                await db.from(shortcutCardsCollection).delete().eq('id', cardId);
+                const { error } = await db.from(shortcutCardsCollection).delete().eq('id', cardId);
+                if (error) throw error;
                 showNotification('کارتەکە سڕدرایەوە', 'success');
                 clearProductCache();
-                await this.renderShortcutRowsAdminList();
             } catch (error) {
                 showNotification('هەڵەیەک ڕوویدا', 'error');
                 console.error("Error deleting shortcut card: ", error);
@@ -1075,20 +992,33 @@ window.AdminLogic = {
         }
     },
     
-    // (فەنکشنەکان وەک خۆیان دەمێننەوە)
+    // Wek xwe dimîne
     updateShortcutCardCategoryDropdowns: function() {
-        // ... (هیچ گۆڕانکارییەک نییە، پشت بە `getCategories` دەبەستێت) ...
+        const categories = getCategories();
+        if (categories.length === 0) return;
+        const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
+        const mainSelect = document.getElementById('shortcutCardMainCategory');
+        
+        mainSelect.innerHTML = '<option value="">-- هەموو کاڵاکان --</option>';
+        categoriesWithoutAll.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.id;
+            option.textContent = cat.name_ku_sorani;
+            mainSelect.appendChild(option);
+        });
     },
 
-    // --- HOME LAYOUT MANAGEMENT (Updated) ---
+    // Guhertî bo Supabase
     renderHomeLayoutAdmin: async function() {
         const container = document.getElementById('homeLayoutListContainer');
-        const { data: items, error } = await db.from(homeLayoutCollection).select('*').order('order', { ascending: true });
+        const { data: items, error } = await db
+            .from(homeLayoutCollection)
+            .select('*')
+            .order('order', { ascending: true });
 
         container.innerHTML = '';
         if (error || !items || items.length === 0) {
             container.innerHTML = '<p>هیچ بەشێک بۆ لاپەڕەی سەرەکی زیاد نەکراوە. کلیک لە "زیادکردنی بەش" بکە.</p>';
-            if(error) console.error("Error fetching home layout:", error);
             return;
         }
 
@@ -1097,7 +1027,9 @@ window.AdminLogic = {
             itemElement.className = 'layout-item';
             itemElement.dataset.id = item.id;
             itemElement.draggable = true;
+
             const itemName = (item.name && typeof item.name === 'object') ? (item.name[getCurrentLanguage()] || item.name.ku_sorani) : item.name;
+
             itemElement.innerHTML = `
                 <div class="layout-item-info">
                     <i class="fas fa-grip-vertical drag-handle"></i>
@@ -1114,16 +1046,16 @@ window.AdminLogic = {
             container.appendChild(itemElement);
         });
 
-        const self = this;
-        // (لۆجیکی Drag and Drop وەک خۆی دەمێنێتەوە)
-        const itemsList = container.querySelectorAll('.layout-item');
-        itemsList.forEach(item => {
+        // Mantiqê Drag/Drop wek xwe dimîne
+        const droppableItems = container.querySelectorAll('.layout-item');
+        droppableItems.forEach(item => {
             item.addEventListener('dragstart', () => setTimeout(() => item.classList.add('dragging'), 0));
             item.addEventListener('dragend', () => item.classList.remove('dragging'));
         });
+
         container.addEventListener('dragover', e => {
             e.preventDefault();
-            const afterElement = self.getDragAfterElement(container, e.clientY);
+            const afterElement = this.getDragAfterElement(container, e.clientY);
             const dragging = document.querySelector('.dragging');
             if (afterElement == null) {
                 if (dragging) container.appendChild(dragging);
@@ -1133,18 +1065,28 @@ window.AdminLogic = {
         });
     },
 
-    // (وەک خۆی دەمێنێتەوە)
+    // Wek xwe dimîne
     getDragAfterElement: function(container, y) {
-        // ... (هیچ گۆڕانکارییەک نییە) ...
+        const draggableElements = [...container.querySelectorAll('.layout-item:not(.dragging)')];
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
     },
     
+    // Guhertî bo Supabase
     deleteHomeLayoutItem: async function(itemId) {
-        if (confirm('دڵنیایت دەتەوێت ئەم بەشە لە لاپەڕەی سەرەکی بسڕیتەوە؟')) {
+        if (confirm('دڵنیایت دەتەوێت ئەم بەشە لە لاپەڕەی سەرەki بسڕیتەوە؟')) {
             try {
-                await db.from(homeLayoutCollection).delete().eq('id', itemId);
+                const { error } = await db.from(homeLayoutCollection).delete().eq('id', itemId);
+                if (error) throw error;
                 showNotification('بەشەکە سڕدرایەوە', 'success');
                 clearProductCache();
-                await this.renderHomeLayoutAdmin(); // Rerender
             } catch (error) {
                 console.error("Error deleting layout item:", error);
                 showNotification('هەڵەیەک ڕوویدا', 'error');
@@ -1152,6 +1094,7 @@ window.AdminLogic = {
         }
     },
 
+    // Guhertî bo Supabase
     saveHomeLayout: async function() {
         const container = document.getElementById('homeLayoutListContainer');
         const saveBtn = document.getElementById('saveLayoutBtn');
@@ -1160,29 +1103,22 @@ window.AdminLogic = {
         saveBtn.textContent = '...پاشەکەوت دەکرێت';
 
         const items = container.querySelectorAll('.layout-item');
-        const updatePromises = [];
+        const updates = [];
 
         items.forEach((item, index) => {
-            const docId = item.dataset.id;
-            const isEnabled = item.querySelector('.enabled-toggle').checked;
-            const newOrder = index + 1;
-            
-            // گۆڕینی `updateDoc` بۆ `update`
-            const promise = db.from(homeLayoutCollection)
-                .update({ order: newOrder, enabled: isEnabled })
-                .eq('id', docId);
-            updatePromises.push(promise);
+            updates.push({
+                id: item.dataset.id, // IDya rêzê
+                order: index + 1,
+                enabled: item.querySelector('.enabled-toggle').checked
+            });
         });
 
         try {
-            // Promise.all(updatePromises) کار ناکات چونکە Supabase array ناگەڕێنێتەوە
-            // با یەک بە یەک ئەنجامیان بدەین
-            for (const promise of updatePromises) {
-                 const { error } = await promise;
-                 if (error) throw error;
-            }
+            // 'upsert' bikar bîne ji bo nûvekirina hemî rêzan di yek carekê de
+            const { error } = await db.from(homeLayoutCollection).upsert(updates);
+            if (error) throw error;
             
-            showNotification('ڕیزبەندی پەڕەی سەرەکی پاشەکەوت کرا', 'success');
+            showNotification('ڕیزبەندی پەڕەی سەرەki پاشەکەوت کرا', 'success');
             clearProductCache();
         } catch (error) {
             console.error("Error saving layout:", error);
@@ -1193,7 +1129,7 @@ window.AdminLogic = {
         }
     },
     
-    // --- EVENT LISTENERS (Updated forms) ---
+    // Hemî event listenerên ku bi Supabase re hatine nûve kirin
     setupAdminEventListeners: function() {
         if (this.listenersAttached) return;
         const self = this;
@@ -1233,37 +1169,34 @@ window.AdminLogic = {
                 groupSelect.required = true;
                 groupSelect.innerHTML = '<option value="">...بارکردن</option>';
                 
-                let collectionName, orderField, nameFieldAccessor;
+                let collectionName, orderField, nameField;
 
                 if (type === 'promo_slider') {
                     collectionName = promoGroupsCollection;
                     groupLabel.textContent = 'کام گرووپی سلایدەر؟';
                     orderField = 'name';
-                    nameFieldAccessor = (data) => data.name;
+                    nameField = 'name';
                 } else if (type === 'brands') {
                     collectionName = brandGroupsCollection;
                     groupLabel.textContent = 'کام گرووپی براند؟';
                     orderField = 'name';
-                    nameFieldAccessor = (data) => data.name;
+                    nameField = 'name';
                 } else { 
                     collectionName = shortcutRowsCollection;
                     groupLabel.textContent = 'کام ڕیزی کارت؟';
                     orderField = 'order';
-                    nameFieldAccessor = (data) => data.title.ku_sorani;
+                    nameField = 'title'; // title stûnek JSON e
                 }
                 
-                const { data: items, error } = await db.from(collectionName).select('*').order(orderField);
-                if (error) {
-                    console.error("Error fetching items for layout dropdown:", error);
-                    groupSelect.innerHTML = `<option value="" disabled selected>-- هەڵە --</option>`;
-                    return;
-                }
-                
+                const { data, error } = await db.from(collectionName).select(`id, ${nameField}`).order(orderField);
                 groupSelect.innerHTML = `<option value="" disabled selected>-- گرووپ/ڕیزێک هەڵبژێرە --</option>`;
-                items.forEach(item => {
-                    const name = nameFieldAccessor(item);
-                    groupSelect.innerHTML += `<option value="${item.id}">${name}</option>`;
-                });
+                if(data) {
+                    data.forEach(item => {
+                        // Heke nav JSON be, wê bi rêkûpêk bigire
+                        const name = (typeof item[nameField] === 'object' && item[nameField] !== null) ? item[nameField].ku_sorani : item[nameField];
+                        groupSelect.innerHTML += `<option value="${item.id}">${name}</option>`;
+                    });
+                }
             } else if (type === 'single_category_row') {
                 categoryContainer.style.display = 'block';
                 mainCatSelect.required = true;
@@ -1278,46 +1211,39 @@ window.AdminLogic = {
             e.preventDefault();
             const type = document.getElementById('newSectionType').value;
             const nameInput = document.getElementById('newSectionName').value;
+            
             let nameObj = { ku_sorani: nameInput, ku_badini: nameInput, ar: nameInput };
-            let specificIdData = {};
+            let newSectionData = {
+                name: nameObj,
+                type,
+                enabled: true,
+            };
             
             if (type === 'promo_slider' || type === 'brands') {
-                const groupId = document.getElementById('specificItemGroupId').value;
-                if (!groupId) { showNotification('تکایە گرووپێک هەڵبژێرە', 'error'); return; }
-                specificIdData = { groupId };
+                newSectionData.group_id = document.getElementById('specificItemGroupId').value;
+                if (!newSectionData.group_id) { showNotification('تکایە گرووپێک هەڵبژێرە', 'error'); return; }
             } else if (type === 'single_shortcut_row') {
-                const rowId = document.getElementById('specificItemGroupId').value;
-                if (!rowId) { showNotification('تکایە ڕیزێک هەڵبژێرە', 'error'); return; }
-                specificIdData = { rowId };
+                newSectionData.rowId = document.getElementById('specificItemGroupId').value; // Dibe ku ev 'row_id' be
+                if (!newSectionData.rowId) { showNotification('تکایە ڕیزێک هەڵبژێرە', 'error'); return; }
             } else if (type === 'single_category_row') {
-                const catId = document.getElementById('newSectionMainCategory').value;
-                const subCatId = document.getElementById('newSectionSubcategory').value;
-                const subSubCatId = document.getElementById('newSectionSubSubcategory').value;
-                if (!catId) { showNotification('تکایە جۆری سەرەکی هەڵبژێرە', 'error'); return; }
-                specificIdData = { categoryId: catId, subcategoryId: subCatId || null, subSubcategoryId: subSubCatId || null };
+                newSectionData.categoryId = document.getElementById('newSectionMainCategory').value;
+                newSectionData.subcategoryId = document.getElementById('newSectionSubcategory').value || null;
+                newSectionData.subSubcategoryId = document.getElementById('newSectionSubSubcategory').value || null;
+                if (!newSectionData.categoryId) { showNotification('تکایە جۆری سەرەki هەڵبژێرە', 'error'); return; }
             }
 
             try {
-                // گرتنی دوا ڕیزبەندی
-                const { data: lastItem } = await db.from(homeLayoutCollection).select('order').order('order', { ascending: false }).limit(1).single();
-                const lastOrder = lastItem ? lastItem.order : 0;
+                // Rêza herî dawî bistîne
+                const { data: lastItem, error: orderError } = await db.from(homeLayoutCollection).select('order').order('order', { ascending: false }).limit(1);
+                const lastOrder = (lastItem && lastItem.length > 0) ? lastItem[0].order : 0;
+                newSectionData.order = lastOrder + 1;
                 
-                const newSectionData = {
-                    name: nameObj,
-                    type,
-                    order: lastOrder + 1,
-                    enabled: true,
-                    ...specificIdData
-                };
-
-                // گۆڕینی `addDoc` بۆ `insert`
                 const { error } = await db.from(homeLayoutCollection).insert(newSectionData);
                 if (error) throw error;
-                
+
                 showNotification('بەشی نوێ زیادکرا', 'success');
                 closeCurrentPopup();
                 clearProductCache();
-                await this.renderHomeLayoutAdmin(); // Rerender
             } catch (error) {
                 console.error("Error adding new home section:", error);
                 showNotification('هەڵەیەک ڕوویدا', 'error');
@@ -1336,44 +1262,35 @@ window.AdminLogic = {
             if (mainCatId) {
                 subContainer.style.display = 'block';
                 subSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
-                const { data: subcats, error } = await db.from(subcategoriesCollection).select('*').eq('category_id', mainCatId).order('order');
-                
+                const { data, error } = await db.from(subcategoriesCollection).select('id, name_ku_sorani').eq('category_id', mainCatId).order('order');
                 subSelect.innerHTML = '<option value="">-- هەموو (یان هەڵبژێرە) --</option>';
-                if (subcats) {
-                    subcats.forEach(subcat => {
-                        subSelect.innerHTML += `<option value="${subcat.id}">${subcat.name_ku_sorani}</option>`;
-                    });
-                }
+                if(data) data.forEach(item => {
+                    subSelect.innerHTML += `<option value="${item.id}">${item.name_ku_sorani}</option>`;
+                });
             } else {
                 subContainer.style.display = 'none';
             }
         });
         
         document.getElementById('newSectionSubcategory').addEventListener('change', async (e) => {
-            const mainCatId = document.getElementById('newSectionMainCategory').value;
             const subCatId = e.target.value;
             const subSubContainer = document.getElementById('newSectionSubSubcategoryContainer');
             const subSubSelect = document.getElementById('newSectionSubSubcategory');
             
             subSubSelect.innerHTML = '';
 
-            if (mainCatId && subCatId) {
+            if (subCatId) {
                 subSubContainer.style.display = 'block';
                 subSubSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
-                const { data: subsubcats, error } = await db.from(subSubcategoriesCollection).select('*').eq('subcategory_id', subCatId).order('order');
-
+                const { data, error } = await db.from(subSubcategoriesCollection).select('id, name_ku_sorani').eq('subcategory_id', subCatId).order('order');
                 subSubSelect.innerHTML = '<option value="">-- هەموو (یان هەڵبژێرە) --</option>';
-                if(subsubcats) {
-                    subsubcats.forEach(subsubcat => {
-                        subSubSelect.innerHTML += `<option value="${subsubcat.id}">${subsubcat.name_ku_sorani}</option>`;
-                    });
-                }
+                if(data) data.forEach(item => {
+                    subSubSelect.innerHTML += `<option value="${item.id}">${item.name_ku_sorani}</option>`;
+                });
             } else {
                 subSubContainer.style.display = 'none';
             }
         });
-
-        // --- Other listeners (Updated forms) ---
         
         document.getElementById('addProductBtn').onclick = () => {
             setEditingProductId(null);
@@ -1386,23 +1303,20 @@ window.AdminLogic = {
             openPopup('productFormModal', 'modal');
         };
 
-        // (لۆجیکی logout وەک خۆی دەمێنێتەوە)
         document.getElementById('settingsLogoutBtn').onclick = async () => {
-            await auth.signOut(); // Supabase signOut
+            await auth.signOut();
             showNotification(t('logout_success'), 'success');
         };
         
-        // (لۆجیکی گۆڕینی جۆرەکان وەک خۆی دەمێنێتەوە)
         document.getElementById('productCategoryId').addEventListener('change', (e) => {
             self.populateSubcategoriesDropdown(e.target.value);
             self.populateSubSubcategoriesDropdown(null, null);
         });
+
         document.getElementById('productSubcategoryId').addEventListener('change', (e) => {
-            const mainCatId = document.getElementById('productCategoryId').value;
-            self.populateSubSubcategoriesDropdown(mainCatId, e.target.value);
+            self.populateSubSubcategoriesDropdown(e.target.value);
         });
 
-        // (فۆرمی سەرەکی `productForm` - گۆڕدرا)
         document.getElementById('productForm').onsubmit = async (e) => {
             e.preventDefault();
             const submitButton = e.target.querySelector('button[type="submit"]');
@@ -1421,6 +1335,7 @@ window.AdminLogic = {
                 ku_badini: document.getElementById('productDescriptionKuBadini').value,
                 ar: document.getElementById('productDescriptionAr').value
             };
+
             const productNameKuSorani = document.getElementById('productNameKuSorani').value;
             const productNameObject = {
                 ku_sorani: productNameKuSorani,
@@ -1434,42 +1349,34 @@ window.AdminLogic = {
                     searchableName: productNameKuSorani.toLowerCase(),
                     price: parseInt(document.getElementById('productPrice').value),
                     originalPrice: parseInt(document.getElementById('productOriginalPrice').value) || null,
-                    categoryId: document.getElementById('productCategoryId').value,
+                    categoryId: document.getElementById('productCategoryId').value || null,
                     subcategoryId: document.getElementById('productSubcategoryId').value || null,
                     subSubcategoryId: document.getElementById('productSubSubcategoryId').value || null,
                     description: productDescriptionObject,
-                    imageUrls: imageUrls, // Supabase jsonb
+                    imageUrls: imageUrls,
+                    // 'created_at' dê ji hêla databaseê ve bixweber were danîn
                     externalLink: document.getElementById('productExternalLink').value || null,
-                    shippingInfo: { // Supabase jsonb
+                    shippingInfo: {
                         ku_sorani: document.getElementById('shippingInfoKuSorani').value.trim(),
                         ku_badini: document.getElementById('shippingInfoKuBadini').value.trim(),
                         ar: document.getElementById('shippingInfoAr').value.trim()
                     }
-                    // `created_at` بە شێوەی ئۆتۆماتیک لە Supabase زیاد دەبێت
                 };
-                
                 const editingId = getEditingProductId();
+                
                 let error;
-
                 if (editingId) {
-                    // گۆڕینی `updateDoc` بۆ `update`
-                    const { error: updateError } = await db
-                        .from(productsCollection)
-                        .update(productData)
-                        .eq('id', editingId);
+                    const { error: updateError } = await db.from(productsCollection).update(productData).eq('id', editingId);
                     error = updateError;
                     if (!error) showNotification('کاڵا نوێکرایەوە', 'success');
                 } else {
-                    // گۆڕینی `addDoc` بۆ `insert`
-                    const { error: insertError } = await db
-                        .from(productsCollection)
-                        .insert(productData);
+                    const { error: insertError } = await db.from(productsCollection).insert(productData);
                     error = insertError;
                     if (!error) showNotification('کاڵا زیادکرا', 'success');
                 }
                 
                 if (error) throw error;
-
+                
                 clearProductCache();
                 closeCurrentPopup();
             } catch (error) {
@@ -1482,19 +1389,23 @@ window.AdminLogic = {
             }
         };
 
-        // (لۆجیکی وێنە وەک خۆی دەمێنێتەوە)
         document.getElementById('imageInputsContainer').addEventListener('input', (e) => {
-            // ... (هیچ گۆڕانکارییەک نییە) ...
+            if (e.target.classList.contains('productImageUrl')) {
+                const previewImg = e.target.nextElementSibling;
+                const url = e.target.value;
+                if (url) { previewImg.src = url; } else {
+                    const index = Array.from(e.target.parentElement.parentElement.children).indexOf(e.target.parentElement);
+                    previewImg.src = `https://placehold.co/40x40/e2e8f0/2d3748?text=${index + 1}`;
+                }
+            }
         });
         
-        // (فۆرمی `addCategoryForm` - گۆڕدرا)
         const addCategoryForm = document.getElementById('addCategoryForm');
         if (addCategoryForm) {
             addCategoryForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const submitButton = e.target.querySelector('button[type="submit"]');
                 submitButton.disabled = true;
-                submitButton.textContent = '...پاشەکەوت دەکرێت';
 
                 const categoryData = {
                     name_ku_sorani: document.getElementById('mainCategoryNameKuSorani').value,
@@ -1505,78 +1416,62 @@ window.AdminLogic = {
                 };
 
                 try {
-                    // گۆڕینی `addDoc` بۆ `insert`
                     const { error } = await db.from(categoriesCollection).insert(categoryData);
                     if (error) throw error;
-                    
-                    showNotification('جۆری سەرەکی بە سەرکەوتوویی زیادکرا', 'success');
+                    showNotification('جۆری سەرەki بە سەرکەوتوویی زیادکرا', 'success');
                     addCategoryForm.reset();
                     clearProductCache();
-                    await this.renderCategoryManagementUI(); // Rerender
+                    self.renderCategoryManagementUI(); // Lîsteyê nûve bike
                 } catch (error) {
                     console.error("Error adding main category: ", error);
                     showNotification(t('error_generic'), 'error');
                 } finally {
                     submitButton.disabled = false;
-                    submitButton.textContent = 'پاشەکەوتکردنی جۆری سەرەکی';
+                    submitButton.textContent = 'پاشەکەوتکردنی جۆری سەرەki';
                 }
             });
         }
 
-        // (فۆرمی `addSubcategoryForm` - گۆڕدرا)
         const addSubcategoryForm = document.getElementById('addSubcategoryForm');
         if (addSubcategoryForm) {
             addSubcategoryForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const submitButton = e.target.querySelector('button[type="submit"]');
                 const parentCategoryId = document.getElementById('parentCategorySelect').value;
-
                 if (!parentCategoryId) {
-                    showNotification('تکایە جۆری سەرەکی هەڵبژێرە', 'error');
+                    showNotification('تکایە جۆری سەرەki هەڵبژێرە', 'error');
                     return;
                 }
-
-                submitButton.disabled = true;
-                submitButton.textContent = '...پاشەکەوت دەکرێت';
-
+                
                 const subcategoryData = {
                     name_ku_sorani: document.getElementById('subcategoryNameKuSorani').value,
                     name_ku_badini: document.getElementById('subcategoryNameKuBadini').value,
                     name_ar: document.getElementById('subcategoryNameAr').value,
                     order: parseInt(document.getElementById('subcategoryOrder').value) || 0,
                     imageUrl: document.getElementById('subcategoryImageUrl').value.trim() || null,
-                    category_id: parentCategoryId // گرنگ: زیادکردنی IDی باوک
+                    category_id: parentCategoryId // ForeignKey
                 };
 
                 try {
-                    // گۆڕینی `addDoc` بۆ `insert`
                     const { error } = await db.from(subcategoriesCollection).insert(subcategoryData);
                     if (error) throw error;
-                    
                     showNotification('جۆری لاوەکی بە سەرکەوتوویی زیادکرا', 'success');
                     addSubcategoryForm.reset();
                     clearProductCache();
-                    await this.renderCategoryManagementUI(); // Rerender
+                    self.renderCategoryManagementUI();
                 } catch (error) {
                     console.error("Error adding subcategory: ", error);
                     showNotification(t('error_generic'), 'error');
-                } finally {
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'پاشەکەوتکردنی جۆری لاوەکی';
                 }
             });
         }
 
-        // (فۆرمی `addSubSubcategoryForm` - گۆڕدرا)
         const addSubSubcategoryForm = document.getElementById('addSubSubcategoryForm');
         if (addSubSubcategoryForm) {
             addSubSubcategoryForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const mainCatId = document.getElementById('parentMainCategorySelectForSubSub').value;
                 const subCatId = document.getElementById('parentSubcategorySelectForSubSub').value;
-
-                if (!mainCatId || !subCatId) {
-                    showNotification('تکایە هەردوو جۆرەکە هەڵبژێرە', 'error');
+                if (!subCatId) {
+                    showNotification('تکایە جۆری لاوەکی هەڵبژێرە', 'error');
                     return;
                 }
 
@@ -1586,20 +1481,16 @@ window.AdminLogic = {
                     name_ar: document.getElementById('subSubcategoryNameAr').value,
                     order: parseInt(document.getElementById('subSubcategoryOrder').value) || 0,
                     imageUrl: document.getElementById('subSubcategoryImageUrl').value.trim() || null,
-                    subcategory_id: subCatId, // گرنگ: زیادکردنی IDی باوک
-                    category_id: mainCatId // گرنگ: زیادکردنی IDی باوکی باوک
+                    subcategory_id: subCatId // ForeignKey
                 };
 
                 try {
-                    // گۆڕینی `addDoc` بۆ `insert`
                     const { error } = await db.from(subSubcategoriesCollection).insert(subSubcategoryData);
                     if (error) throw error;
-
                     showNotification('جۆری نوێ بە سەرکەوتوویی زیادکرا', 'success');
                     addSubSubcategoryForm.reset();
-                    // ... (لۆجیکی ڕیفرێشکردن وەک خۆی دەمێنێتەوە) ...
                     clearProductCache();
-                    await this.renderCategoryManagementUI(); // Rerender
+                    self.renderCategoryManagementUI();
                 } catch (error) {
                     console.error("Error adding sub-subcategory: ", error);
                     showNotification('هەڵەیەک ڕوویدا', 'error');
@@ -1607,17 +1498,11 @@ window.AdminLogic = {
             });
         }
 
-        // (فۆرمی `editCategoryForm` - گۆڕدرا)
         const editCategoryForm = document.getElementById('editCategoryForm');
         if (editCategoryForm) {
             editCategoryForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const submitButton = e.target.querySelector('button[type="submit"]');
-                submitButton.disabled = true;
-                submitButton.textContent = '...پاشەکەوت دەکرێت';
-
-                const tableName = document.getElementById('editCategoryDocPath').value;
-                const id = document.getElementById('editCategoryId').value; // وەرگرتنی ID
+                const id = document.getElementById('editCategoryDocPath').value;
                 const level = document.getElementById('editCategoryLevel').value;
 
                 let updateData = {
@@ -1626,92 +1511,94 @@ window.AdminLogic = {
                     name_ar: document.getElementById('editCategoryNameAr').value,
                     order: parseInt(document.getElementById('editCategoryOrder').value) || 0
                 };
-
+                
+                let tableName;
                 if (level === '1') {
+                    tableName = categoriesCollection;
                     updateData.icon = document.getElementById('editCategoryIcon').value;
-                }
-                if (level === '2' || level === '3') {
+                } else {
                     updateData.imageUrl = document.getElementById('editCategoryImageUrl').value.trim() || null;
+                    tableName = (level === '2') ? subcategoriesCollection : subSubcategoriesCollection;
                 }
 
                 try {
-                    // گۆڕینی `updateDoc` بۆ `update`
-                    const { error } = await db
-                        .from(tableName)
-                        .update(updateData)
-                        .eq('id', id);
-
+                    const { error } = await db.from(tableName).update(updateData).eq('id', id);
                     if (error) throw error;
-                    
                     showNotification('گۆڕانکارییەکان پاشەکەوت کران', 'success');
                     closeCurrentPopup();
                     clearProductCache();
-                    await this.renderCategoryManagementUI(); // Rerender
+                    self.renderCategoryManagementUI();
                 } catch (error) {
                     console.error("Error updating category: ", error);
                     showNotification('هەڵەیەک ڕوویدا', 'error');
-                } finally {
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'پاشەکەوتکردنی گۆڕانکاری';
                 }
             });
         }
 
-        // (فۆرمی `announcementForm` - گۆڕدرا)
         const announcementForm = document.getElementById('announcementForm');
         if (announcementForm) {
             announcementForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                // ... (لۆجیکی گرتنی داتا وەک خۆی) ...
                 const announcementData = {
-                    title: { /* ... */ },
-                    content: { /* ... */ }
-                    // created_at بە شێوەی ئۆتۆماتیک زیاد دەبێت
+                    title: {
+                        ku_sorani: document.getElementById('announcementTitleKuSorani').value,
+                        ku_badini: document.getElementById('announcementTitleKuBadini').value,
+                        ar: document.getElementById('announcementTitleAr').value,
+                    },
+                    content: {
+                        ku_sorani: document.getElementById('announcementContentKuSorani').value,
+                        ku_badini: document.getElementById('announcementContentKuBadini').value,
+                        ar: document.getElementById('announcementContentAr').value,
+                    },
+                    // created_at dê bixweber were danîn
                 };
+
                 try {
-                    // گۆڕینی `addDoc` بۆ `insert`
                     const { error } = await db.from(announcementsCollection).insert(announcementData);
                     if (error) throw error;
-
                     showNotification('ئاگەداری بە سەرکەوتوویی نێردرا', 'success');
                     announcementForm.reset();
-                    await this.renderAdminAnnouncementsList(); // Rerender
-                } catch (error) { /* ... */ } 
-                finally { /* ... */ }
+                    self.renderAdminAnnouncementsList();
+                } catch (error) {
+                    console.error("Error sending announcement: ", error);
+                    showNotification(t('error_generic'), 'error');
+                }
             });
         }
         
-        // (فۆرمی `policiesForm` - گۆڕدرا)
         const policiesForm = document.getElementById('policiesForm');
         if (policiesForm) {
             policiesForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const submitButton = e.target.querySelector('button[type="submit"]');
-                submitButton.disabled = true;
                 const policiesData = {
                     content: {
                         ku_sorani: document.getElementById('policiesContentKuSorani').value,
                         ku_badini: document.getElementById('policiesContentKuBadini').value,
                         ar: document.getElementById('policiesContentAr').value,
-                    }
+                    },
+                    id: 'current' // Her gav heman rêzê nûve bike
                 };
+
                 try {
-                    // گۆڕینی `setDoc` بۆ `upsert` (Update or Insert)
-                    // ئێمە پێویستە IDیەک دابنێین، با "1" بێت
-                    const { error } = await db.from(policiesCollection).upsert({ id: 1, content: policiesData.content });
+                    // 'upsert' bikar bîne ji bo nûvekirin an çêkirina rêza polîtîkayê
+                    const { error } = await db.from(policiesCollection).upsert(policiesData, { onConflict: 'id' });
                     if (error) throw error;
-                    
                     showNotification(t('policies_saved_success'), 'success');
-                } catch (error) { /* ... */ } 
-                finally { submitButton.disabled = false; }
+                } catch (error) {
+                    console.error("Error saving policies:", error);
+                    showNotification(t('error_generic'), 'error');
+                }
             });
         }
         
-        // (لۆجیکی Toggle وەک خۆی دەمێنێتەوە)
         const socialMediaToggle = document.getElementById('socialMediaToggle');
-        socialMediaToggle.onclick = () => { /* ... */ };
+        socialMediaToggle.onclick = () => {
+            const container = document.getElementById('adminSocialMediaManagement').querySelector('.contact-links-container');
+            const chevron = socialMediaToggle.querySelector('.contact-chevron');
+            container.classList.toggle('open');
+            chevron.classList.toggle('open');
+        };
         
-        // (فۆرمی `addSocialMediaForm` - گۆڕدرا)
         const addSocialMediaForm = document.getElementById('addSocialMediaForm');
         addSocialMediaForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -1723,24 +1610,20 @@ window.AdminLogic = {
                 icon: document.getElementById('socialIcon').value,
             };
             try {
-                // گۆڕینی `addDoc` بۆ `insert`
                 const { error } = await db.from(socialLinksCollection).insert(socialData);
                 if (error) throw error;
-                
                 showNotification('لینک زیادکرا', 'success');
                 addSocialMediaForm.reset();
-                await this.renderSocialMediaLinks(); // Rerender
+                self.renderSocialMediaLinks();
             } catch (error) {
                 showNotification(t('error_generic'), 'error');
             }
         });
         
-        // (فۆرمی `addContactMethodForm` - گۆڕدرا)
         const addContactMethodForm = document.getElementById('addContactMethodForm');
         if (addContactMethodForm) {
             addContactMethodForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                // ... (لۆجیکی گرتنی داتا وەک خۆی) ...
                 const methodData = {
                     type: document.getElementById('contactMethodType').value,
                     value: document.getElementById('contactMethodValue').value,
@@ -1750,30 +1633,31 @@ window.AdminLogic = {
                     icon: document.getElementById('contactMethodIcon').value,
                     color: document.getElementById('contactMethodColor').value,
                 };
+
                 try {
-                    // گۆڕینی `addDoc` بۆ `insert`
                     const { error } = await db.from(contactMethodsCollection).insert(methodData);
                     if (error) throw error;
-
                     showNotification('شێوازی نوێ بە سەرکەوتوویی زیادکرا', 'success');
                     addContactMethodForm.reset();
-                    await this.renderContactMethodsAdmin(); // Rerender
-                } catch (error) { /* ... */ } 
-                finally { /* ... */ }
+                    self.renderContactMethodsAdmin();
+                } catch (error) {
+                    console.error("Error adding contact method: ", error);
+                    showNotification(t('error_generic'), 'error');
+                }
             });
         }
         
-        // --- NEW EVENT LISTENERS FOR GROUPS (Updated forms) ---
-
-        // PROMO
+        // --- PROMO (SUPABASE) ---
         document.getElementById('addPromoGroupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('promoGroupName').value;
             if (name.trim()) {
-                await db.from(promoGroupsCollection).insert({ name: name.trim() });
-                showNotification('گرووپی سلایدەر زیادکرا', 'success');
-                e.target.reset();
-                await this.renderPromoGroupsAdminList();
+                const { error } = await db.from(promoGroupsCollection).insert({ name: name.trim() });
+                if (!error) {
+                    showNotification('گرووپی سلایدەر زیادکرا', 'success');
+                    e.target.reset();
+                    self.renderPromoGroupsAdminList();
+                }
             }
         });
 
@@ -1782,10 +1666,7 @@ window.AdminLogic = {
             const groupId = document.getElementById('promoCardGroupSelect').value;
             if (!groupId) { showNotification('تکایە گرووپێک هەڵبژێرە', 'error'); return; }
 
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
             const editingId = document.getElementById('editingPromoCardId').value;
-            
             const cardData = {
                 imageUrls: {
                     ku_sorani: document.getElementById('promoCardImageKuSorani').value,
@@ -1794,7 +1675,7 @@ window.AdminLogic = {
                 },
                 categoryId: document.getElementById('promoCardTargetCategory').value,
                 order: parseInt(document.getElementById('promoCardOrder').value),
-                promo_group_id: groupId // گرنگ: زیادکردنی IDی باوک
+                group_id: groupId // ForeignKey
             };
 
             try {
@@ -1809,38 +1690,39 @@ window.AdminLogic = {
                     if (!error) showNotification('کارتی نوێ زیادکرا', 'success');
                 }
                 if (error) throw error;
-
                 e.target.reset();
                 document.getElementById('editingPromoCardId').value = '';
-                submitButton.textContent = 'پاشەکەوتکردنی کارت';
+                document.getElementById('addPromoCardForm').querySelector('button[type="submit"]').textContent = 'پاشەکەوتکردنی کارت';
                 clearProductCache();
-                await this.renderPromoGroupsAdminList();
+                self.renderPromoGroupsAdminList();
             } catch (error) { showNotification('هەڵەیەک ڕوویدا', 'error'); } 
-            finally { submitButton.disabled = false; }
         });
 
         document.getElementById('promoGroupsListContainer').addEventListener('click', (e) => {
-            if (e.target.closest('.edit-promo-group-btn')) self.editPromoGroup(e.target.closest('.edit-promo-group-btn').dataset.id);
-            if (e.target.closest('.delete-promo-group-btn')) self.deletePromoGroup(e.target.closest('.delete-promo-group-btn').dataset.id);
-            if (e.target.closest('.edit-promo-card-btn')) {
-                const btn = e.target.closest('.edit-promo-card-btn');
-                self.editPromoCard(btn.dataset.groupId, btn.dataset.cardId);
-            }
-            if (e.target.closest('.delete-promo-card-btn')) {
-                const btn = e.target.closest('.delete-promo-card-btn');
-                self.deletePromoCard(btn.dataset.groupId, btn.dataset.cardId);
-            }
+            const editGroupBtn = e.target.closest('.edit-promo-group-btn');
+            if (editGroupBtn) self.editPromoGroup(editGroupBtn.dataset.id);
+
+            const deleteGroupBtn = e.target.closest('.delete-promo-group-btn');
+            if (deleteGroupBtn) self.deletePromoGroup(deleteGroupBtn.dataset.id);
+
+            const editCardBtn = e.target.closest('.edit-promo-card-btn');
+            if (editCardBtn) self.editPromoCard(editCardBtn.dataset.cardId);
+
+            const deleteCardBtn = e.target.closest('.delete-promo-card-btn');
+            if (deleteCardBtn) self.deletePromoCard(deleteCardBtn.dataset.cardId);
         });
         
-        // BRAND
+        // --- BRAND (SUPABASE) ---
         document.getElementById('addBrandGroupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('brandGroupName').value;
             if (name.trim()) {
-                await db.from(brandGroupsCollection).insert({ name: name.trim() });
-                showNotification('گرووپی براند زیادکرا', 'success');
-                e.target.reset();
-                await this.renderBrandGroupsAdminList();
+                const { error } = await db.from(brandGroupsCollection).insert({ name: name.trim() });
+                if (!error) {
+                    showNotification('گرووپی براند زیادکرا', 'success');
+                    e.target.reset();
+                    self.renderBrandGroupsAdminList();
+                }
             }
         });
 
@@ -1849,10 +1731,7 @@ window.AdminLogic = {
             const groupId = document.getElementById('brandGroupSelect').value;
             if (!groupId) { showNotification('تکایە گرووپێک هەڵبژێرە', 'error'); return; }
 
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
             const editingId = document.getElementById('editingBrandId').value;
-            
             const brandData = {
                 name: {
                     ku_sorani: document.getElementById('brandNameKuSorani').value,
@@ -1863,7 +1742,7 @@ window.AdminLogic = {
                 categoryId: document.getElementById('brandTargetMainCategory').value || null,
                 subcategoryId: document.getElementById('brandTargetSubcategory').value || null,
                 order: parseInt(document.getElementById('brandOrder').value) || 0,
-                brand_group_id: groupId // گرنگ: زیادکردنی IDی باوک
+                group_id: groupId // ForeignKey
             };
 
             try {
@@ -1878,85 +1757,60 @@ window.AdminLogic = {
                     if (!error) showNotification('براندی نوێ زیادکرا', 'success');
                 }
                 if (error) throw error;
-                
                 e.target.reset();
                 document.getElementById('editingBrandId').value = '';
                 document.getElementById('brandSubcategoryContainer').style.display = 'none';
-                submitButton.textContent = 'پاشەکەوتکردنی براند';
+                document.getElementById('addBrandForm').querySelector('button[type="submit"]').textContent = 'پاشەکەوتکردنی براند';
                 clearProductCache();
-                await this.renderBrandGroupsAdminList();
+                self.renderBrandGroupsAdminList();
             } catch (error) { console.error("Error saving brand:", error); showNotification('هەڵەیەک ڕوویدا', 'error'); } 
-            finally { submitButton.disabled = false; }
         });
 
         document.getElementById('brandGroupsListContainer').addEventListener('click', (e) => {
             if (e.target.closest('.edit-brand-group-btn')) self.editBrandGroup(e.target.closest('.edit-brand-group-btn').dataset.id);
             if (e.target.closest('.delete-brand-group-btn')) self.deleteBrandGroup(e.target.closest('.delete-brand-group-btn').dataset.id);
-            if (e.target.closest('.edit-brand-btn')) {
-                const btn = e.target.closest('.edit-brand-btn');
-                self.editBrand(btn.dataset.groupId, btn.dataset.brandId);
-            }
-            if (e.target.closest('.delete-brand-btn')) {
-                const btn = e.target.closest('.delete-brand-btn');
-                self.deleteBrand(btn.dataset.groupId, btn.dataset.brandId);
-            }
+            if (e.target.closest('.edit-brand-btn')) self.editBrand(e.target.closest('.edit-brand-btn').dataset.brandId);
+            if (e.target.closest('.delete-brand-btn')) self.deleteBrand(e.target.closest('.delete-brand-btn').dataset.brandId);
         });
         
-        // (لۆجیکی گۆڕینی جۆری براند وەک خۆی دەمێنێتەوە)
         const brandMainCatSelect = document.getElementById('brandTargetMainCategory');
         brandMainCatSelect.addEventListener('change', async (e) => {
-             const mainCatId = e.target.value;
-             const brandSubCatContainer = document.getElementById('brandSubcategoryContainer');
-             const brandSubCatSelect = document.getElementById('brandTargetSubcategory');
-             if (mainCatId) {
-                 brandSubCatContainer.style.display = 'block';
-                 brandSubCatSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
-                 
-                 // گۆڕینی `getDocs` بۆ `select`
-                 const { data: subcats, error } = await db.from(subcategoriesCollection).select('*').eq('category_id', mainCatId).order('order', { ascending: true });
-
-                 brandSubCatSelect.innerHTML = '<option value="">-- هەموو لاوەکییەکان --</option>';
-                 if(subcats) {
-                     subcats.forEach(subcat => {
-                         const option = document.createElement('option');
-                         option.value = subcat.id;
-                         option.textContent = subcat.name_ku_sorani;
-                         brandSubCatSelect.appendChild(option);
-                     });
-                 }
-             } else {
-                 brandSubCatContainer.style.display = 'none';
-                 brandSubCatSelect.innerHTML = '';
-             }
+            const mainCatId = e.target.value;
+            const brandSubCatContainer = document.getElementById('brandSubcategoryContainer');
+            const brandSubCatSelect = document.getElementById('brandTargetSubcategory');
+            if (mainCatId) {
+                brandSubCatContainer.style.display = 'block';
+                brandSubCatSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
+                const { data, error } = await db.from(subcategoriesCollection).select('id, name_ku_sorani').eq('category_id', mainCatId).order('order');
+                brandSubCatSelect.innerHTML = '<option value="">-- هەموو لاوەکییەکان --</option>';
+                if(data) data.forEach(subcat => {
+                    const option = document.createElement('option');
+                    option.value = subcat.id;
+                    option.textContent = subcat.name_ku_sorani;
+                    brandSubCatSelect.appendChild(option);
+                });
+            } else {
+                brandSubCatContainer.style.display = 'none';
+                brandSubCatSelect.innerHTML = '';
+            }
         });
         
-        // --- START: NEW EVENT LISTENER FOR SHORTCUT ROWS (Updated forms) ---
-        document.getElementById('addShortcutRowForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const editingId = document.getElementById('editingShortcutRowId').value;
-            const rowData = {
-                title: {
-                    ku_sorani: document.getElementById('shortcutRowTitleKuSorani').value,
-                    ku_badini: document.getElementById('shortcutRowTitleKuBadini').value,
-                    ar: document.getElementById('shortcutRowTitleAr').value,
-                },
-                order: parseInt(document.getElementById('shortcutRowOrder').value) || 10
-            };
+        // --- SHORTCUT (SUPABASE) ---
+        document.getElementById('shortcutRowsListContainer').addEventListener('click', (e) => {
+            const editRowBtn = e.target.closest('.edit-row-btn');
+            if (editRowBtn) self.editShortcutRow(editRowBtn.dataset.id);
+        
+            const deleteRowBtn = e.target.closest('.delete-row-btn');
+            if (deleteRowBtn) self.deleteShortcutRow(deleteRowBtn.dataset.id);
+        
+            const editCardBtn = e.target.closest('.edit-card-btn');
+            if (editCardBtn) self.editShortcutCard(editCardBtn.dataset.cardId);
+        
+            const deleteCardBtn = e.target.closest('.delete-card-btn');
+            if (deleteCardBtn) self.deleteShortcutCard(deleteCardBtn.dataset.cardId);
+        });
 
-            try {
-                let error;
-                if(editingId) {
-                    const { error: updateError } = await db.from(shortcutRowsCollection).update(rowData).eq('id', editingId);
-                    error = updateError;
-                    if(!error) showNotification('ڕیز نوێکرایەوە', 'success');
-                } else {
-                    const { error: insertError } = await db.from(shortcutRowsCollection).insert(rowData);
-                    error = insertError;
-                    if(!error) showNotification('ڕیزی نوێ زیادکرا', 'success');
-                }
-                if(error) throw error;
-                
-                e.target.reset();
-                document.getElementById('editingShortcutRowId').value = '';
-                document.getElementById('addShortcutRowForm').querySelector('button[type="submit"]').textContent = 'پاشەکەوتکردنی ڕیز';
-                document.getElementById('cancelRowEditBtn').style.display = 'none';
+        // Wek xwe dimîne
+        this.listenersAttached = true;
+    }
+};
