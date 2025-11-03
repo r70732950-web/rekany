@@ -1,39 +1,49 @@
-// BEŞÊ YEKEM: app-setup.js (Çakkirî bo exportên UI û globalAdminTools)
-// Pênasekirin û sazkarîyên destpêkê
+// app-setup.js (کۆدی نوێی Supabase)
+// لێرەدا هەموو پەیوەندییەکی فایەربەیس دەسڕینەوە
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
+// ١. هاوردەکردنی کتێبخانەی Supabase
+// دڵنیابە کە ئەم دێڕەت لە index.html داناوە: 
+// <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+// ئەگەر وانەبێت، ئەم کۆدە کار ناکات
+const { createClient } = supabase; 
 
-// Firebase Configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", // Ensure this key is correct and secured if necessary
-    authDomain: "maten-store.firebaseapp.com",
-    projectId: "maten-store",
-    storageBucket: "maten-store.appspot.com",
-    messagingSenderId: "137714858202",
-    appId: "1:137714858202:web:e2443a0b26aac6bb56cde3",
-    measurementId: "G-1PV3DRY2V2"
-};
+// ٢. دانانی کلیلەکانی Supabase (ئەوانەی دۆزیتەوە)
+const supabaseUrl = "https://tbvenzdpduedwmaeazgg.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRidmVuemRwZHVlZHdtYWVhemdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIxNjA3NDYsImV4cCI6MjA3NzczNjc0Nn0.nPXQL200lwEuDSGVfx0MxxgCKSQis3U2SNo_DD6mc0Y";
 
-// Initialization and Exports (for app-core.js and app-ui.js)
-export const app = initializeApp(firebaseConfig);
-export const analytics = getAnalytics(app);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const messaging = getMessaging(app);
+// ٣. دروستکردنی پەیوەندی (Client)
+// ئەم دوو هەناردەیە (export) زۆر گرنگن
+export const supabaseClient = createClient(supabaseUrl, supabaseKey);
+export const db = supabaseClient; // ناوی 'db'ـمان هێشتەوە بۆ ئەوەی کۆدی ترمان تێک نەچێت
+export const auth = supabaseClient.auth; // گۆڕینی Authی فایەربەیس بە هی Supabase
 
-// Firestore Collections Exports (for app-core.js and app-ui.js)
-export const productsCollection = collection(db, "products");
-export const categoriesCollection = collection(db, "categories");
-export const announcementsCollection = collection(db, "announcements");
-export const promoGroupsCollection = collection(db, "promo_groups");
-export const brandGroupsCollection = collection(db, "brand_groups");
-export const shortcutRowsCollection = collection(db, "shortcut_rows");
+// ٤. هەناردەکردنی شتی ساختە (Mock) بۆ ئەوانەی پێویست نین
+// چیتر پێویستمان بە Analytics و Messaging نییە
+export const analytics = {};
+export const messaging = {};
 
-// Translations Export
+// ٥. هەناردەکردنی ناوی خشتەکان (Table Names)
+// ئێمە چیتر "collection()"ـی فایەربەیس نانێرین، بەڵکو تەنها "ناوەکە" دەنێرین
+export const productsCollection = "products";
+export const categoriesCollection = "categories";
+export const announcementsCollection = "announcements";
+export const promoGroupsCollection = "promo_groups";
+export const brandGroupsCollection = "brand_groups";
+export const shortcutRowsCollection = "shortcut_rows";
+// خشتە نوێیەکان
+export const subcategoriesCollection = "subcategories";
+export const subSubcategoriesCollection = "subSubcategories";
+export const promoCardsCollection = "promo_cards";
+export const brandsCollection = "brands";
+export const shortcutCardsCollection = "shortcut_cards";
+export const homeLayoutCollection = "home_layout";
+export const policiesCollection = "policies";
+export const socialLinksCollection = "social_links";
+export const contactMethodsCollection = "contact_methods";
+
+
+// ٦. هەناردەکردنی وەرگێڕانەکان (Translations)
+// (ئەمە بە تەواوی کۆپی کراوە لە فایلی کۆنی خۆت - هیچ گۆڕانکارییەک نییە)
 export const translations = {
     ku_sorani: {
         search_placeholder: "گەڕان بە ناوی کاڵا...",
@@ -61,7 +71,7 @@ export const translations = {
         profile_address: "ناونیشان:",
         profile_phone: "ژمارەی تەلەفۆن:",
         save_button: "پاشەکەوتکردن",
-        nav_home: "سەرەکی",
+        nav_home: "سەرەki",
         nav_categories: "جۆرەکان",
         nav_cart: "سەبەتە",
         nav_profile: "پڕۆفایل",
@@ -290,7 +300,8 @@ export const translations = {
 };
 
 
-// Global State Variables (Mutable) - Exported for app-core.js and app-ui.js
+// ٧. هەناردەکردنی دۆخی گشتی (Global State)
+// (ئەمە بە تەواوی کۆپی کراوە لە فایلی کۆنی خۆت - هیچ گۆڕانکارییەک نییە)
 export let state = {
     currentLanguage: localStorage.getItem('language') || 'ku_sorani',
     deferredPrompt: null,
@@ -301,7 +312,8 @@ export let state = {
     products: [],
     categories: [], // Populated by app-core
     subcategories: [], // Populated by app-core
-    lastVisibleProductDoc: null,
+    lastVisibleProductDoc: null, // *** ئەمە چیتر لە Supabase بەکار نایەت ***
+    currentPage: 0, // *** ئەمە بۆ Paginationی Supabase زیادکرا ***
     isLoadingMoreProducts: false,
     allProductsLoaded: false,
     isRenderingHomePage: false,
@@ -313,23 +325,20 @@ export let state = {
     currentProductId: null, // Used by app-ui
     currentPageId: 'mainPage', // *** زیادکرا: بۆ زانینی پەڕەی ئێستا ***
     currentPopupState: null, // *** زیادکرا: شوێنی دۆخی ئێستای پۆپئەپ بگرە ***
-    // *** START: Gۆڕانکاری لێرە کرا ***
-    // *** دەستپێک: گۆڕانکاری لێرە کرا ***
     pendingFilterNav: null, // Ji bo ragirtina fîlterê heta ku popup were girtin (بۆ ڕاگرتنی فلتەر تا داخستنی پۆپئەپ)
-    // *** END: Gۆڕانکاری لێرە کرا ***
-    // *** کۆتایی: گۆڕانکاری لێرە کرا ***
     sliderIntervals: {}, // Used by app-ui & app-core
     contactInfo: {}, // Might be needed?
 };
 
-// Constants - Exported
+// ٨. هەناردەکردنی کلیلەکان (Constants)
+// (ئەمە بە تەواوی کۆپی کراوە لە فایلی کۆنی خۆت - هیچ گۆڕانکارییەک نییە)
 export const CART_KEY = "maten_store_cart";
 export const FAVORITES_KEY = "maten_store_favorites";
 export const PROFILE_KEY = "maten_store_profile";
 export const PRODUCTS_PER_PAGE = 25;
 
-// DOM Elements Exports
-// === General UI Elements ===
+// ٩. هەناردەکردنی توخمەکانی (DOM Elements)
+// (ئەمە بە تەواوی کۆپی کراوە لە فایلی کۆنی خۆت - هیچ گۆڕانکارییەک نییە)
 export const loginModal = document.getElementById('loginModal');
 export const addProductBtn = document.getElementById('addProductBtn'); // Used by admin check in UI
 export const productFormModal = document.getElementById('productFormModal');
@@ -414,33 +423,39 @@ export const addHomeSectionModal = document.getElementById('addHomeSectionModal'
 export const addHomeSectionForm = document.getElementById('addHomeSectionForm');
 
 
-// *** Populate globalAdminTools here ***
-// Moved from app-core.js to ensure availability before admin.js (defer) runs
+// ١٠. هەناردەکردنی (globalAdminTools) بۆ فایلی `admin.js`
+// (ئەمە گۆڕانکاری گەورەی تێدا کراوە)
+// ئێمە چیتر فەنکشنەکانی فایەربەیس نانێرین، بەڵکو Supabase clientـی نوێ دەنێرین
+// ئەمە واتای وایە کە دەبێت فایلی `admin.js`ـیش بگۆڕین
 window.globalAdminTools = {
-    // Firebase Services & Functions needed by admin.js
-    db, auth,
-    doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection,
-    query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
+    // Supabase clientـی نوێ دەنێرین
+    db: supabaseClient, // 'db' ئێستا ئاماژەیە بۆ Supabase
+    auth: supabaseClient.auth, // ئۆبجێکتی 'auth'ـی Supabase
 
-    // Collections needed by admin.js
+    // ناوی خشتەکان (Table Names) - وەک سەرەوە
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
+    
+    // (ئەمانەی خوارەوە ناوی خشتە نوێیەکانن کە `admin.js` پێویستی پێیان دەبێت)
+    subcategoriesCollection, subSubcategoriesCollection, promoCardsCollection,
+    brandsCollection, shortcutCardsCollection, homeLayoutCollection,
+    policiesCollection, socialLinksCollection, contactMethodsCollection,
 
-    // Core State Accessors/Mutators needed by admin.js
+    // Core State Accessors/Mutators - وەک خۆی دەمێنێتەوە
     setEditingProductId: (id) => { state.editingProductId = id; },
     getEditingProductId: () => state.editingProductId,
     getCategories: () => state.categories,
     getCurrentLanguage: () => state.currentLanguage,
 
-    // Core Helper Functions needed by admin.js
-    t: (key, replacements = {}) => { // Re-export 't' function
+    // Core Helper Functions - وەک خۆی دەمێنێتەوە
+    t: (key, replacements = {}) => { 
         let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
         for (const placeholder in replacements) {
             translation = translation.replace(`{${placeholder}}`, replacements[placeholder]);
         }
         return translation;
     },
-    showNotification: (message, type = 'success') => { // Re-export basic notification logic
+    showNotification: (message, type = 'success') => { 
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         notification.textContent = message;
@@ -451,15 +466,17 @@ window.globalAdminTools = {
             setTimeout(() => document.body.removeChild(notification), 300);
         }, 3000);
     },
-     clearProductCache: () => { // Keep this helper
+     clearProductCache: () => { 
           console.log("Product cache and home page cleared due to admin action.");
           state.productCache = {};
           const homeContainer = document.getElementById('homePageSectionsContainer');
           if (homeContainer) {
               homeContainer.innerHTML = '';
           }
-          // Notify UI layer to trigger re-render
           document.dispatchEvent(new Event('clearCacheTriggerRender'));
      },
+     
+    // === گرنگ: فەنکشنە ساختەکانی فایەربەیس لابران ===
+    // چیتر پێویستمان بە ناردنی فەنکشنە ساختەکانی (doc, getDoc, addDoc) نییە
+    // چونکە فایلی `admin.js`ـی نوێ ڕاستەوخۆ `db` (Supabase) بەکاردەهێنێت
 };
-// *** END OF globalAdminTools SECTION ***
