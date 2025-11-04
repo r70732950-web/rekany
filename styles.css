@@ -1455,4 +1455,12 @@ input:checked + .slider:before {
     margin-right: 8px;
 }
 
+ /* === ÇARESERIYA ZÊDE JI BO BOŞAYIYA SERÎ === */
+/* === چارەسەری زیادە بۆ بۆشایی سەرەوە === */
+html, body {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
+
 /* === END: KODÊN NÛ JI BO DÎZAYNA BEŞÊ ADMIN === */
