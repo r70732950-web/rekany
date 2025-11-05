@@ -18,7 +18,13 @@ const firebaseConfig = {
     apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", // Ensure this key is correct and secured if necessary
     authDomain: "maten-store.firebaseapp.com",
     projectId: "maten-store",
-    storageBucket: "maten-store.appspot.com",
+    
+    // === VÊ BIGUHERE / ئەمە بگۆڕە ===
+    // Nêrîna xwe biguherîne li ser vê yekê
+    // تکایە ئەم دێڕە ڕاست بکەرەوە
+    storageBucket: "maten-store.firebasestorage.app", // <-- HATE RASTKIRIN / لێرە ڕاستکرایەوە
+    // === DAWÎYA GUHERTINÊ / کۆتایی گۆڕانکاری ===
+
     messagingSenderId: "137714858202",
     appId: "1:137714858202:web:e2443a0b26aac6bb56cde3",
     measurementId: "G-1PV3DRY2V2"
@@ -414,7 +420,7 @@ export const categoryListContainer = document.getElementById('categoryListContai
 export const addCategoryForm = document.getElementById('addCategoryForm');
 export const addSubcategoryForm = document.getElementById('addSubcategoryForm');
 export const addSubSubcategoryForm = document.getElementById('addSubSubcategoryForm');
-export const editCategoryForm = document.getElementById('editCategoryForm');
+export const editCategoryForm = document.getElementById('editCategoryModal');
 export const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
 export const contactMethodsListContainer = document.getElementById('contactMethodsListContainer');
 export const adminShortcutRowsManagement = document.getElementById('adminShortcutRowsManagement');
