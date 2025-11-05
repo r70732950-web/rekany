@@ -115,8 +115,8 @@ body.overlay-active {
 .section {
     background-color: var(--section-bg);
     border-radius: 0;
-    margin: 0 0 8px;
-    padding: 10px 0;
+    margin: 0 0 16px;
+    padding: 16px 0;
     border: 1px solid var(--section-border);
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     border-right: none;
@@ -128,8 +128,8 @@ body.overlay-active {
     flex-direction: row;
     flex-wrap: nowrap;
     overflow-x: auto;
-    gap: 4px;
-    padding: 5px 8px 10px 8px;
+    gap: 8px;
+    padding: 5px 12px 15px 12px;
     scrollbar-width: none;
 }
 
@@ -149,7 +149,7 @@ body.overlay-active {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     width: 75px;
     flex-shrink: 0;
     font-size: 12px;
@@ -279,8 +279,8 @@ body.overlay-active {
 .products-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
-    gap: 8px;
-    padding: 0 8px;
+    gap: 12px;
+    padding: 0 12px;
 }
 
 .product-card {
@@ -336,7 +336,7 @@ body.overlay-active {
 
 .product-info {
     background-color: white;
-    height: 70px;
+    height: 80px;
     position: relative;
     padding: 0;
     text-align: right;
@@ -359,7 +359,7 @@ body.overlay-active {
 
 .product-price-container {
     position: absolute;
-    bottom: 35px;
+    bottom: 40px;
     left: 12px;
     right: auto;
     top: auto;
@@ -415,7 +415,7 @@ body.overlay-active {
 
 .add-to-cart-btn-card {
     position: absolute;
-    bottom: 35px;
+    bottom: 40px;
     right: 12px;
     left: auto;
     top: auto;
@@ -491,12 +491,12 @@ body.overlay-active {
 }
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 2000; overflow-y: auto; }
 .modal-content {
-    background-color: white; margin: 20px auto; padding: 15px; border-radius: 8px;
+    background-color: white; margin: 30px auto; padding: 20px; border-radius: 8px;
     width: 90%; max-width: 450px; position: relative;
     animation: scaleIn 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 .close { position: absolute; top: 12px; left: 12px; font-size: 22px; cursor: pointer; }
-.form-group { margin-bottom: 10px; }
+.form-group { margin-bottom: 16px; }
 .form-group label { display: block; margin-bottom: 6px; font-weight: bold; }
 .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid var(--section-border); border-radius: 6px; }
 button[type="submit"] { background-color: var(--accent-color); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; }
@@ -506,7 +506,7 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 .notification.error { background-color: var(--danger-color); }
 .add-product-btn { display: none; position: fixed; bottom: 80px; right: 20px; width: 50px; height: 50px; background-color: var(--accent-color); border-radius: 50%; align-items: center; justify-content: center; color: white; font-size: 20px; cursor: pointer; z-index: 80; }
 
-.cart-item { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--section-border); justify-content: space-between; gap: 10px; }
+.cart-item { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--section-border); justify-content: space-between; gap: 10px; }
 .cart-item-image { width: 60px; height: 60px; object-fit: contain; border-radius: 6px; margin-left: 10px; }
 .cart-item-details { flex-grow: 1; }
 .cart-item-title { font-weight: bold; }
@@ -593,16 +593,16 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 .image-preview-small { width: 40px; height: 40px; object-fit: contain; border-radius: 4px; background-color: var(--light-gray); border: 1px solid var(--medium-gray); }
 
 .settings-page {
-    padding-left: 10px;
-    padding-right: 10px;
+    padding-left: 15px;
+    padding-right: 15px;
 }
 .settings-group {
-    background-color: white; border-radius: 8px; margin-bottom: 10px;
+    background-color: white; border-radius: 8px; margin-bottom: 15px;
     border: 1px solid var(--section-border); overflow: hidden;
 }
 .settings-item {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 12px; cursor: pointer; border-bottom: 1px solid var(--section-border);
+    padding: 15px; cursor: pointer; border-bottom: 1px solid var(--section-border);
     color: var(--text-color); text-decoration: none;
 }
 .settings-item:last-child { border-bottom: none; }
@@ -713,7 +713,7 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 
 .main-categories-container {
     display: flex;
-    gap: 5px;
+    gap: 8px;
     overflow-x: auto;
     padding: 5px 12px 10px 12px;
     scrollbar-width: none;
@@ -763,7 +763,7 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 10px;
+    padding: 12px;
     background-color: #ffffff;
     border-radius: 8px;
     margin-bottom: 10px;
@@ -810,6 +810,7 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 }
 
 body {
+    padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
@@ -922,14 +923,14 @@ body, .bottom-nav-item, .product-card {
 }
 
 .dynamic-section {
-    margin-bottom: 6px;
+    margin-bottom: 10px;
 }
 
 .horizontal-products-container {
     display: flex;
-    gap: 8px;
+    gap: 12px;
     overflow-x: auto;
-    padding: 5px 8px 10px 8px;
+    padding: 5px 12px 15px 12px;
     scrollbar-width: none;
 }
 
@@ -946,7 +947,7 @@ body, .bottom-nav-item, .product-card {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
     padding: 0 12px;
 }
 
@@ -986,7 +987,7 @@ body, .bottom-nav-item, .product-card {
 .brands-container {
     display: flex;
     overflow-x: auto;
-    gap: 10px;
+    gap: 15px;
     padding: 10px 12px;
     scrollbar-width: none;
 }
@@ -1059,7 +1060,7 @@ body, .bottom-nav-item, .product-card {
 .shortcut-cards-container {
     display: flex;
     overflow-x: auto;
-    gap: 8px;
+    gap: 12px;
     padding: 5px 12px 15px 12px;
     scrollbar-width: none;
 }
@@ -1181,8 +1182,8 @@ body, .bottom-nav-item, .product-card {
 
 .layout-item {
     background-color: white;
-    padding: 10px;
-    margin-bottom: 5px;
+    padding: 12px;
+    margin-bottom: 8px;
     border-radius: 4px;
     border: 1px solid var(--medium-gray);
     display: flex;
@@ -1318,7 +1319,7 @@ input:checked + .slider:before {
 .settings-group[id^="admin"] {
     background-color: #f7fafc; /* Rengek cuda ji bo beşên admin */
     border: 1px solid #e2e8f0;
-    margin-bottom: 15px; /* Zêdekirina valahiyê di navbera beşan de */
+    margin-bottom: 25px; /* Zêdekirina valahiyê di navbera beşan de */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
@@ -1345,7 +1346,7 @@ input:checked + .slider:before {
 
 /* 3. Rêkxistina Ferman (Forms) */
 .settings-group[id^="admin"] form {
-    padding: 12px;
+    padding: 15px;
     background-color: #ffffff;
     border-bottom: 1px solid var(--section-border);
 }
@@ -1358,7 +1359,7 @@ input:checked + .slider:before {
     padding: 0 !important;
 }
 #adminCategoryManagement > div:not(:last-child) {
-     border-bottom: 5px solid #f7fafc;
+     border-bottom: 8px solid #f7fafc;
 }
 
 
@@ -1415,7 +1416,7 @@ input:checked + .slider:before {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 10px;
+    padding: 8px 12px;
     border-bottom: 1px solid #f1f1f1;
 }
 .admin-list-item:last-child {
@@ -1454,13 +1455,66 @@ input:checked + .slider:before {
     border-radius: 4px;
     margin-right: 8px;
 }
+ /* =========================================
+CHARÊSERÎ BO PREVIEW YA FORMÊ
+(چارەسەری کێشەی پێشبینی فۆڕم)
+========================================= */
 
- /* === ÇARESERIYA ZÊDE JI BO BOŞAYIYA SERÎ === */
-/* === چارەسەری زیادە بۆ بۆشایی سەرەوە === */
-html, body {
-    padding-top: 0 !important;
-    margin-top: 0 !important;
+/* 1. Stîla konteynirê giştî (ستایلی بۆکسە گشتییەکە) */
+#fileListPreview {
+    display: flex;
+    flex-wrap: wrap; /* Dihêle hêman biçin rêza din (ڕێگە دەدات وێنەکان بچنە دێڕی دووەم) */
+    gap: 10px;       /* Valahî di navberê de (بۆشایی لە نێوان) */
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px dashed var(--medium-gray);
+    border-radius: 8px;
+    min-height: 50px;
+    background-color: #fdfdfd; /* Rengek paşxaneya sivik (ڕەنگێکی کاڵ) */
 }
 
+/* 2. Stîla Pêşdîtina Navê Pelê (Ji bo koda te ya admin.js) */
+/* (ستایلی پیشاندانی ناوی فایل - بۆ کۆدی admin.js) */
+#fileListPreview .file-preview-item {
+    background-color: var(--light-gray);
+    border: 1px solid var(--medium-gray);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--dark-gray);
+    display: inline-flex; /* Guhertin bo inline-flex */
+    align-items: center;
+    gap: 8px;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 3. ÇARESERIYA KRÎTÎK: Ji bo Pêşdîtina WÊNEYAN (ya ku di vîdyoyê de xuya bû) */
+/* (چارەسەری سەرەکی: بۆ پێشبینی وێنەکان - کە لە ڤیدیۆکە دەرکەوت) */
+#fileListPreview img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover; /* Wêneyê diparêze (وێنەکە تێک نادات) */
+    border-radius: 8px;
+    border: 1px solid var(--medium-gray);
+}
+
+/* 4. Ger pêşdîtina wêneyê di hundurê .file-preview-item de be */
+/* (ئەگەر وێنەکە لەناو .file-preview-item بوو) */
+#fileListPreview .file-preview-item.image {
+    width: 80px;
+    height: 80px;
+    padding: 0;
+    overflow: hidden;
+}
+
+#fileListPreview .file-preview-item.image img {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
 
 /* === END: KODÊN NÛ JI BO DÎZAYNA BEŞÊ ADMIN === */
+
