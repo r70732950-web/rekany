@@ -863,9 +863,13 @@ async function showProductDetailsUI(productData) {
         videoWrapper.style.maxHeight = '350px'; // Li gorî wêneyan
 
         videoIframe = document.createElement('iframe');
-        // === ÇAKKIRIN: 'autoplay=1&mute=1' hate zêdekirin ===
-        // === چاکسازی: 'autoplay=1&mute=1' زیادکرا ===
-        videoIframe.dataset.src = `https://www.youtube.com/embed/${videoId}?rel=0&autoplay=1&mute=1`; // Src hilgire
+        
+        // === ÇARESERÎYA KÊŞEYA AUTOPLAY ===
+        // === چارەسەری کێشەی Autoplay ===
+        // Em 'autoplay=1&mute=1' radikin da ku bişkoja Play ya YouTube derkeve
+        // ئێمە 'autoplay=1&mute=1' لادەبەین بۆ ئەوەی دوگمەی Playـی یوتیووب دەربکەوێت
+        videoIframe.dataset.src = `https://www.youtube.com/embed/${videoId}?rel=0`; // <-- TENÊ EV DÊR HATE GUHERTIN
+        
         videoIframe.title = "YouTube video player";
         videoIframe.frameBorder = "0";
         videoIframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
