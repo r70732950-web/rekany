@@ -1,5 +1,5 @@
 // app-ui.js
-// Rêveberiya UI Giştî, girêdana bûyeran (event listeners), û nûvekirina DOM
+// Rêveberiya UI Giştî, girêdana bûyeran (event listeners), û nûvekarina DOM
 
 import {
     // Import DOM elements needed for general UI updates
@@ -49,6 +49,60 @@ import {
 } from './home.js'; // Import functions from home.js
 
 // --- UI Helper Functions ---
+
+// *** START: Functions added for YouTube video embedding (Part 2.A of plan) ***
+/**
+ * Converts a standard YouTube URL (watch or short) into an embeddable URL.
+ * @param {string} url The original YouTube URL
+ * @returns {string|null} The embeddable URL or null if invalid
+ */
+function getYouTubeEmbedUrl(url) {
+    if (!url) return null;
+    let videoId = null;
+    try {
+        const urlObj = new URL(url);
+        if (urlObj.hostname === 'youtu.be') {
+            videoId = urlObj.pathname.slice(1);
+        } else if (urlObj.hostname.includes('youtube.com')) {
+            videoId = urlObj.searchParams.get('v');
+        }
+    } catch (e) {
+        // Fallback for non-URL-like strings, e.g., just the ID
+        if (url.length === 11 && !url.includes('.')) videoId = url;
+    }
+    if (videoId) {
+        // Use privacy-enhanced mode (nocookie) and disable related videos
+        return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1`;
+    }
+    return null; // Not a valid YouTube link we can handle
+}
+
+/**
+ * Gets the default thumbnail for a YouTube video.
+ * @param {string} url The original YouTube URL
+ * @returns {string|null} The thumbnail URL or null if invalid
+ */
+function getYouTubeThumbnail(url) {
+    if (!url) return null;
+    let videoId = null;
+    try {
+        const urlObj = new URL(url);
+        if (urlObj.hostname === 'youtu.be') {
+            videoId = urlObj.pathname.slice(1);
+        } else if (urlObj.hostname.includes('youtube.com')) {
+            videoId = urlObj.searchParams.get('v');
+        }
+    } catch (e) {
+        if (url.length === 11 && !url.includes('.')) videoId = url;
+    }
+    if (videoId) {
+        // Use high-quality default thumbnail
+        return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    }
+    return null;
+}
+// *** END: Functions added for YouTube video embedding ***
+
 
 // *** DESTPÊK: Fonksiyon hate EXPORT kirin da ku admin.js bikaribe bibîne ***
 export function showNotification(message, type = 'success') {
@@ -729,6 +783,7 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     loader.style.display = 'none'; // Hide loader after content is loaded
 }
 
+// *** START: Replaced function showProductDetailsUI (Part 2.B of plan) ***
 async function showProductDetailsUI(productData) {
     const product = productData || await fetchProductById(state.currentProductId); // Fetch if needed
     if (!product) { showNotification(t('product_not_found_error'), 'error'); return; }
@@ -740,42 +795,132 @@ async function showProductDetailsUI(productData) {
 
     const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
     const descriptionText = (product.description && product.description[state.currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
-    const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
 
-    // Image Slider Setup
+    // --- START: New Media Logic ---
+    // 1. Create the media array
+    const mediaItems = [];
+    
+    // Add up to 4 images
+    if (product.imageUrls && product.imageUrls.length > 0) {
+        product.imageUrls.slice(0, 4).forEach(imgUrl => {
+            if(imgUrl) mediaItems.push({ type: 'image', url: imgUrl });
+        });
+    } else if (product.image) { // Fallback for single image
+         mediaItems.push({ type: 'image', url: product.image });
+    }
+
+    // 2. Add the video as the 5th item
+    // It uses 'productExternalLink' field from the form
+    const videoUrl = product.productExternalLink || null; 
+    const embedUrl = getYouTubeEmbedUrl(videoUrl);
+    if (embedUrl) {
+        mediaItems.push({ 
+            type: 'video', 
+            url: embedUrl,
+            thumbnail: getYouTubeThumbnail(videoUrl) // Use the helper
+        });
+    }
+    // --- END: New Media Logic ---
+
+
+    // --- START: New Slider & Thumbnail Rendering ---
     const imageContainer = document.getElementById('sheetImageContainer');
     const thumbnailContainer = document.getElementById('sheetThumbnailContainer');
     imageContainer.innerHTML = '';
     thumbnailContainer.innerHTML = '';
-    if (imageUrls.length > 0) {
-        imageUrls.forEach((url, index) => {
-            const img = document.createElement('img');
-            img.src = url; img.alt = nameInCurrentLang; if (index === 0) img.classList.add('active');
-            imageContainer.appendChild(img);
-            const thumb = document.createElement('img');
-            thumb.src = url; thumb.alt = `Thumbnail ${index + 1}`; thumb.className = 'thumbnail';
-            if (index === 0) thumb.classList.add('active'); thumb.dataset.index = index;
+
+    if (mediaItems.length > 0) {
+        mediaItems.forEach((item, index) => {
+            // Create main slide item
+            if (item.type === 'image') {
+                const img = document.createElement('img');
+                img.src = item.url;
+                img.alt = nameInCurrentLang;
+                img.className = 'slider-media'; // Common class for all slides
+                if (index === 0) img.classList.add('active');
+                imageContainer.appendChild(img);
+            } else if (item.type === 'video') {
+                const videoWrapper = document.createElement('div');
+                videoWrapper.className = 'slider-media video-wrapper'; // Common class
+                if (index === 0) videoWrapper.classList.add('active');
+                // Added sandbox attribute for better security and to prevent unwanted redirects
+                videoWrapper.innerHTML = `<iframe 
+                    src="${item.url}" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen
+                    sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"></iframe>`;
+                imageContainer.appendChild(videoWrapper);
+            }
+
+            // Create thumbnail item
+            const thumb = document.createElement('div'); // Use div for better styling
+            thumb.className = 'thumbnail';
+            if (index === 0) thumb.classList.add('active');
+            thumb.dataset.index = index;
+
+            if (item.type === 'image') {
+                thumb.innerHTML = `<img src="${item.url}" alt="Thumbnail ${index + 1}" onerror="this.src='https://placehold.co/100x100/e2e8f0/2d3748?text=...'">`;
+            } else if (item.type === 'video') {
+                // Add play icon overlay to video thumbnail
+                thumb.innerHTML = `
+                    <img src="${item.thumbnail || 'https://placehold.co/100x100/000/fff?text=Video'}" alt="Thumbnail ${index + 1}" onerror="this.src='https://placehold.co/100x100/e2e8f0/2d3748?text=Video'">
+                    <div class="play-icon-overlay"><i class="fas fa-play"></i></div>
+                `;
+            }
             thumbnailContainer.appendChild(thumb);
         });
+    } else {
+        // No media, add a placeholder
+        const img = document.createElement('img');
+        img.src = 'https://placehold.co/400x400/e2e8f0/2d3748?text=No+Media';
+        img.alt = nameInCurrentLang;
+        img.className = 'slider-media active';
+        imageContainer.appendChild(img);
     }
+    // --- END: New Slider & Thumbnail Rendering ---
 
+
+    // --- START: New Slider Logic ---
     let currentIndex = 0;
-    const images = imageContainer.querySelectorAll('img');
+    const mediaSlides = imageContainer.querySelectorAll('.slider-media');
     const thumbnails = thumbnailContainer.querySelectorAll('.thumbnail');
     const prevBtn = document.getElementById('sheetPrevBtn');
     const nextBtn = document.getElementById('sheetNextBtn');
 
+    /**
+     * Stops all playing videos by resetting their src.
+     */
+    function stopAllVideos() {
+        imageContainer.querySelectorAll('iframe').forEach(iframe => {
+            const currentSrc = iframe.getAttribute('src');
+            // Resetting src is a reliable way to stop/pause iframe videos
+            iframe.setAttribute('src', currentSrc); 
+        });
+    }
+
+    /**
+     * Updates the slider to show the slide at the given index.
+     * @param {number} index The index of the slide to show.
+     */
     function updateSlider(index) {
-        if (!images[index] || !thumbnails[index]) return;
-        images.forEach(img => img.classList.remove('active'));
+        if (!mediaSlides[index] || !thumbnails[index]) return;
+        
+        // Stop video if switching away from a video slide
+        if (mediaItems[currentIndex] && mediaItems[currentIndex].type === 'video') {
+            stopAllVideos();
+        }
+
+        mediaSlides.forEach(slide => slide.classList.remove('active'));
         thumbnails.forEach(thumb => thumb.classList.remove('active'));
-        images[index].classList.add('active');
+
+        mediaSlides[index].classList.add('active');
         thumbnails[index].classList.add('active');
         currentIndex = index;
     }
 
-    // Show/hide slider buttons based on image count
-    const showSliderBtns = imageUrls.length > 1;
+    // Show/hide slider buttons
+    const showSliderBtns = mediaItems.length > 1;
     prevBtn.style.display = showSliderBtns ? 'flex' : 'none';
     nextBtn.style.display = showSliderBtns ? 'flex' : 'none';
 
@@ -785,12 +930,17 @@ async function showProductDetailsUI(productData) {
     thumbnails.forEach(thumb => thumb.onclick = null);
 
     // Add new listeners
-    if(showSliderBtns) {
-        prevBtn.onclick = () => updateSlider((currentIndex - 1 + images.length) % images.length);
-        nextBtn.onclick = () => updateSlider((currentIndex + 1) % images.length);
+    if (showSliderBtns) {
+        prevBtn.onclick = () => updateSlider((currentIndex - 1 + mediaSlides.length) % mediaSlides.length);
+        nextBtn.onclick = () => updateSlider((currentIndex + 1) % mediaSlides.length);
     }
-    thumbnails.forEach(thumb => thumb.onclick = () => updateSlider(parseInt(thumb.dataset.index)));
+    thumbnails.forEach(thumb => {
+        thumb.onclick = () => updateSlider(parseInt(thumb.dataset.index));
+    });
+    // --- END: New Slider Logic ---
 
+
+    // --- START: Existing Info (Unchanged) ---
     // Update Product Info
     document.getElementById('sheetProductName').textContent = nameInCurrentLang;
     document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText); // Use formatter
@@ -807,16 +957,16 @@ async function showProductDetailsUI(productData) {
     addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
     addToCartButton.onclick = () => {
         handleAddToCartUI(product.id, addToCartButton); // Use UI handler
-        // Optionally close the sheet after adding
-        // closeCurrentPopup();
     };
 
     // Render Related Products section
     renderRelatedProductsUI(product);
+    // --- END: Existing Info (Unchanged) ---
 
     // Open the sheet and update history
     openPopup('productDetailSheet');
 }
+// *** END: Replaced function showProductDetailsUI ***
 
 async function renderRelatedProductsUI(currentProduct) {
     const section = document.getElementById('relatedProductsSection');
