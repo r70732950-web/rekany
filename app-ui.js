@@ -802,6 +802,41 @@ async function showProductDetailsUI(productData) {
         priceContainer.innerHTML = `<span>${product.price.toLocaleString()} د.ع</span>`;
     }
 
+    // === DESTPÊKA KODA NÛ JI BO LINKÊ DEREKÎ ===
+    // === دەستپێکی کۆدی نوێ بۆ لینکی دەرەکی ===
+
+    // Pêşî, em konteynira kevn (eger hebe) paqij dikin
+    // یەکەم، ئەم کۆنتەینەری کۆن (ئەگەر هەبێت) پاک دەکەینەوە
+    const oldLinkContainer = document.getElementById('sheetExternalLinkContainer');
+    if (oldLinkContainer) {
+        oldLinkContainer.remove();
+    }
+
+    // Em تنێ دوگمەیێ nîşan ddeyn eger kaڵa link hebit
+    // ئەم تەنها دوگمەکە نیشان دەدەین ئەگەر کاڵا لینک هەبێت
+    if (product.externalLink) {
+        const externalLinkContainer = document.createElement('div');
+        externalLinkContainer.id = 'sheetExternalLinkContainer';
+        externalLinkContainer.style.textAlign = 'center';
+        externalLinkContainer.style.margin = '20px 0'; // Valahiyekê zêde dike (بۆشاییەک زیاد دەکات)
+
+        // Em stîlê 'sheet-action-btn' یێ تە یێ ھەیی bkar tinin
+        // ئەم ستایلی 'sheet-action-btn'ی تۆی هەیی بەکار دێنین
+        externalLinkContainer.innerHTML = `
+            <a href="${product.externalLink}" target="_blank" rel="noopener noreferrer" class="sheet-action-btn" style="background-color: var(--primary-light); color: white; display: inline-flex; width: auto; padding: 10px 20px;">
+                <i class="fas fa-external-link-alt" style="margin-left: 8px;"></i>
+                <span>بینینا ڤیدیۆیێ (یان زانیاری پتر)</span>
+            </a>
+        `;
+        
+        // Em wê dixin pêşiya bişkoka "Add to Cart"
+        // ئەم دەیخەینە پێش دوگمەی "زێدەکرن بۆ سەلکێ"
+        const addToCartButton = document.getElementById('sheetAddToCartBtn');
+        addToCartButton.parentNode.insertBefore(externalLinkContainer, addToCartButton);
+    }
+    // === DAWÎYA KODA NÛ ===
+    // === کۆتایی کۆدی نوێ ===
+
     // Add to Cart Button
     const addToCartButton = document.getElementById('sheetAddToCartBtn');
     addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
