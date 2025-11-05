@@ -729,9 +729,6 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     loader.style.display = 'none'; // Hide loader after content is loaded
 }
 
-//
-// =========== 💡 DESTPÊKA KODA NÛ / دەستپێکی کۆدی نوێ (شوێنی فەنکشنی کۆن دەگرێتەوە) 💡 ===========
-//
 async function showProductDetailsUI(productData) {
     const product = productData || await fetchProductById(state.currentProductId); // Fetch if needed
     if (!product) { showNotification(t('product_not_found_error'), 'error'); return; }
@@ -741,167 +738,58 @@ async function showProductDetailsUI(productData) {
      const sheetContent = document.querySelector('#productDetailSheet .sheet-content');
     if (sheetContent) sheetContent.scrollTop = 0; // Scroll to top
 
-    // --- 💡 فەنکشنی یاریدەدەری نوێ (زیرەکتر) بۆ دۆزینەوەی لینکی YouTube 💡 ---
-    function getYouTubeEmbedUrl(url) {
-        if (!url) return null;
-        let videoId = null;
-
-        // پشکنین بۆ هەموو جۆرە باوەکانی لینکی یوتیوب (دیسکتۆپ، مۆبایل، کورت، embed)
-        const patterns = [
-            /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|m\.youtube\.com)\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=)([^?&]+)/,
-            /(?:https?:\/\/)?(?:www\.)?youtu\.be\/([^?&]+)/
-        ];
-
-        for (const pattern of patterns) {
-            const match = url.match(pattern);
-            if (match && match[1]) {
-                videoId = match[1];
-                break; // کاتێک یەکەم گونجان دۆزرایەوە، بوەستە
-            }
-        }
-
-        if (videoId) {
-            // زیادکردنی پارامیتەر بۆ کۆنترۆڵکردنی ڤیدیۆکە و کەمکردنەوەی ڕێکلام
-            return `https://www.youtube.com/embed/${videoId}?enablejsapi=1&rel=0&modestbranding=1&origin=${window.location.origin}`;
-        }
-        return null; // ئەگەر لینکی یوتیوب نەبوو
-    }
-    // --- 💡 کۆتایی فەنکشنی یاریدەدەر 💡 ---
-
-
     const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
     const descriptionText = (product.description && product.description[state.currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
     const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
 
-    // --- 💡 پشکنین بۆ لینکی ڤیدیۆ لە 'productExternalLink' 💡 ---
-    const videoEmbedUrl = getYouTubeEmbedUrl(product.externalLink);
-    let videoSlideOriginalSrc = videoEmbedUrl; // URLـی ڤیدیۆکە پاشەکەوت دەکەین
-    // --- 💡 کۆتایی گۆڕانکاری 💡 ---
-
-
-    // --- Image Slider Setup ---
+    // Image Slider Setup
     const imageContainer = document.getElementById('sheetImageContainer');
     const thumbnailContainer = document.getElementById('sheetThumbnailContainer');
     imageContainer.innerHTML = '';
     thumbnailContainer.innerHTML = '';
-
-    // --- 💡 دروستکردنی سلایدی وێنەکان (هەنگاوی 1) ---
-    // ئێمە هەموو سلایدێک (وێنە یان ڤیدیۆ) دەخەینە ناو 'div.slide-item'
     if (imageUrls.length > 0) {
         imageUrls.forEach((url, index) => {
-            // دروستکردنی کۆنتەینەر بۆ سلایدەکە
-            const slideItem = document.createElement('div');
-            slideItem.className = 'slide-item image-slide'; // کڵاسی نوێ
-            if (index === 0) slideItem.classList.add('active'); // یەکەم سلاید چالاکە
-            
             const img = document.createElement('img');
-            img.src = url; 
-            img.alt = nameInCurrentLang;
-            slideItem.appendChild(img); // وێنەکە دەخەینە ناو سلاید
-            imageContainer.appendChild(slideItem); // سلایدەکە دەخەینە ناو کۆنتەینەری سەرەکی
-
-            // دروستکردنی وێنەی بچووک (Thumbnail)
+            img.src = url; img.alt = nameInCurrentLang; if (index === 0) img.classList.add('active');
+            imageContainer.appendChild(img);
             const thumb = document.createElement('img');
-            thumb.src = url; 
-            thumb.alt = `Thumbnail ${index + 1}`; 
-            thumb.className = 'thumbnail';
-            if (index === 0) thumb.classList.add('active'); 
-            thumb.dataset.index = index;
+            thumb.src = url; thumb.alt = `Thumbnail ${index + 1}`; thumb.className = 'thumbnail';
+            if (index === 0) thumb.classList.add('active'); thumb.dataset.index = index;
             thumbnailContainer.appendChild(thumb);
         });
     }
 
-    // --- 💡 کۆدی نوێ: زیادکردنی سلایدی ڤیدیۆ (هەنگاوی 2) ---
-    if (videoEmbedUrl) {
-        const videoIndex = imageUrls.length; // دەبێتە سلایدی 5 (یان هەر ژمارەیەک دوای وێنەکان)
-
-        // دروستکردنی سلایدی ڤیدیۆ
-        const slideItem = document.createElement('div');
-        slideItem.className = 'slide-item video-slide'; // کڵاسی جیاواز
-        
-        // دروستکردنی iframe
-        const iframe = document.createElement('iframe');
-        iframe.src = videoEmbedUrl;
-        iframe.title = "YouTube video player";
-        iframe.frameBorder = "0";
-        iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
-        iframe.allowFullscreen = true;
-        
-        slideItem.appendChild(iframe);
-        imageContainer.appendChild(slideItem);
-
-        // دروستکردنی وێنەی بچووکی ڤیدیۆ (Thumbnail)
-        const thumb = document.createElement('div'); // DIV بەکاردێنین
-        thumb.className = 'thumbnail video-thumbnail';
-        thumb.dataset.index = videoIndex;
-        // زیادکردنی ئایکۆنی یوتیوب (پێویستە Font Awesome چالاک بێت)
-        thumb.innerHTML = '<i class="fab fa-youtube" style="font-size: 30px; color: #FF0000; line-height: 56px;"></i>'; 
-        thumbnailContainer.appendChild(thumb);
-
-        // ئەگەر هیچ وێنەیەک نەبوو، ڤیدیۆکە بکە بە یەکەم سلاید
-        if (imageUrls.length === 0) {
-            slideItem.classList.add('active');
-            thumb.classList.add('active');
-        }
-    }
-    // --- 💡 کۆتایی کۆدی نوێ 💡 ---
-
-
     let currentIndex = 0;
-    // --- 💡 گۆڕانکاری: هەڵبژاردنی 'div.slide-item'ەکان 💡 ---
-    const slides = imageContainer.querySelectorAll('.slide-item'); // هەڵبژاردنی کۆنتەینەری سلایدەکان
+    const images = imageContainer.querySelectorAll('img');
     const thumbnails = thumbnailContainer.querySelectorAll('.thumbnail');
     const prevBtn = document.getElementById('sheetPrevBtn');
     const nextBtn = document.getElementById('sheetNextBtn');
 
     function updateSlider(index) {
-        if (!slides[index] || !thumbnails[index]) return;
-
-        // --- 💡 کۆدی نوێ: ڕاگرتنی ڤیدیۆ کاتێک سلاید دەگۆڕیت 💡 ---
-        // ئەمە زۆر گرنگە بۆ ئەوەی ڤیدیۆکە لە پشتەوە کار نەکات
-        const currentSlide = slides[currentIndex];
-        if (currentSlide && currentSlide.classList.contains('video-slide')) {
-            const iframe = currentSlide.querySelector('iframe');
-            if (iframe) {
-                // ئاسانترین ڕێگە بۆ ڕاگرتنی ڤیدیۆ: دووبارە دانانی 'src'
-                iframe.src = videoSlideOriginalSrc; 
-            }
-        }
-        // --- 💡 کۆتایی کۆدی نوێ 💡 ---
-
-        // شاردنەوەی هەموو سلایدەکان و وێنە بچووکەکان
-        slides.forEach(slide => slide.classList.remove('active'));
+        if (!images[index] || !thumbnails[index]) return;
+        images.forEach(img => img.classList.remove('active'));
         thumbnails.forEach(thumb => thumb.classList.remove('active'));
-        
-        // پیشاندانی سلایدی هەڵبژێردراو
-        slides[index].classList.add('active');
+        images[index].classList.add('active');
         thumbnails[index].classList.add('active');
         currentIndex = index;
     }
 
-    // --- 💡 پشکنینی کۆی گشتی سلایدەکان (وێنە + ڤیدیۆ) 💡 ---
-    const totalSlides = slides.length;
-    const showSliderBtns = totalSlides > 1;
-    
+    // Show/hide slider buttons based on image count
+    const showSliderBtns = imageUrls.length > 1;
     prevBtn.style.display = showSliderBtns ? 'flex' : 'none';
     nextBtn.style.display = showSliderBtns ? 'flex' : 'none';
 
-    // پاککردنەوەی گوێگرە کۆنەکان
+    // Remove previous listeners before adding new ones
     prevBtn.onclick = null;
     nextBtn.onclick = null;
     thumbnails.forEach(thumb => thumb.onclick = null);
 
-    // دانانی گوێگری نوێ
+    // Add new listeners
     if(showSliderBtns) {
-        prevBtn.onclick = () => updateSlider((currentIndex - 1 + totalSlides) % totalSlides);
-        nextBtn.onclick = () => updateSlider((currentIndex + 1) % totalSlides);
+        prevBtn.onclick = () => updateSlider((currentIndex - 1 + images.length) % images.length);
+        nextBtn.onclick = () => updateSlider((currentIndex + 1) % images.length);
     }
     thumbnails.forEach(thumb => thumb.onclick = () => updateSlider(parseInt(thumb.dataset.index)));
-
-    //
-    // ... (کۆدی ماوەتەوەی فەنکشنەکە وەک خۆی) ...
-    // ... (درێژەی فەنکشنەکە بۆ پیشاندانی نرخ، وەسف، هتد...)
-    //
 
     // Update Product Info
     document.getElementById('sheetProductName').textContent = nameInCurrentLang;
@@ -919,6 +807,8 @@ async function showProductDetailsUI(productData) {
     addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
     addToCartButton.onclick = () => {
         handleAddToCartUI(product.id, addToCartButton); // Use UI handler
+        // Optionally close the sheet after adding
+        // closeCurrentPopup();
     };
 
     // Render Related Products section
@@ -927,10 +817,6 @@ async function showProductDetailsUI(productData) {
     // Open the sheet and update history
     openPopup('productDetailSheet');
 }
-//
-// =========== 💡 DAWÎYA KODA NÛ / کۆتایی کۆدی نوێ 💡 ===========
-//
-
 
 async function renderRelatedProductsUI(currentProduct) {
     const section = document.getElementById('relatedProductsSection');
