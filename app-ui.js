@@ -289,7 +289,7 @@ export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
         skeletonCard.className = 'skeleton-card';
         skeletonCard.innerHTML = `
             <div class="skeleton-image shimmer"></div>
-            <div class="skeleton-text shimmer"></div>
+            <div class.skeleton-text shimmer"></div>
             <div class="skeleton-price shimmer"></div>
             <div class="skeleton-button shimmer"></div>
         `;
@@ -917,7 +917,13 @@ async function showProductDetailsUI(productData) {
             // Ev vîdyo ye, loma em iframe çêdikin
             // ئەمە ڤیدیۆیە، بۆیە iframeـەکە دروست دەکەین
             activeElement.style.display = 'flex';
-            const videoSrc = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0`;
+            
+            // === VÊ GAVÊ BIKARANÎNA DAWÎ ===
+            // === دوا بەکارهێنان لێرەدایە ===
+            // Em `autoplay=1` û `mute=1` zêde dikin
+            // ئێمە `autoplay=1` و `mute=1` زیاد دەکەین
+            const videoSrc = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&autoplay=1&mute=1&controls=1`;
+            
             activeElement.innerHTML = `
                 <iframe 
                     src="${videoSrc}" 
