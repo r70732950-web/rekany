@@ -6,6 +6,12 @@ import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
+// === START: KODA NÛ / کۆدی نوێ ===
+// Em xizmetguzariya Storage lê zêde dikin
+// ئێمە خزمەتگوزاری ستۆرێج زیاد دەکەین
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
+// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -24,6 +30,12 @@ export const analytics = getAnalytics(app);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const messaging = getMessaging(app);
+// === START: KODA NÛ / کۆدی نوێ ===
+// Em 'storage' initialize dikin
+// ئێمە 'storage' ئامادە دەکەین
+export const storage = getStorage(app);
+// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+
 
 // Firestore Collections Exports (for app-core.js and app-ui.js)
 export const productsCollection = collection(db, "products");
@@ -35,6 +47,8 @@ export const shortcutRowsCollection = collection(db, "shortcut_rows");
 
 // Translations Export
 export const translations = {
+    // ... (هەموو وەرگێڕانەکان وەک خۆیان دەمێننەوە) ...
+    // ... (Hemî wergêran wek xwe dimînin) ...
     ku_sorani: {
         search_placeholder: "گەڕان بە ناوی کاڵا...",
         admin_login_title: "چوونەژوورەوەی بەڕێوەبەر",
@@ -419,6 +433,11 @@ export const addHomeSectionForm = document.getElementById('addHomeSectionForm');
 window.globalAdminTools = {
     // Firebase Services & Functions needed by admin.js
     db, auth,
+    // === START: KODA NÛ / کۆدی نوێ ===
+    // Em xizmetguzarî û fonksiyonên Storage lê zêde dikin
+    // ئێمە خزمەتگوزاری و فەنکشنەکانی ستۆرێج زیاد دەکەین
+    storage, ref, uploadBytes, getDownloadURL,
+    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection,
     query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
 

@@ -587,10 +587,110 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 .thumbnail.active { border-color: var(--primary-color); opacity: 1; }
 #sheetProductDescription a { color: var(--primary-color); text-decoration: underline; font-weight: bold; }
 
+/* === START: KODA NÛ / کۆدی نوێ === */
+/* Em stîlên kevn ên 'image-inputs-container' şîrove dikin ji ber ku êdî nayên bikar anîn */
+/* ئێمە ستایلە کۆنەکانی 'image-inputs-container' دادەپۆشین چونکە ئیتر بەکارناهێنرێن */
+/*
 .image-inputs-container { display: flex; flex-direction: column; gap: 10px; }
 .image-input-group { display: flex; gap: 8px; align-items: center; }
 .image-input-group input { flex-grow: 1; }
 .image-preview-small { width: 40px; height: 40px; object-fit: contain; border-radius: 4px; background-color: var(--light-gray); border: 1px solid var(--medium-gray); }
+*/
+
+/* Stîlên nû ji bo barkirina wêneyan */
+/* ستایلی نوێ بۆ بلندکردنی وێنە */
+.image-upload-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.image-upload-slot {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border: 2px dashed var(--medium-gray);
+    border-radius: 8px;
+    background-color: var(--light-gray);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.image-upload-slot:hover {
+    border-color: var(--primary-color);
+    background-color: #fff;
+}
+
+.image-upload-preview {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 2;
+}
+
+.image-upload-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 3;
+    color: var(--dark-gray);
+    font-size: 13px;
+    text-align: center;
+    padding: 5px;
+}
+
+.image-upload-label i {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.image-upload-input {
+    display: none;
+}
+
+.image-upload-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    color: var(--primary-color);
+    z-index: 4;
+    display: none; /* Bi rêya JS ve tê kontrol kirin */
+}
+
+.image-upload-remove-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 12px;
+    cursor: pointer;
+    z-index: 5;
+    display: none; /* Dema ku wêne hebe tê nîşan dan */
+    align-items: center;
+    justify-content: center;
+}
+/* === END: KODA NÛ / کۆتایی کۆدی نوێ === */
+
 
 .settings-page {
     padding-left: 15px;
@@ -1457,4 +1557,3 @@ input:checked + .slider:before {
 }
 
 /* === END: KODÊN NÛ JI BO DÎZAYNA BEŞÊ ADMIN === */
-
