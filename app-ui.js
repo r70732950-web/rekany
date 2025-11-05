@@ -741,21 +741,25 @@ async function showProductDetailsUI(productData) {
      const sheetContent = document.querySelector('#productDetailSheet .sheet-content');
     if (sheetContent) sheetContent.scrollTop = 0; // Scroll to top
 
-    // --- 💡 فەنکشنی یاریدەدەری نوێ بۆ دۆزینەوەی لینکی YouTube 💡 ---
+    // --- 💡 فەنکشنی یاریدەدەری نوێ (زیرەکتر) بۆ دۆزینەوەی لینکی YouTube 💡 ---
     function getYouTubeEmbedUrl(url) {
         if (!url) return null;
         let videoId = null;
-        // Regular (watch) link
-        let match = url.match(/[?&]v=([^&]+)/);
-        if (match) {
-            videoId = match[1];
-        } else {
-            // Short (youtu.be) link
-            match = url.match(/youtu\.be\/([^?]+)/);
-            if (match) {
+
+        // پشکنین بۆ هەموو جۆرە باوەکانی لینکی یوتیوب (دیسکتۆپ، مۆبایل، کورت، embed)
+        const patterns = [
+            /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|m\.youtube\.com)\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=)([^?&]+)/,
+            /(?:https?:\/\/)?(?:www\.)?youtu\.be\/([^?&]+)/
+        ];
+
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match && match[1]) {
                 videoId = match[1];
+                break; // کاتێک یەکەم گونجان دۆزرایەوە، بوەستە
             }
         }
+
         if (videoId) {
             // زیادکردنی پارامیتەر بۆ کۆنترۆڵکردنی ڤیدیۆکە و کەمکردنەوەی ڕێکلام
             return `https://www.youtube.com/embed/${videoId}?enablejsapi=1&rel=0&modestbranding=1&origin=${window.location.origin}`;
@@ -769,7 +773,7 @@ async function showProductDetailsUI(productData) {
     const descriptionText = (product.description && product.description[state.currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
     const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
 
-    // --- 💡 گۆڕانکاری: پشکنین بۆ لینکی ڤیدیۆ لە 'productExternalLink' 💡 ---
+    // --- 💡 پشکنین بۆ لینکی ڤیدیۆ لە 'productExternalLink' 💡 ---
     const videoEmbedUrl = getYouTubeEmbedUrl(product.externalLink);
     let videoSlideOriginalSrc = videoEmbedUrl; // URLـی ڤیدیۆکە پاشەکەوت دەکەین
     // --- 💡 کۆتایی گۆڕانکاری 💡 ---
@@ -781,7 +785,7 @@ async function showProductDetailsUI(productData) {
     imageContainer.innerHTML = '';
     thumbnailContainer.innerHTML = '';
 
-    // --- 💡 گۆڕانکاری: دروستکردنی سلایدی وێنەکان (هەنگاوی 1) ---
+    // --- 💡 دروستکردنی سلایدی وێنەکان (هەنگاوی 1) ---
     // ئێمە هەموو سلایدێک (وێنە یان ڤیدیۆ) دەخەینە ناو 'div.slide-item'
     if (imageUrls.length > 0) {
         imageUrls.forEach((url, index) => {
@@ -875,7 +879,7 @@ async function showProductDetailsUI(productData) {
         currentIndex = index;
     }
 
-    // --- 💡 گۆڕانکاری: پشکنینی کۆی گشتی سلایدەکان (وێنە + ڤیدیۆ) 💡 ---
+    // --- 💡 پشکنینی کۆی گشتی سلایدەکان (وێنە + ڤیدیۆ) 💡 ---
     const totalSlides = slides.length;
     const showSliderBtns = totalSlides > 1;
     
