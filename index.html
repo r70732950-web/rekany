@@ -6,7 +6,7 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,7 +24,6 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- ... (Header, Modals, Sheets, Main Content Structure remain the same) ... -->
         <header class="app-header">
             <div class="main-header-content">
                 <div class="logo">
@@ -164,6 +163,12 @@
                 <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
             </div>
             <div class="sheet-content">
+                <div id="sheetVideoContainer" class="video-container" style="display: none; margin-bottom: 15px;">
+                    <h4 class="sheet-video-title" data-translate-key="product_video">ڤیدیۆیا کاڵای</h4>
+                    <video id="sheetProductVideo" controls playsinline>
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
                 <div id="sheetImageSlider">
                     <div id="sheetImageContainer"></div>
                     <button class="slider-btn prev" id="sheetPrevBtn" style="display: none;">&#10094;</button>
@@ -206,13 +211,11 @@
                 <div id="subSubcategoriesContainer" class="subcategories-container" style="padding-top: 0; padding-bottom: 10px; display: none;"></div>
 
                 <div id="homePageSectionsContainer">
-                    <!-- Home page dynamic sections will be rendered here by home.js -->
-                </div>
+                    </div>
                 <div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;" data-translate-key="loading_products">...خەریکی بارکردنی کاڵاکانە</p></div>
                 <div id="skeletonLoader" class="products-container"></div>
                 <div class="products-container" id="productsContainer" style="display: none;">
-                    <!-- Product grid rendered here by home.js -->
-                </div>
+                    </div>
 
                 <div id="scroll-loader-trigger" style="height: 50px;"></div>
             </div>
@@ -221,17 +224,14 @@
         <div class="page page-hidden" id="subcategoryDetailPage">
                <div class="subcategory-detail-content">
                  <div id="subSubCategoryContainerOnDetailPage" class="subcategories-container">
-                     <!-- Sub-subcategories rendered by app-ui.js -->
-                 </div>
+                     </div>
                  <div id="productsContainerOnDetailPage" class="products-container">
-                     <!-- Products rendered by app-ui.js -->
-                 </div>
+                     </div>
                  <div id="detailPageLoader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
              </div>
         </div>
 
         <div class="settings-page page page-hidden" id="settingsPage">
-            <!-- ... (Settings content remains the same) ... -->
             <h3 class="section-title" style="margin: 0; border-radius: 8px 8px 0 0;"><i class="fas fa-cog"></i> <span data-translate-key="settings_title">ڕێکخستنەکان</span></h3>
 
             <div class="settings-group">
@@ -320,8 +320,7 @@
                 </div>
             </div>
 
-            <!-- ... (Admin sections remain the same) ... -->
-             <div class="settings-group" id="adminPoliciesManagement" style="display: none;">
+            <div class="settings-group" id="adminPoliciesManagement" style="display: none;">
                  <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                      <i class="fas fa-edit"></i> <span data-translate-key="manage_policies_title">بەڕێوەبردنی مەرج و ڕێساکان</span>
                  </h3>
@@ -815,9 +814,7 @@
                      <div id="announcementsListContainer"></div>
                  </div>
              </div>
-        </div> <!-- Close settings-page -->
-
-        <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
+        </div> <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
 
         <div id="addHomeSectionModal" class="modal">
             <div class="modal-content">
@@ -952,10 +949,28 @@
                         <label for="productDescriptionAr">وەسف (عربي):</label>
                         <textarea id="productDescriptionAr" rows="3" required></textarea>
                     </div>
+
                     <div class="form-group">
-                        <label>لینکەکانی وێنەی کاڵا (تا 4 وێنە):</label>
-                        <div class="image-inputs-container" id="imageInputsContainer"></div>
+                        <label for="productImageFiles" data-translate-key="select_images_label">هەڵبژاردنی وێنەکان (هەتا 4 دانە):</label>
+                        <input type="file" id="productImageFiles" class="file-input" accept="image/png, image/jpeg, image/webp" multiple>
+                        <small>تۆ دشێی هەتا 4 وێنەیان هەلبژێری. (PNG, JPG, WEBP)</small>
                     </div>
+
+                    <div class="form-group">
+                        <label for="productVideoFile" data-translate-key="select_video_label">هەڵبژاردنی ڤیدیۆ (1 دانە):</label>
+                        <input type="file" id="productVideoFile" class="file-input" accept="video/mp4, video/quicktime">
+                        <small>بتنێ 1 ڤیدیۆ (MP4 یان MOV).</small>
+                    </div>
+                    
+                    <div id="fileUploadStatusContainer" class="upload-status-container" style="display: none;">
+                        <h4 data-translate-key="file_list_title">فایلێن هەلبژارتی:</h4>
+                        <div id="fileListPreview"></div>
+                        <div id="uploadProgressBarContainer" style="display: none;">
+                            <div id="uploadProgressBar" classs="progress-bar-fill"></div>
+                            <span id="uploadProgressText" class="progress-bar-text"></span>
+                        </div>
+                    </div>
+                    
                     <div class="form-group"><label for="productExternalLink">لینکی دەرەکی:</label><input type="text" id="productExternalLink" placeholder="بۆ نموونە، لینکی ڤیدیۆ..."></div>
 
                     <hr style="margin: 20px 0; border-top: 1px solid var(--section-border);">
@@ -1000,21 +1015,15 @@
                  <span data-translate-key="nav_settings">ڕێکخستن</span>
              </button>
         </div>
-    </div> <!-- Close app-container -->
-
-    <div id="update-notification" class="update-notification">
+    </div> <div id="update-notification" class="update-notification">
         <span>ڤێرژنێکی نوێ بەردەستە!</span>
         <button id="update-now-btn" class="update-now-btn">نوێی بکەرەوە</button>
     </div>
 
-    <!-- Script imports -->
     <script type="module" src="app-setup.js"></script>
     <script type="module" src="app-core.js"></script>
-    <!-- *** UPDATED ORDER: app-ui.js comes BEFORE home.js *** -->
     <script type="module" src="app-ui.js"></script>
     <script type="module" src="home.js"></script>
-    <!-- admin.js should be last or defer as it uses globalAdminTools -->
     <script src="admin.js" defer></script>
 </body>
 </html>
-

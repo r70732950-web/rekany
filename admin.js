@@ -1,19 +1,129 @@
-// فایلی admin.js (چاککراو - هەڵە کوشندەکە لادرا)
+// فایلی admin.js (چاککراو - هەڵە کوشندەکە لادرا + لۆجیکی Storage زیادکرا)
 
 const {
-    db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit,
+    db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
+    
+    // ==================================================
+    // === DESTPÊK: IMPORTÊN STORAGE (HEFTAVA 3) ===
+    // === START: STORAGE IMPORTS (STEP 3) ===
+    storage, ref, uploadBytesResumable, getDownloadURL,
+    // === DAWÎ: IMPORTÊN STORAGE (HEFTAVA 3) ===
+    // ==================================================
+
     showNotification, t, openPopup, closeCurrentPopup, 
-    // searchProductsInFirestore <-- Ev hate rakirin ji ber ku tune bû
     productsCollection, categoriesCollection, announcementsCollection,
-    promoGroupsCollection, brandGroupsCollection, // Ensure these are from app-setup
+    promoGroupsCollection, brandGroupsCollection,
     setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage,
     clearProductCache
 } = window.globalAdminTools;
 
 const shortcutRowsCollection = collection(db, "shortcut_rows");
 
+// ==================================================
+// === DESTPÊK: FONKSYONA ALÎKAR A UPLOADÊ (HEFTAVA 3) ===
+// === START: UPLOAD HELPER FUNCTION (STEP 3) ===
+
+/**
+ * Pelê bar dike Firebase Storage û URL-ya dakêşanê vedigerîne.
+ * (فایلێک بلند دەکات بۆ Firebase Storage و لینکی داگرتن دەگەڕێنێتەوە.)
+ * @param {File} file - Fayla ku were barkirin.
+ * @param {string} path - Rêça tevahî di Storage de (بۆ نموونە: 'products/prod_id/image_0.jpg').
+ * @param {function(number)} onProgress - Fonekşnek ku pêşveçûnê rapor dike (0-100).
+ * @returns {Promise<string>} - Promise ku bi URL-ya dakêşanê çareser dibe.
+ */
+async function uploadFile(file, path, onProgress) {
+    const fileRef = ref(storage, path);
+    const uploadTask = uploadBytesResumable(fileRef, file);
+
+    return new Promise((resolve, reject) => {
+        uploadTask.on('state_changed',
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                if (onProgress) {
+                    onProgress(progress, snapshot.bytesTransferred, snapshot.totalBytes);
+                }
+            },
+            (error) => {
+                console.error("Upload failed for:", path, error);
+                reject(error);
+            },
+            async () => {
+                try {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    resolve(downloadURL);
+                } catch (error) {
+                    console.error("Failed to get download URL:", error);
+                    reject(error);
+                }
+            }
+        );
+    });
+}
+// === DAWÎ: FONKSYONA ALÎKAR A UPLOADÊ (HEFTAVA 3) ===
+// ==================================================
+
+
 window.AdminLogic = {
     listenersAttached: false,
+    
+    // Ev fonekşn dê lîsta faylên hilbijartî nîşan bide
+    // (ئەم فەنکشنە لیستی فایلە هەڵبژێردراوەکان نیشان دەدات)
+    handleFileSelection: function() {
+        const imageFiles = document.getElementById('productImageFiles').files;
+        const videoFile = document.getElementById('productVideoFile').files[0];
+        const container = document.getElementById('fileUploadStatusContainer');
+        const list = document.getElementById('fileListPreview');
+        const progressBarContainer = document.getElementById('uploadProgressBarContainer');
+        
+        // Pêşeka heyî paqij bike lê lîsta kevn (ji moda edit) nehêle heya ku hilbijartinek nû çênebe
+        // (پریڤیوی ئێستا پاک بکەرەوە بەڵام لیستی کۆن (لە مۆدی edit) بهێڵەرەوە تا هەڵبژاردنێکی نوێ دەکرێت)
+        const existingFilesHeader = list.querySelector('h4');
+        if (!existingFilesHeader || (imageFiles.length > 0 || videoFile)) {
+             list.innerHTML = ''; // Paqij bike tenê heke em pelên nû lê zêde bikin
+        }
+
+        if (imageFiles.length > 4) {
+            showNotification(t('too_many_images'), 'error');
+            // Faylên zêde kêm bike
+            // (فایلە زیادەکان کەم بکەرەوە)
+            const dataTransfer = new DataTransfer();
+            for(let i = 0; i < 4; i++) {
+                dataTransfer.items.add(imageFiles[i]);
+            }
+            document.getElementById('productImageFiles').files = dataTransfer.files;
+            // Dîsa gazî bike da ku lîsteyê nûve bike
+            // (دووبارە بانگی بکەرەوە بۆ نوێکردنەوەی لیستەکە)
+            return this.handleFileSelection(); 
+        }
+
+        let newFileContent = '';
+        if (imageFiles.length > 0) {
+            newFileContent += `<h6><i class="fas fa-file-upload"></i> ${t('file_list_title')} (نوێ):</h6>`;
+            Array.from(imageFiles).forEach(file => {
+                newFileContent += `<div class="file-preview-item image"><i class="fas fa-image"></i> ${file.name}</div>`;
+            });
+        }
+        
+        if (videoFile) {
+            if (newFileContent === '') {
+                 newFileContent += `<h6><i class="fas fa-file-upload"></i> ${t('file_list_title')} (نوێ):</h6>`;
+            }
+            newFileContent += `<div class="file-preview-item video"><i class="fas fa-video"></i> ${videoFile.name}</div>`;
+        }
+        
+        // Naveroka nû li lîsteyê zêde bike (piştî lîsteya kevn, eger hebe)
+        // (ناوەڕۆکی نوێ لە لیستەکە زیاد بکە (دوای لیستی کۆن، ئەگەر هەبێت))
+        if(existingFilesHeader) {
+            list.innerHTML = list.innerHTML.split('<h6>')[0]; // Tenê faylên kevn bihêle
+            list.innerHTML += newFileContent;
+        } else {
+            list.innerHTML = newFileContent;
+        }
+
+        container.style.display = (list.innerHTML !== '') ? 'block' : 'none';
+        progressBarContainer.style.display = 'none'; // Piştrast be ku progress bar veşartî ye
+    },
+
 
     initialize: function() {
         console.log("Admin logic initialized.");
@@ -26,7 +136,7 @@ window.AdminLogic = {
         this.renderSocialMediaLinks();
         this.renderContactMethodsAdmin();
         this.renderShortcutRowsAdminList();
-        this.updateAdminCategoryDropdowns(); // <-- This will now run the corrected function
+        this.updateAdminCategoryDropdowns(); 
         this.updateShortcutCardCategoryDropdowns();
         this.renderHomeLayoutAdmin();
         
@@ -126,13 +236,7 @@ window.AdminLogic = {
         document.getElementById('formTitle').textContent = 'دەستکاری کردنی کاڵا';
         document.getElementById('productForm').reset();
         
-        // ===============================================
-        // === START: ÇARESERIYA NÛ / چارەسەری نوێ ===
-        // Ev rêzik piştrast dike ku lîste di dema 'edit' de vala nabe
-        // ئەم دێڕە دڵنیا دەکاتەوە کە لیستەکە لە کاتی 'دەستکاری'دا بەتاڵ نابێتەوە
         this.updateAdminCategoryDropdowns(); 
-        // === DAWÎ: ÇARESERIYA NÛ / کۆتایی چارەسەری نوێ ===
-        // ===============================================
 
         if (product.name && typeof product.name === 'object') {
             document.getElementById('productNameKuSorani').value = product.name.ku_sorani || '';
@@ -156,8 +260,48 @@ window.AdminLogic = {
             document.getElementById('productDescriptionAr').value = product.description.ar || '';
         }
 
-        const imageUrls = product.imageUrls || (product.image ? [product.image] : []);
-        this.createProductImageInputs(imageUrls);
+        // ==================================================
+        // === DESTPÊK: LOGICA GUHERTÎ (HEFTAVA 3) ===
+        // === START: MODIFIED LOGIC (STEP 3) ===
+        
+        // Fonksyona kevn 'createProductImageInputs' hate rakirin
+        // (فەنکشنی کۆنی 'createProductImageInputs' سڕایەوە)
+
+        // Lîsteya pelan a heyî nîşan bide
+        // (لیستی فایلە هەبووەکان نیشان بدە)
+        const fileList = document.getElementById('fileListPreview');
+        const statusContainer = document.getElementById('fileUploadStatusContainer');
+        const progressBarContainer = document.getElementById('uploadProgressBarContainer');
+        fileList.innerHTML = '';
+        let existingFilesHTML = '';
+
+        const currentImageUrls = product.imageUrls || (product.image ? [product.image] : []);
+        const currentVideoUrl = product.videoUrl || null;
+
+        if (currentImageUrls.length > 0) {
+            existingFilesHTML += `<h6><i class="fas fa-check-circle"></i> وێنە پاشەکەوتکراوەکان:</h6>`;
+            currentImageUrls.forEach((url, index) => {
+                existingFilesHTML += `<div class="file-preview-item image"><i class="fas fa-link"></i> <a href="${url}" target="_blank">وێنەی ${index + 1}</a></div>`;
+            });
+        }
+
+        if (currentVideoUrl) {
+            existingFilesHTML += `<h6><i class="fas fa-check-circle"></i> ڤیدیۆی پاشەکەوتکراو:</h6>`;
+            existingFilesHTML += `<div class="file-preview-item video"><i class="fas fa-link"></i> <a href="${currentVideoUrl}" target="_blank">بینینی ڤیدیۆ</a></div>`;
+        }
+
+        fileList.innerHTML = existingFilesHTML;
+        statusContainer.style.display = (existingFilesHTML !== '') ? 'block' : 'none';
+        progressBarContainer.style.display = 'none';
+
+        // URL-yên heyî di 'dataset'-ê de hilîne da ku 'onsubmit' bikar bîne
+        // (URLە هەبووەکان لە 'dataset' پاشەکەوت بکە بۆ ئەوەی 'onsubmit' بەکاری بهێنێت)
+        document.getElementById('productForm').dataset.existingImageUrls = JSON.stringify(currentImageUrls);
+        document.getElementById('productForm').dataset.existingVideoUrl = currentVideoUrl || '';
+
+        // === DAWÎ: LOGICA GUHERTÎ (HEFTAVA 3) ===
+        // ==================================================
+
         document.getElementById('productExternalLink').value = product.externalLink || '';
 
         if (product.shippingInfo) {
@@ -180,31 +324,25 @@ window.AdminLogic = {
     deleteProduct: async function(productId) {
         if (!confirm(t('delete_confirm'))) return;
         try {
+            // Têbînî: Pêdivî ye ku em pelên Storage jî jê bibin, lê ew tevlihevtir e.
+            // (تێبینی: پێویستە فایلەکانی Storageش بسڕینەوە، بەڵام ئەمە ئاڵۆزترە.)
+            // Niha, em tenê belgeya Firestore jê dibin.
+            // (ئێستا، تەنها دۆکیومێنتی Firestore دەسڕینەوە.)
             await deleteDoc(doc(db, "products", productId));
             showNotification(t('product_deleted'), 'success');
             clearProductCache();
-            // *** ⛔️ ЧАККРАو: Ev rêjeya jêrîn hate rakirin ji ber ku 'searchProductsInFirestore' nehatiye pênase kirin ***
-            // (⛔️ چاککراو: ئەم دێڕەی خوارەوە سڕایەوە چونکە 'searchProductsInFirestore' پێناسە نەکراوە)
-            // searchProductsInFirestore(document.getElementById('searchInput').value, true);
         } catch (error) {
             showNotification(t('product_delete_error'), 'error');
         }
     },
-
-    createProductImageInputs: function(imageUrls = []) {
-        const imageInputsContainer = document.getElementById('imageInputsContainer');
-        imageInputsContainer.innerHTML = '';
-        for (let i = 0; i < 4; i++) {
-            const url = imageUrls[i] || '';
-            const isRequired = i === 0 ? 'required' : '';
-            const placeholder = i === 0 ? 'لینکی وێنەی یەکەم (سەرەکی)' : `لینکی وێنەی ${['دووەم', 'سێیەم', 'چوارەم'][i-1]}`;
-            const previewSrc = url || `https://placehold.co/40x40/e2e8f0/2d3748?text=${i + 1}`;
-            const inputGroup = document.createElement('div');
-            inputGroup.className = 'image-input-group';
-            inputGroup.innerHTML = `<input type="text" class="productImageUrl" placeholder="${placeholder}" value="${url}" ${isRequired}><img src="${previewSrc}" class="image-preview-small" onerror="this.src='https://placehold.co/40x40/e2e8f0/2d3748?text=Err'">`;
-            imageInputsContainer.appendChild(inputGroup);
-        }
-    },
+    
+    // ==================================================
+    // === DESTPÊK: RAKIRINA FONKSYONA KEVN (HEFTAVA 3) ===
+    // Fonksyona 'createProductImageInputs' êdî ne pêwîst e.
+    // (فەنکشنی 'createProductImageInputs' چیتر پێویست نییە.)
+    // createProductImageInputs: function(imageUrls = []) { ... }
+    // === DAWÎ: RAKIRINA FONKSYONA KEVN (HEFTAVA 3) ===
+    // ==================================================
 
     populateSubcategoriesDropdown: async function(categoryId, selectedSubcategoryId = null) {
         const subcategorySelectContainer = document.getElementById('subcategorySelectContainer');
@@ -554,53 +692,35 @@ window.AdminLogic = {
         }
     },
 
-    // ======================================================
-    // === DESTPÊK: KODÊ NÛ Û ÇAKKIRÎ / START: NEW & FIXED CODE ===
-    // Ev fonksîyon nû ye û pirsgirêka vala çareser dike
-    // ئەم فۆنکشیۆنە نوێیە و کێشە بەتاڵەکە چارەسەر دەکات
-    // ======================================================
     updateAdminCategoryDropdowns: function() {
         const categories = getCategories();
         if (categories.length <= 1) return; // <= 1 ji ber ku 'all' tê de ye
         const categoriesWithoutAll = categories.filter(cat => cat.id !== 'all');
 
-        // === START: BEŞÊ ZÊDEKIRÎ ===
-        // Me li vir 'productCategoryId' zêde kir û 'required: true' danî
-        // ئێمە لێرە 'productCategoryId' زیادکرد و 'required: true' دانرا
         const dropdowns = [
-            { id: 'productCategoryId', defaultText: '-- جۆرێ سەرەکی هەڵبژێرە --', required: true },
+            { id: 'productCategoryId', defaultText: '-- جۆرێ سەرەki هەڵبژێرە --', required: true },
             { id: 'parentCategorySelect', defaultText: '-- جۆرێک هەڵبژێرە --', required: true },
             { id: 'parentMainCategorySelectForSubSub', defaultText: '-- جۆرێک هەڵبژێرە --', required: true },
             { id: 'promoCardTargetCategory', defaultText: '-- جۆرێک هەڵبژێرە --', required: true },
-            { id: 'brandTargetMainCategory', defaultText: '-- هەموو جۆرەکان --', required: false } // Ev ne pêwîst e (ئەمە داواکراو نییە)
+            { id: 'brandTargetMainCategory', defaultText: '-- هەموو جۆرەکان --', required: false }
         ];
-        // === DAWÎ: BEŞÊ ZÊDEKIRÎ ===
 
         dropdowns.forEach(d => {
             const select = document.getElementById(d.id);
             if (select) {
-                // === START: LOGICA BAŞTIRKIRÎ ===
-                // Ev logica nû piştrast dike ku vebijarka yekem 'disabled' e heke 'required' be
-                // ئەم لۆجیکە نوێیە دڵنیا دەکاتەوە کە یەکەم هەڵبژاردە 'disabled' بێت ئەگەر 'required' بێت
                 const requiredAttrs = d.required ? 'disabled selected' : '';
                 const firstOptionHTML = `<option value="" ${requiredAttrs}>${d.defaultText}</option>`;
                 select.innerHTML = firstOptionHTML;
-                // === DAWÎ: LOGICA BAŞTIRKIRÎ ===
                 
                 categoriesWithoutAll.forEach(cat => {
                     const option = document.createElement('option');
                     option.value = cat.id;
-                    // Em navê Soranî wekî navê bingehîn di panela admin de nîşan didin
-                    // ئێمە ناوی سۆرانی وەک ناوی بنەڕەتی لە پانێڵی ئەدمین نیشان دەدەین
                     option.textContent = cat.name_ku_sorani || cat.name_ku_badini;
                     select.appendChild(option);
                 });
             }
         });
     },
-    // ======================================================
-    // === DAWÎ: KODÊ NÛ Û ÇAKKIRÎ / END: NEW & FIXED CODE ===
-    // ======================================================
 
 
     // --- PROMO SLIDER GROUP MANAGEMENT ---
@@ -1284,7 +1404,18 @@ window.AdminLogic = {
         document.getElementById('addProductBtn').onclick = () => {
             setEditingProductId(null);
             document.getElementById('productForm').reset();
-            self.createProductImageInputs();
+            
+            // ==================================================
+            // === DESTPÊK: LOGICA GUHERTÎ (HEFTAVA 3) ===
+            // (fەنکشنی `createProductImageInputs` سڕایەوە)
+            document.getElementById('productForm').dataset.existingImageUrls = '[]';
+            document.getElementById('productForm').dataset.existingVideoUrl = '';
+            document.getElementById('fileListPreview').innerHTML = '';
+            document.getElementById('fileUploadStatusContainer').style.display = 'none';
+            document.getElementById('uploadProgressBarContainer').style.display = 'none';
+            // === DAWÎ: LOGICA GUHERTÎ (HEFTAVA 3) ===
+            // ==================================================
+            
             document.getElementById('subcategorySelectContainer').style.display = 'none';
             document.getElementById('subSubcategorySelectContainer').style.display = 'none';
             document.getElementById('formTitle').textContent = 'زیادکردنی کاڵای نوێ';
@@ -1307,33 +1438,132 @@ window.AdminLogic = {
             self.populateSubSubcategoriesDropdown(mainCatId, e.target.value);
         });
 
+        // =================================================================
+        // =================================================================
+        // === DESTPÊK: LOGICA SEREKE YA FORMÊ (HEFTAVA 3) ===
+        // === (Ev bi temamî ji nû ve hatiye nivîsandin) ===
+        // === START: MAIN FORM LOGIC (STEP 3) ===
+        // === (This has been completely rewritten) ===
+        // =================================================================
+        // =================================================================
         document.getElementById('productForm').onsubmit = async (e) => {
             e.preventDefault();
             const submitButton = e.target.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-            submitButton.textContent = '...چاوەڕێ بە';
-            const imageUrls = Array.from(document.querySelectorAll('.productImageUrl')).map(input => input.value.trim()).filter(url => url !== '');
-            if (imageUrls.length === 0) {
-                showNotification('پێویستە بەلایەنی کەمەوە لینکی یەک وێنە دابنێیت', 'error');
-                submitButton.disabled = false;
-                submitButton.textContent = getEditingProductId() ? 'نوێکردنەوە' : 'پاشەکەوتکردن';
+            const editingId = getEditingProductId();
+            
+            // === 1. Pelan (Files) û Daneyên Heyî (Existing Data) Bistîne ===
+            const imageFiles = document.getElementById('productImageFiles').files;
+            const videoFile = document.getElementById('productVideoFile').files.length > 0 ? document.getElementById('productVideoFile').files[0] : null;
+            const existingImageUrls = JSON.parse(e.target.dataset.existingImageUrls || '[]');
+            const existingVideoUrl = e.target.dataset.existingVideoUrl || '';
+
+            // === 2. Validation (Kontrolkirin) ===
+            if (imageFiles.length > 4) {
+                showNotification(t('too_many_images'), 'error');
+                return;
+            }
+            // Divê bi kêmî ve wêneyek hebe (an nû hatî barkirin an jixwe heye)
+            // (پێویستە بەلایەنی کەمەوە وێنەیەک هەبێت (یان نوێ بارکرا بێت یان پێشتر هەبێت))
+            if (imageFiles.length === 0 && existingImageUrls.length === 0) {
+                showNotification(t('no_files_selected'), 'error'); // TODO: Ji bo vê wergerek çêtir lê zêde bike
                 return;
             }
 
-            const productDescriptionObject = {
-                ku_sorani: document.getElementById('productDescriptionKuSorani').value,
-                ku_badini: document.getElementById('productDescriptionKuBadini').value,
-                ar: document.getElementById('productDescriptionAr').value
-            };
-
-            const productNameKuSorani = document.getElementById('productNameKuSorani').value;
-            const productNameObject = {
-                ku_sorani: productNameKuSorani,
-                ku_badini: document.getElementById('productNameKuBadini').value,
-                ar: document.getElementById('productNameAr').value
-            };
+            submitButton.disabled = true;
+            
+            // === 3. Rewşa Barkirinê Nîşan Bide ===
+            const progressBarContainer = document.getElementById('uploadProgressBarContainer');
+            const progressBar = document.getElementById('uploadProgressBar');
+            const progressText = document.getElementById('uploadProgressText');
+            progressBarContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            
+            let originalButtonText = submitButton.textContent;
+            submitButton.textContent = t('uploading_files') + '...';
+            
+            let finalImageUrls = existingImageUrls;
+            let finalVideoUrl = existingVideoUrl;
 
             try {
+                // === 4. Pelan Barke (Upload Files) ===
+                let totalUploadProgress = {};
+                let combinedProgress = 0;
+                
+                const updateOverallProgress = () => {
+                    let totalBytes = 0;
+                    let totalTransferred = 0;
+                    Object.values(totalUploadProgress).forEach(progress => {
+                        totalBytes += progress.totalBytes;
+                        totalTransferred += progress.bytesTransferred;
+                    });
+                    if (totalBytes > 0) {
+                        combinedProgress = (totalTransferred / totalBytes) * 100;
+                        progressBar.style.width = `${combinedProgress}%`;
+                        progressText.textContent = t('upload_progress', { progress: Math.round(combinedProgress) });
+                    }
+                };
+                
+                // Nasnameyek (ID) nû çêbike eger ev hilberek nû be
+                // (IDیەکی نوێ دروست بکە ئەگەر ئەمە بەرهەمێکی نوێ بێت)
+                const productId = editingId || doc(collection(db, 'temp')).id;
+                let uploadPromises = [];
+
+                // Wêneyan barke
+                // (وێنەکان بار بکە)
+                if (imageFiles.length > 0) {
+                    finalImageUrls = []; // Wêneyên kevn paqij bike ji ber ku yên nû tên
+                    for (let i = 0; i < imageFiles.length; i++) {
+                        const file = imageFiles[i];
+                        const path = `products/${productId}/image_${i}_${Date.now()}_${file.name}`;
+                        totalUploadProgress[path] = { bytesTransferred: 0, totalBytes: file.size };
+                        
+                        uploadPromises.push(
+                            uploadFile(file, path, (progress, bytesTransferred, totalBytes) => {
+                                totalUploadProgress[path] = { bytesTransferred, totalBytes };
+                                updateOverallProgress();
+                            }).then(url => finalImageUrls.push(url))
+                        );
+                    }
+                }
+                
+                // Vîdyoyê barke
+                // (ڤیدیۆکە بار بکە)
+                if (videoFile) {
+                    finalVideoUrl = null; // Vîdyoya kevn paqij bike
+                    const path = `products/${productId}/video_${Date.now()}_${videoFile.name}`;
+                    totalUploadProgress[path] = { bytesTransferred: 0, totalBytes: videoFile.size };
+                    
+                    uploadPromises.push(
+                         uploadFile(videoFile, path, (progress, bytesTransferred, totalBytes) => {
+                            totalUploadProgress[path] = { bytesTransferred, totalBytes };
+                            updateOverallProgress();
+                        }).then(url => finalVideoUrl = url)
+                    );
+                }
+
+                // Li benda hemî barkirinan bisekinin
+                // (چاوەڕێی هەموو بارکردنەکان بکە)
+                await Promise.all(uploadPromises);
+                
+                if (uploadPromises.length > 0) {
+                     showNotification(t('upload_complete'), 'success');
+                }
+                
+                // === 5. Daneyên Din ên Formê Bistîne ===
+                const productDescriptionObject = {
+                    ku_sorani: document.getElementById('productDescriptionKuSorani').value,
+                    ku_badini: document.getElementById('productDescriptionKuBadini').value,
+                    ar: document.getElementById('productDescriptionAr').value
+                };
+
+                const productNameKuSorani = document.getElementById('productNameKuSorani').value;
+                const productNameObject = {
+                    ku_sorani: productNameKuSorani,
+                    ku_badini: document.getElementById('productNameKuBadini').value,
+                    ar: document.getElementById('productNameAr').value
+                };
+
+                // === 6. Daneyên Hilberê (Product Data) Amade Bike ===
                 const productData = {
                     name: productNameObject,
                     searchableName: productNameKuSorani.toLowerCase(),
@@ -1343,7 +1573,10 @@ window.AdminLogic = {
                     subcategoryId: document.getElementById('productSubcategoryId').value || null,
                     subSubcategoryId: document.getElementById('productSubSubcategoryId').value || null,
                     description: productDescriptionObject,
-                    imageUrls: imageUrls,
+                    // URL-yên nû yên ji Storage hatine bikar bîne
+                    // (URLە نوێیەکانی Storage بەکاربهێنە)
+                    imageUrls: finalImageUrls, 
+                    videoUrl: finalVideoUrl || null,
                     createdAt: Date.now(),
                     externalLink: document.getElementById('productExternalLink').value || null,
                     shippingInfo: {
@@ -1352,7 +1585,8 @@ window.AdminLogic = {
                         ar: document.getElementById('shippingInfoAr').value.trim()
                     }
                 };
-                const editingId = getEditingProductId();
+
+                // === 7. Tomar Bike (Save) li Firestore ===
                 if (editingId) {
                     const { createdAt, ...updateData } = productData;
                     await updateDoc(doc(db, "products", editingId), updateData);
@@ -1361,31 +1595,43 @@ window.AdminLogic = {
                     await addDoc(productsCollection, productData);
                     showNotification('کاڵا زیادکرا', 'success');
                 }
+                
                 clearProductCache();
                 closeCurrentPopup();
-                // *** ⛔️ ЧАККРАو: Ev rêjeya jêrîn hate rakirin ji ber ku 'searchProductsInFirestore' nehatiye pênase kirin ***
-                // (⛔️ چاککراو: ئەم دێڕەی خوارەوە سڕایەوە چونکە 'searchProductsInFirestore' پێناسە نەکراوە)
-                // searchProductsInFirestore(document.getElementById('searchInput').value, true);
+                
             } catch (error) {
-                showNotification(t('error_generic'), 'error');
-                console.error("Error saving product:", error);
+                showNotification(t('upload_failed') + `: ${error.message}`, 'error');
+                console.error("Error saving product or uploading files:", error);
             } finally {
+                // === 8. Paqij Bike (Cleanup) ===
                 submitButton.disabled = false;
-                submitButton.textContent = getEditingProductId() ? 'نوێکردنەوە' : 'پاشەکەوتکردن';
+                submitButton.textContent = originalButtonText;
                 setEditingProductId(null);
+                progressBarContainer.style.display = 'none';
+                document.getElementById('fileUploadStatusContainer').style.display = 'none';
+                document.getElementById('fileListPreview').innerHTML = '';
+                // e.target.reset() dê bixweber inputên pelan paqij bike
+                // (e.target.reset() خۆکارانە ئینپووتی فایلەکان پاک دەکاتەوە)
             }
         };
+        // =================================================================
+        // =================================================================
+        // === DAWÎ: LOGICA SEREKE YA FORMÊ (HEFTAVA 3) ===
+        // === END: MAIN FORM LOGIC (STEP 3) ===
+        // =================================================================
+        // =================================================================
 
-        document.getElementById('imageInputsContainer').addEventListener('input', (e) => {
-            if (e.target.classList.contains('productImageUrl')) {
-                const previewImg = e.target.nextElementSibling;
-                const url = e.target.value;
-                if (url) { previewImg.src = url; } else {
-                    const index = Array.from(e.target.parentElement.parentElement.children).indexOf(e.target.parentElement);
-                    previewImg.src = `https://placehold.co/40x40/e2e8f0/2d3748?text=${index + 1}`;
-                }
-            }
-        });
+
+        // ==================================================
+        // === DESTPÊK: GUHERTINA EVENTÊN INPUTÊ (HEFTAVA 3) ===
+        // Rakirina listenerê kevn (سڕینەوەی لیسنەری کۆن)
+        // document.getElementById('imageInputsContainer').addEventListener('input', (e) => { ... });
+        
+        // Zêdekirina listenerên nû (زیادکردنی لیسنەری نوێ)
+        document.getElementById('productImageFiles').addEventListener('change', () => self.handleFileSelection());
+        document.getElementById('productVideoFile').addEventListener('change', () => self.handleFileSelection());
+        // === DAWÎ: GUHERTINA EVENTÊN INPUTÊ (HEFTAVA 3) ===
+        // ==================================================
         
         const addCategoryForm = document.getElementById('addCategoryForm');
         if (addCategoryForm) {
