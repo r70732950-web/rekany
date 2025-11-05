@@ -293,8 +293,8 @@ export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
         skeletonCard.className = 'skeleton-card';
         skeletonCard.innerHTML = `
             <div class="skeleton-image shimmer"></div>
-            <div class="skeleton-text shimmer"></div>
-            <div class="skeleton-price shimmer"></div>
+            <div class.skeleton-text shimmer"></div>
+            <div class.skeleton-price shimmer"></div>
             <div class="skeleton-button shimmer"></div>
         `;
         container.appendChild(skeletonCard);
@@ -851,9 +851,6 @@ async function showProductDetailsUI(productData) {
         // Stîlên CSS yên pêwîst bi JS sepandin
         videoWrapper.style.position = 'relative';
         videoWrapper.style.width = '100%';
-        // === ÇAKKIRIN: 'height: 100%' hate rakirin ===
-        // === چاکسازی: 'height: 100%' لادرا ===
-        // videoWrapper.style.height = '100%'; // EV HATE RAKIRIN
         videoWrapper.style.backgroundColor = '#000';
         videoWrapper.style.display = 'none'; // Destpêkê veşartî be
         videoWrapper.style.justifyContent = 'center';
@@ -866,9 +863,9 @@ async function showProductDetailsUI(productData) {
         
         // === ÇARESERÎYA KÊŞEYA AUTOPLAY ===
         // === چارەسەری کێشەی Autoplay ===
-        // Em 'autoplay=1&mute=1' radikin da ku bişkoja Play ya YouTube derkeve
-        // ئێمە 'autoplay=1&mute=1' لادەبەین بۆ ئەوەی دوگمەی Playـی یوتیووب دەربکەوێت
-        videoIframe.dataset.src = `https://www.youtube.com/embed/${videoId}?rel=0`; // <-- TENÊ EV DÊR HATE GUHERTIN
+        // Em 'youtube-nocookie.com' bikar tînin û 'autoplay' radikin
+        // ئێمە 'youtube-nocookie.com' بەکاردەهێنین و 'autoplay' لادەبەین
+        videoIframe.dataset.src = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0`; // <-- GUHERTINA DAWÎ LI VIR E
         
         videoIframe.title = "YouTube video player";
         videoIframe.frameBorder = "0";
@@ -910,10 +907,15 @@ async function showProductDetailsUI(productData) {
     function updateSlider(index) {
         if (!sliderElements[index]) return;
 
-        // Vîdyoyê rawestîne eger em ji wê dûr bikevin
+        // === ÇARESERÎYA KÊŞEYA SLAYDERÊ ===
+        // === چارەسەری کێشەی سلایدەر ===
+        // Em vê beşê radikin da ku 'src' tenê dema popup tê girtin were vala kirin
+        // ئێمە ئەم بەشە لادەبەین بۆ ئەوەی 'src' تەنها کاتێک پۆپئەپ دادەخرێت بەتاڵ بکرێتەوە
+        /*
         if (videoIframe && currentIndex !== index) {
-            videoIframe.src = ''; // Rêya herî hêsan a rawestandina vîdyoyê
+            videoIframe.src = ''; 
         }
+        */
 
         // Hemî elementên slayderê veşêre
         sliderElements.forEach(el => {
@@ -984,7 +986,7 @@ async function showProductDetailsUI(productData) {
     }
 
     // === RAKIRINA BIŞKOKA LINKÊ DEREKÎ ===
-    // === سڕینەوەی دوگمەی لینکی دەرەکی ===
+    // === سڕینەوەی دوگمەی لینکی دەرەki ===
     // Em êdî hewceyê vê bişkokê nînin ji ber ku vîdyo di slayderê de ye
     // ئێمە ئیتر پێویستمان بەم دوگمەیە نییە چونکە ڤیدیۆکە لەناو سلایدەرەکەیە
     const oldLinkContainer = document.getElementById('sheetExternalLinkContainer');
@@ -1022,7 +1024,7 @@ async function renderRelatedProductsUI(currentProduct) {
             const card = createProductCardElementUI(product); // Elementa UI çêke
             container.appendChild(card);
         });
-        section.style.display = 'block'; // Beşê nîşan bide eger kaڵa hebin
+        section.style.display = 'block'; // Beşê nîşan bide eger kaڵا hebin
     }
 }
 
