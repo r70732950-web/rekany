@@ -851,7 +851,9 @@ async function showProductDetailsUI(productData) {
         // Stîlên CSS yên pêwîst bi JS sepandin
         videoWrapper.style.position = 'relative';
         videoWrapper.style.width = '100%';
-        videoWrapper.style.height = '100%';
+        // === ÇAKKIRIN: 'height: 100%' hate rakirin ===
+        // === چاکسازی: 'height: 100%' لادرا ===
+        // videoWrapper.style.height = '100%'; // EV HATE RAKIRIN
         videoWrapper.style.backgroundColor = '#000';
         videoWrapper.style.display = 'none'; // Destpêkê veşartî be
         videoWrapper.style.justifyContent = 'center';
@@ -861,7 +863,9 @@ async function showProductDetailsUI(productData) {
         videoWrapper.style.maxHeight = '350px'; // Li gorî wêneyan
 
         videoIframe = document.createElement('iframe');
-        videoIframe.dataset.src = `https://www.youtube.com/embed/${videoId}?rel=0`; // Src hilgire
+        // === ÇAKKIRIN: 'autoplay=1&mute=1' hate zêdekirin ===
+        // === چاکسازی: 'autoplay=1&mute=1' زیادکرا ===
+        videoIframe.dataset.src = `https://www.youtube.com/embed/${videoId}?rel=0&autoplay=1&mute=1`; // Src hilgire
         videoIframe.title = "YouTube video player";
         videoIframe.frameBorder = "0";
         videoIframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
@@ -994,7 +998,7 @@ async function showProductDetailsUI(productData) {
         handleAddToCartUI(product.id, addToCartButton); // UI handler bikar bîne
     };
 
-    // Beşa Kaڵایên Pêwendîdar nîşan bide
+    // Beşa Kaڵayên Pêwendîdar nîşan bide
     renderRelatedProductsUI(product);
 
     // Sheetê veke û dîrokê nû bike
