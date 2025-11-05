@@ -7,20 +7,12 @@ import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from
 import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
-// ===============================================
-// === DESTPÊK: PÊVEKIRINA STORAGE (HEFTAVA 1) ===
-// === START: STORAGE ADDITION (STEP 1) ===
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
-// === DAWÎ: PÊVEKIRINA STORAGE (HEFTAVA 1) ===
-// ===============================================
-
-
 // Firebase Configuration
 const firebaseConfig = {
     apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", // Ensure this key is correct and secured if necessary
     authDomain: "maten-store.firebaseapp.com",
     projectId: "maten-store",
-    storageBucket: "maten-store.firebasestorage.app",
+    storageBucket: "maten-store.appspot.com",
     messagingSenderId: "137714858202",
     appId: "1:137714858202:web:e2443a0b26aac6bb56cde3",
     measurementId: "G-1PV3DRY2V2"
@@ -32,12 +24,6 @@ export const analytics = getAnalytics(app);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const messaging = getMessaging(app);
-
-// ===============================================
-// === DESTPÊK: PÊVEKIRINA STORAGE (HEFTAVA 1) ===
-export const storage = getStorage(app); // Storage initialized
-// === DAWÎ: PÊVEKIRINA STORAGE (HEFTAVA 1) ===
-// ===============================================
 
 // Firestore Collections Exports (for app-core.js and app-ui.js)
 export const productsCollection = collection(db, "products");
@@ -62,7 +48,7 @@ export const translations = {
         send_viber: "ناردن لە ڕێگەی فایبەر",
         send_telegram: "ناردن لە ڕێگەی تێلێگرام",
         favorites_title: "لیستی دڵخوازەکان",
-        favorites_empty: "لیستی دڵخوازەkanت بەتاڵە",
+        favorites_empty: "لیستی دڵخوازەکانت بەتاڵە",
         choose_category: "هەڵبژاردنی جۆر",
         all_products: "هەموو کاڵاکان",
         loading_products: "...خەریکی بارکردنی کاڵاکانە",
@@ -100,7 +86,7 @@ export const translations = {
         profile_saved: "زانیارییەکانی پڕۆفایل پاشەکەوتکران",
         all_categories_label: "هەموو",
         install_app: "دامەزراندنی ئەپ",
-        product_added_to_cart: "کاڵاکە زیادکرا بۆ سەbətə",
+        product_added_to_cart: "کاڵاکە زیادکرا بۆ سەبەتە",
         product_added_to_favorites: "زیادکرا بۆ لیستی دڵخوازەکان",
         product_removed_from_favorites: "لە لیستی دڵخوازەکان سڕدرایەوە",
         manage_categories_title: "بەڕێوەبردنی جۆرەکان",
@@ -110,7 +96,7 @@ export const translations = {
         manage_announcements_title: "ناردنی ئاگەداری گشتی",
         send_new_announcement: "ناردنی ئاگەهداری نوێ",
         send_announcement_button: "ناردنی ئاگەهداری",
-        sent_announcements: "ئاگەهدارییە nێrdrawekan",
+        sent_announcements: "ئاگەهدارییە نێردراوەکان",
         no_announcements_sent: "هیچ ئاگەهدارییەک نەنێردراوە",
         announcement_deleted_success: "ئاگەهدارییەکە سڕدرایەوە",
         announcement_delete_confirm: "دڵنیایت دەتەوێت ئەم ئاگەهدارییە بسڕیتەوە؟",
@@ -123,7 +109,7 @@ export const translations = {
         no_policies_found: "هیچ مەرج و ڕێسایەک دانەنراوە.",
         has_discount_badge: "داشکانی تێدایە",
         force_update: "ناچارکردن بە نوێکردنەوە (سڕینەوەی کاش)",
-        update_confirm: "دڵنیایت دەتەوێت ئەپەکە نوێ بکەیتەوە؟ هەموو کاشی ناو وێbگەڕەکەت دەسڕدرێتەوە.",
+        update_confirm: "دڵنیایت دەتەوێت ئەپەکە نوێ بکەیتەوە؟ هەموو کاشی ناو وێبگەڕەکەت دەسڕدرێتەوە.",
         update_success: "ئەپەکە بە سەرکەوتوویی نوێکرایەوە!",
         newest_products: "نوێترین کاڵاکان",
         see_all: "بینینی هەمووی",
@@ -132,19 +118,6 @@ export const translations = {
         related_products_title: "کاڵای هاوشێوە",
         share_text: "سەیری ئەم کاڵایە بکە",
         share_error: "هاوبەشیپێکردن سەرکەوتوو نەبوو",
-        // === ZÊDEKIRINÊN NÛ JI BO STORAGE ===
-        // === زیادکراوی نوێ بۆ Storage ===
-        uploading_files: "...خەریکی بلندکرنا فایلانە",
-        upload_complete: "فایلەکان بە سەرکەوتوویی بلندکران",
-        upload_failed: "هەڵەیەک لە کاتی بلندکرن ڕوویدا",
-        upload_failed_specific: "هەڵە لە بلندکرنا {fileName}: {error}",
-        upload_progress: "خەریکی بلندکرنە: {progress}%",
-        select_images_label: "هەڵبژاردنی وێنەکان (هەتا 4 دانە)",
-        select_video_label: "هەڵبژاردنی ڤیدیۆ (1 دانە)",
-        no_files_selected: "هیچ فایلەک نەهاتە هەلبژارتن",
-        too_many_images: "تۆ دشێی بتنێ 4 وێنەیان بلندکەی",
-        file_list_title: "فایلێن هەلبژارتی:",
-        product_video: "ڤیدیۆیا کاڵای",
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -229,23 +202,11 @@ export const translations = {
         related_products_title: "کاڵایێن وەک ئێکن",
         share_text: "بەرێخۆ بدە ڤی کاڵای",
         share_error: "پارڤەکرن سەرنەکەفت",
-        // === ZÊDEKIRINÊN NÛ JI BO STORAGE ===
-        uploading_files: "...د بلندکرنا فایلان دایە",
-        upload_complete: "فایل ب سەرکەفتیانە هاتنە بلندکرن",
-        upload_failed: "خەلەتییەک د دەمێ بلندکرنێ دا چێبوو",
-        upload_failed_specific: "خەلەتی د بلندکرنا {fileName}: {error}",
-        upload_progress: "د بلندکرنێ دایە: {progress}%",
-        select_images_label: "وێنەیان هەلبژێرە (هەتا 4 دانە)",
-        select_video_label: "ڤیدیۆیێ هەلبژێرە (1 دانە)",
-        no_files_selected: "چ فایل نەهاتنە هەلبژارتن",
-        too_many_images: "تو دشێی بتنێ 4 وێنەیان بلندکەی",
-        file_list_title: "فایلێن هەلبژارتی:",
-        product_video: "ڤیدیۆیا کاڵای",
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
         admin_login_title: "تسجيل دخول المسؤول",
-        email_label: "البريد الإلكتر الإلكتروني:",
+        email_label: "البريد الإلكتروني:",
         password_label: "كلمة المرور:",
         login_button: "تسجيل الدخول",
         cart_title: "سلة التسوق",
@@ -325,18 +286,6 @@ export const translations = {
         related_products_title: "منتجات مشابهة",
         share_text: "ألق نظرة على هذا المنتج",
         share_error: "فشلت المشاركة",
-        // === ZÊDEKIRINÊN NÛ JI BO STORAGE ===
-        uploading_files: "...جاري رفع الملفات",
-        upload_complete: "تم رفع الملفات بنجاح",
-        upload_failed: "حدث خطأ أثناء الرفع",
-        upload_failed_specific: "خطأ في رفع {fileName}: {error}",
-        upload_progress: "جاري الرفع: {progress}%",
-        select_images_label: "اختر الصور (حتى 4 صور)",
-        select_video_label: "اختر الفيديو (1 ملف)",
-        no_files_selected: "لم يتم اختيار أي ملفات",
-        too_many_images: "يمكنك رفع 4 صور فقط",
-        file_list_title: "الملفات المختارة:",
-        product_video: "فيديو المنتج",
     }
 };
 
@@ -364,7 +313,11 @@ export let state = {
     currentProductId: null, // Used by app-ui
     currentPageId: 'mainPage', // *** زیادکرا: بۆ زانینی پەڕەی ئێستا ***
     currentPopupState: null, // *** زیادکرا: شوێنی دۆخی ئێستای پۆپئەپ بگرە ***
+    // *** START: Gۆڕانکاری لێرە کرا ***
+    // *** دەستپێک: گۆڕانکاری لێرە کرا ***
     pendingFilterNav: null, // Ji bo ragirtina fîlterê heta ku popup were girtin (بۆ ڕاگرتنی فلتەر تا داخستنی پۆپئەپ)
+    // *** END: Gۆڕانکاری لێرە کرا ***
+    // *** کۆتایی: گۆڕانکاری لێرە کرا ***
     sliderIntervals: {}, // Used by app-ui & app-core
     contactInfo: {}, // Might be needed?
 };
@@ -387,7 +340,7 @@ export const clearSearchBtn = document.getElementById('clearSearchBtn');
 export const loginForm = document.getElementById('loginForm');
 export const productForm = document.getElementById('productForm');
 export const formTitle = document.getElementById('formTitle');
-export const imageInputsContainer = document.getElementById('imageInputsContainer'); // Ev ê were rakirin / This will be removed
+export const imageInputsContainer = document.getElementById('imageInputsContainer');
 export const loader = document.getElementById('loader');
 export const cartBtn = document.getElementById('cartBtn');
 export const cartItemsContainer = document.getElementById('cartItemsContainer');
@@ -468,15 +421,6 @@ window.globalAdminTools = {
     db, auth,
     doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection,
     query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
-
-    // ===============================================
-    // === DESTPÊK: PÊVEKIRINA STORAGE (HEFTAVA 1) ===
-    storage, // Storage service
-    ref, // Function to create storage reference
-    uploadBytesResumable, // Function for uploading
-    getDownloadURL, // Function to get URL after upload
-    // === DAWÎ: PÊVEKIRINA STORAGE (HEFTAVA 1) ===
-    // ===============================================
 
     // Collections needed by admin.js
     productsCollection, categoriesCollection, announcementsCollection,

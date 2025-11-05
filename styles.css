@@ -1455,66 +1455,6 @@ input:checked + .slider:before {
     border-radius: 4px;
     margin-right: 8px;
 }
- /* =========================================
-CHARÊSERÎ BO PREVIEW YA FORMÊ
-(چارەسەری کێشەی پێشبینی فۆڕم)
-========================================= */
-
-/* 1. Stîla konteynirê giştî (ستایلی بۆکسە گشتییەکە) */
-#fileListPreview {
-    display: flex;
-    flex-wrap: wrap; /* Dihêle hêman biçin rêza din (ڕێگە دەدات وێنەکان بچنە دێڕی دووەم) */
-    gap: 10px;       /* Valahî di navberê de (بۆشایی لە نێوان) */
-    margin-top: 10px;
-    padding: 10px;
-    border: 1px dashed var(--medium-gray);
-    border-radius: 8px;
-    min-height: 50px;
-    background-color: #fdfdfd; /* Rengek paşxaneya sivik (ڕەنگێکی کاڵ) */
-}
-
-/* 2. Stîla Pêşdîtina Navê Pelê (Ji bo koda te ya admin.js) */
-/* (ستایلی پیشاندانی ناوی فایل - بۆ کۆدی admin.js) */
-#fileListPreview .file-preview-item {
-    background-color: var(--light-gray);
-    border: 1px solid var(--medium-gray);
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 12px;
-    color: var(--dark-gray);
-    display: inline-flex; /* Guhertin bo inline-flex */
-    align-items: center;
-    gap: 8px;
-    max-width: 150px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* 3. ÇARESERIYA KRÎTÎK: Ji bo Pêşdîtina WÊNEYAN (ya ku di vîdyoyê de xuya bû) */
-/* (چارەسەری سەرەکی: بۆ پێشبینی وێنەکان - کە لە ڤیدیۆکە دەرکەوت) */
-#fileListPreview img {
-    width: 80px;
-    height: 80px;
-    object-fit: cover; /* Wêneyê diparêze (وێنەکە تێک نادات) */
-    border-radius: 8px;
-    border: 1px solid var(--medium-gray);
-}
-
-/* 4. Ger pêşdîtina wêneyê di hundurê .file-preview-item de be */
-/* (ئەگەر وێنەکە لەناو .file-preview-item بوو) */
-#fileListPreview .file-preview-item.image {
-    width: 80px;
-    height: 80px;
-    padding: 0;
-    overflow: hidden;
-}
-
-#fileListPreview .file-preview-item.image img {
-    width: 100%;
-    height: 100%;
-    border: none;
-}
 
 /* === END: KODÊN NÛ JI BO DÎZAYNA BEŞÊ ADMIN === */
 
