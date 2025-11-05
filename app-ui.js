@@ -140,19 +140,15 @@ function showPage(pageId, pageTitle = '') {
  * فەنکشنێکی یاریدەدەر بۆ ڕاگرتنی ڤیدیۆکان کاتێک پۆپئەپ دادەخرێت.
  */
 function stopAllVideos() {
-    // Vîdyoya di nav slayderê de rawestîne
-    // ڤیدیۆی ناو سلایدەرەکە بوەستێنە
-    const sliderIframe = document.querySelector('#productDetailSheet iframe');
-    if (sliderIframe) {
-        sliderIframe.src = ''; // Vîdyoyê bi valakirinê disekinîne
+    // === GUHERTINA DAWÎ LI VIR E ===
+    // === دوا گۆڕانکاری لێرەدایە ===
+    // Em êdî rasterast 'iframe' nagirin, lê em pêça (wrapper) wê vala dikin
+    // ئێمە ئیتر ڕاستەوخۆ 'iframe'ـەکە ناگرین، بەڵکو کۆنتەینەرەکەی بەتاڵ دەکەینەوە
+    const videoWrapper = document.getElementById('videoPlayerWrapper');
+    if (videoWrapper) {
+        videoWrapper.innerHTML = ''; // Rakirina iframe vîdyoyê disekinîne
     }
-    
-    // Vîdyoya modal (eger hebe) rawestîne
-    // ڤیدیۆی مۆداڵ (ئەگەر هەبێت) بوەستێنە
-    const modalContent = document.getElementById('videoModalContent');
-    if (modalContent) {
-        modalContent.innerHTML = ''; 
-    }
+    // === DAWÎYA GUHERTINÊ ===
 }
 
 /**
@@ -293,8 +289,8 @@ export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
         skeletonCard.className = 'skeleton-card';
         skeletonCard.innerHTML = `
             <div class="skeleton-image shimmer"></div>
-            <div class.skeleton-text shimmer"></div>
-            <div class.skeleton-price shimmer"></div>
+            <div class="skeleton-text shimmer"></div>
+            <div class="skeleton-price shimmer"></div>
             <div class="skeleton-button shimmer"></div>
         `;
         container.appendChild(skeletonCard);
@@ -794,17 +790,34 @@ async function showProductDetailsUI(productData) {
     const descriptionText = (product.description && product.description[state.currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
     const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
 
-    // === START: KODA NÛ JI BO SLAYDERA VÎDYOYÊ ===
-    // === دەستپێک: کۆدی نوێ بۆ سلایدەری ڤیدیۆ ===
+    // === START: KODA NÛ JI BO SLAYDERA VÎDYOYÊ (GUHERTINA DAWÎ) ===
+    // === دەستپێک: کۆدی نوێ بۆ سلایدەری ڤیدیۆ (دوا گۆڕانکاری) ===
 
     const imageContainer = document.getElementById('sheetImageContainer');
     const thumbnailContainer = document.getElementById('sheetThumbnailContainer');
-    imageContainer.innerHTML = '';
-    thumbnailContainer.innerHTML = '';
+    imageContainer.innerHTML = ''; // Paqij bike
+    thumbnailContainer.innerHTML = ''; // Paqij bike
 
-    let sliderElements = []; // Dê <img> û pêça <iframe> bigire
+    let sliderElements = []; // Dê <img> û pêça (wrapper) <iframe> bigire
     let thumbnailElements = []; // Dê <img> yên thumbnail bigire
-    let videoIframe = null; // Ji bo kontrolkirina vîdyoyê
+    
+    // === GUHERTINA 1: Em ê pêçek (wrapper) ji bo vîdyoyê çêkin ===
+    // === گۆڕانکاری ١: ئێمە کۆنتەینەرێک بۆ ڤیدیۆکە دروست دەکەین ===
+    // Ev pêç (wrapper) dê her gav di DOMê de be, lê vala ye
+    // ئەم کۆنتەینەرە هەمیشە لەناو DOMـدا دەبێت، بەڵام بەتاڵە
+    const videoWrapper = document.createElement('div');
+    videoWrapper.id = 'videoPlayerWrapper'; // IDyek taybet
+    videoWrapper.className = 'slider-element'; // Klasa giştî
+    // Stîlên CSS yên pêwîst bi JS sepandin
+    videoWrapper.style.position = 'relative';
+    videoWrapper.style.width = '100%';
+    videoWrapper.style.backgroundColor = '#000';
+    videoWrapper.style.display = 'none'; // Destpêkê veşartî be
+    videoWrapper.style.justifyContent = 'center';
+    videoWrapper.style.alignItems = 'center';
+    videoWrapper.style.overflow = 'hidden';
+    videoWrapper.style.flexShrink = '0';
+    videoWrapper.style.maxHeight = '350px';
 
     // 1. Hemî wêneyan zêde bike
     if (imageUrls.length > 0) {
@@ -838,44 +851,14 @@ async function showProductDetailsUI(productData) {
         });
     }
 
-    // 2. Vîdyoyê zêde bike eger hebe
+    // 2. Vîdyoyê zêde bike (eger hebe)
     const videoId = parseYouTubeId(product.externalLink); // Fonksiyona alîkar bikar bîne
 
     if (videoId) {
         const videoIndex = sliderElements.length; // Ev dibe îndeksa paşîn
         
-        // Elementa slayderê ya sereke çêke (wrapper + iframe)
-        const videoWrapper = document.createElement('div');
-        videoWrapper.className = 'slider-element'; // Klasa giştî
-        
-        // Stîlên CSS yên pêwîst bi JS sepandin
-        videoWrapper.style.position = 'relative';
-        videoWrapper.style.width = '100%';
-        videoWrapper.style.backgroundColor = '#000';
-        videoWrapper.style.display = 'none'; // Destpêkê veşartî be
-        videoWrapper.style.justifyContent = 'center';
-        videoWrapper.style.alignItems = 'center';
-        videoWrapper.style.overflow = 'hidden';
-        videoWrapper.style.flexShrink = '0';
-        videoWrapper.style.maxHeight = '350px'; // Li gorî wêneyan
-
-        videoIframe = document.createElement('iframe');
-        
-        // === ÇARESERÎYA KÊŞEYA AUTOPLAY ===
-        // === چارەسەری کێشەی Autoplay ===
-        // Em 'youtube-nocookie.com' bikar tînin û 'autoplay' radikin
-        // ئێمە 'youtube-nocookie.com' بەکاردەهێنین و 'autoplay' لادەبەین
-        videoIframe.dataset.src = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0`; // <-- GUHERTINA DAWÎ LI VIR E
-        
-        videoIframe.title = "YouTube video player";
-        videoIframe.frameBorder = "0";
-        videoIframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
-        videoIframe.allowFullscreen = true;
-        // Stîlên CSS ji bo iframe
-        videoIframe.style.width = '100%';
-        videoIframe.style.aspectRatio = '16 / 9';
-        
-        videoWrapper.appendChild(videoIframe);
+        // Em pêça (wrapper) ku me li jor çêkiribû, lê zêde dikin
+        // ئێمە ئەو کۆنتەینەرەی لە سەرەوە دروستمان کردبوو، لێرە زیادی دەکەین
         imageContainer.appendChild(videoWrapper);
         sliderElements.push(videoWrapper); // Têxe nav rêzê
 
@@ -899,25 +882,25 @@ async function showProductDetailsUI(productData) {
         thumbnailContainer.appendChild(thumbWrapper);
         thumbnailElements.push(thumbWrapper);
     }
+    // === DAWÎYA GUHERTINA 2 ===
 
     let currentIndex = 0;
     const prevBtn = document.getElementById('sheetPrevBtn');
     const nextBtn = document.getElementById('sheetNextBtn');
 
+    // === GUHERTINA 3: Logika `updateSlider` hate nûve kirin ===
+    // === گۆڕانکاری ٣: لۆجیکی `updateSlider` نوێکرایەوە ===
     function updateSlider(index) {
         if (!sliderElements[index]) return;
 
-        // === ÇARESERÎYA KÊŞEYA SLAYDERÊ ===
-        // === چارەسەری کێشەی سلایدەر ===
-        // Em vê beşê radikin da ku 'src' tenê dema popup tê girtin were vala kirin
-        // ئێمە ئەم بەشە لادەبەین بۆ ئەوەی 'src' تەنها کاتێک پۆپئەپ دادەخرێت بەتاڵ بکرێتەوە
-        /*
-        if (videoIframe && currentIndex !== index) {
-            videoIframe.src = ''; 
+        // Vîdyoya KEVN rawestîne (eger hebe)
+        // ڤیدیۆ کۆنەکە بوەستێنە (ئەگەر هەبێت)
+        const oldElement = sliderElements[currentIndex];
+        if (oldElement.id === 'videoPlayerWrapper') {
+            oldElement.innerHTML = ''; // iframe rake (iframeـەکە لادەبات)
         }
-        */
 
-        // Hemî elementên slayderê veşêre
+        // Hemî elementan veşêre
         sliderElements.forEach(el => {
             el.style.display = 'none';
             el.classList.remove('active');
@@ -928,29 +911,36 @@ async function showProductDetailsUI(productData) {
             img.classList.remove('active');
         });
 
-        // Elementa hilbijartî nîşan bide
+        // Elementa nû nîşan bide
         const activeElement = sliderElements[index];
-        if (activeElement.tagName === 'DIV') { // Ev pêça vîdyoyê ye
-            activeElement.style.display = 'flex'; // Flex bikar bîne ji bo navendkirinê
-        } else { // Ev wêneyek e
+        if (activeElement.id === 'videoPlayerWrapper') { 
+            // Ev vîdyo ye, loma em iframe çêdikin
+            // ئەمە ڤیدیۆیە، بۆیە iframeـەکە دروست دەکەین
+            activeElement.style.display = 'flex';
+            const videoSrc = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0`;
+            activeElement.innerHTML = `
+                <iframe 
+                    src="${videoSrc}" 
+                    title="YouTube video player" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen 
+                    style="width: 100%; aspect-ratio: 16 / 9;"
+                ></iframe>`;
+        } else { 
+            // Ev wêne ye
+            // ئەمە وێنەیە
             activeElement.style.display = 'block';
         }
         activeElement.classList.add('active');
 
-        // Thumbnaila hilbijartî çalak bike
+        // Thumbnaila nû çalak bike
         const activeThumb = thumbnailElements[index].querySelector('.thumbnail') || thumbnailElements[index];
         activeThumb.classList.add('active');
-
-        // Vîdyoyê bar bike eger ew slayda çalak be
-        // (Em kontrol dikin ka ew elementa vîdyoyê ye)
-        if (activeElement.querySelector('iframe')) { 
-            if (videoIframe.src === '') {
-                videoIframe.src = videoIframe.dataset.src; // Vîdyoyê bar bike
-            }
-        }
-
-        currentIndex = index;
+        
+        currentIndex = index; // Li dawiyê indexê nû bike
     }
+    // === DAWÎYA GUHERTINA 3 ===
 
     // Bişkokên slayderê nîşan bide/veşêre
     const showSliderBtns = sliderElements.length > 1;
