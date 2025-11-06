@@ -9,25 +9,9 @@ import {
     favoritesContainer, emptyFavoritesMessage, categoriesBtn, sheetOverlay, sheetCategoriesContainer,
     productCategorySelect, subcategorySelectContainer, productSubcategorySelect, subSubcategorySelectContainer,
     productSubSubcategorySelect, profileForm, settingsPage, mainPage, homeBtn, settingsBtn,
-    settingsFavoritesBtn, settingsAdminLoginBtn, settingsLogoutBtn, 
-    // profileBtn, // <-- Ev êdî ne di nav-ê de ye (ئەمە ئیتر لە navـدا نییە)
-    contactToggle,
+    settingsFavoritesBtn, settingsAdminLoginBtn, settingsLogoutBtn, profileBtn, contactToggle,
     notificationBtn, notificationBadge, notificationsSheet, notificationsListContainer,
     termsAndPoliciesBtn, termsSheet, termsContentContainer,
-    
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Em elementên nû yên chatê import dikin
-    // ئێمە توخمە نوێیەکانی چات هاوردە دەکەین
-    phoneLoginModal, phoneLoginForm, phoneLoginError,
-    verifyCodeModal, verifyCodeForm, verifyCodeError,
-    chatSheet, chatMessagesContainer, chatLoadingSpinner, chatMessageForm, chatMessageInput,
-    settingsProfileBtn, // Bişkoja Profaylê di 'Settings' de (دوگمەی پڕۆفایل لە 'Settings')
-    chatBtn, // Bişkoja Chatê di nav-a jêrîn de (دوگمەی چات لە navـی خوارەوە)
-
-    auth, // <-- **ÇARESERÎ 1: 'auth' لێرە زیادکرا (لە app-setup.js دێت)**
-
-    // === END: KODA NÛ / کۆtایی کۆdi نوێ ===
-
     // Elements needed specifically for admin UI rendering within app-ui
     adminPoliciesManagement, adminSocialMediaManagement, adminAnnouncementManagement, adminPromoCardsManagement,
     adminBrandsManagement, adminCategoryManagement, adminContactMethodsManagement, adminShortcutRowsManagement,
@@ -55,15 +39,6 @@ import {
     handleInstallPrompt, forceUpdateCore,
     saveCurrentScrollPositionCore, applyFilterStateCore, navigateToFilterCore,
     initCore,
-    
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Em 'auth' import dikin ji bo kontrolkirina bikarhênerê têketî
-    // ئێمە 'auth' هاوردە دەکەین بۆ پشکنینی بەکارهێنەری لۆگینبوو
-    
-    // auth, // <-- **ÇARESERÎ 2: 'auth' لێرە سڕایەوە (چونکە لە app-core.js نییە)**
-
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
-
     // Firestore functions exported from app-core.js
     db,
     collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection
@@ -72,22 +47,6 @@ import {
 import {
     renderHomePageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
 } from './home.js'; // Import functions from home.js
-
-// === START: KODA NÛ / کۆدی نوێ ===
-// Em fonksiyonên xwe yên chatê import dikin
-// ئێمە فەنکشنەکانی چاتمان هاوردە دەکەین
-import {
-    initPhoneAuth,
-    sendVerificationCode,
-    verifyCode,
-    getUserProfile,
-    saveUserProfile,
-    sendChatMessage,
-    getChatMessagesListener,
-    stopChatMessagesListener
-} from './chat.js';
-// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
-
 
 // --- UI Helper Functions ---
 
@@ -167,12 +126,7 @@ function showPage(pageId, pageTitle = '') {
     }
 
     // Update active state in bottom navigation
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Em 'chatBtn' li şûna 'profileBtn' bikar tînin
-    // ئێمە 'chatBtn' لە جێگەی 'profileBtn' بەکاردێنین
     const activeBtnId = pageId === 'mainPage' ? 'homeBtn' : (pageId === 'settingsPage' ? 'settingsBtn' : null);
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
-    
     if (activeBtnId) {
        updateActiveNav(activeBtnId);
     }
@@ -209,7 +163,7 @@ function parseYouTubeId(url) {
     try {
         // Lihevhatina bi URLya standard (youtube.com/watch?v=...)
         const urlObj = new URL(url);
-        if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtube-nocookie.com')) {
+        if (urlObj.hostname.includes('youtube.com')) {
             videoId = urlObj.searchParams.get('v');
         } 
         // Lihevhatina bi URLya kurt (youtu.be/...)
@@ -232,10 +186,9 @@ function closeAllPopupsUI() {
     sheetOverlay.classList.remove('show');
     document.body.classList.remove('overlay-active');
     
-    // === KODA NÛ: Vîdyoyan û Chatê rawestîne ===
-    // === کۆدی نوێ: ڤیدیۆکان و چات بوەستێنە ===
+    // === KODA NÛ: Vîdyoyan rawestîne ===
+    // === کۆدی نوێ: ڤیدیۆکان بوەستێنە ===
     stopAllVideos(); 
-    stopChatMessagesListener(); // Guhdarê chatê radiwestîne (گوێگری چات ڕادەگرێت)
     // === DAWÎYA KODA NÛ ===
 }
 
@@ -278,42 +231,10 @@ export function openPopup(id, type = 'sheet') {
         if (id === 'notificationsSheet') renderUserNotificationsUI();
         if (id === 'termsSheet') renderPoliciesUI();
         if (id === 'profileSheet') {
-            // === START: KODA NÛ / کۆدی نوێ ===
-            // Em profîla heyî bar dikin, û hejmara têlefonê ji authê tînin (eğer hebe)
-            // ئێمە پڕۆفایلی ئێستا بار دەکەین، و ژمارەی مۆبایل لە authـەوە دەهێنین (ئەگەر هەبێت)
-            const currentUser = auth.currentUser;
-            const profile = state.userProfile;
-            
-            document.getElementById('profileName').value = profile.name || '';
-            document.getElementById('profileAddress').value = profile.address || '';
-            
-            // Hejmara têlefonê ji profîlê bistîne, paşê ji authê
-            // ژمارەی مۆبایل لە پڕۆفایل وەربگرە، پاشان لە auth
-            const phoneInput = document.getElementById('profilePhone');
-            phoneInput.value = profile.phone || (currentUser ? currentUser.phoneNumber : '');
-            
-            // Eger bikarhêner bi têlefonê têketibe, rê nede guhertina hejmarê
-            // ئەگەر بەکارهێنەر بە mۆbایل لۆگین بووبێت، ڕێگە مەدە ژمارەکە بگۆڕێت
-            if (currentUser && currentUser.phoneNumber) {
-                phoneInput.disabled = true;
-            } else {
-                phoneInput.disabled = false;
-            }
-            // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+            document.getElementById('profileName').value = state.userProfile.name || '';
+            document.getElementById('profileAddress').value = state.userProfile.address || '';
+            document.getElementById('profilePhone').value = state.userProfile.phone || '';
         }
-        // === START: KODA NÛ / کۆدی نوێ ===
-        // Em peyamên chatê bar dikin dema ku sheeta chatê vedibe
-        // ئێمە نامەکانی چات بار دەکەین کاتێک شاشەی چات دەکرێتەوە
-        if (id === 'chatSheet') {
-            if (auth.currentUser) {
-                renderChatMessagesUI(auth.currentUser.uid);
-            } else {
-                console.error("Bikarhêner têketî nîne, nikare chatê veke.");
-                closeCurrentPopup(); // Divê ev çênebe
-            }
-        }
-        // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
-
     } else { // type === 'modal'
         element.style.display = 'block';
     }
@@ -368,7 +289,7 @@ export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
         skeletonCard.className = 'skeleton-card';
         skeletonCard.innerHTML = `
             <div class="skeleton-image shimmer"></div>
-            <div class="skeleton-text shimmer"></div>
+            <div class.skeleton-text shimmer"></div>
             <div class="skeleton-price shimmer"></div>
             <div class="skeleton-button shimmer"></div>
         `;
@@ -576,28 +497,13 @@ async function renderCartActionButtonsUI() {
     const container = document.getElementById('cartActions');
     container.innerHTML = ''; // Clear previous buttons
 
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // 1. Bişkoka Chata Navxweyî zêde bike
-    // 1. دوگمەی چاتی ناوخۆیی زیاد بکە
-    const appChatBtn = document.createElement('button');
-    appChatBtn.className = 'whatsapp-btn'; // Heman stîl bikar tîne
-    appChatBtn.style.backgroundColor = 'var(--primary-color)'; // Rengek cuda
-    appChatBtn.innerHTML = `<i class="fas fa-paper-plane"></i> <span>${t('send_via_app_chat')}</span>`;
-    appChatBtn.onclick = handleSendOrderViaChat; // Fonksiyona alîkar a nû bang bike
-    container.appendChild(appChatBtn);
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
-
     const methods = await fetchContactMethods(); // Get methods from core logic
 
     if (!methods || methods.length === 0) {
-        if (container.innerHTML === '') { // Tenê eger bişkoka chatê jî tune be
-             container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
-        }
+        container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
         return;
     }
 
-    // 2. Bişkokên din (WhatsApp, Viber...) zêde bike
-    // 2. دوگمەکانی تر (واتسئاپ، ڤایبەر...) زیاد بکە
     methods.forEach(method => {
         const btn = document.createElement('button');
         btn.className = 'whatsapp-btn'; // Use a generic class or adjust CSS
@@ -809,6 +715,9 @@ function renderCategoriesSheetUI() {
          orderByClauses.push(orderBy("createdAt", "desc")); // Always sort by creation date
 
          let detailQuery = query(productsCollection, ...conditions, ...orderByClauses); // Use imported productsCollection
+         // No pagination needed for detail page usually, load all matching
+         // detailQuery = query(detailQuery, limit(SOME_LIMIT)); // Optional: Add limit if needed
+
          const productSnapshot = await getDocs(detailQuery);
          const products = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -894,9 +803,12 @@ async function showProductDetailsUI(productData) {
     
     // === GUHERTINA 1: Em ê pêçek (wrapper) ji bo vîdyoyê çêkin ===
     // === گۆڕانکاری ١: ئێمە کۆنتەینەرێک بۆ ڤیدیۆکە دروست دەکەین ===
+    // Ev pêç (wrapper) dê her gav di DOMê de be, lê vala ye
+    // ئەم کۆنتەینەرە هەمیشە لەناو DOMـدا دەبێت، بەڵام بەتاڵە
     const videoWrapper = document.createElement('div');
     videoWrapper.id = 'videoPlayerWrapper'; // IDyek taybet
     videoWrapper.className = 'slider-element'; // Klasa giştî
+    // Stîlên CSS yên pêwîst bi JS sepandin
     videoWrapper.style.position = 'relative';
     videoWrapper.style.width = '100%';
     videoWrapper.style.backgroundColor = '#000';
@@ -916,6 +828,7 @@ async function showProductDetailsUI(productData) {
             img.classList.add('slider-element'); // Klasa giştî
             if (index === 0) img.classList.add('active');
             
+            // Stîlên CSS yên heyî bi JS sepandin
             img.style.width = '100%';
             img.style.flexShrink = '0';
             img.style.display = (index === 0) ? 'block' : 'none'; // Kontrola dîtinê
@@ -944,6 +857,8 @@ async function showProductDetailsUI(productData) {
     if (videoId) {
         const videoIndex = sliderElements.length; // Ev dibe îndeksa paşîn
         
+        // Em pêça (wrapper) ku me li jor çêkiribû, lê zêde dikin
+        // ئێمە ئەو کۆنتەینەرەی لە سەرەوە دروستمان کردبوو، لێرە زیادی دەکەین
         imageContainer.appendChild(videoWrapper);
         sliderElements.push(videoWrapper); // Têxe nav rêzê
 
@@ -954,6 +869,7 @@ async function showProductDetailsUI(productData) {
         thumb.className = 'thumbnail';
         thumb.dataset.index = videoIndex;
 
+        // Pêçek (wrapper) ji bo îkona play
         const thumbWrapper = document.createElement('div'); 
         thumbWrapper.style = "position: relative; display: inline-block; cursor: pointer;";
         
@@ -1002,10 +918,11 @@ async function showProductDetailsUI(productData) {
             // ئەمە ڤیدیۆیە، بۆیە iframeـەکە دروست دەکەین
             activeElement.style.display = 'flex';
             
-            // === GUHERTINA 4: `autoplay=1&mute=1` hate zêdekirin ===
-            // === گۆڕانکاری ٤: `autoplay=1&mute=1` زیادکرا ===
-            const videoSrc = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&autoplay=1&mute=1`;
-            // === DAWÎYA GUHERTINA 4 ===
+            // === VÊ GAVÊ BIKARANÎNA DAWÎ ===
+            // === دوا بەکارهێنان لێرەدایە ===
+            // Em `autoplay=1` û `mute=1` zêde dikin
+            // ئێمە `autoplay=1` و `mute=1` زیاد دەکەین
+            const videoSrc = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&autoplay=1&mute=1&controls=1`;
             
             activeElement.innerHTML = `
                 <iframe 
@@ -1066,6 +983,8 @@ async function showProductDetailsUI(productData) {
 
     // === RAKIRINA BIŞKOKA LINKÊ DEREKÎ ===
     // === سڕینەوەی دوگمەی لینکی دەرەki ===
+    // Em êdî hewceyê vê bişkokê nînin ji ber ku vîdyo di slayderê de ye
+    // ئێمە ئیتر پێویستمان بەم دوگمەیە نییە چونکە ڤیدیۆکە لەناو سلایدەرەکەیە
     const oldLinkContainer = document.getElementById('sheetExternalLinkContainer');
     if (oldLinkContainer) {
         oldLinkContainer.remove();
@@ -1151,62 +1070,6 @@ async function renderUserNotificationsUI() {
     updateLastSeenAnnouncementTimestamp(latestTimestamp); // Timestamp di core/localStorage de nû bike
     notificationBadge.style.display = 'none'; // Piştî dîtinê badge veşêre
 }
-
-// === START: KODA NÛ / کۆدی نوێ ===
-/**
- * Peyamên chatê di sheeta chatê de nîşan dide.
- * نامەکانی چات لە شاشەی چات پیشان دەدات.
- * @param {string} userId - IDya bikarhênerê têketî.
- */
-async function renderChatMessagesUI(userId) {
-    if (!userId) {
-        chatLoadingSpinner.style.display = 'none';
-        chatMessagesContainer.innerHTML = '<p style="text-align:center; padding: 20px;">Ji kerema xwe têkeve da ku peyamên xwe bibînî.</p>';
-        return;
-    }
-    
-    chatLoadingSpinner.style.display = 'block';
-    chatMessagesContainer.innerHTML = ''; // Paqij bike
-
-    // Guhdarê peyaman saz bike
-    // گوێگری نامەکان دابنێ
-    getChatMessagesListener(userId, (messages) => {
-        chatLoadingSpinner.style.display = 'none';
-        chatMessagesContainer.innerHTML = ''; // Ji nû ve paqij bike ji bo nûvekirinan
-
-        if (messages.length === 0) {
-            chatMessagesContainer.innerHTML = '<div class="cart-empty" style="padding-top: 40px;"><i class="fas fa-comments"></i><p>هیچ نامەیەک نییە. یەکەم نامە بنێرە!</p></div>';
-            return;
-        }
-
-        messages.forEach(msg => {
-            const messageElement = document.createElement('div');
-            const user = auth.currentUser;
-            
-            // Kontrol bike ka peyam ji aliyê bikarhênerê têketî ve hatiye şandin an ji aliyê admin ve
-            // پشکنین بکە بزانە نامەکە لەلایەن بەکارهێنەری لۆگینبوو نێردراوە یان ئەدمین
-            // Em texmîn dikin ku admin dê IDyek taybet wek 'ADMIN' hebe
-            // ئێمە وا دادەنێین کە ئەدمین ئایدییەکی تایبەتی وەک 'ADMIN'ـی دەبێت
-            const messageClass = (msg.senderId === user.uid) ? 'user' : 'admin';
-            
-            messageElement.className = `chat-message ${messageClass}`;
-            
-            const time = new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
-            messageElement.innerHTML = `
-                <div>${formatDescription(msg.text)}</div>
-                <div class="chat-message-time">${time}</div>
-            `;
-            chatMessagesContainer.appendChild(messageElement);
-        });
-
-        // Skrol bike bo binê peyaman
-        // سکڕۆڵ بکە بۆ خوارەوەی نامەکان
-        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
-    });
-}
-// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
-
 
 function updateAdminUIAuth(isAdmin) {
     document.querySelectorAll('.product-actions').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
@@ -1298,88 +1161,6 @@ function handleToggleFavoriteUI(productId) {
 }
 
 
-// === START: KODA NÛ / کۆدی نوێ ===
-// Fonksiyonên alîkar ji bo birêvebirina herikîna chatê
-// فەنکشنە یاریدەدەرەکان بۆ بەڕێوەبردنی ڕێڕەوی چات
-
-/**
- * Dema ku bikarhêner hewl dide bi rêya chata navxweyî fermanekê bişîne, tê bang kirin.
- * کاتێک بەکارهێنەر هەوڵ دەدات لەڕێگەی چاتی ناوخۆییەوە داواکارییەک بنێرێت، بانگ دەکرێت.
- */
-async function handleSendOrderViaChat() {
-    const currentUser = auth.currentUser;
-
-    if (!currentUser) {
-        // Bikarhêner têketî nîne. Em wî dişînin bo têketina bi têlefonê.
-        // بەکارهێنەر لۆگین نییە. دەینێرین بۆ لۆگینکردن بە مۆبایل.
-        showNotification(t('login_to_chat'), 'success');
-        state.pendingChatAction = 'send_order'; // Em armanca wî tomar dikin
-        openPopup('phoneLoginModal', 'modal');
-        return;
-    }
-
-    // Bikarhêner têketî ye. Em fermanê dişînin.
-    // بەکارهێنەر لۆگین بووە. داواکارییەکە دەنێرین.
-    const orderMessage = generateOrderMessageCore();
-    if (!orderMessage) {
-        showNotification("Sebeteya we vala ye!", "error");
-        return;
-    }
-
-    const sendingNotification = document.createElement('div');
-    sendingNotification.className = 'notification success show';
-    sendingNotification.textContent = '...خەریکی ناردنی داواکارییەکەتە';
-    document.body.appendChild(sendingNotification);
-
-    const success = await sendChatMessage(currentUser.uid, orderMessage);
-
-    if (success) {
-        sendingNotification.textContent = 'داواکارییەکەت بە سەرکەوتوویی نێردرا!';
-        setTimeout(() => {
-            sendingNotification.classList.remove('show');
-            setTimeout(() => document.body.removeChild(sendingNotification), 300);
-        }, 2000);
-        
-        state.cart = []; // Sebete vala bike
-        saveCart(); // Sebete tomar bike
-        updateCartCountUI(); // Hejmarê nû bike
-        
-        closeCurrentPopup(); // Sheeta sebetê bigire
-        openPopup('chatSheet'); // Sheeta chatê veke da ku peyamê bibîne
-    } else {
-        sendingNotification.textContent = 'هەڵەیەک ڕوویدا لە ناردنی داواکاری!';
-        sendingNotification.classList.remove('success');
-        sendingNotification.classList.add('error');
-        setTimeout(() => {
-            sendingNotification.classList.remove('show');
-            setTimeout(() => document.body.removeChild(sendingNotification), 300);
-        }, 3000);
-    }
-}
-
-/**
- * Dema ku bikarhêner li ser bişkoka "Namekan" di nav-a jêrîn de bitikîne, tê bang kirin.
- * کاتێک بەکارهێنER کلیک لە دوگمەی "نامەکان" لە navـی خوارەوە دەکات، بانگ دەکرێت.
- */
-async function handleOpenChatSheet() {
-    updateActiveNav('chatBtn'); // Bişkokê çalak bike
-    const currentUser = auth.currentUser;
-
-    if (!currentUser) {
-        // Bikarhêner têketî nîne. Wî bişîne bo têketinê.
-        // بەکارهێنەر لۆگین نییە. بینێرە بۆ لۆگینکردن.
-        state.pendingChatAction = 'open_chat'; // Armancê tomar bike
-        openPopup('phoneLoginModal', 'modal');
-        return;
-    }
-
-    // Bikarhêner têketî ye. Sheeta chatê veke.
-    // بەکارهێنەر لۆگین بووە. شاشەی چات بکەوە.
-    openPopup('chatSheet');
-}
-// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
-
-
 // --- Setup Functions ---
 
 function setupUIEventListeners() {
@@ -1400,14 +1181,7 @@ function setupUIEventListeners() {
 
     document.getElementById('headerBackBtn').onclick = () => { history.back(); };
 
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Em bişkoka profaylê ya kevn bi ya chatê diguherînin
-    // ئێمە دوگمە کۆنەکەی پڕۆفایل بە هی چات دەگۆڕین
-    // profileBtn.onclick = () ... (HATE RAKIRIN)
-    chatBtn.onclick = handleOpenChatSheet; // Bişkoka chatê ya nav-ê girê bide
-    settingsProfileBtn.onclick = () => { openPopup('profileSheet'); }; // Bişkoka profaylê ya 'Settings' girê bide
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
-
+    profileBtn.onclick = () => { openPopup('profileSheet'); updateActiveNav('profileBtn'); };
     cartBtn.onclick = () => { openPopup('cartSheet'); updateActiveNav('cartBtn'); };
     categoriesBtn.onclick = () => { openPopup('categoriesSheet'); updateActiveNav('categoriesBtn'); };
     settingsFavoritesBtn.onclick = () => { openPopup('favoritesSheet'); };
@@ -1420,7 +1194,7 @@ function setupUIEventListeners() {
     document.querySelectorAll('.close').forEach(btn => btn.onclick = closeCurrentPopup);
     window.onclick = (e) => { if (e.target.classList.contains('modal')) closeCurrentPopup(); };
 
-    // Forma Login (Admin)
+    // Forma Login
     loginForm.onsubmit = async (e) => {
         e.preventDefault();
         try {
@@ -1473,64 +1247,16 @@ function setupUIEventListeners() {
 
 
     // Forma Profaylê
-    profileForm.onsubmit = async (e) => {
+    profileForm.onsubmit = (e) => {
         e.preventDefault();
-        
-        // === START: KODA NÛ / کۆدی نوێ ===
-        // Em logica profaylê nû dikin da ku ji bo bikarhênerên nû yên têlefonê jî kar bike
-        // ئێمە لۆجیکی پڕۆفایل نوێ دەکەینەوە بۆ ئەوەی بۆ بەکارهێنەرانی نوێی mۆbایلیش کار بکات
-        const currentUser = auth.currentUser;
-        let userId;
-        let userPhone;
-
-        if (currentUser) {
-            // Bikarhêner bi têlefonê têketî ye
-            // بەکارهێنەر بە مۆbایل لۆگین بووە
-            userId = currentUser.uid;
-            userPhone = currentUser.phoneNumber;
-        } else {
-            // Bikarhênerê normal (profîla kevn)
-            // بەکارهێنەری ئاسایی (پڕۆفایلی کۆن)
-            userId = 'localUser'; // IDyek giştî
-            userPhone = document.getElementById('profilePhone').value;
-        }
-        
         const profileData = {
             name: document.getElementById('profileName').value,
             address: document.getElementById('profileAddress').value,
-            phone: userPhone, // Hejmara têlefonê ya tomarkirî bikar bîne
+            phone: document.getElementById('profilePhone').value,
         };
-
-        let message;
-        if (currentUser) {
-            // Profîlê di Firestore de tomar bike
-            // پڕۆفایل لە فایەرستۆر پاشەکەوت بکە
-            const success = await saveUserProfile(userId, profileData.name, profileData.phone);
-            message = success ? t('profile_saved') : t('error_generic');
-            if (success) {
-                // Daneyên profîla herêmî jî nû bike
-                // داتای پڕۆفایلی ناوخۆیش نوێ بکەوە
-                saveProfileCore(profileData); 
-            }
-        } else {
-            // Profîla herêmî (localStorage) tomar bike
-            // پڕۆفایلی ناوخۆیی (localStorage) پاشەکەوت بکە
-            message = saveProfileCore(profileData);
-        }
-        
+        const message = saveProfileCore(profileData); // Logika core bang bike
         showNotification(message, 'success');
         closeCurrentPopup();
-
-        // Piştî tomarkirina profîlê, kontrol bike ka karek li bendê ye
-        // دوای پاشەکەوتکردنی پڕۆفایل، پشکنین بکە بزانە کارێک چاوەڕێیە
-        if (state.pendingChatAction === 'send_order') {
-            state.pendingChatAction = null; // Sifir bike
-            await handleSendOrderViaChat(); // Fermanê bişîne
-        } else if (state.pendingChatAction === 'open_chat') {
-            state.pendingChatAction = null; // Sifir bike
-            await handleOpenChatSheet(); // Chatê veke
-        }
-        // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     };
 
     // Bişkokên Ziman
@@ -1548,19 +1274,19 @@ function setupUIEventListeners() {
         chevron.classList.toggle('open');
     };
 
-    // Biškoka Install
+    // Bişkoka Install
     const installBtn = document.getElementById('installAppBtn');
     if (installBtn) {
         installBtn.addEventListener('click', () => handleInstallPrompt(installBtn));
     }
 
-    // Biškoka Çalakirina Agahdariyan
+    // Bişkoka Çalakirina Agahdariyan
     document.getElementById('enableNotificationsBtn')?.addEventListener('click', async () => {
         const result = await requestNotificationPermissionCore();
         showNotification(result.message, result.granted ? 'success' : 'error');
     });
 
-    // Biškoka Nûkirina Bi Zorê
+    // Bişkoka Nûkirina Bi Zorê
     document.getElementById('forceUpdateBtn')?.addEventListener('click', async () => {
         const result = await forceUpdateCore();
         if (result.success) {
@@ -1590,105 +1316,6 @@ function setupUIEventListeners() {
         }, { threshold: 0.1 });
         observer.observe(scrollTrigger);
     }
-    
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // --- Guhdarên Bûyerên Chata Nû ---
-    // --- گوێگرە نوێیەکانی چات ---
-
-    phoneLoginForm.onsubmit = async (e) => {
-        e.preventDefault();
-        const phoneNumber = document.getElementById('phoneNumber').value;
-        const submitButton = phoneLoginForm.querySelector('button[type="submit"]');
-        phoneLoginError.style.display = 'none';
-
-        submitButton.disabled = true;
-        submitButton.textContent = '...چاوەڕێ بە';
-        
-        const result = await sendVerificationCode(phoneNumber);
-
-        if (result.success) {
-            closeCurrentPopup(); // Moda têlefonê bigire
-            openPopup('verifyCodeModal', 'modal'); // Moda kodê veke
-        } else {
-            phoneLoginError.textContent = result.message;
-            phoneLoginError.style.display = 'block';
-        }
-        
-        submitButton.disabled = false;
-        submitButton.textContent = t('send_code_button');
-    };
-
-    verifyCodeForm.onsubmit = async (e) => {
-        e.preventDefault();
-        const code = document.getElementById('verificationCode').value;
-        const submitButton = verifyCodeForm.querySelector('button[type="submit"]');
-        verifyCodeError.style.display = 'none';
-
-        submitButton.disabled = true;
-        submitButton.textContent = '...پشتڕاست دەکرێتەوە';
-        
-        const result = await verifyCode(code);
-
-        if (result.success) {
-            // Têketin serketî bû!
-            // لۆگین سەرکەوتوو بوو!
-            const userProfile = await getUserProfile(result.userId);
-            closeCurrentPopup(); // Moda kodê bigire
-
-            if (!userProfile || !userProfile.name) {
-                // Bikarhênerek nû ye, wî bişîne bo profaylê da ku navê xwe tomar bike
-                // بەکارهێنەرێکی نوێیە، بینێرە بۆ پڕۆفایل با ناوی خۆی تۆمار بکات
-                showNotification("تکایە ناوی خۆت تۆمار بکە", "success");
-                openPopup('profileSheet');
-                // Hejmara têlefonê jixweber di `openPopup` de tê dagirtin
-            } else {
-                // Bikarhênerê kevn e û profîla wî heye
-                // بەکارهێنەری کۆنە و پڕۆفایلی هەیە
-                
-                // Tiştê ku berî têketinê hewl dida bike, temam bike
-                // ئەو شتەی پێش لۆگینکردن هەوڵی بۆ دەدا، تەواوی بکە
-                if (state.pendingChatAction === 'send_order') {
-                    state.pendingChatAction = null; // Sifir bike
-                    await handleSendOrderViaChat(); // Fermanê bişîne
-                } else if (state.pendingChatAction === 'open_chat') {
-                    state.pendingChatAction = null; // Sifir bike
-                    await handleOpenChatSheet(); // Chatê veke
-                } else {
-                    // Tenê têketî bû, sheeta chatê veke
-                    // تەنها لۆگین بوو، شاشەی چات بکەوە
-                    await handleOpenChatSheet();
-                }
-            }
-        } else {
-            verifyCodeError.textContent = result.message;
-            verifyCodeError.style.display = 'block';
-        }
-        
-        submitButton.disabled = false;
-        submitButton.textContent = t('verify_button');
-    };
-
-    chatMessageForm.onsubmit = async (e) => {
-        e.preventDefault();
-        const text = chatMessageInput.value;
-        if (text.trim() === "" || !auth.currentUser) return;
-        
-        const tempMessageText = text; // Peyamê tomar bike
-        chatMessageInput.value = ""; // Inputê vala bike
-        
-        const success = await sendChatMessage(auth.currentUser.uid, tempMessageText);
-        
-        if (!success) {
-            // Peyam nehat şandin, wê vegerîne inputê
-            // نامەکە نەنێردرا، بیگەڕێنەوە بۆ ئینپوت
-            chatMessageInput.value = tempMessageText;
-            showNotification(t('error_generic'), 'error');
-        }
-        // Guhdarê onSnapshot dê UIyê bixweber nû bike
-        // گوێگری onSnapshot خۆکارانە UI نوێ دەکاتەوە
-    };
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
-
 
     // --- Guhdarên Bûyerên Taybet (ji app-core) ---
     document.addEventListener('authChange', (e) => {
@@ -1696,17 +1323,6 @@ function setupUIEventListeners() {
         if(e.detail.isAdmin && loginModal.style.display === 'block') {
              closeCurrentPopup();
         }
-        
-        // === START: KODA NÛ / کۆدی نوێ ===
-        // Eger bikarhêner ji her derê derkeve (mînak, admin), em wî ji chatê jî derdixin
-        // ئەگەر بەکارهێنەر لە هەر شوێنێک چووە دەرەوە (بۆ نموونە، ئەدمین)، ئێمە لە چاتیش دەریدەکەین
-        if (!auth.currentUser) {
-            stopChatMessagesListener(); // Guhdarê chatê bigire
-            if (chatSheet.classList.contains('show')) {
-                closeCurrentPopup(); // Sheeta chatê bigire eger vekirî be
-            }
-        }
-        // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     });
 
     document.addEventListener('fcmMessage', (e) => {
@@ -1892,19 +1508,6 @@ window.addEventListener('popstate', async (event) => {
 async function initializeUI() {
     // Await core initialization first
     await initCore(); // Initialize core logic (enables persistence, fetches initial data)
-    
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Em reCAPTCHA ji bo têketina bi têlefonê amade dikin
-    // ئێمە reCAPTCHA بۆ لۆگینکردن بە مۆbایل ئامادە دەکەین
-    // Em vê yekê piştî initCore bang dikin da ku piştrast bin ku 'auth' amade ye
-    // ئێمە ئەمە دوای initCore بانگ دەکەین بۆ دڵنیابوون لەوەی 'auth' ئامادەیە
-    try {
-        await initPhoneAuth();
-    } catch (e) {
-        console.error("Failed to initialize reCAPTCHA on load:", e);
-    }
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
-
 
     // Initial language application (static text)
     setLanguageCore(state.currentLanguage); // Set core state
@@ -1983,19 +1586,7 @@ async function handleInitialPageLoadUI() {
               const isSheet = element.classList.contains('bottom-sheet');
               const isModal = element.classList.contains('modal');
               if (isSheet || isModal) {
-                   // === START: KODA NÛ / کۆدی نوێ ===
-                   // Em nahêlin ku pop-upên taybet bixweber vebin
-                   // ئێمە ڕێگە نادەین پۆپئەپە تایبەتەکان خۆکارانە بکرێنەوە
-                   if (hash !== 'phoneLoginModal' && hash !== 'verifyCodeModal') {
-                        // Em chatê tenê vedikin eger bikarhêner têketî be
-                        // ئێمە چات تەنها دەکەینەوە ئەگەر بەکارهێنەر لۆگین بووبێت
-                        if (hash === 'chatSheet' && !auth.currentUser) {
-                            // Veke neke
-                        } else {
-                           openPopup(hash, isSheet ? 'sheet' : 'modal');
-                        }
-                   }
-                   // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+                   openPopup(hash, isSheet ? 'sheet' : 'modal');
               }
          }
 
