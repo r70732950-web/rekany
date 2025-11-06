@@ -3,14 +3,21 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+// === START: KODA NÛ / کۆدی نوێ ===
+// Em fonksiyonên AUTH yên nû import dikin
+// ئێمە فەنکشنە نوێیەکانی AUTH هاوردە دەکەین
+import { 
+    getAuth, 
+    signInWithEmailAndPassword, 
+    onAuthStateChanged, 
+    signOut,
+    signInWithPhoneNumber, // <-- NÛ / نوێ
+    RecaptchaVerifier // <-- NÛ / نوێ
+} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
-// === START: KODA NÛ / کۆدی نوێ ===
-// Em xizmetguzariya Storage lê zêde dikin
-// ئێمە خزمەتگوزاری ستۆرێج زیاد دەکەین
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
-// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
 
 // Firebase Configuration
@@ -18,13 +25,7 @@ const firebaseConfig = {
     apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", // Ensure this key is correct and secured if necessary
     authDomain: "maten-store.firebaseapp.com",
     projectId: "maten-store",
-    
-    // === VÊ BIGUHERE / ئەمە بگۆڕە ===
-    // Nêrîna xwe biguherîne li ser vê yekê
-    // تکایە ئەم دێڕە ڕاست بکەرەوە
-    storageBucket: "maten-store.firebasestorage.app", // <-- HATE RASTKIRIN / لێرە ڕاستکرایەوە
-    // === DAWÎYA GUHERTINÊ / کۆتایی گۆڕانکاری ===
-
+    storageBucket: "maten-store.appspot.com", // <-- Rastkirî / ڕاستکراوە
     messagingSenderId: "137714858202",
     appId: "1:137714858202:web:e2443a0b26aac6bb56cde3",
     measurementId: "G-1PV3DRY2V2"
@@ -36,11 +37,7 @@ export const analytics = getAnalytics(app);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const messaging = getMessaging(app);
-// === START: KODA NÛ / کۆدی نوێ ===
-// Em 'storage' initialize dikin
-// ئێمە 'storage' ئامادە دەکەین
 export const storage = getStorage(app);
-// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
 
 // Firestore Collections Exports (for app-core.js and app-ui.js)
@@ -50,11 +47,13 @@ export const announcementsCollection = collection(db, "announcements");
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
 export const shortcutRowsCollection = collection(db, "shortcut_rows");
+// === START: KODA NÛ / کۆدی نوێ ===
+export const chatsCollection = collection(db, "chats");
+export const usersCollection = collection(db, "users");
+// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
 // Translations Export
 export const translations = {
-    // ... (هەموو وەرگێڕانەکان وەک خۆیان دەمێننەوە) ...
-    // ... (Hemî wergêran wek xwe dimînin) ...
     ku_sorani: {
         search_placeholder: "گەڕان بە ناوی کاڵا...",
         admin_login_title: "چوونەژوورەوەی بەڕێوەبەر",
@@ -138,10 +137,28 @@ export const translations = {
         related_products_title: "کاڵای هاوشێوە",
         share_text: "سەیری ئەم کاڵایە بکە",
         share_error: "هاوبەشیپێکردن سەرکەوتوو نەبوو",
+        // === Wergerên NÛ / وەرگێڕانە نوێیەکان ===
+        chat_in_app: "گفتوگۆکردن لەناو ئەپ",
+        chat_with_admin_title: "گفتوگۆ لەگەڵ فرۆشگا",
+        phone_auth_title: "پشتڕاستکردنەوەی ژمارەی مۆبایل",
+        phone_auth_desc: "بۆ دەستپێکردنی گفتوگۆ، تکایە ژمارەی مۆبایلەکەت پشتڕاست بکەرەوە. ئێمە کۆدێکی (SMS)ـت بۆ دەنێرین.",
+        phone_number_label: "ژمارەی مۆبایل:",
+        send_code_btn: "ناردنی کۆد",
+        verify_code_desc: "تکایە ئەو کۆدە 6-ژمارەییەی بە (SMS) پێت گەیشت، لێرە بنووسە.",
+        verify_code_label: "کۆدی پشتڕاستکردنەوە:",
+        verify_code_btn: "پشتڕاستکردنەوە",
+        cancel_btn: "پاشگەزبوونەوە",
+        profile_login_prompt: "تکایە لۆگین بکە بۆ بینینی پڕۆفایلەکەت و پاشەکەوتکردنی زانیارییەکانت.",
+        login_with_phone: "چوونەژوورەوە بە ژمارەی مۆبایل",
+        user_logout_success: "بە سەرکەوتوویی چوویتەدەرەوە.",
+        chat_cart_summary_message: "سڵاو، من پرسیارم لەسەر ئەم داواکارییە هەیە:",
+        chat_message_placeholder: "نامەکەت بنووسە...",
+        chat_sending_message: "...خەریکی ناردنە",
+        chat_login_required: "بۆ ناردنی نامە، تکایە سەرەتا ژمارەی مۆبایلەکەت پشتڕاست بکەرەوە."
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
-        admin_login_title: "چوونا ژوور یا بەرپرسى",
+        admin_login_title: "چوونا ژوور يا بەرپرسى",
         email_label: "ئیمەیل:",
         password_label: "پەیڤا نهێنى:",
         login_button: "چوونا ژوور",
@@ -159,7 +176,7 @@ export const translations = {
         settings_title: "ڕێکخستن",
         language_label: "زمان",
         profile_title: "پروفایلێ من",
-        admin_login_nav: "چوونا ژوور یا بەرپرسى",
+        admin_login_nav: "چوونا ژوور يا بەرپرسى",
         logout_nav: "چوونا دەر",
         profile_name: "ناڤ:",
         profile_address: "ناڤ و نیشان:",
@@ -222,6 +239,24 @@ export const translations = {
         related_products_title: "کاڵایێن وەک ئێکن",
         share_text: "بەرێخۆ بدە ڤی کاڵای",
         share_error: "پارڤەکرن سەرنەکەفت",
+        // === Wergerên NÛ / وەرگێڕانە نوێیەکان ===
+        chat_in_app: "ئاخڤتن د ناڤ ئەپی دا",
+        chat_with_admin_title: "ئاخڤتن لگەل فرۆشگەهێ",
+        phone_auth_title: "پشتڕاستکرنا ژمارا مۆبایلێ",
+        phone_auth_desc: "بۆ دەستپێکرنا ئاخڤتنێ، هیڤی دکەین ژمارا مۆبایلا خۆ پشتڕاست بکە. دێ کۆدەک (SMS) بۆ هێتە فرێکرن.",
+        phone_number_label: "ژمارا مۆبایلێ:",
+        send_code_btn: "فرێکرنا کۆدی",
+        verify_code_desc: "هیڤی دکەین وی کۆدێ 6-ژماریی یێ ب (SMS) گەهشتیە تە، ل ڤێرە بنڤیسە.",
+        verify_code_label: "کۆدێ پشتڕاستکرنێ:",
+        verify_code_btn: "پشتڕاستکرن",
+        cancel_btn: "پاشگەزبوون",
+        profile_login_prompt: "هیڤی دکەین لۆگین بکە دا کو پروفایلا خۆ ببینی و پێزانینێن خۆ پاشەکەفت کەی.",
+        login_with_phone: "چوونا ژوور ب ژمارا مۆبایلێ",
+        user_logout_success: "ب سەرکەفتیانە چوويه دەر.",
+        chat_cart_summary_message: "سلاڤ، ئەز پرسیارەکێ لسەر ڤێ داخازیێ دکەم:",
+        chat_message_placeholder: "ناما خۆ بنڤیسە...",
+        chat_sending_message: "...د فرێکرنێ دایە",
+        chat_login_required: "بۆ فرێکرنا نامێ، هیڤی دکەین ژمارا مۆبایلا خۆ پشتڕاست بکە."
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -306,6 +341,24 @@ export const translations = {
         related_products_title: "منتجات مشابهة",
         share_text: "ألق نظرة على هذا المنتج",
         share_error: "فشلت المشاركة",
+        // === Wergerên NÛ / وەرگێڕانە نوێیەکان ===
+        chat_in_app: "الدردشة داخل التطبيق",
+        chat_with_admin_title: "الدردشة مع المتجر",
+        phone_auth_title: "تأكيد رقم الهاتف",
+        phone_auth_desc: "لبدء المحادثة، يرجى تأكيد رقم هاتفك. سنرسل لك رمز (SMS).",
+        phone_number_label: "رقم الهاتف:",
+        send_code_btn: "إرسال الرمز",
+        verify_code_desc: "يرجى إدخال الرمز المكون من 6 أرقام الذي وصلك عبر (SMS).",
+        verify_code_label: "رمز التأكيد:",
+        verify_code_btn: "تأكيد",
+        cancel_btn: "إلغاء",
+        profile_login_prompt: "يرجى تسجيل الدخول لرؤية ملفك الشخصي وحفظ معلوماتك.",
+        login_with_phone: "تسجيل الدخول برقم الهاتف",
+        user_logout_success: "تم تسجيل الخروج بنجاح.",
+        chat_cart_summary_message: "مرحباً، لدي سؤال بخصوص هذا الطلب:",
+        chat_message_placeholder: "اكتب رسالتك...",
+        chat_sending_message: "...جاري الإرسال",
+        chat_login_required: "لإرسال رسالة، يرجى تأكيد رقم هاتفك أولاً."
     }
 };
 
@@ -333,13 +386,13 @@ export let state = {
     currentProductId: null, // Used by app-ui
     currentPageId: 'mainPage', // *** زیادکرا: بۆ زانینی پەڕەی ئێستا ***
     currentPopupState: null, // *** زیادکرا: شوێنی دۆخی ئێستای پۆپئەپ بگرە ***
-    // *** START: Gۆڕانکاری لێرە کرا ***
-    // *** دەستپێک: گۆڕانکاری لێرە کرا ***
     pendingFilterNav: null, // Ji bo ragirtina fîlterê heta ku popup were girtin (بۆ ڕاگرتنی فلتەر تا داخستنی پۆپئەپ)
-    // *** END: Gۆڕانکاری لێرە کرا ***
-    // *** کۆتایی: گۆڕانکاری لێرە کرا ***
     sliderIntervals: {}, // Used by app-ui & app-core
     contactInfo: {}, // Might be needed?
+    // === START: KODA NÛ / کۆدی نوێ ===
+    currentUser: null, // Dê agahdariya bikarhênerê têketî bigire (زانیاری بەکارهێنەری لۆگینبوو هەڵدەگرێت)
+    confirmationResult: null, // Ji bo hilanîna encama piştrastkirina têlefonê (بۆ پاشەکەوتکردنی ئەنجامی پشتڕاستکردنەوەی مۆبایل)
+    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 };
 
 // Constants - Exported
@@ -397,6 +450,29 @@ export const termsSheet = document.getElementById('termsSheet');
 export const termsContentContainer = document.getElementById('termsContentContainer');
 export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer'); // Main page sub-subcat container
 
+// === START: KODÊN NÛ YÊN DOM / کۆدە نوێیەکانی DOM ===
+export const phoneAuthModal = document.getElementById('phoneAuthModal');
+export const phoneAuthForm = document.getElementById('phoneAuthForm');
+export const sendCodeBtn = document.getElementById('sendCodeBtn');
+export const verifyCodeForm = document.getElementById('verifyCodeForm');
+export const verifyCodeBtn = document.getElementById('verifyCodeBtn');
+export const cancelVerificationBtn = document.getElementById('cancelVerificationBtn');
+export const recaptchaContainer = document.getElementById('recaptcha-container');
+export const localChatBtn = document.getElementById('localChatBtn');
+export const profileLoginPrompt = document.getElementById('profileLoginPrompt');
+export const profileLoginBtn = document.getElementById('profileLoginBtn');
+export const userLogoutBtn = document.getElementById('userLogoutBtn');
+export const chatSheet = document.getElementById('chatSheet');
+export const chatMessagesContainer = document.getElementById('chatMessagesContainer');
+export const chatMessageForm = document.getElementById('chatMessageForm');
+export const chatMessageInput = document.getElementById('chatMessageInput');
+export const chatSendBtn = document.getElementById('chatSendBtn');
+export const chatFabBtn = document.getElementById('chatFabBtn');
+export const adminChatManagement = document.getElementById('adminChatManagement');
+export const adminChatListContainer = document.getElementById('adminChatListContainer');
+// === END: KODÊN NÛ YÊN DOM / کۆتایی کۆدە نوێیەکانی DOM ===
+
+
 // === Admin UI Elements ===
 export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
 export const policiesForm = document.getElementById('policiesForm');
@@ -439,23 +515,30 @@ export const addHomeSectionForm = document.getElementById('addHomeSectionForm');
 window.globalAdminTools = {
     // Firebase Services & Functions needed by admin.js
     db, auth,
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Em xizmetguzarî û fonksiyonên Storage lê zêde dikin
-    // ئێمە خزمەتگوزاری و فەنکشنەکانی ستۆرێج زیاد دەکەین
     storage, ref, uploadBytes, getDownloadURL,
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection,
     query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
+    
+    // === START: KODA NÛ / کۆدی نوێ ===
+    // Em fonksiyonên AUTH lê zêde dikin (فەنکشنەکانی AUTH زیاد دەکەین)
+    signInWithPhoneNumber, RecaptchaVerifier,
+    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
     // Collections needed by admin.js
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
+    // === START: KODA NÛ / کۆدی نوێ ===
+    chatsCollection, usersCollection,
+    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
     // Core State Accessors/Mutators needed by admin.js
     setEditingProductId: (id) => { state.editingProductId = id; },
     getEditingProductId: () => state.editingProductId,
     getCategories: () => state.categories,
     getCurrentLanguage: () => state.currentLanguage,
+    // === START: KODA NÛ / کۆدی نوێ ===
+    getCurrentUser: () => state.currentUser,
+    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
     // Core Helper Functions needed by admin.js
     t: (key, replacements = {}) => { // Re-export 't' function

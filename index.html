@@ -76,7 +76,33 @@
                 <p style="color: var(--text-light);">هیوادارین ئەزموونێکی کڕینی خۆشت هەبێت!</p>
             </div>
         </div>
-
+        
+        <div id="phoneAuthModal" class="modal">
+            <div class="modal-content">
+                <span class="close" aria-label="Close">&times;</span>
+                <h2 style="text-align: center; margin-bottom: 18px;" data-translate-key="phone_auth_title">پشتڕاستکردنەوەی ژمارەی مۆبایل</h2>
+                
+                <form id="phoneAuthForm">
+                    <p style="color: var(--text-light); font-size: 14px; margin-bottom: 15px;" data-translate-key="phone_auth_desc">بۆ دەستپێکردنی گفتوگۆ، تکایە ژمارەی مۆبایلەکەت پشتڕاست بکەرەوە. ئێمە کۆدێکی (SMS)ـت بۆ دەنێرین.</p>
+                    <div class="form-group">
+                        <label for="phoneNumber" data-translate-key="phone_number_label">ژمارەی مۆبایل:</label>
+                        <input type="tel" id="phoneNumber" placeholder="+964 7XX XXX XXXX" required style="direction: ltr; text-align: left;">
+                    </div>
+                    <div id="recaptcha-container" style="margin-top: 10px;"></div> 
+                    <button type="submit" id="sendCodeBtn" data-translate-key="send_code_btn">ناردنی کۆد</button>
+                </form>
+    
+                <form id="verifyCodeForm" style="display: none;">
+                    <p style="color: var(--text-light); font-size: 14px; margin-bottom: 15px;" data-translate-key="verify_code_desc">تکایە ئەو کۆدە 6-ژمارەییەی بە (SMS) پێت گەیشت، لێرە بنووسە.</p>
+                    <div class="form-group">
+                        <label for="verificationCode" data-translate-key="verify_code_label">کۆدی پشتڕاستکردنەوە:</label>
+                        <input type="text" id="verificationCode" placeholder="XXXXXX" required style="direction: ltr; text-align: center; font-size: 1.2em; letter-spacing: 5px;">
+                    </div>
+                    <button type="submit" id="verifyCodeBtn" data-translate-key="verify_code_btn">پشتڕاستکردنەوە</button>
+                    <button type="button" id="cancelVerificationBtn" style="background-color: var(--dark-gray); margin-top: 8px;" data-translate-key="cancel_btn">پاشگەزبوونەوە</button>
+                </form>
+            </div>
+        </div>
         <div id="sheet-overlay" class="sheet-overlay"></div>
 
         <div id="notificationsSheet" class="bottom-sheet">
@@ -99,7 +125,11 @@
                 <div id="emptyCartMessage" class="cart-empty" style="display:none;"><i class="fas fa-shopping-basket"></i><p data-translate-key="cart_empty">سەبەتەکەت بەتاڵە</p></div>
                 <div id="cartTotal" class="cart-total" style="display:none;"><span data-translate-key="total_price">کۆی گشتی:</span> <span id="totalAmount">0</span> د.ع.</div>
 
-                <div id="cartActions" style="display:none; margin-top: 15px;"></div>
+                <div id="cartActions" style="display:none; margin-top: 15px;">
+                    <button id="localChatBtn" class="whatsapp-btn" style="background-color: var(--primary-color);">
+                        <i class="fas fa-comments"></i> <span data-translate-key="chat_in_app">گفتوگۆکردن لەناو ئەپ</span>
+                    </button>
+                    </div>
             </div>
         </div>
 
@@ -138,6 +168,15 @@
                     </div>
                     <button type="submit" data-translate-key="save_button">پاشەکەوتکردن</button>
                 </form>
+                
+                <div id="profileLoginPrompt" style="display: none; text-align: center;">
+                    <i class="fas fa-mobile-alt" style="font-size: 40px; color: var(--medium-gray); margin-bottom: 15px;"></i>
+                    <p style="margin-bottom: 15px;" data-translate-key="profile_login_prompt">تکایە لۆگین بکە بۆ بینینی پڕۆفایلەکەت و پاشەکەوتکردنی زانیارییەکانت.</p>
+                    <button id="profileLoginBtn" class="whatsapp-btn" style="background-color: var(--primary-color);" data-translate-key="login_with_phone">چوونەژوورەوە بە ژمارەی مۆبایل</button>
+                </div>
+
+                <button id="userLogoutBtn" style="display: none; background-color: var(--danger-color); margin-top: 15px; width: 100%; padding: 10px; border: none; color: white; border-radius: 6px; font-weight: bold;" data-translate-key="logout_nav">چوونەدەرەوە</button>
+
             </div>
         </div>
 
@@ -181,22 +220,43 @@
             </div>
         </div>
 
-      <div id="termsSheet" class="bottom-sheet">
-         <div class="sheet-header">
-            <span class="sheet-handle"></span>
-            <h2 class="sheet-title">
-               <i class="fas fa-file-contract"></i>
-               <span data-translate-key="terms_policies_title">مەرج و ڕێساکان</span>
-            </h2>
-            <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
-         </div>
-         <div class="sheet-content">
-            <div id="termsContentContainer" style="line-height: 1.8; color: var(--text-light);">
-               <p data-translate-key="loading_policies">...خەریکی بارکردنی ڕێساکانە</p>
+        <div id="termsSheet" class="bottom-sheet">
+            <div class="sheet-header">
+                <span class="sheet-handle"></span>
+                <h2 class="sheet-title">
+                    <i class="fas fa-file-contract"></i>
+                    <span data-translate-key="terms_policies_title">مەرج و ڕێساکان</span>
+                </h2>
+                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
             </div>
-         </div>
-      </div>
-
+            <div class="sheet-content">
+                <div id="termsContentContainer" style="line-height: 1.8; color: var(--text-light);">
+                    <p data-translate-key="loading_policies">...خەریکی بارکردنی ڕێساکانە</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="chatSheet" class="bottom-sheet">
+             <div class="sheet-header">
+                <span class="sheet-handle"></span>
+                <h2 class="sheet-title">
+                   <i class="fas fa-comments"></i>
+                   <span data-translate-key="chat_with_admin_title">گفتوگۆ لەگەڵ فرۆشگا</span>
+                </h2>
+                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
+             </div>
+             <div id="chatMessagesContainer" class="sheet-content" style="padding-bottom: 80px;">
+                 <div id="chatLoadingSpinner" style="text-align: center; padding: 30px;">
+                    <i class="fas fa-spinner fa-spin fa-2x" style="color: var(--dark-gray);"></i>
+                 </div>
+             </div>
+             <form id="chatMessageForm" style="position: absolute; bottom: 0; left: 0; right: 0; background: white; padding: 10px; display: flex; gap: 10px; border-top: 1px solid var(--medium-gray); padding-bottom: calc(10px + env(safe-area-inset-bottom));">
+                <input type="text" id="chatMessageInput" placeholder="نامەکەت بنووسە..." class="form-group" style="flex-grow: 1; margin-bottom: 0; padding: 12px; border-radius: 25px; background: var(--light-gray);">
+                <button type="submit" id="chatSendBtn" style="width: 50px; height: 50px; border-radius: 50%; font-size: 18px; padding: 0;">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+             </form>
+        </div>
         <main class="main-content page page-active" id="mainPage">
             <div class="section">
                 <div id="mainCategoriesContainer" class="main-categories-container"></div>
@@ -669,7 +729,16 @@
                      <button id="saveLayoutBtn" style="margin-top: 15px; background-color: var(--primary-color);">پاشەکەوتکردنی ڕیزبەندی</button>
                  </div>
              </div>
-             <div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
+             
+             <div class="settings-group" id="adminChatManagement" style="display: none;">
+                <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
+                    <i class="fas fa-comments"></i> <span>نامەکانی کڕیاران</span>
+                </h3>
+                <div id="adminChatListContainer" style="padding: 15px; max-height: 400px; overflow-y: auto;">
+                    <p>...خەریکی بارکردنی لیستی نامەکانە</p>
+                </div>
+            </div>
+            <div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
                  <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;"><i class="fas fa-paper-plane"></i> <span data-translate-key="manage_contact_methods_title">بەڕێوەبردنی شێوازەکانی ناردنی داواکاری</span></h3>
 
                  <div style="padding: 15px;">
@@ -808,8 +877,12 @@
                      <div id="announcementsListContainer"></div>
                  </div>
              </div>
-        </div> <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
-
+        </div> 
+        
+        <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
+        <button id="chatFabBtn" class="add-product-btn" style="display: none; background-color: var(--primary-color); bottom: 80px; left: 20px; right: auto;">
+            <i class="fas fa-comments"></i>
+        </button>
         <div id="addHomeSectionModal" class="modal">
             <div class="modal-content">
                 <span class="close" aria-label="Close">&times;</span>

@@ -1557,3 +1557,155 @@ input:checked + .slider:before {
 }
 
 /* === END: KODÊN NÛ JI BO DÎZAYNA BEŞÊ ADMIN === */
+
+
+/* === START: KODÊN NÛ JI BO CHAT & AUTH === */
+/* === دەستپێک: کۆدی نوێ بۆ چات و پشتڕاستکردنەوە === */
+
+/* Stîla Giştî ya Bişkokan */
+button[type="submit"]:disabled,
+button[type="button"]:disabled {
+    background-color: var(--dark-gray) !important;
+    cursor: not-allowed;
+}
+
+/* Stîla Peyamên Chatê */
+#chatMessagesContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chat-message {
+    display: flex;
+    max-width: 80%;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.chat-bubble {
+    padding: 10px 15px;
+    border-radius: 18px;
+    line-height: 1.6;
+    font-size: 15px;
+}
+
+/* Peyama Bikarhêner (User Message) */
+.chat-message.user {
+    align-self: flex-start; /* Li milê çepê (ji ber RTL) */
+}
+
+.chat-message.user .chat-bubble {
+    background-color: var(--primary-color);
+    color: white;
+    border-bottom-left-radius: 4px;
+}
+
+/* Peyama Admin (Admin Message) */
+.chat-message.admin {
+    align-self: flex-end; /* Li milê rastê (ji ber RTL) */
+}
+
+.chat-message.admin .chat-bubble {
+    background-color: var(--light-gray);
+    color: var(--text-color);
+    border-bottom-right-radius: 4px;
+}
+
+/* Peyama Sîstem (System Message - bo nimûne, kurteya sebetê) */
+.chat-message.system {
+    align-self: center;
+    width: 100%;
+    max-width: 100%;
+    margin: 5px 0;
+}
+
+.chat-message.system .chat-bubble {
+    background-color: #fff8e1;
+    color: #6d4c13;
+    border: 1px solid #ffecc4;
+    font-size: 13px;
+    width: 100%;
+    border-radius: 8px;
+    white-space: pre-wrap; /* Ji bo parastina \n (parastina \n) */
+}
+
+.chat-timestamp {
+    font-size: 11px;
+    color: var(--dark-gray);
+    margin-top: 4px;
+    display: block;
+}
+
+/* Stîla Lîsteya Chatê ya Admin */
+.admin-chat-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    border-bottom: 1px solid var(--section-border);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.admin-chat-list-item:hover {
+    background-color: var(--light-gray);
+}
+.admin-chat-list-item:last-child {
+    border-bottom: none;
+}
+
+.chat-list-info {
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.chat-list-user {
+    font-weight: bold;
+    font-size: 15px;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-list-preview {
+    font-size: 13px;
+    color: var(--text-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.chat-list-preview.unread {
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+.chat-list-meta {
+    flex-shrink: 0;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+}
+
+.chat-list-time {
+    font-size: 11px;
+    color: var(--dark-gray);
+}
+
+.chat-list-badge {
+    background-color: var(--danger-color);
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* === END: KODÊN NÛ JI BO CHAT & AUTH === */
+/* === کۆتایی: کۆدی نوێ بۆ چات و پشتڕاستکردنەوە === */
