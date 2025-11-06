@@ -40,6 +40,19 @@ export const messaging = getMessaging(app);
 export const storage = getStorage(app);
 
 
+// === START: KODA NÛ YA ÇAKKIRÎ / کۆدی نوێی چاککراو ===
+// Em fonksiyonên AUTH ên pêwîst export dikin da ku app-core.js bikaribe bibîne
+// ئێمە فەنکشنە پێویستەکانی AUTH ئ익سپۆرت دەکەین تا app-core.js بتوانێت بیبینێت
+export {
+    signInWithEmailAndPassword, 
+    onAuthStateChanged, 
+    signOut,
+    signInWithPhoneNumber, 
+    RecaptchaVerifier 
+};
+// === END: KODA NÛ YA ÇAKKIRÎ / کۆتایی کۆدی نوێی چاککراو ===
+
+
 // Firestore Collections Exports (for app-core.js and app-ui.js)
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
@@ -47,10 +60,8 @@ export const announcementsCollection = collection(db, "announcements");
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
 export const shortcutRowsCollection = collection(db, "shortcut_rows");
-// === START: KODA NÛ / کۆدی نوێ ===
 export const chatsCollection = collection(db, "chats");
 export const usersCollection = collection(db, "users");
-// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
 // Translations Export
 export const translations = {
@@ -137,7 +148,6 @@ export const translations = {
         related_products_title: "کاڵای هاوشێوە",
         share_text: "سەیری ئەم کاڵایە بکە",
         share_error: "هاوبەشیپێکردن سەرکەوتوو نەبوو",
-        // === Wergerên NÛ / وەرگێڕانە نوێیەکان ===
         chat_in_app: "گفتوگۆکردن لەناو ئەپ",
         chat_with_admin_title: "گفتوگۆ لەگەڵ فرۆشگا",
         phone_auth_title: "پشتڕاستکردنەوەی ژمارەی مۆبایل",
@@ -239,7 +249,6 @@ export const translations = {
         related_products_title: "کاڵایێن وەک ئێکن",
         share_text: "بەرێخۆ بدە ڤی کاڵای",
         share_error: "پارڤەکرن سەرنەکەفت",
-        // === Wergerên NÛ / وەرگێڕانە نوێیەکان ===
         chat_in_app: "ئاخڤتن د ناڤ ئەپی دا",
         chat_with_admin_title: "ئاخڤتن لگەل فرۆشگەهێ",
         phone_auth_title: "پشتڕاستکرنا ژمارا مۆبایلێ",
@@ -341,7 +350,6 @@ export const translations = {
         related_products_title: "منتجات مشابهة",
         share_text: "ألق نظرة على هذا المنتج",
         share_error: "فشلت المشاركة",
-        // === Wergerên NÛ / وەرگێڕانە نوێیەکان ===
         chat_in_app: "الدردشة داخل التطبيق",
         chat_with_admin_title: "الدردشة مع المتجر",
         phone_auth_title: "تأكيد رقم الهاتف",
@@ -413,7 +421,7 @@ export const clearSearchBtn = document.getElementById('clearSearchBtn');
 export const loginForm = document.getElementById('loginForm');
 export const productForm = document.getElementById('productForm');
 export const formTitle = document.getElementById('formTitle');
-export const imageInputsContainer = document.getElementById('imageInputsContainer');
+export const imageInputsContainer = document.getElementById('imageUploadContainer'); // <-- Nûvekirî / نوێکراوە
 export const loader = document.getElementById('loader');
 export const cartBtn = document.getElementById('cartBtn');
 export const cartItemsContainer = document.getElementById('cartItemsContainer');
@@ -527,18 +535,14 @@ window.globalAdminTools = {
     // Collections needed by admin.js
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
-    // === START: KODA NÛ / کۆدی نوێ ===
     chatsCollection, usersCollection,
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
     // Core State Accessors/Mutators needed by admin.js
     setEditingProductId: (id) => { state.editingProductId = id; },
     getEditingProductId: () => state.editingProductId,
     getCategories: () => state.categories,
     getCurrentLanguage: () => state.currentLanguage,
-    // === START: KODA NÛ / کۆدی نوێ ===
     getCurrentUser: () => state.currentUser,
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
     // Core Helper Functions needed by admin.js
     t: (key, replacements = {}) => { // Re-export 't' function
