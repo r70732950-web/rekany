@@ -23,7 +23,10 @@ import {
     chatSheet, chatMessagesContainer, chatLoadingSpinner, chatMessageForm, chatMessageInput,
     settingsProfileBtn, // Bişkoja Profaylê di 'Settings' de (دوگمەی پڕۆفایل لە 'Settings')
     chatBtn, // Bişkoja Chatê di nav-a jêrîn de (دوگمەی چات لە navـی خوارەوە)
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+
+    auth, // <-- **ÇARESERÎ 1: 'auth' لێرە زیادکرا (لە app-setup.js دێت)**
+
+    // === END: KODA NÛ / کۆtایی کۆdi نوێ ===
 
     // Elements needed specifically for admin UI rendering within app-ui
     adminPoliciesManagement, adminSocialMediaManagement, adminAnnouncementManagement, adminPromoCardsManagement,
@@ -56,7 +59,9 @@ import {
     // === START: KODA NÛ / کۆدی نوێ ===
     // Em 'auth' import dikin ji bo kontrolkirina bikarhênerê têketî
     // ئێمە 'auth' هاوردە دەکەین بۆ پشکنینی بەکارهێنەری لۆگینبوو
-    auth,
+    
+    // auth, // <-- **ÇARESERÎ 2: 'auth' لێرە سڕایەوە (چونکە لە app-core.js نییە)**
+
     // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
     // Firestore functions exported from app-core.js
@@ -288,7 +293,7 @@ export function openPopup(id, type = 'sheet') {
             phoneInput.value = profile.phone || (currentUser ? currentUser.phoneNumber : '');
             
             // Eger bikarhêner bi têlefonê têketibe, rê nede guhertina hejmarê
-            // ئەگەر بەکارهێنەر بە مۆبایل لۆگین بووبێت، ڕێگە مەدە ژمارەکە بگۆڕێت
+            // ئەگەر بەکارهێنەر بە mۆbایل لۆگین بووبێت، ڕێگە مەدە ژمارەکە بگۆڕێت
             if (currentUser && currentUser.phoneNumber) {
                 phoneInput.disabled = true;
             } else {
@@ -1473,14 +1478,14 @@ function setupUIEventListeners() {
         
         // === START: KODA NÛ / کۆدی نوێ ===
         // Em logica profaylê nû dikin da ku ji bo bikarhênerên nû yên têlefonê jî kar bike
-        // ئێمە لۆجیکی پڕۆفایل نوێ دەکەینەوە بۆ ئەوەی بۆ بەکارهێنەرانی نوێی مۆبایلیش کار بکات
+        // ئێمە لۆجیکی پڕۆفایل نوێ دەکەینەوە بۆ ئەوەی بۆ بەکارهێنەرانی نوێی mۆbایلیش کار بکات
         const currentUser = auth.currentUser;
         let userId;
         let userPhone;
 
         if (currentUser) {
             // Bikarhêner bi têlefonê têketî ye
-            // بەکارهێنەر بە مۆبایل لۆگین بووە
+            // بەکارهێنەر بە مۆbایل لۆگین بووە
             userId = currentUser.uid;
             userPhone = currentUser.phoneNumber;
         } else {
@@ -1543,19 +1548,19 @@ function setupUIEventListeners() {
         chevron.classList.toggle('open');
     };
 
-    // Bişkoka Install
+    // Biškoka Install
     const installBtn = document.getElementById('installAppBtn');
     if (installBtn) {
         installBtn.addEventListener('click', () => handleInstallPrompt(installBtn));
     }
 
-    // Bişkoka Çalakirina Agahdariyan
+    // Biškoka Çalakirina Agahdariyan
     document.getElementById('enableNotificationsBtn')?.addEventListener('click', async () => {
         const result = await requestNotificationPermissionCore();
         showNotification(result.message, result.granted ? 'success' : 'error');
     });
 
-    // Bişkoka Nûkirina Bi Zorê
+    // Biškoka Nûkirina Bi Zorê
     document.getElementById('forceUpdateBtn')?.addEventListener('click', async () => {
         const result = await forceUpdateCore();
         if (result.success) {
@@ -1890,7 +1895,7 @@ async function initializeUI() {
     
     // === START: KODA NÛ / کۆدی نوێ ===
     // Em reCAPTCHA ji bo têketina bi têlefonê amade dikin
-    // ئێمە reCAPTCHA بۆ لۆگینکردن بە مۆبایل ئامادە دەکەین
+    // ئێمە reCAPTCHA بۆ لۆگینکردن بە مۆbایل ئامادە دەکەین
     // Em vê yekê piştî initCore bang dikin da ku piştrast bin ku 'auth' amade ye
     // ئێمە ئەمە دوای initCore بانگ دەکەین بۆ دڵنیابوون لەوەی 'auth' ئامادەیە
     try {
