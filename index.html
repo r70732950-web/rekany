@@ -217,15 +217,6 @@
 
         <div class="page page-hidden" id="subcategoryDetailPage">
                <div class="subcategory-detail-content">
-                 <!-- === START: KODA NÛ / کۆدی نوێ === -->
-                 <!-- Em ê konteynerek ji bo "Home Page Sections" li vir zêde bikin -->
-                 <!-- ئێمە کۆنتەینەرێک بۆ "بەشەکانی پەڕەی سەرەکی" لێرە زیاد دەکەین -->
-                 <div id="categoryPageSectionsContainer">
-                     <!-- Ev ê bi awayekî dînamîkî were dagirtin, heke dîzaynek taybet hebe -->
-                     <!-- ئەمە بە شێوەیەکی داینامیکی پڕ دەکرێتەوە، ئەگەر دیزاینێکی تایبەت هەبێت -->
-                 </div>
-                 <!-- === END: KODA NÛ / کۆتایی کۆدی نوێ === -->
-
                  <div id="subSubCategoryContainerOnDetailPage" class="subcategories-container">
                      </div>
                  <div id="productsContainerOnDetailPage" class="products-container">
@@ -453,40 +444,6 @@
                      <div id="categoryListContainer" style="border: 1px solid var(--section-border); border-radius: 6px; padding: 10px;">
                          <p>...خەریکی بارکردنی جۆرەکانە</p>
                      </div>
-                     
-                    <!-- === START: KODA NÛ / کۆدی نوێ === -->
-                    <!-- Ev beşa nû ye ji bo rêveberiya dîzayna kategoriyan -->
-                    <!-- ئەمە بەشی نوێیە بۆ بەڕێوەبردنی دیزاینی جۆرەکان -->
-                    <hr style="margin: 30px 0; border-top: 2px solid var(--primary-color);">
-                    
-                    <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">ڕێکخستنی دیزاینی جۆرەکان (Layout)</h4>
-                    <p style="font-size: 13px; color: var(--text-light); margin-bottom: 15px;">
-                        لێرە دەتوانیت دیزاینێکی تایبەت بۆ پەڕەی "هەموو"ی هەر جۆرێکی سەرەki دروست بکەیت. ئەگەر دیزاین دروست نەکەیت، ئەوا لیستی ئاسایی کاڵاکان پیشان دەدرێت.
-                    </p>
-                    
-                    <div class="form-group">
-                        <label for="categoryLayoutSelect">جۆری سەرەki هەڵبژێرە بۆ دەستکاریکردنی دیزاینەکەی:</label>
-                        <select id="categoryLayoutSelect">
-                            <option value="" disabled selected>-- سەرەتا جۆرێک هەڵبژێرە --</option>
-                            <!-- Ev ê ji aliyê admin.js ve were dagirtin -->
-                            <!-- ئەمە لەلایەن admin.jsـەوە پڕ دەکرێتەوە -->
-                        </select>
-                    </div>
-
-                    <div id="categoryLayoutEditorContainer" style="display: none;"> <!-- Bi destpêkê veşartî ye -->
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <p style="margin: 0; color: var(--text-light); font-size: 14px;">
-                                ڕیزبەندی بەشەکان بگۆڕە:
-                            </p>
-                            <button id="addCategorySectionBtn" class="add-section-btn"><i class="fas fa-plus"></i> زیادکردنی بەش</button>
-                        </div>
-                        <div id="categoryLayoutListContainer" class="layout-list-container">
-                            <p>...چاوەڕێی هەڵبژاردنی جۆرێک بە</p>
-                        </div>
-                        <button id="saveCategoryLayoutBtn" style="margin-top: 15px; background-color: var(--primary-color);">پاشەکەوتکردنی دیزاینی ئەم جۆرە</button>
-                    </div>
-                    <!-- === END: KODA NÛ / کۆتایی کۆدی نوێ === -->
-
                  </div>
              </div>
 
@@ -841,7 +798,7 @@
                              <textarea id="announcementContentKuBadini" rows="3" required></textarea>
                          </div>
                          <div class="form-group">
-                             <label for="announcementContentAr">ناوەڕۆک (عربي):</label>
+                             <label for="announcementContentAr">ناوەڕۆک (عربی):</label>
                              <textarea id="announcementContentAr" rows="3" required></textarea>
                          </div>
                          <button type="submit" data-translate-key="send_announcement_button">ناردنی ئاگەهداری</button>
@@ -876,7 +833,7 @@
                     </div>
                     <div id="specificCategorySelectContainer" class="form-group" style="display: none;">
                         <div class="form-group">
-                            <label for="newSectionMainCategory">جۆری سەرەki:</label>
+                            <label for="newSectionMainCategory">جۆری سەرەکی:</label>
                             <select id="newSectionMainCategory"></select>
                         </div>
                         <div class="form-group" id="newSectionSubcategoryContainer" style="display:none;">
@@ -896,55 +853,6 @@
                 </form>
             </div>
         </div>
-
-        <!-- === START: KODA NÛ / کۆدی نوێ === -->
-        <!-- Ev modal kopiyek ji 'addHomeSectionModal' e, lê ji bo dîzayna kategoriyan e -->
-        <!-- ئەم مۆداڵە کۆپییەکی 'addHomeSectionModal'ە، بەڵام بۆ دیزاینی جۆرەکانە -->
-        <div id="addCategorySectionModal" class="modal">
-            <div class="modal-content">
-                <span class="close" aria-label="Close">&times;</span>
-                <h2 style="text-align: center; margin-bottom: 18px;">زیادکردنی بەشی نوێ بۆ جۆر</h2>
-                <form id="addCategorySectionForm">
-                    <div class="form-group">
-                        <label for="newCategorySectionType">جۆری بەش:</label>
-                        <select id="newCategorySectionType" required>
-                            <option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>
-                            <option value="promo_slider">سلایدەری ڕێکلام</option>
-                            <option value="brands">بەشی براندەکان</option>
-                            <option value="newest_products">نوێترین کاڵاکان</option>
-                            <option value="single_shortcut_row">یەک ڕیزی کارتی کورتکراوە</option>
-                            <option value="single_category_row">یەک ڕیزی کاڵای جۆرێک (لەناو ئەم جۆرە)</option>
-                            <option value="all_products">هەموو کاڵاکان (لە کۆتایی)</option>
-                        </select>
-                    </div>
-                    <div id="specificCategoryItemGroupSelectContainer" class="form-group" style="display: none;">
-                        <label for="specificCategoryItemGroupId" id="specificCategoryItemGroupLabel">گرووپ هەڵبژێرە:</label>
-                        <select id="specificCategoryItemGroupId"></select>
-                    </div>
-                    <div id="specificCategoryCategorySelectContainer" class="form-group" style="display: none;">
-                        <div class="form-group">
-                            <label for="newCategorySectionMainCategory">جۆری سەرەki (ئەم بەشە بەکاردێت؟):</label>
-                            <select id="newCategorySectionMainCategory"></select>
-                        </div>
-                        <div class="form-group" id="newCategorySectionSubcategoryContainer" style="display:none;">
-                            <label for="newCategorySectionSubcategory">جۆری لاوەکی (ئارەزوومەندانە):</label>
-                            <select id="newCategorySectionSubcategory"></select>
-                        </div>
-                        <div class="form-group" id="newCategorySectionSubSubcategoryContainer" style="display:none;">
-                            <label for="newCategorySectionSubSubcategory">جۆری لاوەکی لاوەکی (ئارەزوومەندانە):</label>
-                            <select id="newCategorySectionSubSubcategory"></select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="newCategorySectionName">ناوی بەش (بۆ ناسینەوەی خۆت):</label>
-                        <input type="text" id="newCategorySectionName" required placeholder="بۆ نموونە: ڕیزی جلوبەرگی پیاوان">
-                    </div>
-                    <button type="submit">زیادکردن</button>
-                </form>
-            </div>
-        </div>
-        <!-- === END: KODA NÛ / کۆتایی کۆدی نوێ === -->
-
 
         <div id="editCategoryModal" class="modal">
             <div class="modal-content">
@@ -1039,7 +947,7 @@
                     <div class="form-group">
                         <label>وێنەکانی کاڵا (تا 4 وێنە):</label>
                         <p style="font-size: 12px; color: var(--dark-gray); margin-top: -4px; margin-bottom: 8px;">
-                            (وێنەی یەکەم وەک وێنەی سەرەki بەکاردێت. تکایە چاوەڕێ بکە تا وێنەکان باربن.)
+                            (وێنەی یەکەم وەک وێنەی سەرەکی بەکاردێت. تکایە چاوەڕێ بکە تا وێنەکان باربن.)
                         </p>
                         <div class="image-upload-container" id="imageUploadContainer">
                             </div>
@@ -1100,4 +1008,3 @@
     <script src="admin.js" defer></script>
 </body>
 </html>
-
