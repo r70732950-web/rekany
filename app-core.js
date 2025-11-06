@@ -91,7 +91,7 @@ async function fetchCategories() {
 }
 
 async function fetchSubcategories(categoryId) {
-    if (categoryId === 'all') return []; // Ev rast e, ji bo "Home" divê em ti jêr-kategorî nîşan nedin (ئەمە دروستە، بۆ "سەرەki" پێویست ناکات هیچ جۆرێکی لاوەکی نیشان بدەین)
+    if (categoryId === 'all') return []; // Ev rast e, ji bo "Home" divê em ti jêr-kategorî nîşan nedin (ئەمە دروستە، بۆ "سەرەکی" پێویست ناکات هیچ جۆرێکی لاوەکی نیشان بدەین)
     try {
         const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
         const q = query(subcategoriesQuery, orderBy("order", "asc"));
@@ -178,37 +178,6 @@ async function fetchRelatedProducts(currentProduct) {
 // *** DAWÎYA ÇAKKIRINÊ / END CORRECTION ***
 
 
-// === START: BEŞÊ NÛ / بەشی نوێ ===
-/**
- * Ji bo categoryId diyarîkirî, layouta rûpela taybet a wê tîne.
- * (بۆ ئایدی جۆری دیاریکراو، دیزاینی لاپەڕە تایبەتەکەی دەهێنێت)
- * @param {string} categoryId IDya Cûreyê (ئایدی جۆرەکە)
- * @returns {Promise<Array|null>} Rêzika layoutê an null (ڕیزبەندی دیزاینەکە یان null)
- */
-async function fetchCategoryLayout(categoryId) {
-    if (!categoryId || categoryId === 'all') return null;
-    try {
-        // Rêya nû ya layoutê: categories/{categoryId}/layout
-        // (ڕێڕەوی نوێی دیزاین: categories/{categoryId}/layout)
-        const layoutQuery = query(
-            collection(db, 'categories', categoryId, 'layout'), 
-            where('enabled', '==', true), 
-            orderBy('order', 'asc')
-        );
-        const layoutSnapshot = await getDocs(layoutQuery);
-        if (layoutSnapshot.empty) {
-            console.log(`No custom layout found for category: ${categoryId}`);
-            return null; // Layouta xwerû tune (دیزاینی تایبەت نییە)
-        }
-        return layoutSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
-        console.error(`Error fetching category layout for ${categoryId}:`, error);
-        return null; // Di dema çewtiyê de layouta standard bikar bîne (لەکاتی هەڵەدا دیزاینی ئاسایی بەکاربهێنە)
-    }
-}
-// === END: BEŞÊ NÛ / کۆتایی بەشی نوێ ===
-
-
 // Fetches products based on current filters and pagination state
 async function fetchProducts(searchTerm = '', isNewSearch = false) {
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
@@ -217,29 +186,6 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
         // Signal UI to render home sections
         return { isHome: true, products: [], allLoaded: true };
     }
-
-    // === START: BEŞÊ NÛ / بەشی نوێ ===
-    // Berî ku em li kaڵayan bigerin, em kontrol dikin ka layouta xwerû heye yan na
-    // (پێش ئەوەی بەدوای کاڵادا بگەڕێین، پشکنین دەکەین بزانین دیزاینی تایبەت هەیە یان نا)
-    const isMainCategoryView = state.currentCategory !== 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all' && !searchTerm;
-    if (isNewSearch && isMainCategoryView) {
-        const customLayout = await fetchCategoryLayout(state.currentCategory);
-        if (customLayout) {
-            // Layouta xwerû hate dîtin! Em sîgnalê didin UIyê ku wê render bike
-            // (دیزاینی تایبەت دۆزرایەوە! ئاماژە دەدەین بە UI تا پیشانی بدات)
-            console.log(`Rendering custom layout for category: ${state.currentCategory}`);
-            return { 
-                isHome: false, // Ne rûpela serekî ye (پەڕەی سەرەki نییە)
-                isCategoryLayout: true, // EV NÛ YE (ئەمە نوێیە)
-                layout: customLayout, // Em layoutê dişînin (دیزاینەکە دەنێرین)
-                categoryId: state.currentCategory, // Em IDya kategoriyê dişînin (ئایدی جۆرەکە دەنێرین)
-                products: [], 
-                allLoaded: true 
-            };
-        }
-    }
-    // === END: BEŞÊ NÛ / کۆتایی بەشی نوێ ===
-
 
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
     if (isNewSearch && state.productCache[cacheKey]) {
@@ -467,32 +413,6 @@ async function fetchInitialProductsForHome(limitCount = 10) {
     }
 }
 
-// === START: BEŞÊ NÛ / بەشی نوێ ===
-/**
- * Ji bo beşa "Hemû Kaڵa" di layouta xwerû ya kategoriyê de, kaڵayên destpêkê tîne.
- * (بۆ بەشی "هەموو کاڵاکان" لە دیزاینی تایبەتی جۆرەکەدا، کاڵا سەرەتاییەکان دەهێنێت)
- * @param {string} categoryId IDya Cûreyê (ئایدی جۆرەکە)
- * @returns {Promise<Array>} Rêzika kaڵayan (ڕیزبەندی کاڵاکان)
- */
-async function fetchInitialProductsForCategory(categoryId, limitCount = 10) {
-     if (!categoryId || categoryId === 'all') return [];
-     try {
-        const q = query(
-            productsCollection, 
-            where('categoryId', '==', categoryId), 
-            orderBy('createdAt', 'desc'), 
-            limit(limitCount)
-        );
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
-        console.error(`Error fetching initial products for category ${categoryId}:`, error);
-        return [];
-    }
-}
-// === END: BEŞÊ NÛ / کۆتایی بەشی نوێ ===
-
-
 // --- Cart Logic ---
 
 export async function addToCartCore(productId) {
@@ -714,14 +634,14 @@ export function saveCurrentScrollPositionCore() {
 
     // Only save scroll position for the main page filter state
     // Tenê ji bo rûpela serekî (mainPage) û dema ku ew filterek e (ne popup) tomar bike
-    // تەنها بۆ لاپەڕەی سەرەki و کاتێک فلتەرە (نەک پۆپئەپ) پاشەکەوتی بکە
+    // تەنها بۆ لاپەڕەی سەرەکی و کاتێک فلتەرە (نەک پۆپئەپ) پاشەکەوتی بکە
     if (activePage && state.currentPageId === 'mainPage' && currentState && !currentState.type) {
         // scrollTop a elementa rûpelê tomar bike (scrollTopـی توخمی لاپەڕەکە پاشەکەوت بکە)
         history.replaceState({ ...currentState, scroll: activePage.scrollTop }, '');
     }
 }
 // *** END: Gۆڕانکاری لێرە کرا ***
-// *** کۆتایی: Gۆڕانکاری لێرە کرا ***
+// *** کۆتایی: گۆڕانکاری لێرە کرا ***
 
 // Applies filter state (category, search, etc.) but doesn't handle UI rendering directly
 export function applyFilterStateCore(filterState) {
@@ -852,9 +772,6 @@ export {
     handleLogin, handleLogout, // Authentication
     fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, // Data fetching
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
-    // === START: BEŞÊ NÛ / بەشی نوێ ===
-    fetchCategoryLayout, fetchInitialProductsForCategory,
-    // === END: BEŞÊ NÛ / کۆتایی بەشی نوێ ===
     // setLanguageCore exported where it's defined
     requestNotificationPermissionCore,
     // checkNewAnnouncementsCore exported where it's defined

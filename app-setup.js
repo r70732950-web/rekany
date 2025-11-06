@@ -22,7 +22,7 @@ const firebaseConfig = {
     // === VÊ BIGUHERE / ئەمە بگۆڕە ===
     // Nêrîna xwe biguherîne li ser vê yekê
     // تکایە ئەم دێڕە ڕاست بکەرەوە
-    storageBucket: "maten-store.appspot.com", // <-- HATE RASTKIRIN / لێرە ڕاستکرایەوە
+    storageBucket: "maten-store.firebasestorage.app", // <-- HATE RASTKIRIN / لێرە ڕاستکرایەوە
     // === DAWÎYA GUHERTINÊ / کۆتایی گۆڕانکاری ===
 
     messagingSenderId: "137714858202",
@@ -81,7 +81,7 @@ export const translations = {
         profile_address: "ناونیشان:",
         profile_phone: "ژمارەی تەلەفۆن:",
         save_button: "پاشەکەوتکردن",
-        nav_home: "سەرەki",
+        nav_home: "سەرەکی",
         nav_categories: "جۆرەکان",
         nav_cart: "سەبەتە",
         nav_profile: "پڕۆفایل",
@@ -165,7 +165,7 @@ export const translations = {
         profile_address: "ناڤ و نیشان:",
         profile_phone: "ژمارا تەلەفونێ:",
         save_button: "پاشەکەفتکرن",
-        nav_home: "سەرەki",
+        nav_home: "سەرەکی",
         nav_categories: "جۆر",
         nav_cart: "سەلک",
         nav_profile: "پروفایل",
@@ -337,7 +337,7 @@ export let state = {
     // *** دەستپێک: گۆڕانکاری لێرە کرا ***
     pendingFilterNav: null, // Ji bo ragirtina fîlterê heta ku popup were girtin (بۆ ڕاگرتنی فلتەر تا داخستنی پۆپئەپ)
     // *** END: Gۆڕانکاری لێرە کرا ***
-    // *** کۆتایی: Gۆڕانکاری لێرە کرا ***
+    // *** کۆتایی: گۆڕانکاری لێرە کرا ***
     sliderIntervals: {}, // Used by app-ui & app-core
     contactInfo: {}, // Might be needed?
 };
@@ -360,10 +360,7 @@ export const clearSearchBtn = document.getElementById('clearSearchBtn');
 export const loginForm = document.getElementById('loginForm');
 export const productForm = document.getElementById('productForm');
 export const formTitle = document.getElementById('formTitle');
-// === START: Gۆڕانکاری / دەستپێک ===
-// Em êdî vê rêzê bikar naynin (ئیتر ئەم دێڕە بەکارناهێنین)
-// export const imageInputsContainer = document.getElementById('imageInputsContainer');
-// === END: Gۆڕانکاری / کۆتایی ===
+export const imageInputsContainer = document.getElementById('imageInputsContainer');
 export const loader = document.getElementById('loader');
 export const cartBtn = document.getElementById('cartBtn');
 export const cartItemsContainer = document.getElementById('cartItemsContainer');
@@ -435,29 +432,6 @@ export const homeLayoutListContainer = document.getElementById('homeLayoutListCo
 export const addHomeSectionBtn = document.getElementById('addHomeSectionBtn');
 export const addHomeSectionModal = document.getElementById('addHomeSectionModal');
 export const addHomeSectionForm = document.getElementById('addHomeSectionForm');
-
-// === START: BEŞÊN NÛ / بەشە نوێیەکان ===
-export const adminCategoryLayoutManagement = document.getElementById('adminCategoryLayoutManagement');
-export const categoryLayoutSelect = document.getElementById('categoryLayoutSelect');
-export const categoryLayoutBuilderContainer = document.getElementById('categoryLayoutBuilderContainer');
-export const categoryLayoutTitle = document.getElementById('categoryLayoutTitle');
-export const addCategoryLayoutSectionBtn = document.getElementById('addCategoryLayoutSectionBtn');
-export const categoryLayoutListContainer = document.getElementById('categoryLayoutListContainer');
-export const saveCategoryLayoutBtn = document.getElementById('saveCategoryLayoutBtn');
-export const addCategoryLayoutSectionModal = document.getElementById('addCategoryLayoutSectionModal');
-export const addCategoryLayoutSectionForm = document.getElementById('addCategoryLayoutSectionForm');
-export const newCategoryLayoutSectionType = document.getElementById('newCategoryLayoutSectionType');
-export const specificCategoryLayoutItemGroupSelectContainer = document.getElementById('specificCategoryLayoutItemGroupSelectContainer');
-export const specificCategoryLayoutItemGroupId = document.getElementById('specificCategoryLayoutItemGroupId');
-export const specificCategoryLayoutItemGroupLabel = document.getElementById('specificCategoryLayoutItemGroupLabel');
-export const specificCategoryLayoutCategorySelectContainer = document.getElementById('specificCategoryLayoutCategorySelectContainer');
-export const newCategoryLayoutSectionMainCategory = document.getElementById('newCategoryLayoutSectionMainCategory');
-export const newCategoryLayoutSectionSubcategoryContainer = document.getElementById('newCategoryLayoutSectionSubcategoryContainer');
-export const newCategoryLayoutSectionSubcategory = document.getElementById('newCategoryLayoutSectionSubcategory');
-export const newCategoryLayoutSectionSubSubcategoryContainer = document.getElementById('newCategoryLayoutSectionSubSubcategoryContainer');
-export const newCategoryLayoutSectionSubSubcategory = document.getElementById('newCategoryLayoutSectionSubSubcategory');
-export const newCategoryLayoutSectionName = document.getElementById('newCategoryLayoutSectionName');
-// === END: BEŞÊN NÛ / کۆتایی بەشە نوێیەکان ===
 
 
 // *** Populate globalAdminTools here ***

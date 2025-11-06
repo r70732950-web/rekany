@@ -4,7 +4,7 @@
 import {
     // Import DOM elements needed for general UI updates
     loginModal, addProductBtn, productFormModal, skeletonLoader, searchInput,
-    clearSearchBtn, loginForm, productForm, formTitle, loader, // <-- 'imageInputsContainer' HATE RAKIRIN / لێرە سڕایەوە
+    clearSearchBtn, loginForm, productForm, formTitle, imageInputsContainer, loader,
     cartBtn, cartItemsContainer, emptyCartMessage, cartTotal, totalAmount, cartActions,
     favoritesContainer, emptyFavoritesMessage, categoriesBtn, sheetOverlay, sheetCategoriesContainer,
     productCategorySelect, subcategorySelectContainer, productSubcategorySelect, subSubcategorySelectContainer,
@@ -1078,10 +1078,7 @@ function updateAdminUIAuth(isAdmin) {
          'adminPoliciesManagement', 'adminSocialMediaManagement', 'adminAnnouncementManagement',
          'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
          'adminContactMethodsManagement', 'adminShortcutRowsManagement',
-         'adminHomeLayoutManagement',
-         // === START: BEŞÊ NÛ / بەشی نوێ ===
-         'adminCategoryLayoutManagement' // Em beşa nû lê zêde dikin (ئێمە بەشە نوێیەکە زیاد دەکەین)
-         // === END: BEŞÊ NÛ / کۆتایی بەشە نوێیەکان ===
+         'adminHomeLayoutManagement'
     ];
     adminSections.forEach(id => {
         const section = document.getElementById(id);
@@ -1396,16 +1393,6 @@ async function handleSetLanguage(lang) {
          window.AdminLogic.renderBrandGroupsAdminList?.();
          window.AdminLogic.renderShortcutRowsAdminList?.();
          window.AdminLogic.renderHomeLayoutAdmin?.();
-         // === START: BEŞÊ NÛ / بەشی نوێ ===
-         // Em sernavê layouta kategoriyê nû dikin (ئێمە ناونیشانی دیزاینی جۆرەکە نوێ دەکەینەوە)
-         if (window.AdminLogic.currentEditingLayoutCategoryId) {
-             const select = document.getElementById('categoryLayoutSelect');
-             const newName = select.options[select.selectedIndex]?.dataset.name;
-             if (newName) {
-                 document.getElementById('categoryLayoutTitle').textContent = `ڕێکخستنی دیزاینی: ${newName}`;
-             }
-         }
-         // === END: BEŞÊN NÛ / کۆتایی بەشە نوێیەکان ===
     }
 }
 
