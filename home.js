@@ -1,22 +1,22 @@
 // home.js
-// Logika UI تایبەت بە پەڕەی سەرەکی (Home Page)
+// Logika UI تایبەت بە پەڕەی سەرەki (Home Page)
 
 import {
     state, t, debounce,
-    fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts,
-    fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
-    fetchSubcategories, navigateToFilterCore,
-    fetchProducts,
-    fetchSubSubcategories, // *** زیادکرا: هاوردەکردنی فانکشنی دروست ***
-    db, doc, getDoc // Firestore functions needed locally
+    fetchHomeLayout, fetchProducts, fetchSubcategories, navigateToFilterCore,
+    fetchSubSubcategories, fetchCategoryLayout // <-- Koda nû
 } from './app-core.js';
 
-// *** هاوردەکردنی فانکشنە هاوبەشەکان لە app-ui.js ***
 import {
-    renderSkeletonLoader, createProductCardElementUI, setupScrollAnimations, showSubcategoryDetailPageUI
+    renderSkeletonLoader, createProductCardElementUI, setupScrollAnimations, showSubcategoryDetailPageUI,
+    // === START: KODA NÛ / کۆدی نوێ ===
+    // Em fonksyonên çêkirina beşan ji 'app-ui.js' import dikin
+    // ئێمە فەنکشنەکانی دروستکردنی بەشەکان لە 'app-ui.js' هاوردە دەکەین
+    createPromoSliderElement, createBrandsSectionElement, createNewestProductsSectionElement,
+    createSingleShortcutRowElement, createSingleCategoryRowElement, createAllProductsSectionElement
+    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 } from './app-ui.js';
 
-// *** 💡 فانکشنی یاریدەدەری نوێ لێرە زیادکرا 💡 ***
 // --- Helper Functions ---
 
 /**
@@ -27,71 +27,57 @@ function resetScrollPosition(containerElement) {
     if (containerElement) {
         containerElement.scrollTo({
             left: 0,
-            behavior: 'smooth' // 'smooth' scrolls it back nicely
+            behavior: 'smooth' 
         });
     }
 }
-// *** 💡 کۆتایی بەشی زیادکراو 💡 ***
-
 
 // --- UI Rendering Functions for Home Page ---
 
-// Renders product cards in the main grid (replaces original renderProductsUI)
-function renderProductsGridUI(newProductsOnly = false) {
-    const container = document.getElementById('productsContainer'); // Assuming productsContainer is the main grid ID in index.html
+// Renders product cards in the main grid
+export function renderProductsGridUI(newProductsOnly = false) {
+    const container = document.getElementById('productsContainer'); 
     if (!container) return;
 
-    // If only rendering new products (infinite scroll), append them
-    if (Array.isArray(newProductsOnly)) { // Check if it's an array of new products
+    if (Array.isArray(newProductsOnly)) { 
         newProductsOnly.forEach(item => {
-            let element = createProductCardElementUI(item); // Use imported function
-            element.classList.add('product-card-reveal'); // Add animation class
+            let element = createProductCardElementUI(item); 
+            element.classList.add('product-card-reveal'); 
             container.appendChild(element);
         });
     } else {
-        // Otherwise, clear and render all products from state
         container.innerHTML = '';
         if (!state.products || state.products.length === 0) {
             container.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         } else {
             state.products.forEach(item => {
-                let element = createProductCardElementUI(item); // Use imported function
-                element.classList.add('product-card-reveal'); // Add animation class
+                let element = createProductCardElementUI(item); 
+                element.classList.add('product-card-reveal'); 
                 container.appendChild(element);
             });
         }
     }
-    setupScrollAnimations(); // Use imported function
+    setupScrollAnimations(); 
 }
-// Make globally accessible if infinite scroll in app-ui.js needs it
-// Consider refactoring infinite scroll trigger if possible
-window.renderProductsGridUI = renderProductsGridUI;
 
 // Renders main category buttons (Top horizontal scroll)
-// *** START: Gۆڕانکاری lێرە kra ***
-// *** دەستپێک: گۆڕانکاری لێرە کرا ***
 export function renderMainCategoriesUI() {
     const container = document.getElementById('mainCategoriesContainer');
     if (!container) return;
     container.innerHTML = '';
 
-    // 1. Bişkoja "Serekî" (Home) bi destî lê zêde bike
-    // 1. زیادکردنی دوگمەی "سەرەکی" (Home) بە شێوەی دەستی
+    // 1. زیادکردنی دوگمەی "سەرەki" (Home) بە شێوەی دەستی
     const homeBtn = document.createElement('button');
     homeBtn.className = 'main-category-btn';
-    homeBtn.dataset.category = 'all'; // Ew hîn jî nirxa 'all' ji bo logica filterê bikar tîne (هێشتا نرخی 'all' بەکاردەهێنێت بۆ لۆجیکی فلتەر)
+    homeBtn.dataset.category = 'all'; 
     homeBtn.innerHTML = `<i class="fas fa-home"></i> <span>${t('nav_home')}</span>`;
 
-    // Bişkoja "Serekî" çalak bike heke kategoriya heyî 'all' be
-    // دوگمەی "سەرەکی" چالاک بکە ئەگەر جۆری ئێستا 'all' بێت
     if (state.currentCategory === 'all') {
         homeBtn.classList.add('active');
     }
 
-    // Logica onclick ji bo "Serekî"
-    // لۆجیکی onclick بۆ "سەرەکی"
     homeBtn.onclick = async () => {
-         resetScrollPosition(container); // *** 💡 لێرە زیادکرا 💡 ***
+         resetScrollPosition(container); 
          await navigateToFilterCore({
              category: 'all',
              subcategory: 'all',
@@ -103,7 +89,6 @@ export function renderMainCategoriesUI() {
     container.appendChild(homeBtn);
 
 
-    // 2. Hemî kategoriyên din ji stateyê lê zêde bike
     // 2. زیادکردنی هەموو جۆرەکانی تر لە state
     state.categories.forEach(cat => {
         const btn = document.createElement('button');
@@ -120,10 +105,10 @@ export function renderMainCategoriesUI() {
         btn.innerHTML = `<i class="${categoryIcon}"></i> <span>${categoryName}</span>`;
 
         btn.onclick = async () => {
-             resetScrollPosition(container); // *** 💡 لێرە زیادکرا 💡 ***
+             resetScrollPosition(container); 
              await navigateToFilterCore({
                  category: cat.id,
-                 subcategory: 'all',
+                 subcategory: 'all', // <-- Ev girîng e (ئەمە گرنگە)
                  subSubcategory: 'all',
                  search: ''
              });
@@ -133,12 +118,9 @@ export function renderMainCategoriesUI() {
         container.appendChild(btn);
     });
 }
-// *** END: Gۆڕانکاری lێرە kra ***
-// *** کۆتایی: گۆڕانکاری لێرە کرا ***
-
 
 // Renders subcategories based on fetched data (Second horizontal scroll)
-export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be async if fetching inside
+export async function renderSubcategoriesUI(subcategoriesData) { 
     const subcategoriesContainer = document.getElementById('subcategoriesContainer');
     const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer'); // Get sub-sub container
 
@@ -146,8 +128,8 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
     subSubcategoriesContainer.innerHTML = ''; // Clear sub-sub
     subSubcategoriesContainer.style.display = 'none'; // Hide sub-sub initially
 
-    // Ev logica hanê rast e: heke kategoriya 'all' (Serekî) were hilbijartin, ti jêr-kategorî nîşan nede
-    // ئەم لۆجیکە دروستە: ئەگەر 'all' (سەرەکی) هەڵبژێردرابێت، هیچ جۆرێکی لاوەکی نیشان مەدە
+    // Heke 'all' (Serekî) hatibe hilbijartin, ti jêr-kategorî nîşan nede
+    // ئەگەر 'all' (سەرەki) هەڵبژێردرابێت، هیچ جۆرێکی لاوەکی nishan مەدە
     if (!subcategoriesData || subcategoriesData.length === 0 || state.currentCategory === 'all') {
          subcategoriesContainer.style.display = 'none'; // Hide if no subcategories or 'All' is selected
          return;
@@ -155,7 +137,8 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
 
     subcategoriesContainer.style.display = 'flex'; // Show if there are subcategories
 
-    // Add "All" button for the current category's subcategories
+    // Zêdekirina bişkoka "Hemî" (All)
+    // زیادکردنی دوگمەی "هەموو" (All)
     const allBtn = document.createElement('button');
     allBtn.className = `subcategory-btn ${state.currentSubcategory === 'all' ? 'active' : ''}`;
     allBtn.dataset.id = 'all'; // Add dataset id
@@ -164,16 +147,19 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
         <div class="subcategory-image">${allIconSvg}</div>
         <span>${t('all_categories_label')}</span>
     `;
+    
+    // === GORANKARIYA LI GOR DAWAKARIYA TE / گۆڕانکاری بەپێی داواکاریی تۆ ===
+    // Dema ku li ser "Hemî" (All) bitikîne, ew tenê 'subcategory' dike 'all'
+    // کاتێک کلیک لە "هەموو" (All) دەکات، تەنها 'subcategory' دەکات بە 'all'
     allBtn.onclick = async () => {
-         resetScrollPosition(subcategoriesContainer); // *** 💡 lێرە zêdekirin 💡 ***
-         // When "All" subcategory is clicked, just filter products for the main category
+         resetScrollPosition(subcategoriesContainer); 
          await navigateToFilterCore({
-             category: state.currentCategory, // Keep main category
-             subcategory: 'all',
+             category: state.currentCategory, // Kategoriya serekî diparêze (جۆری سەرەki دەپارێزێت)
+             subcategory: 'all', // Vê yekê wek 'hemî' destnîşan dike (ئەمە وەک 'هەموو' دادەنێت)
              subSubcategory: 'all',
              search: ''
          });
-         await updateProductViewUI(true, true); // /* GUHERTIN */
+         await updateProductViewUI(true, true); 
     };
     subcategoriesContainer.appendChild(allBtn);
 
@@ -190,16 +176,20 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
              <img src="${imageUrl}" alt="${subcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';">
              <span>${subcatName}</span>
         `;
-        // *** چاککراو: کردنەوەی پەڕەی نوێ ***
+        
+        // Dema ku li ser jêr-kategoriyek taybetî bitikîne
+        // کاتێک کلیک لە جۆرێکی لاوەکی دیاریکراو دەکات
         subcatBtn.onclick = async () => {
-            resetScrollPosition(subcategoriesContainer); // *** 💡 lێرە zêdekirin 💡 ***
-            // Directly open the subcategory detail page
+            resetScrollPosition(subcategoriesContainer); 
+            // Ew diçe lîsteya standard a kaڵayan
+            // دەچێت بۆ لیستی ستانداردی کاڵاکان
             showSubcategoryDetailPageUI(state.currentCategory, subcat.id);
         };
         subcategoriesContainer.appendChild(subcatBtn);
     });
 
-     // Render sub-subcategories if a specific subcategory is selected
+     // Heke jêr-kategoriyek taybetî hatibe hilbijartin, jêr-jêr-kategoriyan nîşan bide
+     // ئەگەر جۆرێکی لاوەکی دیاریکراو هەڵبژێردرابوو، جۆرە لاوەکییەکانی-لاوەکی پیشان بدە
      if (state.currentSubcategory !== 'all') {
          await renderSubSubcategoriesUI(state.currentCategory, state.currentSubcategory);
      }
@@ -215,8 +205,7 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
         return;
     }
 
-    // *** چاککراو: فانکشنی دروست بەکارهێنرا ***
-    const subSubcategoriesData = await fetchSubSubcategories(mainCatId, subCatId); // Fetch sub-sub using the correct function
+    const subSubcategoriesData = await fetchSubSubcategories(mainCatId, subCatId); 
 
     if (!subSubcategoriesData || subSubcategoriesData.length === 0) {
         container.style.display = 'none';
@@ -235,15 +224,10 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
         <span>${t('all_categories_label')}</span>
     `;
     allBtn.onclick = async () => {
-         resetScrollPosition(container); // *** 💡 lێرە zêdekirin 💡 ***
-         // Filter by the parent subcategory ON THE MAIN PAGE
-         await navigateToFilterCore({
-             category: state.currentCategory,
-             subcategory: state.currentSubcategory,
-             subSubcategory: 'all',
-             search: ''
-         });
-         await updateProductViewUI(true, true); // /* GUHERTIN */
+         resetScrollPosition(container); 
+         // Vegere ser lîsteya kaڵayên jêr-kategoriya dêûbav
+         // بگەڕێوە سەر لیستی کاڵاکانی جۆری لاوەکی باوان
+         showSubcategoryDetailPageUI(state.currentCategory, state.currentSubcategory);
     };
     container.appendChild(allBtn);
 
@@ -257,151 +241,33 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
         const imageUrl = subSubcat.imageUrl || placeholderImg;
         btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
 
-        // *** چاککراو: کردنەوەی پەڕەی نوێی جۆری لاوەکی باوک ***
         btn.onclick = async () => {
-             resetScrollPosition(container); // *** 💡 lێرە zêdekirin 💡 ***
-             // Open the PARENT subcategory detail page
+             resetScrollPosition(container); 
+             // Her weha vegere ser rûpela dêûbav
+             // هەروا بگەڕێوە سەر پەڕەی باوان
              showSubcategoryDetailPageUI(state.currentCategory, state.currentSubcategory);
-             // Note: This will initially show all products for the subcategory.
-             // The user would need to click the sub-subcategory again on the detail page
-             // to filter further, unless showSubcategoryDetailPageUI is modified
-             // to accept and pre-filter by subSubcategoryId.
         };
         container.appendChild(btn);
     });
 }
 
 
-// Handles applying the current filter state to the UI (fetching & rendering home/products)
-// This function now orchestrates rendering between home sections and product grid
-// /* GUHERTIN */ Parameterek nû lê zêde kir: shouldScrollToTop
-export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop = true) {
-    const scrollTrigger = document.getElementById('scroll-loader-trigger');
-    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
-    const productsContainer = document.getElementById('productsContainer'); // Main product grid container
-    const skeletonLoader = document.getElementById('skeletonLoader'); // Main skeleton loader
-
-    /* GUHERTIN: Destpêk */
-    // Em kontrol dikin ka gelo naveroka rûpela serekî jixwe hatiye barkirin,
-    // da ku em wê ji nû ve bar nekin heke ne pêwîst be.
-    // Em kontrol dikin ka ew vala ye an tenê loader têde ye.
-    const homeContentLoaded = homeSectionsContainer.innerHTML.trim() !== '' && !homeSectionsContainer.querySelector('#loader');
-    /* GUHERTIN: Dawî */
-
-
-    // Show skeleton loader for new searches/filters that ARE NOT the home view
-    const shouldShowHome = !state.currentSearch && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
+// === START: KODA NÛ / کۆدی نوێ ===
+// Fonksiyonek nû ya giştî ji bo nîşandana her dîzaynekê
+// فەنکشنێکی نوێی گشتی بۆ پیشاندانی هەر دیزاینێک
+async function renderLayoutUI(layout, container) {
+    if (!container) return;
     
-    if (isNewSearch && !shouldShowHome) {
-        homeSectionsContainer.style.display = 'none'; // Hide home sections
-        productsContainer.style.display = 'none'; // Hide product grid
-        renderSkeletonLoader(skeletonLoader); // Use imported function
-        skeletonLoader.style.display = 'grid'; // Show skeleton
-        scrollTrigger.style.display = 'none'; // Hide scroll trigger during initial load
-    } else if (isNewSearch && shouldShowHome) {
-        /* GUHERTIN: Destpêk */
-        // Berê, her gav loader dihat nîşandan dema ku vedigeriya mal.
-        // Niha, em tenê loader-ê nîşan didin heke naveroka serekî *hîn nehatiye barkirin*.
-        if (!homeContentLoaded) {
-            // (Orjînal) Loader-ê nîşan bide ji ber ku naverok tune
-            homeSectionsContainer.innerHTML = `<div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: block;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;">...خەریکی بارکردنی بەشەکانە</p></div>`;
-            homeSectionsContainer.style.display = 'block';
-            productsContainer.style.display = 'none';
-            skeletonLoader.style.display = 'none';
-            scrollTrigger.style.display = 'none';
-        } else {
-            // Naverok jixwe heye! Tenê konteyneran biguherîne.
-            homeSectionsContainer.style.display = 'block'; // Naveroka heyî nîşan bide
-            productsContainer.style.display = 'none'; // Tora berheman veşêre
-            skeletonLoader.style.display = 'none';
-            scrollTrigger.style.display = 'none';
-        }
-        /* GUHERTIN: Dawî */
-    }
-
-
-    // Fetch products based on current state (state updated by navigateToFilterCore)
-    // fetchProducts now returns { isHome: true } if it should show home sections
-    const result = await fetchProducts(state.currentSearch, isNewSearch);
-
-    if (result === null && !isNewSearch) return; // Loading is already in progress or all loaded for infinite scroll
-
-    skeletonLoader.style.display = 'none'; // Hide main skeleton loader
-
-    if (result.isHome) {
-        productsContainer.style.display = 'none'; // Hide product grid
-        scrollTrigger.style.display = 'none'; // Hide scroll trigger
-        homeSectionsContainer.style.display = 'block'; // Show home sections container
-        
-        /* GUHERTIN: Destpêk */
-        // Me `isNewSearch` ji vê mercê rakir.
-        // Em naxwazin `renderHomePageContentUI` ji nû ve bixebitînin heke naverok jixwe hebe,
-        // tenê heke ew bi rastî vala be (cara yekem) an hîn jî loader têde be.
-        if (homeSectionsContainer.innerHTML.trim() === '' || homeSectionsContainer.querySelector('#loader')) {
-            await renderHomePageContentUI(); // Render home content (defined below)
-        }
-        /* GUHERTIN: Dawî */
-    } else {
-        homeSectionsContainer.style.display = 'none'; // Hide home sections
-        productsContainer.style.display = 'grid'; // Show product grid
-        if (result.error) {
-            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
-        } else {
-             // Append if not a new search, replace if it is
-             renderProductsGridUI(isNewSearch ? null : result.products); // Use the grid renderer
-        }
-        scrollTrigger.style.display = result.allLoaded ? 'none' : 'block'; // Show/hide scroll trigger
-    }
-
-    // Update category button states AFTER fetching and rendering
-    renderMainCategoriesUI(); // Render main category buttons
-    const subcats = await fetchSubcategories(state.currentCategory);
-    await renderSubcategoriesUI(subcats); // Render subcategory buttons and potentially sub-sub
-
-    // *** 💡 DESTPÊKA ÇAKKIRINÊ (SCROLL FIX - AUTO) 💡 ***
-    // Logica Scrollkirinê
-    // /* GUHERTIN */ Tenê heke `shouldScrollToTop` rast be (true) سکڕۆڵ بکە.
-    if (isNewSearch && shouldScrollToTop) {
-        // 'behavior: "smooth"' hat guhertin bo 'behavior: "auto"'
-        // 'behavior: "smooth"' گۆڕدرا بۆ 'behavior: "auto"'
-        const activePage = document.getElementById('mainPage');
-        if (activePage) {
-            activePage.scrollTo({ top: 0, behavior: 'auto' }); // <-- *** گۆڕانکاری لێرە کرا ***
-        } else {
-            // Wekî paşverû heke 'mainPage' neyê dîtin
-            console.warn('Could not find #mainPage to scroll.');
-            window.scrollTo({ top: 0, behavior: 'auto' }); // <-- *** گۆڕانکاری لێرە کرا ***
-        }
-    }
-    // *** 💡 DAWÎYA ÇAKKIRINÊ (SCROLL FIX - AUTO) 💡 ***
-}
-
-
-// Function to render home page sections (UI Part)
-export async function renderHomePageContentUI() {
-    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
-    if (!homeSectionsContainer) return;
-
-    // Show loader inside the container if it's empty (handles direct calls too)
-    if (homeSectionsContainer.innerHTML.trim() === '') {
-        homeSectionsContainer.innerHTML = `<div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: block;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;">...خەریکی بارکردنی بەشەکانە</p></div>`;
-    }
-
-    const layout = await fetchHomeLayout(); // Fetch layout from core
-
-    homeSectionsContainer.innerHTML = ''; // Clear loader/previous content
-
-    if (!layout || layout.length === 0) {
-        console.warn("Home page layout is empty or failed to load.");
-        // Render a fallback (e.g., just the 'all products' section)
-         const allProductsSection = await createAllProductsSectionElement();
-         if(allProductsSection) homeSectionsContainer.appendChild(allProductsSection);
-        return;
-    }
-
-    // Clean up any existing intervals before rendering new ones
+    // Paqij bike berî nîşandanê
+    // پاکی بکەوە پێش پیشاندان
+    container.innerHTML = ''; 
+    
+    // Navberên (intervals) kevn paqij bike
+    // ئینتەرڤاڵە کۆنەکان پاک بکەوە
     Object.values(state.sliderIntervals || {}).forEach(clearInterval);
     state.sliderIntervals = {};
+
+    let hasDynamicAllProducts = false; // Ji bo şopandina beşa 'all_products'
 
     for (const section of layout) {
         let sectionElement = null;
@@ -422,23 +288,23 @@ export async function renderHomePageContentUI() {
                      break;
                  case 'single_shortcut_row':
                      if (section.rowId) {
-                          sectionElement = await createSingleShortcutRowElement(section.rowId, section.name); // Pass name obj
+                          sectionElement = await createSingleShortcutRowElement(section.rowId, section.name); // Navê obj derbas bike
                          } else console.warn("Shortcut row missing rowId:", section);
                      break;
                  case 'single_category_row':
                      if (section.categoryId) {
-                         sectionElement = await createSingleCategoryRowElement(section); // Pass full section data
+                         sectionElement = await createSingleCategoryRowElement(section); // Daneyên tevahî yên beşê derbas bike
                      } else console.warn("Category row missing categoryId:", section);
                      break;
                   case 'all_products':
                        sectionElement = await createAllProductsSectionElement();
+                       hasDynamicAllProducts = true; // Nîşan bike ku ev beş heye
                       break;
                  default:
                      console.warn(`Unknown home layout section type: ${section.type}`);
              }
         } catch(error) {
-             console.error(`Error rendering home section type ${section.type}:`, error);
-              // Optionally add a placeholder indicating an error for this section
+             console.error(`Error rendering layout section type ${section.type}:`, error);
              sectionElement = document.createElement('div');
              sectionElement.style.padding = '20px';
              sectionElement.style.textAlign = 'center';
@@ -447,302 +313,194 @@ export async function renderHomePageContentUI() {
         }
 
         if (sectionElement) {
-            homeSectionsContainer.appendChild(sectionElement);
+            container.appendChild(sectionElement);
         }
     }
-    setupScrollAnimations(); // Re-apply scroll animations for newly rendered cards within sections
+    setupScrollAnimations(); // Animasyonên skrolê ji nû ve saz bike
+    return hasDynamicAllProducts; // Vegerîne ka beşa 'all_products' tê de ye yan na
 }
 
-// --- UI Element Creation Functions for Home Page ---
 
-async function createPromoSliderElement(groupId, layoutId) {
-    const cards = await fetchPromoGroupCards(groupId);
-    if (!cards || cards.length === 0) return null;
+// Function to render home page sections (UI Part)
+export async function renderHomePageContentUI() {
+    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
+    if (!homeSectionsContainer) return;
 
-    const promoGrid = document.createElement('div');
-    promoGrid.className = 'products-container'; // Use grid for single item layout
-    promoGrid.style.marginBottom = '24px';
-    promoGrid.id = `promoSliderLayout_${layoutId}`; // Unique ID
-
-    const sliderState = { currentIndex: 0, intervalId: null };
-    const cardData = { cards };
-
-    const promoCardElement = document.createElement('div');
-    promoCardElement.className = 'product-card promo-card-grid-item'; // Styles for container
-
-    const imageContainer = document.createElement('div');
-    imageContainer.className = 'product-image-container';
-    const imgElement = document.createElement('img');
-    imgElement.className = 'product-image';
-    imgElement.loading = 'lazy';
-    imgElement.alt = 'Promotion';
-    imageContainer.appendChild(imgElement);
-    promoCardElement.appendChild(imageContainer);
-
-    const updateImage = (index) => {
-        const currentCard = cardData.cards[index];
-        const imageUrl = currentCard.imageUrls[state.currentLanguage] || currentCard.imageUrls.ku_sorani;
-        imgElement.src = imageUrl;
-    };
-    updateImage(sliderState.currentIndex); // Initial image
-
-    // Add buttons only if multiple cards
-    if (cards.length > 1) {
-        const prevBtn = document.createElement('button');
-        prevBtn.className = 'promo-slider-btn prev';
-        prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
-        prevBtn.onclick = (e) => {
-            e.stopPropagation();
-            sliderState.currentIndex = (sliderState.currentIndex - 1 + cards.length) % cards.length;
-            updateImage(sliderState.currentIndex);
-            resetInterval(); // Reset timer on manual navigation
-        };
-        promoCardElement.appendChild(prevBtn);
-
-        const nextBtn = document.createElement('button');
-        nextBtn.className = 'promo-slider-btn next';
-        nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
-        nextBtn.onclick = (e) => {
-            e.stopPropagation();
-            sliderState.currentIndex = (sliderState.currentIndex + 1) % cards.length;
-            updateImage(sliderState.currentIndex);
-            resetInterval(); // Reset timer on manual navigation
-        };
-        promoCardElement.appendChild(nextBtn);
-
-        // Auto-rotation logic
-        const rotate = () => {
-             // Check if the element still exists and the interval is still tracked
-             if (!document.getElementById(promoGrid.id) || !state.sliderIntervals || !state.sliderIntervals[layoutId]) {
-                 if (sliderState.intervalId) clearInterval(sliderState.intervalId); // Clear this specific interval
-                 if (state.sliderIntervals && state.sliderIntervals[layoutId]) delete state.sliderIntervals[layoutId]; // Remove from global state
-                return;
-             }
-            sliderState.currentIndex = (sliderState.currentIndex + 1) % cards.length;
-            updateImage(sliderState.currentIndex);
-        };
-
-        const startInterval = () => {
-            if (state.sliderIntervals[layoutId]) clearInterval(state.sliderIntervals[layoutId]); // Clear previous if any
-            sliderState.intervalId = setInterval(rotate, 5000);
-            state.sliderIntervals[layoutId] = sliderState.intervalId; // Store globally
-        };
-        const resetInterval = () => {
-             if (state.sliderIntervals[layoutId]) clearInterval(state.sliderIntervals[layoutId]);
-            startInterval();
-        };
-
-        startInterval(); // Start on render
+    if (homeSectionsContainer.innerHTML.trim() === '') {
+        homeSectionsContainer.innerHTML = `<div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: block;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;">...خەریکی بارکردنی بەشەکانە</p></div>`;
     }
 
-    // Click on the card navigates
-    promoCardElement.addEventListener('click', async (e) => {
-        if (!e.target.closest('button')) { // Ignore clicks on buttons
-            const currentCard = cardData.cards[sliderState.currentIndex];
-            const targetCategoryId = currentCard.categoryId;
-            const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
-            if (categoryExists) {
-                 await navigateToFilterCore({ category: targetCategoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
-                 await updateProductViewUI(true, true); // Trigger full refresh /* GUHERTIN */
-            }
-        }
-    });
+    const layout = await fetchHomeLayout(); // Dîzayna Rûpela Malê bîne
 
-    promoGrid.appendChild(promoCardElement);
-    return promoGrid;
+    if (!layout || layout.length === 0) {
+        console.warn("Home page layout is empty or failed to load.");
+        homeSectionsContainer.innerHTML = ''; // Loaderê rake
+        return false; // Tiştek nehat nîşandan
+    }
+    
+    // Dîzayna Rûpela Malê bi fonksiyona giştî nîşan bide
+    // دیزاینی پەڕەی سەرەki بە فەنکشنە گشتییەکە پیشان بدە
+    const hasAllProducts = await renderLayoutUI(layout, homeSectionsContainer);
+    return hasAllProducts; // Vegerîne ka beşa 'all_products' tê de ye
 }
+// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
-async function createBrandsSectionElement(groupId) {
-    const brands = await fetchBrandGroupBrands(groupId);
-    if (!brands || brands.length === 0) return null;
 
-    const sectionContainer = document.createElement('div');
-    sectionContainer.className = 'brands-section';
-    const brandsContainer = document.createElement('div');
-    brandsContainer.className = 'brands-container';
-    sectionContainer.appendChild(brandsContainer);
+// Handles applying the current filter state to the UI (fetching & rendering home/products)
+export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop = true) {
+    const scrollTrigger = document.getElementById('scroll-loader-trigger');
+    const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
+    const productsContainer = document.getElementById('productsContainer'); // Main product grid container
+    const skeletonLoader = document.getElementById('skeletonLoader'); // Main skeleton loader
 
-    brands.forEach(brand => {
-        const brandName = brand.name[state.currentLanguage] || brand.name.ku_sorani;
-        const item = document.createElement('div');
-        item.className = 'brand-item';
-        item.innerHTML = `
-            <div class="brand-image-wrapper">
-                <img src="${brand.imageUrl}" alt="${brandName}" loading="lazy" class="brand-image">
-            </div>
-            <span>${brandName}</span>
-        `;
-        item.onclick = async () => {
-             if (brand.subcategoryId && brand.categoryId) {
-                 showSubcategoryDetailPageUI(brand.categoryId, brand.subcategoryId); // Use imported function
-             } else if(brand.categoryId) {
-                  await navigateToFilterCore({ category: brand.categoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
-                  await updateProductViewUI(true, true); // Trigger full refresh /* GUHERTIN */
-             }
-        };
-        brandsContainer.appendChild(item);
-    });
-    return sectionContainer;
-}
+    // --- MANTIQA NÛ YA KONTROLKIRINÊ / لۆجیکی نوێی کۆنترۆلکردن ---
 
-async function createNewestProductsSectionElement() {
-    const products = await fetchNewestProducts();
-    if (!products || products.length === 0) return null;
+    // 1. Kontrol bike ka ew Rûpela Malê ya Rastîn (True Home) e
+    // 1. پشکنین بکە بزانە ئایا پەڕەی سەرەkiی ڕاستەقینەیە
+    const isTrueHome = !state.currentSearch && state.currentCategory === 'all';
+    
+    // 2. Kontrol bike ka ew Rûpela "Hemî" (All) ya Kategoriyekê ye
+    // 2. پشکنین بکە بزانە ئایا پەڕەی "هەموو" (All)ی جۆرێکە
+    const isCategoryAllPage = !state.currentSearch && state.currentCategory !== 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
+    
+    // 3. Wekî din, ew Lîsteyek Kaڵaya Standard e (lêgerîn, jêr-kategorî, hwd.)
+    // 3. ئەگەرنا، ئەوا لیستی کاڵای ستانداردە (گەڕان، جۆری لاوەکی، هتد.)
+    const isProductList = !isTrueHome && !isCategoryAllPage;
 
-    const container = document.createElement('div');
-    container.className = 'dynamic-section';
-    container.innerHTML = `
-        <div class="section-title-header">
-            <h3 class="section-title-main">${t('newest_products')}</h3>
-            </div>
-        <div class="horizontal-products-container"></div>
-    `;
-    const productsScroller = container.querySelector('.horizontal-products-container');
-    products.forEach(product => {
-        const card = createProductCardElementUI(product); // Use imported function
-        productsScroller.appendChild(card);
-    });
-    return container;
-}
+    let customLayout = null; // Ji bo hilanîna dîzayna xwerû
+    let showProductsSeparately = false; // Flag ji bo nîşandana kaڵayan LI BIN dîzaynê
 
-async function createSingleShortcutRowElement(rowId, sectionNameObj) { // Receive name object
-     const rowDocRef = doc(db, "shortcut_rows", rowId);
-     const rowDocSnap = await getDoc(rowDocRef);
-     if (!rowDocSnap.exists()) return null;
+    // --- Destpêka Barkirinê / دەستپێکی بارکردن ---
+    
+    if (isNewSearch) {
+        // Heke lêgerînek nû be, her tiştî veşêre û skeleton nîşan bide
+        // ئەگەر گەڕانێکی نوێ بێت، هەموو شتێک بشارەوە و سکێلێتۆن پیشان بدە
+        homeSectionsContainer.style.display = 'none';
+        productsContainer.style.display = 'none';
+        renderSkeletonLoader(skeletonLoader);
+        skeletonLoader.style.display = 'grid';
+        scrollTrigger.style.display = 'none';
+    }
 
-     const rowData = rowDocSnap.data();
-     const cards = await fetchShortcutRowCards(rowId);
-     if (!cards || cards.length === 0) return null;
+    // --- Anîna Daneyan / هێنانی داتا ---
 
-     const sectionContainer = document.createElement('div');
-     sectionContainer.className = 'shortcut-cards-section';
-     // Use sectionNameObj from layout first, fallback to rowData title
-     const rowTitle = (sectionNameObj && sectionNameObj[state.currentLanguage]) || rowData.title[state.currentLanguage] || rowData.title.ku_sorani;
-     sectionContainer.innerHTML = `<h3 class="shortcut-row-title">${rowTitle}</h3><div class="shortcut-cards-container"></div>`;
-     const cardsContainer = sectionContainer.querySelector('.shortcut-cards-container');
+    if (isTrueHome) {
+        // Em li Rûpela Malê ne, dîzayna Rûpela Malê nîşan bide
+        // ئێمە لە پەڕەی سەرەkiین، دیزاینی پەڕەی سەرەki پیشان بدە
+        const hasAllProducts = await renderHomePageContentUI();
+        showProductsSeparately = !hasAllProducts; // Heke 'all_products' di dîzaynê de nebe, wan li jêr nîşan bide
+    } 
+    else if (isCategoryAllPage) {
+        // Em li Rûpela "Hemî" ya Kategoriyekê ne, hewl bide dîzaynek xwerû bîne
+        // ئێمە لە پەڕەی "هەموو"ی جۆرێکین، هەوڵ بدە دیزاینێکی تایبەت بهێنە
+        customLayout = await fetchCategoryLayout(state.currentCategory);
 
-     cards.forEach(cardData => {
-         const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
-         const item = document.createElement('div');
-         item.className = 'shortcut-card';
-         item.innerHTML = `
-             <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
-             <div class="shortcut-card-name">${cardName}</div>
-         `;
-         
-         // *** DESTPÊKA ÇAKKIRINÊ (Shortcut Card Fix) ***
-         // Ev çareseriya ku te behs kir ji bo ku ew biçe rûpela hûrguliyan
-         // ئەمە ئەو چارەسەرەیە کە تۆ باست کرد بۆ ئەوەی بچێتە پەڕەی وردەکاری
-         item.onclick = async () => {
-            
-            // Pêşî kontrol bike ka ew ji bo rûpelek Subcategory ya taybet e
-            // سەرەتا پشکنین بکە بزانە ئایا بۆ پەڕەیەکی جۆری لاوەکی تایبەتە
-            if (cardData.subcategoryId && cardData.categoryId) {
-                
-                // Erê, rûpela hûrguliyên Subcategory veke
-                // بەڵێ، پەڕەی وردەکاریی جۆری لاوەکی بکەوە
-                showSubcategoryDetailPageUI(cardData.categoryId, cardData.subcategoryId);
-            
-            } else {
-                
-                // Na, tenê rûpela serekî fîlter bike (wek berê)
-                // نەخێر، تەنها پەڕەی سەرەki فلتەر بکە (وەک جاران)
-                await navigateToFilterCore({
-                    category: cardData.categoryId || 'all',
-                    subcategory: cardData.subcategoryId || 'all', // Dibe ku ev 'all' be
-                    subSubcategory: cardData.subSubcategoryId || 'all',
-                    search: ''
-                });
-                await updateProductViewUI(true, true);
-MSTUbZ
-            }
-         };
-         // *** DAWÎYA ÇAKKIRINÊ ***
-         
-         cardsContainer.appendChild(item);
-     });
-     return sectionContainer;
-}
-
-// *** DESTPÊKA GORANKARIYÊ ***
-async function createSingleCategoryRowElement(sectionData) {
-    const { categoryId, subcategoryId, subSubcategoryId, name } = sectionData; // 'name' ئیتر بەکارناهێت
-    const products = await fetchCategoryRowProducts(sectionData);
-    if (!products || products.length === 0) return null;
-
-    let title = ''; // Em êdî 'name' (navê admin) bikar naynin
-
-    // Em HER DEM hewl didin ku navê rastîn ê kategoriyê ji Firestore bistînin
-    // ئێمە هەمیشە هەوڵ دەدەین ناوی ڕاستەقینەی جۆرەکە لە فایەرستۆر بهێنین
-    try {
-        let targetDocRef;
-        if (subSubcategoryId) {
-            targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubcategoryId}`);
-        } else if (subcategoryId) {
-            targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}`);
+        if (customLayout) {
+            // Dîzaynek xwerû hate dîtin! Wê nîşan bide.
+            // دیزاینێکی تایبەت دۆزراوەتەوە! پیشانی بدە.
+            const hasAllProducts = await renderLayoutUI(customLayout, homeSectionsContainer);
+            showProductsSeparately = !hasAllProducts;
         } else {
-             // *** ÇAKKIRIN: Pêdivî ye ku em ID-ya kategoriyê diyar bikin ***
-             // *** چاککراو: پێویستە IDی جۆرەکە دیاری بکەین ***
-            targetDocRef = doc(db, 'categories', categoryId); 
+            // Dîzaynek xwerû tune, divê em tenê lîsteya kaڵayan nîşan bidin
+            // دیزاینێکی تایبەت نییە، دەبێت تەنها لیستی کاڵاکان پیشان بدەین
+            showProductsSeparately = true;
+        }
+    } 
+    else {
+        // Ev Lîsteyek Kaڵaya Standard e (lêgerîn an jêr-kategorî)
+        // ئەمە لیستی کاڵای ستانداردە (گەڕان یان جۆری لاوەکی)
+        showProductsSeparately = true;
+    }
+
+    // --- Nîşandana Lîsteya Kaڵayan (Heke Pêwîst be) / پیشاندانی لیستی کاڵاکان (ئەگەر پێویست بوو) ---
+
+    if (showProductsSeparately) {
+        // Pêwîst e em lîsteya kaڵayan nîşan bidin (an ji ber ku dîzaynek xwerû tune,
+        // an ji ber ku beşa 'all_products' di dîzaynê de nebû)
+        // پێویستە لیستی کاڵاکان پیشان بدەین (یان چونکە دیزاینێکی تایبەت نییە،
+        // یان چونکە بەشی 'all_products' لە دیزاینەکەدا نەبوو)
+        
+        // Heke ew lêgerînek nû be, dibe ku 'homeSectionsContainer' hîn jî xuya be (mînak, li Rûpela Malê)
+        // Em wê vedişêrin da ku tenê lîsteya kaڵayan nîşan bidin, HEYA KU 'isCategoryAllPage' be
+        // ئەگەر گەڕانێکی نوێ بێت، لەوانەیە 'homeSectionsContainer' هێشتا دیار بێت (بۆ نموونە، لە پەڕەی سەرەki)
+        // دەیشارینەوە بۆ ئەوەی تەنها لیستی کاڵاکان پیشان بدەین، مەگەر 'isCategoryAllPage' بێت
+        if (isProductList) {
+             homeSectionsContainer.style.display = 'none'; // Bi tevahî veşêre (تەواو بیشارەوە)
+        } else if (isCategoryAllPage && customLayout) {
+             // Dîzayn hate nîşandan, lê 'all_products' têde nebû
+             // Kaڵayan li binê dîzaynê nîşan bide
+             // دیزاینەکە پیشان درا، بەڵام 'all_products'ی تێدا نەبوو
+             // کاڵاکان لە ژێر دیزاینەکە پیشان بدە
+             homeSectionsContainer.style.display = 'block'; 
+        } else {
+             // Dîzayn tune bû (customLayout = null)
+             // دیزاین نەبوو (customLayout = null)
+             homeSectionsContainer.style.display = 'none';
         }
         
-        const targetSnap = await getDoc(targetDocRef);
-        if (targetSnap.exists()) {
-            const targetData = targetSnap.data();
-            title = targetData['name_' + state.currentLanguage] || targetData.name_ku_sorani || 'کاڵاکان'; // Sernavê paşverû
+        productsContainer.style.display = 'grid'; // Lîsteya kaڵayan nîşan bide
+
+        // Kaڵayan ji bo fîltera heyî bîne (tevî lêgerînê)
+        // کاڵاکان بۆ فلتەری ئێستا بهێنە (گەڕانیش لەخۆ دەگرێت)
+        const result = await fetchProducts(state.currentSearch, isNewSearch);
+        
+        if (result.error) {
+            productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
         } else {
-            title = 'کاڵاکان'; // Paşverû heke ref tune be
+            // Heke ew di nav beşa 'all_products' ya dînamîk de be, wê dagire
+            // ئەگەر لەناو بەشی 'all_products'ی داینامیکدا بێت، پڕی بکەوە
+            const dynamicAllProductsContainer = document.getElementById('dynamicAllProductsContainer');
+            if (dynamicAllProductsContainer && isNewSearch) {
+                 const grid = dynamicAllProductsContainer.querySelector('.products-container');
+                 grid.innerHTML = '';
+                 state.products.forEach(item => {
+                     let element = createProductCardElementUI(item);
+                     grid.appendChild(element);
+                 });
+                 setupScrollAnimations();
+                 // Konteynira sereke ya kaڵayan veşêre ji ber ku ew di nav dîzaynê de hatine nîşandan
+                 // کۆنتەینەری سەرەki کاڵاکان بشارەوە چونکە لەناو دیزاینەکە پیشان دراون
+                 productsContainer.style.display = 'none'; 
+            } else {
+                 // Wekî din, wan di konteynira sereke ya kaڵayan de nîşan bide
+                 // ئەگەرنا، لەناو کۆنتەینەری سەرەki کاڵاکان پیشانیان بدە
+                renderProductsGridUI(isNewSearch ? null : result.products); 
+            }
         }
-    } catch (e) {
-        console.warn("Could not fetch specific title for category row", e);
-        title = 'کاڵاکان'; // Paşverû li ser çewtiyê
+        scrollTrigger.style.display = result.allLoaded ? 'none' : 'block';
+        
+    } else {
+        // Dîzaynek xwerû hate nîşandan Û beşa 'all_products' tê de bû
+        // Tenê konteynira kaڵayan a sereke veşêre
+        // دیزاینێکی تایبەت پیشان درا و بەشی 'all_products'ی تێدا بوو
+        // تەنها کۆنتەینەری سەرەki کاڵاکان بشارەوە
+        productsContainer.style.display = 'none';
+        scrollTrigger.style.display = 'none';
+        homeSectionsContainer.style.display = 'block';
     }
 
-    const container = document.createElement('div');
-    container.className = 'dynamic-section';
-    container.innerHTML = `
-        <div class="section-title-header">
-            <h3 class="section-title-main">${title}</h3>
-            <a class="see-all-link">${t('see_all')}</a>
-        </div>
-        <div class="horizontal-products-container"></div>
-    `;
-    
-    const productsScroller = container.querySelector('.horizontal-products-container');
-    products.forEach(product => {
-        const card = createProductCardElementUI(product); // Use imported function
-        productsScroller.appendChild(card);
-    });
+    // Piştî her tiştî skeletonê veşêre
+    // دوای هەموو شتێک سکێلێتۆنەکە بشارەوە
+    skeletonLoader.style.display = 'none';
 
-    container.querySelector('.see-all-link').onclick = async () => {
-         if(subcategoryId) { // Includes subSubcategoryId case, go to detail page
-              showSubcategoryDetailPageUI(categoryId, subcategoryId); // Use imported function
-         } else { // Only main category, filter main page
-              await navigateToFilterCore({ category: categoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
-              await updateProductViewUI(true, true); // Trigger full refresh /* GUHERTIN */
-         }
-    };
-    return container;
+    // --- Dawî / کۆتایی ---
+
+    // Bişkokên kategoriyan nû bike
+    // دوگمەکانی جۆرەکان نوێ بکەوە
+    renderMainCategoriesUI(); 
+    const subcats = await fetchSubcategories(state.currentCategory);
+    await renderSubcategoriesUI(subcats); 
+
+    if (isNewSearch && shouldScrollToTop) {
+        const activePage = document.getElementById('mainPage');
+        if (activePage) {
+            activePage.scrollTo({ top: 0, behavior: 'auto' }); 
+        } else {
+            console.warn('Could not find #mainPage to scroll.');
+            window.scrollTo({ top: 0, behavior: 'auto' }); 
+        }
+    }
 }
-// *** DAWÎYA GORANKARIYÊ ***
-
-async function createAllProductsSectionElement() {
-    const products = await fetchInitialProductsForHome();
-    if (!products || products.length === 0) return null;
-
-    const container = document.createElement('div');
-    container.className = 'dynamic-section';
-    container.style.marginTop = '20px'; // Add some space before this section
-    container.innerHTML = `
-        <div class="section-title-header">
-            <h3 class="section-title-main">${t('all_products_section_title')}</h3>
-            </div>
-        <div class="products-container"></div>
-    `;
-    const productsGrid = container.querySelector('.products-container');
-    products.forEach(product => {
-        const card = createProductCardElementUI(product); // Use imported function
-        productsGrid.appendChild(card);
-    });
-    return container;
-}
+// Ji bo 'app-ui.js' berdest bike
+// بۆ 'app-ui.js' بەردەستی دەکەین
+window.updateProductViewUI = updateProductViewUI;
