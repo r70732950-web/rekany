@@ -2,28 +2,19 @@
 // Logika bingehîn, danûstendina daneyan, û rêveberiya state
 
 import {
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Fonksiyonên AUTH yên nû hatin zêdekirin
-    // فەنکشنە نوێیەکانی AUTH زیادکران
+    // *** گۆڕانکاری لێرە: db لێرە هاوردەکراوە ***
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
-    usersCollection, chatsCollection, // <-- Koleksiyonên nû / کۆڵێکشنە نوێیەکان
     translations, state,
     CART_KEY, FAVORITES_KEY, PROFILE_KEY, PRODUCTS_PER_PAGE,
-    RecaptchaVerifier, signInWithPhoneNumber // <-- Fonksiyonên nû / فەنکشنە نوێیەکان
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 } from './app-setup.js';
 
-import { 
-    signInWithEmailAndPassword, 
-    onAuthStateChanged, 
-    signOut 
-} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import {
     enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc,
     onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where,
-    startAfter, addDoc, runTransaction, serverTimestamp, writeBatch
+    startAfter, addDoc, runTransaction
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
@@ -64,24 +55,16 @@ export function saveCart() {
     // Note: Updating UI count is handled in app-ui.js
 }
 
-// === START: KODA GÛHERTÎ / کۆدی گۆڕاو ===
-// Em êdî vê fonksiyonê bikar naynin, ji ber ku dê 'state.favorites' rasterast ji Firestore were
-// ئێمە ئیتر ئەم فەنکشنە بەکارناهێنین، چونکە 'state.favorites' ڕاستەوخۆ لە فایەرستۆرەوە دێت
-/*
 export function saveFavorites() {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(state.favorites));
 }
-*/
-// === END: KODA GÛHERTÎ / کۆتایی کۆدی گۆڕاو ===
-
 
 export function isFavorite(productId) {
     return state.favorites.includes(productId);
 }
 
-// --- Authentication (Admin & User) ---
+// --- Authentication ---
 
-// Ji bo têketina Admin (بۆ چوونەژوورەوەی ئەدمین)
 async function handleLogin(email, password) {
     try {
         await signInWithEmailAndPassword(auth, email, password);
@@ -91,94 +74,10 @@ async function handleLogin(email, password) {
     }
 }
 
-// Ji bo derketina Admin (بۆ دەرچوونی ئەدمین)
 async function handleLogout() {
     await signOut(auth);
     // UI updates handled by onAuthStateChanged listener
 }
-
-// === START: KODA NÛ JI BO AUTH / کۆدی نوێ بۆ پشتڕاستکردنەوە ===
-
-// Fonksiyona derketina bikarhênerê (فانکشنى دەرچوونی بەکارهێنەر)
-export async function handleUserLogoutCore() {
-    try {
-        await signOut(auth);
-        // Guhdarê 'onAuthStateChanged' dê her tiştî paqij bike
-        // گوێگری 'onAuthStateChanged' هەموو شتێک پاک دەکاتەوە
-        return { success: true, message: t('user_logout_success') };
-    } catch (error) {
-        console.error("Error signing out user:", error);
-        return { success: false, message: t('error_generic') };
-    }
-}
-
-// 1. Sazkirina Recaptcha (دانانی Recaptcha)
-export function setupRecaptchaCore(containerId) {
-    if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
-            'size': 'invisible',
-            'callback': (response) => {
-                // reCAPTCHA çareser bû, em dikarin koda piştrastkirinê bişînin
-                // reCAPTCHA چارەسەر بوو، دەتوانین کۆدی پشتڕاستکردنەوە بنێرین
-                console.log("Recaptcha solved");
-            },
-            'expired-callback': () => {
-                // Bersiv qediya... Ji bikarhêner bixwaze ku dîsa biceribîne
-                // وەڵامدانەوە بەسەرچوو... داوا لە بەکارهێنەر بکە دووبارە هەوڵ بداتەوە
-                console.warn("Recaptcha expired");
-                showNotification("Recaptcha بەسەرچوو، تکایە دووبارە هەوڵبدەوە.", "error");
-            }
-        });
-    }
-}
-
-// 2. Şandina koda piştrastkirinê (ناردنی کۆدی پشتڕاستکردنەوە)
-export async function sendVerificationCodeCore(phoneNumber) {
-    try {
-        const appVerifier = window.recaptchaVerifier;
-        state.confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-        // SMS hate şandin (SMS نێردرا)
-        return { success: true };
-    } catch (error) {
-        console.error("Error sending SMS:", error);
-        // Reset recaptcha
-        window.recaptchaVerifier.render().then(widgetId => {
-            grecaptcha.reset(widgetId);
-        });
-        let message = t('error_generic');
-        if (error.code === 'auth/invalid-phone-number') {
-            message = 'ژمارەی مۆبایل نادروستە.';
-        } else if (error.code === 'auth/too-many-requests') {
-            message = 'تۆ زۆر هەوڵت داوە. تکایە دواتر هەوڵبدەوە.';
-        }
-        return { success: false, message: message };
-    }
-}
-
-// 3. Piştrastkirina kodê (پشتڕاستکردنەوەی کۆد)
-export async function verifyCodeCore(code) {
-    if (!state.confirmationResult) {
-        return { success: false, message: 'هیچ پرۆسەیەکی پشتڕاستکردنەوە دەستی پێنەکردووە.' };
-    }
-    try {
-        const result = await state.confirmationResult.confirm(code);
-        const user = result.user;
-        // Têketin serketî bû! (چوونەژوورەوە سەرکەوتوو بوو!)
-        // Guhdarê 'onAuthStateChanged' dê naha were destpêkirin
-        // گوێگری 'onAuthStateChanged' ئێستا دەستپێدەکات
-        state.confirmationResult = null; // Paqij bike (پاکی بکەوە)
-        return { success: true, user: user };
-    } catch (error) {
-        console.error("Error verifying code:", error);
-        let message = t('error_generic');
-        if (error.code === 'auth/invalid-verification-code') {
-            message = 'کۆدەکە نادروستە.';
-        }
-        return { success: false, message: message };
-    }
-}
-// === END: KODA NÛ JI BO AUTH / کۆتایی کۆدی نوێ بۆ پشتڕاستکردنەوە ===
-
 
 // --- Firestore Data Fetching & Manipulation ---
 
@@ -186,11 +85,13 @@ async function fetchCategories() {
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     const snapshot = await getDocs(categoriesQuery);
     const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // Em êdî bi awayekî otomatîkî 'all' zêde nakin. Ew ê bi awayekî logîkî di UIyê de were birêvebirin.
+    // ئێمە ئیتر بە شێوەیەکی ئۆتۆماتیکی 'all' زیاد ناکەین. ئەمە بە شێوەی لۆجیکی لەناو UI چارەسەر دەکرێت.
     state.categories = fetchedCategories;
 }
 
 async function fetchSubcategories(categoryId) {
-    if (categoryId === 'all') return [];
+    if (categoryId === 'all') return []; // Ev rast e, ji bo "Home" divê em ti jêr-kategorî nîşan nedin (ئەمە دروستە، بۆ "سەرەکی" پێویست ناکات هیچ جۆرێکی لاوەکی نیشان بدەین)
     try {
         const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
         const q = query(subcategoriesQuery, orderBy("order", "asc"));
@@ -231,6 +132,7 @@ async function fetchProductById(productId) {
     }
 }
 
+// *** ÇAKKIRÎ LI GOR ŞÎROVEYA TE (Corrected According to Your Explanation) ***
 async function fetchRelatedProducts(currentProduct) {
     if (!currentProduct.subcategoryId && !currentProduct.categoryId) return [];
 
@@ -238,24 +140,33 @@ async function fetchRelatedProducts(currentProduct) {
     let conditions = [];
     let orderByClauses = []; 
 
+    // Pêşî mercên kategoriyê saz bikin (Set category conditions first)
+    // یەکەم جار مەرجەکانی بەشەکان دادەنێین
     if (currentProduct.subSubcategoryId) {
         conditions.push(where('subSubcategoryId', '==', currentProduct.subSubcategoryId));
     } else if (currentProduct.subcategoryId) {
         conditions.push(where('subcategoryId', '==', currentProduct.subcategoryId));
-    } else { 
+    } else { // Tenê categoryId heye
         conditions.push(where('categoryId', '==', currentProduct.categoryId));
     }
-    
+
+    // Em êdî hewcedariya me bi '__name__' nîne
+    // ئیتر پێویستمان بە فلتەرکردن بە '__name__' نییە
     orderByClauses.push(orderBy('createdAt', 'desc'));
-    
+
+    // Wek ku te got, em ê 7-an bixwazin (As you said, we will request 7)
+    // وەک خۆت وتت، داوای 7 دانە دەکەین
     const q = query(baseQuery, ...conditions, ...orderByClauses, limit(7));
 
     try {
         const snapshot = await getDocs(q);
         const allRelated = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Naha, em ê kaڵaya heyî bi JavaSript fîlter bikin û 6 hilbijêrin
+        // ئێستا، کاڵای ئێستا بە جاڤاسکریپت فلتەر دەکەین و 6 دانە هەڵدەبژێرین
         const filteredProducts = allRelated
-            .filter(product => product.id !== currentProduct.id) 
-            .slice(0, 6); 
+            .filter(product => product.id !== currentProduct.id) // Kaڵaya heyî derxe (Remove the current product)
+            .slice(0, 6); // Tenê 6-an bigire (Take only 6)
 
         return filteredProducts;
         
@@ -264,6 +175,7 @@ async function fetchRelatedProducts(currentProduct) {
         return [];
     }
 }
+// *** DAWÎYA ÇAKKIRINÊ / END CORRECTION ***
 
 
 // Fetches products based on current filters and pagination state
@@ -271,18 +183,20 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
 
     if (shouldShowHomeSections) {
+        // Signal UI to render home sections
         return { isHome: true, products: [], allLoaded: true };
     }
 
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
     if (isNewSearch && state.productCache[cacheKey]) {
+        // Return cached data for new search
         state.products = state.productCache[cacheKey].products;
         state.lastVisibleProductDoc = state.productCache[cacheKey].lastVisible;
         state.allProductsLoaded = state.productCache[cacheKey].allLoaded;
         return { isHome: false, products: state.products, allLoaded: state.allProductsLoaded };
     }
 
-    if (state.isLoadingMoreProducts) return null; 
+    if (state.isLoadingMoreProducts) return null; // Prevent concurrent loading
 
     if (isNewSearch) {
         state.allProductsLoaded = false;
@@ -290,7 +204,7 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
         state.products = [];
     }
 
-    if (state.allProductsLoaded && !isNewSearch) return null; 
+    if (state.allProductsLoaded && !isNewSearch) return null; // Already loaded all
 
     state.isLoadingMoreProducts = true;
 
@@ -313,9 +227,12 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
         if (finalSearchTerm) {
             conditions.push(where('searchableName', '>=', finalSearchTerm));
             conditions.push(where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
+            // If searching, first orderBy must match inequality field
             orderByClauses.push(orderBy("searchableName", "asc"));
         }
+        // Always add createdAt sort for consistent pagination
         orderByClauses.push(orderBy("createdAt", "desc"));
+
 
         let finalQuery = query(productsQuery, ...conditions, ...orderByClauses);
 
@@ -333,6 +250,7 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
 
         if (isNewSearch) {
             state.products = newProducts;
+            // Cache the result of the new search
             state.productCache[cacheKey] = {
                 products: state.products,
                 lastVisible: state.lastVisibleProductDoc,
@@ -340,13 +258,14 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
             };
         } else {
             state.products = [...state.products, ...newProducts];
+            // Update cache for subsequent loads? Maybe not necessary if infinite scroll works reliably.
         }
 
         return { isHome: false, products: newProducts, allLoaded: state.allProductsLoaded };
 
     } catch (error) {
         console.error("Error fetching products:", error);
-        return { isHome: false, products: [], allLoaded: true, error: true };
+        return { isHome: false, products: [], allLoaded: true, error: true }; // Indicate error
     } finally {
         state.isLoadingMoreProducts = false;
     }
@@ -516,7 +435,7 @@ export async function addToCartCore(productId) {
     } else {
         state.cart.push({
             id: product.id,
-            name: product.name, 
+            name: product.name, // Keep the multilingual object
             price: product.price,
             image: mainImage,
             quantity: 1
@@ -531,12 +450,12 @@ export function updateCartQuantityCore(productId, change) {
     if (cartItemIndex > -1) {
         state.cart[cartItemIndex].quantity += change;
         if (state.cart[cartItemIndex].quantity <= 0) {
-            state.cart.splice(cartItemIndex, 1); 
+            state.cart.splice(cartItemIndex, 1); // Remove item if quantity is zero or less
         }
         saveCart();
-        return true; 
+        return true; // Indicate success
     }
-    return false; 
+    return false; // Item not found
 }
 
 export function removeFromCartCore(productId) {
@@ -544,9 +463,9 @@ export function removeFromCartCore(productId) {
     state.cart = state.cart.filter(item => item.id !== productId);
     if (state.cart.length < initialLength) {
         saveCart();
-        return true; 
+        return true; // Indicate success
     }
-    return false; 
+    return false; // Item not found
 }
 
 export function generateOrderMessageCore() {
@@ -562,112 +481,44 @@ export function generateOrderMessageCore() {
         message += `- ${itemNameInCurrentLang} | ${itemDetails}\n`;
     });
     message += `\n${t('order_total')}: ${total.toLocaleString()} د.ع.\n`;
-    
-    // === START: KODA GÛHERTÎ / کۆدی گۆڕاو ===
-    // Naha em profîlê ji stateya ku ji Firestore hatiye barkirin dixwînin
-    // ئێستا پڕۆفایل لەو ستەیتەوە دەخوێنینەوە کە لە فایەرستۆرەوە هاتووە
-    const profile = state.currentUser ? state.userProfile : JSON.parse(localStorage.getItem(PROFILE_KEY)) || {};
-    if (profile.name && profile.address && profile.phone) {
-    // === END: KODA GÛHERTÎ / کۆتایی کۆدی گۆڕاو ===
+
+    if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
         message += `\n${t('order_user_info')}\n`;
-        message += `${t('order_user_name')}: ${profile.name}\n`;
-        message += `${t('order_user_address')}: ${profile.address}\n`;
-        message += `${t('order_user_phone')}: ${profile.phone}\n`;
+        message += `${t('order_user_name')}: ${state.userProfile.name}\n`;
+        message += `${t('order_user_address')}: ${state.userProfile.address}\n`;
+        message += `${t('order_user_phone')}: ${state.userProfile.phone}\n`;
     } else {
         message += `\n${t('order_prompt_info')}\n`;
     }
     return message;
 }
 
-// === START: KODA NÛ / کۆدی نوێ ===
-// Fonksiyonek nû ji bo çêkirina kurteya sebetê ji bo chatê
-// فەنکشنێکی نوێ بۆ دروستکردنی پوختەی سەبەتە بۆ چات
-export function generateCartSummaryMessageCore() {
-    if (state.cart.length === 0) return "";
 
-    let total = 0;
-    let message = t('chat_cart_summary_message') + "\n\n";
-    state.cart.forEach(item => {
-        const itemTotal = item.price * item.quantity;
-        total += itemTotal;
-        const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
-        const itemDetails = t('order_item_details', { price: item.price.toLocaleString(), quantity: item.quantity });
-        message += `* ${itemNameInCurrentLang} | ${itemDetails}\n`;
-    });
-    message += `\n*${t('order_total')}: ${total.toLocaleString()} د.ع.*`;
-    
-    return message;
-}
-// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+// --- Favorites Logic ---
 
-
-// --- Favorites Logic (Guhertî / گۆڕدراو) ---
-
-export async function toggleFavoriteCore(productId) {
+export function toggleFavoriteCore(productId) {
     const isCurrentlyFavorite = isFavorite(productId);
-    
-    if (state.currentUser) {
-        // Bikarhêner têketî ye, Firestore bikar bîne
-        // بەکارهێنەر لۆگین بووە، فایەرستۆر بەکاربهێنە
-        const favRef = doc(db, `users/${state.currentUser.uid}/favorites`, productId);
-        try {
-            if (isCurrentlyFavorite) {
-                await deleteDoc(favRef);
-                state.favorites = state.favorites.filter(id => id !== productId); // Stateya herêmî nû bike
-                return { favorited: false, message: t('product_removed_from_favorites') };
-            } else {
-                await setDoc(favRef, { createdAt: serverTimestamp() });
-                state.favorites.push(productId); // Stateya herêmî nû bike
-                return { favorited: true, message: t('product_added_to_favorites') };
-            }
-        } catch (error) {
-            console.error("Error updating favorites in Firestore:", error);
-            return { favorited: isCurrentlyFavorite, message: t('error_generic') };
-        }
+    if (isCurrentlyFavorite) {
+        state.favorites = state.favorites.filter(id => id !== productId);
+        saveFavorites();
+        return { favorited: false, message: t('product_removed_from_favorites') };
     } else {
-        // Bikarhêner ne têketî ye, localStorage bikar bîne (wek berê)
-        // بەکارهێنەر لۆگین نییە، لۆکاڵ ستۆرێج بەکاربهێنە (وەک پێشوو)
-        if (isCurrentlyFavorite) {
-            state.favorites = state.favorites.filter(id => id !== productId);
-        } else {
-            state.favorites.push(productId);
-        }
-        localStorage.setItem(FAVORITES_KEY, JSON.stringify(state.favorites));
-        return { 
-            favorited: !isCurrentlyFavorite, 
-            message: !isCurrentlyFavorite ? t('product_added_to_favorites') : t('product_removed_from_favorites') 
-        };
+        state.favorites.push(productId);
+        saveFavorites();
+        return { favorited: true, message: t('product_added_to_favorites') };
     }
 }
 
-// --- Profile Logic (Guhertî / گۆڕدراو) ---
+// --- Profile Logic ---
 
-export async function saveProfileCore(profileData) {
-    const profile = {
+export function saveProfileCore(profileData) {
+    state.userProfile = {
         name: profileData.name || '',
         address: profileData.address || '',
         phone: profileData.phone || '',
     };
-    
-    if (state.currentUser) {
-        // Bikarhêner têketî ye, Firestore nû bike
-        // بەکارهێنەر لۆگین بووە، فایەرستۆر نوێ بکەوە
-        const userDocRef = doc(db, "users", state.currentUser.uid);
-        try {
-            await setDoc(userDocRef, profile, { merge: true });
-            state.userProfile = profile; // Stateya herêmî nû bike
-            return { success: true, message: t('profile_saved') };
-        } catch (error) {
-            console.error("Error saving profile to Firestore:", error);
-            return { success: false, message: t('error_generic') };
-        }
-    } else {
-        // Bikarhêner ne têketî ye, localStorage bikar bîne
-        // بەکارهێنەر لۆگین نییە، لۆکاڵ ستۆرێج بەکاربهێنە
-        state.userProfile = profile;
-        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-        return { success: true, message: t('profile_saved') };
-    }
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(state.userProfile));
+    return t('profile_saved');
 }
 
 // --- Language ---
@@ -676,6 +527,7 @@ export function setLanguageCore(lang) {
     localStorage.setItem('language', lang);
     document.documentElement.lang = lang.startsWith('ar') ? 'ar' : 'ku';
     document.documentElement.dir = 'rtl';
+    // Clear cache as language affects rendered content
     state.productCache = {};
     const homeContainer = document.getElementById('homePageSectionsContainer');
     if (homeContainer) homeContainer.innerHTML = '';
@@ -684,14 +536,13 @@ export function setLanguageCore(lang) {
 // --- Notifications ---
 
 async function requestNotificationPermissionCore() {
-    // ... (Ev kod wek xwe dimîne / ئەم کۆدە وەک خۆی دەمێنێتەوە) ...
     console.log('Requesting notification permission...');
     try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
             console.log('Notification permission granted.');
             const currentToken = await getToken(messaging, {
-                vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ'
+                vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ' // Your VAPID key
             });
             if (currentToken) {
                 console.log('FCM Token:', currentToken);
@@ -712,11 +563,12 @@ async function requestNotificationPermissionCore() {
 }
 
 async function saveTokenToFirestore(token) {
-    // ... (Ev kod wek xwe dimîne / ئەم کۆدە وەک خۆی دەمێنێتەوە) ...
     try {
         const tokensCollection = collection(db, 'device_tokens');
+        // Use the token itself as the document ID to prevent duplicates
         await setDoc(doc(tokensCollection, token), {
             createdAt: Date.now()
+            // You might want to add more info here later, like userID if users log in
         });
         console.log('Token saved to Firestore.');
     } catch (error) {
@@ -724,32 +576,29 @@ async function saveTokenToFirestore(token) {
     }
 }
 
+// Check for new announcements compared to last seen timestamp
 export function checkNewAnnouncementsCore(latestAnnouncementTimestamp) {
-    // ... (Ev kod wek xwe dimîne / ئەم کۆدە وەک خۆی دەمێنێتەوە) ...
     const lastSeenTimestamp = localStorage.getItem('lastSeenAnnouncementTimestamp') || 0;
     return latestAnnouncementTimestamp > lastSeenTimestamp;
 }
 
 export function updateLastSeenAnnouncementTimestamp(timestamp) {
-     // ... (Ev kod wek xwe dimîne / ئەم کۆدە وەک خۆی دەمێنێتەوە) ...
      localStorage.setItem('lastSeenAnnouncementTimestamp', timestamp);
 }
 
 // --- PWA & Service Worker ---
 
 async function handleInstallPrompt(installBtn) {
-    // ... (Ev kod wek xwe dimîne / ئەم کۆدە وەک خۆی دەمێنێتەوە) ...
     if (state.deferredPrompt) {
-        installBtn.style.display = 'none'; 
+        installBtn.style.display = 'none'; // Hide button after prompting
         state.deferredPrompt.prompt();
         const { outcome } = await state.deferredPrompt.userChoice;
         console.log(`User response to the install prompt: ${outcome}`);
-        state.deferredPrompt = null; 
+        state.deferredPrompt = null; // Clear the saved prompt
     }
 }
 
 async function forceUpdateCore() {
-    // ... (Ev kod wek xwe dimîne / ئەم کۆدە وەک خۆی دەمێنێتەوە) ...
     if (confirm(t('update_confirm'))) {
         try {
             if ('serviceWorker' in navigator) {
@@ -775,317 +624,123 @@ async function forceUpdateCore() {
 
 // --- Navigation / History ---
 
+// *** START: Gۆڕانکاری لێرە کرا ***
+// *** دەستپێک: گۆڕانکاری لێرە کرا ***
 export function saveCurrentScrollPositionCore() {
-    // ... (Ev kod wek xwe dimîne / ئەم کۆدە وەک خۆی دەمێنێتەوە) ...
     const currentState = history.state;
+    // Em êdî ne window.scrollY, lê scrollTop a rûpela çalak tomar dikin
+    // ئێمە ئیتر window.scrollY پاشەکەوت ناکەین، بەڵکو scrollTopـی پەڕە چالاکەکە پاشەکەوت دەکەین
     const activePage = document.getElementById(state.currentPageId); 
 
+    // Only save scroll position for the main page filter state
+    // Tenê ji bo rûpela serekî (mainPage) û dema ku ew filterek e (ne popup) tomar bike
+    // تەنها بۆ لاپەڕەی سەرەکی و کاتێک فلتەرە (نەک پۆپئەپ) پاشەکەوتی بکە
     if (activePage && state.currentPageId === 'mainPage' && currentState && !currentState.type) {
+        // scrollTop a elementa rûpelê tomar bike (scrollTopـی توخمی لاپەڕەکە پاشەکەوت بکە)
         history.replaceState({ ...currentState, scroll: activePage.scrollTop }, '');
     }
 }
+// *** END: Gۆڕانکاری لێرە کرا ***
+// *** کۆتایی: گۆڕانکاری لێرە کرا ***
 
+// Applies filter state (category, search, etc.) but doesn't handle UI rendering directly
 export function applyFilterStateCore(filterState) {
-    // ... (Ev kod wek xwe dimîne / ئەم کۆدە وەک خۆی دەمێنێتەوە) ...
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
     state.currentSubSubcategory = filterState.subSubcategory || 'all';
     state.currentSearch = filterState.search || '';
+    // Note: Fetching products based on this state is handled separately
 }
 
 export function navigateToFilterCore(newState) {
-    // ... (Ev kod wek xwe dimîne / ئەم کۆدە وەک خۆی دەمێنێتەوە) ...
+    // Save current scroll before changing state
+    // *** Gۆڕانکاری: Em ê fonksiyona xwe ya nû ya saveCurrentScrollPositionCore bikar bînin ***
+    // *** گۆڕانکاری: ئێمە فانکشنە نوێیەکەمان saveCurrentScrollPositionCore بەکاردەهێنین ***
     saveCurrentScrollPositionCore(); 
+    // Berê (Previous): history.replaceState({ ... history.state, scroll: window.scrollY }, '');
+
+    // Combine current state with new changes, reset scroll for new view
+    // Em êdî 'scroll: 0' li vir dananîn, ji ber ku dibe ku em nexwazin tavilê skrol bikin
+    // ئێمە ئیتر 'scroll: 0' لێرە دانانێین، چونکە لەوانەیە نەمانەوێت دەستبەجێ سکڕۆڵ بکەین
     const finalState = { ...history.state, ...newState }; 
+    // Berê (Previous): const finalState = { ...history.state, ...newState, scroll: 0 };
+
+
+    // Update URL query parameters
     const params = new URLSearchParams();
     if (finalState.category && finalState.category !== 'all') params.set('category', finalState.category);
     if (finalState.subcategory && finalState.subcategory !== 'all') params.set('subcategory', finalState.subcategory);
     if (finalState.subSubcategory && finalState.subSubcategory !== 'all') params.set('subSubcategory', finalState.subSubcategory);
     if (finalState.search) params.set('search', finalState.search);
     const newUrl = `${window.location.pathname}?${params.toString()}`;
+
+    // Push the new state and URL to history
     history.pushState(finalState, '', newUrl);
+
+    // Apply the new state logically (fetching data is separate)
     applyFilterStateCore(finalState);
 }
-
-// --- === START: KODA NÛ JI BO CHAT / کۆدی نوێ بۆ چات === ---
-
-/**
- * Peyamekê ji bikarhêner an admin dişîne.
- * نامەیەک لە بەکارهێنەر یان ئەدمینەوە دەنێرێت.
- * @param {string} text - Naveroka peyamê (ناوەڕۆکی نامەکە).
- * @param {string} chatRoomId - IDya bikarhênerê ku chat jê re tê şandin (ئایدی ئەو بەکارهێنەرەی چاتی بۆ دەچێت).
- * @param {string} senderId - 'admin' an UIDya bikarhêner (یان 'admin' یان UIDی بەکارهێنەر).
- */
-export async function sendChatMessageCore(text, chatRoomId, senderId) {
-    if (!text.trim() || !chatRoomId || !senderId) return;
-
-    try {
-        const chatDocRef = doc(db, "chats", chatRoomId);
-        const messagesCollectionRef = collection(chatDocRef, "messages");
-
-        // 1. Peyamê lê zêde bike (نامەکە زیاد بکە)
-        await addDoc(messagesCollectionRef, {
-            text: text,
-            senderId: senderId,
-            timestamp: serverTimestamp()
-        });
-
-        // 2. Peyama dawî li ser belgeya chatê ya sereke nû bike (دوا نامە لەسەر دۆکیومێنتی چاتە سەرەکییەکە نوێ بکەوە)
-        const updateData = {
-            lastMessage: text,
-            lastTimestamp: serverTimestamp()
-        };
-
-        if (senderId === 'admin') {
-            updateData.seenByUser = false; // Bikarhêner ev nedîtiye (بەکارهێنەر ئەمەی نەبینیوە)
-            updateData.seenByAdmin = true; // Admin ev şandiye (ئەدمین ئەمەی ناردووە)
-        } else {
-            updateData.seenByAdmin = false; // Admin ev nedîtiye (ئەدمین ئەمەی نەبینیوە)
-            updateData.seenByUser = true; // Bikarhêner ev şandiye (بەکارهێنەر ئەمەی ناردووە)
-            // Di heman demê de piştrast bike ku agahdariyên bikarhêner nû ne
-            // هەروەها دڵنیابە کە زانیارییەکانی بەکارهێنەر نوێن
-            updateData.userName = state.userProfile.name || state.currentUser.phoneNumber;
-            updateData.userPhone = state.currentUser.phoneNumber;
-        }
-
-        await setDoc(chatDocRef, updateData, { merge: true });
-
-    } catch (error) {
-        console.error("Error sending chat message:", error);
-        // Ji UI re bêje ku têkçûnek çêbû (بە UI بڵێ کە شکستێک ڕوویدا)
-        throw new Error("Failed to send message."); 
-    }
-}
-
-/**
- * Guh dide peyamên nû ji bo jûreyek chatê ya taybetî.
- * گوێ لە نامە نوێیەکان دەگرێت بۆ ژوورێکی چاتی دیاریکراو.
- * @param {string} chatRoomId - UIDya bikarhêner (UIDی بەکارهێنەر).
- * @param {function} callback - Fonksiyona ku dema peyamên nû werin dê were bang kirin (فەنکشنێک کە کاتێک نامەی نوێ دێت بانگ دەکرێت).
- * @returns {function} - Fonksiyona Unsubscribe (فەنکشنى Unsubscribe).
- */
-export function listenForChatMessages(chatRoomId, callback) {
-    const messagesRef = collection(db, "chats", chatRoomId, "messages");
-    const q = query(messagesRef, orderBy("timestamp", "asc"));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-        const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        callback(messages);
-    }, (error) => {
-        console.error("Error listening to chat messages:", error);
-        callback([], error); // Bi peyamek vala û çewtî vegere (بە نامەیەکی بەتاڵ و هەڵەوە بگەڕێوە)
-    });
-
-    return unsubscribe;
-}
-
-/**
- * Guh dide navnîşa giştî ya chatan ji bo panela admin.
- * گوێ لە لیستی گشتی چاتەکان دەگرێت بۆ پانێڵی ئەدمین.
- * @param {function} callback - Fonksiyona ku dema navnîş tê nûve kirin dê were bang kirin (فەنکشنێک کە کاتێک لیستەکە نوێ دەبێتەوە بانگ دەکرێت).
- * @returns {function} - Fonksiyona Unsubscribe (فەنکشنى Unsubscribe).
- */
-export function listenForAdminChatList(callback) {
-    const q = query(chatsCollection, orderBy("lastTimestamp", "desc"));
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-        const chatList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        callback(chatList);
-    }, (error) => {
-        console.error("Error listening to admin chat list:", error);
-        callback([], error);
-    });
-
-    return unsubscribe;
-}
-
-/**
- * Chatekê wekî "xwendî" nîşan dide.
- * چاتێک وەک "خوێندراوە" نیشان دەدات.
- * @param {string} chatRoomId - UIDya bikarhêner (UIDی بەکارهێنەر).
- * @param {string} userType - 'admin' an 'user'
- */
-export async function markChatAsReadCore(chatRoomId, userType) {
-    if (!chatRoomId || !userType) return;
-    
-    const chatDocRef = doc(db, "chats", chatRoomId);
-    try {
-        if (userType === 'admin') {
-            await updateDoc(chatDocRef, { seenByAdmin: true });
-        } else {
-            await updateDoc(chatDocRef, { seenByUser: true });
-        }
-    } catch (error) {
-        console.error("Error marking chat as read:", error);
-    }
-}
-
-
-// --- === END: KODA NÛ JI BO CHAT / کۆتایی کۆدی نوێ بۆ چات === ---
 
 
 // --- Initialization ---
 
+// *** This function is now async ***
 async function initializeCoreLogic() {
     if (!state.sliderIntervals) state.sliderIntervals = {};
+    // *** We await fetchCategories here ***
     await fetchCategories();
+    // Fetch initial contact methods, social links, etc. if needed globally
 }
 
-// === START: KODA GÛHERTÎ (Mîgrasyona Daneyan) / کۆدی گۆڕاو (گواستنەوەی داتا) ===
-/**
- * Daneyên herêmî yên bikarhêner (profîl û hezkirî) vediguhezîne Firestore.
- * زانیارییە لۆکاڵییەکانی بەکارهێنەر (پڕۆفایل و دڵخوازەکان) دەگوازێتەوە بۆ فایەرستۆر.
- * @param {string} userId - UIDya bikarhênerê ya nû (UIDی نوێی بەکارهێنەر).
- */
-async function migrateUserDataToFirestore(userId) {
-    console.log(`Starting data migration for user ${userId}...`);
-    const batch = writeBatch(db);
-
-    // 1. Veguhastina Profîlê (گواستنەوەی پڕۆفایل)
-    const localProfile = JSON.parse(localStorage.getItem(PROFILE_KEY)) || {};
-    if (localProfile.name || localProfile.address || localProfile.phone) {
-        const userDocRef = doc(db, "users", userId);
-        batch.set(userDocRef, localProfile, { merge: true });
-        console.log("Profile data added to batch.");
-    }
-
-    // 2. Veguhastina Hezkiriyan (گواستنەوەی دڵخوازەکان)
-    const localFavorites = JSON.parse(localStorage.getItem(FAVORITES_KEY)) || [];
-    if (localFavorites.length > 0) {
-        localFavorites.forEach(productId => {
-            const favDocRef = doc(db, `users/${userId}/favorites`, productId);
-            batch.set(favDocRef, { createdAt: serverTimestamp() });
-        });
-        console.log(`${localFavorites.length} favorites added to batch.`);
-    }
-
-    // Batchê bişîne (Batchـەکە بنێرە)
-    try {
-        await batch.commit();
-        console.log("Data migration successful.");
-
-        // Daneyên herêmî yên kevn paqij bike (داتای لۆکاڵی کۆن پاک بکەوە)
-        localStorage.removeItem(PROFILE_KEY);
-        localStorage.removeItem(FAVORITES_KEY);
-        
-        // Stateya herêmî nû bike (ستەیتی ناوخۆیی نوێ بکەوە)
-        state.userProfile = localProfile;
-        state.favorites = localFavorites;
-    } catch (error) {
-        console.error("Error during data migration:", error);
-    }
-}
-
-/**
- * Profîl û hezkiriyên bikarhênerê ji Firestore bar dike.
- * پڕۆفایل و دڵخوازەکانی بەکارهێنەر لە فایەرستۆرەوە بار دەکات.
- * @param {string} userId - UIDya bikarhênerê (UIDی بەکارهێنەر).
- */
-async function loadUserFromFirestore(userId) {
-    console.log(`Loading data from Firestore for user ${userId}...`);
-    try {
-        // 1. Barkirina Profîlê (بارکردنی پڕۆفایل)
-        const userDocRef = doc(db, "users", userId);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-            state.userProfile = userDocSnap.data();
-            console.log("User profile loaded.");
-        } else {
-            console.log("No profile found in Firestore, using local (empty).");
-            state.userProfile = {};
-        }
-
-        // 2. Barkirina Hezkiriyan (بارکردنی دڵخوازەکان)
-        const favoritesRef = collection(db, `users/${userId}/favorites`);
-        const favoritesSnap = await getDocs(favoritesRef);
-        state.favorites = favoritesSnap.docs.map(doc => doc.id);
-        console.log(`Loaded ${state.favorites.length} favorites.`);
-
-    } catch (error) {
-        console.error("Error loading user data from Firestore:", error);
-    }
-}
-// === END: KODA GÛHERTÎ (Mîgrasyona Daneyan) / کۆتایی کۆدی گۆڕاو (گواستنەوەی داتا) ===
-
-
+// Call this once on app load
+// *** This function is now async and returns a Promise ***
 export async function initCore() {
+    // Return the promise chain
     return enableIndexedDbPersistence(db)
         .then(() => console.log("Firestore offline persistence enabled."))
         .catch((err) => console.warn("Firestore Persistence failed:", err.code))
-        .finally(async () => {
-            await initializeCoreLogic(); // Kategoriyan bar bike (جۆرەکان بار بکە)
+        .finally(async () => { // Make the finally block async
+            // *** Await the core logic setup ***
+            await initializeCoreLogic(); // Await the core logic setup
 
-            // === START: KODA GÛHERTÎ (onAuthStateChanged) / کۆدی گۆڕاو ===
-            // Vê guhdarê hanê naha hem admin û hem jî bikarhêneran birêve dibe
-            // ئەم گوێگرە ئێستا هەم ئەدمین و هەم بەکارهێنەران بەڕێوە دەبات
+            // Setup listeners *after* core logic (like categories) is ready
             onAuthStateChanged(auth, async (user) => {
-                const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3"; // UIDya xwe ya Admin li vir bi cî bike (UIDی ئەدمینی خۆت لێرە دابنێ)
+                const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3"; // Replace with your Admin UID
+                const isAdmin = user && user.uid === adminUID;
                 const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
-                
-                // Sifirkirina stateya berê (سفرکردنەوەی ستەیتی پێشوو)
-                sessionStorage.removeItem('isAdmin');
-                state.currentUser = null;
-                state.userProfile = {}; // Profîlê vala bike (پڕۆفایل بەتاڵ بکەوە)
-                state.favorites = JSON.parse(localStorage.getItem(FAVORITES_KEY)) || []; // Vegere localStorage (بگەڕێوە سەر لۆکاڵ ستۆرێج)
 
-                if (user) {
-                    if (user.uid === adminUID) {
-                        // Bikarhêner Admin e (بەکارهێنەر ئەدمینە)
-                        console.log("Admin logged in.");
-                        sessionStorage.setItem('isAdmin', 'true');
-                        state.currentUser = user; // Her çend admin be jî, em dikarin wê tomar bikin (هەرچەندە ئەدمینە، دەتوانین تۆماری بکەین)
-                        if (!wasAdmin && window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
-                            window.AdminLogic.initialize();
-                        }
-                    } else {
-                        // Bikarhênerek normal e (بەکارهێنەرێکی ئاساییە)
-                        console.log("User logged in:", user.uid);
-                        state.currentUser = user;
-                        
-                        // Kontrol bike ka pêdivî bi veguhastina daneyan heye
-                        // پشکنین بکە بزانە پێویستی بە گواستنەوەی داتا هەیە
-                        const localProfileExists = !!localStorage.getItem(PROFILE_KEY);
-                        const localFavoritesExist = !!localStorage.getItem(FAVORITES_KEY);
-                        
-                        if (localProfileExists || localFavoritesExist) {
-                            // Daneyên herêmî hene, wan veguhezîne (داتای لۆکاڵ هەیە، بیانگوازەوە)
-                            await migrateUserDataToFirestore(user.uid);
-                        } else {
-                            // Daneyên herêmî nînin, tenê ji Firestore bar bike (داتای لۆکاڵ نییە، تەنها لە فایەرستۆر بار بکە)
-                            await loadUserFromFirestore(user.uid);
-                        }
+                if (isAdmin) {
+                    sessionStorage.setItem('isAdmin', 'true');
+                    if (!wasAdmin && window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
+                         window.AdminLogic.initialize();
                     }
                 } else {
-                    // Kes têketî nîne (کەس لۆگین نییە)
-                    console.log("User logged out or session expired.");
+                    sessionStorage.removeItem('isAdmin');
+                     if (user) { await signOut(auth); } // Sign out non-admins
                     if (wasAdmin && window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
-                        window.AdminLogic.deinitialize();
+                         window.AdminLogic.deinitialize();
                     }
                 }
-                
-                // UIyê agahdar bike ku rewşa têketinê guherî
-                // UI ئاگادار بکەوە کە دۆخی لۆگین گۆڕا
-                document.dispatchEvent(new CustomEvent('authChange', { 
-                    detail: { 
-                        isAdmin: sessionStorage.getItem('isAdmin') === 'true',
-                        isUser: !!state.currentUser && sessionStorage.getItem('isAdmin') !== 'true'
-                    } 
-                }));
+                // Notify UI layer about auth change
+                document.dispatchEvent(new CustomEvent('authChange', { detail: { isAdmin } }));
             });
-            // === END: KODA GÛHERTÎ (onAuthStateChanged) / کۆتایی کۆدی گۆڕاو ===
 
+             // Listen for foreground FCM messages
             onMessage(messaging, (payload) => {
                 console.log('Foreground message received: ', payload);
+                // Notify UI layer to display the message
                 document.dispatchEvent(new CustomEvent('fcmMessage', { detail: payload }));
             });
 
+             // PWA install prompt setup (can run earlier, but keeping it grouped)
              window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
                 state.deferredPrompt = e;
                 console.log('`beforeinstallprompt` event fired.');
-                document.dispatchEvent(new Event('installPromptReady')); 
+                document.dispatchEvent(new Event('installPromptReady')); // Notify UI
             });
 
+            // Service Worker setup (can run earlier)
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('/sw.js').then(registration => {
                     console.log('SW registered.');
@@ -1094,6 +749,7 @@ export async function initCore() {
                         console.log('New SW found!', newWorker);
                         newWorker.addEventListener('statechange', () => {
                             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // New SW waiting to activate. Notify UI.
                                 document.dispatchEvent(new CustomEvent('swUpdateReady', { detail: { registration } }));
                             }
                         });
@@ -1110,18 +766,23 @@ export async function initCore() {
 
 
 // Expose necessary core functions and state for UI and Admin layers
+// *** گۆڕانکاری لێرە: زیادکردنی db بۆ export ***
 export {
-    state, 
-    handleLogin, handleLogout, 
-    fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, 
+    state, // Export the mutable state object
+    handleLogin, handleLogout, // Authentication
+    fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, // Data fetching
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
+    // setLanguageCore exported where it's defined
     requestNotificationPermissionCore,
-    handleInstallPrompt, forceUpdateCore, 
-    db,
+    // checkNewAnnouncementsCore exported where it's defined
+    // updateLastSeenAnnouncementTimestamp exported where it's defined
+    handleInstallPrompt, forceUpdateCore, // PWA & SW
+    // History functions are exported above
+    // Core cart/favorites/profile functions are exported above
+
+    // *** Export Firestore functions needed by app-ui.js and admin.js ***
+    db, // <-- db لێرە زیادکرا
     productsCollection,
     collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
-    query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction,
-    // === START: KODA NÛ / کۆدی نوێ ===
-    serverTimestamp, // Ji bo peyamên chatê (بۆ نامەکانی چات)
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+    query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction
 };
