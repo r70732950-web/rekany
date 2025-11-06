@@ -1,5 +1,8 @@
-// فایلی admin.js (چاککراو - کێشەی بانگنەکردنی فەنکشن چارەسەرکرا)
+// فایلی admin.js (چاکسازی تەواو)
+// Hemû fonksiyonên kevn û nû bi awayekî rast hatine rêkxistin
+// (هەموو فەنکشنە کۆن و نوێیەکان بە شێوەیەکی ڕاست ڕێکخراونەتەوە)
 
+// === 1. IMPORTÊN GLOBAL / هاوردە گشتییەکان ===
 const {
     db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit,
     storage, ref, uploadBytes, getDownloadURL,
@@ -8,9 +11,9 @@ const {
     promoGroupsCollection, brandGroupsCollection,
     setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage,
     clearProductCache,
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Em IDyên nû yên ji bo Category Layout import dikin
-    // (ئێمە ID نوێیەکانی تایبەت بە دیزاینی جۆرەکان هاوردە دەکەین)
+    
+    // IDyên nû yên ji bo Category Layout
+    // (ID نوێیەکانی تایبەت بە دیزاینی جۆرەکان)
     adminCategoryLayoutManagement,
     categoryLayoutSelect,
     categoryLayoutTitle,
@@ -19,29 +22,31 @@ const {
     saveCategoryLayoutBtn,
     addCategoryLayoutSectionModal,
     addCategoryLayoutSectionForm
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 } = window.globalAdminTools;
 
+// Koleksiyona Shortcut Rows
+// (کۆڵێکشنەکانی ڕیزی کورتکراوەکان)
 const shortcutRowsCollection = collection(db, "shortcut_rows");
 
+// === 2. OBJEKTA SEREKE YA ADMINLOGIC / ئۆبجێکتی سەرەکی ئەدمینلۆجیک ===
 window.AdminLogic = {
     listenersAttached: false,
     currentImageUrls: ["", "", "", ""],
-    
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Em 'state'ek herêmî ji bo şopandina kategoriya ku tê destkarîkirin lê zêde dikin
-    // (ئێمە 'state'ێکی ناوخۆیی زیاد دەکەین بۆ شوێنپێهەڵگرتنی ئەو جۆرەی کە دەستکاری دەکرێت)
-    currentEditingLayoutCategoryId: null,
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+    currentEditingLayoutCategoryId: null, // Ji bo zanîna kîjan kategorî tê destkarîkirin (بۆ زانینی کام جۆر دەستکاری دەکرێت)
 
+    // === 3. FONKSIYONA DESTPÊKIRINÊ / فەنکشنی دەستپێکردن ===
     initialize: function() {
         console.log("Admin logic initialized.");
         this.migrateAndSetupDefaultHomeLayout();
         this.updateAdminUI(true);
-        this.setupAdminEventListeners(); // Ev guhdarên kevn saz dike (ئەمە گوێگرە کۆنەکان دادەمەزرێنێت)
         
-        // Ev fonksîyonên barkirina daneyan in
-        // (ئەمانە فەنکشنەکانی بارکردنی داتان)
+        // Em hemû guhdarên bûyeran saz dikin (کۆن + نû)
+        // (ئێمە هەموو گوێگرەکانی ڕووداوەکان دادەمەزرێنین (کۆن + نوێ))
+        this.setupAdminEventListeners(); // Ev hemû guhdarên kevn saz dike (ئەمە هەموو گوێگرە کۆنەکان دادەمەزرێنێت)
+        this.setupCategoryLayoutEventListeners(); // Ev guhdarên nû saz dike (ئەمە گوێگرە نوێیەکان دادەمەزرێنێت)
+        
+        // Em dest bi barkirina hemû daneyên admin dikin
+        // (ئێمە دەست دەکەین بە بارکردنی هەموو داتاکانی ئەدمین)
         this.loadPoliciesForAdmin();
         this.renderCategoryManagementUI(); 
         this.renderAdminAnnouncementsList();
@@ -49,21 +54,17 @@ window.AdminLogic = {
         this.renderContactMethodsAdmin();
         this.renderShortcutRowsAdminList();
         
-        // Ev lîsteyên hilbijartinê (dropdowns) yên heyî nû dike
-        // (ئەمانە لیستە کشۆییە هەبووەکان نوێ دەکەنەوە)
         this.updateAdminCategoryDropdowns(); 
         this.updateShortcutCardCategoryDropdowns(); 
         
-        this.renderHomeLayoutAdmin(); 
+        this.renderHomeLayoutAdmin(); // << EVIDÊ JI BO HOME LAYOUT KAR BIKE (ئەمە وا دەکات دیزاینی پەرەی سەرەki کار بکات)
         
         this.renderPromoGroupsAdminList();
         this.renderBrandGroupsAdminList();
 
-        // === START: ÇARESERÎ / چارەسەری ===
-        // Em naha fonksîyona nû ya ji bo Category Layout bang dikin
-        // (ئێستا فەنکشنە نوێیەکەی تایبەت بە دیزاینی جۆرەکان بانگ دەکەین)
-        this.initializeCategoryLayoutBuilder();
-        // === END: ÇARESERÎ / کۆتایی چارەسەری ===
+        // Em lîsteya kategoriyan ji bo beşa nû dagirin
+        // (ئێمە لیستی جۆرەکان بۆ بەشە نوێیەکە پڕ دەکەینەوە)
+        this.loadCategoriesForLayoutBuilder(); // << EVIDÊ JI BO CATEGORY LAYOUT KAR BIKE (ئەمە وا دەکات دیزاینی جۆرەکان کار بکات)
     },
 
     deinitialize: function() {
@@ -71,6 +72,10 @@ window.AdminLogic = {
         this.updateAdminUI(false);
     },
 
+    // === 4. HEMÛ FONKSIYONÊN DIN (KEVN Û NÛ) / هەموو فەنکشنەکانی تر (کۆن و نوێ) ===
+
+    // ... (Fonksiyonên migrateAndSetup, createDefaultHomeLayout wek xwe dimînin) ...
+    // ... (فەنکشنەکانی migrateAndSetup و createDefaultHomeLayout وەک خۆیان دەمێننەوە) ...
     migrateAndSetupDefaultHomeLayout: async function() {
         const layoutCollectionRef = collection(db, 'home_layout');
         const snapshot = await getDocs(query(layoutCollectionRef, limit(1)));
@@ -114,7 +119,7 @@ window.AdminLogic = {
 
         await Promise.all(addPromises);
     },
-    
+
     updateAdminUI: function(isAdmin) {
         document.querySelectorAll('.product-actions').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
 
@@ -145,6 +150,8 @@ window.AdminLogic = {
         }
     },
 
+    // ... (Hemû fonksiyonên din ên wekî editProduct, deleteProduct, hwd. li vir tên) ...
+    // ... (هەموو فەنکشنەکانی تر وەک editProduct، deleteProduct و هتد لێرە دادەنرێن) ...
     editProduct: async function(productId) {
         const productRef = doc(db, "products", productId);
         const productSnap = await getDoc(productRef);
@@ -972,7 +979,6 @@ window.AdminLogic = {
         });
     },
 
-    // === START: NEW FUNCTIONS FOR SHORTCUT CARD MANAGEMENT ===
     editShortcutRow: async function(rowId) {
         const rowSnap = await getDoc(doc(db, "shortcut_rows", rowId));
         if (rowSnap.exists()) {
@@ -1052,7 +1058,6 @@ window.AdminLogic = {
             }
         }
     },
-    // === END: NEW FUNCTIONS FOR SHORTCUT CARD MANAGEMENT ===
     
     updateShortcutCardCategoryDropdowns: function() {
         const categories = getCategories();
@@ -1185,25 +1190,22 @@ window.AdminLogic = {
         }
     },
     
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // (Fonksîyonên nû yên ji bo birêvebirina Category Layout)
-    // (فەنکشنە نوێیەکانی تایبەت بە بەڕێوەبردنی دیزاینی جۆرەکان)
-
+    // === 5. FONKSIYONÊN NÛ JI BO CATEGORY LAYOUT / فەنکشنە نوێیەکانی تایبەت بە دیزاینی جۆرەکان ===
     initializeCategoryLayoutBuilder: function() {
         console.log("Initializing Category Layout Builder...");
-        this.loadCategoriesForLayoutBuilder(); // Lîsteya hilbijartinê (dropdown) dagire (لیستە کشۆییەکە پڕ بکەوە)
-        this.setupCategoryLayoutEventListeners(); // Guhdaran saz bike (گوێگرەکان دابمەزرێنە)
+        this.loadCategoriesForLayoutBuilder();
+        // Em guhdaran li cîhek cuda saz dikin
+        // (ئێمە گوێگرەکان لە شوێنێکی جیا دادەمەزرێنین)
     },
 
     loadCategoriesForLayoutBuilder: function() {
-        const categories = getCategories(); // Ji 'state'a global bistîne (لە 'state'ـی گشتی وەربگرە)
+        const categories = getCategories();
         const select = document.getElementById('categoryLayoutSelect');
 
         if (!select) return;
         
         // === ÇARESERÎ: Pêdivî ye ku ev bibe `=== 0` ===
         // === چارەسەری: پێویستە ئەمە ببێت بە `=== 0` ===
-        // (Berê <= 1 bû, ev xelet bû / پێشتر <= 1 بوو، ئەمە هەڵە بوو)
         if (categories.length === 0) { 
             console.warn("Category layout builder: No categories loaded to populate dropdown.");
             select.innerHTML = '<option value="">...سەرەتا جۆری سەرەki زیاد بکە</option>';
@@ -1220,16 +1222,12 @@ window.AdminLogic = {
         categoriesWithoutAll.forEach(cat => {
             const option = document.createElement('option');
             option.value = cat.id;
-            // Em navê wê tomar dikin da ku dema ziman diguhere nû bibe
-            // (ئێمە ناوەکەی پاشەکەوت دەکەین بۆ ئەوەی کاتێک زمان دەگۆڕدرێت نوێ ببێتەوە)
-            option.dataset.name = cat.name_ku_sorani; 
+            option.dataset.name = cat.name_ku_sorani; // Em navê wê tomar dikin (ناو پاشەکەوت دەکەین)
             option.textContent = cat.name_ku_sorani;
             select.appendChild(option);
         });
     },
     
-    // Ev fonksîyon dema ku admin kategoriyekê hildibijêre kar dike
-    // (ئەم فەنکشنە کاتێک کار دەکات کە ئەدمین جۆرێک هەڵدەبژێرێت)
     renderCategoryLayoutAdmin: function(categoryId) {
         this.currentEditingLayoutCategoryId = categoryId;
         const container = document.getElementById('categoryLayoutListContainer');
@@ -1268,8 +1266,6 @@ window.AdminLogic = {
                 container.appendChild(itemElement);
             });
             
-            // Logika drag-and-drop ji bo vê lîsteyê çalak bike
-            // (لۆجیکی ڕاکێشان و دانان بۆ ئەم لیستەیە کارا بکە)
             const items = container.querySelectorAll('.layout-item');
             items.forEach(item => {
                 item.addEventListener('dragstart', () => setTimeout(() => item.classList.add('dragging'), 0));
@@ -1317,7 +1313,7 @@ window.AdminLogic = {
         try {
             await Promise.all(updatePromises);
             showNotification('ڕیزبەندی دیزاینی جۆرەکە پاشەکەوت کرا', 'success');
-            clearProductCache(categoryId); // Cacheya vê kategoriyê paqij bike (کاشی ئەم جۆرە پاک بکەوە)
+            clearProductCache(categoryId);
         } catch (error) {
             console.error("Error saving category layout:", error);
             showNotification('هەڵەیەک لە پاشەکەوتکردن ڕوویدا', 'error');
@@ -1343,173 +1339,15 @@ window.AdminLogic = {
         }
     },
 
-    // Ev guhdarên (listeners) ji bo hemî bişkokên nû yên di 'adminCategoryLayoutManagement' de saz dike
-    // (ئەمە گوێگرەکان بۆ هەموو دوگمە نوێیەکانی ناو 'adminCategoryLayoutManagement' دادەمەزرێنێت)
-    setupCategoryLayoutEventListeners: function() {
+    // === 6. FONKSIYONA GUHDARAN / فەنکشنی گوێگرەکان ===
+
+    // Ev fonksiyon hemû guhdarên kevn (Home, Product, hwd.) saz dike
+    // (ئەم فەنکشنە هەموو گوێگرە کۆنەکان دادەمەزرێنێت)
+    setupAdminEventListeners: function() {
+        if (this.listenersAttached) return;
         const self = this;
-
-        // Dema ku admin kategoriyekê hildibijêre
-        // (کاتێک ئەدمین جۆرێک هەڵدەبژێرێت)
-        categoryLayoutSelect.addEventListener('change', (e) => {
-            const categoryId = e.target.value;
-            const categoryName = e.target.options[e.target.selectedIndex].dataset.name;
-            if (categoryId) {
-                categoryLayoutTitle.textContent = `ڕێکخستنی دیزاینی: ${categoryName}`;
-                addCategoryLayoutSectionBtn.disabled = false;
-                saveCategoryLayoutBtn.disabled = false;
-                self.renderCategoryLayoutAdmin(categoryId); // Lîsteya layoutê ji bo vê kategoriyê bar bike (لیستی دیزاین بۆ ئەم جۆرە بار بکە)
-            } else {
-                categoryLayoutTitle.textContent = 'ڕێکخستنی دیزاینی: [هیچ جۆرێک هەڵنەبژێردراوە]';
-                addCategoryLayoutSectionBtn.disabled = true;
-                saveCategoryLayoutBtn.disabled = true;
-                categoryLayoutListContainer.innerHTML = '<p style="padding: 10px; text-align: center;">...سەرەتا جۆرێک هەڵبژێرە</p>';
-                self.currentEditingLayoutCategoryId = null;
-            }
-        });
         
-        // Dema ku li bişkoka "Zêdekirina Beş" (ji bo kategoriyê) tê klîkkirin
-        // (کاتێک کلیک لە دوگمەی "زیادکردنی بەش" (بۆ جۆرەکان) دەکرێت)
-        addCategoryLayoutSectionBtn.addEventListener('click', () => {
-            const form = document.getElementById('addCategoryLayoutSectionForm');
-            if (form) {
-                form.reset();
-                form.querySelector('#specificItemGroupSelectContainer_Cat').style.display = 'none';
-                form.querySelector('#specificCategorySelectContainer_Cat').style.display = 'none';
-                openPopup('addCategoryLayoutSectionModal', 'modal');
-            } else {
-                console.error("Form 'addCategoryLayoutSectionForm' nehate dîtin!");
-            }
-        });
-
-        // Dema ku li bişkoka "Tomarkirina Rêzbendiyê" (ji bo kategoriyê) tê klîkkirin
-        // (کاتێک کلیک لە دوگمەی "پاشەکەوتکردنی ڕیزبەندی" (بۆ جۆرەکان) دەکرێت)
-        saveCategoryLayoutBtn.addEventListener('click', () => self.saveCategoryLayout());
-
-        // Ji bo bişkokên jêbirinê yên di nav lîsteya layouta kategoriyê de
-        // (بۆ دوگمەکانی سڕینەوەی ناو لیستی دیزاینی جۆرەکان)
-        categoryLayoutListContainer.addEventListener('click', (e) => {
-            const deleteBtn = e.target.closest('.delete-category-layout-item-btn');
-            if(deleteBtn) {
-                const itemId = deleteBtn.closest('.layout-item').dataset.id;
-                self.deleteCategoryLayoutItem(itemId);
-            }
-        });
-
-        // Dema ku cureyê beşê nû (ji bo kategoriyê) tê guhertin
-        // (کاتێک جۆری بەشە نوێیەکە (بۆ جۆرەکان) دەگۆڕدرێت)
-        const newCatSectionType = document.getElementById('newCategoryLayoutSectionType');
-        if (newCatSectionType) {
-            newCatSectionType.addEventListener('change', async (e) => {
-                const type = e.target.value;
-                const groupContainer = document.getElementById('specificItemGroupSelectContainer_Cat');
-                const categoryContainer = document.getElementById('specificCategorySelectContainer_Cat');
-                const groupSelect = document.getElementById('specificItemGroupId_Cat');
-                const mainCatSelect = document.getElementById('newSectionMainCategory_Cat');
-                const groupLabel = document.getElementById('specificItemGroupLabel_Cat');
-
-                groupSelect.required = false;
-                mainCatSelect.required = false;
-                groupContainer.style.display = 'none';
-                categoryContainer.style.display = 'none';
-
-                if (type === 'promo_slider' || type === 'brands' || type === 'single_shortcut_row') {
-                    groupContainer.style.display = 'block';
-                    groupSelect.required = true;
-                    groupSelect.innerHTML = '<option value="">...بارکردن</option>';
-                    
-                    let collectionRef, orderField, nameFieldAccessor;
-                    if (type === 'promo_slider') {
-                        collectionRef = promoGroupsCollection;
-                        groupLabel.textContent = 'کام گرووپی سلایدەر؟';
-                        orderField = 'name';
-                        nameFieldAccessor = (data) => data.name;
-                    } else if (type === 'brands') {
-                        collectionRef = brandGroupsCollection;
-                        groupLabel.textContent = 'کام گرووپی براند؟';
-                        orderField = 'name';
-                        nameFieldAccessor = (data) => data.name;
-                    } else { 
-                        collectionRef = shortcutRowsCollection;
-                        groupLabel.textContent = 'کام ڕیزی کارت؟';
-                        orderField = 'order';
-                        nameFieldAccessor = (data) => data.title.ku_sorani;
-                    }
-                    
-                    const snapshot = await getDocs(query(collectionRef, orderBy(orderField)));
-                    groupSelect.innerHTML = `<option value="" disabled selected>-- گرووپ/ڕیزێک هەڵبژێرە --</option>`;
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        const name = nameFieldAccessor(data);
-                        groupSelect.innerHTML += `<option value="${doc.id}">${name}</option>`;
-                    });
-                }
-                // Ev êdî ne pêwîst e, ji ber ku 'single_category_row' tenê ji bo Home ye
-                // (ئەمە ئیتر پێویست نییە، چونکە 'single_category_row' تەنها بۆ پەرەی سەرەکییە)
-            });
-        }
-        
-        // Dema ku forma "Zêdekirina Beşê" (ji bo kategoriyê) tê şandin
-        // (کاتێک فۆڕمی "زیادکردنی بەش" (بۆ جۆرەکان) پڕ دەکرێتەوە)
-        const catLayoutForm = document.getElementById('addCategoryLayoutSectionForm');
-        if (catLayoutForm) {
-            catLayoutForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const categoryId = self.currentEditingLayoutCategoryId;
-                if (!categoryId) {
-                    showNotification('هەڵە: هیچ جۆرێک هەڵنەبژێردراوە!', 'error');
-                    return;
-                }
-
-                const type = document.getElementById('newCategoryLayoutSectionType').value;
-                const nameInput = document.getElementById('newCategoryLayoutSectionName').value;
-                
-                let nameObj = { ku_sorani: nameInput, ku_badini: nameInput, ar: nameInput };
-                let specificIdData = {};
-                
-                if (type === 'promo_slider' || type === 'brands') {
-                    const groupId = document.getElementById('specificItemGroupId_Cat').value;
-                    if (!groupId) { showNotification('تکایە گرووپێک هەڵبژێرە', 'error'); return; }
-                    specificIdData = { groupId };
-                } else if (type === 'single_shortcut_row') {
-                    const rowId = document.getElementById('specificItemGroupId_Cat').value;
-                    if (!rowId) { showNotification('تکایە ڕیزێک هەڵبژێرە', 'error'); return; }
-                    specificIdData = { rowId };
-                }
-                // 'subcategories' û 'all_products_for_category' hewceyê IDya taybet nînin
-                // ('subcategories' و 'all_products_for_category' پێویستیان بە IDی تایبەت نییە)
-
-                try {
-                    const layoutCollectionRef = collection(db, 'categories', categoryId, 'layout');
-                    const q = query(layoutCollectionRef, orderBy('order', 'desc'), limit(1));
-                    const lastDocSnap = await getDocs(q);
-                    const lastOrder = lastDocSnap.empty ? 0 : lastDocSnap.docs[0].data().order;
-                    
-                    const newSectionData = {
-                        name: nameObj,
-                        type,
-                        order: lastOrder + 1,
-                        enabled: true,
-                        ...specificIdData
-                    };
-
-                    await addDoc(layoutCollectionRef, newSectionData);
-                    showNotification('بەشی نوێ زیادکرا', 'success');
-                    closeCurrentPopup();
-                    clearProductCache(categoryId);
-                } catch (error) {
-                    console.error("Error adding new category layout section:", error);
-                    showNotification('هەڵەیەک ڕوویدا', 'error');
-                }
-            });
-        }
-
-        // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
-
-    
-        // === START: GUHDARÊN KEVN / گوێگرە کۆنەکان ===
-        // (Guhdarên ji bo Home Layout û formên din)
-        // (گوێگرەکانی تایبەت بە دیزاینی پەرەی سەرەکی و فۆڕمەکانی تر)
-        
+        // --- GUHDARÊN HOME LAYOUT / گوێگرەکانی دیزاینی پەرەی سەرەki ---
         document.getElementById('saveLayoutBtn')?.addEventListener('click', () => self.saveHomeLayout());
         
         document.getElementById('addHomeSectionBtn')?.addEventListener('click', () => {
@@ -1676,7 +1514,7 @@ window.AdminLogic = {
         });
 
 
-        // --- Other listeners ---
+        // --- GUHDARÊN FORMÊN DIN / گوێگرەکانی فۆڕمەکانی تر ---
         
         document.getElementById('addProductBtn').onclick = () => {
             setEditingProductId(null);
@@ -2237,6 +2075,165 @@ window.AdminLogic = {
         });
         // --- END: NEW EVENT LISTENER FOR SHORTCUT ROWS ---
 
+        // Ev nîşana wê yekê ye ku guhdarên kevn hatine saz kirin
+        // (ئەمە نیشانەی ئەوەیە کە گوێگرە کۆنەکان دامەزراون)
         this.listenersAttached = true;
+    },
+    
+    // Ev fonksiyon tenê guhdarên nû yên ji bo Category Layout saz dike
+    // (ئەم فەنکشنە تەنها گوێگرە نوێیەکانی تایبەت بە دیزاینی جۆرەکان دادەمەزرێنێت)
+    setupCategoryLayoutEventListeners: function() {
+        const self = this;
+
+        // Dema ku admin kategoriyekê hildibijêre
+        // (کاتێک ئەدمین جۆرێک هەڵدەبژێرێت)
+        categoryLayoutSelect.addEventListener('change', (e) => {
+            const categoryId = e.target.value;
+            const categoryName = e.target.options[e.target.selectedIndex].dataset.name;
+            if (categoryId) {
+                categoryLayoutTitle.textContent = `ڕێکخستنی دیزاینی: ${categoryName}`;
+                addCategoryLayoutSectionBtn.disabled = false;
+                saveCategoryLayoutBtn.disabled = false;
+                self.renderCategoryLayoutAdmin(categoryId); // Lîsteya layoutê bar bike (لیستی دیزاین بار بکە)
+            } else {
+                categoryLayoutTitle.textContent = 'ڕێکخستنی دیزاینی: [هیچ جۆرێک هەڵنەبژێردراوە]';
+                addCategoryLayoutSectionBtn.disabled = true;
+                saveCategoryLayoutBtn.disabled = true;
+                categoryLayoutListContainer.innerHTML = '<p style="padding: 10px; text-align: center;">...سەرەتا جۆرێک هەڵبژێرە</p>';
+                self.currentEditingLayoutCategoryId = null;
+            }
+        });
+        
+        // Dema ku li bişkoka "Zêdekirina Beş" tê klîkkirin
+        // (کاتێک کلیک لە دوگمەی "زیادکردنی بەش" دەکرێت)
+        addCategoryLayoutSectionBtn.addEventListener('click', () => {
+            const form = document.getElementById('addCategoryLayoutSectionForm');
+            if (form) {
+                form.reset();
+                form.querySelector('#specificItemGroupSelectContainer_Cat').style.display = 'none';
+                form.querySelector('#specificCategorySelectContainer_Cat').style.display = 'none';
+                openPopup('addCategoryLayoutSectionModal', 'modal');
+            } else {
+                console.error("Form 'addCategoryLayoutSectionForm' nehate dîtin!");
+            }
+        });
+
+        // Dema ku li bişkoka "Tomarkirina Rêzbendiyê" tê klîkkirin
+        // (کاتێک کلیک لە دوگمەی "پاشەکەوتکردنی ڕیزبەندی" دەکرێت)
+        saveCategoryLayoutBtn.addEventListener('click', () => self.saveCategoryLayout());
+
+        // Ji bo bişkokên jêbirinê
+        // (بۆ دوگمەکانی سڕینەوە)
+        categoryLayoutListContainer.addEventListener('click', (e) => {
+            const deleteBtn = e.target.closest('.delete-category-layout-item-btn');
+            if(deleteBtn) {
+                const itemId = deleteBtn.closest('.layout-item').dataset.id;
+                self.deleteCategoryLayoutItem(itemId);
+            }
+        });
+
+        // Dema ku cureyê beşê nû tê guhertin
+        // (کاتێک جۆری بەشە نوێیەکە دەگۆڕدرێت)
+        const newCatSectionType = document.getElementById('newCategoryLayoutSectionType');
+        if (newCatSectionType) {
+            newCatSectionType.addEventListener('change', async (e) => {
+                const type = e.target.value;
+                const groupContainer = document.getElementById('specificItemGroupSelectContainer_Cat');
+                const categoryContainer = document.getElementById('specificCategorySelectContainer_Cat');
+                const groupSelect = document.getElementById('specificItemGroupId_Cat');
+                const mainCatSelect = document.getElementById('newSectionMainCategory_Cat');
+                const groupLabel = document.getElementById('specificItemGroupLabel_Cat');
+
+                groupSelect.required = false;
+                mainCatSelect.required = false;
+                groupContainer.style.display = 'none';
+                categoryContainer.style.display = 'none';
+
+                if (type === 'promo_slider' || type === 'brands' || type === 'single_shortcut_row') {
+                    groupContainer.style.display = 'block';
+                    groupSelect.required = true;
+                    groupSelect.innerHTML = '<option value="">...بارکردن</option>';
+                    
+                    let collectionRef, orderField, nameFieldAccessor;
+                    if (type === 'promo_slider') {
+                        collectionRef = promoGroupsCollection;
+                        groupLabel.textContent = 'کام گرووپی سلایدەر؟';
+                        orderField = 'name';
+                        nameFieldAccessor = (data) => data.name;
+                    } else if (type === 'brands') {
+                        collectionRef = brandGroupsCollection;
+                        groupLabel.textContent = 'کام گرووپی براند؟';
+                        orderField = 'name';
+                        nameFieldAccessor = (data) => data.name;
+                    } else { 
+                        collectionRef = shortcutRowsCollection;
+                        groupLabel.textContent = 'کام ڕیزی کارت؟';
+                        orderField = 'order';
+                        nameFieldAccessor = (data) => data.title.ku_sorani;
+                    }
+                    
+                    const snapshot = await getDocs(query(collectionRef, orderBy(orderField)));
+                    groupSelect.innerHTML = `<option value="" disabled selected>-- گرووپ/ڕیزێک هەڵبژێرە --</option>`;
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const name = nameFieldAccessor(data);
+                        groupSelect.innerHTML += `<option value="${doc.id}">${name}</option>`;
+                    });
+                }
+            });
+        }
+        
+        // Dema ku forma "Zêdekirina Beşê" tê şandin
+        // (کاتێک فۆڕمی "زیادکردنی بەش" پڕ دەکرێتەوە)
+        const catLayoutForm = document.getElementById('addCategoryLayoutSectionForm');
+        if (catLayoutForm) {
+            catLayoutForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const categoryId = self.currentEditingLayoutCategoryId;
+                if (!categoryId) {
+                    showNotification('هەڵە: هیچ جۆرێک هەڵنەبژێردراوە!', 'error');
+                    return;
+                }
+
+                const type = document.getElementById('newCategoryLayoutSectionType').value;
+                const nameInput = document.getElementById('newCategoryLayoutSectionName').value;
+                
+                let nameObj = { ku_sorani: nameInput, ku_badini: nameInput, ar: nameInput };
+                let specificIdData = {};
+                
+                if (type === 'promo_slider' || type === 'brands') {
+                    const groupId = document.getElementById('specificItemGroupId_Cat').value;
+                    if (!groupId) { showNotification('تکایە گرووپێک هەڵبژێرە', 'error'); return; }
+                    specificIdData = { groupId };
+                } else if (type === 'single_shortcut_row') {
+                    const rowId = document.getElementById('specificItemGroupId_Cat').value;
+                    if (!rowId) { showNotification('تکایە ڕیزێک هەڵبژێرە', 'error'); return; }
+                    specificIdData = { rowId };
+                }
+
+                try {
+                    const layoutCollectionRef = collection(db, 'categories', categoryId, 'layout');
+                    const q = query(layoutCollectionRef, orderBy('order', 'desc'), limit(1));
+                    const lastDocSnap = await getDocs(q);
+                    const lastOrder = lastDocSnap.empty ? 0 : lastDocSnap.docs[0].data().order;
+                    
+                    const newSectionData = {
+                        name: nameObj,
+                        type,
+                        order: lastOrder + 1,
+                        enabled: true,
+                        ...specificIdData
+                    };
+
+                    await addDoc(layoutCollectionRef, newSectionData);
+                    showNotification('بەشی نوێ زیادکرا', 'success');
+                    closeCurrentPopup();
+                    clearProductCache(categoryId);
+                } catch (error) {
+                    console.error("Error adding new category layout section:", error);
+                    showNotification('هەڵەیەک ڕوویدا', 'error');
+                }
+            });
+        }
     }
 };
