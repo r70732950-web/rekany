@@ -50,6 +50,11 @@ export const announcementsCollection = collection(db, "announcements");
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
 export const shortcutRowsCollection = collection(db, "shortcut_rows");
+// === START: KODA NÛ / کۆدی نوێ ===
+// Em collectiona nû ji bo dîzaynên kategoriyan export dikin
+// ئێمە کۆڵەکشنی نوێ بۆ دیزاینی جۆرەکان ئێکسپۆرت دەکەین
+export const categoryLayoutsCollection = collection(db, 'category_layouts');
+// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
 // Translations Export
 export const translations = {
@@ -81,7 +86,7 @@ export const translations = {
         profile_address: "ناونیشان:",
         profile_phone: "ژمارەی تەلەفۆن:",
         save_button: "پاشەکەوتکردن",
-        nav_home: "سەرەکی",
+        nav_home: "سەرەki",
         nav_categories: "جۆرەکان",
         nav_cart: "سەبەتە",
         nav_profile: "پڕۆفایل",
@@ -165,7 +170,7 @@ export const translations = {
         profile_address: "ناڤ و نیشان:",
         profile_phone: "ژمارا تەلەفونێ:",
         save_button: "پاشەکەفتکرن",
-        nav_home: "سەرەکی",
+        nav_home: "سەرەki",
         nav_categories: "جۆر",
         nav_cart: "سەلک",
         nav_profile: "پروفایل",
@@ -360,7 +365,7 @@ export const clearSearchBtn = document.getElementById('clearSearchBtn');
 export const loginForm = document.getElementById('loginForm');
 export const productForm = document.getElementById('productForm');
 export const formTitle = document.getElementById('formTitle');
-export const imageInputsContainer = document.getElementById('imageInputsContainer');
+export const imageInputsContainer = document.getElementById('imageUploadContainer'); // <-- *** ÇAKKIRÎ / ڕاستکرایەوە ***
 export const loader = document.getElementById('loader');
 export const cartBtn = document.getElementById('cartBtn');
 export const cartItemsContainer = document.getElementById('cartItemsContainer');
@@ -396,6 +401,12 @@ export const termsAndPoliciesBtn = document.getElementById('termsAndPoliciesBtn'
 export const termsSheet = document.getElementById('termsSheet');
 export const termsContentContainer = document.getElementById('termsContentContainer');
 export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer'); // Main page sub-subcat container
+// === START: KODA NÛ / کۆدی نوێ ===
+// Em elementa nû ji bo rûpela kategoriyê export dikin
+// ئێمە توخمە نوێیەکە بۆ پەڕەی جۆرەکە ئێکسپۆرت دەکەین
+export const categoryPageSectionsContainer = document.getElementById('categoryPageSectionsContainer');
+// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+
 
 // === Admin UI Elements ===
 export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
@@ -433,6 +444,19 @@ export const addHomeSectionBtn = document.getElementById('addHomeSectionBtn');
 export const addHomeSectionModal = document.getElementById('addHomeSectionModal');
 export const addHomeSectionForm = document.getElementById('addHomeSectionForm');
 
+// === START: KODA NÛ / کۆدی نوێ ===
+// Em elementên nû yên UI ji bo dîzayna kategoriyan export dikin
+// ئێمە توخمە نوێیەکانی UI بۆ دیزاینی جۆرەکان ئێکسپۆرت دەکەین
+export const categoryLayoutSelect = document.getElementById('categoryLayoutSelect');
+export const categoryLayoutEditorContainer = document.getElementById('categoryLayoutEditorContainer');
+export const addCategorySectionBtn = document.getElementById('addCategorySectionBtn');
+export const categoryLayoutListContainer = document.getElementById('categoryLayoutListContainer');
+export const saveCategoryLayoutBtn = document.getElementById('saveCategoryLayoutBtn');
+export const addCategorySectionModal = document.getElementById('addCategorySectionModal');
+export const addCategorySectionForm = document.getElementById('addCategorySectionForm');
+// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+
+
 
 // *** Populate globalAdminTools here ***
 // Moved from app-core.js to ensure availability before admin.js (defer) runs
@@ -450,6 +474,12 @@ window.globalAdminTools = {
     // Collections needed by admin.js
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
+    // === START: KODA NÛ / کۆدی نوێ ===
+    // Em collectiona nû lê zêde dikin
+    // ئێمە کۆڵەکشنی نوێ زیاد دەکەین
+    categoryLayoutsCollection,
+    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+
 
     // Core State Accessors/Mutators needed by admin.js
     setEditingProductId: (id) => { state.editingProductId = id; },

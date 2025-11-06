@@ -6,6 +6,11 @@ import {
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
+    // === START: KODA NÛ / کۆدی نوێ ===
+    // Em collectiona nû ji bo dîzaynên kategoriyan import dikin
+    // ئێمە کۆڵەکشنی نوێ بۆ دیزاینی جۆرەکان هاوردە دەکەین
+    categoryLayoutsCollection,
+    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     translations, state,
     CART_KEY, FAVORITES_KEY, PROFILE_KEY, PRODUCTS_PER_PAGE,
 } from './app-setup.js';
@@ -91,7 +96,7 @@ async function fetchCategories() {
 }
 
 async function fetchSubcategories(categoryId) {
-    if (categoryId === 'all') return []; // Ev rast e, ji bo "Home" divê em ti jêr-kategorî nîşan nedin (ئەمە دروستە، بۆ "سەرەکی" پێویست ناکات هیچ جۆرێکی لاوەکی نیشان بدەین)
+    if (categoryId === 'all') return []; // Ev rast e, ji bo "Home" divê em ti jêr-kategorî nîşan nedin (ئەمە دروستە، بۆ "سەرەki" پێویست ناکات هیچ جۆرێکی لاوەکی نیشان بدەین)
     try {
         const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
         const q = query(subcategoriesQuery, orderBy("order", "asc"));
@@ -318,6 +323,52 @@ async function fetchHomeLayout() {
         return [];
     }
 }
+
+// === START: KODA NÛ / کۆدی نوێ ===
+/**
+ * Dîzayna xwerû ya ji bo rûpelek kategoriyek taybetî tîne.
+ * Heke dîzayn tune be, `null` vedigerîne.
+ *
+ * دیزاینی تایبەتی پەڕەیەکی جۆرێکی دیاریکراو دەهێنێت.
+ * ئەگەر دیزاین بوونی نەبێت، `null` دەگەڕێنێتەوە.
+ */
+async function fetchCategoryLayout(categoryId) {
+    if (!categoryId) return null; // Kontrolek ewlehiyê
+
+    try {
+        // 1. Kontrol bike ka belgeyek dîzayna xwerû ji bo vê kategoriyê heye yan na
+        // 1. پشکنین دەکەین بزانین ئایا دۆکیومێنتێکی دیزاینی تایبەت بۆ ئەم جۆرە هەیە یان نا
+        const layoutDocRef = doc(categoryLayoutsCollection, categoryId);
+        const layoutDocSnap = await getDoc(layoutDocRef);
+
+        if (!layoutDocSnap.exists() || !layoutDocSnap.data().hasCustomLayout) {
+            // Ji bo vê kategoriyê dîzaynek xwerû nehatiye diyarkirin
+            // دیزاینێکی تایبەت بۆ ئەم جۆرە دانەنراوە
+            return null; 
+        }
+
+        // 2. Heke hebe, hêmanên dîzaynê yên çalak bîne
+        // 2. ئەگەر هەبوو، توخمە چالاکەکانی دیزاینەکە بهێنە
+        const layoutItemsRef = collection(db, 'category_layouts', categoryId, 'layout');
+        const q = query(layoutItemsRef, where('enabled', '==', true), orderBy('order', 'asc'));
+        const layoutSnapshot = await getDocs(q);
+
+        if (layoutSnapshot.empty) {
+            // Belgeya dîzaynê heye, lê ti hêman lê nehatine zêdekirin an çalak kirin
+            // دۆکیومێنتی دیزاینەکە هەیە، بەڵام هیچ توخمێکی بۆ زیاد نەکراوە یان چالاک نەکراوە
+            return null; 
+        }
+
+        // Lîsteya hêmanên dîzaynê vegere
+        // لیستی توخمەکانی دیزاینەکە بگەڕێنەوە
+        return layoutSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    } catch (error) {
+        console.error(`Error fetching category layout for ${categoryId}:`, error);
+        return null; // Li ser çewtiyê `null` vegere
+    }
+}
+// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
 async function fetchPromoGroupCards(groupId) {
     try {
@@ -634,9 +685,9 @@ export function saveCurrentScrollPositionCore() {
 
     // Only save scroll position for the main page filter state
     // Tenê ji bo rûpela serekî (mainPage) û dema ku ew filterek e (ne popup) tomar bike
-    // تەنها بۆ لاپەڕەی سەرەکی و کاتێک فلتەرە (نەک پۆپئەپ) پاشەکەوتی بکە
+    // تەنها بۆ لاپەڕەی سەرەki و کاتێک فلتەرە (نەک پۆپئەپ) پاشەکەوتی بکە
     if (activePage && state.currentPageId === 'mainPage' && currentState && !currentState.type) {
-        // scrollTop a elementa rûpelê tomar bike (scrollTopـی توخمی لاپەڕەکە پاشەکەوت بکە)
+        // scrollTop a elementa rûpelê tomar bike (scrollTopـی توخمە لاپەڕەکە پاشەکەوت بکە)
         history.replaceState({ ...currentState, scroll: activePage.scrollTop }, '');
     }
 }
@@ -772,6 +823,9 @@ export {
     handleLogin, handleLogout, // Authentication
     fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, // Data fetching
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
+    // === START: KODA NÛ / کۆدی نوێ ===
+    fetchCategoryLayout, // Fonksiyona nû export bike (فەنکشنە نوێیەکە ئێکسپۆرت بکە)
+    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     // setLanguageCore exported where it's defined
     requestNotificationPermissionCore,
     // checkNewAnnouncementsCore exported where it's defined
@@ -783,6 +837,9 @@ export {
     // *** Export Firestore functions needed by app-ui.js and admin.js ***
     db, // <-- db لێرە زیادکرا
     productsCollection,
+    // === START: KODA NÛ / کۆدی نوێ ===
+    categoryLayoutsCollection, // Collectiona nû export bike (کۆڵەکشنە نوێیەکە ئێکسپۆرت بکە)
+    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
     query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction
 };
