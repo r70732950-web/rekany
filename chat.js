@@ -37,8 +37,12 @@ export function initPhoneAuth() {
     try {
         // Em piştrast dikin ku konteynir tenê carekê tê çêkirin
         // دڵنیا دەبینەوە کە کۆنتەینەرەکە تەنها یەک جار دروست دەکرێت
-        if (!document.getElementById('recaptcha-container')) {
-            const recaptchaContainer = document.createElement('div');
+        
+        // <-- **ÇARESERÎ 1: Divê em elementê bigirin, ne tenê wê çêbikin**
+        // <-- **چارەسەر ١: پێویستە توخمەکە بهێنین، نەک تەنها دروستی بکەین**
+        let recaptchaContainer = document.getElementById('recaptcha-container');
+        if (!recaptchaContainer) {
+            recaptchaContainer = document.createElement('div');
             recaptchaContainer.id = 'recaptcha-container';
             recaptchaContainer.style.position = 'fixed';
             recaptchaContainer.style.bottom = '0';
@@ -53,7 +57,9 @@ export function initPhoneAuth() {
             window.recaptchaVerifier.clear(); // Ya kevn paqij bike
         }
 
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        // <-- **ÇARESERÎ 2: Em 'recaptchaContainer' (element) didinê, ne 'recaptcha-container' (string)**
+        // <-- **چارەسەر ٢: ئێمە 'recaptchaContainer' (توخمەکە) دەدەینێ، نەک 'recaptcha-container' (ناوەکە)**
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaContainer, {
             'size': 'invisible', // reCAPTCHAya nedîtbar
             'callback': (response) => {
                 // reCAPTCHA çareser bû, destûrê dide şandina SMSê.
