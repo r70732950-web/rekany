@@ -4,13 +4,22 @@
 import {
     // *** گۆڕانکاری لێرە: db لێرە هاوردەکراوە ***
     db, auth, messaging,
+    
+    // <-- **ÇARESERÎ 1: Em van fonksiyonan ji app-setup import dikin**
+    // <-- **چارەسەر ١: ئێمە ئەم فانکشنانە لە app-setup هاوردە دەکەین**
+    signInWithEmailAndPassword, onAuthStateChanged, signOut,
+
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
     translations, state,
     CART_KEY, FAVORITES_KEY, PROFILE_KEY, PRODUCTS_PER_PAGE,
 } from './app-setup.js';
 
-import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+// <-- **ÇARESERÎ 2: Em van rêzên hanê RADIKIN ji ber ku êdî ne pêwîst in**
+// <-- **چارەسەر ٢: ئێمە ئەم دێڕانە لادەبەین چونکە ئیتر پێویست نین**
+// import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+// <-- **(ئەم دێڕە سڕایەوە)**
+
 import {
     enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc,
     onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where,
