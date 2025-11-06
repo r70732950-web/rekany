@@ -35,7 +35,16 @@ export const storage = getStorage(app);
 // === START: KODA NÛ / کۆدی نوێ ===
 // Em fonksiyonên Authentication ên ku em ê hewce bikin export dikin
 // ئێمە فەنکشنەکانی Authentication کە پێویستمان پێیان دەبێت هەناردە دەکەین
-export { RecaptchaVerifier, signInWithPhoneNumber };
+
+// <-- **ÇARESERÎ: Em hemî fonksiyonên Auth ên pêwîst li vir export dikin**
+// <-- **چارەسەر: ئێمە هەموو فانکشنە پێویستەکانی Auth لێرە هەناردە دەکەین**
+export { 
+    RecaptchaVerifier, 
+    signInWithPhoneNumber,
+    signInWithEmailAndPassword, // <-- Ev hate zêdekirin (بۆ app-core.js)
+    onAuthStateChanged,         // <-- Ev hate zêdekirin (بۆ app-core.js)
+    signOut                     // <-- Ev hate zêdekirin (بۆ app-core.js)
+};
 // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
 
@@ -248,7 +257,7 @@ export const translations = {
     ar: {
         search_placeholder: "البحث باسم المنتج...",
         admin_login_title: "تسجيل دخول المسؤول",
-        email_label: "البريد الإلكتروني:",
+        email_label: "البريد الإلكتر الإلكتروني:",
         password_label: "كلمة المرور:",
         login_button: "تسجيل الدخول",
         cart_title: "سلة التسوق",
