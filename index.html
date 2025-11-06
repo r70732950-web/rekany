@@ -21,6 +21,47 @@
     <meta name="apple-mobile-web-app-title" content="Maten Store">
     <link rel="apple-touch-icon" href="images/icons/icon-512x512.png">
 
+    <!-- ===== START: KODA NÛ JI BO ŞÊWAZA CHATÊ ===== -->
+    <!-- ===== دەستپێک: کۆدی نوێ بۆ ستایلی چات ===== -->
+    <style>
+        /* Stîl ji bo peyamên chatê */
+        /* ستایل بۆ نامەکانی چات */
+        #chatMessagesContainer {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 10px;
+        }
+        .chat-message {
+            padding: 10px 14px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+        .chat-message.user {
+            background-color: var(--primary-color);
+            color: white;
+            border-bottom-right-radius: 4px;
+            align-self: flex-end; /* Bikarhêner li rastê ye */
+        }
+        .chat-message.admin {
+            background-color: var(--medium-gray);
+            color: var(--text-color);
+            border-bottom-left-radius: 4px;
+            align-self: flex-start; /* Admin li çepê ye */
+        }
+        .chat-message-time {
+            font-size: 10px;
+            color: var(--dark-gray);
+            margin-top: 4px;
+        }
+        .chat-message.user .chat-message-time {
+            color: #bdc8d6;
+            text-align: left;
+        }
+    </style>
+    <!-- ===== DAWÎ: KODA NÛ ===== -->
 </head>
 <body>
     <div class="app-container">
@@ -99,7 +140,10 @@
                 <div id="emptyCartMessage" class="cart-empty" style="display:none;"><i class="fas fa-shopping-basket"></i><p data-translate-key="cart_empty">سەبەتەکەت بەتاڵە</p></div>
                 <div id="cartTotal" class="cart-total" style="display:none;"><span data-translate-key="total_price">کۆی گشتی:</span> <span id="totalAmount">0</span> د.ع.</div>
 
-                <div id="cartActions" style="display:none; margin-top: 15px;"></div>
+                <div id="cartActions" style="display:none; margin-top: 15px;">
+                    <!-- Ev beş dê ji hêla app-ui.js ve were dagirtin -->
+                    <!-- ئەم بەشە لەلایەن app-ui.jsـەوە پڕ دەکرێتەوە -->
+                </div>
             </div>
         </div>
 
@@ -197,6 +241,75 @@
          </div>
       </div>
 
+        <!-- ===== START: KODA NÛ JI BO CHATÊ ===== -->
+        <!-- ===== دەستپێک: کۆدی نوێ بۆ چات ===== -->
+        
+        <!-- 1. Popupa Têketina Hejmara Têlefonê -->
+        <!-- 1. پۆپئەپی داخڵکردنی ژمارەی مۆبایل -->
+        <div id="phoneLoginModal" class="modal">
+            <div class="modal-content" style="max-width: 350px;">
+                <span class="close" aria-label="Close">&times;</span>
+                <h2 style="text-align: center; margin-bottom: 18px;" data-translate-key="phone_login_title">پشتڕاستکردنەوەی ژمارە</h2>
+                <p style="text-align: center; color: var(--text-light); margin-bottom: 15px; font-size: 14px;" data-translate-key="phone_login_desc">بۆ ناردنی نامە، تکایە ژمارەی مۆبایلەکەت داخڵ بکە بۆ ناردنی کۆد.</p>
+                <form id="phoneLoginForm">
+                    <div class="form-group">
+                        <label for="phoneNumber" data-translate-key="phone_number_label">ژمارەی مۆبایل (بە کۆدی وڵات):</label>
+                        <input type="tel" id="phoneNumber" value="+964" placeholder="+9647501234567" required style="direction: ltr; text-align: left; font-size: 16px;">
+                    </div>
+                    <button type="submit" data-translate-key="send_code_button">ناردنی کۆد</button>
+                    <div id="phoneLoginError" style="color: var(--danger-color); text-align: center; margin-top: 10px; display: none;"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 2. Popupa Piştrastkirina Kodê -->
+        <!-- 2. پۆپئەپی پشتڕاستکردنەوەی کۆد -->
+        <div id="verifyCodeModal" class="modal">
+            <div class="modal-content" style="max-width: 350px;">
+                <span class="close" aria-label="Close">&times;</span>
+                <h2 style="text-align: center; margin-bottom: 18px;" data-translate-key="verify_code_title">کۆدەکە داخڵ بکە</h2>
+                <p style="text-align: center; color: var(--text-light); margin-bottom: 15px; font-size: 14px;" data-translate-key="verify_code_desc">کۆدێکی ٦ ژمارەیی بۆ ژمارەکەت نێردرا.</p>
+                <form id="verifyCodeForm">
+                    <div class="form-group">
+                        <label for="verificationCode" data-translate-key="code_label">کۆدی ٦ ژمارەیی:</label>
+                        <input type="number" id="verificationCode" placeholder="123456" required style="direction: ltr; text-align: center; font-size: 1.2rem; letter-spacing: 5px;">
+                    </div>
+                    <button type="submit" data-translate-key="verify_button">پشتڕاستکردنەوە</button>
+                    <div id="verifyCodeError" style="color: var(--danger-color); text-align: center; margin-top: 10px; display: none;"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 3. Sheeta Chatê (ji bo Bikarhêner) -->
+        <!-- 3. شاشەی چات (بۆ بەکارهێنەر) -->
+        <div id="chatSheet" class="bottom-sheet">
+            <div class="sheet-header">
+                <span class="sheet-handle"></span>
+                <h2 class="sheet-title"><i class="fas fa-comments"></i> <span data-translate-key="my_messages_title">نامەکانی من</span></h2>
+                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
+            </div>
+            <!-- Konteynera ji bo peyaman -->
+            <!-- کۆنتەینەری نامەکان -->
+            <div id="chatMessagesContainer" class="sheet-content" style="padding-bottom: 80px;">
+                <!-- Peyam dê li vir werin barkirin... -->
+                <!-- نامەکان لێرە باردەکرێن... -->
+                 <div id="chatLoadingSpinner" style="text-align: center; padding: 30px; color: var(--dark-gray);">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                </div>
+            </div>
+            <!-- Forma Şandina Peyamê -->
+            <!-- فۆڕمی ناردنی نامە -->
+            <form id="chatMessageForm" style="position: absolute; bottom: 0; left: 0; right: 0; background: var(--section-bg); padding: 10px 15px; border-top: 1px solid var(--section-border); display: flex; gap: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom));">
+                <input type="text" id="chatMessageInput" placeholder="نامەکەت بنووسە..." class="search-input" style="flex-grow: 1; background: var(--light-gray); height: 45px;">
+                <button type="submit" class="header-icon-btn" style="background: var(--primary-color); color: white; border-radius: 8px; width: 45px; height: 45px; flex-shrink: 0;">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+        <!-- ===== DAWÎ: KODA NÛ JI BO CHATÊ ===== -->
+        <!-- ===== کۆتایی: کۆدی نوێ بۆ چات ===== -->
+
+
         <main class="main-content page page-active" id="mainPage">
             <div class="section">
                 <div id="mainCategoriesContainer" class="main-categories-container"></div>
@@ -239,6 +352,18 @@
                         <button class="lang-btn" data-lang="ku_badini">بادینی</button>
                         <button class="lang-btn" data-lang="ar">عربي</button>
                     </div>
+                </div>
+            </div>
+            
+            <!-- ===== KODA NÛ: Bişkokek ji bo Profaylê li vir hate zêdekirin ===== -->
+            <!-- ===== کۆدی نوێ: دوگمەیەک بۆ پڕۆفایل لێرە زیادکرا ===== -->
+            <div class="settings-group">
+                <div class="settings-item" id="settingsProfileBtn">
+                    <div>
+                        <i class="fas fa-user" style="margin-left: 10px; color: var(--primary-color)"></i>
+                        <span data-translate-key="profile_title">پڕۆفایلی من</span>
+                    </div>
+                    <i class="fas fa-chevron-left"></i>
                 </div>
             </div>
 
@@ -314,7 +439,9 @@
                 </div>
             </div>
 
-            <div class="settings-group" id="adminPoliciesManagement" style="display: none;">
+            <!-- Hemî beşên admin li vir dimînin... -->
+            <!-- هەموو بەشەکانی ئەدمین لێرە دەمێننەوە... -->
+             <div class="settings-group" id="adminPoliciesManagement" style="display: none;">
                  <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                      <i class="fas fa-edit"></i> <span data-translate-key="manage_policies_title">بەڕێوەبردنی مەرج و ڕێساکان</span>
                  </h3>
@@ -808,7 +935,9 @@
                      <div id="announcementsListContainer"></div>
                  </div>
              </div>
-        </div> <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
+        </div> 
+        
+        <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
 
         <div id="addHomeSectionModal" class="modal">
             <div class="modal-content">
@@ -950,7 +1079,8 @@
                             (وێنەی یەکەم وەک وێنەی سەرەکی بەکاردێت. تکایە چاوەڕێ بکە تا وێنەکان باربن.)
                         </p>
                         <div class="image-upload-container" id="imageUploadContainer">
-                            </div>
+                            <!-- Ev beş dê ji hêla admin.js ve were dagirtin -->
+                        </div>
                     </div>
                     <div class="form-group"><label for="productExternalLink">لینکی دەرەکی:</label><input type="text" id="productExternalLink" placeholder="بۆ نموونە، لینکی ڤیدیۆ..."></div>
 
@@ -982,29 +1112,53 @@
                  <i class="fas fa-tags"></i>
                  <span data-translate-key="nav_categories">جۆرەکان</span>
              </button>
+             
+             <!-- ===== START: GUHERTIN (Bişkoka Chatê) ===== -->
+             <!-- ===== دەستپێک: گۆڕانکاری (دوگمەی چات) ===== -->
+             <button id="chatBtn" class="bottom-nav-item">
+                 <i class="fas fa-comments"></i>
+                 <span data-translate-key="nav_chat_messages">نامەکان</span>
+             </button>
+             <!-- Bişkoka Profaylê hate rakirin -->
+             <!-- <button id="profileBtn" class="bottom-nav-item">...</button> -->
+             <!-- ===== DAWÎ: GUHERTIN ===== -->
+             <!-- ===== کۆتایی: گۆڕانکاری ===== -->
+             
              <button id="cartBtn" class="bottom-nav-item">
                  <span class="cart-count" id="cartCount">0</span>
                  <i class="fas fa-shopping-cart"></i>
                  <span data-translate-key="nav_cart">سەبەتە</span>
-             </button>
-             <button id="profileBtn" class="bottom-nav-item">
-                 <i class="fas fa-user"></i>
-                 <span data-translate-key="nav_profile">پڕۆفایل</span>
              </button>
               <button id="settingsBtn" class="bottom-nav-item">
                  <i class="fas fa-cog"></i>
                  <span data-translate-key="nav_settings">ڕێکخستن</span>
              </button>
         </div>
-    </div> <div id="update-notification" class="update-notification">
+    </div> 
+    
+    <div id="update-notification" class="update-notification">
         <span>ڤێرژنێکی نوێ بەردەستە!</span>
         <button id="update-now-btn" class="update-now-btn">نوێی بکەرەوە</button>
     </div>
+
+    <!-- ===== START: KODA NÛ (reCAPTCHA) ===== -->
+    <!-- Konteynera ji bo reCAPTCHA (veşartî) -->
+    <!-- کۆنتەینەری reCAPTCHA (شاراوە) -->
+    <div id="recaptcha-container"></div>
+    <!-- ===== DAWÎ: KODA NÛ ===== -->
 
     <script type="module" src="app-setup.js"></script>
     <script type="module" src="app-core.js"></script>
     <script type="module" src="app-ui.js"></script>
     <script type="module" src="home.js"></script>
+    
+    <!-- ===== START: KODA NÛ (IMPORTA CHATÊ) ===== -->
+    <!-- ===== دەستپێک: کۆدی نوێ (هاوردەکردنی چات) ===== -->
+    <script type="module" src="chat.js"></script>
+    <!-- ===== DAWÎ: KODA NÛ ===== -->
+
     <script src="admin.js" defer></script>
 </body>
 </html>
+
+
