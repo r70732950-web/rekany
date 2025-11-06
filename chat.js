@@ -6,8 +6,15 @@
 
 // Em xizmetên bingehîn ên Firebase import dikin
 // ئێمە خزمەتگوزارییە سەرەکییەکانی فایەربەیس هاوردە دەکەین
-import { auth, db } from './app-setup.js';
-import { RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+
+// <-- **ÇARESERÎ 1: Em 'RecaptchaVerifier' û 'signInWithPhoneNumber' لێرە زیاد دەکەین**
+// <-- **چارەسەر ١: ئێمە 'RecaptchaVerifier' و 'signInWithPhoneNumber' لێرە زیاد دەکەین**
+import { auth, db, RecaptchaVerifier, signInWithPhoneNumber } from './app-setup.js';
+
+// <-- **ÇARESERÎ 2: Em vê rêzê RADIKIN ji ber ku êdî ne pêwîst e**
+// <-- **چارەسەر ٢: ئێمە ئەم دێڕە لادەبەین چونکە ئیتر پێویست نییە**
+// import { RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+
 import { 
     doc, 
     getDoc, 
@@ -38,8 +45,6 @@ export function initPhoneAuth() {
         // Em piştrast dikin ku konteynir tenê carekê tê çêkirin
         // دڵنیا دەبینەوە کە کۆنتەینەرەکە تەنها یەک جار دروست دەکرێت
         
-        // <-- **ÇARESERÎ 1: Divê em elementê bigirin, ne tenê wê çêbikin**
-        // <-- **چارەسەر ١: پێویستە توخمەکە بهێنین، نەک تەنها دروستی بکەین**
         let recaptchaContainer = document.getElementById('recaptcha-container');
         if (!recaptchaContainer) {
             recaptchaContainer = document.createElement('div');
@@ -57,8 +62,8 @@ export function initPhoneAuth() {
             window.recaptchaVerifier.clear(); // Ya kevn paqij bike
         }
 
-        // <-- **ÇARESERÎ 2: Em 'recaptchaContainer' (element) didinê, ne 'recaptcha-container' (string)**
-        // <-- **چارەسەر ٢: ئێمە 'recaptchaContainer' (توخمەکە) دەدەینێ، نەک 'recaptcha-container' (ناوەکە)**
+        // Em 'recaptchaContainer' (element) didinê, ne 'recaptcha-container' (string)
+        // ئێمە 'recaptchaContainer' (توخمەکە) دەدەینێ، نەک 'recaptcha-container' (ناوەکە)
         window.recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaContainer, {
             'size': 'invisible', // reCAPTCHAya nedîtbar
             'callback': (response) => {
