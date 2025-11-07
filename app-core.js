@@ -850,15 +850,14 @@ export {
     // === END: KODA NÛ JI BO DAXWAZÊ ===
     fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
     // setLanguageCore exported where it's defined
-    requestNotificationPermissionCore,
-    // checkNewAnnouncementsCore exported where it's defined
-    // updateLastSeenAnnouncementTimestamp exported where it's defined
     
     // === START: ÇAKKIRINA HELÊ ===
-    // Em 'handleInstallPrompt' û 'forceUpdateCore' radikin ji ber ku ew jixwe li jor hatine export kirin
-    // Em 'handleInstallPrompt' و 'forceUpdateCore' لادەبەین چونکە پێشتر `export` کراون
+    // Em 'export'ên dubare radikin
+    // requestNotificationPermissionCore,
+    // checkNewAnnouncementsCore,
+    // updateLastSeenAnnouncementTimestamp,
     // handleInstallPrompt,
-    // forceUpdateCore, // PWA & SW
+    // forceUpdateCore, 
     // === END: ÇAKKIRINA HELÊ ===
     
     // History functions are exported above
