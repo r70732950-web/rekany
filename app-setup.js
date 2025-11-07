@@ -50,6 +50,11 @@ export const announcementsCollection = collection(db, "announcements");
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
 export const shortcutRowsCollection = collection(db, "shortcut_rows");
+// === START: KODA NÛ / کۆدی نوێ ===
+// Komeleya nû ji bo dîzaynên kategoriyan
+// کۆڵەکشنی نوێ بۆ دیزاینی جۆرەکان
+export const categoryLayoutsCollection = collection(db, "category_layouts");
+// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
 // Translations Export
 export const translations = {
@@ -152,7 +157,7 @@ export const translations = {
         send_viber: "فرێکرن ب رێکا ڤایبەر",
         send_telegram: "فرێکرن ب رێکا تێلێگرام",
         favorites_title: "لیستا حەزژێکریان",
-        favorites_empty: "لیستا حەزژێکریێن تە یا ڤالایە",
+        favorites_empty: "لیستا حەزژێکریێن تە يا ڤالایە",
         choose_category: "جورەکی هەلبژێرە",
         all_products: "هەمی کاڵا",
         loading_products: "...د بارکرنا کاڵایان دایە",
@@ -165,7 +170,7 @@ export const translations = {
         profile_address: "ناڤ و نیشان:",
         profile_phone: "ژمارا تەلەفونێ:",
         save_button: "پاشەکەفتکرن",
-        nav_home: "سەرەki",
+        nav_home: "سەرەکی",
         nav_categories: "جۆر",
         nav_cart: "سەلک",
         nav_profile: "پروفایل",
@@ -185,7 +190,7 @@ export const translations = {
         order_user_address: "ناڤ و نیشان",
         order_user_phone: "ژمارا تەلەفونێ",
         order_prompt_info: "هیڤی دکەین ناڤ و نیشان و پێزانینێن خۆ فرێکە بۆ گەهاندنێ.",
-        login_error: "ئیمەیل یان پەیڤا نهێنى یا خەلەتە",
+        login_error: "ئیمەیل یان پەیڤا نهێنى يا خەلەتە",
         logout_success: "ب سەرکەفتیانە چوويه دەر",
         profile_saved: "پێزانینێن پروفایلی هاتنە پاشەکەفتکرن",
         all_categories_label: "هەمی",
@@ -326,6 +331,13 @@ export let state = {
     allProductsLoaded: false,
     isRenderingHomePage: false,
     productCache: {},
+    // === START: KODA NÛ / کۆدی نوێ ===
+    // Em cache ji bo dîzaynên kategoriyan lê zêde dikin
+    // ئێمە کاش بۆ دیزاینی جۆرەکان زیاد دەکەین
+    homeLayoutCache: null, // Cache ji bo dîzayna rûpela malê (کاش بۆ دیزاینی لاپەڕەی ماڵەوە)
+    categoryLayoutsCache: {}, // Cache ji bo dîzaynên kategoriyan (کاش بۆ دیزاینی جۆرەکان)
+    currentCategoryLayout: null, // Dîzayna kategoriya heyî ya barkirî (دیزاینی جۆری ئێستا بارکراوە)
+    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     currentCategory: 'all',
     currentSubcategory: 'all',
     currentSubSubcategory: 'all',
@@ -360,10 +372,7 @@ export const clearSearchBtn = document.getElementById('clearSearchBtn');
 export const loginForm = document.getElementById('loginForm');
 export const productForm = document.getElementById('productForm');
 export const formTitle = document.getElementById('formTitle');
-// === START: Gۆڕانکاری / دەستپێک ===
-// Em êdî vê rêzê bikar naynin (ئیتر ئەم دێڕە بەکارناهێنین)
-// export const imageInputsContainer = document.getElementById('imageInputsContainer');
-// === END: Gۆڕانکاری / کۆتایی ===
+export const imageInputsContainer = document.getElementById('imageInputsContainer');
 export const loader = document.getElementById('loader');
 export const cartBtn = document.getElementById('cartBtn');
 export const cartItemsContainer = document.getElementById('cartItemsContainer');
@@ -436,28 +445,19 @@ export const addHomeSectionBtn = document.getElementById('addHomeSectionBtn');
 export const addHomeSectionModal = document.getElementById('addHomeSectionModal');
 export const addHomeSectionForm = document.getElementById('addHomeSectionForm');
 
-// === START: BEŞÊN NÛ / بەشە نوێیەکان ===
+// === START: KODA NÛ / کۆدی نوێ ===
+// Exportkirina elementên nû ji bo dîzayna kategoriyan
+// هەناردەکردنی توخمە نوێیەکان بۆ دیزاینی جۆرەکان
 export const adminCategoryLayoutManagement = document.getElementById('adminCategoryLayoutManagement');
 export const categoryLayoutSelect = document.getElementById('categoryLayoutSelect');
+export const categoryLayoutToggleContainer = document.getElementById('categoryLayoutToggleContainer');
+export const useCustomLayoutToggle = document.getElementById('useCustomLayoutToggle');
 export const categoryLayoutBuilderContainer = document.getElementById('categoryLayoutBuilderContainer');
-export const categoryLayoutTitle = document.getElementById('categoryLayoutTitle');
-export const addCategoryLayoutSectionBtn = document.getElementById('addCategoryLayoutSectionBtn');
 export const categoryLayoutListContainer = document.getElementById('categoryLayoutListContainer');
+export const addCategorySectionBtn = document.getElementById('addCategorySectionBtn');
 export const saveCategoryLayoutBtn = document.getElementById('saveCategoryLayoutBtn');
-export const addCategoryLayoutSectionModal = document.getElementById('addCategoryLayoutSectionModal');
-export const addCategoryLayoutSectionForm = document.getElementById('addCategoryLayoutSectionForm');
-export const newCategoryLayoutSectionType = document.getElementById('newCategoryLayoutSectionType');
-export const specificCategoryLayoutItemGroupSelectContainer = document.getElementById('specificCategoryLayoutItemGroupSelectContainer');
-export const specificCategoryLayoutItemGroupId = document.getElementById('specificCategoryLayoutItemGroupId');
-export const specificCategoryLayoutItemGroupLabel = document.getElementById('specificCategoryLayoutItemGroupLabel');
-export const specificCategoryLayoutCategorySelectContainer = document.getElementById('specificCategoryLayoutCategorySelectContainer');
-export const newCategoryLayoutSectionMainCategory = document.getElementById('newCategoryLayoutSectionMainCategory');
-export const newCategoryLayoutSectionSubcategoryContainer = document.getElementById('newCategoryLayoutSectionSubcategoryContainer');
-export const newCategoryLayoutSectionSubcategory = document.getElementById('newCategoryLayoutSectionSubcategory');
-export const newCategoryLayoutSectionSubSubcategoryContainer = document.getElementById('newCategoryLayoutSectionSubSubcategoryContainer');
-export const newCategoryLayoutSectionSubSubcategory = document.getElementById('newCategoryLayoutSectionSubSubcategory');
-export const newCategoryLayoutSectionName = document.getElementById('newCategoryLayoutSectionName');
-// === END: BEŞÊN NÛ / کۆتایی بەشە نوێیەکان ===
+export const saveHomeLayoutBtn = document.getElementById('saveHomeLayoutBtn'); // Ev bişkok jixwe hebû (ئەم دوگمەیە پێشتر هەبوو)
+// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
 
 // *** Populate globalAdminTools here ***
@@ -476,6 +476,11 @@ window.globalAdminTools = {
     // Collections needed by admin.js
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
+    // === START: KODA NÛ / کۆدی نوێ ===
+    // Komeleya nû ji bo dîzayna kategoriyan zêde bike
+    // کۆڵەکشنی نوێ بۆ دیزاینی جۆرەکان زیاد بکە
+    categoryLayoutsCollection,
+    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
     // Core State Accessors/Mutators needed by admin.js
     setEditingProductId: (id) => { state.editingProductId = id; },
@@ -505,6 +510,12 @@ window.globalAdminTools = {
      clearProductCache: () => { // Keep this helper
           console.log("Product cache and home page cleared due to admin action.");
           state.productCache = {};
+          // === START: KODA NÛ / کۆدی نوێ ===
+          // Em cache-a dîzaynan jî paqij dikin
+          // ئێمە کاشی دیزاینەکانیش پاک دەکەینەوە
+          state.homeLayoutCache = null;
+          state.categoryLayoutsCache = {};
+          // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
           const homeContainer = document.getElementById('homePageSectionsContainer');
           if (homeContainer) {
               homeContainer.innerHTML = '';

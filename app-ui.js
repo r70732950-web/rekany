@@ -4,7 +4,7 @@
 import {
     // Import DOM elements needed for general UI updates
     loginModal, addProductBtn, productFormModal, skeletonLoader, searchInput,
-    clearSearchBtn, loginForm, productForm, formTitle, loader, // <-- 'imageInputsContainer' HATE RAKIRIN / لێرە سڕایەوە
+    clearSearchBtn, loginForm, productForm, formTitle, imageInputsContainer, loader,
     cartBtn, cartItemsContainer, emptyCartMessage, cartTotal, totalAmount, cartActions,
     favoritesContainer, emptyFavoritesMessage, categoriesBtn, sheetOverlay, sheetCategoriesContainer,
     productCategorySelect, subcategorySelectContainer, productSubcategorySelect, subSubcategorySelectContainer,
@@ -23,6 +23,11 @@ import {
     addBrandGroupForm, brandGroupsListContainer, addBrandForm,
     shortcutRowsListContainer, addShortcutRowForm, addCardToRowForm,
     homeLayoutListContainer, addHomeSectionBtn, addHomeSectionModal, addHomeSectionForm,
+    // === START: KODA NÛ / کۆدی نوێ ===
+    // Elementên nû ji bo dîzayna kategoriyan
+    // توخمە نوێیەکان بۆ دیزاینی جۆرەکان
+    adminCategoryLayoutManagement
+    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 } from './app-setup.js';
 
 import {
@@ -44,9 +49,14 @@ import {
     collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection
 } from './app-core.js';
 
+// === START: KODA GAUHERTÎ / کۆدی گۆڕاو ===
+// Navê fonksîyonê hate guhertin
+// ناوی فەنکشنەکە گۆڕدرا
 import {
-    renderHomePageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
+    renderDynamicLayoutUI, // Berê 'renderHomePageContentUI' bû (پێشتر 'renderHomePageContentUI' بوو)
+    updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
 } from './home.js'; // Import functions from home.js
+// === END: KODA GAUHERTÎ / کۆتایی کۆدی گۆڕاو ===
 
 // --- UI Helper Functions ---
 
@@ -1079,9 +1089,11 @@ function updateAdminUIAuth(isAdmin) {
          'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
          'adminContactMethodsManagement', 'adminShortcutRowsManagement',
          'adminHomeLayoutManagement',
-         // === START: BEŞÊ NÛ / بەشی نوێ ===
-         'adminCategoryLayoutManagement' // Em beşa nû lê zêde dikin (ئێمە بەشە نوێیەکە زیاد دەکەین)
-         // === END: BEŞÊ NÛ / کۆتایی بەشە نوێیەکان ===
+         // === START: KODA NÛ / کۆدی نوێ ===
+         // Beşa nû lê zêde bike
+         // بەشە نوێیەکە زیاد بکە
+         'adminCategoryLayoutManagement'
+         // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     ];
     adminSections.forEach(id => {
         const section = document.getElementById(id);
@@ -1305,9 +1317,14 @@ function setupUIEventListeners() {
     if (scrollTrigger) {
         const observer = new IntersectionObserver(async (entries) => {
             const isMainPageActive = document.getElementById('mainPage')?.classList.contains('page-active');
-            const homeSectionsHidden = document.getElementById('homePageSectionsContainer')?.style.display === 'none';
+            
+            // === START: KODA GAUHERTÎ / کۆدی گۆڕاو ===
+            // Em kontrol dikin ka dîmenek xwerû çalak e
+            // پشکنین دەکەین بزانین دیمەنێکی تایبەت چالاکە
+            const isDynamicLayoutActive = state.currentCategoryLayout || (state.currentCategory === 'all' && !state.currentSearch);
+            // === END: KODA GAUHERTÎ / کۆتایی کۆدی گۆڕاو ===
 
-            if (entries[0].isIntersecting && isMainPageActive && homeSectionsHidden && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
+            if (entries[0].isIntersecting && isMainPageActive && !isDynamicLayoutActive && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
                  loader.style.display = 'block'; 
                  const result = await fetchProducts(state.currentSearch, false); 
                  loader.style.display = 'none'; 
@@ -1326,6 +1343,13 @@ function setupUIEventListeners() {
         if(e.detail.isAdmin && loginModal.style.display === 'block') {
              closeCurrentPopup();
         }
+        // === START: KODA NÛ / کۆدی نوێ ===
+        // Piştî ku admin tê, UIya nû ya dîzaynê saz bike
+        // دوای ئەوەی ئەدمین هات، UIـی نوێی دیزاینەکە دابمەزرێنە
+        if (e.detail.isAdmin && window.AdminLogic && typeof window.AdminLogic.initializeCategoryLayoutBuilder === 'function') {
+            window.AdminLogic.initializeCategoryLayoutBuilder();
+        }
+        // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     });
 
     document.addEventListener('fcmMessage', (e) => {
@@ -1396,21 +1420,16 @@ async function handleSetLanguage(lang) {
          window.AdminLogic.renderBrandGroupsAdminList?.();
          window.AdminLogic.renderShortcutRowsAdminList?.();
          window.AdminLogic.renderHomeLayoutAdmin?.();
-         // === START: BEŞÊ NÛ / بەشی نوێ ===
-         // Em sernavê layouta kategoriyê nû dikin (ئێمە ناونیشانی دیزاینی جۆرەکە نوێ دەکەینەوە)
-         if (window.AdminLogic.currentEditingLayoutCategoryId) {
-             const select = document.getElementById('categoryLayoutSelect');
-             const newName = select.options[select.selectedIndex]?.dataset.name;
-             if (newName) {
-                 document.getElementById('categoryLayoutTitle').textContent = `ڕێکخستنی دیزاینی: ${newName}`;
-             }
-         }
-         // === END: BEŞÊN NÛ / کۆتایی بەشە نوێیەکان ===
+         // === START: KODA NÛ / کۆدی نوێ ===
+         // UIya dîzayna kategoriyê ji nû ve nîşan bide
+         // UIـی دیزاینی جۆرەکان دووبارە پیشان بدەوە
+         window.AdminLogic.renderCategoryLayoutAdmin?.();
+         // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     }
 }
 
 // *** START: Gۆڕanlکاری lێرە kra (Logica Popstate bi tevahî hate nûve kirin) ***
-// *** دەستپێک: گۆڕانکاری لێرە کرا (لۆجیکی Popstate بە تەواوی نوێکرایەوە) ***
+// *** دەستپێک: Gۆڕanlکاری lێرە kra (لۆجیکی Popstate بە تەواوی نوێکرایەوە) ***
 window.addEventListener('popstate', async (event) => {
     const wasPopupOpen = state.currentPopupState !== null; 
     const previousPageId = state.currentPageId; 
