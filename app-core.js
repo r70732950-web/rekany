@@ -853,10 +853,11 @@ export {
     requestNotificationPermissionCore,
     // checkNewAnnouncementsCore exported where it's defined
     // updateLastSeenAnnouncementTimestamp exported where it's defined
-    handleInstallPrompt,
+    
     // === START: ÇAKKIRINA HELÊ ===
-    // Em 'forceUpdateCore' ji bloka exporta giştî radikin ji ber ku ew jixwe li jor hatî export kirin
-    // Em 'forceUpdateCore' لێرە لادەبەین چونکە پێشتر `export` کراوە
+    // Em 'handleInstallPrompt' û 'forceUpdateCore' radikin ji ber ku ew jixwe li jor hatine export kirin
+    // Em 'handleInstallPrompt' و 'forceUpdateCore' لادەبەین چونکە پێشتر `export` کراون
+    // handleInstallPrompt,
     // forceUpdateCore, // PWA & SW
     // === END: ÇAKKIRINA HELÊ ===
     
