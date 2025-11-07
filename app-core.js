@@ -853,7 +853,13 @@ export {
     requestNotificationPermissionCore,
     // checkNewAnnouncementsCore exported where it's defined
     // updateLastSeenAnnouncementTimestamp exported where it's defined
-    handleInstallPrompt, forceUpdateCore, // PWA & SW
+    handleInstallPrompt,
+    // === START: ÇAKKIRINA HELÊ ===
+    // Em 'forceUpdateCore' ji bloka exporta giştî radikin ji ber ku ew jixwe li jor hatî export kirin
+    // Em 'forceUpdateCore' لێرە لادەبەین چونکە پێشتر `export` کراوە
+    // forceUpdateCore, // PWA & SW
+    // === END: ÇAKKIRINA HELÊ ===
+    
     // History functions are exported above
     // Core cart/favorites/profile functions are exported above
 
