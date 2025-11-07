@@ -577,8 +577,24 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 
 #sheetImageSlider { position: relative; max-width: 100%; margin-bottom: 15px; }
 #sheetImageContainer { display: flex; overflow: hidden; border-radius: 8px; }
-#sheetImageContainer img { width: 100%; flex-shrink: 0; display: none; object-fit: contain; max-height: 350px; transition: opacity 0.3s ease-in-out; }
-#sheetImageContainer img.active { display: block; }
+/* === START: KODA NÛ JI BO VÎDYOYÊ === */
+/* Em ê vê kodê ji bo hemî hêmanên slayderê bikar bînin (wêne û vîdyo) */
+#sheetImageContainer .slider-element {
+    width: 100%;
+    flex-shrink: 0;
+    display: none;
+    object-fit: contain;
+    max-height: 350px;
+    transition: opacity 0.3s ease-in-out;
+}
+#sheetImageContainer .slider-element.active {
+    display: block;
+}
+/* Ji bo vîdyoyê, em 'display: flex' bikar tînin da ku navendê bicîh bike */
+#videoPlayerWrapper.slider-element.active {
+    display: flex;
+}
+/* === END: KODA NÛ JI BO VÎDYOYÊ === */
 .slider-btn { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0,0,0,0.4); color: white; border: none; font-size: 20px; cursor: pointer; z-index: 10; border-radius: 50%; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; }
 .slider-btn.prev { left: 10px; }
 .slider-btn.next { right: 10px; }
@@ -1555,5 +1571,31 @@ input:checked + .slider:before {
     border-radius: 4px;
     margin-right: 8px;
 }
+
+/* === START: KODA NÛ JI BO DAXWAZÊ === */
+/* Stîla bişkoka 'Pاشەکەوتکردنی Layout' */
+.admin-save-btn {
+    margin-top: 15px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.admin-save-btn:hover {
+    background-color: var(--primary-light);
+}
+
+.admin-save-btn:disabled {
+    background-color: var(--dark-gray);
+    cursor: not-allowed;
+}
+/* === END: KODA NÛ JI BO DAXWAZÊ === */
+
 
 /* === END: KODÊN NÛ JI BO DÎZAYNA BEŞÊ ADMIN === */

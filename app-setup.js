@@ -22,7 +22,7 @@ const firebaseConfig = {
     // === VÊ BIGUHERE / ئەمە بگۆڕە ===
     // Nêrîna xwe biguherîne li ser vê yekê
     // تکایە ئەم دێڕە ڕاست بکەرەوە
-    storageBucket: "maten-store.firebasestorage.app", // <-- HATE RASTKIRIN / لێرە ڕاستکرایەوە
+    storageBucket: "maten-store.appspot.com", // <-- HATE RASTKIRIN / لێرە ڕاستکرایەوە
     // === DAWÎYA GUHERTINÊ / کۆتایی گۆڕانکاری ===
 
     messagingSenderId: "137714858202",
@@ -50,6 +50,12 @@ export const announcementsCollection = collection(db, "announcements");
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
 export const shortcutRowsCollection = collection(db, "shortcut_rows");
+// === START: KODA NÛ JI BO DAXWAZÊ (ÇAKKIRÎ) ===
+// Em 'homeLayoutCollection' li vir pênase dikin, ne li app-core.js
+// ئێمە 'homeLayoutCollection' لێرە پێناسە دەکەین، نەک لە app-core.js
+export const homeLayoutCollection = collection(db, 'home_layout');
+// === END: KODA NÛ JI BO DAXWAZÊ (ÇAKKIRÎ) ===
+
 
 // Translations Export
 export const translations = {
@@ -334,12 +340,16 @@ export let state = {
     currentPageId: 'mainPage', // *** زیادکرا: بۆ زانینی پەڕەی ئێستا ***
     currentPopupState: null, // *** زیادکرا: شوێنی دۆخی ئێستای پۆپئەپ بگرە ***
     // *** START: Gۆڕانکاری لێرە کرا ***
-    // *** دەستپێک: گۆڕانکاری لێرە کرا ***
+    // *** دەستپێک: Gۆڕانکاری لێرە کرا ***
     pendingFilterNav: null, // Ji bo ragirtina fîlterê heta ku popup were girtin (بۆ ڕاگرتنی فلتەر تا داخستنی پۆپئەپ)
     // *** END: Gۆڕانکاری لێرە کرا ***
-    // *** کۆتایی: گۆڕانکاری لێرە کرا ***
+    // *** کۆتایی: Gۆڕانکاری لێرە کرا ***
     sliderIntervals: {}, // Used by app-ui & app-core
     contactInfo: {}, // Might be needed?
+    // === START: KODA NÛ JI BO DAXWAZÊ ===
+    // Em statek ji bo layouta kategoriya hilbijartî lê zêde dikin
+    currentCategoryLayoutPath: null, // Ji aliyê admin.js ve tê bikaranîn
+    // === END: KODA NÛ JI BO DAXWAZÊ ===
 };
 
 // Constants - Exported
@@ -360,7 +370,7 @@ export const clearSearchBtn = document.getElementById('clearSearchBtn');
 export const loginForm = document.getElementById('loginForm');
 export const productForm = document.getElementById('productForm');
 export const formTitle = document.getElementById('formTitle');
-export const imageInputsContainer = document.getElementById('imageInputsContainer');
+export const imageInputsContainer = document.getElementById('imageUploadContainer'); // <-- === ÇAKKIRÎ / ڕاستکرایەوە ===
 export const loader = document.getElementById('loader');
 export const cartBtn = document.getElementById('cartBtn');
 export const cartItemsContainer = document.getElementById('cartItemsContainer');
@@ -433,6 +443,19 @@ export const addHomeSectionBtn = document.getElementById('addHomeSectionBtn');
 export const addHomeSectionModal = document.getElementById('addHomeSectionModal');
 export const addHomeSectionForm = document.getElementById('addHomeSectionForm');
 
+// === START: KODA NÛ JI BO DAXWAZÊ ===
+// Em IDyên nû yên ji bo editora layouta kategoriyê export dikin
+export const adminCategoryLayoutManagement = document.getElementById('adminCategoryLayoutManagement');
+export const categoryLayoutSelect = document.getElementById('categoryLayoutSelect');
+export const categoryLayoutEditorContainer = document.getElementById('categoryLayoutEditorContainer');
+export const categoryLayoutEnableToggle = document.getElementById('categoryLayoutEnableToggle');
+export const categoryLayoutSettingsContainer = document.getElementById('categoryLayoutSettingsContainer');
+export const addCategorySectionBtn = document.getElementById('addCategorySectionBtn');
+export const categoryLayoutListContainer = document.getElementById('categoryLayoutListContainer');
+export const saveCategoryLayoutBtn = document.getElementById('saveCategoryLayoutBtn');
+export const newSectionLayoutPath = document.getElementById('newSectionLayoutPath');
+// === END: KODA NÛ JI BO DAXWAZÊ ===
+
 
 // *** Populate globalAdminTools here ***
 // Moved from app-core.js to ensure availability before admin.js (defer) runs
@@ -450,6 +473,11 @@ window.globalAdminTools = {
     // Collections needed by admin.js
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
+    // === START: KODA NÛ JI BO DAXWAZÊ (ÇAKKIRÎ) ===
+    // Em 'homeLayoutCollection' li vir lê zêde dikin
+    homeLayoutCollection,
+    // === END: KODA NÛ JI BO DAXWAZÊ (ÇAKKIRÎ) ===
+
 
     // Core State Accessors/Mutators needed by admin.js
     setEditingProductId: (id) => { state.editingProductId = id; },
@@ -483,6 +511,25 @@ window.globalAdminTools = {
           if (homeContainer) {
               homeContainer.innerHTML = '';
           }
+          // === START: KODA NÛ JI BO DAXWAZÊ ===
+          // Em 'state'a layouta kategoriya heyî paqij dikin ji bo ku ji nû ve were barkirin
+          if (window.AdminLogic) {
+              window.AdminLogic.currentCategoryLayoutPath = null;
+          }
+          const categoryLayoutContainer = document.getElementById('categoryLayoutEditorContainer');
+          if (categoryLayoutContainer) {
+              categoryLayoutContainer.style.display = 'none';
+          }
+          const categoryLayoutSettings = document.getElementById('categoryLayoutSettingsContainer');
+          if (categoryLayoutSettings) {
+              categoryLayoutSettings.style.display = 'none';
+          }
+          const categorySelect = document.getElementById('categoryLayoutSelect');
+          if (categorySelect) {
+              categorySelect.value = '';
+          }
+          // === END: KODA NÛ JI BO DAXWAZÊ ===
+          
           // Notify UI layer to trigger re-render
           document.dispatchEvent(new Event('clearCacheTriggerRender'));
      },

@@ -23,6 +23,12 @@ import {
     addBrandGroupForm, brandGroupsListContainer, addBrandForm,
     shortcutRowsListContainer, addShortcutRowForm, addCardToRowForm,
     homeLayoutListContainer, addHomeSectionBtn, addHomeSectionModal, addHomeSectionForm,
+    // === START: KODA NÛ JI BO DAXWAZÊ ===
+    // Em IDyên nû yên ji app-setup import dikin
+    adminCategoryLayoutManagement, categoryLayoutSelect, categoryLayoutEditorContainer,
+    categoryLayoutEnableToggle, categoryLayoutSettingsContainer, addCategorySectionBtn,
+    categoryLayoutListContainer, saveCategoryLayoutBtn, newSectionLayoutPath
+    // === END: KODA NÛ JI BO DAXWAZÊ ===
 } from './app-setup.js';
 
 import {
@@ -41,11 +47,16 @@ import {
     initCore,
     // Firestore functions exported from app-core.js
     db,
-    collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection
+    collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection,
+    homeLayoutCollection // <-- === KODA NÛ: Ji app-core hat ===
 } from './app-core.js';
 
 import {
-    renderHomePageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
+    // === START: KODA NÛ JI BO DAXWAZÊ ===
+    // Navê fonksiyonê ji 'renderHomePageContentUI' hate guhertin
+    renderPageLayoutUI, 
+    // === END: KODA NÛ JI BO DAXWAZÊ ===
+    updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
 } from './home.js'; // Import functions from home.js
 
 // --- UI Helper Functions ---
@@ -141,7 +152,7 @@ function showPage(pageId, pageTitle = '') {
  */
 function stopAllVideos() {
     // === GUHERTINA DAWÎ LI VIR E ===
-    // === دوا گۆڕانکاری لێرەدایە ===
+    // === دوا گۆڕانکاری lێرەdaیە ===
     // Em êdî rasterast 'iframe' nagirin, lê em pêça (wrapper) wê vala dikin
     // ئێمە ئیتر ڕاستەوخۆ 'iframe'ـەکە ناگرین، بەڵکو کۆنتەینەرەکەی بەتاڵ دەکەینەوە
     const videoWrapper = document.getElementById('videoPlayerWrapper');
@@ -153,7 +164,7 @@ function stopAllVideos() {
 
 /**
  * Fonksiyonek alîkar ji bo derxistina IDya vîdyoya YouTube ji URLyên cihê.
- * فەنکشنێکی یاریدەدەر بۆ دەرهێنانی ئایدی ڤیدیۆی یوتیووب لە لینکە جیاوازەکان.
+ * فەنکشنێکی یاریدەدער بۆ دەرهێنانی ئایدی ڤیدیۆی یوتیووب لە لینکە جیاوازەکان.
  * @param {string} url Linka vîdyoyê
  * @returns {string|null} IDya vîdyoyê
  */
@@ -919,7 +930,7 @@ async function showProductDetailsUI(productData) {
             activeElement.style.display = 'flex';
             
             // === VÊ GAVÊ BIKARANÎNA DAWÎ ===
-            // === دوا بەکارهێنان لێرەدایە ===
+            // === دوا بەکارهێنان lێرەdaیە ===
             // Em `autoplay=1` û `mute=1` zêde dikin
             // ئێمە `autoplay=1` و `mute=1` زیاد دەکەین
             const videoSrc = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&autoplay=1&mute=1&controls=1`;
@@ -1078,7 +1089,10 @@ function updateAdminUIAuth(isAdmin) {
          'adminPoliciesManagement', 'adminSocialMediaManagement', 'adminAnnouncementManagement',
          'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
          'adminContactMethodsManagement', 'adminShortcutRowsManagement',
-         'adminHomeLayoutManagement'
+         'adminHomeLayoutManagement',
+         // === START: KODA NÛ JI BO DAXWAZÊ ===
+         'adminCategoryLayoutManagement' // Beşa nû lê zêde bike
+         // === END: KODA NÛ JI BO DAXWAZÊ ===
     ];
     adminSections.forEach(id => {
         const section = document.getElementById(id);
@@ -1347,12 +1361,17 @@ function setupUIEventListeners() {
         };
     });
 
+    // === START: KODA NÛ JI BO DAXWAZÊ ===
+    // Guhdarê bûyera 'clearCacheTriggerRender' hate nûve kirin
     document.addEventListener('clearCacheTriggerRender', async () => {
         console.log("UI received clearCacheTriggerRender event.");
-        if(state.currentCategory === 'all' && !state.currentSearch) {
-             await updateProductViewUI(true, true); 
-        }
+        // Em êdî şertê 'if' rakirin. Em her gav UIyê nû dikin.
+        // Ev piştrast dike ku heke admin layouta kategoriyekê biguherîne
+        // û bikarhêner li wê kategoriyê dinêre, ew ê nû bibe.
+        await updateProductViewUI(true, true); 
     });
+    // === END: KODA NÛ JI BO DAXWAZÊ ===
+
 
     setupGpsButtonUI();
 }
@@ -1393,11 +1412,15 @@ async function handleSetLanguage(lang) {
          window.AdminLogic.renderBrandGroupsAdminList?.();
          window.AdminLogic.renderShortcutRowsAdminList?.();
          window.AdminLogic.renderHomeLayoutAdmin?.();
+         // === START: KODA NÛ JI BO DAXWAZÊ ===
+         // Em piştrast dikin ku beşa nû jî tê nûve kirin
+         window.AdminLogic.renderCategoryLayoutAdmin?.();
+         // === END: KODA NÛ JI BO DAXWAZÊ ===
     }
 }
 
 // *** START: Gۆڕanlکاری lێرە kra (Logica Popstate bi tevahî hate nûve kirin) ***
-// *** دەستپێک: گۆڕانکاری لێرە کرا (لۆجیکی Popstate بە تەواوی نوێکرایەوە) ***
+// *** دەستپێک: Gۆڕanlکاری lێرە kra (لۆجیکی Popstate بە تەواوی نوێکرایەوە) ***
 window.addEventListener('popstate', async (event) => {
     const wasPopupOpen = state.currentPopupState !== null; 
     const previousPageId = state.currentPageId; 
