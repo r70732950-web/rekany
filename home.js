@@ -77,7 +77,7 @@ window.renderProductsGridUI = renderProductsGridUI;
 
 // Renders main category buttons (Top horizontal scroll)
 // *** START: Gۆڕانکاری lێرە kra ***
-// *** دەستپێک: Gۆڕانکاری لێرە کرا ***
+// *** دەستپێک: Gۆڕانکاری lێرە kra ***
 export function renderMainCategoriesUI() {
     const container = document.getElementById('mainCategoriesContainer');
     if (!container) return;
@@ -399,8 +399,9 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
 // === START: KODA GAUHERTÎ / کۆدی گۆڕاو ===
 // Navê fonksîyonê hate guhertin (Navê fûnksiyonê hate guhertin)
 // ناوی فەنکشنەکە گۆڕدرا
-// Function to render dynamic layouts (Home or Custom Category)
-async function renderDynamicLayoutUI(layout) {
+// *** ÇARESERÎ: Peyva 'export' lê zêde bike ***
+// *** چارەسەر: وشەی 'export' زیاد بکە ***
+export async function renderDynamicLayoutUI(layout) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     if (!homeSectionsContainer) return;
 
@@ -409,7 +410,7 @@ async function renderDynamicLayoutUI(layout) {
         homeSectionsContainer.innerHTML = `<div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: block;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;">...خەریکی بارکردنی بەشەکانە</p></div>`;
     }
     
-    // Daneyên dîzaynê (layout data) naha wekî argumanek tê (داتای دیزاین ئێستا وەک ئارگیومێنت دێت)
+    // Daneyên dîzaynê (layout data) naha wekî argumanek tê (داتای دیزاین ئێستا وەک ئارگیومێnt دێت)
     // const layout = await fetchHomeLayout(); // <-- Ev rêz hate rakirin (ئەم دێڕە سڕایەوە)
 
     homeSectionsContainer.innerHTML = ''; // Loader/naveroka berê paqij bike (لۆدەر/ناوەڕۆکی پێشوو پاک بکەوە)
@@ -451,9 +452,9 @@ async function renderDynamicLayoutUI(layout) {
                          } else console.warn("Shortcut row missing rowId:", section);
                      break;
                  case 'single_category_row':
-                     if (section.categoryId) {
+                     if (section.mainCategoryId) { // *** GAUHERTIN: 'categoryId' bû 'mainCategoryId' ***
                          sectionElement = await createSingleCategoryRowElement(section); // Pass full section data
-                     } else console.warn("Category row missing categoryId:", section);
+                     } else console.warn("Category row missing mainCategoryId:", section);
                      break;
                   case 'all_products':
                        sectionElement = await createAllProductsSectionElement();
