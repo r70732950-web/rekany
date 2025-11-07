@@ -347,7 +347,7 @@ export let state = {
         categoryId: null,
         layoutPath: null,
         enabled: false
-    }
+    }, // <-- *** ÇAKKIRÎ: Farezeya (,) lê zêde kir ***
     // === END: KODA NÛ JI BO DAXWAZÊ ===
     // *** END: Gۆڕانکاری لێرە کرا ***
     // *** کۆتایی: Gۆڕانکاری لێرە کرا ***
