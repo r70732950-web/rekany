@@ -842,30 +842,14 @@ export async function initCore() {
 // *** گۆڕانکاری لێرە: زیادکردنی db بۆ export ***
 export {
     state, // Export the mutable state object
-    handleLogin, handleLogout, // Authentication
-    fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, // Data fetching
-    // === START: KODA NÛ JI BO DAXWAZÊ ===
-    // Em 'fetchLayout' export dikin û 'fetchHomeLayout' radikin
-    fetchLayout, 
-    // === END: KODA NÛ JI BO DAXWAZÊ ===
-    fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards,
+    
     // === START: ÇAKKIRINA HELÊ ===
-    // Em 'export'ên dubare radikin
-    // fetchCategoryRowProducts,
-    // fetchInitialProductsForHome,
-    // setLanguageCore,
-    // requestNotificationPermissionCore,
-    // checkNewAnnouncementsCore,
-    // updateLastSeenAnnouncementTimestamp,
-    // handleInstallPrompt,
-    // forceUpdateCore, 
+    // Hemî 'export'ên dubare hatin rakirin.
+    // Fonksiyon êdî li cihê xwe yên orîjînal hatine 'export' kirin.
     // === END: ÇAKKIRINA HELÊ ===
     
-    // History functions are exported above
-    // Core cart/favorites/profile functions are exported above
-
     // *** Export Firestore functions needed by app-ui.js and admin.js ***
-    db, // <-- db لێرە زیادکرا
+    db, // <-- db lێرە زیادکرا
     productsCollection,
     collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
     query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction
