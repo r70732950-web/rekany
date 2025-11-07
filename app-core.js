@@ -838,19 +838,16 @@ export async function initCore() {
 }
 
 
-// Expose necessary core functions and state for UI and Admin layers
-// *** گۆڕانکاری لێرە: زیادکردنی db بۆ export ***
+// === START: ÇAKKIRINA HELÊ ===
+// Em tenê tiştên ku bi 'inline' nehatine 'export' kirin, li vir 'export' dikin.
+// Em êdî tenê ئەو شتانە 'export' دەکەین کە 'inline' نەکراون.
 export {
     state, // Export the mutable state object
     
-    // === START: ÇAKKIRINA HELÊ ===
-    // Hemî 'export'ên dubare hatin rakirin.
-    // Fonksiyon êdî li cihê xwe yên orîjînal hatine 'export' kirin.
-    // === END: ÇAKKIRINA HELÊ ===
-    
     // *** Export Firestore functions needed by app-ui.js and admin.js ***
-    db, // <-- db lێرە زیادکرا
+    db, 
     productsCollection,
     collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
     query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction
 };
+// === END: ÇAKKIRINA HELÊ ===
