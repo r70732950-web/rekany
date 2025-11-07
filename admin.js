@@ -7,14 +7,16 @@ const {
     storage, ref, uploadBytes, getDownloadURL, // <-- VANA NÛ NE / ئەمانە نوێن
     showNotification, t, openPopup, closeCurrentPopup, 
     productsCollection, categoriesCollection, announcementsCollection,
-    promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
+    promoGroupsCollection, brandGroupsCollection, 
+    shortcutRowsCollection, // <-- === EV HATE ZÊDEKIRIN / ئەمە زیادکرا ===
     categoryLayoutsCollection, // <-- KODA NÛ / کۆدی نوێ
     setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage,
     clearProductCache
 } = window.globalAdminTools;
 // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
-const shortcutRowsCollection = collection(db, "shortcut_rows");
+// === EV HATE RAKIRIN / ئەمە سڕایەوە ===
+// const shortcutRowsCollection = collection(db, "shortcut_rows");
 
 window.AdminLogic = {
     listenersAttached: false,
@@ -1166,7 +1168,7 @@ window.AdminLogic = {
     },
     
     deleteHomeLayoutItem: async function(itemId) {
-        if (confirm('دڵنیایت دەتەوێت ئەم بەشە لە لاپەڕەی سەرەکی بسڕیتەوە؟')) {
+        if (confirm('دڵنیایت دەتەوێت ئەم بەشە لە لاپەڕەی سەرەki بسڕیتەوە؟')) {
             try {
                 await deleteDoc(doc(db, 'home_layout', itemId));
                 showNotification('بەشەکە سڕدرایەوە', 'success');
@@ -1761,7 +1763,7 @@ window.AdminLogic = {
 
                 try {
                     await addDoc(categoriesCollection, categoryData);
-                    showNotification('جۆری سەرەکی بە سەرکەوتوویی زیادکرا', 'success');
+                    showNotification('جۆری سەرەki بە سەرکەوتوویی زیادکرا', 'success');
                     addCategoryForm.reset();
                     clearProductCache();
                 } catch (error) {
@@ -1842,7 +1844,7 @@ window.AdminLogic = {
                     showNotification('جۆری نوێ بە سەرکەوتوویی زیادکرا', 'success');
                     addSubSubcategoryForm.reset();
                     mainCatSelect.value = '';
-                    subCatSelect.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەکی بە --</option>';
+                    subCatSelect.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەki بە --</option>';
                     clearProductCache();
                 } catch (error) {
                     console.error("Error adding sub-subcategory: ", error);
