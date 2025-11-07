@@ -848,11 +848,11 @@ export {
     // Em 'fetchLayout' export dikin û 'fetchHomeLayout' radikin
     fetchLayout, 
     // === END: KODA NÛ JI BO DAXWAZÊ ===
-    fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
-    // setLanguageCore exported where it's defined
-    
+    fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts,
     // === START: ÇAKKIRINA HELÊ ===
     // Em 'export'ên dubare radikin
+    // fetchInitialProductsForHome,
+    // setLanguageCore,
     // requestNotificationPermissionCore,
     // checkNewAnnouncementsCore,
     // updateLastSeenAnnouncementTimestamp,
