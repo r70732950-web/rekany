@@ -186,7 +186,7 @@ async function fetchRelatedProducts(currentProduct) {
  * @param {string} categoryId IDya kategoriyê (IDی جۆرەکە)
  * @returns {object|null} Daneyên dîzaynê (enabled, sections) an null
  */
-export async function fetchCategoryLayout(categoryId) {
+export async function fetchCategoryLayout(categoryId) { // <-- EXPORT LI VIR / هەناردە لێرە
     if (!categoryId) return null;
     try {
         // Dîzayn wekî belgeyek bi IDya kategoriyê tê tomarkirin
@@ -832,13 +832,13 @@ export async function initCore() {
 
 
 // Expose necessary core functions and state for UI and Admin layers
-// *** گۆڕانکاری لێرە: زیادکردنی db و fêchkategorîlayout بۆ export ***
+// *** گۆڕانکاری لێرە: لابردنی 'fetchCategoryLayout'ـی دووبارە ***
 export {
     state, // Export the mutable state object
     handleLogin, handleLogout, // Authentication
     fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, // Data fetching
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
-    fetchCategoryLayout, // <-- KODA NÛ / کۆدی نوێ
+    // fetchCategoryLayout, // <-- === EV HATE RAKIRIN / ئەمە سڕایەوە ===
     // setLanguageCore exported where it's defined
     requestNotificationPermissionCore,
     // checkNewAnnouncementsCore exported where it's defined
