@@ -24,11 +24,7 @@ import {
     shortcutRowsListContainer, addShortcutRowForm, addCardToRowForm,
     homeLayoutListContainer, addHomeSectionBtn, addHomeSectionModal, addHomeSectionForm,
     // === START: KODA NÛ / کۆدی نوێ ===
-    // Em hêmanên nû yên HTML ji bo dîzayna kategoriyê import dikin
-    // ئێمە توخمە نوێیەکانی HTML بۆ دیزاینی جۆرەکان هاوردە دەکەین
-    adminCategoryLayoutManagement, categoryLayoutSelect, categoryLayoutContent,
-    categoryLayoutEnabledToggle, categoryLayoutListContainer, addCategorySectionBtn,
-    saveCategoryLayoutBtn, addCategorySectionModal, addCategorySectionForm,
+    adminCategoryLayoutManagement, // <-- KODA NÛ / کۆدی نوێ
     // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 } from './app-setup.js';
 
@@ -39,9 +35,6 @@ import {
     handleLogin, handleLogout,
     fetchCategories, fetchProductById, fetchProducts, fetchSubcategories, // *** fetchSubcategories imported ***
     fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, fetchSubSubcategories,
-    // === START: KODA NÛ / کۆدی نوێ ===
-    fetchCategoryLayout, // Em vê fonksiyona nû import dikin (ئێمە ئەم فەنکشنە نوێیە هاوردە دەکەین)
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     addToCartCore, updateCartQuantityCore, removeFromCartCore, generateOrderMessageCore,
     toggleFavoriteCore, isFavorite, saveFavorites,
     saveProfileCore, setLanguageCore,
@@ -54,9 +47,13 @@ import {
     collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection
 } from './app-core.js';
 
+// === START: KODA GUHERTÎ / کۆدی گۆڕاو ===
+// Em 'renderPageContentUI' import dikin (ne 'renderHomePageContentUI')
+// ئێمە 'renderPageContentUI' هاوردە دەکەین (نەک 'renderHomePageContentUI')
 import {
-    renderHomePageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
+    renderPageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
 } from './home.js'; // Import functions from home.js
+// === END: KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
 
 // --- UI Helper Functions ---
 
@@ -868,7 +865,7 @@ async function showProductDetailsUI(productData) {
         const videoIndex = sliderElements.length; // Ev dibe îndeksa paşîn
         
         // Em pêça (wrapper) ku me li jor çêkiribû, lê zêde dikin
-        // ئێمە ئەو کۆنتەینەرەی لە سەرەوە دروستمان کردبوو، lێرە زیادی دەکەین
+        // ئێمە ئەو کۆنتەینەرەی لە سەرەوە دروستمان کردبوو، لێرە زیادی دەکەین
         imageContainer.appendChild(videoWrapper);
         sliderElements.push(videoWrapper); // Têxe nav rêzê
 
@@ -1084,15 +1081,18 @@ async function renderUserNotificationsUI() {
 function updateAdminUIAuth(isAdmin) {
     document.querySelectorAll('.product-actions').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
 
-    const adminSections = [ /* ... hemî IDyên beşên admin ... */
+    // === START: KODA NÛ / کۆدی نوێ ===
+    // Em beşa nû li vir zêde dikin
+    // ئێمە بەشە نوێیەکە لێرە زیاد دەکەین
+    const adminSections = [
          'adminPoliciesManagement', 'adminSocialMediaManagement', 'adminAnnouncementManagement',
          'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
          'adminContactMethodsManagement', 'adminShortcutRowsManagement',
          'adminHomeLayoutManagement',
-         // === START: KODA NÛ / کۆدی نوێ ===
-         'adminCategoryLayoutManagement' // Beşa nû lê zêde bike (بەشە نوێیەکە زیاد بکە)
-         // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+         'adminCategoryLayoutManagement' // <-- KODA NÛ / کۆدی نوێ
     ];
+    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+    
     adminSections.forEach(id => {
         const section = document.getElementById(id);
         if (section) section.style.display = isAdmin ? 'block' : 'none';
@@ -1315,9 +1315,15 @@ function setupUIEventListeners() {
     if (scrollTrigger) {
         const observer = new IntersectionObserver(async (entries) => {
             const isMainPageActive = document.getElementById('mainPage')?.classList.contains('page-active');
-            const homeSectionsHidden = document.getElementById('homePageSectionsContainer')?.style.display === 'none';
+            // === KODA GUHERTÎ / کۆدی گۆڕاو ===
+            // Em êdî tenê `homePageSectionsContainer` kontrol nakin
+            // Em kontrol dikin ka `productsContainer` tê nîşandan
+            // ئێمە ئیتر تەنها `homePageSectionsContainer` پشکنین ناکەین
+            // پشکنین دەکەین بزانین `productsContainer` پیشان دەدرێت
+            const isProductGridVisible = document.getElementById('productsContainer')?.style.display === 'grid';
+            // === KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
 
-            if (entries[0].isIntersecting && isMainPageActive && homeSectionsHidden && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
+            if (entries[0].isIntersecting && isMainPageActive && isProductGridVisible && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
                  loader.style.display = 'block'; 
                  const result = await fetchProducts(state.currentSearch, false); 
                  loader.style.display = 'none'; 
@@ -1407,9 +1413,9 @@ async function handleSetLanguage(lang) {
          window.AdminLogic.renderShortcutRowsAdminList?.();
          window.AdminLogic.renderHomeLayoutAdmin?.();
          // === START: KODA NÛ / کۆدی نوێ ===
-         // Em hewce ne ku dîzayna kategoriya hilbijartî ji nû ve nîşan bidin
-         // پێویستە دیزاینی جۆری هەڵبژێردراو دووبارە پیشان بدەینەوە
-         window.AdminLogic.renderCategoryLayoutAdmin?.(document.getElementById('categoryLayoutSelect').value, true);
+         // Em fonksiyona nû bang dikin da ku dîzayna kategoriyê nû bike
+         // ئێمە بانگی فەنکشنە نوێیەکە دەکەین بۆ نوێکردنەوەی دیزاینی جۆرەکان
+         window.AdminLogic.renderCategoryLayoutAdmin?.();
          // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     }
 }

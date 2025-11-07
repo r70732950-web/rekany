@@ -22,7 +22,7 @@ const firebaseConfig = {
     // === VÊ BIGUHERE / ئەمە بگۆڕە ===
     // Nêrîna xwe biguherîne li ser vê yekê
     // تکایە ئەم دێڕە ڕاست بکەرەوە
-    storageBucket: "maten-store.appspot.com", // <-- HATE RASTKIRIN / لێرە ڕاستکرایەوە
+    storageBucket: "maten-store.firebasestorage.app", // <-- HATE RASTKIRIN / لێرە ڕاستکرایەوە
     // === DAWÎYA GUHERTINÊ / کۆتایی گۆڕانکاری ===
 
     messagingSenderId: "137714858202",
@@ -51,35 +51,33 @@ export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
 export const shortcutRowsCollection = collection(db, "shortcut_rows");
 // === START: KODA NÛ / کۆدی نوێ ===
-// Em koleksiyona nû ya dîzaynê export dikin
-// ئێمە کۆڵێکشنە نوێیەکەی دیزاین هەناردە دەکەین
 export const categoryLayoutsCollection = collection(db, "category_layouts");
 // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
-
 // Translations Export
 export const translations = {
+    // ... (هەموو وەرگێڕانە کۆنەکان لێرە دەبن) ...
     ku_sorani: {
         search_placeholder: "گەڕان بە ناوی کاڵا...",
         admin_login_title: "چوونەژوورەوەی بەڕێوەبەر",
         email_label: "ئیمەیڵ:",
         password_label: "وشەی نهێنی:",
         login_button: "چوونەژوورەوە",
-        cart_title: "سەbەتەی کڕین",
-        cart_empty: "سەbەتەکەت بەتاڵە",
+        cart_title: "سەبەتەی کڕین",
+        cart_empty: "سەبەتەکەت بەتاڵە",
         total_price: "کۆی گشتی:",
         send_whatsapp: "ناردن لە ڕێگەی واتسئاپ",
-        send_viber: "ناردن لە ڕێگەی فایbەر",
+        send_viber: "ناردن لە ڕێگەی فایبەر",
         send_telegram: "ناردن لە ڕێگەی تێلێگرام",
         favorites_title: "لیستی دڵخوازەکان",
         favorites_empty: "لیستی دڵخوازەکانت بەتاڵە",
-        choose_category: "هەڵbژاردنی جۆر",
+        choose_category: "هەڵبژاردنی جۆر",
         all_products: "هەموو کاڵاکان",
-        loading_products: "...خەریکی bارکردنی کاڵاکانە",
+        loading_products: "...خەریکی بارکردنی کاڵاکانە",
         settings_title: "ڕێکخستنەکان",
         language_label: "زمان",
         profile_title: "پڕۆفایلی من",
-        admin_login_nav: "چوونەژوورەوەی bەڕێوەbەر",
+        admin_login_nav: "چوونەژوورەوەی بەڕێوەبەر",
         logout_nav: "چوونەدەرەوە",
         profile_name: "ناو:",
         profile_address: "ناونیشان:",
@@ -87,90 +85,90 @@ export const translations = {
         save_button: "پاشەکەوتکردن",
         nav_home: "سەرەکی",
         nav_categories: "جۆرەکان",
-        nav_cart: "سەbەتە",
+        nav_cart: "سەبەتە",
         nav_profile: "پڕۆفایل",
         nav_settings: "ڕێکخستن",
-        contact_us_title: "پەیوەندیمان پێوە bکە",
-        add_to_cart: "زیادکردن بۆ سەbەتە",
+        contact_us_title: "پەیوەندیمان پێوە بکە",
+        add_to_cart: "زیادکردن بۆ سەبەتە",
         added_to_cart: "زیادکرا",
         product_not_found_error: "هەڵە: کاڵاکە نەدۆزرایەوە!",
-        delete_confirm: "دڵنیایت دەتەوێت ئەم کاڵایە bسڕیتەوە؟",
+        delete_confirm: "دڵنیایت دەتەوێت ئەم کاڵایە بسڕیتەوە؟",
         product_deleted: "کاڵا سڕدرایەوە",
         product_delete_error: "هەڵە لە سڕینەوەی کاڵا",
-        order_greeting: "سڵاو! من پێویستم bەم کاڵایانەی خوارەوەیە:",
+        order_greeting: "سڵاو! من پێویستم بەم کاڵایانەی خوارەوەیە:",
         order_item_details: "نرخ: {price} د.ع. | ژمارە: {quantity}",
         order_total: "کۆی گشتی",
         order_user_info: "--- زانیاری داواکار ---",
         order_user_name: "ناو",
         order_user_address: "ناونیشان",
         order_user_phone: "ژمارەی تەلەفۆن",
-        order_prompt_info: "تکایە ناونیشان و زانیارییەکانت bنێرە بۆ گەیاندن.",
+        order_prompt_info: "تکایە ناونیشان و زانیارییەکانت بنێرە بۆ گەیاندن.",
         login_error: "ئیمەیڵ یان وشەی نهێنی هەڵەیە",
-        logout_success: "bە سەرکەوتوویی چوویتەدەرەوە",
+        logout_success: "بە سەرکەوتوویی چوویتەدەرەوە",
         profile_saved: "زانیارییەکانی پڕۆفایل پاشەکەوتکران",
         all_categories_label: "هەموو",
         install_app: "دامەزراندنی ئەپ",
-        product_added_to_cart: "کاڵاکە زیادکرا بۆ سەbەتە",
+        product_added_to_cart: "کاڵاکە زیادکرا بۆ سەبەتە",
         product_added_to_favorites: "زیادکرا بۆ لیستی دڵخوازەکان",
         product_removed_from_favorites: "لە لیستی دڵخوازەکان سڕدرایەوە",
-        manage_categories_title: "bەڕێوەbردنی جۆرەکان",
-        manage_contact_methods_title: "bەڕێوەbردنی شێوازەکانی ناردنی داواکاری",
+        manage_categories_title: "بەڕێوەبردنی جۆرەکان",
+        manage_contact_methods_title: "بەڕێوەبردنی شێوازەکانی ناردنی داواکاری",
         notifications_title: "ئاگەهدارییەکان",
         no_notifications_found: "هیچ ئاگەهدارییەک نییە",
         manage_announcements_title: "ناردنی ئاگەداری گشتی",
-        send_new_announcement: "ناردنی ئاگەداری نوێ",
-        send_announcement_button: "ناردنی ئاگەداری",
-        sent_announcements: "ئاگەهدارییە nێردراوەکان",
+        send_new_announcement: "ناردنی ئاگەهداری نوێ",
+        send_announcement_button: "ناردنی ئاگەهداری",
+        sent_announcements: "ئاگەهدارییە نێردراوەکان",
         no_announcements_sent: "هیچ ئاگەهدارییەک نەنێردراوە",
         announcement_deleted_success: "ئاگەهدارییەکە سڕدرایەوە",
-        announcement_delete_confirm: "دڵنیایت دەتەوێت ئەم ئاگەهدارییە bسڕیتەوە؟",
+        announcement_delete_confirm: "دڵنیایت دەتەوێت ئەم ئاگەهدارییە بسڕیتەوە؟",
         enable_notifications: "چالاککردنی ئاگەدارییەکان",
         error_generic: "هەڵەیەک ڕوویدا!",
         terms_policies_title: "مەرج و ڕێساکان",
-        manage_policies_title: "bەڕێوەbردنی مەرج و ڕێساکان",
+        manage_policies_title: "بەڕێوەبردنی مەرج و ڕێساکان",
         policies_saved_success: "مەرج و ڕێساکان پاشەکەوتکران",
-        loading_policies: "...خەریکی bارکردنی ڕێساکانە",
+        loading_policies: "...خەریکی بارکردنی ڕێساکانە",
         no_policies_found: "هیچ مەرج و ڕێسایەک دانەنراوە.",
         has_discount_badge: "داشکانی تێدایە",
-        force_update: "ناچارکردن bە نوێکردنەوە (سڕینەوەی کاش)",
-        update_confirm: "دڵنیایت دەتەوێت ئەپەکە نوێ bکەیتەوە؟ هەموو کاشی ناو وێbگەڕەکەت دەسڕدرێتەوە.",
-        update_success: "ئەپەکە bە سەرکەوتوویی نوێکرایەوە!",
+        force_update: "ناچارکردن بە نوێکردنەوە (سڕینەوەی کاش)",
+        update_confirm: "دڵنیایت دەتەوێت ئەپەکە نوێ بکەیتەوە؟ هەموو کاشی ناو وێبگەڕەکەت دەسڕدرێتەوە.",
+        update_success: "ئەپەکە بە سەرکەوتوویی نوێکرایەوە!",
         newest_products: "نوێترین کاڵاکان",
-        see_all: "bینینی هەمووی",
+        see_all: "بینینی هەمووی",
         all_products_section_title: "هەموو کاڵاکان",
-        share_product: "هاوbەشی پێکردن",
+        share_product: "هاوبەشی پێکردن",
         related_products_title: "کاڵای هاوشێوە",
-        share_text: "سەیری ئەم کاڵایە bکە",
-        share_error: "هاوbەشیپێکردن سەرکەوتوو نەbوو",
+        share_text: "سەیری ئەم کاڵایە بکە",
+        share_error: "هاوبەشیپێکردن سەرکەوتوو نەبوو",
         // === START: KODA NÛ / کۆدی نوێ ===
-        manage_category_layout_title: "دیزاینی لاپەڕەی جۆرەکان",
-        select_category_to_design: "جۆرێک هەڵbژێرە بۆ دیزاینکردن:",
-        enable_custom_layout: "چالاککردنی دیزاینی تایbەت:",
-        add_section_to_category: "زیادکردنی bەش بۆ دیزاینی جۆر",
-        save_category_layout_button: "پاشەکەوتکردنی ڕیزbەندی جۆر",
+        admin_category_layout_title: "دیزاینی لاپەڕەی جۆرەکان",
+        admin_category_layout_select: "-- جۆری سەرەکی هەڵبژێرە --",
+        admin_category_layout_enable: "چالاککردنی دیزاینی تایبەت بۆ ئەم جۆرە",
+        admin_category_layout_info: "ئەگەر چالاک بێت، ئەم دیزاینە لە جیاتی لیستی ئاسایی کاڵاکان پیشان دەدرێت.",
+        admin_category_layout_add_section: "زیادکردنی بەش بۆ جۆر",
         // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     },
     ku_badini: {
-        search_placeholder: "لێگەریان b ناڤێ کاڵای...",
-        admin_login_title: "چوونا ژوور یا bەرپرسى",
+        search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
+        admin_login_title: "چوونا ژوور یا بەرپرسى",
         email_label: "ئیمەیل:",
         password_label: "پەیڤا نهێنى:",
         login_button: "چوونا ژوور",
         cart_title: "سەلکا کرینێ",
         cart_empty: "سەلکا تە یا ڤالایە",
         total_price: "کۆمێ گشتی:",
-        send_whatsapp: "فرێکرن b رێکا واتسئاپ",
-        send_viber: "فرێکرن b رێکا ڤایbەر",
-        send_telegram: "فرێکرن b رێکا تێلێگرام",
+        send_whatsapp: "فرێکرن ب رێکا واتسئاپ",
+        send_viber: "فرێکرن ب رێکا ڤایبەر",
+        send_telegram: "فرێکرن ب رێکا تێلێگرام",
         favorites_title: "لیستا حەزژێکریان",
         favorites_empty: "لیستا حەزژێکریێن تە یا ڤالایە",
-        choose_category: "جورەکی هەلbژێرە",
+        choose_category: "جورەکی هەلبژێرە",
         all_products: "هەمی کاڵا",
-        loading_products: "...د bارکرنا کاڵایان دایە",
+        loading_products: "...د بارکرنا کاڵایان دایە",
         settings_title: "ڕێکخستن",
         language_label: "زمان",
         profile_title: "پروفایلێ من",
-        admin_login_nav: "چوونا ژوور یا bەرپرسى",
+        admin_login_nav: "چوونا ژوور یا بەرپرسى",
         logout_nav: "چوونا دەر",
         profile_name: "ناڤ:",
         profile_address: "ناڤ و نیشان:",
@@ -181,15 +179,15 @@ export const translations = {
         nav_cart: "سەلک",
         nav_profile: "پروفایل",
         nav_settings: "ڕێکخستن",
-        contact_us_title: "پەیوەندیێ b مە bکە",
+        contact_us_title: "پەیوەندیێ ب مە بکە",
         add_to_cart: "زێدەکرن بۆ سەلکێ",
         added_to_cart: "زێدەکر",
         product_not_found_error: "خەلەتی: کاڵا نەهاتە دیتن!",
-        delete_confirm: "تو پشتڕاستی دێ ڤی کاڵای ژێbەى؟",
-        product_deleted: "کاڵا هاتە ژێbرن",
-        product_delete_error: "خەلەتی د ژێbرنا کاڵای دا",
-        order_greeting: "سلاڤ! ئەز پێدڤی b ڤان کاڵایێن خوارێ مە:",
-        order_item_details: "bها: {price} د.ع. | ژمارە: {quantity}",
+        delete_confirm: "تو پشتڕاستی دێ ڤی کاڵای ژێبەى؟",
+        product_deleted: "کاڵا هاتە ژێبرن",
+        product_delete_error: "خەلەتی د ژێبرنا کاڵای دا",
+        order_greeting: "سلاڤ! ئەز پێدڤی ب ڤان کاڵایێن خوارێ مە:",
+        order_item_details: "بها: {price} د.ع. | ژمارە: {quantity}",
         order_total: "کۆمێ گشتی",
         order_user_info: "--- پێزانینێن داخازکەری ---",
         order_user_name: "ناڤ",
@@ -197,13 +195,13 @@ export const translations = {
         order_user_phone: "ژمارا تەلەفونێ",
         order_prompt_info: "هیڤی دکەین ناڤ و نیشان و پێزانینێن خۆ فرێکە بۆ گەهاندنێ.",
         login_error: "ئیمەیل یان پەیڤا نهێنى یا خەلەتە",
-        logout_success: "b سەرکەفتیانە چوويه دەر",
+        logout_success: "ب سەرکەفتیانە چوويه دەر",
         profile_saved: "پێزانینێن پروفایلی هاتنە پاشەکەفتکرن",
         all_categories_label: "هەمی",
         install_app: "دامەزراندنا ئەپی",
         product_added_to_cart: "کاڵا هاتە زێدەکرن بۆ سەلکێ",
         product_added_to_favorites: "هاتە زێدەکرن بۆ لیستا حەزژێکریان",
-        product_removed_from_favorites: "ژ لیستا حەزژێکریان هاتە ژێbرن",
+        product_removed_from_favorites: "ژ لیستا حەزژێکریان هاتە ژێبرن",
         manage_categories_title: "рێکخستنا جوران",
         manage_contact_methods_title: "рێکخستنا رێکێن فرێکرنا داخازیێ",
         notifications_title: "ئاگەهداری",
@@ -213,46 +211,46 @@ export const translations = {
         send_announcement_button: "ئاگەهداریێ فرێکە",
         sent_announcements: "ئاگەهداریێن هاتینە فرێکرن",
         no_announcements_sent: "چ ئاگەهداری نەهاتینە فرێکرن",
-        announcement_deleted_success: "ئاگەهداری هاتە ژێbرن",
-        announcement_delete_confirm: "تو پشتڕاستی دێ ڤێ ئaگەهداریێ ژێbەی؟",
+        announcement_deleted_success: "ئاگەهداری هاتە ژێبرن",
+        announcement_delete_confirm: "تو پشتڕاستی دێ ڤێ ئaگەهداریێ ژێبەی؟",
         enable_notifications: "چالاکرنا ئاگەهداریان",
-        error_generic: "خەلەتییەک چێbوو!",
+        error_generic: "خەلەتییەک چێبوو!",
         terms_policies_title: "مەرج و سیاسەت",
         manage_policies_title: "рێکخستنا مەرج و سیاسەتان",
         policies_saved_success: "مەرج و سیاسەت هاتنە پاشەکەفتکرن",
-        loading_policies: "...د bارکرنا سیاسەتان دایە",
+        loading_policies: "...د بارکرنا سیاسەتان دایە",
         no_policies_found: "چ مەرج و سیاسەت نەهاتینە دانان.",
         has_discount_badge: "داشکان تێدایە",
-        force_update: "ناچارکرن b نویکرنەوە (ژێbرنا کاشی)",
-        update_confirm: "تو پشتراستی دێ ئەپی نویکەیەڤە؟ دێ هەمی کاش د ناڤ وێbگەرا تە دا هێتە ژێbرن.",
-        update_success: "ئەپ b سەرکەفتیانە هاتە نویکرن!",
+        force_update: "ناچارکرن ب نویکرنەوە (ژێبرنا کاشی)",
+        update_confirm: "تو پشتراستی دێ ئەپی نویکەیەڤە؟ دێ هەمی کاش د ناڤ وێبگەرا تە دا هێتە ژێبرن.",
+        update_success: "ئەپ ب سەرکەfتیانە هاتە نویکرن!",
         newest_products: "نوترین کاڵا",
-        see_all: "هەمیا bbینە",
+        see_all: "هەمیا ببینە",
         all_products_section_title: "هەمی کاڵا",
         share_product: "پارڤەکرن",
         related_products_title: "کاڵایێن وەک ئێکن",
-        share_text: "bەرێخۆ bدە ڤی کاڵای",
+        share_text: "بەرێخۆ بدە ڤی کاڵای",
         share_error: "پارڤەکرن سەرنەکەفت",
         // === START: KODA NÛ / کۆدی نوێ ===
-        manage_category_layout_title: "دیزاینا لاپەرێن جوران",
-        select_category_to_design: "جورەکی هەلbژێرە بۆ دیزاینکرنێ:",
-        enable_custom_layout: "چالاکرنا دیزاینا تایbەت:",
-        add_section_to_category: "زێدەکرنا پشکێ بۆ دیزاینا جورى",
-        save_category_layout_button: "پاشەکەفتکرنا رێزبەندیا جورى",
+        admin_category_layout_title: "دیزاینا لاپەرێ جوران",
+        admin_category_layout_select: "-- جۆرێ سەرەکی هەلبژێرە --",
+        admin_category_layout_enable: "چالاکرنا دیزاینا تایبەت بۆ ڤی جۆری",
+        admin_category_layout_info: "ئەگەر بهێتە چالاکرن، ئەڤ دیزاینە دێ ل جهێ لیستا ئاسایی یا کاڵایان هێتە نیشاندان.",
+        admin_category_layout_add_section: "زێدەکرنا پشکێ بۆ جۆری",
         // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     },
     ar: {
-        search_placeholder: "الbحث bاسم المنتج...",
+        search_placeholder: "البحث باسم المنتج...",
         admin_login_title: "تسجيل دخول المسؤول",
-        email_label: "الbريد الإلكتروني:",
+        email_label: "البريد الإلكتروني:",
         password_label: "كلمة المرور:",
         login_button: "تسجيل الدخول",
         cart_title: "سلة التسوق",
         cart_empty: "سلتك فارغة",
         total_price: "المجموع الكلي:",
-        send_whatsapp: "إرسال عbر واتساb",
-        send_viber: "إرسال عbر فايbر",
-        send_telegram: "إرسال عbر تليجرام",
+        send_whatsapp: "إرسال عبر واتساب",
+        send_viber: "إرسال عبر فايبر",
+        send_telegram: "إرسال عبر تليجرام",
         favorites_title: "قائمة المفضلة",
         favorites_empty: "قائمة المفضلة فارغة",
         choose_category: "اختر الفئة",
@@ -279,7 +277,7 @@ export const translations = {
         delete_confirm: "هل أنت متأكد من أنك تريد حذف هذا المنتج؟",
         product_deleted: "تم حذف المنتج",
         product_delete_error: "خطأ في حذف المنتج",
-        order_greeting: "مرحbاً! أحتاج إلى المنتجات التالية:",
+        order_greeting: "مرحباً! أحتاج إلى المنتجات التالية:",
         order_item_details: "السعر: {price} د.ع. | الكمية: {quantity}",
         order_total: "المجموع الكلي",
         order_user_info: "--- معلومات العميل ---",
@@ -287,16 +285,16 @@ export const translations = {
         order_user_address: "العنوان",
         order_user_phone: "رقم الهاتف",
         order_prompt_info: "يرجى إرسال عنوانك وتفاصيلك للتوصيل.",
-        login_error: "الbريد الإلكتروني أو كلمة المرور غير صحيحة",
-        logout_success: "تم تسجيل الخروج bنجاح",
+        login_error: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+        logout_success: "تم تسجيل الخروج بنجاح",
         profile_saved: "تم حفظ معلومات الملف الشخصي",
         all_categories_label: "الكل",
-        install_app: "تثbيت التطbيق",
+        install_app: "تثبيت التطبيق",
         product_added_to_cart: "تمت إضافة المنتج إلى السلة",
         product_added_to_favorites: "تمت الإضافة إلى المفضلة",
         product_removed_from_favorites: "تمت الإزالة من المفضلة",
         manage_categories_title: "إدارة الفئات",
-        manage_contact_methods_title: "إدارة طرق إرسال الطلb",
+        manage_contact_methods_title: "إدارة طرق إرسال الطلب",
         notifications_title: "الإشعارات",
         no_notifications_found: "لا توجد إشعارات",
         manage_announcements_title: "إدارة الإشعارات العامة",
@@ -310,26 +308,26 @@ export const translations = {
         error_generic: "حدث خطأ!",
         terms_policies_title: "الشروط والسياسات",
         manage_policies_title: "إدارة الشروط والسياسات",
-        policies_saved_success: "تم حفظ الشروط والسياسات bنجاح",
+        policies_saved_success: "تم حفظ الشروط والسياسات بنجاح",
         loading_policies: "...جاري تحميل السياسات",
         no_policies_found: "لم يتم تحديد أي شروط أو سياسات.",
         has_discount_badge: "يتضمن خصم",
         force_update: "فرض التحديث (مسح ذاكرة التخزين المؤقت)",
-        update_confirm: "هل أنت متأكد من رغbتك في تحديث التطbيق؟ سيتم مسح جميع bيانات ذاكرة التخزين المؤقت.",
-        update_success: "تم تحديث التطbيق bنجاح!",
+        update_confirm: "هل أنت متأكد من رغبتك في تحديث التطبيق؟ سيتم مسح جميع بيانات ذاكرة التخزين المؤقت.",
+        update_success: "تم تحديث التطبيق بنجاح!",
         newest_products: "أحدث المنتجات",
         see_all: "عرض الكل",
         all_products_section_title: "جميع المنتجات",
         share_product: "مشاركة المنتج",
-        related_products_title: "منتجات مشaبهة",
+        related_products_title: "منتجات مشابهة",
         share_text: "ألق نظرة على هذا المنتج",
         share_error: "فشلت المشاركة",
         // === START: KODA NÛ / کۆدی نوێ ===
-        manage_category_layout_title: "تصميم صفحات الفئات",
-        select_category_to_design: "اختر فئة لتصميمها:",
-        enable_custom_layout: "تفعيل التصميم المخصص:",
-        add_section_to_category: "إضافة قسم لتصميم الفئة",
-        save_category_layout_button: "حفظ ترتيب الفئة",
+        admin_category_layout_title: "تصميم صفحة الفئات",
+        admin_category_layout_select: "-- اختر الفئة الرئيسية --",
+        admin_category_layout_enable: "تفعيل التصميم المخصص لهذه الفئة",
+        admin_category_layout_info: "في حال تفعيله، سيتم عرض هذا التصميم بدلاً من قائمة المنتجات العادية.",
+        admin_category_layout_add_section: "إضافة قسم للفئة",
         // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     }
 };
@@ -351,25 +349,18 @@ export let state = {
     allProductsLoaded: false,
     isRenderingHomePage: false,
     productCache: {},
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Em cache ji bo dîzayna kategoriyan lê zêde dikin
-    // ئێمە کاش بۆ دیزاینی جۆرەکان زیاد دەکەین
-    categoryLayoutCache: {},
-    isCustomCategoryLayoutActive: false, // Ji bo ku UI bizane ka dîzaynek taybet nîşan bide
-                                     // بۆ ئەوەی UI bزانێت ئایا دیزاینێکی تایbەت پیشان bدات
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     currentCategory: 'all',
     currentSubcategory: 'all',
     currentSubSubcategory: 'all',
     currentSearch: '',
     currentProductId: null, // Used by app-ui
     currentPageId: 'mainPage', // *** زیادکرا: بۆ زانینی پەڕەی ئێستا ***
-    currentPopupState: null, // *** زیادکرا: شوێنی دۆخی ئێستای پۆپئەپ bگرە ***
-    // *** START: Gۆڕانکاری lێرە kra ***
-    // *** دەستپێک: گۆڕانکاری lێرە kra ***
-    pendingFilterNav: null, // Ji bo ragirtina fîlterê heta ku popup were girtin (bۆ ڕاگرتنی فلتەر تا داخستنی پۆپئەپ)
-    // *** END: Gۆڕانکاری lێرە kra ***
-    // *** کۆتایی: Gۆڕانکاری lێرە kra ***
+    currentPopupState: null, // *** زیادکرا: شوێنی دۆخی ئێستای پۆپئەپ بگرە ***
+    // *** START: Gۆڕانکاری لێرە کرا ***
+    // *** دەستپێک: گۆڕانکاری لێرە کرا ***
+    pendingFilterNav: null, // Ji bo ragirtina fîlterê heta ku popup were girtin (بۆ ڕاگرتنی فلتەر تا داخستنی پۆپئەپ)
+    // *** END: Gۆڕانکاری لێرە کرا ***
+    // *** کۆتایی: گۆڕانکاری لێرە کرا ***
     sliderIntervals: {}, // Used by app-ui & app-core
     contactInfo: {}, // Might be needed?
 };
@@ -392,7 +383,7 @@ export const clearSearchBtn = document.getElementById('clearSearchBtn');
 export const loginForm = document.getElementById('loginForm');
 export const productForm = document.getElementById('productForm');
 export const formTitle = document.getElementById('formTitle');
-export const imageInputsContainer = document.getElementById('imageUploadContainer'); // Guhertin bo IDya nû
+export const imageInputsContainer = document.getElementById('imageInputsContainer');
 export const loader = document.getElementById('loader');
 export const cartBtn = document.getElementById('cartBtn');
 export const cartItemsContainer = document.getElementById('cartItemsContainer');
@@ -464,19 +455,15 @@ export const homeLayoutListContainer = document.getElementById('homeLayoutListCo
 export const addHomeSectionBtn = document.getElementById('addHomeSectionBtn');
 export const addHomeSectionModal = document.getElementById('addHomeSectionModal');
 export const addHomeSectionForm = document.getElementById('addHomeSectionForm');
-
 // === START: KODA NÛ / کۆدی نوێ ===
-// Em hêmanên nû yên HTML ji bo dîzayna kategoriyê export dikin
-// ئێمە توخمە نوێیەکانی HTML بۆ دیزاینی جۆرەکان هەناردە دەکەین
+// Em elementên nû yên UI ji bo beşa nû export dikin
+// ئێمە توخمە نوێیەکانی UI بۆ بەشە نوێیەکە هەناردە دەکەین
 export const adminCategoryLayoutManagement = document.getElementById('adminCategoryLayoutManagement');
 export const categoryLayoutSelect = document.getElementById('categoryLayoutSelect');
-export const categoryLayoutContent = document.getElementById('categoryLayoutContent');
-export const categoryLayoutEnabledToggle = document.getElementById('categoryLayoutEnabledToggle');
+export const categoryLayoutEditorContainer = document.getElementById('categoryLayoutEditorContainer');
+export const categoryLayoutEnableToggle = document.getElementById('categoryLayoutEnableToggle');
 export const categoryLayoutListContainer = document.getElementById('categoryLayoutListContainer');
 export const addCategorySectionBtn = document.getElementById('addCategorySectionBtn');
-export const saveCategoryLayoutBtn = document.getElementById('saveCategoryLayoutBtn');
-export const addCategorySectionModal = document.getElementById('addCategorySectionModal');
-export const addCategorySectionForm = document.getElementById('addCategorySectionForm');
 // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
 
@@ -497,8 +484,7 @@ window.globalAdminTools = {
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
     // === START: KODA NÛ / کۆدی نوێ ===
-    categoryLayoutsCollection, // Em koleksiyona nû lê zêde dikin
-                               // ئێمە کۆڵێکشنە نوێیەکە زیاد دەکەین
+    categoryLayoutsCollection, // <-- VÊ NÛ YE / ئەمە نوێیە
     // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
     // Core State Accessors/Mutators needed by admin.js
@@ -529,11 +515,6 @@ window.globalAdminTools = {
      clearProductCache: () => { // Keep this helper
           console.log("Product cache and home page cleared due to admin action.");
           state.productCache = {};
-          // === START: KODA NÛ / کۆدی نوێ ===
-          // Em cachea dîzayna kategoriyan jî paqij dikin
-          // ئێمە کاشی دیزاینی جۆرەکانیش پاک دەکەینەوە
-          state.categoryLayoutCache = {};
-          // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
           const homeContainer = document.getElementById('homePageSectionsContainer');
           if (homeContainer) {
               homeContainer.innerHTML = '';
