@@ -342,7 +342,7 @@
 
                  <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
                      <form id="addCategoryForm">
-                         <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی جۆری سەرەki</h4>
+                         <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی جۆری سەرەکی</h4>
                          <div class="form-group">
                              <label>ناوی جۆر (سۆرانی):</label>
                              <input type="text" id="mainCategoryNameKuSorani" required>
@@ -363,7 +363,7 @@
                              <label>ژمارەی ڕیزبەندی:</label>
                              <input type="number" id="mainCategoryOrder" value="10" required>
                          </div>
-                         <button type="submit" style="background-color: var(--primary-color);">پاشەکەوتکردنی جۆری سەرەki</button>
+                         <button type="submit" style="background-color: var(--primary-color);">پاشەکەوتکردنی جۆری سەرەکی</button>
                      </form>
                  </div>
 
@@ -371,7 +371,7 @@
                      <form id="addSubcategoryForm">
                          <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی جۆری لاوەکی</h4>
                          <div class="form-group">
-                             <label>جۆری سەرەki هەڵبژێرە:</label>
+                             <label>جۆری سەرەکی هەڵبژێرە:</label>
                              <select id="parentCategorySelect" required>
                                  <option value="" disabled selected>-- سەرەتا جۆرێک هەڵبژێرە --</option>
                              </select>
@@ -403,15 +403,15 @@
                      <form id="addSubSubcategoryForm">
                          <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی جۆری لاوەکیی لاوەکی</h4>
                          <div class="form-group">
-                             <label>جۆری سەرەki هەڵبژێرە:</label>
+                             <label>جۆری سەرەکی هەڵبژێرە:</label>
                              <select id="parentMainCategorySelectForSubSub" required>
-                                 <option value="" disabled selected>-- سەرەتا جۆری سەرەki هەڵبژێرە --</option>
+                                 <option value="" disabled selected>-- سەرەتا جۆری سەرەکی هەڵبژێرە --</option>
                              </select>
                          </div>
                          <div class="form-group">
                              <label>جۆری لاوەکی هەڵبژێرە:</label>
                              <select id="parentSubcategorySelectForSubSub" required>
-                                 <option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەki بە --</option>
+                                 <option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەکی بە --</option>
                              </select>
                          </div>
                          <div class="form-group">
@@ -542,7 +542,7 @@
                              <input type="url" id="brandImageUrl" required>
                          </div>
                          <div class="form-group">
-                             <label>لینک بکرێت بۆ کام جۆری سەرەki:</label>
+                             <label>لینک بکرێت بۆ کام جۆری سەرەکی:</label>
                              <select id="brandTargetMainCategory">
                                  <option value="" selected>-- هەموو جۆرەکان --</option>
                              </select>
@@ -624,7 +624,7 @@
                              <input type="url" id="shortcutCardImageUrl" required>
                          </div>
                           <div class="form-group">
-                             <label>جۆری سەرەki:</label>
+                             <label>جۆری سەرەکی:</label>
                              <select id="shortcutCardMainCategory">
                                  <option value="">-- هەموو کاڵاکان --</option>
                              </select>
@@ -653,59 +653,22 @@
                  </div>
              </div>
 
-             <!-- === START: BEŞA NÛ / بەشی نوێ === -->
              <div class="settings-group" id="adminHomeLayoutManagement" style="display: none;">
                  <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
-                     <i class="fas fa-home"></i> <span>ڕێکخستنی پەڕەی سەرەki (Home)</span>
+                     <i class="fas fa-stream"></i> <span>ڕێکخستنی پەڕەی سەرەکی</span>
                  </h3>
                  <div style="padding: 15px;">
                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                          <p style="margin: 0; color: var(--text-light); font-size: 14px;">
-                             ڕیزبەندی بەشەکانی پەڕەی سەرەki بگۆڕە.
+                             ڕیزبەندی بەشەکان بگۆڕە و بەشی نوێ زیاد بکە.
                          </p>
                          <button id="addHomeSectionBtn" class="add-section-btn"><i class="fas fa-plus"></i> زیادکردنی بەش</button>
                      </div>
                      <div id="homeLayoutListContainer" class="layout-list-container">
                      </div>
-                     <button id="saveHomeLayoutBtn" class="save-layout-btn" style="margin-top: 15px; background-color: var(--primary-color);">پاشەکەوتکردنی ڕیزبەندی</button>
+                     <button id="saveLayoutBtn" style="margin-top: 15px; background-color: var(--primary-color);">پاشەکەوتکردنی ڕیزبەندی</button>
                  </div>
              </div>
-             
-             <div class="settings-group" id="adminCategoryLayoutManagement" style="display: none;">
-                 <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
-                     <i class="fas fa-palette"></i> <span>دیزاینی لاپەڕەی جۆرەکان</span>
-                 </h3>
-                 <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
-                     <div class="form-group">
-                         <label for="categoryLayoutSelect">جۆری سەرەki هەڵبژێرە بۆ دەستکاریکردن:</label>
-                         <select id="categoryLayoutSelect" required>
-                             <option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>
-                         </select>
-                     </div>
-                 </div>
-                 <div id="categoryLayoutToggleContainer" style="padding: 15px; border-bottom: 1px solid var(--section-border); display: none;">
-                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                         <label for="useCustomLayoutToggle" style="font-weight: bold; color: var(--primary-color);">بەکارهێنانی دیزاینی تایبەت؟</label>
-                         <label class="switch">
-                             <input type="checkbox" id="useCustomLayoutToggle">
-                             <span class="slider"></span>
-                         </label>
-                     </div>
-                 </div>
-                 <div id="categoryLayoutBuilderContainer" style="padding: 15px; display: none;">
-                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                         <p style="margin: 0; color: var(--text-light); font-size: 14px;">
-                             ڕیزبەندی بەشەکانی ئەم جۆرە بگۆڕە.
-                         </p>
-                         <button id="addCategorySectionBtn" class="add-section-btn"><i class="fas fa-plus"></i> زیادکردنی بەش</button>
-                     </div>
-                     <div id="categoryLayoutListContainer" class="layout-list-container">
-                     </div>
-                     <button id="saveCategoryLayoutBtn" class="save-layout-btn" style="margin-top: 15px; background-color: var(--primary-color);">پاشەکەوتکردنی ڕیزبەندی جۆر</button>
-                 </div>
-             </div>
-             <!-- === END: BEŞA NÛ / کۆتایی بەشی نوێ === -->
-
              <div class="settings-group" id="adminContactMethodsManagement" style="display: none;">
                  <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;"><i class="fas fa-paper-plane"></i> <span data-translate-key="manage_contact_methods_title">بەڕێوەبردنی شێوازەکانی ناردنی داواکاری</span></h3>
 
@@ -720,7 +683,7 @@
                                  <option value="viber">ڤایبەر (Viber)</option>
                                  <option value="telegram">تێلێگرام (Telegram)</option>
                                  <option value="phone">پەیوەندی تەلەفۆنی (Phone Call)</option>
-                                 <option value="url">لینکی دەرەki (Custom URL)</option>
+                                 <option value="url">لینکی دەرەکی (Custom URL)</option>
                              </select>
                          </div>
 
@@ -870,7 +833,7 @@
                     </div>
                     <div id="specificCategorySelectContainer" class="form-group" style="display: none;">
                         <div class="form-group">
-                            <label for="newSectionMainCategory">جۆری سەرەki:</label>
+                            <label for="newSectionMainCategory">جۆری سەرەکی:</label>
                             <select id="newSectionMainCategory"></select>
                         </div>
                         <div class="form-group" id="newSectionSubcategoryContainer" style="display:none;">
@@ -950,16 +913,16 @@
                     <div class="form-group"><label for="productPrice">نرخی فرۆشتن (د.ع.):</label><input type="number" id="productPrice" required min="0" step="1"></div>
                     <div class="form-group"><label for="productOriginalPrice">نرخی ڕەسەن (د.ع.):</label><input type="number" id="productOriginalPrice" min="0" step="1" placeholder="ئەگەر داشکانی نییە، بەتاڵ بێت"></div>
 
-                    <div class="form-group"><label for="productCategoryId">جۆری سەرەki:</label>
+                    <div class="form-group"><label for="productCategoryId">جۆری سەرەکی:</label>
                         <select id="productCategoryId" required>
-                            <option value="" disabled selected>-- جۆرێ سەرەki هەڵبژێرە --</option>
+                            <option value="" disabled selected>-- جۆرێ سەرەکی هەڵبژێرە --</option>
                         </select>
                     </div>
 
                     <div class="form-group" id="subcategorySelectContainer" style="display: none;">
                         <label for="productSubcategoryId">جۆری لاوەکی:</label>
                         <select id="productSubcategoryId">
-                            <option value="" disabled selected>-- سەرەتا جۆری سەرەki هەڵبژێرە --</option>
+                            <option value="" disabled selected>-- سەرەتا جۆری سەرەکی هەڵبژێرە --</option>
                         </select>
                     </div>
                     <div class="form-group" id="subSubcategorySelectContainer" style="display: none;">
@@ -984,12 +947,12 @@
                     <div class="form-group">
                         <label>وێنەکانی کاڵا (تا 4 وێنە):</label>
                         <p style="font-size: 12px; color: var(--dark-gray); margin-top: -4px; margin-bottom: 8px;">
-                            (وێنەی یەکەم وەک وێنەی سەرەki بەکاردێت. تکایە چاوەڕێ بکە تا وێنەکان باربن.)
+                            (وێنەی یەکەم وەک وێنەی سەرەکی بەکاردێت. تکایە چاوەڕێ بکە تا وێنەکان باربن.)
                         </p>
                         <div class="image-upload-container" id="imageUploadContainer">
                             </div>
                     </div>
-                    <div class="form-group"><label for="productExternalLink">لینکی دەرەki:</label><input type="text" id="productExternalLink" placeholder="بۆ نموونە، لینکی ڤیدیۆ..."></div>
+                    <div class="form-group"><label for="productExternalLink">لینکی دەرەکی:</label><input type="text" id="productExternalLink" placeholder="بۆ نموونە، لینکی ڤیدیۆ..."></div>
 
                     <hr style="margin: 20px 0; border-top: 1px solid var(--section-border);">
                     <div class="form-group">
@@ -1013,7 +976,7 @@
         <div class="bottom-nav">
              <button id="homeBtn" class="bottom-nav-item">
                  <i class="fas fa-home"></i>
-                 <span data-translate-key="nav_home">سەرەki</span>
+                 <span data-translate-key="nav_home">سەرەکی</span>
              </button>
              <button id="categoriesBtn" class="bottom-nav-item">
                  <i class="fas fa-tags"></i>
@@ -1045,4 +1008,3 @@
     <script src="admin.js" defer></script>
 </body>
 </html>
-

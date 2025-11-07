@@ -23,11 +23,6 @@ import {
     addBrandGroupForm, brandGroupsListContainer, addBrandForm,
     shortcutRowsListContainer, addShortcutRowForm, addCardToRowForm,
     homeLayoutListContainer, addHomeSectionBtn, addHomeSectionModal, addHomeSectionForm,
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Elementên nû ji bo dîzayna kategoriyan
-    // توخمە نوێیەکان بۆ دیزاینی جۆرەکان
-    adminCategoryLayoutManagement
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 } from './app-setup.js';
 
 import {
@@ -49,14 +44,9 @@ import {
     collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection
 } from './app-core.js';
 
-// === START: KODA GAUHERTÎ / کۆدی گۆڕاو ===
-// Navê fonksîyonê hate guhertin
-// ناوی فەنکشنەکە گۆڕدرا
 import {
-    renderDynamicLayoutUI, // Berê 'renderHomePageContentUI' bû (پێشتر 'renderHomePageContentUI' بوو)
-    updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
+    renderHomePageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
 } from './home.js'; // Import functions from home.js
-// === END: KODA GAUHERTÎ / کۆتایی کۆدی گۆڕاو ===
 
 // --- UI Helper Functions ---
 
@@ -1088,12 +1078,7 @@ function updateAdminUIAuth(isAdmin) {
          'adminPoliciesManagement', 'adminSocialMediaManagement', 'adminAnnouncementManagement',
          'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
          'adminContactMethodsManagement', 'adminShortcutRowsManagement',
-         'adminHomeLayoutManagement',
-         // === START: KODA NÛ / کۆدی نوێ ===
-         // Beşa nû lê zêde bike
-         // بەشە نوێیەکە زیاد بکە
-         'adminCategoryLayoutManagement'
-         // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+         'adminHomeLayoutManagement'
     ];
     adminSections.forEach(id => {
         const section = document.getElementById(id);
@@ -1317,14 +1302,9 @@ function setupUIEventListeners() {
     if (scrollTrigger) {
         const observer = new IntersectionObserver(async (entries) => {
             const isMainPageActive = document.getElementById('mainPage')?.classList.contains('page-active');
-            
-            // === START: KODA GAUHERTÎ / کۆدی گۆڕاو ===
-            // Em kontrol dikin ka dîmenek xwerû çalak e
-            // پشکنین دەکەین بزانین دیمەنێکی تایبەت چالاکە
-            const isDynamicLayoutActive = state.currentCategoryLayout || (state.currentCategory === 'all' && !state.currentSearch);
-            // === END: KODA GAUHERTÎ / کۆتایی کۆدی گۆڕاو ===
+            const homeSectionsHidden = document.getElementById('homePageSectionsContainer')?.style.display === 'none';
 
-            if (entries[0].isIntersecting && isMainPageActive && !isDynamicLayoutActive && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
+            if (entries[0].isIntersecting && isMainPageActive && homeSectionsHidden && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
                  loader.style.display = 'block'; 
                  const result = await fetchProducts(state.currentSearch, false); 
                  loader.style.display = 'none'; 
@@ -1343,13 +1323,6 @@ function setupUIEventListeners() {
         if(e.detail.isAdmin && loginModal.style.display === 'block') {
              closeCurrentPopup();
         }
-        // === START: KODA NÛ / کۆدی نوێ ===
-        // Piştî ku admin tê, UIya nû ya dîzaynê saz bike
-        // دوای ئەوەی ئەدمین هات، UIـی نوێی دیزاینەکە دابمەزرێنە
-        if (e.detail.isAdmin && window.AdminLogic && typeof window.AdminLogic.initializeCategoryLayoutBuilder === 'function') {
-            window.AdminLogic.initializeCategoryLayoutBuilder();
-        }
-        // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     });
 
     document.addEventListener('fcmMessage', (e) => {
@@ -1420,16 +1393,11 @@ async function handleSetLanguage(lang) {
          window.AdminLogic.renderBrandGroupsAdminList?.();
          window.AdminLogic.renderShortcutRowsAdminList?.();
          window.AdminLogic.renderHomeLayoutAdmin?.();
-         // === START: KODA NÛ / کۆدی نوێ ===
-         // UIya dîzayna kategoriyê ji nû ve nîşan bide
-         // UIـی دیزاینی جۆرەکان دووبارە پیشان بدەوە
-         window.AdminLogic.renderCategoryLayoutAdmin?.();
-         // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     }
 }
 
 // *** START: Gۆڕanlکاری lێرە kra (Logica Popstate bi tevahî hate nûve kirin) ***
-// *** دەستپێک: Gۆڕanlکاری lێرە kra (لۆجیکی Popstate بە تەواوی نوێکرایەوە) ***
+// *** دەستپێک: گۆڕانکاری لێرە کرا (لۆجیکی Popstate بە تەواوی نوێکرایەوە) ***
 window.addEventListener('popstate', async (event) => {
     const wasPopupOpen = state.currentPopupState !== null; 
     const previousPageId = state.currentPageId; 

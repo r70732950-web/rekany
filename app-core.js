@@ -6,11 +6,6 @@ import {
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Komeleya nû ji bo dîzaynên kategoriyan
-    // کۆڵەکشنی نوێ بۆ دیزاینی جۆرەکان
-    categoryLayoutsCollection,
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     translations, state,
     CART_KEY, FAVORITES_KEY, PROFILE_KEY, PRODUCTS_PER_PAGE,
 } from './app-setup.js';
@@ -96,7 +91,7 @@ async function fetchCategories() {
 }
 
 async function fetchSubcategories(categoryId) {
-    if (categoryId === 'all') return []; // Ev rast e, ji bo "Home" divê em ti jêr-kategorî nîşan nedin (ئەمە دروستە، بۆ "سەرەki" پێویست ناکات هیچ جۆرێکی لاوەکی نیشان بدەین)
+    if (categoryId === 'all') return []; // Ev rast e, ji bo "Home" divê em ti jêr-kategorî nîşan nedin (ئەمە دروستە، بۆ "سەرەکی" پێویست ناکات هیچ جۆرێکی لاوەکی نیشان بدەین)
     try {
         const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
         const q = query(subcategoriesQuery, orderBy("order", "asc"));
@@ -183,125 +178,25 @@ async function fetchRelatedProducts(currentProduct) {
 // *** DAWÎYA ÇAKKIRINÊ / END CORRECTION ***
 
 
-// === START: KODA NÛ / کۆدی نوێ ===
-// Vê fonksîyonê biguherîne da ku cache bikar bîne
-// ئەم فەنکشنە بگۆڕە بۆ ئەوەی کاش بەکاربهێنێت
-async function fetchHomeLayout() {
-    // Cache-ê kontrol bike
-    // پشکنینی کاش
-    if (state.homeLayoutCache) {
-        return state.homeLayoutCache;
-    }
-    try {
-        const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
-        const layoutSnapshot = await getDocs(layoutQuery);
-        const layout = layoutSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        state.homeLayoutCache = layout; // Di cache de tomar bike (لە کاش پاشەکەوتی بکە)
-        return layout;
-    } catch (error) {
-        console.error("Error fetching home layout:", error);
-        return [];
-    }
-}
-// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
-
-// === START: KODA NÛ / کۆدی نوێ ===
-// Fonksîyonek nû ji bo anîna dîzayna kategoriyan
-// فەنکشنێکی نوێ بۆ هێنانی دیزاینی جۆرەکان
-async function fetchCategoryLayout(categoryId) {
-    // 1. Cache-ê kontrol bike
-    // 1. پشکنینی کاش
-    if (state.categoryLayoutsCache.hasOwnProperty(categoryId)) {
-        return state.categoryLayoutsCache[categoryId];
-    }
-
-    try {
-        // 2. Belgeya sereke ya dîzaynê bîne
-        // 2. دۆکیومێنتی سەرەki دیزاینەکە بهێنە
-        const layoutDocRef = doc(db, 'category_layouts', categoryId);
-        const layoutDocSnap = await getDoc(layoutDocRef);
-
-        // 3. Kontrol bike ka 'enabled' e
-        // 3. پشکنین بکە بزانە 'چالاکە'
-        if (layoutDocSnap.exists() && layoutDocSnap.data().enabled === true) {
-            // 4. Eger 'enabled' be, beşên (items) wê bîne
-            // 4. ئەگەر 'چالاک' بوو، بەشەکانی (items) بهێنە
-            const itemsQuery = query(
-                collection(layoutDocRef, 'layout_items'), // Komeleya jêrîn (Subcollection)
-                where('enabled', '==', true),
-                orderBy('order', 'asc')
-            );
-            const itemsSnapshot = await getDocs(itemsQuery);
-            const layoutItems = itemsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
-            if (layoutItems.length > 0) {
-                state.categoryLayoutsCache[categoryId] = layoutItems; // Di cache de tomar bike (لە کاش پاشەکەوتی بکە)
-                return layoutItems;
-            }
-        }
-        
-        // Eger 'enabled' nebe, an belge tunebe, an beş tunebe
-        // ئەگەر 'چالاک' نەبوو، یان دۆکیومێنتەکە بوونی نەبوو، یان هیچ بەشێک نەبوو
-        state.categoryLayoutsCache[categoryId] = null; // Cache bike wekî null (کاشی بکە وەک null)
-        return null;
-
-    } catch (error) {
-        console.error(`Error fetching layout for category ${categoryId}:`, error);
-        state.categoryLayoutsCache[categoryId] = null; // Di dema çewtiyê de cache bike wekî null (لەکاتی هەڵەدا کاشی بکە وەک null)
-        return null;
-    }
-}
-// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
-
-
-// === START: KODA GAUHERTÎ / کۆدی گۆڕاو ===
-// Fonksîyona fetchProducts bi tevahî hatiye nûve kirin da ku piştgirîya dîzaynên xwerû bike
-// فەنکشنی fetchProducts بە تەواوی نوێکراوەتەوە بۆ پشتگیریکردنی دیزاینە تایبەتەکان
+// Fetches products based on current filters and pagination state
 async function fetchProducts(searchTerm = '', isNewSearch = false) {
-    const finalSearchTerm = searchTerm.trim().toLowerCase();
+    const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
 
-    // 1. Kontrol bike ka ew rûpela malê ye (Home)
-    // 1. پشکنین بکە بزانە ئایا پەڕەی سەرەki (Home)ـیە
-    const isHomePageView = !finalSearchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-    if (isHomePageView) {
-        state.currentCategoryLayout = null; // Dîzayna kategoriyê paqij bike (دیزاینی جۆرەکە پاک بکەوە)
-        const homeLayout = await fetchHomeLayout(); // Dîzayna rûpela malê bîne (دیزاینی لاپەڕەی ماڵەوە بهێنە)
-        // Sînyal bide UI ku dîzayna rûpela malê nîşan bide
-        // ئاماژە بدە بە UI کە دیزاینی لاپەڕەی ماڵەوە پیشان بدات
-        return { isHome: true, layout: homeLayout, products: [], allLoaded: true };
+    if (shouldShowHomeSections) {
+        // Signal UI to render home sections
+        return { isHome: true, products: [], allLoaded: true };
     }
 
-    // 2. Kontrol bike ka ew dîmenek kategoriya sereke ya xwerû ye
-    // 2. پشکنین بکە بزانە ئایا دیمەنێکی جۆری سەرەki تایبەتە
-    const isMainCategoryView = !finalSearchTerm && state.currentCategory !== 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-    if (isMainCategoryView) {
-        const customLayout = await fetchCategoryLayout(state.currentCategory);
-        if (customLayout && customLayout.length > 0) {
-            state.currentCategoryLayout = customLayout; // Dîzayna heyî tomar bike (دیزاینی ئێستا پاشەکەوت بکە)
-            // Sînyal bide UI ku dîzaynek xwerû nîşan bide
-            // ئاماژە بدە بە UI کە دیزاینێکی تایبەت پیشان بدات
-            return { isCustomLayout: true, layout: customLayout, products: [], allLoaded: true };
-        }
-    }
-
-    // 3. Eger ne rûpela malê be û ne dîzaynek xwerû be, wê demê kaڵayan bîne (Grid-a normal)
-    // 3. ئەگەر نە لاپەڕەی ماڵەوە بوو و نە دیزاینێکی تایبەت بوو، ئەوا کاڵاکان بهێنە (Gridـی ئاسایی)
-    state.currentCategoryLayout = null; // Piştrast bike ku dîzayn paqij e (دڵنیابە کە دیزاینەکە پاکە)
-
-    // Logika cache-kirina kaڵayên heyî
-    // لۆجیکی کاشکردنی کاڵا هەبووەکان
-    const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${finalSearchTerm}`;
+    const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
     if (isNewSearch && state.productCache[cacheKey]) {
-        // Daneyên cachekirî vegerîne
-        // داتای کاشکراو بگەڕێنەوە
+        // Return cached data for new search
         state.products = state.productCache[cacheKey].products;
         state.lastVisibleProductDoc = state.productCache[cacheKey].lastVisible;
         state.allProductsLoaded = state.productCache[cacheKey].allLoaded;
-        return { products: state.products, allLoaded: state.allProductsLoaded };
+        return { isHome: false, products: state.products, allLoaded: state.allProductsLoaded };
     }
 
-    if (state.isLoadingMoreProducts) return null; // Pêşî li barkirina hevdem bigire (ڕێگری لە بارکردنی هاوکات بکە)
+    if (state.isLoadingMoreProducts) return null; // Prevent concurrent loading
 
     if (isNewSearch) {
         state.allProductsLoaded = false;
@@ -309,7 +204,7 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
         state.products = [];
     }
 
-    if (state.allProductsLoaded && !isNewSearch) return null; // Jixwe hemî hatine barkirin (پێشتر هەمووی بارکراوە)
+    if (state.allProductsLoaded && !isNewSearch) return null; // Already loaded all
 
     state.isLoadingMoreProducts = true;
 
@@ -328,12 +223,16 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
             conditions.push(where("subSubcategoryId", "==", state.currentSubSubcategory));
         }
 
+        const finalSearchTerm = searchTerm.trim().toLowerCase();
         if (finalSearchTerm) {
             conditions.push(where('searchableName', '>=', finalSearchTerm));
             conditions.push(where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
+            // If searching, first orderBy must match inequality field
             orderByClauses.push(orderBy("searchableName", "asc"));
         }
+        // Always add createdAt sort for consistent pagination
         orderByClauses.push(orderBy("createdAt", "desc"));
+
 
         let finalQuery = query(productsQuery, ...conditions, ...orderByClauses);
 
@@ -351,8 +250,7 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
 
         if (isNewSearch) {
             state.products = newProducts;
-            // Encamê di cache de tomar bike
-            // ئەنجامەکە لە کاش پاشەکەوت بکە
+            // Cache the result of the new search
             state.productCache[cacheKey] = {
                 products: state.products,
                 lastVisible: state.lastVisibleProductDoc,
@@ -360,21 +258,18 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
             };
         } else {
             state.products = [...state.products, ...newProducts];
+            // Update cache for subsequent loads? Maybe not necessary if infinite scroll works reliably.
         }
 
-        // isHome: false û isCustomLayout: false bi awayekî otomatîkî
-        // isHome: false و isCustomLayout: false بە شێوەیەکی ئۆتۆماتیکی
-        return { products: newProducts, allLoaded: state.allProductsLoaded };
+        return { isHome: false, products: newProducts, allLoaded: state.allProductsLoaded };
 
     } catch (error) {
         console.error("Error fetching products:", error);
-        return { products: [], allLoaded: true, error: true }; // Çewtiyê nîşan bide (هەڵەکە نیشان بدە)
+        return { isHome: false, products: [], allLoaded: true, error: true }; // Indicate error
     } finally {
         state.isLoadingMoreProducts = false;
     }
 }
-// === END: KODA GAUHERTÎ / کۆتایی کۆدی گۆڕاو ===
-
 
 async function fetchPolicies() {
     try {
@@ -413,9 +308,16 @@ async function fetchContactMethods() {
     }
 }
 
-// === Ev fonksîyon naha cache bikar tîne (via guhertina jorîn) ===
-// === ئەم فەنکشنە ئێستا کاش بەکاردەهێنێت (لەڕێگەی گۆڕانکارییەکەی سەرەوە) ===
-// async function fetchHomeLayout() { ... }
+async function fetchHomeLayout() {
+    try {
+        const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
+        const layoutSnapshot = await getDocs(layoutQuery);
+        return layoutSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error("Error fetching home layout:", error);
+        return [];
+    }
+}
 
 async function fetchPromoGroupCards(groupId) {
     try {
@@ -627,12 +529,6 @@ export function setLanguageCore(lang) {
     document.documentElement.dir = 'rtl';
     // Clear cache as language affects rendered content
     state.productCache = {};
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Em cache-a dîzaynan jî paqij dikin
-    // ئێمە کاشی دیزاینەکانیش پاک دەکەینەوە
-    state.homeLayoutCache = null;
-    state.categoryLayoutsCache = {};
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     const homeContainer = document.getElementById('homePageSectionsContainer');
     if (homeContainer) homeContainer.innerHTML = '';
 }
@@ -729,7 +625,7 @@ async function forceUpdateCore() {
 // --- Navigation / History ---
 
 // *** START: Gۆڕانکاری لێرە کرا ***
-// *** دەستپێک: Gۆڕانکاری لێرە کرا ***
+// *** دەستپێک: گۆڕانکاری لێرە کرا ***
 export function saveCurrentScrollPositionCore() {
     const currentState = history.state;
     // Em êdî ne window.scrollY, lê scrollTop a rûpela çalak tomar dikin
@@ -737,15 +633,15 @@ export function saveCurrentScrollPositionCore() {
     const activePage = document.getElementById(state.currentPageId); 
 
     // Only save scroll position for the main page filter state
-    // Tenê ji bo rûpela sereke (mainPage) û dema ku ew filterek e (ne popup) tomar bike
-    // تەنها بۆ لاپەڕەی سەرەki و کاتێک فلتەرە (نەک پۆپئەپ) پاشەکەوتی بکە
+    // Tenê ji bo rûpela serekî (mainPage) û dema ku ew filterek e (ne popup) tomar bike
+    // تەنها بۆ لاپەڕەی سەرەکی و کاتێک فلتەرە (نەک پۆپئەپ) پاشەکەوتی بکە
     if (activePage && state.currentPageId === 'mainPage' && currentState && !currentState.type) {
         // scrollTop a elementa rûpelê tomar bike (scrollTopـی توخمی لاپەڕەکە پاشەکەوت بکە)
         history.replaceState({ ...currentState, scroll: activePage.scrollTop }, '');
     }
 }
 // *** END: Gۆڕانکاری لێرە کرا ***
-// *** کۆتایی: Gۆڕانکاری لێرە کرا ***
+// *** کۆتایی: گۆڕانکاری لێرە کرا ***
 
 // Applies filter state (category, search, etc.) but doesn't handle UI rendering directly
 export function applyFilterStateCore(filterState) {
@@ -875,12 +771,7 @@ export {
     state, // Export the mutable state object
     handleLogin, handleLogout, // Authentication
     fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, // Data fetching
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Fonksîyonên nû export bike
-    // فەنکشنە نوێیەکان هەناردە بکە
-    fetchHomeLayout, fetchCategoryLayout,
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
-    fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
+    fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
     // setLanguageCore exported where it's defined
     requestNotificationPermissionCore,
     // checkNewAnnouncementsCore exported where it's defined
@@ -893,10 +784,5 @@ export {
     db, // <-- db لێرە زیادکرا
     productsCollection,
     collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
-    query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction,
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Komeleya nû export bike
-    // کۆڵەکشنە نوێیەکە هەناردە بکە
-    categoryLayoutsCollection
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+    query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction
 };
