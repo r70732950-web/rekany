@@ -23,13 +23,20 @@ import {
     addBrandGroupForm, brandGroupsListContainer, addBrandForm,
     shortcutRowsListContainer, addShortcutRowForm, addCardToRowForm,
     homeLayoutListContainer, addHomeSectionBtn, addHomeSectionModal, addHomeSectionForm,
+
     // === START: KODA NÛ JI BO DAXWAZÊ ===
-    // Em IDyên nû yên ji app-setup import dikin
-    adminCategoryLayoutManagement, categoryLayoutSelect, categoryLayoutEditorContainer,
-    categoryLayoutEnableToggle, categoryLayoutSettingsContainer, addCategorySectionBtn,
-    categoryLayoutListContainer, saveCategoryLayoutBtn, newSectionLayoutPath
+    // Em IDyên HTML yên nû 'import' dikin
+    adminCategoryLayoutManagement, categoryLayoutSelect, categoryLayoutEnableToggle,
+    categoryLayoutContainer, categoryLayoutListContainer, addCategorySectionBtn,
+    saveCategoryLayoutBtn, addCategorySectionModal, addCategorySectionForm,
     // === END: KODA NÛ JI BO DAXWAZÊ ===
-} from './app-setup.js';
+    
+    // === START: ÇAKKIRINA HELÊ ===
+    // Em 'homeLayoutCollection' ji app-setup.js 'import' dikin, ne ji app-core.js
+    homeLayoutCollection
+    // === END: ÇAKKIRINA HELÊ ===
+    
+} from './app-setup.js'; // <-- *** ÇAKKIRÎ: Ji app-setup.js import bike ***
 
 import {
     // Import state and core logic functions
@@ -47,13 +54,12 @@ import {
     initCore,
     // Firestore functions exported from app-core.js
     db,
-    collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection,
-    homeLayoutCollection // <-- === KODA NÛ: Ji app-core hat ===
+    collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection
 } from './app-core.js';
 
 import {
     // === START: KODA NÛ JI BO DAXWAZÊ ===
-    // Navê fonksiyonê ji 'renderHomePageContentUI' hate guhertin
+    // Em 'renderPageLayoutUI' import dikin (navê nû yê 'renderHomePageContentUI')
     renderPageLayoutUI, 
     // === END: KODA NÛ JI BO DAXWAZÊ ===
     updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
@@ -152,7 +158,7 @@ function showPage(pageId, pageTitle = '') {
  */
 function stopAllVideos() {
     // === GUHERTINA DAWÎ LI VIR E ===
-    // === دوا گۆڕانکاری lێرەdaیە ===
+    // === دوا گۆڕانکاری لێرەدایە ===
     // Em êdî rasterast 'iframe' nagirin, lê em pêça (wrapper) wê vala dikin
     // ئێمە ئیتر ڕاستەوخۆ 'iframe'ـەکە ناگرین، بەڵکو کۆنتەینەرەکەی بەتاڵ دەکەینەوە
     const videoWrapper = document.getElementById('videoPlayerWrapper');
@@ -164,7 +170,7 @@ function stopAllVideos() {
 
 /**
  * Fonksiyonek alîkar ji bo derxistina IDya vîdyoya YouTube ji URLyên cihê.
- * فەنکشنێکی یاریدەدער بۆ دەرهێنانی ئایدی ڤیدیۆی یوتیووب لە لینکە جیاوازەکان.
+ * فەنکشنێکی یاریدەدەر بۆ دەرهێنانی ئایدی ڤیدیۆی یوتیووب لە لینکە جیاوازەکان.
  * @param {string} url Linka vîdyoyê
  * @returns {string|null} IDya vîdyoyê
  */
@@ -930,7 +936,7 @@ async function showProductDetailsUI(productData) {
             activeElement.style.display = 'flex';
             
             // === VÊ GAVÊ BIKARANÎNA DAWÎ ===
-            // === دوا بەکارهێنان lێرەdaیە ===
+            // === دوا بەکارهێنان لێرەدایە ===
             // Em `autoplay=1` û `mute=1` zêde dikin
             // ئێمە `autoplay=1` و `mute=1` زیاد دەکەین
             const videoSrc = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&autoplay=1&mute=1&controls=1`;
@@ -1091,7 +1097,7 @@ function updateAdminUIAuth(isAdmin) {
          'adminContactMethodsManagement', 'adminShortcutRowsManagement',
          'adminHomeLayoutManagement',
          // === START: KODA NÛ JI BO DAXWAZÊ ===
-         'adminCategoryLayoutManagement' // Beşa nû lê zêde bike
+         'adminCategoryLayoutManagement' // Em beşa nû lê zêde dikin
          // === END: KODA NÛ JI BO DAXWAZÊ ===
     ];
     adminSections.forEach(id => {
@@ -1316,9 +1322,19 @@ function setupUIEventListeners() {
     if (scrollTrigger) {
         const observer = new IntersectionObserver(async (entries) => {
             const isMainPageActive = document.getElementById('mainPage')?.classList.contains('page-active');
+            
+            // === START: KODA NÛ JI BO DAXWAZÊ ===
+            // Em kontrol dikin ka gelo divê em bêtir kaڵayan bar bikin
+            // Em tenê bar dikin heke: 
+            // 1. Em li ser rûpela serekî bin
+            // 2. Konteynara layouta malê veşartî be (ango em di moda 'product_grid' de ne)
+            // 3. Em jixwe bar nakin
+            // 4. Hemî kaڵa nehatine barkirin
             const homeSectionsHidden = document.getElementById('homePageSectionsContainer')?.style.display === 'none';
+            const canLoadMore = isMainPageActive && homeSectionsHidden && !state.isLoadingMoreProducts && !state.allProductsLoaded;
+            // === END: KODA NÛ JI BO DAXWAZÊ ===
 
-            if (entries[0].isIntersecting && isMainPageActive && homeSectionsHidden && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
+            if (entries[0].isIntersecting && canLoadMore) {
                  loader.style.display = 'block'; 
                  const result = await fetchProducts(state.currentSearch, false); 
                  loader.style.display = 'none'; 
@@ -1362,13 +1378,19 @@ function setupUIEventListeners() {
     });
 
     // === START: KODA NÛ JI BO DAXWAZÊ ===
-    // Guhdarê bûyera 'clearCacheTriggerRender' hate nûve kirin
-    document.addEventListener('clearCacheTriggerRender', async () => {
+    // Em guhdarî dikin ji bo bûyera paqijkirina cache
+    document.addEventListener('clearCacheTriggerRender', async (e) => {
         console.log("UI received clearCacheTriggerRender event.");
-        // Em êdî şertê 'if' rakirin. Em her gav UIyê nû dikin.
-        // Ev piştrast dike ku heke admin layouta kategoriyekê biguherîne
-        // û bikarhêner li wê kategoriyê dinêre, ew ê nû bibe.
-        await updateProductViewUI(true, true); 
+        const detail = e.detail || {};
+        
+        // Em kontrol dikin ka gelo divê em rûpela serekî nû bikin,
+        // an kategoriyek taybetî (heke em li ser wê kategoriyê bin)
+        const shouldRefreshHome = !detail.categoryId && state.currentCategory === 'all' && !state.currentSearch;
+        const shouldRefreshCategory = detail.categoryId && state.currentCategory === detail.categoryId && !state.currentSearch;
+
+        if(shouldRefreshHome || shouldRefreshCategory) {
+             await updateProductViewUI(true, true); 
+        }
     });
     // === END: KODA NÛ JI BO DAXWAZÊ ===
 
@@ -1399,6 +1421,14 @@ async function handleSetLanguage(lang) {
     renderCategoriesSheetUI(); 
     if (document.getElementById('cartSheet').classList.contains('show')) renderCartUI();
     if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPageUI();
+    
+    // === START: KODA NÛ JI BO DAXWAZÊ ===
+    // Em cache paqij dikin ji ber ku ziman bandorê li ser navê layoutan dike
+    const homeContainer = document.getElementById('homePageSectionsContainer');
+    if (homeContainer) homeContainer.innerHTML = ''; // Layouta heyî paqij bike
+    state.productCache = {}; // Cacheya kaڵayan paqij bike
+    // === END: KODA NÛ JI BO DAXWAZÊ ===
+    
     await updateProductViewUI(true, true); // Wekî lêgerînek nû bihesibîne da ku her tiştî bi zimanê nû nîşan bide
     await renderContactLinksUI();
 
@@ -1413,14 +1443,14 @@ async function handleSetLanguage(lang) {
          window.AdminLogic.renderShortcutRowsAdminList?.();
          window.AdminLogic.renderHomeLayoutAdmin?.();
          // === START: KODA NÛ JI BO DAXWAZÊ ===
-         // Em piştrast dikin ku beşa nû jî tê nûve kirin
+         // Em layouta kategoriya admin jî nû dikin
          window.AdminLogic.renderCategoryLayoutAdmin?.();
          // === END: KODA NÛ JI BO DAXWAZÊ ===
     }
 }
 
 // *** START: Gۆڕanlکاری lێرە kra (Logica Popstate bi tevahî hate nûve kirin) ***
-// *** دەستپێک: Gۆڕanlکاری lێرە kra (لۆجیکی Popstate بە تەواوی نوێکرایەوە) ***
+// *** دەستپێک: Gۆڕanکاری lێرە kra (لۆجیکی Popstate بە تەواوی نوێکرایەوە) ***
 window.addEventListener('popstate', async (event) => {
     const wasPopupOpen = state.currentPopupState !== null; 
     const previousPageId = state.currentPageId; 
@@ -1446,7 +1476,7 @@ window.addEventListener('popstate', async (event) => {
             }
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             // Ev rewş divê çênebe eger em bişkoja 'paş' bikar bînin, lê ji bo pêşveçûnê
-            // ئەم حاڵەتە نابێت ڕووبدات ئەگەر دوگمەی 'گەڕانەوە' بەکاربهێنین، بەڵام بۆ 'پێشەوە'
+            // ئەم حاڵەتە نابێت ڕووبدات ئەگər دوگمەی 'گەڕانەوە' بەکاربهێنین، بەڵام بۆ 'پێشەوە'
             openPopup(popState.id, popState.type); 
         } else {
             // Gihîştina rewşek filterê ya rûpela serekî (mainPage)
