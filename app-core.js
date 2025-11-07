@@ -848,9 +848,10 @@ export {
     // Em 'fetchLayout' export dikin û 'fetchHomeLayout' radikin
     fetchLayout, 
     // === END: KODA NÛ JI BO DAXWAZÊ ===
-    fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts,
+    fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards,
     // === START: ÇAKKIRINA HELÊ ===
     // Em 'export'ên dubare radikin
+    // fetchCategoryRowProducts,
     // fetchInitialProductsForHome,
     // setLanguageCore,
     // requestNotificationPermissionCore,
