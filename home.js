@@ -358,6 +358,20 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
 
     skeletonLoader.style.display = 'none'; // Hide main skeleton loader
 
+    // === START: ÇAKSAZIYA KOTAYÎ / چاکسازی کۆتایی ===
+    
+    // PÊŞÎ: Em rewşa barkirî (loaded) ya dîzayna kategoriyê kontrol dikin
+    // یەکەم: پشکنینی دۆخی بارکراوی دیزاینی پۆلێن دەکەین
+    const isReturningToCategory = result.isHome && result.layout && state.currentCategory;
+    const categoryContentLoaded = isReturningToCategory &&
+                                  categoryLayoutContainer.dataset.layoutType === 'category' &&
+                                  categoryLayoutContainer.dataset.categoryId === state.currentCategory && // <-- Ev xala girîng e / ئەمە خاڵی گرنگە
+                                  categoryLayoutContainer.innerHTML.trim() !== '' &&
+                                  !categoryLayoutContainer.querySelector('#loader');
+    
+    // === DAWÎYA ÇAKSAZIYÊ / کۆتایی چاکسازی ===
+
+
     // === START: KODA GUHERTÎ / کۆدی گۆڕاو (Logica Sereke) ===
     // Logica nû ji bo birêvebirina 3 rewşan
     // لۆجیکی نوێ بۆ بەڕێوەبردنی ٣ دۆخەکە
@@ -381,9 +395,15 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
             homeSectionsContainer.style.display = 'none'; // Konteynera malê veşêre (کۆنتەینەری ماڵەوە بشارەوە)
             categoryLayoutContainer.style.display = 'block'; // Konteynera kategoriyê nîşan bide (کۆنتەینەری پۆلێن پیشان بدە)
             
-            // Dîzaynê di konteynera RAST de render bike
-            // دیزاینەکە لەناو کۆنتەینەری ڕاستدا دروست بکە
-            await renderPageContentUI(result.layout, categoryLayoutContainer); 
+            // === START: ÇAKSAZIYA KOTAYÎ / چاکسازی کۆتایی ===
+            // Tenê render bike eger naverok jixwe nehatibe barkirin
+            // تەنها دروستی بکە ئەگەر ناوەڕۆکەکە پێشتر بارنەکرابێت
+            if (!categoryContentLoaded) {
+                // Dîzaynê di konteynera RAST de render bike
+                // دیزاینەکە لەناو کۆنتەینەری ڕاستدا دروست بکە
+                await renderPageContentUI(result.layout, categoryLayoutContainer, state.currentCategory);
+            }
+            // === DAWÎYA ÇAKSAZIYÊ / کۆتایی چاکسازی ===
             
         } else {
             // Rewş 1b: DÎZAYNA MALÊ (HOME) NÎŞAN BIDE
@@ -396,6 +416,7 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
             // Em konteynera kevin paqij dikin da ku cîh bigire
             // ئێمە کۆنتەینەرە کۆنەکە پاک دەکەینەوە بۆ ئەوەی شوێن بگرێت
             categoryLayoutContainer.innerHTML = '';
+            categoryLayoutContainer.dataset.categoryId = ''; // IDya tomarkirî paqij bike (ID پاشەکەوتکراوەکە پاک بکەوە)
             // === END: KODA NÛ (Çakسازیya Bug 3) ===
             // === کۆتایی: کۆدی نوێ (چاکسازی ٣) ===
 
@@ -404,7 +425,7 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
             if (!homeContentLoaded) {
                 // Dîzaynê di konteynera RAST de render bike
                 // دیزاینەکە لەناو کۆنتەینەری ڕاستدا دروست بکە
-                await renderPageContentUI(null, homeSectionsContainer); 
+                await renderPageContentUI(null, homeSectionsContainer, 'home'); 
             }
         }
     } else {
@@ -412,6 +433,14 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
         // --- دۆخی ٢: لیستی ئاسایی کاڵاکان پیشان بدە ---
         homeSectionsContainer.style.display = 'none'; // Konteynira dîzaynê veşêre (کۆنتەینەری دیزاین بشارەوە)
         categoryLayoutContainer.style.display = 'none'; // Konteynira kategoriyê veşêre (کۆنتەینەری پۆلێن بشارەوە)
+        
+        // === START: ÇAKSAZIYA KOTAYÎ / چاکسازی کۆتایی ===
+        // Em naveroka dîzayna kategoriyê paqij dikin
+        // ئێمە ناوەڕۆکی دیزاینی پۆلێنەکە پاک دەکەینەوە
+        categoryLayoutContainer.innerHTML = '';
+        categoryLayoutContainer.dataset.categoryId = ''; // IDya tomarkirî paqij bike (ID پاشەکەوتکراوەکە پاک بکەوە)
+        // === DAWÎYA ÇAKSAZIYÊ / کۆتایی چاکسازی ===
+        
         productsContainer.style.display = 'grid'; // Grid-a kaڵayan nîşan bide (گریدی کاڵاکان پیشان بدە)
         
         // === ÇARESERIYA TEW KIRIYE (BEŞA 2) / چارەسەری زیادکراو (بەشی ٢) ===
@@ -470,8 +499,10 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
  * Renders a dynamic page layout (Home or Category) into a *specific container*.
  * @param {Array|null} layoutSections - The array of layout sections. If null, fetches the default home layout.
  * @param {HTMLElement} targetContainerElement - The container (home or category) to render into.
+ * @param {string} [layoutId] - The ID to associate with this layout (e.g., 'home' or a categoryId).
  */
-export async function renderPageContentUI(layoutSections, targetContainerElement) {
+export async function renderPageContentUI(layoutSections, targetContainerElement, layoutId) {
+// === END: KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
     if (!targetContainerElement) {
         console.error("Render target container is missing!");
         return;
@@ -492,6 +523,7 @@ export async function renderPageContentUI(layoutSections, targetContainerElement
         layoutToRender = await fetchHomeLayout(); // Fetch layout from core
         // === START: KODA ÇAKKIRÎ / کۆدی چاککراو (Bug 2) ===
         layoutType = 'home'; // Ev dîzayna malê ye (ئەمە دیزاینی ماڵەوەیە)
+        layoutId = 'home'; // === KODA NÛ / کۆدی نوێ ===
         // === END: KODA ÇAKKIRÎ / کۆتایی کۆدی چاککراو (Bug 2) ===
     }
 
@@ -500,6 +532,11 @@ export async function renderPageContentUI(layoutSections, targetContainerElement
     // Em cureyê dîzayna heyî tomar dikin da ku dema vegerê bizanibin
     // ئێمە جۆری دیزاینی ئێستا پاشەکەوت دەکەین بۆ ئەوەی کاتی گەڕانەوە بیزانین
     targetContainerElement.dataset.layoutType = layoutType;
+    // === START: ÇAKSAZIYA KOTAYÎ / چاکسازی کۆتایی ===
+    if (layoutId) {
+        targetContainerElement.dataset.categoryId = layoutId; // 'home' an IDya kategoriyê tomar bike
+    }
+    // === DAWÎYA ÇAKSAZIYÊ / کۆتایی چاکسازی ===
     // === END: KODA ÇAKKIRÎ / کۆتایی کۆدی چاککراو (Bug 2) ===
 
     if (!layoutToRender || layoutToRender.length === 0) {
