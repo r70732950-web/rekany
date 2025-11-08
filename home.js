@@ -306,6 +306,23 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
     // === END: KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
     // === END: KODA ÇAKKIRÎ / کۆتایی کۆدی چاککراو (Bug 2) ===
 
+    // === START: ÇAKSAZIYA KOTAYÎ / چاکسازی کۆتایی ===
+    
+    // PÊŞÎ: Em rewşa barkirî (loaded) ya dîzayna kategoriyê kontrol dikin
+    // یەکەم: پشکنینی دۆخی بارکراوی دیزاینی پۆلێن دەکەین
+    const isReturningToCategory = state.currentCategory !== 'all' && 
+                                  !state.currentSearch && 
+                                  state.currentSubcategory === 'all' && 
+                                  state.currentSubSubcategory === 'all';
+                                    
+    const categoryContentLoaded = isReturningToCategory &&
+                                  categoryLayoutContainer.dataset.layoutType === 'category' &&
+                                  categoryLayoutContainer.dataset.categoryId === state.currentCategory && // <-- Ev xala girîng e / ئەمە خاڵی گرنگە
+                                  categoryLayoutContainer.innerHTML.trim() !== '' &&
+                                  !categoryLayoutContainer.querySelector('#loader');
+    
+    // === DAWÎYA ÇAKSAZIYÊ / کۆتایی چاکسازی ===
+
 
     // Em êdî 'shouldShowHome' li vir hesab nakin, em xwe dispêrin bersiva ji 'fetchProducts'
     // ئێمە ئیتر 'shouldShowHome' لێرە حیساب ناکەین، پشت بە وەڵامی 'fetchProducts' دەبەستین
@@ -314,11 +331,13 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
         // Ger ew lêgerînek nû be (an guhertina kategoriyê), her gav loader nîşan bide
         // ئەگەر گەڕانێکی نوێ بوو (یان گۆڕینی جۆر)، هەمیشە لۆدەر پیشان بدە
         
-        // Em kontrol dikin ka em diçin malperê (home) û naverok jixwe heye
-        // پشکنین دەکەین بزانین ئaya دەچین بۆ ماڵەوە (home) و ناوەڕۆک پێشتر بارکراوە
-        const isReturningHomeWithContent = isReturningHome && homeContentLoaded;
+        // === START: ÇAKSAZIYA KOTAYÎ / چاکسازی کۆتایی ===
+        // Em kontrol dikin ka em vedigerin cîhek ku naveroka wê jixwe barkirî ye
+        // پشکنین دەکەین بزانین ئایا دەگەڕێینەوە شوێنێک کە ناوەڕۆکی پێشتر بارکراوە
+        const isReturningWithContent = homeContentLoaded || categoryContentLoaded;
+        // === DAWÎYA ÇAKSAZIYÊ / کۆتایی چاکسازی ===
 
-        if (!isReturningHomeWithContent) {
+        if (!isReturningWithContent) {
             // Loader-a skeletê nîşan bide ji bo grid-a kaڵayan
             // لۆدەری ئێسکەپەیکەر پیشان بدە بۆ گریدی کاڵاکان
             // === START: KODA NÛ / کۆدی نوێ ===
@@ -336,10 +355,10 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
             // Vegere malperê (home) ku naverok jixwe heye, tiştek neke
             // بگەڕێوە ماڵەوە (home) کە ناوەڕۆکی هەیە، هیچ مەکە
             // === START: KODA NÛ / کۆدی نوێ ===
-            // Em piştrast dikin ku tenê konteynera malê (home) tê nîşandan
-            // دڵنیا دەبینەوە کە تەنها کۆنتەینەری ماڵەوە پیشان دەدرێت
-            homeSectionsContainer.style.display = 'block';
-            categoryLayoutContainer.style.display = 'none';
+            // Em piştrast dikin ku tenê konteynera rast tê nîşandan
+            // دڵنیا دەبینەوە کە تەنها کۆنتەینەری ڕاست پیشان دەدرێت
+            homeSectionsContainer.style.display = homeContentLoaded ? 'block' : 'none';
+            categoryLayoutContainer.style.display = categoryContentLoaded ? 'block' : 'none';
             subcategoriesContainer.style.display = 'none';
             subSubcategoriesContainer.style.display = 'none';
             // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
@@ -357,20 +376,6 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
     if (result === null && !isNewSearch) return null; // Loading is already in progress or all loaded for infinite scroll
 
     skeletonLoader.style.display = 'none'; // Hide main skeleton loader
-
-    // === START: ÇAKSAZIYA KOTAYÎ / چاکسازی کۆتایی ===
-    
-    // PÊŞÎ: Em rewşa barkirî (loaded) ya dîzayna kategoriyê kontrol dikin
-    // یەکەم: پشکنینی دۆخی بارکراوی دیزاینی پۆلێن دەکەین
-    const isReturningToCategory = result.isHome && result.layout && state.currentCategory;
-    const categoryContentLoaded = isReturningToCategory &&
-                                  categoryLayoutContainer.dataset.layoutType === 'category' &&
-                                  categoryLayoutContainer.dataset.categoryId === state.currentCategory && // <-- Ev xala girîng e / ئەمە خاڵی گرنگە
-                                  categoryLayoutContainer.innerHTML.trim() !== '' &&
-                                  !categoryLayoutContainer.querySelector('#loader');
-    
-    // === DAWÎYA ÇAKSAZIYÊ / کۆتایی چاکسازی ===
-
 
     // === START: KODA GUHERTÎ / کۆدی گۆڕاو (Logica Sereke) ===
     // Logica nû ji bo birêvebirina 3 rewşan
@@ -398,7 +403,7 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
             // === START: ÇAKSAZIYA KOTAYÎ / چاکسازی کۆتایی ===
             // Tenê render bike eger naverok jixwe nehatibe barkirin
             // تەنها دروستی بکە ئەگەر ناوەڕۆکەکە پێشتر بارنەکرابێت
-            if (!categoryContentLoaded) {
+            if (!categoryContentLoaded) { 
                 // Dîzaynê di konteynera RAST de render bike
                 // دیزاینەکە لەناو کۆنتەینەری ڕاستدا دروست بکە
                 await renderPageContentUI(result.layout, categoryLayoutContainer, state.currentCategory);
@@ -447,7 +452,7 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
         // Em tenê li vir hewl didin jêr-kategoriyan nîşan bidin
         // ئێمە تەنها لێرە هەوڵ دەدەین جۆرە لاوەکییەکان پیشان بدەین
         const subcats = await fetchSubcategories(state.currentCategory);
-        await renderSubcategoriesUI(subcats); // Ev ê biryar bide ka bên nîşandan an na (ئەمە بڕیار دەدات ئایا پیشان بدرێن یان نا)
+        await renderSubcategoriesUI(subcats); // Ev ê biryar bide ka bên nîşandan an na (ئەمە بڕیار دەدات ئaya پیشان بدرێن یان نا)
         // === DAWÎYA ÇARESERIYÊ / کۆتایی چارەسەر ===
         
         if (result.error) {
@@ -534,7 +539,7 @@ export async function renderPageContentUI(layoutSections, targetContainerElement
     targetContainerElement.dataset.layoutType = layoutType;
     // === START: ÇAKSAZIYA KOTAYÎ / چاکسازی کۆتایی ===
     if (layoutId) {
-        targetContainerElement.dataset.categoryId = layoutId; // 'home' an IDya kategoriyê tomar bike
+        targetContainerElement.dataset.categoryId = layoutId; // 'home' an IDya kategoriyê tomar bike ('home' یان IDی پۆلێن پاشەکەوت بکە)
     }
     // === DAWÎYA ÇAKSAZIYÊ / کۆتایی چاکسازی ===
     // === END: KODA ÇAKKIRÎ / کۆتایی کۆدی چاککراو (Bug 2) ===
