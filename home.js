@@ -360,9 +360,24 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
         } else {
             // DÎZAYNA RÛPELA MALÊ: Tenê dîzayna malê render bike eger ew jixwe nehatibe barkirin
             // دیزاینی پەڕەی سەرەکی: تەنها دیزاینی ماڵەوە پیشان بدە ئەگەر پێشتر بارنەکرابێت
-            if (!homeContentLoaded) {
+            
+            // =================================================================
+            // === START: ÇARESERÎ LI VIR E ===
+            // === دەستپێک: چارەسەر لێرەدایە ===
+            // Kêşe ev bû ku dema `isNewSearch` true bû (mînak, piştî vegera 'back'),
+            // `homeContentLoaded` jî true bû, û ev `if` dihate paşguh kirin.
+            // Em `isNewSearch` lê zêde dikin da ku em piştrast bin ku ew her gav ji nû ve tê render kirin
+            // dema ku ew lêgerînek nû ye (wekî 'popstate' an guhertina filterê).
+            //
+            // کێشەکە ئەوەبوو کاتێک `isNewSearch` ڕاست بوو (بۆ نموونە دوای گەڕانەوەی 'back')،
+            // `homeContentLoaded`ـیش ڕاست بوو، و ئەم `if`ـە پشتگوێ دەخرا.
+            // ئێمە `isNewSearch` زیاد دەکەین بۆ دڵنیابوونەوە لەوەی هەمیشە دووبارە پیشان دەدرێتەوە
+            // کاتێک گەڕانێکی نوێیە (وەک 'popstate' یان گۆڕینی فلتەر).
+            if (isNewSearch || !homeContentLoaded) {
                 await renderPageContentUI(null); // `null` dê wêneyê bike ku dîzayna malê ya default bîne
             }
+            // === END: ÇARESERÎ LI VIR E ===
+            // === کۆتایی: چارەسەر لێرەدایە ===
         }
     } else {
         // Ev tê vê wateyê ku em grid-a kaڵayên normal nîşan didin
@@ -394,7 +409,7 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
         document.getElementById('subcategoriesContainer').style.display = 'none';
         document.getElementById('subSubcategoriesContainer').style.display = 'none';
     }
-    // === END: KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
+    // === END: KODA GUHERTÎ / کۆتایی کۆdi گۆڕاو ===
 
     // *** 💡 DESTPÊKA ÇAKKIRINÊ (SCROLL FIX - AUTO) 💡 ***
     // Logica Scrollkirinê
@@ -434,7 +449,7 @@ export async function renderPageContentUI(layoutSections) {
 
     if (!layoutToRender) {
         // Heke ti dîzayn nehatibe dayîn (mînak, ji bo rûpela malê), dîzayna malê ya default bîne
-        // ئەگەر هیچ دیزاینێک نەدرابوو (بۆ نموونە، بۆ پەڕەی سەرەکی)، دیزاینی سەرەکی بهێنە
+        // ئەگەر هیچ دیزاینێک نەدرابوو (بۆ نموونە، بۆ پەڕەی سەرەکی)، دیزاینی سەرەki بهێنە
         layoutToRender = await fetchHomeLayout(); // Fetch layout from core
     }
 
@@ -717,8 +732,7 @@ async function createSingleShortcutRowElement(rowId, sectionNameObj) { // Receiv
                     subSubcategory: cardData.subSubcategoryId || 'all',
                     search: ''
                 });
-                await updateProductViewUI(true, true);
-MSTUbZ
+                await updateProductViewUI(true, true); 
             }
          };
          // *** DAWÎYA ÇAKKIRINÊ ***
