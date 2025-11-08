@@ -66,7 +66,7 @@ export function isFavorite(productId) {
 
 // --- Authentication ---
 
-async function handleLogin(email, password) {
+export async function handleLogin(email, password) {
     try {
         await signInWithEmailAndPassword(auth, email, password);
         // Admin logic initialization will happen via onAuthStateChanged
@@ -75,14 +75,14 @@ async function handleLogin(email, password) {
     }
 }
 
-async function handleLogout() {
+export async function handleLogout() {
     await signOut(auth);
     // UI updates handled by onAuthStateChanged listener
 }
 
 // --- Firestore Data Fetching & Manipulation ---
 
-async function fetchCategories() {
+export async function fetchCategories() {
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     const snapshot = await getDocs(categoriesQuery);
     const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -91,7 +91,7 @@ async function fetchCategories() {
     state.categories = fetchedCategories;
 }
 
-async function fetchSubcategories(categoryId) {
+export async function fetchSubcategories(categoryId) {
     if (categoryId === 'all') return []; // Ev rast e, ji bo "Home" divê em ti jêr-kategorî nîşan nedin (ئەمە دروستە، بۆ "سەرەکی" پێویست ناکات هیچ جۆرێکی لاوەکی نیشان بدەین)
     try {
         const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
@@ -104,7 +104,7 @@ async function fetchSubcategories(categoryId) {
     }
 }
 
-async function fetchSubSubcategories(mainCatId, subCatId) {
+export async function fetchSubSubcategories(mainCatId, subCatId) {
     if (!mainCatId || !subCatId) return [];
     try {
         const ref = collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
@@ -117,7 +117,7 @@ async function fetchSubSubcategories(mainCatId, subCatId) {
     }
 }
 
-async function fetchProductById(productId) {
+export async function fetchProductById(productId) {
     try {
         const docRef = doc(db, "products", productId);
         const docSnap = await getDoc(docRef);
@@ -134,7 +134,7 @@ async function fetchProductById(productId) {
 }
 
 // *** ÇAKKIRÎ LI GOR ŞÎROVEYA TE (Corrected According to Your Explanation) ***
-async function fetchRelatedProducts(currentProduct) {
+export async function fetchRelatedProducts(currentProduct) {
     if (!currentProduct.subcategoryId && !currentProduct.categoryId) return [];
 
     const baseQuery = collection(db, "products");
@@ -213,7 +213,7 @@ export async function fetchCategoryLayout(categoryId) { // <-- EXPORT LI VIR / �
 
 // Fetches products based on current filters and pagination state
 // === START: KODA GUHERTÎ / کۆدی گۆڕاو ===
-async function fetchProducts(searchTerm = '', isNewSearch = false) {
+export async function fetchProducts(searchTerm = '', isNewSearch = false) {
     
     // 1. Pêşî, em rewşa "Perrê Sereke" (Home Page) kontrol dikin
     // 1. یەکەمجار، پشکنینی دۆخی "پەڕەی سەرەکی" دەکەین
@@ -337,7 +337,7 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
 }
 // === END: KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
 
-async function fetchPolicies() {
+export async function fetchPolicies() {
     try {
         const docRef = doc(db, "settings", "policies");
         const docSnap = await getDoc(docRef);
@@ -351,7 +351,7 @@ async function fetchPolicies() {
     }
 }
 
-async function fetchAnnouncements() {
+export async function fetchAnnouncements() {
     try {
         const q = query(announcementsCollection, orderBy("createdAt", "desc"));
         const snapshot = await getDocs(q);
@@ -362,7 +362,7 @@ async function fetchAnnouncements() {
     }
 }
 
-async function fetchContactMethods() {
+export async function fetchContactMethods() {
     try {
         const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
         const q = query(methodsCollection, orderBy("createdAt"));
@@ -374,7 +374,7 @@ async function fetchContactMethods() {
     }
 }
 
-async function fetchHomeLayout() {
+export async function fetchHomeLayout() {
     try {
         const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
         const layoutSnapshot = await getDocs(layoutQuery);
@@ -385,7 +385,7 @@ async function fetchHomeLayout() {
     }
 }
 
-async function fetchPromoGroupCards(groupId) {
+export async function fetchPromoGroupCards(groupId) {
     try {
         const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
@@ -396,7 +396,7 @@ async function fetchPromoGroupCards(groupId) {
     }
 }
 
-async function fetchBrandGroupBrands(groupId) {
+export async function fetchBrandGroupBrands(groupId) {
     try {
         const q = query(collection(db, "brand_groups", groupId, "brands"), orderBy("order", "asc"), limit(30));
         const snapshot = await getDocs(q);
@@ -407,7 +407,7 @@ async function fetchBrandGroupBrands(groupId) {
     }
 }
 
-async function fetchNewestProducts(limitCount = 10) {
+export async function fetchNewestProducts(limitCount = 10) {
     try {
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
         const q = query(
@@ -424,7 +424,7 @@ async function fetchNewestProducts(limitCount = 10) {
     }
 }
 
-async function fetchShortcutRowCards(rowId) {
+export async function fetchShortcutRowCards(rowId) {
     try {
         const cardsCollectionRef = collection(db, "shortcut_rows", rowId, "cards");
         const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
@@ -436,7 +436,7 @@ async function fetchShortcutRowCards(rowId) {
     }
 }
 
-async function fetchCategoryRowProducts(sectionData) {
+export async function fetchCategoryRowProducts(sectionData) {
     const { categoryId, subcategoryId, subSubcategoryId } = sectionData;
     let queryField, queryValue;
 
@@ -468,7 +468,7 @@ async function fetchCategoryRowProducts(sectionData) {
     }
 }
 
-async function fetchInitialProductsForHome(limitCount = 10) {
+export async function fetchInitialProductsForHome(limitCount = 10) {
      try {
         const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(limitCount));
         const snapshot = await getDocs(q);
@@ -596,12 +596,19 @@ export function setLanguageCore(lang) {
     // Clear cache as language affects rendered content
     state.productCache = {};
     const homeContainer = document.getElementById('homePageSectionsContainer');
-    if (homeContainer) homeContainer.innerHTML = '';
+    // === START: KODA NÛ / کۆدی نوێ ===
+    // Em nîşaneya cache (tag) jî paqij dikin
+    // ئێمە نیشانەی کاشەکەش پاک دەکەینەوە
+    if (homeContainer) {
+        homeContainer.innerHTML = '';
+        homeContainer.dataset.currentLayout = 'none'; 
+    }
+    // === END: KODA NÛ / کۆtahi کۆدی نوێ ===
 }
 
 // --- Notifications ---
 
-async function requestNotificationPermissionCore() {
+export async function requestNotificationPermissionCore() {
     console.log('Requesting notification permission...');
     try {
         const permission = await Notification.requestPermission();
@@ -654,7 +661,7 @@ export function updateLastSeenAnnouncementTimestamp(timestamp) {
 
 // --- PWA & Service Worker ---
 
-async function handleInstallPrompt(installBtn) {
+export async function handleInstallPrompt(installBtn) {
     if (state.deferredPrompt) {
         installBtn.style.display = 'none'; // Hide button after prompting
         state.deferredPrompt.prompt();
@@ -664,7 +671,7 @@ async function handleInstallPrompt(installBtn) {
     }
 }
 
-async function forceUpdateCore() {
+export async function forceUpdateCore() {
     if (confirm(t('update_confirm'))) {
         try {
             if ('serviceWorker' in navigator) {
@@ -706,8 +713,8 @@ export function saveCurrentScrollPositionCore() {
         history.replaceState({ ...currentState, scroll: activePage.scrollTop }, '');
     }
 }
-// *** END: Gۆڕانکاری لێرە کرا ***
-// *** کۆتایی: گۆڕانکاری لێرە کرا ***
+// *** END: Gۆڕانکاری lێرە kra ***
+// *** کۆتایی: Gۆڕانکاری lێرە kra ***
 
 // Applies filter state (category, search, etc.) but doesn't handle UI rendering directly
 export function applyFilterStateCore(filterState) {
