@@ -43,8 +43,8 @@ function resetScrollPosition(containerElement) {
 // === START: KODA NÛ / کۆدی نوێ (Helper ji bo Fading) ===
 // === دەستپێک: کۆدی نوێ (یاریدەدەر بۆ فەیدکردن) ===
 /**
- * Alîkarek ji bo veguheztina nerm (fade) di navbera elementan de.
- * یاریدەدەرێک بۆ گواستنەوەی نەرم (fade) لەنێوان توخمەکاندا.
+ * Alîkarek ji bo veguheztina nerm (fade) an bilez (instant) di navbera elementan de.
+ * یاریدەدەرێک بۆ گواستنەوەی نەرم (fade) یان خێرا (instant) لەنێوان توخمەکاندا.
  * @param {HTMLElement} elementToShow - Elementa ku divê were nîşan dan.
  * @param {HTMLElement[]} elementsToHide - Rêzek ji elementên ku divê werin veşartin.
  * @param {boolean} instant - Heke rast be (true), veguheztin tavilê çêdibe (ئەگەر ڕاست بێت (true)، گواستنەوەکە دەستبەجێ ڕوودەدات).
@@ -56,20 +56,48 @@ function fadeContent(elementToShow, elementsToHide = [], instant = false) {
         if (el && el !== elementToShow) { // Piştrast bike ku em ya nû na veşêrin (دڵنیابە دانە نوێیەکە ناشارینەوە)
             el.classList.add('content-hidden');
             el.classList.remove('content-visible');
+            
+            // === KODA NÛ / کۆدی نوێ ===
+            // Heke em vedigerin, em naxwazin li benda veşartina nerm bisekinin
+            // ئەگەر دەگەڕێینەوە، نامانەوێت چاوەڕێی شاردنەوەی نەرم بکەین
+            if (instant) {
+                el.style.transition = 'none'; // Veguhastinê rake (گواستنەوە لادەبات)
+            } else {
+                el.style.transition = ''; // Vegerîne defaulta CSSê (دەگەڕێتەوە بۆ دیفۆڵتی CSS)
+            }
+            // === DAWÎ / کۆتایی ===
         }
     });
 
-    // === KODA NÛ YA GUHERTÎ / کۆدی نوێی گۆڕاو ===
     if (instant) {
         // "Vegera Bilez": Tavilê nîşan bide
         // "گەڕانەوەی خێرا": دەستبەجێ نیشانی بدە
         if (elementToShow) {
+            // === KODA NÛ / کۆدی نوێ ===
+            elementToShow.style.transition = 'none'; // Veguhastinê rake (گواستنەوە لادەبات)
+            // === DAWÎ / کۆتایی ===
+            
             elementToShow.classList.add('content-visible');
             elementToShow.classList.remove('content-hidden');
+
+            // === KODA NÛ / کۆدی نوێ ===
+            // Piştî ku tavilê hate nîşan dan, veguhastinê vegerîne ji bo tevgerên paşerojê
+            // دوای ئەوەی دەستبەجێ نیشاندرا، گواستنەوەکە بگەڕێنەوە بۆ جوڵەکانی داهاتوو
+            setTimeout(() => {
+                elementToShow.style.transition = '';
+                elementsToHide.forEach(el => { if(el) el.style.transition = ''; });
+            }, 10); // Derengiyek kurt (دواکەوتنێکی کورت)
+            // === DAWÎ / کۆتایی ===
         }
     } else {
         // "Barkirina Nû": Li benda fade-out bisekine
         // "بارکردنی نوێ": چاوەڕێی فەید-ئاوت بکە
+        // === KODA NÛ / کۆدی نوێ ===
+        // Piştrast bike ku veguhastin çalak e
+        // دڵنیابە کە گواستنەوەکە چالاکە
+        if(elementToShow) elementToShow.style.transition = '';
+        // === DAWÎ / کۆtahi ===
+        
         setTimeout(() => {
             if (elementToShow) {
                 elementToShow.classList.add('content-visible');
@@ -77,7 +105,6 @@ function fadeContent(elementToShow, elementsToHide = [], instant = false) {
             }
         }, 260); // Hinekî zêdetir ji 250ms (کەمێک زیاتر لە 250ms)
     }
-    // === DAWÎYA KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
 }
 // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
