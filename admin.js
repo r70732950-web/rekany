@@ -1,36 +1,23 @@
-// فایلی admin.js (چاککراو - هەڵە کوشندەکە لادرا)
-// === START: KODA NÛ / کۆدی نوێ ===
-// Em fonksiyonên nû yên Storage ji 'globalAdminTools' import dikin
-// ئێمە فەنکشنە نوێیەکانی ستۆرێج لە 'globalAdminTools' هاوردە دەکەین
+// admin.js
 const {
-    db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction, // <-- `runTransaction` و `setDoc` گرنگن
-    storage, ref, uploadBytes, getDownloadURL, // <-- VANA NÛ NE / ئەمانە نوێن
+    db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction, 
+    storage, ref, uploadBytes, getDownloadURL, 
     showNotification, t, openPopup, closeCurrentPopup, 
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, 
-    shortcutRowsCollection, // <-- === EV HATE ZÊDEKIRIN / ئەمە زیادکرا ===
-    categoryLayoutsCollection, // <-- KODA NÛ / کۆدی نوێ
+    shortcutRowsCollection, 
+    categoryLayoutsCollection, 
     setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage,
     clearProductCache
 } = window.globalAdminTools;
-// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
-
-// === EV HATE RAKIRIN / ئەمە سڕایەوە ===
-// const shortcutRowsCollection = collection(db, "shortcut_rows");
 
 window.AdminLogic = {
     listenersAttached: false,
     
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Em 'state'ek herêmî ji bo şopandina URLyên wêneyan lê zêde dikin
-    // ئێمە 'state'ێکی ناوخۆیی بۆ شوێنپێهەڵگرتنی URLـی وێنەکان زیاد دەکەین
-    currentImageUrls: ["", "", "", ""], // Ev dê URLyên wêneyan ji bo formê bigire (ئەمە URLـی وێنەکان بۆ فۆڕمەکە هەڵدەگرێت)
+    currentImageUrls: ["", "", "", ""], 
     
-    // Ev ji bo birêvebirina kîjan dîzaynê em lê zêde dikin tê bikar anîn
-    // ئەمە بۆ بەڕێوەبردنی ئەوەی کە ئێمە بۆ کام دیزاین شت زیاد دەکەین بەکاردێت
-    currentLayoutEditorContext: { type: 'home', id: null }, // 'home' an 'category'
-    currentCategoryLayoutId: null, // IDya kategoriya ku tê sererast kirin (IDی ئەو جۆرەی دەستکاری دەکرێت)
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+    currentLayoutEditorContext: { type: 'home', id: null }, 
+    currentCategoryLayoutId: null, 
 
     initialize: function() {
         console.log("Admin logic initialized.");
@@ -43,17 +30,15 @@ window.AdminLogic = {
         this.renderSocialMediaLinks();
         this.renderContactMethodsAdmin();
         this.renderShortcutRowsAdminList();
-        this.updateAdminCategoryDropdowns(); // <-- This will now run the corrected function
+        this.updateAdminCategoryDropdowns(); 
         this.updateShortcutCardCategoryDropdowns();
         this.renderHomeLayoutAdmin();
         
         this.renderPromoGroupsAdminList();
         this.renderBrandGroupsAdminList();
         
-        // === START: KODA NÛ / کۆدی نوێ ===
-        this.updateCategoryLayoutDropdowns(); // Dropdowna nû dagire (درۆپداونە نوێیەکە پڕبکەوە)
-        this.setupCategoryLayoutListeners(); // Guhdarên beşa nû saz bike (گوێگرەکانی بەشە نوێیەکە دامەزرێنە)
-        // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+        this.updateCategoryLayoutDropdowns(); 
+        this.setupCategoryLayoutListeners(); 
     },
 
     deinitialize: function() {
@@ -108,17 +93,13 @@ window.AdminLogic = {
     updateAdminUI: function(isAdmin) {
         document.querySelectorAll('.product-actions').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
 
-        // === START: KODA NÛ / کۆدی نوێ ===
-        // Em beşa nû li vir zêde dikin
-        // ئێمە بەشە نوێیەکە لێرە زیاد دەکەین
         const adminSections = [
             'adminPoliciesManagement', 'adminSocialMediaManagement', 'adminAnnouncementManagement',
             'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
             'adminContactMethodsManagement', 'adminShortcutRowsManagement',
             'adminHomeLayoutManagement',
-            'adminCategoryLayoutManagement' // <-- KODA NÛ / کۆدی نوێ
+            'adminCategoryLayoutManagement' 
         ];
-        // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
         
         adminSections.forEach(id => {
             const section = document.getElementById(id);
@@ -178,14 +159,9 @@ window.AdminLogic = {
             document.getElementById('productDescriptionAr').value = product.description.ar || '';
         }
         
-        // === START: KODA NÛ / کۆدی نوێ ===
-        // Em URLyên heyî ji bo barkirinê saz dikin
-        // ئێمە URLـە هەبووەکان بۆ پیشاندان ئامادە دەکەین
         const imageUrls = product.imageUrls || (product.image ? [product.image] : []);
-        // Em 'state'a herêmî nû dikin (ئێمە 'state'ـە ناوخۆییەکە نوێ دەکەینەوە)
         this.currentImageUrls = ["", "", "", ""].map((_, i) => imageUrls[i] || "");
-        this.createProductImageInputs(); // Em UIyê diafirînin (ئێمە UI دروست دەکەین)
-        // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+        this.createProductImageInputs(); 
         
         document.getElementById('productExternalLink').value = product.externalLink || '';
 
@@ -217,13 +193,10 @@ window.AdminLogic = {
         }
     },
 
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Ev fonksîyon bi tevahî hatiye guhertin da ku barkirina pelan birêve bibe
-    // ئەم فەنکشنە بە تەواوی گۆڕدراوە بۆ ئەوەی کۆنترۆڵی بلندکردنی فایل بکات
     createProductImageInputs: function() {
         const container = document.getElementById('imageUploadContainer');
         if (!container) return;
-        container.innerHTML = ''; // Paqij bike (پاکی بکەوە)
+        container.innerHTML = ''; 
 
         for (let i = 0; i < 4; i++) {
             const slot = document.createElement('div');
@@ -249,8 +222,6 @@ window.AdminLogic = {
         }
     },
     
-    // Ev fonksîyonek nû ye ji bo birêvebirina hilbijartina pelê
-    // ئەمە فەنکشنێکی نوێیە بۆ کۆنترۆڵکردنی هەڵبژاردنی فایل
     handleFileSelect: async function(input, slot) {
         const file = input.files[0];
         if (!file) return;
@@ -265,20 +236,15 @@ window.AdminLogic = {
         label.style.display = 'none';
         
         try {
-            // Em navek bêhempa ji bo pelê çêdikin (ناوێکی بێهاوتا بۆ فایلەکە دروست دەکەین)
             const fileName = `products/${Date.now()}-${file.name}`;
             const storageRef = ref(storage, fileName);
 
-            // 1. Pelê bar bike (فایلەکە بلند بکەوە)
             await uploadBytes(storageRef, file);
 
-            // 2. URLya dakêşanê bistîne (URLـی داگرتن وەربگرە)
             const downloadURL = await getDownloadURL(storageRef);
 
-            // 3. URLyê di 'state'a herêmî de tomar bike (URLـەکە لە 'state'ـە ناوخۆییەکە پاشەکەوت بکە)
             this.currentImageUrls[index] = downloadURL;
 
-            // 4. UI nû bike (UI نوێ بکەوە)
             preview.src = downloadURL;
             preview.style.display = 'block';
             removeBtn.style.display = 'flex';
@@ -286,29 +252,23 @@ window.AdminLogic = {
         } catch (error) {
             console.error("Error uploading image:", error);
             showNotification('هەڵەیەک لە کاتی بلندکردنی وێنەکە ڕوویدا!', 'error');
-            label.style.display = 'flex'; // Labelê dîsa nîşan bide (Labelـەکە دووبارە پیشان بدەوە)
+            label.style.display = 'flex'; 
         } finally {
-            spinner.style.display = 'none'; // Spinnerê veşêre (سپینەرەکە بشارەوە)
+            spinner.style.display = 'none'; 
         }
     },
 
-    // Ev fonksîyonek nû ye ji bo rakirina wêneyekê
-    // ئەمە فەنکشنێکی نوێیە بۆ سڕینەوەی وێنەیەک
     handleImageRemove: function(slot) {
         const index = slot.dataset.index;
-        this.currentImageUrls[index] = ""; // URLyê ji 'state'ê rake (URLـەکە لە 'state'ـەکە بسڕەوە)
+        this.currentImageUrls[index] = ""; 
 
-        // UI nû bike (UI نوێ بکەوە)
         slot.querySelector('.image-upload-preview').src = '';
         slot.querySelector('.image-upload-preview').style.display = 'none';
         slot.querySelector('.image-upload-label').style.display = 'flex';
         slot.querySelector('.image-upload-remove-btn').style.display = 'none';
         
-        // Inputê paqij bike da ku heman pel dîsa were hilbijartin (Inputـەکە پاک بکەوە بۆ ئەوەی هەمان فایل دووبارە هەڵبژێردرێت)
         slot.querySelector('.image-upload-input').value = null; 
     },
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
-
 
     populateSubcategoriesDropdown: async function(categoryId, selectedSubcategoryId = null) {
         const subcategorySelectContainer = document.getElementById('subcategorySelectContainer');
@@ -648,13 +608,9 @@ window.AdminLogic = {
         const confirmation = confirm(`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە.`);
         if (confirmation) {
             try {
-                // TODO: Pêdivî ye ku em fonksiyonek recursive çêbikin ji bo jêbirina hemî jêr-koleksiyonan
-                // TODO: پێویستە فەنکشنێکی ڕیکێرتیڤ دروست بکەین بۆ سڕینەوەی هەموو کۆڵێکشنە لاوەکییەکان
                 await deleteDoc(doc(db, docPath));
                 showNotification('جۆرەکە بە سەرکەوتوویی سڕدرایەوە', 'success');
                 clearProductCache();
-                // Piştî jêbirinê divê em hemî dropdownan nû bikin
-                // دوای سڕینەوە پێویستە هەموو درۆپداونەکان نوێ بکەینەوە
                 this.updateAdminCategoryDropdowns();
                 this.updateShortcutCardCategoryDropdowns();
                 this.updateCategoryLayoutDropdowns();
@@ -667,11 +623,10 @@ window.AdminLogic = {
     
     updateAdminCategoryDropdowns: function() {
         const categories = getCategories();
-        if (categories.length === 0) return; // Guhertin: ji <= 1 bû 0 (گۆڕان: لە <= 1 بوو بە 0)
+        if (categories.length === 0) return; 
         
-        // Em 'all' fîlter dikin (ئێمە 'all' فلتەر دەکەین)
         const categoriesWithoutAll = categories.filter(cat => cat.id && cat.id !== 'all'); 
-        if (categoriesWithoutAll.length === 0) return; // Heke tenê 'all' hebe, derkeve (ئەگەر تەنها 'all' هەبوو، بوەستە)
+        if (categoriesWithoutAll.length === 0) return; 
 
         const dropdowns = [
             { id: 'productCategoryId', defaultText: '-- جۆرێ سەرەکی هەڵبژێرە --', required: true },
@@ -698,8 +653,6 @@ window.AdminLogic = {
         });
     },
 
-
-    // --- PROMO SLIDER GROUP MANAGEMENT ---
     renderPromoGroupsAdminList: function() {
         const container = document.getElementById('promoGroupsListContainer');
         const groupSelect = document.getElementById('promoCardGroupSelect');
@@ -719,7 +672,7 @@ window.AdminLogic = {
                 const option = document.createElement('option');
                 option.value = group.id;
                 option.textContent = group.name;
-                groupSelect.appendChild(option.cloneNode(true)); // Ji bo dropdowna din klon bike
+                groupSelect.appendChild(option.cloneNode(true)); 
 
                 const groupElement = document.createElement('div');
                 groupElement.className = 'admin-list-group';
@@ -812,7 +765,6 @@ window.AdminLogic = {
         }
     },
 
-    // --- BRAND GROUP MANAGEMENT ---
     renderBrandGroupsAdminList: function() {
         const container = document.getElementById('brandGroupsListContainer');
         const groupSelect = document.getElementById('brandGroupSelect');
@@ -832,7 +784,7 @@ window.AdminLogic = {
                 const option = document.createElement('option');
                 option.value = group.id;
                 option.textContent = group.name;
-                groupSelect.appendChild(option.cloneNode(true)); // Ji bo dropdowna din klon bike
+                groupSelect.appendChild(option.cloneNode(true)); 
 
                 const groupElement = document.createElement('div');
                 groupElement.className = 'admin-list-group';
@@ -994,7 +946,6 @@ window.AdminLogic = {
         });
     },
 
-    // === START: NEW FUNCTIONS FOR SHORTCUT CARD MANAGEMENT ===
     editShortcutRow: async function(rowId) {
         const rowSnap = await getDoc(doc(db, "shortcut_rows", rowId));
         if (rowSnap.exists()) {
@@ -1074,11 +1025,10 @@ window.AdminLogic = {
             }
         }
     },
-    // === END: NEW FUNCTIONS FOR SHORTCUT CARD MANAGEMENT ===
     
     updateShortcutCardCategoryDropdowns: function() {
         const categories = getCategories();
-        if (categories.length === 0) return; // Guhertin: ji <= 1 bû 0
+        if (categories.length === 0) return; 
         const categoriesWithoutAll = categories.filter(cat => cat.id && cat.id !== 'all');
         if (categoriesWithoutAll.length === 0) return;
         
@@ -1101,7 +1051,7 @@ window.AdminLogic = {
         onSnapshot(q, (snapshot) => {
             container.innerHTML = '';
             if (snapshot.empty) {
-                container.innerHTML = '<p>هیچ بەشێک بۆ لاپەڕەی سەرەکی زیاد نەکراوە. کلیک لە "زیادکردنی بەش" بکە.</p>';
+                container.innerHTML = '<p>هیچ بەشێک بۆ لاپەڕەی سەرەki زیاد نەکراوە. کلیک لە "زیادکردنی بەش" بکە.</p>';
                 return;
             }
 
@@ -1110,11 +1060,7 @@ window.AdminLogic = {
                 const itemElement = document.createElement('div');
                 itemElement.className = 'layout-item';
                 itemElement.dataset.id = item.id;
-                // === START: KODA NÛ / کۆدی نوێ ===
-                // Em hemî agahiyan di datasetê de tomar dikin
-                // ئێمە هەموو زانیارییەکان لە داتاسێت پاشەکەوت دەکەین
                 itemElement.dataset.sectionData = JSON.stringify(item); 
-                // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
                 itemElement.draggable = true;
 
                 const itemName = (item.name && typeof item.name === 'object') ? (item.name[getCurrentLanguage()] || item.name.ku_sorani) : item.name;
@@ -1212,14 +1158,6 @@ window.AdminLogic = {
         }
     },
     
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Fonksiyonên nû ji bo birêvebirina dîzayna kategoriyê
-    // فەنکشنە نوێیەکان بۆ بەڕێوەبردنی دیزاینی جۆرەکان
-    
-    /**
-     * Dropdowna "Dîzayna Kategoriyê" bi kategoriyên sereke dagire
-     * پڕکردنەوەی درۆپداونی "دیزاینی جۆر" بە جۆرە سەرەkiیەکان
-     */
     updateCategoryLayoutDropdowns: function() {
         const select = document.getElementById('categoryLayoutSelect');
         if (!select) return;
@@ -1236,14 +1174,10 @@ window.AdminLogic = {
         });
     },
 
-    /**
-     * Edîtorê ji bo kategoriya hilbijartî bar bike
-     * بارکردنی دەستکاریکەر بۆ جۆری هەڵبژێردراو
-     */
     loadCategoryLayoutEditor: async function(categoryId) {
         if (!categoryId) return;
         
-        this.currentCategoryLayoutId = categoryId; // Kategoriya heyî tomar bike (جۆری ئێستا پاشەکەوت بکە)
+        this.currentCategoryLayoutId = categoryId; 
         const editorContainer = document.getElementById('categoryLayoutEditorContainer');
         const toggle = document.getElementById('categoryLayoutEnableToggle');
         const listContainer = document.getElementById('categoryLayoutListContainer');
@@ -1260,8 +1194,6 @@ window.AdminLogic = {
                 toggle.checked = data.enabled || false;
                 this.renderCategoryLayoutSections(data.sections || []);
             } else {
-                // Heke tune be, nirxên default saz bike
-                // ئەگەر نەبوو، نرخی بنەڕەت دابنێ
                 toggle.checked = false;
                 this.renderCategoryLayoutSections([]);
             }
@@ -1272,15 +1204,10 @@ window.AdminLogic = {
         }
     },
 
-    /**
-     * Lîsteya drag-and-drop ji bo beşên dîzayna kategoriyê render bike
-     * پیشاندانی لیستی ڕاکێشان و دانان بۆ بەشەکانی دیزاینی جۆر
-     */
     renderCategoryLayoutSections: function(sectionsArray) {
         const container = document.getElementById('categoryLayoutListContainer');
         container.innerHTML = '';
         
-        // Li gorî rêzê rêz bike (بەپێی 'order' ڕیز بکە)
         sectionsArray.sort((a, b) => (a.order || 0) - (b.order || 0));
 
         if (sectionsArray.length === 0) {
@@ -1289,13 +1216,12 @@ window.AdminLogic = {
         }
 
         sectionsArray.forEach((item, index) => {
-            // Em IDyek bêhempa ji bo beşan çêdikin (IDـیەکی بێهاوتا بۆ بەشەکان دروست دەکەین)
             if (!item.id) item.id = `section_${Date.now()}_${index}`;
             
             const itemElement = document.createElement('div');
             itemElement.className = 'layout-item';
-            itemElement.dataset.id = item.id; // IDya bêhempa tomar bike (IDـیە بێهاوتاکە پاشەکەوت بکە)
-            itemElement.dataset.sectionData = JSON.stringify(item); // Hemî daneyan tomar bike (هەموو داتاکە پاشەکەوت بکە)
+            itemElement.dataset.id = item.id; 
+            itemElement.dataset.sectionData = JSON.stringify(item); 
             itemElement.draggable = true;
 
             const itemName = (item.name && typeof item.name === 'object') ? (item.name[getCurrentLanguage()] || item.name.ku_sorani) : item.name;
@@ -1313,10 +1239,6 @@ window.AdminLogic = {
         });
     },
 
-    /**
-     * Dîzayna kategoriya heyî (enabled status û rêza beşan) tomar bike
-     * پاشەکەوتکردنی دیزاینی جۆری ئێستا (دۆخی چالاککردن و ڕیزبەندی بەشەکان)
-     */
     saveCategoryLayout: async function() {
         const categoryId = this.currentCategoryLayoutId;
         if (!categoryId) {
@@ -1336,20 +1258,18 @@ window.AdminLogic = {
         const sectionsArray = [];
         items.forEach((item, index) => {
             const sectionData = JSON.parse(item.dataset.sectionData);
-            sectionData.order = index + 1; // Rêza nû nûve bike (ڕیزبەندی نوێ نوێ بکەوە)
+            sectionData.order = index + 1; 
             sectionsArray.push(sectionData);
         });
 
         try {
             const layoutDocRef = doc(db, 'category_layouts', categoryId);
-            // Em hemî belgeyê bi daneyên nû `set` dikin
-            // ئێمە هەموو دۆکیومێنتەکە بە داتا نوێیەکە `set` دەکەین
             await setDoc(layoutDocRef, {
                 enabled: isEnabled,
                 sections: sectionsArray
             });
             showNotification('دیزاینی جۆر پاشەکەوت کرا', 'success');
-            clearProductCache(); // Cache paqij bike da ku guhertin xuya bibin (کاش پاک بکەوە با گۆڕانکارییەکان دەربکەون)
+            clearProductCache(); 
         } catch (error) {
             console.error("Error saving category layout:", error);
             showNotification('هەڵەیەک لە پاشەکەوتکردن ڕوویدا', 'error');
@@ -1359,10 +1279,6 @@ window.AdminLogic = {
         }
     },
 
-    /**
-     * Beşekê ji lîsteya dîzayna kategoriyê rake (tenê ji UI, heta tomarkirinê)
-     * سڕینەوەی بەشێک لە لیستی دیزاینی جۆر (تەنها لە UI، تاوەکو پاشەکەوتکردن)
-     */
     deleteCategoryLayoutItem: function(event) {
         const deleteBtn = event.target.closest('.delete-layout-item-btn');
         if (deleteBtn) {
@@ -1372,28 +1288,21 @@ window.AdminLogic = {
         }
     },
 
-    /**
-     * Modalê ji bo zêdekirina beşekê vedike (ji bo 'home' an 'category')
-     * مۆداڵەکە دەکاتەوە بۆ زیادکردنی بەش (بۆ 'سەرەki' یان 'جۆر')
-     */
     openAddSectionModal: function(contextType) {
         if (contextType === 'category' && !this.currentCategoryLayoutId) {
             showNotification('تکایە سەرەتا جۆرێک هەڵبژێرە', 'error');
             return;
         }
         
-        // Konteksta heyî tomar bike (کۆنتێکستی ئێستا پاشەکەوت بکە)
         this.currentLayoutEditorContext = {
             type: contextType,
             id: contextType === 'category' ? this.currentCategoryLayoutId : null
         };
         
-        // Forma modalê paqij bike û veke (فۆڕمی مۆداڵەکە پاک بکەوە و بیکەوە)
         document.getElementById('addHomeSectionForm').reset();
         document.getElementById('specificItemGroupSelectContainer').style.display = 'none';
         document.getElementById('specificCategorySelectContainer').style.display = 'none';
         
-        // Sernavê modalê biguherîne (ناونیشانی مۆداڵەکە بگۆڕە)
         const modalTitle = document.querySelector('#addHomeSectionModal .modal-content h2');
         if (contextType === 'category') {
             modalTitle.textContent = t('admin_category_layout_add_section');
@@ -1404,10 +1313,6 @@ window.AdminLogic = {
         openPopup('addHomeSectionModal', 'modal');
     },
 
-    /**
-     * Beşekê li 'home_layout' an 'category_layouts' tomar dike
-     * پاشەکەوتکردنی بەشێک لە 'home_layout' یان 'category_layouts'
-     */
     handleSaveSection: async function(event) {
         event.preventDefault();
         const form = event.target;
@@ -1420,7 +1325,6 @@ window.AdminLogic = {
         let nameObj = { ku_sorani: nameInput, ku_badini: nameInput, ar: nameInput };
         let specificIdData = {};
         
-        // ... (Koda ji bo wergirtina daneyên taybetî wekî berê) ...
         if (type === 'promo_slider' || type === 'brands') {
             const groupId = document.getElementById('specificItemGroupId').value;
             if (!groupId) { showNotification('تکایە گرووپێک هەڵبژێرە', 'error'); submitButton.disabled = false; return; }
@@ -1438,10 +1342,10 @@ window.AdminLogic = {
         }
         
         const newSectionData = {
-            id: `section_${Date.now()}`, // IDyek bêhempa (IDـیەکی بێهاوتا)
+            id: `section_${Date.now()}`, 
             name: nameObj,
             type,
-            enabled: true, // Her gav wekî çalak dest pê dike (هەمیشە وەک چالاک دەست پێدەکات)
+            enabled: true, 
             ...specificIdData
         };
 
@@ -1449,8 +1353,6 @@ window.AdminLogic = {
             const context = this.currentLayoutEditorContext;
             
             if (context.type === 'home') {
-                // Tomar bike li 'home_layout' (wekî berê)
-                // پاشەکەوتی بکە لە 'home_layout' (وەک جاران)
                 const layoutCollectionRef = collection(db, 'home_layout');
                 const q = query(layoutCollectionRef, orderBy('order', 'desc'), limit(1));
                 const lastDocSnap = await getDocs(q);
@@ -1460,8 +1362,6 @@ window.AdminLogic = {
                 await addDoc(layoutCollectionRef, newSectionData);
                 
             } else if (context.type === 'category') {
-                // Tomar bike li 'category_layouts' (bi rêya transaction)
-                // پاشەکەوتی بکە لە 'category_layouts' (لە ڕێگەی ترانزاکشن)
                 const categoryId = context.id;
                 const layoutDocRef = doc(db, 'category_layouts', categoryId);
                 
@@ -1477,7 +1377,6 @@ window.AdminLogic = {
                     transaction.set(layoutDocRef, { sections: sections }, { merge: true });
                 });
                 
-                // UIyê nû bike (UI نوێ بکەوە)
                 this.renderCategoryLayoutSections((await getDoc(layoutDocRef)).data().sections);
             }
             
@@ -1492,7 +1391,6 @@ window.AdminLogic = {
             submitButton.disabled = false;
         }
     },
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     
     setupAdminEventListeners: function() {
         if (this.listenersAttached) return;
@@ -1501,9 +1399,7 @@ window.AdminLogic = {
         document.getElementById('saveLayoutBtn')?.addEventListener('click', () => self.saveHomeLayout());
         
         document.getElementById('addHomeSectionBtn')?.addEventListener('click', () => {
-            // === START: KODA GUHERTÎ / کۆدی گۆڕاو ===
             self.openAddSectionModal('home');
-            // === END: KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
         });
 
         document.getElementById('homeLayoutListContainer').addEventListener('click', (e) => {
@@ -1569,11 +1465,7 @@ window.AdminLogic = {
             }
         });
         
-        // === START: KODA GUHERTÎ / کۆدی گۆڕاو ===
-        // Em guhdarek (listener) ji bo 'submit'a formê datînin
-        // ئێمە گوێگرێک بۆ 'submit'ـی فۆڕمەکە دادەنێین
         document.getElementById('addHomeSectionForm').addEventListener('submit', (e) => self.handleSaveSection(e));
-        // === END: KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
 
         document.getElementById('newSectionMainCategory').addEventListener('change', async (e) => {
             const mainCatId = e.target.value;
@@ -1620,18 +1512,11 @@ window.AdminLogic = {
             }
         });
 
-
-        // --- Other listeners ---
-        
         document.getElementById('addProductBtn').onclick = () => {
             setEditingProductId(null);
             document.getElementById('productForm').reset();
-            // === START: KODA NÛ / کۆدی نوێ ===
-            // Em 'state'a wêneya herêmî paqij dikin û UIya barkirinê çêdikin
-            // ئێمە 'state'ـی وێنە ناوخۆییەکە پاک دەکەینەوە و UIـی بلندکردنەکە دروست دەکەین
             self.currentImageUrls = ["", "", "", ""];
             self.createProductImageInputs();
-            // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
             document.getElementById('subcategorySelectContainer').style.display = 'none';
             document.getElementById('subSubcategorySelectContainer').style.display = 'none';
             document.getElementById('formTitle').textContent = 'زیادکردنی کاڵای نوێ';
@@ -1654,9 +1539,6 @@ window.AdminLogic = {
             self.populateSubSubcategoriesDropdown(mainCatId, e.target.value);
         });
 
-        // === START: KODA NÛ / کۆدی نوێ ===
-        // Em guhdarek (listener) ji bo hemî konteynirê barkirinê lê zêde dikin
-        // ئێمە گوێگرێک بۆ هەموو کۆنتەینەری بلندکردنەکە زیاد دەکەین
         document.getElementById('imageUploadContainer').addEventListener('change', (e) => {
             if (e.target.classList.contains('image-upload-input')) {
                 const slot = e.target.closest('.image-upload-slot');
@@ -1671,7 +1553,6 @@ window.AdminLogic = {
                 self.handleImageRemove(slot);
             }
         });
-        // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
         document.getElementById('productForm').onsubmit = async (e) => {
             e.preventDefault();
@@ -1679,11 +1560,7 @@ window.AdminLogic = {
             submitButton.disabled = true;
             submitButton.textContent = '...چاوەڕێ بە';
 
-            // === START: KODA NÛ / کۆدی نوێ ===
-            // Em URLyên wêneyan ji 'state'a herêmî dixwînin, ne ji inputan
-            // ئێمە URLـی وێنەکان لە 'state'ـە ناوخۆییەکە دەخوێنینەوە، نەک لە inputـەکان
-            const imageUrls = self.currentImageUrls.filter(url => url !== ""); // Tenê URLyên dagirtî hilbijêre (تەنها URLـە پڕەکان هەڵبژێرە)
-            // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+            const imageUrls = self.currentImageUrls.filter(url => url !== ""); 
 
             if (imageUrls.length === 0) {
                 showNotification('پێویستە بەلایەنی کەمەوە یەک وێنە بلند بکەیت', 'error');
@@ -1715,7 +1592,7 @@ window.AdminLogic = {
                     subcategoryId: document.getElementById('productSubcategoryId').value || null,
                     subSubcategoryId: document.getElementById('productSubSubcategoryId').value || null,
                     description: productDescriptionObject,
-                    imageUrls: imageUrls, // <-- Vê URLyên nû bikar bîne (ئەم URLـە نوێیانە بەکاربهێنە)
+                    imageUrls: imageUrls, 
                     createdAt: Date.now(),
                     externalLink: document.getElementById('productExternalLink').value || null,
                     shippingInfo: {
@@ -2019,9 +1896,6 @@ window.AdminLogic = {
             });
         }
         
-        // --- NEW EVENT LISTENERS FOR GROUPS ---
-
-        // PROMO
         document.getElementById('addPromoGroupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('promoGroupName').value;
@@ -2082,7 +1956,6 @@ window.AdminLogic = {
             }
         });
         
-        // BRAND
         document.getElementById('addBrandGroupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('brandGroupName').value;
@@ -2170,7 +2043,6 @@ window.AdminLogic = {
             }
         });
         
-        // --- START: NEW EVENT LISTENER FOR SHORTCUT ROWS ---
         document.getElementById('shortcutRowsListContainer').addEventListener('click', (e) => {
             const editRowBtn = e.target.closest('.edit-row-btn');
             if (editRowBtn) {
@@ -2192,22 +2064,12 @@ window.AdminLogic = {
                 self.deleteShortcutCard(deleteCardBtn.dataset.rowId, deleteCardBtn.dataset.cardId);
             }
         });
-        // --- END: NEW EVENT LISTENER FOR SHORTCUT ROWS ---
 
-        // === START: KODA NÛ / کۆدی نوێ ===
-        // Em guhdarên (listeners) ji bo beşa nû saz dikin
-        // ئێمە گوێگرەکان بۆ بەشە نوێیەکە دادەمەزرێنین
         this.setupCategoryLayoutListeners();
-        // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
         this.listenersAttached = true;
     },
     
-    // === START: KODA NÛ / کۆدی نوێ ===
-    /**
-     * Guhdarên (listeners) ji bo beşa "Dîzayna Kategoriyê" saz dike
-     * دامەزراندنی گوێگرەکان بۆ بەشی "دیزاینی جۆرەکان"
-     */
     setupCategoryLayoutListeners: function() {
         const self = this;
         
@@ -2234,12 +2096,10 @@ window.AdminLogic = {
 
         const categoryLayoutListContainer = document.getElementById('categoryLayoutListContainer');
         if (categoryLayoutListContainer) {
-            // Guhdarê ji bo jêbirinê (گوێگر بۆ سڕینەوە)
             categoryLayoutListContainer.addEventListener('click', (e) => {
                 self.deleteCategoryLayoutItem(e);
             });
 
-            // Guhdarên ji bo Drag and Drop (گوێگرەکان بۆ ڕاکێشان و دانان)
             categoryLayoutListContainer.addEventListener('dragstart', (e) => {
                 if(e.target.classList.contains('layout-item')) {
                     setTimeout(() => e.target.classList.add('dragging'), 0);
@@ -2264,5 +2124,4 @@ window.AdminLogic = {
             });
         }
     }
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 };

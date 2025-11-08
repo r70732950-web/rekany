@@ -1,62 +1,38 @@
-// BEŞÊ YEKEM: app-setup.js (Çakkirî bo exportên UI û globalAdminTools)
-// Pênasekirin û sazkarîyên destpêkê
-
+// app-setup.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
-// === START: KODA NÛ / کۆدی نوێ ===
-// Em xizmetguzariya Storage lê zêde dikin
-// ئێمە خزمەتگوزاری ستۆرێج زیاد دەکەین
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
-// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
 
-// Firebase Configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", // Ensure this key is correct and secured if necessary
+    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", 
     authDomain: "maten-store.firebaseapp.com",
     projectId: "maten-store",
-    
-    // === VÊ BIGUHERE / ئەمە بگۆڕە ===
-    // Nêrîna xwe biguherîne li ser vê yekê
-    // تکایە ئەم دێڕە ڕاست بکەرەوە
-    storageBucket: "maten-store.firebasestorage.app", // <-- HATE RASTKIRIN / لێرە ڕاستکرایەوە
-    // === DAWÎYA GUHERTINÊ / کۆتایی گۆڕانکاری ===
-
+    storageBucket: "maten-store.appspot.com",
     messagingSenderId: "137714858202",
     appId: "1:137714858202:web:e2443a0b26aac6bb56cde3",
     measurementId: "G-1PV3DRY2V2"
 };
 
-// Initialization and Exports (for app-core.js and app-ui.js)
 export const app = initializeApp(firebaseConfig);
 export const analytics = getAnalytics(app);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const messaging = getMessaging(app);
-// === START: KODA NÛ / کۆدی نوێ ===
-// Em 'storage' initialize dikin
-// ئێمە 'storage' ئامادە دەکەین
 export const storage = getStorage(app);
-// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
-
-// Firestore Collections Exports (for app-core.js and app-ui.js)
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
 export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
 export const shortcutRowsCollection = collection(db, "shortcut_rows");
-// === START: KODA NÛ / کۆدی نوێ ===
 export const categoryLayoutsCollection = collection(db, "category_layouts");
-// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
-// Translations Export
 export const translations = {
-    // ... (هەموو وەرگێڕانە کۆنەکان لێرە دەبن) ...
     ku_sorani: {
         search_placeholder: "گەڕان بە ناوی کاڵا...",
         admin_login_title: "چوونەژوورەوەی بەڕێوەبەر",
@@ -140,13 +116,11 @@ export const translations = {
         related_products_title: "کاڵای هاوشێوە",
         share_text: "سەیری ئەم کاڵایە بکە",
         share_error: "هاوبەشیپێکردن سەرکەوتوو نەبوو",
-        // === START: KODA NÛ / کۆدی نوێ ===
         admin_category_layout_title: "دیزاینی لاپەڕەی جۆرەکان",
         admin_category_layout_select: "-- جۆری سەرەki هەڵبژێرە --",
         admin_category_layout_enable: "چالاککردنی دیزاینی تایبەت بۆ ئەم جۆرە",
         admin_category_layout_info: "ئەگەر چالاک بێت، ئەم دیزاینە لە جیاتی لیستی ئاسایی کاڵاکان پیشان دەدرێت.",
         admin_category_layout_add_section: "زیادکردنی بەش بۆ جۆر",
-        // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -192,7 +166,7 @@ export const translations = {
         order_user_info: "--- پێزانینێن داخازکەری ---",
         order_user_name: "ناڤ",
         order_user_address: "ناڤ و نیشان",
-        order_user_phone: "ژمارا تەلەفونێ",
+        order_user_phone: "ژمارا تەلەفونێ:",
         order_prompt_info: "هیڤی دکەین ناڤ و نیشان و پێزانینێن خۆ فرێکە بۆ گەهاندنێ.",
         login_error: "ئیمەیل یان پەیڤا نهێنى یا خەلەتە",
         logout_success: "ب سەرکەفتیانە چوويه دەر",
@@ -231,13 +205,11 @@ export const translations = {
         related_products_title: "کاڵایێن وەک ئێکن",
         share_text: "بەرێخۆ بدە ڤی کاڵای",
         share_error: "پارڤەکرن سەرنەکەفت",
-        // === START: KODA NÛ / کۆدی نوێ ===
         admin_category_layout_title: "دیزاینا لاپەرێ جوران",
         admin_category_layout_select: "-- جۆرێ سەرەki هەلبژێرە --",
         admin_category_layout_enable: "چالاکرنا دیزاینا تایبەت بۆ ڤی جۆری",
         admin_category_layout_info: "ئەگەر بهێتە چالاکرن، ئەڤ دیزاینە دێ ل جهێ لیستا ئاسایی یا کاڵایان هێتە نیشاندان.",
         admin_category_layout_add_section: "زێدەکرنا پشکێ بۆ جۆری",
-        // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -322,28 +294,24 @@ export const translations = {
         related_products_title: "منتجات مشابهة",
         share_text: "ألق نظرة على هذا المنتج",
         share_error: "فشلت المشاركة",
-        // === START: KODA NÛ / کۆدی نوێ ===
         admin_category_layout_title: "تصميم صفحة الفئات",
         admin_category_layout_select: "-- اختر الفئة الرئيسية --",
         admin_category_layout_enable: "تفعيل التصميم المخصص لهذه الفئة",
         admin_category_layout_info: "في حال تفعيله، سيتم عرض هذا التصميم بدلاً من قائمة المنتجات العادية.",
         admin_category_layout_add_section: "إضافة قسم للفئة",
-        // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     }
 };
 
-
-// Global State Variables (Mutable) - Exported for app-core.js and app-ui.js
 export let state = {
     currentLanguage: localStorage.getItem('language') || 'ku_sorani',
     deferredPrompt: null,
     cart: JSON.parse(localStorage.getItem("maten_store_cart")) || [],
     favorites: JSON.parse(localStorage.getItem("maten_store_favorites")) || [],
     userProfile: JSON.parse(localStorage.getItem("maten_store_profile")) || {},
-    editingProductId: null, // Used by Admin
+    editingProductId: null, 
     products: [],
-    categories: [], // Populated by app-core
-    subcategories: [], // Populated by app-core
+    categories: [], 
+    subcategories: [], 
     lastVisibleProductDoc: null,
     isLoadingMoreProducts: false,
     allProductsLoaded: false,
@@ -353,28 +321,21 @@ export let state = {
     currentSubcategory: 'all',
     currentSubSubcategory: 'all',
     currentSearch: '',
-    currentProductId: null, // Used by app-ui
-    currentPageId: 'mainPage', // *** زیادکرا: بۆ زانینی پەڕەی ئێستا ***
-    currentPopupState: null, // *** زیادکرا: شوێنی دۆخی ئێستای پۆپئەپ بگرە ***
-    // *** START: Gۆڕانکاری لێرە کرا ***
-    // *** دەستپێک: گۆڕانکاری لێرە کرا ***
-    pendingFilterNav: null, // Ji bo ragirtina fîlterê heta ku popup were girtin (بۆ ڕاگرتنی فلتەر تا داخستنی پۆپئەپ)
-    // *** END: Gۆڕانکاری لێرە کرا ***
-    // *** کۆتایی: گۆڕانکاری لێرە کرا ***
-    sliderIntervals: {}, // Used by app-ui & app-core
-    contactInfo: {}, // Might be needed?
+    currentProductId: null, 
+    currentPageId: 'mainPage', 
+    currentPopupState: null, 
+    pendingFilterNav: null, 
+    sliderIntervals: {}, 
+    contactInfo: {}, 
 };
 
-// Constants - Exported
 export const CART_KEY = "maten_store_cart";
 export const FAVORITES_KEY = "maten_store_favorites";
 export const PROFILE_KEY = "maten_store_profile";
 export const PRODUCTS_PER_PAGE = 25;
 
-// DOM Elements Exports
-// === General UI Elements ===
 export const loginModal = document.getElementById('loginModal');
-export const addProductBtn = document.getElementById('addProductBtn'); // Used by admin check in UI
+export const addProductBtn = document.getElementById('addProductBtn'); 
 export const productFormModal = document.getElementById('productFormModal');
 export const productsContainer = document.getElementById('productsContainer');
 export const skeletonLoader = document.getElementById('skeletonLoader');
@@ -418,17 +379,11 @@ export const notificationsListContainer = document.getElementById('notifications
 export const termsAndPoliciesBtn = document.getElementById('termsAndPoliciesBtn');
 export const termsSheet = document.getElementById('termsSheet');
 export const termsContentContainer = document.getElementById('termsContentContainer');
-export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer'); // Main page sub-subcat container
+export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer'); 
 
-// === START: KODA NÛ / کۆدی نوێ ===
-// Em IDya nû ya ku me di index.html de zêde kir, export dikin
-// ئێمە ئەو ID نوێیەی لە index.html زیادمان کرد، هەناردەی دەکەین
 export const homePageSectionsContainer = document.getElementById('homePageSectionsContainer');
 export const categoryLayoutContainer = document.getElementById('categoryLayoutContainer');
-// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
-
-// === Admin UI Elements ===
 export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
 export const policiesForm = document.getElementById('policiesForm');
 export const adminSocialMediaManagement = document.getElementById('adminSocialMediaManagement');
@@ -437,7 +392,7 @@ export const socialLinksListContainer = document.getElementById('socialLinksList
 export const socialMediaToggle = document.getElementById('socialMediaToggle');
 export const adminAnnouncementManagement = document.getElementById('adminAnnouncementManagement');
 export const announcementForm = document.getElementById('announcementForm');
-export const announcementsListContainer = document.getElementById('announcementsListContainer'); // Used by admin.js
+export const announcementsListContainer = document.getElementById('announcementsListContainer'); 
 export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
 export const addPromoGroupForm = document.getElementById('addPromoGroupForm');
 export const promoGroupsListContainer = document.getElementById('promoGroupsListContainer');
@@ -463,53 +418,36 @@ export const homeLayoutListContainer = document.getElementById('homeLayoutListCo
 export const addHomeSectionBtn = document.getElementById('addHomeSectionBtn');
 export const addHomeSectionModal = document.getElementById('addHomeSectionModal');
 export const addHomeSectionForm = document.getElementById('addHomeSectionForm');
-// === START: KODA NÛ / کۆدی نوێ ===
-// Em elementên nû yên UI ji bo beşa nû export dikin
-// ئێمە توخمە نوێیەکانی UI بۆ بەشە نوێیەکە هەناردە دەکەین
 export const adminCategoryLayoutManagement = document.getElementById('adminCategoryLayoutManagement');
 export const categoryLayoutSelect = document.getElementById('categoryLayoutSelect');
 export const categoryLayoutEditorContainer = document.getElementById('categoryLayoutEditorContainer');
 export const categoryLayoutEnableToggle = document.getElementById('categoryLayoutEnableToggle');
 export const categoryLayoutListContainer = document.getElementById('categoryLayoutListContainer');
 export const addCategorySectionBtn = document.getElementById('addCategorySectionBtn');
-// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
-
-// *** Populate globalAdminTools here ***
-// Moved from app-core.js to ensure availability before admin.js (defer) runs
 window.globalAdminTools = {
-    // Firebase Services & Functions needed by admin.js
     db, auth,
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Em xizmetguzarî û fonksiyonên Storage lê zêde dikin
-    // ئێمە خزمەتگوزاری و فەنکشنەکانی ستۆرێج زیاد دەکەین
     storage, ref, uploadBytes, getDownloadURL,
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection,
     query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
 
-    // Collections needed by admin.js
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
-    // === START: KODA NÛ / کۆدی نوێ ===
-    categoryLayoutsCollection, // <-- VÊ NÛ YE / ئەمە نوێیە
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+    categoryLayoutsCollection, 
 
-    // Core State Accessors/Mutators needed by admin.js
     setEditingProductId: (id) => { state.editingProductId = id; },
     getEditingProductId: () => state.editingProductId,
     getCategories: () => state.categories,
     getCurrentLanguage: () => state.currentLanguage,
 
-    // Core Helper Functions needed by admin.js
-    t: (key, replacements = {}) => { // Re-export 't' function
+    t: (key, replacements = {}) => { 
         let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
         for (const placeholder in replacements) {
             translation = translation.replace(`{${placeholder}}`, replacements[placeholder]);
         }
         return translation;
     },
-    showNotification: (message, type = 'success') => { // Re-export basic notification logic
+    showNotification: (message, type = 'success') => { 
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         notification.textContent = message;
@@ -520,23 +458,17 @@ window.globalAdminTools = {
             setTimeout(() => document.body.removeChild(notification), 300);
         }, 3000);
     },
-     clearProductCache: () => { // Keep this helper
+     clearProductCache: () => { 
           console.log("Product cache and home page cleared due to admin action.");
           state.productCache = {};
           const homeContainer = document.getElementById('homePageSectionsContainer');
           if (homeContainer) {
               homeContainer.innerHTML = '';
           }
-          // === START: KODA NÛ / کۆدی نوێ ===
-          // Em konteynera nû ya dîzayna kategoriyê jî paqij dikin
-          // ئێمە کۆنتەینەرە نوێیەکەی دیزاینی پۆلێنیش پاک دەکەینەوە
           const categoryContainer = document.getElementById('categoryLayoutContainer');
           if (categoryContainer) {
               categoryContainer.innerHTML = '';
           }
-          // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
-          // Notify UI layer to trigger re-render
           document.dispatchEvent(new Event('clearCacheTriggerRender'));
      },
 };
-// *** END OF globalAdminTools SECTION ***
