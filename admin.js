@@ -1562,7 +1562,7 @@ window.AdminLogic = {
             } else if (type === 'single_category_row') {
                 categoryContainer.style.display = 'block';
                 mainCatSelect.required = true;
-                mainCatSelect.innerHTML = '<option value="">-- جۆری سەرەki هەڵبژێرە (پێویستە) --</option>';
+                mainCatSelect.innerHTML = '<option value="">-- جۆری سەرەکی هەڵبژێرە (پێویستە) --</option>';
                 getCategories().filter(c => c.id !== 'all').forEach(cat => {
                     mainCatSelect.innerHTML += `<option value="${cat.id}">${cat.name_ku_sorani}</option>`;
                 });

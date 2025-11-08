@@ -2,17 +2,13 @@
 // Logika bingehîn, danûstendina daneyan, û rêveberiya state
 
 import {
-    // === START: GۆڕANkARI LI VIR / گۆڕانکاری لێرە ===
-    // Em elementên nû yên UI ji bo pêkhateya nû (new structure) import dikin
-    // ئێمە توخمە نوێیەکانی UI بۆ پێکهاتە نوێیەکە هاوردە دەکەین
+    // *** گۆڕانکاری لێرە: db و کۆڵێکشنە نوێیەکە لێرە هاوردەکراوە ***
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
     categoryLayoutsCollection, // <-- KODA NÛ / کۆدی نوێ
     translations, state,
-    homePageLayoutContainer, categoryPageLayoutContainer, // <-- KODA NÛ / کۆدی نوێ
     CART_KEY, FAVORITES_KEY, PROFILE_KEY, PRODUCTS_PER_PAGE,
-    // === END: GۆڕANkARI LI VIR / کۆتایی گۆڕانکاری ===
 } from './app-setup.js';
 
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
@@ -57,6 +53,7 @@ export function formatDescription(text) {
 
 export function saveCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
+    // Note: Updating UI count is handled in app-ui.js
 }
 
 export function saveFavorites() {
@@ -69,29 +66,33 @@ export function isFavorite(productId) {
 
 // --- Authentication ---
 
-export async function handleLogin(email, password) {
+async function handleLogin(email, password) {
     try {
         await signInWithEmailAndPassword(auth, email, password);
+        // Admin logic initialization will happen via onAuthStateChanged
     } catch (error) {
-        throw new Error(t('login_error'));
+        throw new Error(t('login_error')); // Throw error to be caught in UI layer
     }
 }
 
-export async function handleLogout() {
+async function handleLogout() {
     await signOut(auth);
+    // UI updates handled by onAuthStateChanged listener
 }
 
 // --- Firestore Data Fetching & Manipulation ---
 
-export async function fetchCategories() {
+async function fetchCategories() {
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     const snapshot = await getDocs(categoriesQuery);
     const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // Em êdî bi awayekî otomatîkî 'all' zêde nakin. Ew ê bi awayekî logîkî di UIyê de were birêvebirin.
+    // ئێمە ئیتر بە شێوەیەکی ئۆتۆماتیکی 'all' زیاد ناکەین. ئەمە بە شێوەی لۆجیکی لەناو UI چارەسەر دەکرێت.
     state.categories = fetchedCategories;
 }
 
-export async function fetchSubcategories(categoryId) {
-    if (categoryId === 'all') return [];
+async function fetchSubcategories(categoryId) {
+    if (categoryId === 'all') return []; // Ev rast e, ji bo "Home" divê em ti jêr-kategorî nîşan nedin (ئەمە دروستە، بۆ "سەرەکی" پێویست ناکات هیچ جۆرێکی لاوەکی نیشان بدەین)
     try {
         const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
         const q = query(subcategoriesQuery, orderBy("order", "asc"));
@@ -103,7 +104,7 @@ export async function fetchSubcategories(categoryId) {
     }
 }
 
-export async function fetchSubSubcategories(mainCatId, subCatId) {
+async function fetchSubSubcategories(mainCatId, subCatId) {
     if (!mainCatId || !subCatId) return [];
     try {
         const ref = collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
@@ -116,7 +117,7 @@ export async function fetchSubSubcategories(mainCatId, subCatId) {
     }
 }
 
-export async function fetchProductById(productId) {
+async function fetchProductById(productId) {
     try {
         const docRef = doc(db, "products", productId);
         const docSnap = await getDoc(docRef);
@@ -132,52 +133,71 @@ export async function fetchProductById(productId) {
     }
 }
 
-export async function fetchRelatedProducts(currentProduct) {
+// *** ÇAKKIRÎ LI GOR ŞÎROVEYA TE (Corrected According to Your Explanation) ***
+async function fetchRelatedProducts(currentProduct) {
     if (!currentProduct.subcategoryId && !currentProduct.categoryId) return [];
 
     const baseQuery = collection(db, "products");
     let conditions = [];
     let orderByClauses = []; 
 
+    // Pêşî mercên kategoriyê saz bikin (Set category conditions first)
+    // یەکەم جار مەرجەکانی بەشەکان دادەنێین
     if (currentProduct.subSubcategoryId) {
         conditions.push(where('subSubcategoryId', '==', currentProduct.subSubcategoryId));
     } else if (currentProduct.subcategoryId) {
         conditions.push(where('subcategoryId', '==', currentProduct.subcategoryId));
-    } else {
+    } else { // Tenê categoryId heye
         conditions.push(where('categoryId', '==', currentProduct.categoryId));
     }
 
+    // Em êdî hewcedariya me bi '__name__' nîne
+    // ئیتر پێویستمان بە فلتەرکردن بە '__name__' نییە
     orderByClauses.push(orderBy('createdAt', 'desc'));
+
+    // Wek ku te got, em ê 7-an bixwazin (As you said, we will request 7)
+    // وەک خۆت وتت، داوای 7 دانە دەکەین
     const q = query(baseQuery, ...conditions, ...orderByClauses, limit(7));
 
     try {
         const snapshot = await getDocs(q);
         const allRelated = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Naha, em ê kaڵaya heyî bi JavaSript fîlter bikin û 6 hilbijêrin
+        // ئێستا، کاڵای ئێستا بە جاڤاسکریپت فلتەر دەکەین و 6 دانە هەڵدەبژێرین
         const filteredProducts = allRelated
-            .filter(product => product.id !== currentProduct.id)
-            .slice(0, 6);
+            .filter(product => product.id !== currentProduct.id) // Kaڵaya heyî derxe (Remove the current product)
+            .slice(0, 6); // Tenê 6-an bigire (Take only 6)
+
         return filteredProducts;
+        
     } catch (error) {
         console.error("Error fetching related products (new method):", error);
         return [];
     }
 }
+// *** DAWÎYA ÇAKKIRINÊ / END CORRECTION ***
 
 
+// === START: KODA NÛ / کۆدی نوێ ===
 /**
  * Ev fonksîyon dîzayna taybet a kategoriyekê ji Firestore tîne.
  * ئەم فەنکشنە دیزاینی تایبەتی جۆرێک لە فایەرستۆر دەهێنێت.
  * @param {string} categoryId IDya kategoriyê (IDی جۆرەکە)
  * @returns {object|null} Daneyên dîzaynê (enabled, sections) an null
  */
-export async function fetchCategoryLayout(categoryId) {
+export async function fetchCategoryLayout(categoryId) { // <-- EXPORT LI VIR / هەناردە لێرە
     if (!categoryId) return null;
     try {
+        // Dîzayn wekî belgeyek bi IDya kategoriyê tê tomarkirin
+        // دیزاینەکە وەک دۆکیومێنتێک بە IDی جۆرەکە پاشەکەوت دەکرێت
         const layoutDocRef = doc(db, "category_layouts", categoryId);
         const docSnap = await getDoc(layoutDocRef);
         
         if (docSnap.exists()) {
             const data = docSnap.data();
+            // Piştrast bike ku dîzayn çalak e û beşên wê hene
+            // دڵنیابە کە دیزاینەکە چالاکە و بەشی هەیە
             if (data.enabled === true && Array.isArray(data.sections)) {
                 return data;
             }
@@ -188,12 +208,12 @@ export async function fetchCategoryLayout(categoryId) {
         return null;
     }
 }
+// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
 
-// === START: GۆڕANkARIYA MEZIN / گۆڕانکاریی گەورە ===
-// Ev fonksîyon bi tevahî hatiye nûvekirin da ku 3 konteyniran birêve bibe
-// ئەم فەنکشنە بە تەواوی نوێکراوەتەوە بۆ بەڕێوەبردنی 3 کۆنتەینەرەکە
-export async function fetchProducts(searchTerm = '', isNewSearch = false) {
+// Fetches products based on current filters and pagination state
+// === START: KODA GUHERTÎ / کۆدی گۆڕاو ===
+async function fetchProducts(searchTerm = '', isNewSearch = false) {
     
     // 1. Pêşî, em rewşa "Perrê Sereke" (Home Page) kontrol dikin
     // 1. یەکەمجار، پشکنینی دۆخی "پەڕەی سەرەکی" دەکەین
@@ -201,9 +221,7 @@ export async function fetchProducts(searchTerm = '', isNewSearch = false) {
     if (shouldShowHomeSections) {
         // Ji UI re bêje bila dîzayna *malê* (home_layout) nîşan bide
         // بە UI بڵێ با دیزاینی *ماڵەوە* (home_layout) پیشان بدات
-        // `layout: null` tê wê wateyê ku UI dê fonksîyona `fetchHomeLayout` a standard bang bike
-        // `layout: null` واتە UI بانگی فەنکشنی `fetchHomeLayout`ـی ستاندارد دەکات
-        return { viewMode: 'HOME', layout: null, layoutId: 'home', products: [], allLoaded: true };
+        return { isHome: true, layout: null, products: [], allLoaded: true };
     }
 
     // 2. KODA NÛ: Em rewşa "Dîzayna Kategoriyê ya Taybet" kontrol dikin
@@ -219,36 +237,37 @@ export async function fetchProducts(searchTerm = '', isNewSearch = false) {
             // دیزاینێکی چالاک دۆزرایەوە!
             // Ji UI re bêje bila vê dîzaynê nîşan bide (ne kaڵayan)
             // بە UI بڵێ با ئەم دیزاینە پیشان بدات (نەک کاڵاکان)
-            return { 
-                viewMode: 'CATEGORY_LAYOUT', 
-                layout: categoryLayoutData.sections, // Beşên dîzaynê derbas bike (بەشەکانی دیزاینەکە تێپەڕێنە)
-                layoutId: state.currentCategory, // Ji bo cachekirinê IDya kategoriyê derbas bike (بۆ کاشکردن IDی جۆرەکە تێپەڕێنە)
-                products: [], 
-                allLoaded: true 
-            };
+            return { isHome: true, layout: categoryLayoutData.sections, products: [], allLoaded: true };
         }
-        // Heke `categoryLayoutData` null be, em didomînin (ئەگەر `categoryLayoutData` نول بوو، بەردەوام دەبین)
+        // Heke `categoryLayoutData` null be (dîzayn tune an ne çalak e),
+        // em naçin `else`, em tenê didomînin da ku kaڵayên normal ên kategoriyê bînin.
+        // ئەگەر `categoryLayoutData` نول بوو (دیزاین نییە یان چالاک نەکراوە)،
+        // ئێمە ناچینە `else`، بەڵکو بەردەوام دەبین بۆ هێنانی کاڵا ئاساییەکانی جۆرەکە.
     }
     
     // 3. Heke ne "Home" û ne "Dîzayna Kategoriyê" be, kaڵayên normal bîne (Grid)
     // 3. ئەگەر "ماڵەوە" نەبوو یان "دیزاینی جۆر" نەبوو، کاڵا ئاساییەکان بهێنە (Grid)
+    
+    // ... (Logica cache û barkirina bêdawî wekî berê dimîne) ...
+    // ... (لۆجیکی کاش و سکڕۆڵی بێکۆتا وەک خۆی دەمێنێتەوە) ...
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
     if (isNewSearch && state.productCache[cacheKey]) {
+        // Return cached data for new search
         state.products = state.productCache[cacheKey].products;
         state.lastVisibleProductDoc = state.productCache[cacheKey].lastVisible;
         state.allProductsLoaded = state.productCache[cacheKey].allLoaded;
-        // Ji UI re bêje bila Grida Berheman nîşan bide
-        // بە UI بڵێ با لیستی بەرهەمەکان پیشان بدات
-        return { viewMode: 'PRODUCT_GRID', products: state.products, allLoaded: state.allProductsLoaded };
+        return { isHome: false, products: state.products, allLoaded: state.allProductsLoaded };
     }
 
-    if (state.isLoadingMoreProducts) return null;
+    if (state.isLoadingMoreProducts) return null; // Prevent concurrent loading
+
     if (isNewSearch) {
         state.allProductsLoaded = false;
         state.lastVisibleProductDoc = null;
         state.products = [];
     }
-    if (state.allProductsLoaded && !isNewSearch) return null;
+
+    if (state.allProductsLoaded && !isNewSearch) return null; // Already loaded all
 
     state.isLoadingMoreProducts = true;
 
@@ -271,14 +290,19 @@ export async function fetchProducts(searchTerm = '', isNewSearch = false) {
         if (finalSearchTerm) {
             conditions.push(where('searchableName', '>=', finalSearchTerm));
             conditions.push(where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
+            // If searching, first orderBy must match inequality field
             orderByClauses.push(orderBy("searchableName", "asc"));
         }
+        // Always add createdAt sort for consistent pagination
         orderByClauses.push(orderBy("createdAt", "desc"));
 
+
         let finalQuery = query(productsQuery, ...conditions, ...orderByClauses);
+
         if (state.lastVisibleProductDoc && !isNewSearch) {
             finalQuery = query(finalQuery, startAfter(state.lastVisibleProductDoc));
         }
+
         finalQuery = query(finalQuery, limit(PRODUCTS_PER_PAGE));
 
         const productSnapshot = await getDocs(finalQuery);
@@ -289,6 +313,7 @@ export async function fetchProducts(searchTerm = '', isNewSearch = false) {
 
         if (isNewSearch) {
             state.products = newProducts;
+            // Cache the result of the new search
             state.productCache[cacheKey] = {
                 products: state.products,
                 lastVisible: state.lastVisibleProductDoc,
@@ -296,22 +321,23 @@ export async function fetchProducts(searchTerm = '', isNewSearch = false) {
             };
         } else {
             state.products = [...state.products, ...newProducts];
+            // Update cache for subsequent loads? Maybe not necessary if infinite scroll works reliably.
         }
         
-        // Ji UI re bêje bila Grida Berheman nîşan bide
-        // بە UI بڵێ با لیستی بەرهەمەکان پیشان بدات
-        return { viewMode: 'PRODUCT_GRID', products: newProducts, allLoaded: state.allProductsLoaded };
+        // Nîşana `isHome: false` nîşan dide ku divê grid-a kaڵayan were nîşandan
+        // نیشانەی `isHome: false` واتە پێویستە گریدی کاڵاکان پیشان بدرێت
+        return { isHome: false, products: newProducts, allLoaded: state.allProductsLoaded };
 
     } catch (error) {
         console.error("Error fetching products:", error);
-        return { viewMode: 'PRODUCT_GRID', products: [], allLoaded: true, error: true };
+        return { isHome: false, products: [], allLoaded: true, error: true }; // Indicate error
     } finally {
         state.isLoadingMoreProducts = false;
     }
 }
-// === END: GۆڕANkARIYA MEZIN / کۆتایی گۆڕانکاریی گەورە ===
+// === END: KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
 
-export async function fetchPolicies() {
+async function fetchPolicies() {
     try {
         const docRef = doc(db, "settings", "policies");
         const docSnap = await getDoc(docRef);
@@ -325,7 +351,7 @@ export async function fetchPolicies() {
     }
 }
 
-export async function fetchAnnouncements() {
+async function fetchAnnouncements() {
     try {
         const q = query(announcementsCollection, orderBy("createdAt", "desc"));
         const snapshot = await getDocs(q);
@@ -336,7 +362,7 @@ export async function fetchAnnouncements() {
     }
 }
 
-export async function fetchContactMethods() {
+async function fetchContactMethods() {
     try {
         const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
         const q = query(methodsCollection, orderBy("createdAt"));
@@ -348,7 +374,7 @@ export async function fetchContactMethods() {
     }
 }
 
-export async function fetchHomeLayout() {
+async function fetchHomeLayout() {
     try {
         const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
         const layoutSnapshot = await getDocs(layoutQuery);
@@ -359,7 +385,7 @@ export async function fetchHomeLayout() {
     }
 }
 
-export async function fetchPromoGroupCards(groupId) {
+async function fetchPromoGroupCards(groupId) {
     try {
         const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
@@ -370,7 +396,7 @@ export async function fetchPromoGroupCards(groupId) {
     }
 }
 
-export async function fetchBrandGroupBrands(groupId) {
+async function fetchBrandGroupBrands(groupId) {
     try {
         const q = query(collection(db, "brand_groups", groupId, "brands"), orderBy("order", "asc"), limit(30));
         const snapshot = await getDocs(q);
@@ -381,7 +407,7 @@ export async function fetchBrandGroupBrands(groupId) {
     }
 }
 
-export async function fetchNewestProducts(limitCount = 10) {
+async function fetchNewestProducts(limitCount = 10) {
     try {
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
         const q = query(
@@ -398,7 +424,7 @@ export async function fetchNewestProducts(limitCount = 10) {
     }
 }
 
-export async function fetchShortcutRowCards(rowId) {
+async function fetchShortcutRowCards(rowId) {
     try {
         const cardsCollectionRef = collection(db, "shortcut_rows", rowId, "cards");
         const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
@@ -410,7 +436,7 @@ export async function fetchShortcutRowCards(rowId) {
     }
 }
 
-export async function fetchCategoryRowProducts(sectionData) {
+async function fetchCategoryRowProducts(sectionData) {
     const { categoryId, subcategoryId, subSubcategoryId } = sectionData;
     let queryField, queryValue;
 
@@ -442,7 +468,7 @@ export async function fetchCategoryRowProducts(sectionData) {
     }
 }
 
-export async function fetchInitialProductsForHome(limitCount = 10) {
+async function fetchInitialProductsForHome(limitCount = 10) {
      try {
         const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(limitCount));
         const snapshot = await getDocs(q);
@@ -459,8 +485,10 @@ export async function addToCartCore(productId) {
     let product = state.products.find(p => p.id === productId);
 
     if (!product) {
+        console.warn("Product not found in local cache for cart. Fetching...");
         product = await fetchProductById(productId);
         if (!product) {
+            console.error(`Failed to add product ${productId} to cart: Not found.`);
             return { success: false, message: t('product_not_found_error') };
         }
     }
@@ -473,7 +501,7 @@ export async function addToCartCore(productId) {
     } else {
         state.cart.push({
             id: product.id,
-            name: product.name,
+            name: product.name, // Keep the multilingual object
             price: product.price,
             image: mainImage,
             quantity: 1
@@ -488,12 +516,12 @@ export function updateCartQuantityCore(productId, change) {
     if (cartItemIndex > -1) {
         state.cart[cartItemIndex].quantity += change;
         if (state.cart[cartItemIndex].quantity <= 0) {
-            state.cart.splice(cartItemIndex, 1);
+            state.cart.splice(cartItemIndex, 1); // Remove item if quantity is zero or less
         }
         saveCart();
-        return true;
+        return true; // Indicate success
     }
-    return false;
+    return false; // Item not found
 }
 
 export function removeFromCartCore(productId) {
@@ -501,9 +529,9 @@ export function removeFromCartCore(productId) {
     state.cart = state.cart.filter(item => item.id !== productId);
     if (state.cart.length < initialLength) {
         saveCart();
-        return true;
+        return true; // Indicate success
     }
-    return false;
+    return false; // Item not found
 }
 
 export function generateOrderMessageCore() {
@@ -560,35 +588,20 @@ export function saveProfileCore(profileData) {
 }
 
 // --- Language ---
-// === START: GۆڕANkARI LI VIR / گۆڕانکاری لێرە ===
-// Em vê fonksîyonê nûve dikin da ku hemî dîzaynan paqij bike
-// ئێمە ئەم فەنکشنە نوێ دەکەینەوە بۆ پاککردنەوەی هەموو دیزاینەکان
 export function setLanguageCore(lang) {
     state.currentLanguage = lang;
     localStorage.setItem('language', lang);
     document.documentElement.lang = lang.startsWith('ar') ? 'ar' : 'ku';
     document.documentElement.dir = 'rtl';
-    
-    // Cacheya lêgerîna berheman paqij bike (کاشی گەڕانی بەرهەمەکان پاک بکەوە)
-    state.productCache = {}; 
-
-    // Hemî dîzaynên renderkirî paqij bike da ku bi zimanê nû ji nû ve werin çêkirin
-    // هەموو دیزاینە ڕێندەرکراوەکان پاک بکەوە بۆ ئەوەی بە زمانی نوێ دووبارە دروست بکرێنەوە
-    if (homePageLayoutContainer) {
-        homePageLayoutContainer.innerHTML = '';
-        homePageLayoutContainer.dataset.cached = 'false';
-    }
-    if (categoryPageLayoutContainer) {
-        categoryPageLayoutContainer.innerHTML = '';
-        categoryPageLayoutContainer.dataset.cachedLayoutId = '';
-    }
+    // Clear cache as language affects rendered content
+    state.productCache = {};
+    const homeContainer = document.getElementById('homePageSectionsContainer');
+    if (homeContainer) homeContainer.innerHTML = '';
 }
-// === END: GۆڕANkARI LI VIR / کۆتایی گۆڕانکاری ===
-
 
 // --- Notifications ---
 
-export async function requestNotificationPermissionCore() {
+async function requestNotificationPermissionCore() {
     console.log('Requesting notification permission...');
     try {
         const permission = await Notification.requestPermission();
@@ -618,8 +631,10 @@ export async function requestNotificationPermissionCore() {
 async function saveTokenToFirestore(token) {
     try {
         const tokensCollection = collection(db, 'device_tokens');
+        // Use the token itself as the document ID to prevent duplicates
         await setDoc(doc(tokensCollection, token), {
             createdAt: Date.now()
+            // You might want to add more info here later, like userID if users log in
         });
         console.log('Token saved to Firestore.');
     } catch (error) {
@@ -627,6 +642,7 @@ async function saveTokenToFirestore(token) {
     }
 }
 
+// Check for new announcements compared to last seen timestamp
 export function checkNewAnnouncementsCore(latestAnnouncementTimestamp) {
     const lastSeenTimestamp = localStorage.getItem('lastSeenAnnouncementTimestamp') || 0;
     return latestAnnouncementTimestamp > lastSeenTimestamp;
@@ -638,17 +654,17 @@ export function updateLastSeenAnnouncementTimestamp(timestamp) {
 
 // --- PWA & Service Worker ---
 
-export async function handleInstallPrompt(installBtn) {
+async function handleInstallPrompt(installBtn) {
     if (state.deferredPrompt) {
-        installBtn.style.display = 'none';
+        installBtn.style.display = 'none'; // Hide button after prompting
         state.deferredPrompt.prompt();
         const { outcome } = await state.deferredPrompt.userChoice;
         console.log(`User response to the install prompt: ${outcome}`);
-        state.deferredPrompt = null;
+        state.deferredPrompt = null; // Clear the saved prompt
     }
 }
 
-export async function forceUpdateCore() {
+async function forceUpdateCore() {
     if (confirm(t('update_confirm'))) {
         try {
             if ('serviceWorker' in navigator) {
@@ -669,40 +685,29 @@ export async function forceUpdateCore() {
             return { success: false, message: t('error_generic') };
         }
     }
-    return { success: false, message: 'Update cancelled.' };
+    return { success: false, message: 'Update cancelled.' }; // User cancelled
 }
 
 // --- Navigation / History ---
 
-// === START: GۆڕANkARI LI VIR / گۆڕانکاری لێرە ===
-// Em fonksîyonê nûve dikin da ku konteynira çalak a rast bibîne
-// ئێمە فەنکشنەکە نوێ دەکەینەوە بۆ دۆزینەوەی کۆنتەینەرە چالاکە ڕاستەکە
+// *** START: Gۆڕانکاری لێرە کرا ***
+// *** دەستپێک: گۆڕانکاری لێرە کرا ***
 export function saveCurrentScrollPositionCore() {
     const currentState = history.state;
-    // Em tenê ji bo rûpela serekî (mainPage) û dema ku ew fîlterek e (ne popup) tomar dikin
-    // ئێمە تەنها بۆ لاپەڕەی سەرەکی و کاتێک فلتەرە (نەک پۆپئەپ) پاشەکەوتی دەکەین
-    if (state.currentPageId !== 'mainPage' || !currentState || currentState.type) {
-        return; 
-    }
+    // Em êdî ne window.scrollY, lê scrollTop a rûpela çalak tomar dikin
+    // ئێمە ئیتر window.scrollY پاشەکەوت ناکەین، بەڵکو scrollTopـی پەڕە چالاکەکە پاشەکەوت دەکەین
+    const activePage = document.getElementById(state.currentPageId); 
 
-    // Konteynira çalak a NIHA bibîne (کۆنتەینەری چالاکی ئێستا بدۆزەرەوە)
-    let activeContainer = null;
-    if (homePageLayoutContainer && homePageLayoutContainer.style.display !== 'none') {
-        activeContainer = homePageLayoutContainer;
-    } else if (categoryPageLayoutContainer && categoryPageLayoutContainer.style.display !== 'none') {
-        activeContainer = categoryPageLayoutContainer;
-    } else {
-        // Em texmîn dikin ku heke yên din neçalak bin, divê grid çalak be
-        // ئێمە وا دادەنێین ئەگەر ئەوانی تر چالاک نەبن، دەبێت گریدەکە چالاک بێت
-        activeContainer = document.getElementById('productGridPageContainer'); // Fallback to getElementById if import failed
-    }
-
-    if (activeContainer) {
-        // Skrolê konteynira çalak tomar bike (سکڕۆڵی کۆنتەینەرە چالاکەکە پاشەکەوت بکە)
-        history.replaceState({ ...currentState, scroll: activeContainer.scrollTop }, '');
+    // Only save scroll position for the main page filter state
+    // Tenê ji bo rûpela serekî (mainPage) û dema ku ew filterek e (ne popup) tomar bike
+    // تەنها بۆ لاپەڕەی سەرەکی و کاتێک فلتەرە (نەک پۆپئەپ) پاشەکەوتی بکە
+    if (activePage && state.currentPageId === 'mainPage' && currentState && !currentState.type) {
+        // scrollTop a elementa rûpelê tomar bike (scrollTopـی توخمی لاپەڕەکە پاشەکەوت بکە)
+        history.replaceState({ ...currentState, scroll: activePage.scrollTop }, '');
     }
 }
-// === END: GۆڕANkARI LI VIR / کۆتایی گۆڕانکاری ===
+// *** END: Gۆڕانکاری لێرە کرا ***
+// *** کۆتایی: گۆڕانکاری لێرە کرا ***
 
 // Applies filter state (category, search, etc.) but doesn't handle UI rendering directly
 export function applyFilterStateCore(filterState) {
@@ -710,13 +715,24 @@ export function applyFilterStateCore(filterState) {
     state.currentSubcategory = filterState.subcategory || 'all';
     state.currentSubSubcategory = filterState.subSubcategory || 'all';
     state.currentSearch = filterState.search || '';
+    // Note: Fetching products based on this state is handled separately
 }
 
 export function navigateToFilterCore(newState) {
+    // Save current scroll before changing state
+    // *** Gۆڕانکاری: Em ê fonksiyona xwe ya nû ya saveCurrentScrollPositionCore bikar bînin ***
+    // *** گۆڕانکاری: ئێمە فانکشنە نوێیەکەمان saveCurrentScrollPositionCore بەکاردەهێنین ***
     saveCurrentScrollPositionCore(); 
-    const finalState = { ...history.state, ...newState }; 
-    delete finalState.scroll; // Skrola kevn jê bibe ji bo rewşa nû (سکڕۆڵی کۆن بسڕەوە بۆ دۆخی نوێ)
+    // Berê (Previous): history.replaceState({ ... history.state, scroll: window.scrollY }, '');
 
+    // Combine current state with new changes, reset scroll for new view
+    // Em êdî 'scroll: 0' li vir dananîn, ji ber ku dibe ku em nexwazin tavilê skrol bikin
+    // ئێمە ئیتر 'scroll: 0' لێرە دانانێین، چونکە لەوانەیە نەمانەوێت دەستبەجێ سکڕۆڵ بکەین
+    const finalState = { ...history.state, ...newState }; 
+    // Berê (Previous): const finalState = { ...history.state, ...newState, scroll: 0 };
+
+
+    // Update URL query parameters
     const params = new URLSearchParams();
     if (finalState.category && finalState.category !== 'all') params.set('category', finalState.category);
     if (finalState.subcategory && finalState.subcategory !== 'all') params.set('subcategory', finalState.subcategory);
@@ -724,27 +740,38 @@ export function navigateToFilterCore(newState) {
     if (finalState.search) params.set('search', finalState.search);
     const newUrl = `${window.location.pathname}?${params.toString()}`;
 
+    // Push the new state and URL to history
     history.pushState(finalState, '', newUrl);
+
+    // Apply the new state logically (fetching data is separate)
     applyFilterStateCore(finalState);
 }
 
 
 // --- Initialization ---
 
+// *** This function is now async ***
 async function initializeCoreLogic() {
     if (!state.sliderIntervals) state.sliderIntervals = {};
+    // *** We await fetchCategories here ***
     await fetchCategories();
+    // Fetch initial contact methods, social links, etc. if needed globally
 }
 
+// Call this once on app load
+// *** This function is now async and returns a Promise ***
 export async function initCore() {
+    // Return the promise chain
     return enableIndexedDbPersistence(db)
         .then(() => console.log("Firestore offline persistence enabled."))
         .catch((err) => console.warn("Firestore Persistence failed:", err.code))
-        .finally(async () => {
-            await initializeCoreLogic();
+        .finally(async () => { // Make the finally block async
+            // *** Await the core logic setup ***
+            await initializeCoreLogic(); // Await the core logic setup
 
+            // Setup listeners *after* core logic (like categories) is ready
             onAuthStateChanged(auth, async (user) => {
-                const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3";
+                const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3"; // Replace with your Admin UID
                 const isAdmin = user && user.uid === adminUID;
                 const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
 
@@ -755,26 +782,31 @@ export async function initCore() {
                     }
                 } else {
                     sessionStorage.removeItem('isAdmin');
-                     if (user) { await signOut(auth); }
+                     if (user) { await signOut(auth); } // Sign out non-admins
                     if (wasAdmin && window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
                          window.AdminLogic.deinitialize();
                     }
                 }
+                // Notify UI layer about auth change
                 document.dispatchEvent(new CustomEvent('authChange', { detail: { isAdmin } }));
             });
 
+             // Listen for foreground FCM messages
             onMessage(messaging, (payload) => {
                 console.log('Foreground message received: ', payload);
+                // Notify UI layer to display the message
                 document.dispatchEvent(new CustomEvent('fcmMessage', { detail: payload }));
             });
 
+             // PWA install prompt setup (can run earlier, but keeping it grouped)
              window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
                 state.deferredPrompt = e;
                 console.log('`beforeinstallprompt` event fired.');
-                document.dispatchEvent(new Event('installPromptReady'));
+                document.dispatchEvent(new Event('installPromptReady')); // Notify UI
             });
 
+            // Service Worker setup (can run earlier)
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('/sw.js').then(registration => {
                     console.log('SW registered.');
@@ -783,6 +815,7 @@ export async function initCore() {
                         console.log('New SW found!', newWorker);
                         newWorker.addEventListener('statechange', () => {
                             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // New SW waiting to activate. Notify UI.
                                 document.dispatchEvent(new CustomEvent('swUpdateReady', { detail: { registration } }));
                             }
                         });
@@ -798,18 +831,25 @@ export async function initCore() {
 }
 
 
-// === START: GۆڕANkARI LI VIR (BLOKA EXPORTÊ YA PAQIJ) ===
-// === دەستپێک: گۆڕانکاری لێرە (بلۆکی هەناردەکردنی پاک) ===
-// Em tenê tiştên ku PÊWÎST in û jixwe li jor bi 'export function' nehatine hinartin, hinartin
-// ئێمە تەنها ئەو شتانە هەناردە دەکەین کە پێویستن و پێشتر لە سەرەوە بە 'export function' هەناردە نەکراون
+// Expose necessary core functions and state for UI and Admin layers
+// *** گۆڕانکاری لێرە: لابردنی 'fetchCategoryLayout'ـی دووبارە ***
 export {
-    state, // Objekta stateyê ya guhêrbar hinartin (هەناردەکردنی ئۆبجێکتی ستەیت)
+    state, // Export the mutable state object
+    handleLogin, handleLogout, // Authentication
+    fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, // Data fetching
+    fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
+    // fetchCategoryLayout, // <-- === EV HATE RAKIRIN / ئەمە سڕایەوە ===
+    // setLanguageCore exported where it's defined
+    requestNotificationPermissionCore,
+    // checkNewAnnouncementsCore exported where it's defined
+    // updateLastSeenAnnouncementTimestamp exported where it's defined
+    handleInstallPrompt, forceUpdateCore, // PWA & SW
+    // History functions are exported above
+    // Core cart/favorites/profile functions are exported above
 
-    // Fonksiyonên Firebase yên ku app-ui.js û admin.js hewceyê wan in
-    // فەنکشنەکانی فایەربەیس کە app-ui.js و admin.js پێویستیان پێیەتی
-    db,
+    // *** Export Firestore functions needed by app-ui.js and admin.js ***
+    db, // <-- db لێرە زیادکرا
     productsCollection,
     collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
     query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction
 };
-// === END: GۆڕANkARI LI VIR / کۆتایی گۆڕانکاری ===
