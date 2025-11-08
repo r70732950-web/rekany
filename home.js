@@ -292,6 +292,8 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
     
     // Target state is HOME?
     const isTargetHome = state.currentCategory === 'all' && !state.currentSearch;
+    // Pshknîn bike ka naveroka "malê" jixwe barkirî ye
+    // بپشکنە بزانە ناوەڕۆکی "ماڵەوە" پێشتر بارکراوە
     const isHomeLoaded = isTargetHome &&
                          homeSectionsContainer.dataset.layoutType === 'home' &&
                          homeSectionsContainer.innerHTML.trim() !== '';
@@ -302,14 +304,12 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
                                    state.currentSubcategory === 'all' && 
                                    state.currentSubSubcategory === 'all';
                                    
-    // === START: ÇAKSAZIYA KOTAYÎ / چاکسازی کۆتایی ===
-    // Em kontrol dikin ka ew jixwe barkirî ye Û ji bo heman kategoriyê ye
-    // پشکنین دەکەین بزانین ئایا پێشتر بارکراوە و هی هەمان پۆلێنە
+    // Pshknîn bike ka naveroka "kategoriyê" jixwe barkirî ye Û ji bo heman kategoriyê ye
+    // بپشکنە بزانە ناوەڕۆکی "پۆلێن" پێشتر بارکراوە و هی هەمان پۆلێنە
     const isCategoryLayoutLoaded = isTargetCategoryLayout &&
                                    categoryLayoutContainer.dataset.layoutType === 'category' &&
-                                   categoryLayoutContainer.dataset.categoryId === state.currentCategory && // <-- Ev xala girîng e / ئەمە خاڵی گرنگە
+                                   categoryLayoutContainer.dataset.categoryId === state.currentCategory && 
                                    categoryLayoutContainer.innerHTML.trim() !== '';
-    // === DAWÎYA ÇAKSAZIYÊ / کۆتایی چاکسازی ===
     
     // Target state is PRODUCT GRID?
     const isTargetProductGrid = !isTargetHome && !isTargetCategoryLayout;
@@ -317,12 +317,7 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
     // 3. Handle Initial UI State (for new search/navigation)
     if (isNewSearch) {
         scrollTrigger.style.display = 'none'; // Her gav veşêre (هەمیشە بیشارەوە)
-        
-        // === START: ÇAKSAZIYA KOTAYÎ / چاکسازی کۆتایی ===
-        // Em pshknîn dkeyn ka ew vedigere cîhek ku naveroka wê jixwe barkirî ye
-        // پشکنین دەکەین بزانین ئایا دەگەڕێینەوە شوێنێک کە ناوەڕۆکی پێشتر بارکراوە
         const isReturningWithContent = isHomeLoaded || isCategoryLayoutLoaded;
-        // === DAWÎYA ÇAKSAZIYÊ / کۆتایی چاکسازی ===
 
         if (isReturningWithContent) {
             // Naverok jixwe barkirî ye. Tenê dîtinê biguherîne.
@@ -368,26 +363,21 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
             homeSectionsContainer.style.display = 'none'; 
             categoryLayoutContainer.style.display = 'block'; 
             
-            // === START: ÇAKSAZIYA KOTAYÎ / چاکسازی کۆتایی ===
             // Tenê render bike eger naverok jixwe nehatibe barkirin
             // تەنها دروستی بکە ئەگەر ناوەڕۆکەکە پێشتر بارنەکرابێت
             if (!isCategoryLayoutLoaded) { 
                 await renderPageContentUI(result.layout, categoryLayoutContainer, state.currentCategory);
             }
-            // === DAWÎYA ÇAKSAZIYÊ / کۆتایی چاکسازی ===
         } else {
             // Rewş 1b: DÎZAYNA MALÊ (HOME) NÎŞAN BIDE
             // دۆخی ١ب: دیزاینی ماڵەوە پیشان بدە
             homeSectionsContainer.style.display = 'block'; 
             categoryLayoutContainer.style.display = 'none'; // Konteynera kategoriyê veşêre
             
-            // === START: ÇAKSAZIYA KOTAYÎ (RAKIRINA BUG) ===
-            // === دەستپێک: چاکسازی کۆتایی (سڕینەوەی هەڵە) ===
-            // Em êdî konteynera kategoriyê paqij NAKIN gava ku em vedigerin malê
-            // ئێمە ئیتر کۆنتەینەری پۆلێن پاک ناکەینەوە کاتێک دەگەڕێینەوە ماڵەوە
-            // categoryLayoutContainer.innerHTML = ''; // <-- EV HATE RAKIRIN / ئەمە سڕایەوە
-            // categoryLayoutContainer.dataset.categoryId = ''; // <-- EV HATE RAKIRIN / ئەمە سڕایەوە
-            // === DAWÎYA ÇAKSAZIYÊ (RAKIRINA BUG) ===
+            // === ÇAKSAZIYA KOTAYÎ ===
+            // Em êdî li vir tiştek paqij NAKIN
+            // ئێمە ئیتر لێرە هیچ پاک ناکەینەوە
+            // === DAWÎYA ÇAKSAZIYÊ ===
             
             if (!isHomeLoaded) { // Tenê render bike eger nehatibe barkirin
                 await renderPageContentUI(null, homeSectionsContainer, 'home'); 
@@ -400,12 +390,10 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
         categoryLayoutContainer.style.display = 'none'; 
         productsContainer.style.display = 'grid'; 
         
-        // === START: ÇAKSAZIYA KOTAYÎ (RAKIRINA BUG) ===
-        // Em êdî li vir konteynera kategoriyê paqij NAKIN
-        // ئێمە ئیتر لێرە کۆنتەینەری پۆلێن پاک ناکەینەوە
-        // categoryLayoutContainer.innerHTML = ''; // <-- EV HATE RAKIRIN / ئەمە سڕایەوە
-        // categoryLayoutContainer.dataset.categoryId = ''; // <-- EV HATE RAKIRIN / ئەمە سڕایەوە
-        // === DAWÎYA ÇAKSAZIYÊ (RAKIRINA BUG) ===
+        // === ÇAKSAZIYA KOTAYÎ ===
+        // Em êdî li vir tiştek paqij NAKIN
+        // ئێمە ئیتر لێرە هیچ پاک ناکەینەوە
+        // === DAWÎYA ÇAKSAZIYÊ ===
         
         // Jêr-kategoriyan nîşan bide (Ew ê xwe veşêre heke tune bin)
         // جۆرە لاوەکییەکان پیشان بدە (ئەگەر نەبن خۆیان دەشارنەوە)
@@ -788,7 +776,7 @@ async function createSingleCategoryRowElement(sectionData) {
     try {
         let targetDocRef;
         if (subSubcategoryId) {
-            targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubcategoryId}`);
+            targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubcategoryI}`);
         } else if (subcategoryId) {
             targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}`);
         } else {
