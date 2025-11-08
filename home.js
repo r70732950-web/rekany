@@ -317,7 +317,12 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
     // 3. Handle Initial UI State (for new search/navigation)
     if (isNewSearch) {
         scrollTrigger.style.display = 'none'; // Her gav veşêre (هەمیشە بیشارەوە)
+        
+        // === START: ÇAKSAZIYA KOTAYÎ / چاکسازی کۆتایی ===
+        // Em pshknîn dkeyn ka ew vedigere cîhek ku naveroka wê jixwe barkirî ye
+        // پشکنین دەکەین بزانین ئایا دەگەڕێینەوە شوێنێک کە ناوەڕۆکی پێشتر بارکراوە
         const isReturningWithContent = isHomeLoaded || isCategoryLayoutLoaded;
+        // === DAWÎYA ÇAKSAZIYÊ / کۆتایی چاکسازی ===
 
         if (isReturningWithContent) {
             // Naverok jixwe barkirî ye. Tenê dîtinê biguherîne.
@@ -376,6 +381,14 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
             homeSectionsContainer.style.display = 'block'; 
             categoryLayoutContainer.style.display = 'none'; // Konteynera kategoriyê veşêre
             
+            // === START: ÇAKSAZIYA KOTAYÎ (RAKIRINA BUG) ===
+            // === دەستپێک: چاکسازی کۆتایی (سڕینەوەی هەڵە) ===
+            // Em êdî konteynera kategoriyê paqij NAKIN gava ku em vedigerin malê
+            // ئێمە ئیتر کۆنتەینەری پۆلێن پاک ناکەینەوە کاتێک دەگەڕێینەوە ماڵەوە
+            // categoryLayoutContainer.innerHTML = ''; // <-- EV HATE RAKIRIN / ئەمە سڕایەوە
+            // categoryLayoutContainer.dataset.categoryId = ''; // <-- EV HATE RAKIRIN / ئەمە سڕایەوە
+            // === DAWÎYA ÇAKSAZIYÊ (RAKIRINA BUG) ===
+            
             if (!isHomeLoaded) { // Tenê render bike eger nehatibe barkirin
                 await renderPageContentUI(null, homeSectionsContainer, 'home'); 
             }
@@ -386,6 +399,13 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
         homeSectionsContainer.style.display = 'none'; 
         categoryLayoutContainer.style.display = 'none'; 
         productsContainer.style.display = 'grid'; 
+        
+        // === START: ÇAKSAZIYA KOTAYÎ (RAKIRINA BUG) ===
+        // Em êdî li vir konteynera kategoriyê paqij NAKIN
+        // ئێمە ئیتر لێرە کۆنتەینەری پۆلێن پاک ناکەینەوە
+        // categoryLayoutContainer.innerHTML = ''; // <-- EV HATE RAKIRIN / ئەمە سڕایەوە
+        // categoryLayoutContainer.dataset.categoryId = ''; // <-- EV HATE RAKIRIN / ئەمە سڕایەوە
+        // === DAWÎYA ÇAKSAZIYÊ (RAKIRINA BUG) ===
         
         // Jêr-kategoriyan nîşan bide (Ew ê xwe veşêre heke tune bin)
         // جۆرە لاوەکییەکان پیشان بدە (ئەگەر نەبن خۆیان دەشارنەوە)
