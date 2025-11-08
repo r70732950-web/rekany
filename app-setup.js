@@ -20,9 +20,9 @@ const firebaseConfig = {
     projectId: "maten-store",
     
     // === VÊ BIGUHERE / ئەمە بگۆڕە ===
-    // Nêrîna xwe biguherîne li ser vê yekê
-    // تکایە ئەم دێڕە ڕاست بکەرەوە
-    storageBucket: "maten-store.firebasestorage.app", // <-- HATE RASTKIRIN / لێرە ڕاستکرایەوە
+    // Ev hate rastkirin. Forma rast 'appspot.com' e.
+    // ئەمە ڕاستکرایەوە. فۆرمی دروست 'appspot.com'ـە.
+    storageBucket: "maten-store.appspot.com", // <-- HATE RASTKIRIN / لێرە ڕاستکرایەوە
     // === DAWÎYA GUHERTINÊ / کۆتایی گۆڕانکاری ===
 
     messagingSenderId: "137714858202",
@@ -56,7 +56,6 @@ export const categoryLayoutsCollection = collection(db, "category_layouts");
 
 // Translations Export
 export const translations = {
-    // ... (هەموو وەرگێڕانە کۆنەکان لێرە دەبن) ...
     ku_sorani: {
         search_placeholder: "گەڕان بە ناوی کاڵا...",
         admin_login_title: "چوونەژوورەوەی بەڕێوەبەر",
@@ -83,7 +82,7 @@ export const translations = {
         profile_address: "ناونیشان:",
         profile_phone: "ژمارەی تەلەفۆن:",
         save_button: "پاشەکەوتکردن",
-        nav_home: "سەرەکی",
+        nav_home: "سەرەki",
         nav_categories: "جۆرەکان",
         nav_cart: "سەبەتە",
         nav_profile: "پڕۆفایل",
@@ -116,7 +115,7 @@ export const translations = {
         notifications_title: "ئاگەهدارییەکان",
         no_notifications_found: "هیچ ئاگەهدارییەک نییە",
         manage_announcements_title: "ناردنی ئاگەداری گشتی",
-        send_new_announcement: "ناردنی ئاگەهداری نوێ",
+        send_new_announcement: "ناردنی ئاگەداری نوێ",
         send_announcement_button: "ناردنی ئاگەهداری",
         sent_announcements: "ئاگەهدارییە نێردراوەکان",
         no_announcements_sent: "هیچ ئاگەهدارییەک نەنێردراوە",
@@ -140,13 +139,11 @@ export const translations = {
         related_products_title: "کاڵای هاوشێوە",
         share_text: "سەیری ئەم کاڵایە بکە",
         share_error: "هاوبەشیپێکردن سەرکەوتوو نەبوو",
-        // === START: KODA NÛ / کۆدی نوێ ===
         admin_category_layout_title: "دیزاینی لاپەڕەی جۆرەکان",
         admin_category_layout_select: "-- جۆری سەرەکی هەڵبژێرە --",
         admin_category_layout_enable: "چالاککردنی دیزاینی تایبەت بۆ ئەم جۆرە",
         admin_category_layout_info: "ئەگەر چالاک بێت، ئەم دیزاینە لە جیاتی لیستی ئاسایی کاڵاکان پیشان دەدرێت.",
         admin_category_layout_add_section: "زیادکردنی بەش بۆ جۆر",
-        // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -231,13 +228,11 @@ export const translations = {
         related_products_title: "کاڵایێن وەک ئێکن",
         share_text: "بەرێخۆ بدە ڤی کاڵای",
         share_error: "پارڤەکرن سەرنەکەفت",
-        // === START: KODA NÛ / کۆدی نوێ ===
         admin_category_layout_title: "دیزاینا لاپەرێ جوران",
-        admin_category_layout_select: "-- جۆرێ سەرەکی هەلبژێرە --",
+        admin_category_layout_select: "-- جۆرێ سەرەki هەلبژێرە --",
         admin_category_layout_enable: "چالاکرنا دیزاینا تایبەت بۆ ڤی جۆری",
         admin_category_layout_info: "ئەگەر بهێتە چالاکرن، ئەڤ دیزاینە دێ ل جهێ لیستا ئاسایی یا کاڵایان هێتە نیشاندان.",
         admin_category_layout_add_section: "زێدەکرنا پشکێ بۆ جۆری",
-        // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -322,13 +317,11 @@ export const translations = {
         related_products_title: "منتجات مشابهة",
         share_text: "ألق نظرة على هذا المنتج",
         share_error: "فشلت المشاركة",
-        // === START: KODA NÛ / کۆدی نوێ ===
         admin_category_layout_title: "تصميم صفحة الفئات",
         admin_category_layout_select: "-- اختر الفئة الرئيسية --",
         admin_category_layout_enable: "تفعيل التصميم المخصص لهذه الفئة",
         admin_category_layout_info: "في حال تفعيله، سيتم عرض هذا التصميم بدلاً من قائمة المنتجات العادية.",
         admin_category_layout_add_section: "إضافة قسم للفئة",
-        // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     }
 };
 
@@ -356,11 +349,7 @@ export let state = {
     currentProductId: null, // Used by app-ui
     currentPageId: 'mainPage', // *** زیادکرا: بۆ زانینی پەڕەی ئێستا ***
     currentPopupState: null, // *** زیادکرا: شوێنی دۆخی ئێستای پۆپئەپ بگرە ***
-    // *** START: Gۆڕانکاری لێرە کرا ***
-    // *** دەستپێک: گۆڕانکاری لێرە کرا ***
     pendingFilterNav: null, // Ji bo ragirtina fîlterê heta ku popup were girtin (بۆ ڕاگرتنی فلتەر تا داخستنی پۆپئەپ)
-    // *** END: Gۆڕانکاری لێرە کرا ***
-    // *** کۆتایی: گۆڕانکاری لێرە کرا ***
     sliderIntervals: {}, // Used by app-ui & app-core
     contactInfo: {}, // Might be needed?
 };
@@ -383,7 +372,7 @@ export const clearSearchBtn = document.getElementById('clearSearchBtn');
 export const loginForm = document.getElementById('loginForm');
 export const productForm = document.getElementById('productForm');
 export const formTitle = document.getElementById('formTitle');
-export const imageInputsContainer = document.getElementById('imageInputsContainer');
+export const imageInputsContainer = document.getElementById('imageUploadContainer'); // Corrected ID
 export const loader = document.getElementById('loader');
 export const cartBtn = document.getElementById('cartBtn');
 export const cartItemsContainer = document.getElementById('cartItemsContainer');
@@ -512,12 +501,17 @@ window.globalAdminTools = {
             setTimeout(() => document.body.removeChild(notification), 300);
         }, 3000);
     },
-     clearProductCache: () => { // Keep this helper
+     clearProductCache: () => { 
           console.log("Product cache and home page cleared due to admin action.");
           state.productCache = {};
           const homeContainer = document.getElementById('homePageSectionsContainer');
           if (homeContainer) {
               homeContainer.innerHTML = '';
+              // === START: KODA NÛ / کۆدی نوێ ===
+              // Em nîşaneya cache (tag) jî paqij dikin
+              // ئێمە نیشانەی کاشەکەش پاک دەکەینەوە
+              homeContainer.dataset.currentLayout = 'none'; 
+              // === END: KODA NÛ / کۆtahi کۆدی نوێ ===
           }
           // Notify UI layer to trigger re-render
           document.dispatchEvent(new Event('clearCacheTriggerRender'));

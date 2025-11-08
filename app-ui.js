@@ -1379,6 +1379,16 @@ function setupUIEventListeners() {
 async function handleSetLanguage(lang) {
     setLanguageCore(lang); // Stata core û localStorage nû bike
 
+    // === START: KODA NÛ / کۆدی نوێ ===
+    // Em cache'a dîzayna DOMê paqij dikin
+    // ئێمە کاشی دیزاینی DOM پاک دەکەینەوە
+    const homeContainer = document.getElementById('homePageSectionsContainer');
+    if (homeContainer) {
+        homeContainer.innerHTML = ''; // Naverokê paqij bike (ناوەڕۆک پاک بکەوە)
+        homeContainer.dataset.currentLayout = 'none'; // Nîşaneyê rake (نیشانە لابدە)
+    }
+    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+
     // Nivîsara statîk tavilê nû bike
     document.querySelectorAll('[data-translate-key]').forEach(element => {
         const key = element.dataset.translateKey;
@@ -1390,7 +1400,7 @@ async function handleSetLanguage(lang) {
         }
     });
 
-    // Bişkoka zimanê çalak nû bike
+    // Bişkokên zimanê çalak nû bike
     document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.lang === lang);
     });
@@ -1458,20 +1468,22 @@ window.addEventListener('popstate', async (event) => {
             const cameFromPopup = wasPopupOpen;
             const cameFromPage = previousPageId !== 'mainPage';
 
+            // === START: KODA GUHERTÎ / کۆدی گۆڕاو ===
+            // Em her gav 'updateProductViewUI' bang dikin da ku dîmena rast (dîzayn an grid) nîşan bide
+            // ئێمە هەمیشە بانگی 'updateProductViewUI' دەکەین بۆ پیشاندانی دیمەنی ڕاست (دیزاین یان گرید)
             if (!cameFromPopup && !cameFromPage) {
-                // Li ser rûpela serekî bû û çû rewşek filterê ya din
-                // لەسەر لاپەڕەی سەرەki بوویت و چوویتە دۆخێکی تری فلتەر
+                // Di navbera filteran de digere (لە نێوان فلتەرەکان دەگەڕێت)
                 console.log("Popstate: Navigating between filter states, triggering refresh WITHOUT scroll.");
-                await updateProductViewUI(true, false); // false = skrol neke jor (سکڕۆڵ مەکە سەرەوە)
+                await updateProductViewUI(true, false); // false = skrol neke (سکڕۆڵ مەکە)
             } else {
-                // Ji popupê an rûpelek din vegeriya
-                // لە پۆپئەپێک یان پەڕەیەکی تر گەڕایتەوە
+                // Ji popup an rûpelek din vedigere (لە پۆپئەپ یان لاپەڕەیەکی تر دەگەڕێتەوە)
                 console.log(`Popstate: Returned from ${cameFromPopup ? 'popup' : (cameFromPage ? 'page' : 'unknown')}, restoring UI without full refresh.`);
-                renderMainCategoriesUI();
-                const subcats = await fetchSubcategories(state.currentCategory);
-                await renderSubcategoriesUI(subcats);
+                // Dîsa jî nûve bike da ku dîzayna rast (cache'kirî) nîşan bide
+                // هێشتا نوێی بکەوە بۆ پیشاندانی دیزاینی ڕاست (کاشکراو)
+                await updateProductViewUI(true, false); 
             }
-
+            // === END: KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
+            
             // *** Logica Vegerandina Skrolê (Logica nû) ***
             // *** لۆجیکی گەڕاندنەوەی سکڕۆڵ (لۆجیکی نوێ) ***
             
