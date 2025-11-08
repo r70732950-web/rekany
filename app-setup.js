@@ -83,7 +83,7 @@ export const translations = {
         profile_address: "ناونیشان:",
         profile_phone: "ژمارەی تەلەفۆن:",
         save_button: "پاشەکەوتکردن",
-        nav_home: "سەرەکی",
+        nav_home: "سەرەki",
         nav_categories: "جۆرەکان",
         nav_cart: "سەبەتە",
         nav_profile: "پڕۆفایل",
@@ -142,7 +142,7 @@ export const translations = {
         share_error: "هاوبەشیپێکردن سەرکەوتوو نەبوو",
         // === START: KODA NÛ / کۆدی نوێ ===
         admin_category_layout_title: "دیزاینی لاپەڕەی جۆرەکان",
-        admin_category_layout_select: "-- جۆری سەرەکی هەڵبژێرە --",
+        admin_category_layout_select: "-- جۆری سەرەki هەڵبژێرە --",
         admin_category_layout_enable: "چالاککردنی دیزاینی تایبەت بۆ ئەم جۆرە",
         admin_category_layout_info: "ئەگەر چالاک بێت، ئەم دیزاینە لە جیاتی لیستی ئاسایی کاڵاکان پیشان دەدرێت.",
         admin_category_layout_add_section: "زیادکردنی بەش بۆ جۆر",
@@ -174,7 +174,7 @@ export const translations = {
         profile_address: "ناڤ و نیشان:",
         profile_phone: "ژمارا تەلەفونێ:",
         save_button: "پاشەکەفتکرن",
-        nav_home: "سەرەکی",
+        nav_home: "سەرەki",
         nav_categories: "جۆر",
         nav_cart: "سەلک",
         nav_profile: "پروفایل",
@@ -233,7 +233,7 @@ export const translations = {
         share_error: "پارڤەکرن سەرنەکەفت",
         // === START: KODA NÛ / کۆدی نوێ ===
         admin_category_layout_title: "دیزاینا لاپەرێ جوران",
-        admin_category_layout_select: "-- جۆرێ سەرەکی هەلبژێرە --",
+        admin_category_layout_select: "-- جۆرێ سەرەki هەلبژێرە --",
         admin_category_layout_enable: "چالاکرنا دیزاینا تایبەت بۆ ڤی جۆری",
         admin_category_layout_info: "ئەگەر بهێتە چالاکرن، ئەڤ دیزاینە دێ ل جهێ لیستا ئاسایی یا کاڵایان هێتە نیشاندان.",
         admin_category_layout_add_section: "زێدەکرنا پشکێ بۆ جۆری",
@@ -420,6 +420,14 @@ export const termsSheet = document.getElementById('termsSheet');
 export const termsContentContainer = document.getElementById('termsContentContainer');
 export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer'); // Main page sub-subcat container
 
+// === START: KODA NÛ / کۆدی نوێ ===
+// Em IDya nû ya ku me di index.html de zêde kir, export dikin
+// ئێمە ئەو ID نوێیەی لە index.html زیادمان کرد، هەناردەی دەکەین
+export const homePageSectionsContainer = document.getElementById('homePageSectionsContainer');
+export const categoryLayoutContainer = document.getElementById('categoryLayoutContainer');
+// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+
+
 // === Admin UI Elements ===
 export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
 export const policiesForm = document.getElementById('policiesForm');
@@ -519,6 +527,14 @@ window.globalAdminTools = {
           if (homeContainer) {
               homeContainer.innerHTML = '';
           }
+          // === START: KODA NÛ / کۆدی نوێ ===
+          // Em konteynera nû ya dîzayna kategoriyê jî paqij dikin
+          // ئێمە کۆنتەینەرە نوێیەکەی دیزاینی پۆلێنیش پاک دەکەینەوە
+          const categoryContainer = document.getElementById('categoryLayoutContainer');
+          if (categoryContainer) {
+              categoryContainer.innerHTML = '';
+          }
+          // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
           // Notify UI layer to trigger re-render
           document.dispatchEvent(new Event('clearCacheTriggerRender'));
      },

@@ -12,6 +12,14 @@ import {
     settingsFavoritesBtn, settingsAdminLoginBtn, settingsLogoutBtn, profileBtn, contactToggle,
     notificationBtn, notificationBadge, notificationsSheet, notificationsListContainer,
     termsAndPoliciesBtn, termsSheet, termsContentContainer,
+    
+    // === START: KODA NÛ / کۆدی نوێ ===
+    // Em konteynera nû ya ku me li app-setup.js zêde kir import dikin
+    // ئێمە کۆنتەینەرە نوێیەکە کە لە app-setup.js زیادمان کرد هاوردەی دەکەین
+    homePageSectionsContainer, // Ev jixwe di koda te de hebû (ئەمە پێشتر لە کۆدەکەتدا هەبوو)
+    categoryLayoutContainer,  // <-- EV NÛ YE / ئەمە نوێیە
+    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+
     // Elements needed specifically for admin UI rendering within app-ui
     adminPoliciesManagement, adminSocialMediaManagement, adminAnnouncementManagement, adminPromoCardsManagement,
     adminBrandsManagement, adminCategoryManagement, adminContactMethodsManagement, adminShortcutRowsManagement,
@@ -23,9 +31,7 @@ import {
     addBrandGroupForm, brandGroupsListContainer, addBrandForm,
     shortcutRowsListContainer, addShortcutRowForm, addCardToRowForm,
     homeLayoutListContainer, addHomeSectionBtn, addHomeSectionModal, addHomeSectionForm,
-    // === START: KODA NÛ / کۆدی نوێ ===
-    adminCategoryLayoutManagement, // <-- KODA NÛ / کۆدی نوێ
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+    adminCategoryLayoutManagement, 
 } from './app-setup.js';
 
 import {
@@ -974,7 +980,7 @@ async function showProductDetailsUI(productData) {
     });
 
     // === DAWÎYA KODA SLAYDERA VÎDYOYÊ ===
-    // === کۆتایی کۆدی سلایدەری ڤیدیۆ ===
+    // === کۆتایی کۆدی سلایدەri ڤیدیۆ ===
 
 
     // Zanyariyên kaڵا nû bike (Ev koda te ya heyî ye)
