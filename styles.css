@@ -1,4 +1,3 @@
-/* ... (هەموو ستایلە کۆنەکان لێرە دەبن) ... */
 :root {
     --primary-color: #1a365d;
     --primary-light: #2a4365;
@@ -578,37 +577,8 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 
 #sheetImageSlider { position: relative; max-width: 100%; margin-bottom: 15px; }
 #sheetImageContainer { display: flex; overflow: hidden; border-radius: 8px; }
-/* === START: KODA NÛ / کۆدی نوێ === */
-/* Ev stîl ji bo slayderê vîdyo/wêne hat guhertin */
-/* ئەم ستایلە بۆ سلایدەری ڤیدیۆ/وێنە گۆڕدرا */
-#sheetImageContainer img,
-#videoPlayerWrapper {
-    width: 100%;
-    flex-shrink: 0;
-    display: none; /* Dê bi JS were kontrol kirin */
-    object-fit: contain;
-    max-height: 350px;
-    transition: opacity 0.3s ease-in-out;
-}
-#videoPlayerWrapper {
-    position: relative;
-    background-color: #000;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-}
-#videoPlayerWrapper iframe {
-    width: 100%;
-    aspect-ratio: 16 / 9;
-}
-#sheetImageContainer img.active,
-#videoPlayerWrapper.active {
-    display: block; /* Ji bo wêneyan */
-}
-#videoPlayerWrapper.active {
-    display: flex; /* Ji bo vîdyoyê */
-}
-/* === END: KODA NÛ / کۆتایی کۆدی نوێ === */
+#sheetImageContainer img { width: 100%; flex-shrink: 0; display: none; object-fit: contain; max-height: 350px; transition: opacity 0.3s ease-in-out; }
+#sheetImageContainer img.active { display: block; }
 .slider-btn { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0,0,0,0.4); color: white; border: none; font-size: 20px; cursor: pointer; z-index: 10; border-radius: 50%; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; }
 .slider-btn.prev { left: 10px; }
 .slider-btn.next { right: 10px; }
@@ -618,6 +588,15 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 #sheetProductDescription a { color: var(--primary-color); text-decoration: underline; font-weight: bold; }
 
 /* === START: KODA NÛ / کۆدی نوێ === */
+/* Em stîlên kevn ên 'image-inputs-container' şîrove dikin ji ber ku êdî nayên bikar anîn */
+/* ئێمە ستایلە کۆنەکانی 'image-inputs-container' دادەپۆشین چونکە ئیتر بەکارناهێنرێن */
+/*
+.image-inputs-container { display: flex; flex-direction: column; gap: 10px; }
+.image-input-group { display: flex; gap: 8px; align-items: center; }
+.image-input-group input { flex-grow: 1; }
+.image-preview-small { width: 40px; height: 40px; object-fit: contain; border-radius: 4px; background-color: var(--light-gray); border: 1px solid var(--medium-gray); }
+*/
+
 /* Stîlên nû ji bo barkirina wêneyan */
 /* ستایلی نوێ بۆ بلندکردنی وێنە */
 .image-upload-container {
@@ -1293,18 +1272,13 @@ body, .bottom-nav-item, .product-card {
     background-color: var(--accent-light);
 }
 
-/* === START: KODA NÛ / کۆدی نوێ === */
-/* Em van stîlan ji bo her du konteyneran bikar tînin */
-/* ئێمە ئەم ستایلانە بۆ هەردوو کۆنتەینەرەکە بەکاردەهێnin */
-.layout-list-container,
-#categoryLayoutListContainer {
+.layout-list-container {
     border: 1px solid var(--section-border);
     border-radius: 6px;
     padding: 10px;
     background-color: #f8f9fa;
     min-height: 50px;
 }
-/* === END: KODA NÛ / کۆتایی کۆدی نوێ === */
 
 .layout-item {
     background-color: white;
@@ -1566,14 +1540,9 @@ input:checked + .slider:before {
 }
 
 /* Zêdekirina hejmarekê li tenişta her rêzekê */
-/* === START: KODA NÛ / کۆدی نوێ === */
-/* Em vê stîlê ji bo her du lîsteyan bikar tînin */
-/* ئێمە ئەم ستایلە بۆ هەردوو لیستەکە بەکاردەهێnin */
-#homeLayoutListContainer,
-#categoryLayoutListContainer {
+#homeLayoutListContainer {
     counter-reset: layout-item-counter;
 }
-/* === END: KODA NÛ / کۆتایی کۆدی نوێ === */
 
 .layout-item-info::before {
     counter-increment: layout-item-counter;
