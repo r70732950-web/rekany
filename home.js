@@ -301,14 +301,12 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
                          homeSectionsContainer.dataset.layoutType === 'home' &&
                          homeSectionsContainer.innerHTML.trim() !== '';
 
-    // === START: ÇARESERIYA TEVAHÎ / چارەسەری تەواو ===
     // Em li hundurê 'categoryLayoutContainer' li cache digerin
     // ئێمە لەناو 'categoryLayoutContainer' بەدوای کاشدا دەگەڕێین
     const targetCategoryLayoutId = `layout-cache-${state.currentCategory}`;
     const isCategoryLayoutLoaded = isTargetCategoryLayout &&
                                    document.getElementById(targetCategoryLayoutId); // Tenê kontrol bike ka DIV heye
-    // === DAWÎYA ÇARESERIYÊ / کۆتایی چارەسەر ===
-
+    
     // 4. Handle Initial UI State (for new search/navigation)
     if (isNewSearch) {
         scrollTrigger.style.display = 'none'; // Her gav veşêre (هەمیشە بیشارەوە)
@@ -320,9 +318,6 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
             homeSectionsContainer.style.display = isHomeLoaded ? 'block' : 'none';
             categoryLayoutContainer.style.display = isCategoryLayoutLoaded ? 'block' : 'none';
             
-            // === START: ÇARESERIYA TEVAHÎ / چارەسەری تەواو ===
-            // Em tenê layera ku em dixwazin nîşan didin
-            // ئێمە تەنها ئەو لایەرە پیشان دەدەین کە دەمانەوێت
             if (isCategoryLayoutLoaded) {
                 // Hemî layerên din ên di nav cache de veşêre
                 // هەموو لایەرەکانی تری ناو کاشەکە بشارەوە
@@ -330,17 +325,29 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
                     child.style.display = (child.id === targetCategoryLayoutId) ? 'block' : 'none';
                 });
             }
-            // === DAWÎYA ÇARESERIYÊ / کۆتایی چارەسەر ===
             
             productsContainer.style.display = 'none';
             skeletonLoader.style.display = 'none';
-            subcategoriesContainer.style.display = 'none'; // Ji bo her du dîzaynên xwerû veşêre
-            subSubcategoriesContainer.style.display = 'none'; // (بۆ هەردوو دیزاینە تایبەتەکە بیشارەوە)
+            
+            // === START: ÇARESERIYA NÛ / چارەسەری نوێ ===
+            // Em tenê jêr-kategoriyan vedişêrin heke em li malê bin
+            // ئێمە تەنها جۆرە لاوەکییەکان دەشارینەوە ئەگەر لە ماڵەوە بین
+            if (isHomeLoaded) {
+                subcategoriesContainer.style.display = 'none'; 
+                subSubcategoriesContainer.style.display = 'none';
+            } else {
+                // Em hewl didin wan nîşan bidin ji bo dîzayna kategoriyê
+                // ئێمە هەوڵ دەدەین پیشانیان بدەین بۆ دیزاینی پۆلێن
+                const subcats = await fetchSubcategories(state.currentCategory);
+                await renderSubcategoriesUI(subcats);
+            }
+            // === DAWÎYA ÇARESERIYÊ / کۆتایی چارەسەری ===
+
         } else {
             // Pêdivî ye ku naverokek nû were barkirin. Skeleton nîşan bide.
             // پێویستە ناوەڕۆکی نوێ باربکرێت. ئێسکەپەیکەر پیشان بدە.
             homeSectionsContainer.style.display = 'none';
-            categoryLayoutContainer.style.display = 'none'; // Dê paşê were nîşandan heke hewce bike (دواتر پیشان دەدرێت ئەگەر پێویست بوو)
+            categoryLayoutContainer.style.display = 'none'; 
             productsContainer.style.display = 'none';
             subcategoriesContainer.style.display = 'none';
             subSubcategoriesContainer.style.display = 'none';
@@ -350,9 +357,6 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
     }
 
     // 5. Fetch Data
-    // === START: ÇARESERIYA TEVAHÎ / چارەسەری تەواو ===
-    // Em tenê daneyan tînin heke naverok jixwe nehatibe barkirin (an eger skrola bêdawî be)
-    // ئێمە تەنها داتا دەهێنین ئەگەر ناوەڕۆک پێشتر بارنەکرابێت (یان ئەگەر سکڕۆڵی بێکۆتا بێت)
     let result;
     if (isNewSearch && (isHomeLoaded || isCategoryLayoutLoaded)) {
         // Naverok jixwe barkirî ye, hewce nake daneyan bîne
@@ -368,6 +372,12 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
             renderProductsGridUI(result.products); // Tenê kaڵayên nû zêde bike (تەنها کاڵا نوێیەکان زیاد بکە)
          }
          scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
+         
+         // === START: ÇARESERIYA NÛ / چارەسەری نوێ ===
+         // Em piştrast dikin ku bişkokên sereke nû dibin
+         // دڵنیا دەبینەوە کە دوگمە سەرەکییەکان نوێ دەبنەوە
+         renderMainCategoriesUI();
+         // === DAWÎYA ÇARESERIYÊ / کۆتایی چارەسەری ===
          return; // Em ji fonksiyonê derdikevin ji ber ku me tenê skrola bêdawî birêve bir
                  // ئێمە لە فەنکشنەکە دەردەچین چونکە تەنها سکڕۆڵی بێکۆتامان بەڕێوەبرد
     } else {
@@ -375,7 +385,6 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
         // ناوەڕۆکێکی نوێی تەواو باربکە
         result = await fetchProducts(state.currentSearch, true); 
     }
-    // === DAWÎYA ÇARESERIYÊ / کۆتایی چارەسەر ===
 
 
     // Daneyên me hene, skeleton veşêre
@@ -389,16 +398,20 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
             // --- دۆخی ١: دیزاینی تایبەت (ماڵەوە یان پۆلێن) ---
             productsContainer.style.display = 'none'; 
             scrollTrigger.style.display = 'none'; 
-            subcategoriesContainer.style.display = 'none';
-            subSubcategoriesContainer.style.display = 'none';
-
+            
             if (result.layout) {
                 // Rewş 1a: DÎZAYNA KATEGORIYÊ NÎŞAN BIDE
                 // دۆخی ١أ: دیزاینی پۆلێن پیشان بدە
                 homeSectionsContainer.style.display = 'none'; 
                 categoryLayoutContainer.style.display = 'block'; // Konteynera PARENT nîşan bide (کۆنتەینەری باوان پیشان بدە)
                 
-                // === START: ÇARESERIYA TEVAHÎ / چارەسەری تەواو ===
+                // === START: ÇARESERIYA NÛ / چارەسەری نوێ ===
+                // Jêr-kategoriyan nîşan bide
+                // جۆرە لاوەکییەکان پیشان بدە
+                const subcats = await fetchSubcategories(state.currentCategory);
+                await renderSubcategoriesUI(subcats);
+                // === DAWÎYA ÇARESERIYÊ / کۆتایی چارەسەری ===
+                
                 // Hemî layerên din veşêre
                 // هەموو لایەرەکانی تر بشارەوە
                 Array.from(categoryLayoutContainer.children).forEach(child => {
@@ -415,7 +428,6 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
                 
                 // Layer-a armanc nîşan bide (لایەری ئامانج پیشان بدە)
                 targetLayoutDiv.style.display = 'block';
-                // === DAWÎYA ÇARESERIYÊ / کۆتایی چارەسەر ===
                 
             } else {
                 // Rewş 1b: DÎZAYNA MALÊ (HOME) NÎŞAN BIDE
@@ -423,6 +435,13 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
                 homeSectionsContainer.style.display = 'block'; 
                 categoryLayoutContainer.style.display = 'none'; // Konteynera PARENT veşêre (کۆنتەینەری باوان بشارەوە)
                 
+                // === START: ÇARESERIYA NÛ / چارەسەری نوێ ===
+                // Em jêr-kategoriyan vedişêrin ji ber ku em li malê ne
+                // ئێمە لێرە جۆرە لاوەکییەکان دەشارینەوە
+                subcategoriesContainer.style.display = 'none';
+                subSubcategoriesContainer.style.display = 'none';
+                // === DAWÎYA ÇARESERIYÊ / کۆتایی چارەسەری ===
+            
                 if (!isHomeLoaded) { // Tenê render bike eger nehatibe barkirin
                     await renderPageContentUI(null, homeSectionsContainer, 'home'); 
                 }
