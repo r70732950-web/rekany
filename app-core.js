@@ -839,25 +839,23 @@ export async function initCore() {
 
 
 // Expose necessary core functions and state for UI and Admin layers
-// *** گۆڕانکاری لێرە: لابردنی 'fetchCategoryLayout'ـی دووبارە ***
+// === START: KODA NÛ / کۆدی نوێ ===
+// Hemî fonskiyonên ku li jor bi 'export function' hatine pênase kirin jixwe hatine hinartin.
+// Em tenê tiştên ku nehatine hinartin (wekî fonksiyonên Firebase) li vir hinartin.
+// هەموو فەنکشنەکان کە لە سەرەوە بە 'export function' پێناسە کراون، پێشتر هەناردە کراون.
+// ئێمە تەنها ئەو شتانە هەناردە دەکەین کە هەناردە نەکراون (وەک فەنکشنەکانی Firebase).
 export {
     state, // Export the mutable state object
-    handleLogin, handleLogout, // Authentication
-    fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, // Data fetching
-    fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
-    // fetchCategoryLayout, // <-- === EV HATE RAKIRIN / ئەمە سڕایەوە ===
-    // setLanguageCore exported where it's defined
-    requestNotificationPermissionCore,
-    // checkNewAnnouncementsCore exported where it's defined
-    // updateLastSeenAnnouncementTimestamp exported where it's defined
-    handleInstallPrompt,
-    // forceUpdateCore, // <-- === EV HATE RAKIRIN / ئەمە سڕایەوە ===
-    // History functions are exported above
-    // Core cart/favorites/profile functions are exported above
 
-    // *** Export Firestore functions needed by app-ui.js and admin.js ***
-    db, // <-- db لێرە زیادکرا
+    // *** HEMÎ FONSKSYONÊN DUBARE HATIN RAKIRIN / هەموو فەنکشنە دووبارەکان سڕانەوە ***
+    // Ev hemî kêşeyên 'Duplicate export' çareser dike
+    // ئەمە هەموو کێشەکانی 'Duplicate export' چارەسەر دەکات
+
+    // *** Export Firestore functions needed by app-ui.js ***
+    // (These are imported at the top of app-core.js and must be re-exported)
+    db,
     productsCollection,
     collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
     query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction
 };
+// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
