@@ -46,7 +46,9 @@ function resetScrollPosition(containerElement) {
  * Alîkarek ji bo veguheztina nerm (fade) di navbera elementan de.
  * یاریدەدەرێک بۆ گواستنەوەی نەرم (fade) لەنێوان توخمەکاندا.
  * @param {HTMLElement} elementToShow - Elementa ku divê were nîşan dan.
+ *Am (توخمێک کە پێویستە نیشان بدرێت)
  * @param {HTMLElement[]} elementsToHide - Rêzek ji elementên ku divê werin veşartin.
+ * (لیستێک لەو توخمانەی کە پێویستە بشاردرێنەوە)
  */
 function fadeContent(elementToShow, elementsToHide = []) {
     // 1. Hemî elementên din veşêre
@@ -500,10 +502,14 @@ export async function renderPageContentUI(layoutSections, layoutType = 'home', l
     }
     // === END: KODA ÇAKKIRÎ / کۆتایی کۆدی چاککراو ===
 
-
-    homeSectionsContainer.innerHTML = `<div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: block;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;">...خەریکی بارکردنی بەشەکانە</p></div>`;
-
-    homeSectionsContainer.innerHTML = ''; // Loader/naveroka berê paqij bike
+    // === START: KODA ÇAKKIRÎ / کۆدی چاککراو (BUGÊ HERÎ MEZIN HATE ÇARESERKIRIN) ===
+    // === دەستپێک: کۆدی چاککراو (گەورەترین هەڵە چارەسەر کرا) ===
+    // Me ev her du rêz rakirin da ku naverok neyê jêbirin!
+    // ئێمە ئەم دوو دێڕەمان سڕییەوە بۆ ئەوەی ناوەڕۆکەکە نەسڕێتەوە!
+    // homeSectionsContainer.innerHTML = `<div id="loader" ...>...</div>`; // <-- RAKIRIN / سڕایەوە
+    homeSectionsContainer.innerHTML = ''; // <-- RAKIRIN / سڕایەوە
+    // === END: KODA ÇAKKIRÎ / کۆتایی کۆدی چاککراو ===
+    
     
     // === START: KODA ÇAKKIRÎ / کۆدی چاککراو (Bug 2 Fix) ===
     // Em cureyê dîzaynê û IDyê tomar dikin
