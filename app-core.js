@@ -697,8 +697,8 @@ export async function forceUpdateCore() {
 
 // --- Navigation / History ---
 
-// *** START: Gۆڕانکاری لێرە کرا ***
-// *** دەستپێک: گۆڕانکاری لێرە کرا ***
+// *** START: Gۆڕانکاری lێرە kra ***
+// *** دەستپێک: Gۆڕانکاری lێرە kra ***
 export function saveCurrentScrollPositionCore() {
     const currentState = history.state;
     // Em êdî ne window.scrollY, lê scrollTop a rûpela çalak tomar dikin
@@ -713,8 +713,8 @@ export function saveCurrentScrollPositionCore() {
         history.replaceState({ ...currentState, scroll: activePage.scrollTop }, '');
     }
 }
-// *** END: Gۆڕانکاری lێرە kra ***
-// *** کۆتایی: Gۆڕانکاری lێرە kra ***
+// *** END: Gۆڕanlکاری lێرە kra ***
+// *** کۆتایی: Gۆڕanlکاری lێرە kra ***
 
 // Applies filter state (category, search, etc.) but doesn't handle UI rendering directly
 export function applyFilterStateCore(filterState) {
@@ -850,7 +850,8 @@ export {
     requestNotificationPermissionCore,
     // checkNewAnnouncementsCore exported where it's defined
     // updateLastSeenAnnouncementTimestamp exported where it's defined
-    handleInstallPrompt, forceUpdateCore, // PWA & SW
+    handleInstallPrompt,
+    // forceUpdateCore, // <-- === EV HATE RAKIRIN / ئەمە سڕایەوە ===
     // History functions are exported above
     // Core cart/favorites/profile functions are exported above
 
