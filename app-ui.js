@@ -2,9 +2,17 @@
 // Rêveberiya UI Giştî, girêdana bûyeran (event listeners), û nûvekirina DOM
 
 import {
-    // Import DOM elements needed for general UI updates
-    loginModal, addProductBtn, productFormModal, skeletonLoader, searchInput,
-    clearSearchBtn, loginForm, productForm, formTitle, imageInputsContainer, loader,
+    // === START: GۆڕANkARI LI VIR / گۆڕانکاری لێرە ===
+    // Em elementên nû yên UI ji bo pêkhateya nû (new structure) import dikin
+    // ئێمە توخمە نوێیەکانی UI بۆ پێکهاتە نوێیەکە هاوردە دەکەین
+    loginModal, addProductBtn, productFormModal, 
+    // Konteynirên Rûpela Sereke (کۆنتەینەرەکانی پەڕەی سەرەکی)
+    mainPageLoader, homePageLayoutContainer, categoryPageLayoutContainer, productGridPageContainer,
+    // Konteynirên Nav Grida Berheman (کۆنتەینەرەکانی ناو لیستی بەرهەمەکان)
+    skeletonLoader, productsContainer, loader, // 'loader' êdî ji bo 'scroll-loader-trigger' e ('loader' ئیتر بۆ 'scroll-loader-trigger'ـە)
+    subcategoriesContainer, subSubcategoriesContainer, // <-- KODA NÛ / کۆدی نوێ
+    
+    searchInput, clearSearchBtn, loginForm, productForm, formTitle, 
     cartBtn, cartItemsContainer, emptyCartMessage, cartTotal, totalAmount, cartActions,
     favoritesContainer, emptyFavoritesMessage, categoriesBtn, sheetOverlay, sheetCategoriesContainer,
     productCategorySelect, subcategorySelectContainer, productSubcategorySelect, subSubcategorySelectContainer,
@@ -12,20 +20,7 @@ import {
     settingsFavoritesBtn, settingsAdminLoginBtn, settingsLogoutBtn, profileBtn, contactToggle,
     notificationBtn, notificationBadge, notificationsSheet, notificationsListContainer,
     termsAndPoliciesBtn, termsSheet, termsContentContainer,
-    // Elements needed specifically for admin UI rendering within app-ui
-    adminPoliciesManagement, adminSocialMediaManagement, adminAnnouncementManagement, adminPromoCardsManagement,
-    adminBrandsManagement, adminCategoryManagement, adminContactMethodsManagement, adminShortcutRowsManagement,
-    adminHomeLayoutManagement, policiesForm, socialLinksListContainer, announcementForm,
-    announcementsListContainer, contactMethodsListContainer, categoryListContainer, addCategoryForm,
-    addSubcategoryForm, addSubSubcategoryForm, editCategoryForm,
-    // New admin elements from updated HTML
-    addPromoGroupForm, promoGroupsListContainer, addPromoCardForm,
-    addBrandGroupForm, brandGroupsListContainer, addBrandForm,
-    shortcutRowsListContainer, addShortcutRowForm, addCardToRowForm,
-    homeLayoutListContainer, addHomeSectionBtn, addHomeSectionModal, addHomeSectionForm,
-    // === START: KODA NÛ / کۆدی نوێ ===
-    adminCategoryLayoutManagement, // <-- KODA NÛ / کۆدی نوێ
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+    // === END: GۆڕANkARI LI VIR / کۆتایی گۆڕانکاری ===
 } from './app-setup.js';
 
 import {
@@ -33,7 +28,7 @@ import {
     state, // *** Import state from app-setup ***
     t, debounce, formatDescription,
     handleLogin, handleLogout,
-    fetchCategories, fetchProductById, fetchProducts, fetchSubcategories, // *** fetchSubcategories imported ***
+    fetchCategories, fetchProductById, fetchProducts, fetchSubcategories, 
     fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, fetchSubSubcategories,
     addToCartCore, updateCartQuantityCore, removeFromCartCore, generateOrderMessageCore,
     toggleFavoriteCore, isFavorite, saveFavorites,
@@ -47,41 +42,37 @@ import {
     collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection
 } from './app-core.js';
 
-// === START: KODA GUHERTÎ / کۆدی گۆڕاو ===
-// Em 'renderPageContentUI' import dikin (ne 'renderHomePageContentUI')
-// ئێمە 'renderPageContentUI' هاوردە دەکەین (نەک 'renderHomePageContentUI')
+// === START: GۆڕANkARI LI VIR / گۆڕانکاری لێرە ===
+// Em fonksîyonên renderkirina dîzaynê ji 'home.js' import dikin
+// ئێمە فەنکشنەکانی ڕێندەرکردنی دیزاین لە 'home.js' هاوردە دەکەین
 import {
-    renderPageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
-} from './home.js'; // Import functions from home.js
-// === END: KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
+    renderPageContentUI, 
+    renderProductsGridUI, 
+    renderSubcategoriesUI, // <-- Em vê ji 'home.js' import dikin (ئێمە ئەمە لە 'home.js' هاوردە دەکەین)
+    renderMainCategoriesUI // <-- Em vê ji 'home.js' import dikin (ئێمە ئەمە لە 'home.js' هاوردە دەکەین)
+} from './home.js'; 
+// === END: GۆڕANkARI LI VIR / کۆتایی گۆڕانکاری ===
+
 
 // --- UI Helper Functions ---
 
-// *** DESTPÊK: Fonksiyon hate EXPORT kirin da ku admin.js bikaribe bibîne ***
 export function showNotification(message, type = 'success') {
-// *** DAWÎ: Fonksiyon hate EXPORT kirin ***
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     notification.textContent = message;
     document.body.appendChild(notification);
-    // Add transition for showing
     setTimeout(() => notification.classList.add('show'), 10);
-    // Remove after delay
     setTimeout(() => {
         notification.classList.remove('show');
-        // Remove from DOM after transition ends
         setTimeout(() => document.body.removeChild(notification), 300);
     }, 3000);
 }
 
-// *** START: Gۆڕanlکاری lێرە kra (Çareseriya ji bo Settings Page) ***
 function updateHeaderView(pageId, title = '') {
     const mainHeader = document.querySelector('.main-header-content');
     const subpageHeader = document.querySelector('.subpage-header-content');
     const headerTitle = document.getElementById('headerTitle');
-    // *** DESTPÊK: Lêgerrîna li (.subpage-search) hate zêdekirin ***
-    const subpageSearch = document.querySelector('.subpage-search'); // Bara lêgerînê bibîne
-    // *** DAWÎ: Lêgerrîna li (.subpage-search) hate zêdekirin ***
+    const subpageSearch = document.querySelector('.subpage-search'); 
 
     if (pageId === 'mainPage') {
         mainHeader.style.display = 'flex';
@@ -91,19 +82,15 @@ function updateHeaderView(pageId, title = '') {
         subpageHeader.style.display = 'flex';
         headerTitle.textContent = title;
 
-        // *** DESTPÊK: Guhertina ji bo veşartina lêgerînê li 'Settings' ***
-        // Ev mantiq piştrast dike ku bara lêgerînê TENÊ li ser rûpelên lawekî yên pêwîst xuya dike
         if (subpageSearch) {
             if (pageId === 'settingsPage') {
-                subpageSearch.style.display = 'none'; // Li 'Settings' veşêre
+                subpageSearch.style.display = 'none'; 
             } else {
-                subpageSearch.style.display = 'block'; // Li rûpelên din ên lawekî nîşan bide (mînak, hûrguliyên kategoriyê)
+                subpageSearch.style.display = 'block'; 
             }
         }
-        // *** DAWÎ: Guhertina ji bo veşartina lêgerînê li 'Settings' ***
     }
 }
-// *** END: Gۆڕanlکاری lێرە kra ***
 
 function showPage(pageId, pageTitle = '') {
     state.currentPageId = pageId; 
@@ -113,26 +100,21 @@ function showPage(pageId, pageTitle = '') {
         page.classList.toggle('page-hidden', !isActive);
     });
 
-    // Scroll to top for new pages, except main page which handles scroll separately
     if (pageId !== 'mainPage') {
-         requestAnimationFrame(() => { // Ensure layout is updated before scrolling
-             // Em êdî ne window, lê rûpela çalak skrol dikin
-             // ئێمە ئیتر window سکڕۆڵ ناکەین، بەڵکو پەڕە چالاکەکە سکڕۆڵ دەکەین
+         requestAnimationFrame(() => {
              const activePage = document.getElementById(pageId);
              if(activePage) activePage.scrollTo({ top: 0, behavior: 'instant' });
          });
     }
 
-    // Update header based on the page
      if (pageId === 'settingsPage') {
          updateHeaderView('settingsPage', t('settings_title'));
     } else if (pageId === 'subcategoryDetailPage') {
          updateHeaderView('subcategoryDetailPage', pageTitle);
-    } else { // Includes mainPage
+    } else { 
          updateHeaderView('mainPage');
     }
 
-    // Update active state in bottom navigation
     const activeBtnId = pageId === 'mainPage' ? 'homeBtn' : (pageId === 'settingsPage' ? 'settingsBtn' : null);
     if (activeBtnId) {
        updateActiveNav(activeBtnId);
@@ -140,40 +122,21 @@ function showPage(pageId, pageTitle = '') {
 }
 
 
-// === START: KODA NÛ JI BO VÎDYOYÊ ===
-// === دەستپێک: کۆدی نوێ بۆ ڤیدیۆ ===
-/**
- * Fonksiyonek alîkar ji bo rawestandina vîdyoyan dema ku popup tê girtin.
- * فەنکشنێکی یاریدەدەر بۆ ڕاگرتنی ڤیدیۆکان کاتێک پۆپئەپ دادەخرێت.
- */
 function stopAllVideos() {
-    // === GUHERTINA DAWÎ LI VIR E ===
-    // === دوا گۆڕانکاری لێرەدایە ===
-    // Em êdî rasterast 'iframe' nagirin, lê em pêça (wrapper) wê vala dikin
-    // ئێمە ئیتر ڕاستەوخۆ 'iframe'ـەکە ناگرین، بەڵکو کۆنتەینەرەکەی بەتاڵ دەکەینەوە
     const videoWrapper = document.getElementById('videoPlayerWrapper');
     if (videoWrapper) {
-        videoWrapper.innerHTML = ''; // Rakirina iframe vîdyoyê disekinîne
+        videoWrapper.innerHTML = ''; 
     }
-    // === DAWÎYA GUHERTINÊ ===
 }
 
-/**
- * Fonksiyonek alîkar ji bo derxistina IDya vîdyoya YouTube ji URLyên cihê.
- * فەنکشنێکی یاریدەدەر بۆ دەرهێنانی ئایدی ڤیدیۆی یوتیووب لە لینکە جیاوازەکان.
- * @param {string} url Linka vîdyoyê
- * @returns {string|null} IDya vîdyoyê
- */
 function parseYouTubeId(url) {
     if (!url) return null;
     let videoId = null;
     try {
-        // Lihevhatina bi URLya standard (youtube.com/watch?v=...)
         const urlObj = new URL(url);
         if (urlObj.hostname.includes('youtube.com')) {
             videoId = urlObj.searchParams.get('v');
         } 
-        // Lihevhatina bi URLya kurt (youtu.be/...)
         else if (urlObj.hostname.includes('youtu.be')) {
             videoId = urlObj.pathname.slice(1);
         }
@@ -183,8 +146,6 @@ function parseYouTubeId(url) {
     }
     return videoId;
 }
-// === END: KODA NÛ JI BO VÎDYOYÊ ===
-// === کۆتایی: کۆدی نوێ بۆ ڤیدیۆ ===
 
 
 function closeAllPopupsUI() {
@@ -192,29 +153,17 @@ function closeAllPopupsUI() {
     document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('show'));
     sheetOverlay.classList.remove('show');
     document.body.classList.remove('overlay-active');
-    
-    // === KODA NÛ: Vîdyoyan rawestîne ===
-    // === کۆدی نوێ: ڤیدیۆکان بوەستێنە ===
     stopAllVideos(); 
-    // === DAWÎYA KODA NÛ ===
 }
 
-// =================================================================
-// === ÇARESERÎ 1: `openPopup` HATE `export` KIRIN ===
-// =================================================================
 export function openPopup(id, type = 'sheet') {
-    // 1. Cihê skrolê yê rûpela heyî tomar bike (Skrôla lapele calakeke pashekeut bike)
     saveCurrentScrollPositionCore(); 
     const element = document.getElementById(id);
     if (!element) return;
 
-    closeAllPopupsUI(); // Close any currently open popups first
+    closeAllPopupsUI(); 
 
-    // 2. Rûpela çalak vegerîne jor (TENÊ JI BO 'categoriesSheet')
-    // 2. لاپەڕە چالاکەکە بگەڕێنەوە سەرەوە (تەنها بۆ 'categoriesSheet')
     const activePage = document.getElementById(state.currentPageId);
-    // Tenê eger 'categoriesSheet' hat vekirin, rûpelê skrol bike jor
-    // تەنها ئەگەر 'categoriesSheet' کرایەوە، لاپەڕەکە سکڕۆڵ بکە سەرەوە
     if (activePage && id === 'categoriesSheet') { 
         activePage.scrollTo({ top: 0, behavior: 'instant' });
     }
@@ -224,14 +173,10 @@ export function openPopup(id, type = 'sheet') {
 
     if (type === 'sheet') {
         const sheetContent = element.querySelector('.sheet-content');
-        if (sheetContent) {
-            sheetContent.scrollTop = 0;
-        }
-
+        if (sheetContent) sheetContent.scrollTop = 0;
         sheetOverlay.classList.add('show');
         element.classList.add('show');
         
-        // Trigger rendering content specifically for the opened sheet
         if (id === 'cartSheet') renderCartUI();
         if (id === 'favoritesSheet') renderFavoritesPageUI();
         if (id === 'categoriesSheet') renderCategoriesSheetUI();
@@ -242,26 +187,19 @@ export function openPopup(id, type = 'sheet') {
             document.getElementById('profileAddress').value = state.userProfile.address || '';
             document.getElementById('profilePhone').value = state.userProfile.phone || '';
         }
-    } else { // type === 'modal'
+    } else { 
         element.style.display = 'block';
     }
-    document.body.classList.add('overlay-active'); // Prevent body scroll
-
+    document.body.classList.add('overlay-active'); 
     history.pushState(newState, '', `#${id}`);
 }
 
 
-// =================================================================
-// === ÇARESERÎ 2: `closeCurrentPopup` HATE `export` KIRIN ===
-// =================================================================
 export function closeCurrentPopup() {
-    // If the current history state represents a popup, go back
     if (history.state && (history.state.type === 'sheet' || history.state.type === 'modal')) {
         history.back();
     } else {
-        // Otherwise, just close everything (fallback)
         closeAllPopupsUI();
-        // Clear the tracked popup state
         state.currentPopupState = null;
     }
 }
@@ -285,7 +223,10 @@ function updateCartCountUI() {
 
 // --- Rendering Functions (UI specific) ---
 
-export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
+// === START: GۆڕANkARI LI VIR / گۆڕانکاری لێرە ===
+// Em van fonksîyonan ji 'home.js' vediqetînin ji ber ku 'home.js' hewceyê wan e
+// ئێمە ئەم فەنکشنانە لە 'home.js' جیا دەکەینەوە چونکە 'home.js' پێویستی پێیانە
+export function renderSkeletonLoader(container, count = 8) {
     if (!container) {
         console.error("Skeleton loader container not found:", container);
         return;
@@ -311,11 +252,9 @@ export function createProductCardElementUI(product) {
     productCard.dataset.productId = product.id;
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
 
-    // Get name in current language or fallback
     const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || 'https://placehold.co/300x300/e2e8f0/2d3748?text=No+Image');
 
-    // Price and Discount Badge
     let priceHTML = `<div class="product-price-container"><div class="product-price">${product.price.toLocaleString()} د.ع.</div></div>`;
     let discountBadgeHTML = '';
     const hasDiscount = product.originalPrice && product.originalPrice > product.price;
@@ -325,7 +264,6 @@ export function createProductCardElementUI(product) {
         discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
     }
 
-    // Shipping Info Badge
     let extraInfoHTML = '';
     const shippingText = product.shippingInfo && product.shippingInfo[state.currentLanguage] && product.shippingInfo[state.currentLanguage].trim();
     if (shippingText) {
@@ -338,8 +276,7 @@ export function createProductCardElementUI(product) {
         `;
     }
 
-    // Favorite Button State
-    const isProdFavorite = isFavorite(product.id); // Use core function
+    const isProdFavorite = isFavorite(product.id);
     const heartIconClass = isProdFavorite ? 'fas' : 'far';
     const favoriteBtnClass = isProdFavorite ? 'favorite-btn favorited' : 'favorite-btn';
 
@@ -369,8 +306,7 @@ export function createProductCardElementUI(product) {
         </div>
     `;
 
-    // --- Attach Event Listeners Directly Here ---
-     productCard.querySelector('.share-btn-card').addEventListener('click', async (event) => {
+    productCard.querySelector('.share-btn-card').addEventListener('click', async (event) => {
          event.stopPropagation();
          const productUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
          const shareData = {
@@ -403,7 +339,7 @@ export function createProductCardElementUI(product) {
 
     productCard.querySelector('.add-to-cart-btn-card').addEventListener('click', (event) => {
         event.stopPropagation();
-        handleAddToCartUI(product.id, event.currentTarget); // Pass the button itself
+        handleAddToCartUI(product.id, event.currentTarget); 
     });
 
     if (isAdmin) {
@@ -421,9 +357,7 @@ export function createProductCardElementUI(product) {
         });
     }
 
-    // Click on the card itself (excluding buttons) shows details
     productCard.addEventListener('click', (event) => {
-         // Check if the click was on the card but not on any button inside it
         if (!event.target.closest('button')) {
             showProductDetailsUI(product);
         }
@@ -432,22 +366,131 @@ export function createProductCardElementUI(product) {
     return productCard;
 }
 
-export function setupScrollAnimations() { // Exported
+export function setupScrollAnimations() { 
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 entry.target.classList.add('visible');
-                observer.unobserve(entry.target); // Stop observing once visible
+                observer.unobserve(entry.target);
             }
         });
     }, {
-        threshold: 0.1 // Trigger when 10% is visible
+        threshold: 0.1
     });
 
     document.querySelectorAll('.product-card-reveal').forEach(card => {
         observer.observe(card);
     });
 }
+// === END: GۆڕANkARI LI VIR / کۆتایی گۆڕانکاری ===
+
+
+
+// === START: GۆڕANkARIYA MEZIN / گۆڕانکاریی گەورە ===
+// Ev fonksîyona sereke ye ku biryarê dide ka çi nîşan bide
+// ئەمە فەنکشنی سەرەکییە کە بڕیار دەدات چی پیشان بدات
+export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop = true) {
+    
+    // 1. Hemî konteyniran veşêre û loaderê nîşan bide
+    // 1. هەموو کۆنتەینەرەکان بشارەوە و لۆدەر پیشان بدە
+    mainPageLoader.style.display = 'block';
+    homePageLayoutContainer.style.display = 'none';
+    categoryPageLayoutContainer.style.display = 'none';
+    productGridPageContainer.style.display = 'none';
+    
+    // Ger lêgerînek nû be (an guhertina kategoriyê), her gav loader nîşan bide
+    // ئەگەر گەڕانێکی نوێ بوو (یان گۆڕینی پۆلێن)، هەمیشە لۆدەر پیشان بدە
+    if (isNewSearch) {
+        loader.style.display = 'none'; // 'loader' barkirina bêdawî veşêre ('loader'ـی سکڕۆڵی بێکۆتا بشارەوە)
+    }
+
+    // 2. Daneyan ji Core bipirse
+    // 2. داتا لە Core داوا بکە
+    const result = await fetchProducts(state.currentSearch, isNewSearch);
+    if (result === null && !isNewSearch) {
+         // Barkirin jixwe di pêşveçûnê de ye (بارکردن پێشتر دەستی پێکردووە)
+         mainPageLoader.style.display = 'none';
+         productGridPageContainer.style.display = 'grid'; // Tenê grida berheman nîşan bide (تەنها لیستی بەرهەمەکان پیشان بدە)
+         return; 
+    }
+
+    // 3. Li gorî 'viewMode' biryarê bide
+    // 3. بەپێی 'viewMode' بڕیار بدە
+    switch (result.viewMode) {
+        case 'HOME':
+            // Pêdivî ye ku em Dîzayna Malê (Home Layout) nîşan bidin
+            // پێویستە دیزاینی ماڵەوە پیشان بدەین
+            if (homePageLayoutContainer.dataset.cached !== 'true') {
+                // Heke cache nebe, wê çêbike (ئەگەر کاش نەبوو، دروستی بکە)
+                await renderPageContentUI(null, homePageLayoutContainer, 'home'); // `null` ji bo 'home' ( `null` بۆ 'home')
+            }
+            homePageLayoutContainer.style.display = 'block';
+            break;
+
+        case 'CATEGORY_LAYOUT':
+            // Pêdivî ye ku em Dîzayna Kategoriyê (Category Layout) nîşan bidin
+            // پێویستە دیزاینی پۆلێن پیشان بدەین
+            const layoutId = result.layoutId;
+            if (categoryPageLayoutContainer.dataset.cachedLayoutId !== layoutId) {
+                // Heke cache nebe an cacheya kevn be, wê çêbike
+                // ئەگەر کاش نەبوو یان کاشی کۆن بوو، دروستی بکە
+                await renderPageContentUI(result.layout, categoryPageLayoutContainer, layoutId);
+            }
+            categoryPageLayoutContainer.style.display = 'block';
+            break;
+
+        case 'PRODUCT_GRID':
+            // Pêdivî ye ku em Grida Berheman (Product Grid) nîşan bidin
+            // پێویستە لیستی بەرهەمەکان پیشان بدەین
+            productGridPageContainer.style.display = 'block';
+            
+            if (result.error) {
+                productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
+            } else {
+                 // Append bike eger ne lêgerînek nû be, replace bike eger be
+                 // زیاد بکە ئەگەر گەڕانێکی نوێ نەبوو، بیگۆڕە ئەگər بوو
+                 renderProductsGridUI(result.products, isNewSearch); // Bangî fonksîyona 'home.js' bike (بانگی فەنکشنی 'home.js' بکە)
+            }
+            
+            // Pêşekên jêr-kategoriyan nûve bike (مینیوی جۆرە لاوەکییەکان نوێ بکەوە)
+            const subcats = await fetchSubcategories(state.currentCategory);
+            await renderSubcategoriesUI(subcats); // Bangî fonksîyona 'home.js' bike (بانگی فەنکشنی 'home.js' بکە)
+            
+            loader.style.display = result.allLoaded ? 'none' : 'block'; // Trîgera skrolê nîşan bide/veşêre (تریگەری سکڕۆڵ پیشان بدە/بشارەوە)
+            break;
+    }
+
+    // 4. Loaderê giştî veşêre
+    // 4. لۆدەری گشتی بشارەوە
+    mainPageLoader.style.display = 'none';
+
+    // 5. Pêşeka kategoriyên sereke nûve bike (هەمیشە)
+    // 5. مینیوی پۆلێنە سەرەکییەکان نوێ بکەوە (هەمیشە)
+    renderMainCategoriesUI(); 
+
+    // 6. Skrol bike jor (eger pêwîst be)
+    // 6. سکڕۆڵ بکە سەرەوە (ئەگەر پێویست بوو)
+    if (isNewSearch && shouldScrollToTop) {
+        requestAnimationFrame(() => {
+             // Konteynira ku NIHA xuya ye bibîne û wê skrol bike
+             // ئەو کۆنتەینەرەی کە ئێستا دیارە بیدۆزەرەوە و سکڕۆڵی بکە
+             let activeContainer = null;
+             if (homePageLayoutContainer.style.display !== 'none') activeContainer = homePageLayoutContainer;
+             else if (categoryPageLayoutContainer.style.display !== 'none') activeContainer = categoryPageLayoutContainer;
+             else if (productGridPageContainer.style.display !== 'none') activeContainer = productGridPageContainer;
+             
+             if (activeContainer) {
+                 activeContainer.scrollTo({ top: 0, behavior: 'auto' });
+             } else {
+                // Wekî paşverû (وەک یەدەگ)
+                document.getElementById('mainPage').scrollTo({ top: 0, behavior: 'auto' });
+             }
+         });
+    }
+}
+// === END: GۆڕANkARIYA MEZIN / کۆتایی گۆڕانکاریی گەورە ===
+
+
 
 function renderCartUI() {
     cartItemsContainer.innerHTML = '';
@@ -461,7 +504,7 @@ function renderCartUI() {
     emptyCartMessage.style.display = 'none';
     cartTotal.style.display = 'block';
     cartActions.style.display = 'block';
-    renderCartActionButtonsUI(); // Render action buttons
+    renderCartActionButtonsUI(); 
 
     let total = 0;
     state.cart.forEach(item => {
@@ -494,7 +537,6 @@ function renderCartUI() {
 
     totalAmount.textContent = total.toLocaleString();
 
-    // Attach listeners for quantity changes and removal
     cartItemsContainer.querySelectorAll('.increase-btn').forEach(btn => btn.onclick = (e) => handleUpdateQuantityUI(e.currentTarget.dataset.id, 1));
     cartItemsContainer.querySelectorAll('.decrease-btn').forEach(btn => btn.onclick = (e) => handleUpdateQuantityUI(e.currentTarget.dataset.id, -1));
     cartItemsContainer.querySelectorAll('.cart-item-remove').forEach(btn => btn.onclick = (e) => handleRemoveFromCartUI(e.currentTarget.dataset.id));
@@ -502,9 +544,9 @@ function renderCartUI() {
 
 async function renderCartActionButtonsUI() {
     const container = document.getElementById('cartActions');
-    container.innerHTML = ''; // Clear previous buttons
+    container.innerHTML = ''; 
 
-    const methods = await fetchContactMethods(); // Get methods from core logic
+    const methods = await fetchContactMethods(); 
 
     if (!methods || methods.length === 0) {
         container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
@@ -513,14 +555,14 @@ async function renderCartActionButtonsUI() {
 
     methods.forEach(method => {
         const btn = document.createElement('button');
-        btn.className = 'whatsapp-btn'; // Use a generic class or adjust CSS
+        btn.className = 'whatsapp-btn'; 
         btn.style.backgroundColor = method.color;
 
         const name = method['name_' + state.currentLanguage] || method.name_ku_sorani;
         btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
 
         btn.onclick = () => {
-            const message = generateOrderMessageCore(); // Use core function
+            const message = generateOrderMessageCore(); 
             if (!message) return;
 
             let link = '';
@@ -529,10 +571,10 @@ async function renderCartActionButtonsUI() {
 
             switch (method.type) {
                 case 'whatsapp': link = `https://wa.me/${value}?text=${encodedMessage}`; break;
-                case 'viber': link = `viber://chat?number=%2B${value}&text=${encodedMessage}`; break; // Needs testing
+                case 'viber': link = `viber://chat?number=%2B${value}&text=${encodedMessage}`; break; 
                 case 'telegram': link = `https://t.me/${value}?text=${encodedMessage}`; break;
                 case 'phone': link = `tel:${value}`; break;
-                case 'url': link = value; break; // Assume full URL
+                case 'url': link = value; break;
             }
 
             if (link) {
@@ -555,26 +597,23 @@ async function renderFavoritesPageUI() {
 
     emptyFavoritesMessage.style.display = 'none';
     favoritesContainer.style.display = 'grid';
-    renderSkeletonLoader(favoritesContainer, 4); // Show skeleton while fetching
+    renderSkeletonLoader(favoritesContainer, 4); // Use function from this file
 
     try {
-        // Fetch details for all favorited products
         const fetchPromises = state.favorites.map(id => fetchProductById(id));
         const favoritedProducts = (await Promise.all(fetchPromises)).filter(p => p !== null);
 
-        favoritesContainer.innerHTML = ''; // Clear skeleton
+        favoritesContainer.innerHTML = ''; 
 
         if (favoritedProducts.length === 0) {
             emptyFavoritesMessage.style.display = 'block';
             favoritesContainer.style.display = 'none';
-             // Optionally sync local storage if products were deleted
             state.favorites = [];
-            saveFavorites(); // Use exported function from app-core
+            saveFavorites(); 
         } else {
-             // Sync favorites if some were deleted
             if(favoritedProducts.length !== state.favorites.length) {
                  state.favorites = favoritedProducts.map(p => p.id);
-                 saveFavorites(); // Use exported function from app-core
+                 saveFavorites();
             }
             favoritedProducts.forEach(product => {
                 const productCard = createProductCardElementUI(product); // Use function from this file
@@ -587,36 +626,27 @@ async function renderFavoritesPageUI() {
     }
 }
 
-// *** START: Gۆڕanlکاری lێرە kra (Logica pendingFilterNav) ***
 function renderCategoriesSheetUI() {
     sheetCategoriesContainer.innerHTML = '';
 
-    // 1. Bişkoja "Serekî" (Home) bi destî lê zêde bike
-    // 1. زیادکردنی دوگمەی "سەرەki" (Home) بە شێوەی دەستی
     const homeBtn = document.createElement('button');
     homeBtn.className = 'sheet-category-btn';
     homeBtn.dataset.category = 'all'; 
     homeBtn.innerHTML = `<i class="fas fa-home"></i> ${t('nav_home')}`;
-    
     if (state.currentCategory === 'all') {
         homeBtn.classList.add('active');
     }
-    
     homeBtn.onclick = async () => {
-         // 1. Fîlterê di stateyê de tomar bike (فلتەرەکە لە state پاشەکەوت بکە)
          state.pendingFilterNav = {
              category: 'all',
              subcategory: 'all',
              subSubcategory: 'all',
              search: ''
          };
-         // 2. Tenê popupê bigire (تەنها پۆپئەپەکە دابخە)
          closeCurrentPopup();
     };
     sheetCategoriesContainer.appendChild(homeBtn);
 
-    // 2. Hemî kategoriyên din ji stateyê lê zêde bike
-    // 2. زیادکردنی هەموو جۆرەکانی تر لە state
     state.categories.forEach(cat => {
         const btn = document.createElement('button');
         btn.className = 'sheet-category-btn';
@@ -629,29 +659,24 @@ function renderCategoriesSheetUI() {
         btn.innerHTML = `<i class="${categoryIcon}"></i> ${categoryName}`;
 
         btn.onclick = async () => {
-             // 1. Fîlterê di stateyê de tomar bike (فلتەرەکە لە state پاشەکەوت بکە)
              state.pendingFilterNav = {
                  category: cat.id,
                  subcategory: 'all',
                  subSubcategory: 'all',
                  search: ''
              };
-             // 2. Tenê popupê bigire (تەنها پۆپئەپەکە دابخە)
              closeCurrentPopup();
         };
 
         sheetCategoriesContainer.appendChild(btn);
     });
 }
-// *** END: Gۆڕanlکاری lێرە kra ***
 
-
- // Renders sub-subcategories on the **detail page** (kept here)
  async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
      const container = document.getElementById('subSubCategoryContainerOnDetailPage');
-     container.innerHTML = ''; // Clear previous
+     container.innerHTML = ''; 
 
-     const subSubcategoriesData = await fetchSubSubcategories(mainCatId, subCatId); // Use function from app-core
+     const subSubcategoriesData = await fetchSubSubcategories(mainCatId, subCatId); 
 
      if (!subSubcategoriesData || subSubcategoriesData.length === 0) {
            container.style.display = 'none';
@@ -660,9 +685,8 @@ function renderCategoriesSheetUI() {
 
      container.style.display = 'flex';
 
-     // Add "All" button
      const allBtn = document.createElement('button');
-     allBtn.className = `subcategory-btn active`; // Default to active
+     allBtn.className = `subcategory-btn active`; 
      allBtn.dataset.id = 'all';
      const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
      allBtn.innerHTML = `<div class="subcategory-image">${allIconSvg}</div><span>${t('all_categories_label')}</span>`;
@@ -670,11 +694,10 @@ function renderCategoriesSheetUI() {
          container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
          allBtn.classList.add('active');
          const currentSearch = document.getElementById('subpageSearchInput').value;
-         renderProductsOnDetailPageUI(subCatId, 'all', currentSearch); // Fetch products for the parent subcategory
+         renderProductsOnDetailPageUI(subCatId, 'all', currentSearch);
      };
      container.appendChild(allBtn);
 
-     // Add buttons for each sub-subcategory
      subSubcategoriesData.forEach(subSubcat => {
           const btn = document.createElement('button');
           btn.className = `subcategory-btn`;
@@ -688,22 +711,20 @@ function renderCategoriesSheetUI() {
                container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
                btn.classList.add('active');
                const currentSearch = document.getElementById('subpageSearchInput').value;
-               renderProductsOnDetailPageUI(subCatId, subSubcat.id, currentSearch); // Fetch products for this specific sub-subcategory
+               renderProductsOnDetailPageUI(subCatId, subSubcat.id, currentSearch);
           };
           container.appendChild(btn);
      });
 }
 
- // Renders products on the **detail page** based on fetched data (kept here)
  async function renderProductsOnDetailPageUI(subCatId, subSubCatId = 'all', searchTerm = '') {
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const loader = document.getElementById('detailPageLoader');
     loader.style.display = 'block';
     productsContainer.innerHTML = '';
-    renderSkeletonLoader(productsContainer, 4); // Show skeleton while fetching
+    renderSkeletonLoader(productsContainer, 4); // Use function from this file
 
      try {
-         // Construct query parameters similar to fetchProducts logic
          let conditions = [];
          let orderByClauses = [];
 
@@ -719,16 +740,14 @@ function renderCategoriesSheetUI() {
              conditions.push(where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
              orderByClauses.push(orderBy("searchableName", "asc"));
          }
-         orderByClauses.push(orderBy("createdAt", "desc")); // Always sort by creation date
+         orderByClauses.push(orderBy("createdAt", "desc")); 
 
-         let detailQuery = query(productsCollection, ...conditions, ...orderByClauses); // Use imported productsCollection
-         // No pagination needed for detail page usually, load all matching
-         // detailQuery = query(detailQuery, limit(SOME_LIMIT)); // Optional: Add limit if needed
-
+         let detailQuery = query(productsCollection, ...conditions, ...orderByClauses); 
+         
          const productSnapshot = await getDocs(detailQuery);
          const products = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-         productsContainer.innerHTML = ''; // Clear skeleton/previous content
+         productsContainer.innerHTML = ''; 
 
          if (products.length === 0) {
              productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
@@ -747,11 +766,9 @@ function renderCategoriesSheetUI() {
 }
 
 
-// Displays the subcategory detail page (kept here)
-export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHistory = false) { // Exported
-    let subCatName = 'Details'; // Default title
+export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHistory = false) { 
+    let subCatName = 'Details'; 
     try {
-        // Fetch subcategory name for the title
         const subCatRef = doc(db, "categories", mainCatId, "subcategories", subCatId);
         const subCatSnap = await getDoc(subCatRef);
         if (subCatSnap.exists()) {
@@ -760,88 +777,61 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
         }
     } catch (e) { console.error("Could not fetch subcategory name:", e); }
 
-    // Push state only if navigating forward
     if (!fromHistory) {
          history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
     }
-    showPage('subcategoryDetailPage', subCatName); // Show the page and set title
+    showPage('subcategoryDetailPage', subCatName); 
 
     const loader = document.getElementById('detailPageLoader');
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const subSubContainer = document.getElementById('subSubCategoryContainerOnDetailPage');
 
-    // Reset UI elements
     loader.style.display = 'block';
     productsContainer.innerHTML = '';
     subSubContainer.innerHTML = '';
     document.getElementById('subpageSearchInput').value = '';
     document.getElementById('subpageClearSearchBtn').style.display = 'none';
 
-    // Render content
-    await renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId); // Render sub-sub buttons first
-    await renderProductsOnDetailPageUI(subCatId, 'all', ''); // Then load initial products (all for this subcat)
+    await renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId); 
+    await renderProductsOnDetailPageUI(subCatId, 'all', ''); 
 
-    loader.style.display = 'none'; // Hide loader after content is loaded
+    loader.style.display = 'none'; 
 }
 
 async function showProductDetailsUI(productData) {
-    const product = productData || await fetchProductById(state.currentProductId); // Fetch if needed
+    const product = productData || await fetchProductById(state.currentProductId);
     if (!product) { showNotification(t('product_not_found_error'), 'error'); return; }
 
-    state.currentProductId = product.id; // Keep track of the currently viewed product
+    state.currentProductId = product.id; 
 
      const sheetContent = document.querySelector('#productDetailSheet .sheet-content');
-    if (sheetContent) sheetContent.scrollTop = 0; // Scroll to top
+    if (sheetContent) sheetContent.scrollTop = 0; 
 
     const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
     const descriptionText = (product.description && product.description[state.currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
     const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
 
-    // === START: KODA NÛ JI BO SLAYDERA VÎDYOYÊ (GUHERTINA DAWÎ) ===
-    // === دەستپێک: کۆدی نوێ بۆ سلایدەری ڤیدیۆ (دوا گۆڕانکاری) ===
-
     const imageContainer = document.getElementById('sheetImageContainer');
     const thumbnailContainer = document.getElementById('sheetThumbnailContainer');
-    imageContainer.innerHTML = ''; // Paqij bike
-    thumbnailContainer.innerHTML = ''; // Paqij bike
+    imageContainer.innerHTML = ''; 
+    thumbnailContainer.innerHTML = ''; 
 
-    let sliderElements = []; // Dê <img> û pêça (wrapper) <iframe> bigire
-    let thumbnailElements = []; // Dê <img> yên thumbnail bigire
+    let sliderElements = []; 
+    let thumbnailElements = []; 
     
-    // === GUHERTINA 1: Em ê pêçek (wrapper) ji bo vîdyoyê çêkin ===
-    // === گۆڕانکاری ١: ئێمە کۆنتەینەرێک بۆ ڤیدیۆکە دروست دەکەین ===
-    // Ev pêç (wrapper) dê her gav di DOMê de be, lê vala ye
-    // ئەم کۆنتەینەرە هەمیشە لەناو DOMـدا دەبێت، بەڵام بەتاڵە
     const videoWrapper = document.createElement('div');
-    videoWrapper.id = 'videoPlayerWrapper'; // IDyek taybet
-    videoWrapper.className = 'slider-element'; // Klasa giştî
-    // Stîlên CSS yên pêwîst bi JS sepandin
-    videoWrapper.style.position = 'relative';
-    videoWrapper.style.width = '100%';
-    videoWrapper.style.backgroundColor = '#000';
-    videoWrapper.style.display = 'none'; // Destpêkê veşartî be
-    videoWrapper.style.justifyContent = 'center';
-    videoWrapper.style.alignItems = 'center';
-    videoWrapper.style.overflow = 'hidden';
-    videoWrapper.style.flexShrink = '0';
-    videoWrapper.style.maxHeight = '350px';
+    videoWrapper.id = 'videoPlayerWrapper'; 
+    videoWrapper.className = 'slider-element';
+    videoWrapper.style.cssText = 'position: relative; width: 100%; background-color: #000; display: none; justify-content: center; align-items: center; overflow: hidden; flex-shrink: 0; max-height: 350px;';
 
-    // 1. Hemî wêneyan zêde bike
     if (imageUrls.length > 0) {
         imageUrls.forEach((url, index) => {
             const img = document.createElement('img');
             img.src = url; 
             img.alt = nameInCurrentLang; 
-            img.classList.add('slider-element'); // Klasa giştî
+            img.classList.add('slider-element');
             if (index === 0) img.classList.add('active');
-            
-            // Stîlên CSS yên heyî bi JS sepandin
-            img.style.width = '100%';
-            img.style.flexShrink = '0';
-            img.style.display = (index === 0) ? 'block' : 'none'; // Kontrola dîtinê
-            img.style.objectFit = 'contain';
-            img.style.maxHeight = '350px';
-            img.style.transition = 'opacity 0.3s ease-in-out';
+            img.style.cssText = `width: 100%; flex-shrink: 0; display: ${index === 0 ? 'block' : 'none'}; object-fit: contain; max-height: 350px; transition: opacity 0.3s ease-in-out;`;
             
             imageContainer.appendChild(img);
             sliderElements.push(img); 
@@ -858,25 +848,20 @@ async function showProductDetailsUI(productData) {
         });
     }
 
-    // 2. Vîdyoyê zêde bike (eger hebe)
-    const videoId = parseYouTubeId(product.externalLink); // Fonksiyona alîkar bikar bîne
+    const videoId = parseYouTubeId(product.externalLink); 
 
     if (videoId) {
-        const videoIndex = sliderElements.length; // Ev dibe îndeksa paşîn
+        const videoIndex = sliderElements.length; 
         
-        // Em pêça (wrapper) ku me li jor çêkiribû, lê zêde dikin
-        // ئێمە ئەو کۆنتەینەرەی لە سەرەوە دروستمان کردبوو، لێرە زیادی دەکەین
         imageContainer.appendChild(videoWrapper);
-        sliderElements.push(videoWrapper); // Têxe nav rêzê
+        sliderElements.push(videoWrapper); 
 
-        // Thumbnailek ji bo vîdyoyê çêke
         const thumb = document.createElement('img');
-        thumb.src = `https://img.youtube.com/vi/${videoId}/0.jpg`; // Thumbnaila YouTube
+        thumb.src = `https://img.youtube.com/vi/${videoId}/0.jpg`; 
         thumb.alt = `Video Thumbnail`; 
         thumb.className = 'thumbnail';
         thumb.dataset.index = videoIndex;
 
-        // Pêçek (wrapper) ji bo îkona play
         const thumbWrapper = document.createElement('div'); 
         thumbWrapper.style = "position: relative; display: inline-block; cursor: pointer;";
         
@@ -889,82 +874,55 @@ async function showProductDetailsUI(productData) {
         thumbnailContainer.appendChild(thumbWrapper);
         thumbnailElements.push(thumbWrapper);
     }
-    // === DAWÎYA GUHERTINA 2 ===
 
     let currentIndex = 0;
     const prevBtn = document.getElementById('sheetPrevBtn');
     const nextBtn = document.getElementById('sheetNextBtn');
 
-    // === GUHERTINA 3: Logika `updateSlider` hate nûve kirin ===
-    // === گۆڕانکاری ٣: لۆجیکی `updateSlider` نوێکرایەوە ===
     function updateSlider(index) {
         if (!sliderElements[index]) return;
 
-        // Vîdyoya KEVN rawestîne (eger hebe)
-        // ڤیدیۆ کۆنەکە بوەستێنە (ئەگەر هەبێت)
         const oldElement = sliderElements[currentIndex];
         if (oldElement.id === 'videoPlayerWrapper') {
-            oldElement.innerHTML = ''; // iframe rake (iframeـەکە لادەبات)
+            oldElement.innerHTML = ''; 
         }
 
-        // Hemî elementan veşêre
         sliderElements.forEach(el => {
             el.style.display = 'none';
             el.classList.remove('active');
         });
-        // Hemî thumbnailan neçalak bike
         thumbnailElements.forEach(thumbEl => {
             const img = thumbEl.querySelector('.thumbnail') || thumbEl;
             img.classList.remove('active');
         });
 
-        // Elementa nû nîşan bide
         const activeElement = sliderElements[index];
         if (activeElement.id === 'videoPlayerWrapper') { 
-            // Ev vîdyo ye, loma em iframe çêdikin
-            // ئەمە ڤیدیۆیە، بۆیە iframeـەکە دروست دەکەین
             activeElement.style.display = 'flex';
-            
-            // === VÊ GAVÊ BIKARANÎNA DAWÎ ===
-            // === دوا بەکارهێنان لێرەدایە ===
-            // Em `autoplay=1` û `mute=1` zêde dikin
-            // ئێمە `autoplay=1` و `mute=1` زیاد دەکەین
             const videoSrc = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&autoplay=1&mute=1&controls=1`;
-            
             activeElement.innerHTML = `
-                <iframe 
-                    src="${videoSrc}" 
-                    title="YouTube video player" 
-                    frameborder="0" 
+                <iframe src="${videoSrc}" title="YouTube video player" frameborder="0" 
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    allowfullscreen 
-                    style="width: 100%; aspect-ratio: 16 / 9;"
-                ></iframe>`;
+                    allowfullscreen style="width: 100%; aspect-ratio: 16 / 9;">
+                </iframe>`;
         } else { 
-            // Ev wêne ye
-            // ئەمە وێنەیە
             activeElement.style.display = 'block';
         }
         activeElement.classList.add('active');
 
-        // Thumbnaila nû çalak bike
         const activeThumb = thumbnailElements[index].querySelector('.thumbnail') || thumbnailElements[index];
         activeThumb.classList.add('active');
         
-        currentIndex = index; // Li dawiyê indexê nû bike
+        currentIndex = index;
     }
-    // === DAWÎYA GUHERTINA 3 ===
 
-    // Bişkokên slayderê nîşan bide/veşêre
     const showSliderBtns = sliderElements.length > 1;
     prevBtn.style.display = showSliderBtns ? 'flex' : 'none';
     nextBtn.style.display = showSliderBtns ? 'flex' : 'none';
 
-    // Guhdarên (listeners) kevn rake
     prevBtn.onclick = null;
     nextBtn.onclick = null;
     
-    // Guhdarên nû zêde bike
     if(showSliderBtns) {
         prevBtn.onclick = () => updateSlider((currentIndex - 1 + sliderElements.length) % sliderElements.length);
         nextBtn.onclick = () => updateSlider((currentIndex + 1) % sliderElements.length);
@@ -973,13 +931,8 @@ async function showProductDetailsUI(productData) {
         el.onclick = () => updateSlider(index);
     });
 
-    // === DAWÎYA KODA SLAYDERA VÎDYOYÊ ===
-    // === کۆتایی کۆدی سلایدەری ڤیدیۆ ===
-
-
-    // Zanyariyên kaڵا nû bike (Ev koda te ya heyî ye)
     document.getElementById('sheetProductName').textContent = nameInCurrentLang;
-    document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText); // Formatter bikar bîne
+    document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText); 
 
     const priceContainer = document.getElementById('sheetProductPrice');
     if (product.originalPrice && product.originalPrice > product.price) {
@@ -988,29 +941,13 @@ async function showProductDetailsUI(productData) {
         priceContainer.innerHTML = `<span>${product.price.toLocaleString()} د.ع</span>`;
     }
 
-    // === RAKIRINA BIŞKOKA LINKÊ DEREKÎ ===
-    // === سڕینەوەی دوگمەی لینکی دەرەki ===
-    // Em êdî hewceyê vê bişkokê nînin ji ber ku vîdyo di slayderê de ye
-    // ئێمە ئیتر پێویستمان بەم دوگمەیە نییە چونکە ڤیدیۆکە لەناو سلایدەرەکەیە
-    const oldLinkContainer = document.getElementById('sheetExternalLinkContainer');
-    if (oldLinkContainer) {
-        oldLinkContainer.remove();
-    }
-    // === DAWÎYA RAKIRINÊ ===
-    // === کۆتایی سڕینەوە ===
-
-
-    // Bişkoka Zêdekirina bo Sebetê (Ev koda te ya heyî ye)
     const addToCartButton = document.getElementById('sheetAddToCartBtn');
     addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
     addToCartButton.onclick = () => {
-        handleAddToCartUI(product.id, addToCartButton); // UI handler bikar bîne
+        handleAddToCartUI(product.id, addToCartButton); 
     };
 
-    // Beşa Kaڵayên Pêwendîdar nîşan bide
     renderRelatedProductsUI(product);
-
-    // Sheetê veke û dîrokê nû bike
     openPopup('productDetailSheet');
 }
 
@@ -1018,22 +955,22 @@ async function renderRelatedProductsUI(currentProduct) {
     const section = document.getElementById('relatedProductsSection');
     const container = document.getElementById('relatedProductsContainer');
     container.innerHTML = '';
-    section.style.display = 'none'; // Destpêkê veşêre
+    section.style.display = 'none'; 
 
-    const relatedProducts = await fetchRelatedProducts(currentProduct); // Daneyan bîne
+    const relatedProducts = await fetchRelatedProducts(currentProduct); 
 
     if (relatedProducts && relatedProducts.length > 0) {
         relatedProducts.forEach(product => {
-            const card = createProductCardElementUI(product); // Elementa UI çêke
+            const card = createProductCardElementUI(product); 
             container.appendChild(card);
         });
-        section.style.display = 'block'; // Beşê nîşan bide eger kaڵا hebin
+        section.style.display = 'block'; 
     }
 }
 
 async function renderPoliciesUI() {
     termsContentContainer.innerHTML = `<p>${t('loading_policies')}</p>`;
-    const policies = await fetchPolicies(); // Ji core bîne
+    const policies = await fetchPolicies(); 
     if (policies) {
         const content = policies[state.currentLanguage] || policies.ku_sorani || '';
         termsContentContainer.innerHTML = content ? content.replace(/\n/g, '<br>') : `<p>${t('no_policies_found')}</p>`;
@@ -1043,7 +980,7 @@ async function renderPoliciesUI() {
 }
 
 async function renderUserNotificationsUI() {
-    const announcements = await fetchAnnouncements(); // Ji core bîne
+    const announcements = await fetchAnnouncements(); 
     notificationsListContainer.innerHTML = '';
 
     if (!announcements || announcements.length === 0) {
@@ -1074,24 +1011,20 @@ async function renderUserNotificationsUI() {
         notificationsListContainer.appendChild(item);
     });
 
-    updateLastSeenAnnouncementTimestamp(latestTimestamp); // Timestamp di core/localStorage de nû bike
-    notificationBadge.style.display = 'none'; // Piştî dîtinê badge veşêre
+    updateLastSeenAnnouncementTimestamp(latestTimestamp); 
+    notificationBadge.style.display = 'none'; 
 }
 
 function updateAdminUIAuth(isAdmin) {
     document.querySelectorAll('.product-actions').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
 
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Em beşa nû li vir zêde dikin
-    // ئێمە بەشە نوێیەکە لێرە زیاد دەکەین
     const adminSections = [
          'adminPoliciesManagement', 'adminSocialMediaManagement', 'adminAnnouncementManagement',
          'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
          'adminContactMethodsManagement', 'adminShortcutRowsManagement',
          'adminHomeLayoutManagement',
-         'adminCategoryLayoutManagement' // <-- KODA NÛ / کۆدی نوێ
+         'adminCategoryLayoutManagement' 
     ];
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     
     adminSections.forEach(id => {
         const section = document.getElementById(id);
@@ -1102,7 +1035,6 @@ function updateAdminUIAuth(isAdmin) {
     settingsAdminLoginBtn.style.display = isAdmin ? 'none' : 'flex';
     addProductBtn.style.display = isAdmin ? 'flex' : 'none';
 
-    // Kaڵayên di favorites an detail de ji nû ve nîşan bide da ku bişkokên admin nîşan bide/veşêre
     const favoritesSheet = document.getElementById('favoritesSheet');
     if (favoritesSheet?.classList.contains('show')) {
         renderFavoritesPageUI();
@@ -1110,7 +1042,7 @@ function updateAdminUIAuth(isAdmin) {
     const detailSheet = document.getElementById('productDetailSheet');
     if (detailSheet?.classList.contains('show') && state.currentProductId) {
         fetchProductById(state.currentProductId).then(product => {
-            if (product) showProductDetailsUI(product); // Detail sheet ji nû ve nîşan bide
+            if (product) showProductDetailsUI(product); 
         });
     }
 }
@@ -1119,19 +1051,18 @@ function updateAdminUIAuth(isAdmin) {
 // --- UI Event Handlers ---
 
 async function handleAddToCartUI(productId, buttonElement) {
-    const result = await addToCartCore(productId); // Logika core bang bike
+    const result = await addToCartCore(productId); 
     showNotification(result.message, result.success ? 'success' : 'error');
     if (result.success) {
-        updateCartCountUI(); // Hejmara UI nû bike
-        // Animasyona bişkokê eger hatibe dayîn
+        updateCartCountUI(); 
         if (buttonElement && !buttonElement.disabled) {
             const originalContent = buttonElement.innerHTML;
             buttonElement.disabled = true;
-            buttonElement.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`; // Rewşa barkirinê
+            buttonElement.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`; 
             setTimeout(() => {
-                buttonElement.innerHTML = `<i class="fas fa-check"></i> <span>${t('added_to_cart')}</span>`; // Rewşa zêdekirî
+                buttonElement.innerHTML = `<i class="fas fa-check"></i> <span>${t('added_to_cart')}</span>`; 
                 setTimeout(() => {
-                    buttonElement.innerHTML = originalContent; // Vegerandina rewşê
+                    buttonElement.innerHTML = originalContent; 
                     buttonElement.disabled = false;
                 }, 1500);
             }, 500);
@@ -1140,24 +1071,23 @@ async function handleAddToCartUI(productId, buttonElement) {
 }
 
 function handleUpdateQuantityUI(productId, change) {
-    if (updateCartQuantityCore(productId, change)) { // Logika core bang bike
-        renderCartUI(); // UIya sebetê ji nû ve nîşan bide
-        updateCartCountUI(); // Hejmara giştî nû bike
+    if (updateCartQuantityCore(productId, change)) { 
+        renderCartUI(); 
+        updateCartCountUI(); 
     }
 }
 
 function handleRemoveFromCartUI(productId) {
-    if (removeFromCartCore(productId)) { // Logika core bang bike
-        renderCartUI(); // UIya sebetê ji nû ve nîşan bide
-        updateCartCountUI(); // Hejmara giştî nû bike
+    if (removeFromCartCore(productId)) { 
+        renderCartUI(); 
+        updateCartCountUI(); 
     }
 }
 
 function handleToggleFavoriteUI(productId) {
-    const result = toggleFavoriteCore(productId); // Logika core bang bike
+    const result = toggleFavoriteCore(productId); 
     showNotification(result.message, result.favorited ? 'success' : 'error');
 
-    // Hemî îkonên dilê yên pêwendîdar li ser rûpelê nû bike
     document.querySelectorAll(`[data-product-id="${productId}"] .favorite-btn`).forEach(btn => {
         btn.classList.toggle('favorited', result.favorited);
         const icon = btn.querySelector('.fa-heart');
@@ -1167,7 +1097,6 @@ function handleToggleFavoriteUI(productId) {
         }
     });
 
-    // Eger sheeta favorites vekirî be, wê ji nû ve nîşan bide
     if (document.getElementById('favoritesSheet')?.classList.contains('show')) {
         renderFavoritesPageUI();
     }
@@ -1182,9 +1111,8 @@ function setupUIEventListeners() {
             history.pushState({ type: 'page', id: 'mainPage' }, '', window.location.pathname.split('?')[0]);
             showPage('mainPage');
         }
-        // Fîlteran sifir bike û refresh bike
         await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-        await updateProductViewUI(true, true); // Piştrast bike ku home ji nû ve tê nîşandan
+        await updateProductViewUI(true, true); // (imported from this file)
     };
 
     settingsBtn.onclick = () => {
@@ -1202,26 +1130,23 @@ function setupUIEventListeners() {
     notificationBtn.addEventListener('click', () => { openPopup('notificationsSheet'); });
     termsAndPoliciesBtn?.addEventListener('click', () => { openPopup('termsSheet'); });
 
-    // Girtina Popupan
     sheetOverlay.onclick = closeCurrentPopup;
     document.querySelectorAll('.close').forEach(btn => btn.onclick = closeCurrentPopup);
     window.onclick = (e) => { if (e.target.classList.contains('modal')) closeCurrentPopup(); };
 
-    // Forma Login
     loginForm.onsubmit = async (e) => {
         e.preventDefault();
         try {
             await handleLogin(document.getElementById('email').value, document.getElementById('password').value);
-            closeCurrentPopup(); // Modalê bigire
+            closeCurrentPopup(); 
         } catch (error) {
             showNotification(error.message, 'error');
         }
     };
 
-    // Lêgerîna Sereke (li ser rûpela malê)
     const debouncedSearch = debounce(async (term) => {
         await navigateToFilterCore({ search: term }); 
-        await updateProductViewUI(true, true); 
+        await updateProductViewUI(true, true); // (imported from this file)
     }, 500);
     searchInput.oninput = () => {
         const searchTerm = searchInput.value;
@@ -1234,7 +1159,6 @@ function setupUIEventListeners() {
         debouncedSearch(''); 
     };
 
-     // Lêgerîna Rûpela Lawekî (ji bo rûpela detail)
     const subpageSearchInput = document.getElementById('subpageSearchInput');
     const subpageClearSearchBtn = document.getElementById('subpageClearSearchBtn');
     const debouncedSubpageSearch = debounce(async (term) => {
@@ -1244,7 +1168,7 @@ function setupUIEventListeners() {
             const subCatId = ids[2];
             const activeSubSubBtn = document.querySelector('#subSubCategoryContainerOnDetailPage .subcategory-btn.active');
             const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.id || 'all') : 'all';
-            await renderProductsOnDetailPageUI(subCatId, subSubCatId, term); // Kaڵayên li ser rûpela detail ji nû ve nîşan bide
+            await renderProductsOnDetailPageUI(subCatId, subSubCatId, term); 
         }
     }, 500);
     subpageSearchInput.oninput = () => {
@@ -1258,8 +1182,6 @@ function setupUIEventListeners() {
         debouncedSubpageSearch('');
     };
 
-
-    // Forma Profaylê
     profileForm.onsubmit = (e) => {
         e.preventDefault();
         const profileData = {
@@ -1267,19 +1189,17 @@ function setupUIEventListeners() {
             address: document.getElementById('profileAddress').value,
             phone: document.getElementById('profilePhone').value,
         };
-        const message = saveProfileCore(profileData); // Logika core bang bike
+        const message = saveProfileCore(profileData); 
         showNotification(message, 'success');
         closeCurrentPopup();
     };
 
-    // Bişkokên Ziman
     document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.onclick = () => {
             handleSetLanguage(btn.dataset.lang);
         };
     });
 
-    // Vêkirina/Girtina Peywendiyê
     contactToggle.onclick = () => {
         const container = document.getElementById('dynamicContactLinksContainer');
         const chevron = contactToggle.querySelector('.contact-chevron');
@@ -1287,19 +1207,16 @@ function setupUIEventListeners() {
         chevron.classList.toggle('open');
     };
 
-    // Biškoka Install
     const installBtn = document.getElementById('installAppBtn');
     if (installBtn) {
         installBtn.addEventListener('click', () => handleInstallPrompt(installBtn));
     }
 
-    // Biškoka Çalakirina Agahdariyan
     document.getElementById('enableNotificationsBtn')?.addEventListener('click', async () => {
         const result = await requestNotificationPermissionCore();
         showNotification(result.message, result.granted ? 'success' : 'error');
     });
 
-    // Biškoka Nûkirina Bi Zorê
     document.getElementById('forceUpdateBtn')?.addEventListener('click', async () => {
         const result = await forceUpdateCore();
         if (result.success) {
@@ -1310,33 +1227,32 @@ function setupUIEventListeners() {
         }
     });
 
-    // --- Skrola Bêdawî ---
+    // --- Skrola Bêdawî (NOVA LOGIC / لۆجیکی نوێ) ---
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
     if (scrollTrigger) {
         const observer = new IntersectionObserver(async (entries) => {
             const isMainPageActive = document.getElementById('mainPage')?.classList.contains('page-active');
-            // === KODA GUHERTÎ / کۆدی گۆڕاو ===
-            // Em êdî tenê `homePageSectionsContainer` kontrol nakin
-            // Em kontrol dikin ka `productsContainer` tê nîşandan
-            // ئێمە ئیتر تەنها `homePageSectionsContainer` پشکنین ناکەین
-            // پشکنین دەکەین بزانین `productsContainer` پیشان دەدرێت
-            const isProductGridVisible = document.getElementById('productsContainer')?.style.display === 'grid';
-            // === KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
+            // *** KONTROLA NÛ: Tenê gava grida berheman xuya ye barke ***
+            // *** پشکنینی نوێ: تەنها کاتێک لیستی بەرهەمەکان دیارە بار بکە ***
+            const isProductGridVisible = productGridPageContainer.style.display !== 'none';
 
             if (entries[0].isIntersecting && isMainPageActive && isProductGridVisible && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
                  loader.style.display = 'block'; 
                  const result = await fetchProducts(state.currentSearch, false); 
                  loader.style.display = 'none'; 
                  if(result && result.products.length > 0) {
-                     await updateProductViewUI(false); 
+                     // Em êdî updateProductViewUI bang nakin, tenê berheman zêde dikin
+                     // ئیتر بانگی updateProductViewUI ناکەین، تەنها بەرهەمەکان زیاد دەکەین
+                     renderProductsGridUI(result.products, false); // false = append
                  }
                  scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
             }
         }, { threshold: 0.1 });
         observer.observe(scrollTrigger);
     }
+    // --- DAWÎYA Skrola Bêdawî / کۆتایی سکڕۆڵی بێکۆتا ---
 
-    // --- Guhdarên Bûyerên Taybet (ji app-core) ---
+
     document.addEventListener('authChange', (e) => {
         updateAdminUIAuth(e.detail.isAdmin);
         if(e.detail.isAdmin && loginModal.style.display === 'block') {
@@ -1366,30 +1282,113 @@ function setupUIEventListeners() {
         };
     });
 
+    // === START: GۆڕANkARI LI VIR / گۆڕانکاری لێرە ===
+    // Guhdarê ji bo paqijkirina cacheyê (گوێگر بۆ پاککردنەوەی کاش)
     document.addEventListener('clearCacheTriggerRender', async () => {
-        console.log("UI received clearCacheTriggerRender event.");
-        if(state.currentCategory === 'all' && !state.currentSearch) {
-             await updateProductViewUI(true, true); 
-        }
+        console.log("UI received clearCacheTriggerRender event. Forcing re-render.");
+        // Em tenê updateProductViewUI bang dikin; ew ê bibîne ku cache paqij e
+        // ئێمە تەنها بانگی updateProductViewUI دەکەین؛ ئەو دەبینێت کە کاش پاکە
+        await updateProductViewUI(true, true); 
     });
+    // === END: GۆڕANkARI LI VIR / کۆتایی گۆڕانکاری ===
 
     setupGpsButtonUI();
+
+    // === START: GۆڕANkARI LI VIR (POPSTATE) / گۆڕانکاری لێرە (POPSTATE) ===
+    window.addEventListener('popstate', async (event) => {
+        const wasPopupOpen = state.currentPopupState !== null; 
+        const previousPageId = state.currentPageId; 
+    
+        state.currentPopupState = null; 
+        closeAllPopupsUI(); 
+    
+        const popState = event.state;
+        
+        if (!popState) {
+            // Rewşa destpêkê (default) - vegere malê
+            // دۆخی سەرەتایی - بگەڕێوە ماڵەوە
+            const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
+            showPage('mainPage'); 
+            applyFilterStateCore(defaultState);
+            await updateProductViewUI(true, true); // (true, true) = nû, skrol bike jor
+            return;
+        }
+
+        if (popState.type === 'page') {
+            // Vegerîna li rûpelek (mînak, Settings)
+            // گەڕانەوە بۆ پەڕەیەک (بۆ نموونە، ڕێکخستنەکان)
+            showPage(popState.id, popState.title); 
+            if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
+                await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
+            }
+        } else if (popState.type === 'sheet' || popState.type === 'modal') {
+            // Dema ku 'paş' tê pêl kirin, em tenê popupê digirin (li jor hate kirin)
+            // lê heke 'pêş' were pêl kirin, em wê dîsa vedikin
+            // کاتێک "گەڕانەوە" لێدەدرێت، ئێمە تەنها پۆپئەپەکە دادەخەین (لە سەرەوە کرا)
+            // بەڵام ئەگەر "پێشەوە" لێدرا، ئێمە دووبارە دەیکەینەوە
+            openPopup(popState.id, popState.type); 
+        
+        } else {
+            // Gihîştina rewşek filterê ya rûpela serekî (mainPage)
+            // گەیشتن بە دۆخێکی فلتەری لاپەڕەی سەرەki
+            showPage('mainPage'); 
+            applyFilterStateCore(popState); 
+    
+            const cameFromPopup = wasPopupOpen;
+            const cameFromPage = previousPageId !== 'mainPage';
+
+            // Em hertim UIyê nû dikin, lê bêyî skrolkirina otomatîk
+            // ئێمە هەمیشە UI نوێ دەکەینەوە، بەڵام بێ سکڕۆڵی ئۆتۆماتیک
+            await updateProductViewUI(true, false); // (true, false) = nû, skrol NEKE jor
+            
+            // *** Logica Vegerandina Skrolê (Logica nû) ***
+            // *** لۆجیکی گەڕاندنەوەی سکڕۆڵ (لۆجیکی نوێ) ***
+            if (!state.pendingFilterNav) { 
+                const scroll = popState.scroll || 0;
+                
+                // Hinekî bisekine da ku 'updateProductViewUI' konteynirê rast nîşan bide
+                // کەمێک بوەستە با 'updateProductViewUI' کۆنتەینەرە ڕاستەکە پیشان بدات
+                requestAnimationFrame(() => {
+                    let containerToScroll = null;
+                    if (homePageLayoutContainer.style.display !== 'none') {
+                        containerToScroll = homePageLayoutContainer;
+                    } else if (categoryPageLayoutContainer.style.display !== 'none') {
+                        containerToScroll = categoryPageLayoutContainer;
+                    } else if (productGridPageContainer.style.display !== 'none') {
+                        containerToScroll = productGridPageContainer;
+                    }
+                    
+                    if (containerToScroll) {
+                        containerToScroll.scrollTo({ top: scroll, behavior: 'instant' });
+                    }
+                });
+            }
+            
+            // *** Logica Fîltera Li Bendê (Logica nû) ***
+            // *** لۆجیکی فلتەری چاوەڕوانکراو (لۆجیکی نوێ) ***
+            if (state.pendingFilterNav) {
+                console.log("Found pending filter navigation. Applying now.");
+                const filterToApply = state.pendingFilterNav;
+                state.pendingFilterNav = null; 
+                
+                setTimeout(async () => {
+                    await navigateToFilterCore(filterToApply);
+                    await updateProductViewUI(true, true); // true, true = nû, skrol bike jor
+                }, 50); 
+            }
+        }
+    });
+    // === END: GۆڕANkARI LI VIR (POPSTATE) / کۆتایی گۆڕانکاری لێرە (POPSTATE) ===
 }
+// --- DAWÎYA Guhdarên Bûyeran / کۆتایی گوێگرەکانی ڕووداوەکان ---
 
 async function handleSetLanguage(lang) {
-    setLanguageCore(lang); // Stata core û localStorage nû bike
+    // 1. Core state nû bike (ئەمە cacheya dîzaynê paqij dike)
+    // 1. Core state نوێ بکەوە (ئەمە کاشی دیزاین پاک دەکاتەوە)
+    setLanguageCore(lang); 
 
-    // === START: KODA NÛ / کۆدی نوێ ===
-    // Em cache'a dîzayna DOMê paqij dikin
-    // ئێمە کاشی دیزاینی DOM پاک دەکەینەوە
-    const homeContainer = document.getElementById('homePageSectionsContainer');
-    if (homeContainer) {
-        homeContainer.innerHTML = ''; // Naverokê paqij bike (ناوەڕۆک پاک بکەوە)
-        homeContainer.dataset.currentLayout = 'none'; // Nîşaneyê rake (نیشانە لابدە)
-    }
-    // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
-
-    // Nivîsara statîk tavilê nû bike
+    // 2. Nivîsara statîk nû bike
+    // 2. دەقی وەستاو نوێ بکەوە
     document.querySelectorAll('[data-translate-key]').forEach(element => {
         const key = element.dataset.translateKey;
         const translation = t(key);
@@ -1400,19 +1399,25 @@ async function handleSetLanguage(lang) {
         }
     });
 
-    // Bişkokên zimanê çalak nû bike
+    // 3. Bişkokên ziman nû bike
+    // 3. دوگمەکانی زمان نوێ بکەوە
     document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.lang === lang);
     });
 
-    // Naveroka dînamîk a ku bi ziman ve girêdayî ye ji nû ve nîşan bide
+    // 4. Naveroka dînamîk a popupan nû bike
+    // 4. ناوەڕۆکی داینامیکی پۆپئەپەکان نوێ بکەوە
     renderCategoriesSheetUI(); 
     if (document.getElementById('cartSheet').classList.contains('show')) renderCartUI();
     if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPageUI();
-    await updateProductViewUI(true, true); // Wekî lêgerînek nû bihesibîne da ku her tiştî bi zimanê nû nîşan bide
     await renderContactLinksUI();
 
-    // Lîsteyên admin ji nû ve nîşan bide eger admin çalak be
+    // 5. Nîşandana sereke (main view) bi tevahî ji nû ve render bike
+    // 5. پیشاندانی سەرەکی بە تەواوی دووبارە ڕێندەر بکەوە
+    await updateProductViewUI(true, true); // (true, true) = nû, skrol bike jor
+
+    // 6. Lîsteyên admin ji nû ve render bike (ئەگەر چالاک بێت)
+    // 6. لیستەکانی ئەدمین دووبارە ڕێندەر بکەوە (ئەگەر چالاک بێت)
     if (sessionStorage.getItem('isAdmin') === 'true' && window.AdminLogic) {
          window.AdminLogic.renderAdminAnnouncementsList?.();
          window.AdminLogic.renderSocialMediaLinks?.();
@@ -1422,158 +1427,32 @@ async function handleSetLanguage(lang) {
          window.AdminLogic.renderBrandGroupsAdminList?.();
          window.AdminLogic.renderShortcutRowsAdminList?.();
          window.AdminLogic.renderHomeLayoutAdmin?.();
-         // === START: KODA NÛ / کۆدی نوێ ===
-         // Em fonksiyona nû bang dikin da ku dîzayna kategoriyê nû bike
-         // ئێمە بانگی فەنکشنە نوێیەکە دەکەین بۆ نوێکردنەوەی دیزاینی جۆرەکان
          window.AdminLogic.renderCategoryLayoutAdmin?.();
-         // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
     }
 }
 
-// *** START: Gۆڕanlکاری lێرە kra (Logica Popstate bi tevahî hate nûve kirin) ***
-// *** دەستپێک: گۆڕانکاری لێرە کرا (لۆجیکی Popstate بە تەواوی نوێکرایەوە) ***
-window.addEventListener('popstate', async (event) => {
-    const wasPopupOpen = state.currentPopupState !== null; 
-    const previousPageId = state.currentPageId; 
-
-    state.currentPopupState = null; 
-    closeAllPopupsUI(); // Her gav hemî popupên dîtbar bigire (هەمیشە هەموو پۆپئەپە دیارەکان دابخە)
-
-    const popState = event.state;
-    const activePage = document.getElementById(state.currentPageId); // Rûpela çalak a *niha* bistîne (پەڕەی چالاکی *ئێستا* وەربگرە)
-    
-    if (!activePage) {
-        console.error("Popstate error: Could not find active page element.");
-        return;
-    }
-
-    if (popState) {
-        if (popState.type === 'page') {
-            // Vegerîna li rûpelek (mînak, Settings)
-            // گەڕانەوە بۆ پەڕەیەک (بۆ نموونە، ڕێکخستنەکان)
-            showPage(popState.id, popState.title); 
-            if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
-                await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
-            }
-        } else if (popState.type === 'sheet' || popState.type === 'modal') {
-            // Ev rewş divê çênebe eger em bişkoja 'paş' bikar bînin, lê ji bo pêşveçûnê
-            // ئەم حاڵەتە نابێت ڕووبدات ئەگەر دوگمەی 'گەڕانەوە' بەکاربهێنین، بەڵام بۆ 'پێشەوە'
-            openPopup(popState.id, popState.type); 
-        } else {
-            // Gihîştina rewşek filterê ya rûpela serekî (mainPage)
-            // گەیشتن بە دۆخێکی فلتەری لاپەڕەی سەرەki
-            showPage('mainPage'); 
-            applyFilterStateCore(popState); 
-
-            const cameFromPopup = wasPopupOpen;
-            const cameFromPage = previousPageId !== 'mainPage';
-
-            // === START: KODA GUHERTÎ / کۆدی گۆڕاو ===
-            // Em her gav 'updateProductViewUI' bang dikin da ku dîmena rast (dîzayn an grid) nîşan bide
-            // ئێمە هەمیشە بانگی 'updateProductViewUI' دەکەین بۆ پیشاندانی دیمەنی ڕاست (دیزاین یان گرید)
-            if (!cameFromPopup && !cameFromPage) {
-                // Di navbera filteran de digere (لە نێوان فلتەرەکان دەگەڕێت)
-                console.log("Popstate: Navigating between filter states, triggering refresh WITHOUT scroll.");
-                await updateProductViewUI(true, false); // false = skrol neke (سکڕۆڵ مەکە)
-            } else {
-                // Ji popup an rûpelek din vedigere (لە پۆپئەپ یان لاپەڕەیەکی تر دەگەڕێتەوە)
-                console.log(`Popstate: Returned from ${cameFromPopup ? 'popup' : (cameFromPage ? 'page' : 'unknown')}, restoring UI without full refresh.`);
-                // Dîsa jî nûve bike da ku dîzayna rast (cache'kirî) nîşan bide
-                // هێشتا نوێی بکەوە بۆ پیشاندانی دیزاینی ڕاست (کاشکراو)
-                await updateProductViewUI(true, false); 
-            }
-            // === END: KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
-            
-            // *** Logica Vegerandina Skrolê (Logica nû) ***
-            // *** لۆجیکی گەڕاندنەوەی سکڕۆڵ (لۆجیکی نوێ) ***
-            
-            // ***************************************************************
-            // *** DESTPÊKA GUHERTINA JI BO KÊŞEYA SKROLÊ ***
-            // *** PO EV BEŞ HATE GUHERTIN ***
-            // TENÊ skrolê vegerîne EGER fîlterek nû li bendê NEBE
-            // چاکسازی: تەنها سکڕۆڵ بگەڕێنەوە ئەگər فلتەرێکی نوێ چاوەڕێ نەبێت
-            if (!state.pendingFilterNav) { 
-                if (typeof popState.scroll === 'number') {
-                    requestAnimationFrame(() => {
-                        // Rûpela çalak skrol bike (پەڕە چالاکەکە سکڕۆڵ بکە)
-                        activePage.scrollTo({ top: popState.scroll, behavior: 'instant' });
-                    });
-                } else {
-                    requestAnimationFrame(() => {
-                        activePage.scrollTo({ top: 0, behavior: 'instant' });
-                    });
-                }
-            }
-            // *** DAWÎYA GUHERTINÊ ***
-            // ***************************************************************
-            
-            // *** Logica Fîltera Li Bendê (Logica nû) ***
-            // *** لۆجیکی فلتەری چاوەڕوانکراو (لۆجیکی نوێ) ***
-            if (state.pendingFilterNav) {
-                console.log("Found pending filter navigation. Applying now.");
-                const filterToApply = state.pendingFilterNav;
-                state.pendingFilterNav = null; // Berî navîgasyonê paqij bike (پێش گواستنەوە پاکی بکەوە)
-                
-                // Hinekî bisekine da ku vegerandina skrolê biqede, paşê fîlterê bicîh bîne
-                // کەمێک بوەستە با گەڕانەوەی سکڕۆڵ تەواو بێت، پاشان فلتەرەکە جێبەجێ بکە
-                setTimeout(async () => {
-                    await navigateToFilterCore(filterToApply);
-                    await updateProductViewUI(true, true); // true, true = lêgerîna nû, skrol bike jor (گەڕانی نوێ، سکڕۆڵ بکە سەرەوە)
-                }, 50); // 50ms derengî (50 میلی چرکە دواکەوتن)
-            }
-        }
-    } else {
-        // Rewşa destpêkê (default)
-        // دۆخی سەرەتایی
-        console.log("Popstate: No state found, loading default main page.");
-        const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
-        showPage('mainPage'); 
-        applyFilterStateCore(defaultState);
-        await updateProductViewUI(true, true); 
-        requestAnimationFrame(() => {
-             // Rûpela çalak skrol bike jor (پەڕە چالاکەکە سکڕۆڵ بکە سەرەوە)
-             const homePage = document.getElementById('mainPage');
-             if(homePage) homePage.scrollTo({ top: 0, behavior: 'instant' });
-        });
-    }
-});
-// *** END: Gۆڕanlکاری lێرە kra ***
-// *** کۆتایی: Gۆڕanlکاری lێرە kra ***
-
-
 async function initializeUI() {
-    // Await core initialization first
-    await initCore(); // Initialize core logic (enables persistence, fetches initial data)
+    await initCore(); 
 
-    // Initial language application (static text)
-    setLanguageCore(state.currentLanguage); // Set core state
-     document.querySelectorAll('[data-translate-key]').forEach(element => { // Apply static text
+    setLanguageCore(state.currentLanguage); 
+     document.querySelectorAll('[data-translate-key]').forEach(element => { 
          const key = element.dataset.translateKey;
          const translation = t(key);
          if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') { if(element.placeholder) element.placeholder = translation; }
          else { element.textContent = translation; }
     });
-     document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === state.currentLanguage)); // Set active lang button
+     document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === state.currentLanguage)); 
 
-    // Render initial dynamic UI elements that are NOT home-specific
     renderCategoriesSheetUI();
-
-    // Setup basic UI event listeners
     setupUIEventListeners();
-
-    // Handle initial page load based on URL (hash/query params) AFTER core init
-    handleInitialPageLoadUI(); // Categories should be ready now
-
-    // Render dynamic contact links
+    handleInitialPageLoadUI();
     renderContactLinksUI();
 
-    // Check notification status
     const announcements = await fetchAnnouncements();
      if(announcements.length > 0 && checkNewAnnouncementsCore(announcements[0].createdAt)) {
          notificationBadge.style.display = 'block';
      }
 
-    // Show welcome message only on first visit
     if (!localStorage.getItem('hasVisited')) {
         openPopup('welcomeModal', 'modal');
         localStorage.setItem('hasVisited', 'true');
@@ -1594,16 +1473,14 @@ async function handleInitialPageLoadUI() {
          const ids = hash.split('_');
          const mainCatId = ids[1];
          const subCatId = ids[2];
-         // Ensure categories are loaded before showing detail page
-         if (state.categories.length > 0) { // Check if categories are loaded (state.categories includes 'all')
-              await showSubcategoryDetailPageUI(mainCatId, subCatId, true); // true = fromHistory/initial load
+         if (state.categories.length > 0) { 
+              await showSubcategoryDetailPageUI(mainCatId, subCatId, true);
          } else {
-             // Fallback to main page if categories aren't ready (should be rare now)
              console.warn("Categories not ready on initial load, showing main page instead of detail.");
              showPage('mainPage');
-             await updateProductViewUI(true, true); // (imported from home.js)
+             await updateProductViewUI(true, true); 
          }
-    } else { // Default to main page
+    } else { 
          showPage('mainPage');
          const initialState = {
              category: params.get('category') || 'all',
@@ -1612,11 +1489,10 @@ async function handleInitialPageLoadUI() {
              search: params.get('search') || '',
              scroll: 0
          };
-         history.replaceState(initialState, ''); // Set initial history state for main page
-         applyFilterStateCore(initialState); // Apply the state
-         await updateProductViewUI(true, true); // Render content based on state (imported from home.js)
+         history.replaceState(initialState, ''); 
+         applyFilterStateCore(initialState); 
+         await updateProductViewUI(true, true); // (imported from this file)
 
-         // Check if a specific popup needs to be opened on initial load
          const element = document.getElementById(hash);
          if (element) {
               const isSheet = element.classList.contains('bottom-sheet');
@@ -1626,12 +1502,11 @@ async function handleInitialPageLoadUI() {
               }
          }
 
-         // Check if a specific product detail needs to be shown
           const productId = params.get('product');
           if (productId) {
                const product = await fetchProductById(productId);
                if (product) {
-                    setTimeout(() => showProductDetailsUI(product), 300); // Delay slightly
+                    setTimeout(() => showProductDetailsUI(product), 300); 
                }
           }
     }
@@ -1639,14 +1514,12 @@ async function handleInitialPageLoadUI() {
 
 async function renderContactLinksUI() {
     const contactLinksContainer = document.getElementById('dynamicContactLinksContainer');
-    // Fetch social links data
      try {
-         // *** Ensure collection is correctly imported/available ***
          const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
          const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
-         const snapshot = await getDocs(q); // Use getDocs for one-time fetch
+         const snapshot = await getDocs(q); 
 
-         contactLinksContainer.innerHTML = ''; // Clear previous links
+         contactLinksContainer.innerHTML = ''; 
 
          if (snapshot.empty) {
              contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هیچ لینکی پەیوەندی نییە.</p>';
@@ -1679,9 +1552,7 @@ async function renderContactLinksUI() {
 function setupGpsButtonUI() {
      const getLocationBtn = document.getElementById('getLocationBtn');
      const profileAddressInput = document.getElementById('profileAddress');
-
      if (!getLocationBtn || !profileAddressInput) return;
-
      const btnSpan = getLocationBtn.querySelector('span');
      const originalBtnText = btnSpan ? btnSpan.textContent : 'وەرگرتنی ناونیشانم بە GPS';
 
@@ -1690,12 +1561,11 @@ function setupGpsButtonUI() {
              showNotification('وێبگەڕەکەت پشتگیری GPS ناکات', 'error');
              return;
          }
-
          if(btnSpan) btnSpan.textContent = '...چاوەڕوان بە';
          getLocationBtn.disabled = true;
 
          navigator.geolocation.getCurrentPosition(
-              async (position) => { // Success callback
+              async (position) => { 
                    const { latitude, longitude } = position.coords;
                    try {
                         const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`);
@@ -1714,8 +1584,8 @@ function setupGpsButtonUI() {
                        getLocationBtn.disabled = false;
                    }
                },
-               (error) => { // Error callback
-                   let message = t('error_generic'); // Default error
+               (error) => { 
+                   let message = t('error_generic'); 
                    switch (error.code) {
                         case 1: message = 'ڕێگەت نەدا GPS بەکاربهێنرێت'; break;
                         case 2: message = 'شوێنەکەت نەدۆزرایەوە'; break;
@@ -1737,15 +1607,15 @@ document.addEventListener('DOMContentLoaded', initializeUI);
 // Ev kod fonksyonên ku ji app-ui.js hatine 'export' kirin
 // ji bo faylê admin.js (ku module nîne) berdest dike.
 
-// Heke globalAdminTools hîn nehatibe çêkirin, wê çêbike
 if (!window.globalAdminTools) {
     window.globalAdminTools = {};
 }
 
-// Fonksyonên pêwîst li ser 'window' tomar bike da ku admin.js bikaribe bibîne
+// Em van fonksîyonan li 'globalAdminTools' zêde dikin (ji ber ku admin.js wan bikar tîne)
+// ئێمە ئەم فەنکشنانە بۆ 'globalAdminTools' زیاد دەکەین (چونکە admin.js بەکاریان دێنێت)
 window.globalAdminTools.openPopup = openPopup;
 window.globalAdminTools.closeCurrentPopup = closeCurrentPopup;
-window.globalAdminTools.showNotification = showNotification; // *** Ev hate zêdekirin ***
+// showNotification jixwe di app-setup.js de hatiye zêdekirin (showNotification پێشتر لە app-setup.js زیاد کراوە)
 
-console.log('openPopup, closeCurrentPopup, & showNotification ji bo admin.js hatin zêdekirin.');
+console.log('openPopup & closeCurrentPopup ji bo admin.js hatin zêdekirin.');
 // ======== DAWÎYA PIRA ========
