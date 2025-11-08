@@ -113,6 +113,26 @@ body.overlay-active {
     padding-bottom: 85px; /* Cih ji bo navîgasyona jêrîn */
 }
 
+/* === START: KODA NÛ / کۆدی نوێ (Çareserkirina Flicker) === */
+/* === دەستپێک: کۆدی نوێ (چارەسەرکردنی پرشکردن) === */
+/* Me 'opacity: 0' ji vir rakir (ئێمە 'opacity: 0'مان لێرە سڕییەوە) */
+#productsContainer, #skeletonLoader, #homePageSectionsContainer {
+    /* opacity: 0; <-- RAKIRIN! / سڕایەوە! */
+    transition: opacity 0.25s ease-in-out;
+}
+
+/* Ev klasên nû ne ji bo kontrolkirina dîtinê (ئەم پۆلە نوێیانە بۆ کۆنترۆڵکردنی بینینن) */
+.content-hidden {
+    opacity: 0;
+    pointer-events: none; /* Dema veşartî ye, klîk nakeve (کاتێک شاراوەیە، کلیکی لێ ناکرێت) */
+}
+.content-visible {
+    opacity: 1;
+    pointer-events: auto; /* Dema xuya ye, klîk kar dike (کاتێک دیارە، کلیک کار دەکات) */
+}
+/* === END: KODA NÛ / کۆتایی کۆدی نوێ === */
+
+
 .section {
     background-color: var(--section-bg);
     border-radius: 0;
@@ -282,7 +302,6 @@ body.overlay-active {
     grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
     gap: 12px;
     padding: 0 12px;
-    transition: opacity 0.25s ease-in-out; /* <-- KODA NÛ / کۆدی نوێ */
 }
 
 .product-card {
@@ -1589,42 +1608,3 @@ input:checked + .slider:before {
 }
 
 /* === END: KODÊN NÛ JI BO DÎZAYNA BEŞÊ ADMIN === */
-
-/* === START: KODA NÛ JI BO VEGUHEZTINA NIRM (SMOOTH TRANSITION) === */
-/* === دەستپێک: کۆدی نوێ بۆ گواستنەوەی نەرم === */
-
-#homePageSectionsContainer {
-     display: block; /* Piştrast bike ku her gav block e (دڵنیابە کە هەمیشە blockـە) */
-     transition: opacity 0.25s ease-in-out;
-}
-
-/* Em 'display: grid' li ser skeletonLoaderê piştrast dikin */
-/* ئێمە 'display: grid' لەسەر skeletonLoader دڵنیا دەکەینەوە */
-#skeletonLoader {
-    /* Ew jixwe klasa .products-container heye, loma baş e */
-    /* پێشتر پۆلی .products-containerـی هەیە، بۆیە باشە */
-    /* Transition ji .products-container tê (ترانزیشن لە .products-containerـەوە دێت) */
-}
-
-/* Klasên Alîkar ji bo Kontrolkirina Opacity (پۆلی یاریدەدەر) */
-/* پۆلی یاریدەدەر بۆ کۆنترۆڵکردنی Opacity */
-.content-hidden {
-    opacity: 0;
-    pointer-events: none;
-    /* Em 'display: none' bikar naynin (ئێمە 'display: none' بەکارناهێنین) */
-}
-
-.content-visible {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-/* Sazkirina Destpêkê: Hemîyan veşêre heta ku JS biryar bide */
-/* دۆخی سەرەتایی: هەموویان بشارەوە تا JS بڕیار دەدات */
-#productsContainer,
-#skeletonLoader,
-#homePageSectionsContainer {
-    opacity: 0; /* Bi veşartî dest pê bike (بە شاراوەیی دەست پێبکە) */
-    pointer-events: none;
-}
-/* === END: KODA NÛ / کۆتایی کۆدی نوێ === */
