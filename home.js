@@ -46,7 +46,7 @@ function resetScrollPosition(containerElement) {
  * Alîkarek ji bo veguheztina nerm (fade) di navbera elementan de.
  * یاریدەدەرێک بۆ گواستنەوەی نەرم (fade) لەنێوان توخمەکاندا.
  * @param {HTMLElement} elementToShow - Elementa ku divê were nîşan dan.
- *Am (توخمێک کە پێویستە نیشان بدرێت)
+ * (توخمێک کە پێویستە نیشان بدرێت)
  * @param {HTMLElement[]} elementsToHide - Rêzek ji elementên ku divê werin veşartin.
  * (لیستێک لەو توخمانەی کە پێویستە بشاردرێنەوە)
  */
@@ -127,7 +127,7 @@ export function renderMainCategoriesUI() {
     // 1. زیادکردنی دوگمەی "سەرەki" (Home) بە شێوەی دەستی
     const homeBtn = document.createElement('button');
     homeBtn.className = 'main-category-btn';
-    homeBtn.dataset.category = 'all'; // Ew hîn jî nirxa 'all' ji bo logica filterê bikar tîne (هێشتا نرخی 'all' بەکاردەهێنێت بۆ لۆجیکی فلتەر)
+    homeBtn.dataset.category = 'all'; // Ew hîn jî nirxa 'all' ji bo logica filterê bikar tîîne (هێشتا نرخی 'all' بەکاردەهێنێت بۆ لۆجیکی فلتەر)
     homeBtn.innerHTML = `<i class="fas fa-home"></i> <span>${t('nav_home')}</span>`;
 
     // Bişkoja "Serekî" çalak bike heke kategoriya heyî 'all' be
@@ -365,6 +365,24 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
             // === KODA GUHERTÎ: Me 'true' rakir ===
             // === کۆدی گۆڕاو: 'true'مان سڕییەوە ===
             fadeContent(homeSectionsContainer, allToggleableContainers); // <-- Logica 'instant' hate rakirin
+            
+            // === KODA KRÎTÎK A NÛ / کۆدی چارەسەرکەری نوێ ===
+            // LI VIR RAWESTE! Naverokê ji nû ve ava neke!
+            // لێرە بوەستە! ناوەڕۆک دووبارە دروست مەکەوە!
+            // Em tenê hewce ne ku kategoriyên jorîn nûve bikin.
+            // تەنها پێویستە پۆلە سەرەkiیەکان نوێ بکەینەوە
+            renderMainCategoriesUI();
+            const subcats = await fetchSubcategories(state.currentCategory);
+            await renderSubcategoriesUI(subcats);
+            // Û skrol bike jor
+            // و سکڕۆڵ بکە سەرەوە
+            if (shouldScrollToTop) {
+                const activePage = document.getElementById('mainPage');
+                if (activePage) activePage.scrollTo({ top: 0, behavior: 'auto' });
+            }
+            return; // <--- EV XETA HERÎ GIRÎNG E (ئەم دێڕە گرنگترین شتە)
+            // === DAWÎYA KODA KRÎTÎK A NÛ ===
+            
         } else {
             // "Barkirina Nû": Pêdivî bi skeleton heye. Bi derengî fade bike.
             // "بارکردنی نوێ": پێویست بە سکێڵتۆن هەیە. بە دواکەوتن فەید بکە.
@@ -504,8 +522,8 @@ export async function renderPageContentUI(layoutSections, layoutType = 'home', l
 
     // === START: KODA ÇAKKIRÎ / کۆدی چاککراو (BUGÊ HERÎ MEZIN HATE ÇARESERKIRIN) ===
     // === دەستپێک: کۆدی چاککراو (گەورەترین هەڵە چارەسەر کرا) ===
-    // Me ev her du rêz rakirin da ku naverok neyê jêbirin!
-    // ئێمە ئەم دوو دێڕەمان سڕییەوە بۆ ئەوەی ناوەڕۆکەکە نەسڕێتەوە!
+    // Me ev rêz rakir da ku naverok neyê jêbirin!
+    // ئێمە ئەم دێڕەمان سڕییەوە بۆ ئەوەی ناوەڕۆکەکە نەسڕێتەوە!
     // homeSectionsContainer.innerHTML = `<div id="loader" ...>...</div>`; // <-- RAKIRIN / سڕایەوە
     homeSectionsContainer.innerHTML = ''; // <-- RAKIRIN / سڕایەوە
     // === END: KODA ÇAKKIRÎ / کۆتایی کۆدی چاککراو ===
@@ -825,7 +843,7 @@ async function createSingleCategoryRowElement(sectionData) {
         if (subSubcategoryId) {
             targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubSubcategoryId}`);
         } else if (subcategoryId) {
-            targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}`);
+            targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subGategoryId}`);
         } else {
              // *** ÇAKKIRIN: Pêdivî ye ku em ID-ya kategoriyê diyar bikin ***
              // *** چاککراو: پێویستە IDی جۆرەکە دیاری بکەین ***
