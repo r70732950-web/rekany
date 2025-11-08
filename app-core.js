@@ -705,6 +705,8 @@ export {
     fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, 
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
     requestNotificationPermissionCore,
+    handleInstallPrompt, 
+    forceUpdateCore, 
 
     db, 
     productsCollection,
