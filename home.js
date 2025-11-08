@@ -1,5 +1,5 @@
 // home.js
-// Logika UI تایبەت بە پەڕەی سەرەki (Home Page)
+// Logika UI تایبەت بە پەڕەی سەرەکی (Home Page)
 
 import {
     state, t, debounce,
@@ -40,47 +40,6 @@ function resetScrollPosition(containerElement) {
 }
 // *** 💡 کۆتایی بەشی زیادکراو 💡 ***
 
-// === START: KODA NÛ / کۆدی نوێ (Helper ji bo Fading) ===
-// === دەستپێک: کۆدی نوێ (یاریدەدەر بۆ فەیدکردن) ===
-/**
- * Alîkarek ji bo veguheztina nerm (fade) di navbera elementan de.
- * یاریدەدەرێک بۆ گواستنەوەی نەرم (fade) لەنێوان توخمەکاندا.
- * @param {HTMLElement} elementToShow - Elementa ku divê were nîşan dan.
- * (توخمێک کە پێویستە نیشان بدرێت)
- * @param {HTMLElement[]} elementsToHide - Rêzek ji elementên ku divê werin veşartin.
- * (لیستێک لەو توخمانەی کە پێویستە بشاردرێنەوە)
- */
-function fadeContent(elementToShow, elementsToHide = []) {
-    // 1. Hemî elementên din veşêre
-    // 1. هەموو توخمەکانی تر بشارەوە
-    elementsToHide.forEach(el => {
-        if (el && el !== elementToShow) { // Piştrast bike ku em ya nû na veşêrin (دڵنیابە دانە نوێیەکە ناشارینەوە)
-            el.classList.add('content-hidden');
-            el.classList.remove('content-visible');
-            el.style.transition = ''; // Piştrast bike ku transitiona default tê bikar anîn (دڵنیابە ترانزیشنی دیفۆڵت بەکاردێت)
-        }
-    });
-    
-    // === KODA NÛ YA GUHERTÎ / کۆدی نوێی گۆڕاو ===
-    // Me logica 'instant' rakir. Em HERDEM derengiyek nerm bikar tînin.
-    // ئێمە لۆجیکی 'instant'مان سڕییەوە. ئێمە هەمیشە دواکەوتنێکی نەرم بەکاردەهێنین.
-    
-    // Piştrast bike ku transitiona default çalak e
-    // دڵنیابە کە ترانزیشنی دیفۆڵت چالاکە
-    if(elementToShow) elementToShow.style.transition = '';
-
-    // Li benda fade-outa elementên din bisekine
-    // چاوەڕێی فەید-ئاوتی توخمەکانی تر بکە
-    setTimeout(() => {
-        if (elementToShow) {
-            elementToShow.classList.add('content-visible');
-            elementToShow.classList.remove('content-hidden');
-        }
-    }, 260); // Hinekî zêdetir ji 250ms (کەمێک زیاتر لە 250ms)
-    // === DAWÎYA KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
-}
-// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
-
 
 // --- UI Rendering Functions for Home Page ---
 
@@ -117,27 +76,27 @@ window.renderProductsGridUI = renderProductsGridUI;
 
 // Renders main category buttons (Top horizontal scroll)
 // *** START: Gۆڕانکاری lێرە kra ***
-// *** دەستپێک: Gۆڕانکاری lێرە kra ***
+// *** دەستپێک: گۆڕانکاری لێرە کرا ***
 export function renderMainCategoriesUI() {
     const container = document.getElementById('mainCategoriesContainer');
     if (!container) return;
     container.innerHTML = '';
 
     // 1. Bişkoja "Serekî" (Home) bi destî lê zêde bike
-    // 1. زیادکردنی دوگمەی "سەرەki" (Home) بە شێوەی دەستی
+    // 1. زیادکردنی دوگمەی "سەرەکی" (Home) بە شێوەی دەستی
     const homeBtn = document.createElement('button');
     homeBtn.className = 'main-category-btn';
-    homeBtn.dataset.category = 'all'; // Ew hîn jî nirxa 'all' ji bo logica filterê bikar tîîne (هێشتا نرخی 'all' بەکاردەهێنێت بۆ لۆجیکی فلتەر)
+    homeBtn.dataset.category = 'all'; // Ew hîn jî nirxa 'all' ji bo logica filterê bikar tîne (هێشتا نرخی 'all' بەکاردەهێنێت بۆ لۆجیکی فلتەر)
     homeBtn.innerHTML = `<i class="fas fa-home"></i> <span>${t('nav_home')}</span>`;
 
     // Bişkoja "Serekî" çalak bike heke kategoriya heyî 'all' be
-    // دوگمەی "سەرەki" چالاک بکە ئەگەر جۆری ئێستا 'all' بێت
+    // دوگمەی "سەرەکی" چالاک بکە ئەگەر جۆری ئێستا 'all' بێت
     if (state.currentCategory === 'all') {
         homeBtn.classList.add('active');
     }
 
     // Logica onclick ji bo "Serekî"
-    // لۆجیکی onclick بۆ "سەرەki"
+    // لۆجیکی onclick بۆ "سەرەکی"
     homeBtn.onclick = async () => {
          resetScrollPosition(container); // *** 💡 لێرە زیادکرا 💡 ***
          await navigateToFilterCore({
@@ -182,7 +141,7 @@ export function renderMainCategoriesUI() {
     });
 }
 // *** END: Gۆڕانکاری lێرە kra ***
-// *** کۆتایی: Gۆڕانکاری lێرە kra ***
+// *** کۆتایی: گۆڕانکاری lێرە kra ***
 
 
 // Renders subcategories based on fetched data (Second horizontal scroll)
@@ -195,7 +154,7 @@ export async function renderSubcategoriesUI(subcategoriesData) { // Needs to be 
     subSubcategoriesContainer.style.display = 'none'; // Hide sub-sub initially
 
     // Ev logica hanê rast e: heke kategoriya 'all' (Serekî) were hilbijartin, ti jêr-kategorî nîşan nede
-    // ئەم لۆجیکە دروستە: ئەگەر 'all' (سەرەki) هەڵبژێردرابێت، هیچ جۆرێکی لاوەکی نیشان مەدە
+    // ئەم لۆجیکە دروستە: ئەگەر 'all' (سەرەکی) هەڵبژێردرابێت، هیچ جۆرێکی لاوەکی نیشان مەدە
     if (!subcategoriesData || subcategoriesData.length === 0 || state.currentCategory === 'all') {
          subcategoriesContainer.style.display = 'none'; // Hide if no subcategories or 'All' is selected
          return;
@@ -323,128 +282,93 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
 // Handles applying the current filter state to the UI (fetching & rendering home/products)
 // This function now orchestrates rendering between home sections and product grid
 // /* GUHERTIN */ Parameterek nû lê zêde kir: shouldScrollToTop
-// === START: KODA NÛ / کۆدی نوێ (Bi tevahî hate nûve kirin) ===
-// === دەستپێک: کۆدی نوێ (بە تەواوی نوێکرایەوە) ===
 export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop = true) {
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const productsContainer = document.getElementById('productsContainer'); // Main product grid container
     const skeletonLoader = document.getElementById('skeletonLoader'); // Main skeleton loader
 
-    // Lîsteya hemî konteynirên ku têne guhertin
-    // لیستی هەموو کۆنتەینەرەکان کە دەگۆڕدرێن
-    const allToggleableContainers = [homeSectionsContainer, productsContainer, skeletonLoader];
-    
-    // === START: KODA ÇAKKIRÎ / کۆدی چاککراو (Logica Vegera Bilez) ===
-    // 1. Em kontrol dikin ka em diçin kuderê (Check where we are going)
-    const isTargetingHome = state.currentCategory === 'all' && !state.currentSearch;
-    const isTargetingCategoryLayout = state.currentCategory !== 'all' && state.currentSubcategory === 'all' && !state.currentSearch;
+    /* GUHERTIN: Destpêk */
+    // Em kontrol dikin ka gelo naveroka rûpela serekî jixwe hatiye barkirin,
+    // da ku em wê ji nû ve bar nekin heke ne pêwîst be.
+    // Em kontrol dikin ka ew vala ye an tenê loader têde ye.
+    // === KODA GUHERTÎ / کۆدی گۆڕاو ===
+    // Em êdî tenê `innerHTML` kontrol nakin, ji ber ku dibe ku ew dîzayna kategoriyek din be.
+    // Em ê bi tenê loader-ê nîşan bidin eger ew lêgerînek nû be.
+    // ئێمە ئیتر تەنها `innerHTML` پشکنین ناکەین، چونکە لەوانەیە دیزاینی جۆرێکی تر بێت.
+    // ئێمە تەنها لۆدەر پیشان دەدەین ئەگەر گەڕانێکی نوێ بێت.
+    let homeContentLoaded = false; 
+    if (state.currentCategory === 'all' && !state.currentSearch) {
+        homeContentLoaded = homeSectionsContainer.innerHTML.trim() !== '' && !homeSectionsContainer.querySelector('#loader');
+    }
+    /* GUHERTIN: Dawî */
 
-    // 2. Em kontrol dikin ka ew naverok jixwe di DOMê de heye (Check if that content is already in the DOM)
-    const isHomeLayoutRendered = isTargetingHome &&
-                                homeSectionsContainer.dataset.layoutType === 'home' &&
-                                homeSectionsContainer.innerHTML.trim() !== '';
 
-    const isCategoryLayoutRendered = isTargetingCategoryLayout &&
-                                    homeSectionsContainer.dataset.layoutType === 'category' &&
-                                    homeSectionsContainer.dataset.layoutId === state.currentCategory &&
-                                    homeSectionsContainer.innerHTML.trim() !== '';
-    
-    // Ev rewşa "vegera bilez" e (This is the "fast return" scenario)
-    const isReturningToCachedLayout = isHomeLayoutRendered || isCategoryLayoutRendered;
-    // === END: KODA ÇAKKIRÎ / کۆتایی کۆدی چاککراو ===
-    
+    // === KODA GUHERTÎ / کۆدی گۆڕاو ===
+    // Em êdî 'shouldShowHome' li vir hesab nakin, em xwe dispêrin bersiva ji 'fetchProducts'
+    // ئێمە ئیتر 'shouldShowHome' لێرە حیساب ناکەین، پشت بە وەڵامی 'fetchProducts' دەبەستین
     
     if (isNewSearch) {
-        // Ger ew lêgerînek nû be (an guhertina kategoriyê)
+        // Ger ew lêgerînek nû be (an guhertina kategoriyê), her gav loader nîşan bide
+        // ئەگەر گەڕانێکی نوێ بوو (یان گۆڕینی جۆر)، هەمیشە لۆدەر پیشان بدە
         
-        // *** KODA NÛ YA GUHERTÎ / کۆدی نوێی گۆڕاو ***
-        if (isReturningToCachedLayout) {
-            // "Vegera Bilez": Naverok jixwe heye. Rasterast fade bike.
-            // "گەڕانەوەی خێرا": ناوەڕۆک پێشتر هەیە. ڕاستەوخۆ فەید بکە.
-            // === KODA GUHERTÎ: Me 'true' rakir ===
-            // === کۆدی گۆڕاو: 'true'مان سڕییەوە ===
-            fadeContent(homeSectionsContainer, allToggleableContainers); // <-- Logica 'instant' hate rakirin
-            
-            // === KODA KRÎTÎK A NÛ / کۆدی چارەسەرکەری نوێ ===
-            // LI VIR RAWESTE! Naverokê ji nû ve ava neke!
-            // لێرە بوەستە! ناوەڕۆک دووبارە دروست مەکەوە!
-            // Em tenê hewce ne ku kategoriyên jorîn nûve bikin.
-            // تەنها پێویستە پۆلە سەرەkiیەکان نوێ بکەینەوە
-            renderMainCategoriesUI();
-            const subcats = await fetchSubcategories(state.currentCategory);
-            await renderSubcategoriesUI(subcats);
-            // Û skrol bike jor
-            // و سکڕۆڵ بکە سەرەوە
-            if (shouldScrollToTop) {
-                const activePage = document.getElementById('mainPage');
-                if (activePage) activePage.scrollTo({ top: 0, behavior: 'auto' });
-            }
-            return; // <--- EV XETA HERÎ GIRÎNG E (ئەم دێڕە گرنگترین شتە)
-            // === DAWÎYA KODA KRÎTÎK A NÛ ===
-            
+        // Em kontrol dikin ka em diçin malperê (home) û naverok jixwe heye
+        // پشکنین دەکەین بزانین ئایا دەچین بۆ ماڵەوە (home) و ناوەڕۆک پێشتر بارکراوە
+        const isReturningHomeWithContent = state.currentCategory === 'all' && !state.currentSearch && homeContentLoaded;
+
+        if (!isReturningHomeWithContent) {
+            // Loader-a skeletê nîşan bide ji bo grid-a kaڵayan
+            // لۆدەری ئێسکەپەیکەر پیشان بدە بۆ گریدی کاڵاکان
+            homeSectionsContainer.style.display = 'none'; 
+            productsContainer.style.display = 'none'; 
+            renderSkeletonLoader(skeletonLoader); 
+            skeletonLoader.style.display = 'grid'; 
         } else {
-            // "Barkirina Nû": Pêdivî bi skeleton heye. Bi derengî fade bike.
-            // "بارکردنی نوێ": پێویست بە سکێڵتۆن هەیە. بە دواکەوتن فەید بکە.
-            renderSkeletonLoader(skeletonLoader); // Naverokê amade bike
-            fadeContent(skeletonLoader, allToggleableContainers); // <-- Logica 'instant' hate rakirin
+            // Vegere malperê (home) ku naverok jixwe heye, tiştek neke
+            // بگەڕێوە ماڵەوە (home) کە ناوەڕۆکی هەیە، هیچ مەکە
+            homeSectionsContainer.style.display = 'block';
+            productsContainer.style.display = 'none';
+            skeletonLoader.style.display = 'none';
         }
-        // *** DAWÎYA KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ***
-        
         scrollTrigger.style.display = 'none';
     }
+    // === KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
 
 
     // Fetch products based on current state (state updated by navigateToFilterCore)
     // fetchProducts now returns { isHome: true, layout: [...] } if it should show category sections
     const result = await fetchProducts(state.currentSearch, isNewSearch);
 
-    if (result === null && !isNewSearch) return null; // Loading is already in progress or all loaded for infinite scroll
+    if (result === null && !isNewSearch) return; // Loading is already in progress or all loaded for infinite scroll
 
-    // Em êdî `skeletonLoader.style.display = 'none'` bikar naynin
-    // ئیتر `skeletonLoader.style.display = 'none'` بەکارناهێنین
+    skeletonLoader.style.display = 'none'; // Hide main skeleton loader
 
     // === START: KODA GUHERTÎ / کۆدی گۆڕاو ===
     // Logica nû ji bo birêvebirina dîzaynên cihêreng
     // لۆجیکی نوێ بۆ مامەڵەکردن لەگەڵ دیزاینە جیاوازەکان
     if (result.isHome) {
         // Ev tê vê wateyê ku em an li rûpela malê ne AN li rûpelek kategoriyê ya bi dîzaynek taybetî ne
-        // ئەمە مانای وایە ئێمە یان لە پەڕەی سەرەkiin یان لە پەڕەی جۆرێکین کە دیزاینی تایبەتی هەیە
+        // ئەمە مانای وایە ئێمە یان لە پەڕەی سەرەکیین یان لە پەڕەی جۆرێکین کە دیزاینی تایبەتی هەیە
+        productsContainer.style.display = 'none'; // Grid-a kaڵayan veşêre
         scrollTrigger.style.display = 'none'; // Skrola bêdawî veşêre
+        homeSectionsContainer.style.display = 'block'; // Konteynira dîzaynê nîşan bide
 
         if (result.layout) {
             // DÎZAYNA KATEGORIYÊ YA TAYBET: Dîzayna ku ji `fetchProducts` hatî rasterast render bike
             // دیزاینی تایبەتی جۆر: ڕاستەوخۆ ئەو دیزاینە پیشان بدە کە لە `fetchProducts`ـەوە هاتووە
-            
-            // === START: KODA ÇAKKIRÎ / کۆدی چاککراو (Çareserkirina kêşeya barkirinê) ===
-            // Tenê render bike eger ew jixwe nehatibe barkirin
-            // تەنها ئەوکات ڕێندەر بکە ئەگەر پێشتر بارنەکرابێت
-            if (!isCategoryLayoutRendered) { // <-- GUHERTÎ / گۆڕدرا
-                await renderPageContentUI(result.layout, 'category', state.currentCategory); // Cure û ID bişîne
-            }
-            // === END: KODA ÇAKKIRÎ / کۆتایی کۆدی چاککراو ===
-            
+            await renderPageContentUI(result.layout); 
         } else {
             // DÎZAYNA RÛPELA MALÊ: Tenê dîzayna malê render bike eger ew jixwe nehatibe barkirin
-            // دیزاینی پەڕەی سەرەki: تەنها دیزاینی ماڵەوە پیشان بدە ئەگەر پێشتر بارنەکرابێت
-            if (!isHomeLayoutRendered) { // <-- GUHERTÎ / گۆڕدرا
-                await renderPageContentUI(null, 'home', null); // Cure bişîne, ID tune
+            // دیزاینی پەڕەی سەرەکی: تەنها دیزاینی ماڵەوە پیشان بدە ئەگەر پێشتر بارنەکرابێت
+            if (!homeContentLoaded) {
+                await renderPageContentUI(null); // `null` dê wêneyê bike ku dîzayna malê ya default bîne
             }
         }
-        
-        // === KODA NÛ YA GUHERTÎ / کۆدی نوێی گۆڕاو ===
-        // Naha, bo homeSections fade bike.
-        // Heke me jixwe fade-a bilez kiribe (isReturningToCachedLayout), em dîsa fade nakin.
-        // (Now, fade to homeSections.)
-        // (If we already did a fast fade (isReturningToCachedLayout), we don't fade again.)
-        if (!isReturningToCachedLayout) {
-            fadeContent(homeSectionsContainer, allToggleableContainers); // Fade ji skeleton bo naverokê (Fade from skeleton to content)
-        }
-        // === DAWÎYA KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
-        
     } else {
         // Ev tê vê wateyê ku em grid-a kaڵayên normal nîşan didin
         // ئەمە مانای وایە ئێمە گریدی ئاسایی کاڵاکان پیشان دەدەین
+        homeSectionsContainer.style.display = 'none'; // Konteynira dîzaynê veşêre
+        productsContainer.style.display = 'grid'; // Grid-a kaڵayan nîşan bide
         
         if (result.error) {
             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
@@ -453,27 +377,24 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
              renderProductsGridUI(isNewSearch ? null : result.products); // Use the grid renderer
         }
         scrollTrigger.style.display = result.allLoaded ? 'none' : 'block'; // Show/hide scroll trigger
-        
-        // Fade bike bo productsContainer
-        // فەید بکە بۆ productsContainer
-        // (Ev ê an ji skeleton an jî ji dîzayna bilez-fadekirî were)
-        // (ئەمە یان لە سکێڵتۆنەوە دێت یان لە دیزاینە خێرا فەیدکراوەکەوە)
-        fadeContent(productsContainer, allToggleableContainers); // Her gav bi nermî fade bike (هەمیشە بە نەرمی فەید بکە)
     }
     // === END: KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
 
     // Update category button states AFTER fetching and rendering
     renderMainCategoriesUI(); // Render main category buttons
-    
-    // === START: KODA ÇAKKIRÎ / کۆدی چاککراو (Bug 1) ===
-    // Em êdî kontrola `!result.isHome` nakin. Em her gav hewl didin jêr-kategoriyan nîşan bidin.
-    // Fonksiyona `renderSubcategoriesUI` bixwe dizane kengê xwe veşêre (mînak, dema ku state.currentCategory == 'all').
-    // ئیتر پشکنینی `!result.isHome` ناکەین. هەمیشە هەوڵ دەدەین جۆرە لاوەکییەکان پیشان بدەین.
-    // فەنکشنی `renderSubcategoriesUI` خۆی دەزانێت کەی خۆی بشارێتەوە (بۆ نموونە، کاتێک state.currentCategory == 'all').
-    const subcats = await fetchSubcategories(state.currentCategory);
-    await renderSubcategoriesUI(subcats); // Render subcategory buttons and potentially sub-sub
-    // === END: KODA ÇAKKIRÎ / کۆتایی کۆدی چاککراو (Bug 1) ===
-
+    // === START: KODA GUHERTÎ / کۆدی گۆڕاو ===
+    // Em jêr-kategoriyan tenê nîşan didin eger em di dîzaynek taybetî de NEBIN
+    // ئێمە جۆرە لاوەکییەکان تەنها ئەوکات پیشان دەدەین ئەگەر لەناو دیزاینێکی تایبەتدا نەبین
+    if (!result.isHome) { 
+        const subcats = await fetchSubcategories(state.currentCategory);
+        await renderSubcategoriesUI(subcats); // Render subcategory buttons and potentially sub-sub
+    } else {
+        // Dema ku dîzaynek tê nîşandan, jêr-kategoriyan veşêre
+        // کاتێک دیزاینێک پیشان دەدرێت، جۆرە لاوەکییەکان بشارەوە
+        document.getElementById('subcategoriesContainer').style.display = 'none';
+        document.getElementById('subSubcategoriesContainer').style.display = 'none';
+    }
+    // === END: KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
 
     // *** 💡 DESTPÊKA ÇAKKIRINÊ (SCROLL FIX - AUTO) 💡 ***
     // Logica Scrollkirinê
@@ -492,7 +413,6 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
     }
     // *** 💡 DAWÎYA ÇAKKIRINÊ (SCROLL FIX - AUTO) 💡 ***
 }
-// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
 
 // === START: KODA GUHERTÎ / کۆدی گۆڕاو ===
@@ -501,48 +421,28 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
 /**
  * Renders a dynamic page layout (Home or Category) based on a layout array.
  * @param {Array|null} layoutSections - The array of layout sections. If null, fetches the default home layout.
- * @param {string} layoutType - 'home' an 'category'.
- * @param {string|null} layoutId - The ID of the category if layoutType is 'category'.
  */
-export async function renderPageContentUI(layoutSections, layoutType = 'home', layoutId = null) {
+export async function renderPageContentUI(layoutSections) {
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     if (!homeSectionsContainer) return;
 
-    let layoutToRender = layoutSections; // Dîzayna ku ji derve hatî (دیزاینی دەرەki)
-    
-    // === START: KODA ÇAKKIRÎ / کۆدی چاککراو (Bug 2 Fix) ===
-    // TÊBÎNÎ: Ev `layoutType` ji `updateProductViewUI` tê
-    // تێبینی: ئەم `layoutType`ـە لە `updateProductViewUI`ـەوە دێت
-    if (!layoutToRender) {
-        layoutToRender = await fetchHomeLayout(); 
-        layoutType = 'home'; // Piştrast bike ku ev 'home' e (دڵنیا بکەوە کە ئەمە 'home'ـە)
-        layoutId = null; // Rûpela malê ID tune (پەڕەی سەرەki ئایدی نییە)
-    }
-    // === END: KODA ÇAKKIRÎ / کۆتایی کۆدی چاککراو ===
+    let layoutToRender = layoutSections; // Dîzayna ku ji derve hatî (دیزاینی دەرەکی)
 
-    // === START: KODA ÇAKKIRÎ / کۆدی چاککراو (BUGÊ HERÎ MEZIN HATE ÇARESERKIRIN) ===
-    // === دەستپێک: کۆدی چاککراو (گەورەترین هەڵە چارەسەر کرا) ===
-    // Me ev rêz rakir da ku naverok neyê jêbirin!
-    // ئێمە ئەم دێڕەمان سڕییەوە بۆ ئەوەی ناوەڕۆکەکە نەسڕێتەوە!
-    // homeSectionsContainer.innerHTML = `<div id="loader" ...>...</div>`; // <-- RAKIRIN / سڕایەوە
-    homeSectionsContainer.innerHTML = ''; // <-- RAKIRIN / سڕایەوە
-    // === END: KODA ÇAKKIRÎ / کۆتایی کۆدی چاککراو ===
-    
-    
-    // === START: KODA ÇAKKIRÎ / کۆدی چاککراو (Bug 2 Fix) ===
-    // Em cureyê dîzaynê û IDyê tomar dikin
-    // ئێمە جۆری دیزاین و ئایدی پاشەکەوت دەکەین
-    homeSectionsContainer.dataset.layoutType = layoutType;
-    if (layoutId) {
-        homeSectionsContainer.dataset.layoutId = layoutId;
-    } else {
-        homeSectionsContainer.removeAttribute('data-layout-id');
+    // Loader-ê nîşan bide heke konteynir vala be
+    // لۆدەر پیشان بدە ئەگەر کۆنتەینەرەکە بەتاڵ بێت
+    homeSectionsContainer.innerHTML = `<div id="loader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: block;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top: 10px;">...خەریکی بارکردنی بەشەکانە</p></div>`;
+
+    if (!layoutToRender) {
+        // Heke ti dîzayn nehatibe dayîn (mînak, ji bo rûpela malê), dîzayna malê ya default bîne
+        // ئەگەر هیچ دیزاینێک نەدرابوو (بۆ نموونە، بۆ پەڕەی سەرەکی)، دیزاینی سەرەکی بهێنە
+        layoutToRender = await fetchHomeLayout(); // Fetch layout from core
     }
-    // === END: KODA ÇAKKIRÎ / کۆتایی کۆدی چاککراو ===
-    
+
+    homeSectionsContainer.innerHTML = ''; // Loader/naveroka berê paqij bike
+
     if (!layoutToRender || layoutToRender.length === 0) {
         console.warn("Page layout is empty or failed to load.");
-        // Dîmenek paşverû render bike (mînak, tenê beşa 'hemî kaڵا')
+        // Dîmenek paşverû render bike (mînak, tenê beşa 'hemî kaڵa')
         // دیمەنێکی یەدەگ پیشان بدە (بۆ نموونە، تەنها بەشی 'هەموو کاڵاکان')
          const allProductsSection = await createAllProductsSectionElement();
          if(allProductsSection) homeSectionsContainer.appendChild(allProductsSection);
@@ -841,9 +741,9 @@ async function createSingleCategoryRowElement(sectionData) {
     try {
         let targetDocRef;
         if (subSubcategoryId) {
-            targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubSubcategoryId}`);
+            targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/subSubcategories/${subSubcategoryId}`);
         } else if (subcategoryId) {
-            targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subGategoryId}`);
+            targetDocRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}`);
         } else {
              // *** ÇAKKIRIN: Pêdivî ye ku em ID-ya kategoriyê diyar bikin ***
              // *** چاککراو: پێویستە IDی جۆرەکە دیاری بکەین ***
@@ -891,11 +791,7 @@ async function createSingleCategoryRowElement(sectionData) {
 // *** DAWÎYA GORANKARIYÊ ***
 
 async function createAllProductsSectionElement() {
-    // === START: KODA GUHERTÎ / کۆدی گۆڕاو ===
-    // Em tenê 10 kaڵa bar dikin, ne hemî
-    // ئێمە تەنها 10 کاڵا بار دەکەین، نەک هەمووی
-    const products = await fetchInitialProductsForHome(10); // 10 kaڵa bar bike
-    // === END: KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
+    const products = await fetchInitialProductsForHome();
     if (!products || products.length === 0) return null;
 
     const container = document.createElement('div');
@@ -904,9 +800,7 @@ async function createAllProductsSectionElement() {
     container.innerHTML = `
         <div class="section-title-header">
             <h3 class="section-title-main">${t('all_products_section_title')}</h3>
-             <!-- Em dikarin bişkokek "Binêre Hemî" li vir zêde bikin heke em bixwazin -->
-             <!-- دەتوانین دوگمەیەکی "بینینی هەموو" لێرە زیاد بکەین ئەگەر بمانەوێت -->
-        </div>
+            </div>
         <div class="products-container"></div>
     `;
     const productsGrid = container.querySelector('.products-container');

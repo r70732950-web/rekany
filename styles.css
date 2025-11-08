@@ -113,26 +113,6 @@ body.overlay-active {
     padding-bottom: 85px; /* Cih ji bo navîgasyona jêrîn */
 }
 
-/* === START: KODA NÛ / کۆدی نوێ (Çareserkirina Flicker) === */
-/* === دەستپێک: کۆدی نوێ (چارەسەرکردنی پرشکردن) === */
-/* Me 'opacity: 0' ji vir rakir (ئێمە 'opacity: 0'مان لێرە سڕییەوە) */
-#productsContainer, #skeletonLoader, #homePageSectionsContainer {
-    /* opacity: 0; <-- RAKIRIN! / سڕایەوە! */
-    transition: opacity 0.25s ease-in-out;
-}
-
-/* Ev klasên nû ne ji bo kontrolkirina dîtinê (ئەم پۆلە نوێیانە بۆ کۆنترۆڵکردنی بینینن) */
-.content-hidden {
-    opacity: 0;
-    pointer-events: none; /* Dema veşartî ye, klîk nakeve (کاتێک شاراوەیە، کلیکی لێ ناکرێت) */
-}
-.content-visible {
-    opacity: 1;
-    pointer-events: auto; /* Dema xuya ye, klîk kar dike (کاتێک دیارە، کلیک کار دەکات) */
-}
-/* === END: KODA NÛ / کۆتایی کۆدی نوێ === */
-
-
 .section {
     background-color: var(--section-bg);
     border-radius: 0;

@@ -285,8 +285,6 @@ function updateCartCountUI() {
 
 // --- Rendering Functions (UI specific) ---
 
-// === START: KODA NÛ / کۆدی نوێ (Çareserkirina Flicker) ===
-// === دەستپێک: کۆدی نوێ (چارەسەرکردنی پرشکردن) ===
 export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
     if (!container) {
         console.error("Skeleton loader container not found:", container);
@@ -304,11 +302,8 @@ export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
         `;
         container.appendChild(skeletonCard);
     }
-    // container.style.display = 'grid'; // <-- RAKIRIN / سڕایەوە
-    // Kontrola dîtinê (visibility) dê ji hêla updateProductViewUI ve were kirin
-    // کۆنترۆڵکردنی بینین لەلایەن updateProductViewUIـەوە دەکرێت
+    container.style.display = 'grid'; // Ensure it's visible
 }
-// === END: KODA NÛ / کۆتایی کۆدی نوێ ===
 
 export function createProductCardElementUI(product) {
     const productCard = document.createElement('div');
@@ -1325,10 +1320,8 @@ function setupUIEventListeners() {
             // Em kontrol dikin ka `productsContainer` tê nîşandan
             // ئێمە ئیتر تەنها `homePageSectionsContainer` پشکنین ناکەین
             // پشکنین دەکەین بزانین `productsContainer` پیشان دەدرێت
-            // === START: KODA NÛ / کۆدی نوێ (Çareserkirina Flicker) ===
-            // Em klasa .content-visible kontrol dikin (پشکنینی پۆلی .content-visible دەکەین)
-            const isProductGridVisible = document.getElementById('productsContainer')?.classList.contains('content-visible');
-            // === END: KODA NÛ / کۆتایی کۆدی نوێ ===
+            const isProductGridVisible = document.getElementById('productsContainer')?.style.display === 'grid';
+            // === KODA GUHERTÎ / کۆتایی کۆدی گۆڕاو ===
 
             if (entries[0].isIntersecting && isMainPageActive && isProductGridVisible && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
                  loader.style.display = 'block'; 
