@@ -206,7 +206,7 @@ window.AdminLogic = {
             const imageUrl = this.currentImageUrls[i];
             const hasImage = !!imageUrl;
 
-            slot.innerHTML = \`
+            slot.innerHTML = `
                 <img src="${hasImage ? imageUrl : ''}" class="image-upload-preview" style="display: ${hasImage ? 'block' : 'none'};">
                 <label for="file-upload-${i}" class="image-upload-label" style="display: ${hasImage ? 'none' : 'flex'};">
                     <i class="fas fa-upload"></i>
@@ -217,7 +217,7 @@ window.AdminLogic = {
                 <button type="button" class="image-upload-remove-btn" style="display: ${hasImage ? 'flex' : 'none'};">
                     <i class="fas fa-times"></i>
                 </button>
-            \`;
+            `;
             container.appendChild(slot);
         }
     },
@@ -236,7 +236,7 @@ window.AdminLogic = {
         label.style.display = 'none';
         
         try {
-            const fileName = \`products/${Date.now()}-${file.name}\`;
+            const fileName = `products/${Date.now()}-${file.name}`;
             const storageRef = ref(storage, fileName);
 
             await uploadBytes(storageRef, file);
@@ -388,7 +388,7 @@ window.AdminLogic = {
         onSnapshot(q, (snapshot) => {
             container.innerHTML = '';
             if (snapshot.empty) {
-                container.innerHTML = \`<p style="text-align:center; color: var(--dark-gray);">${t('no_announcements_sent')}</p>\`;
+                container.innerHTML = `<p style="text-align:center; color: var(--dark-gray);">${t('no_announcements_sent')}</p>`;
                 return;
             }
             snapshot.forEach(doc => {
@@ -396,12 +396,12 @@ window.AdminLogic = {
                 const title = (announcement.title && announcement.title.ku_sorani) || 'بێ ناونیشان';
                 const item = document.createElement('div');
                 item.className = 'admin-notification-item';
-                item.innerHTML = \`
+                item.innerHTML = `
                     <div class="admin-notification-details">
                         <div class="notification-title">${title}</div>
                     </div>
                     <button class="delete-btn"><i class="fas fa-trash"></i></button>
-                \`;
+                `;
                 item.querySelector('.delete-btn').addEventListener('click', () => this.deleteAnnouncement(announcement.id));
                 container.appendChild(item);
             });
@@ -438,7 +438,7 @@ window.AdminLogic = {
 
                 const item = document.createElement('div');
                 item.className = 'social-link-item';
-                item.innerHTML = \`
+                item.innerHTML = `
                     <div class="item-info">
                         <i class="${link.icon}"></i>
                         <div class="item-details">
@@ -447,7 +447,7 @@ window.AdminLogic = {
                         </div>
                     </div>
                     <button class="delete-btn"><i class="fas fa-trash"></i></button>
-                \`;
+                `;
 
                 item.querySelector('.delete-btn').onclick = () => this.deleteSocialMediaLink(link.id);
                 socialLinksListContainer.appendChild(item);
@@ -485,7 +485,7 @@ window.AdminLogic = {
 
                 const item = document.createElement('div');
                 item.className = 'social-link-item';
-                item.innerHTML = \`
+                item.innerHTML = `
                     <div class="item-info">
                         <i class="${method.icon}" style="color: ${method.color};"></i>
                         <div class="item-details">
@@ -494,7 +494,7 @@ window.AdminLogic = {
                         </div>
                     </div>
                     <button class="delete-btn"><i class="fas fa-trash"></i></button>
-                \`;
+                `;
 
                 item.querySelector('.delete-btn').onclick = () => this.deleteContactMethod(method.id);
                 container.appendChild(item);
@@ -513,8 +513,8 @@ window.AdminLogic = {
 
         for (const mainDoc of mainCategoriesSnapshot.docs) {
             const mainCategory = { id: mainDoc.id, ...mainDoc.data() };
-            const mainPath = \`categories/${mainCategory.id}\`;
-            content += \`
+            const mainPath = `categories/${mainCategory.id}`;
+            content += `
                 <div class="category-manage-item" style="background: #f0f2f5; padding: 8px; border-radius: 4px; margin-bottom: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <strong><i class="${mainCategory.icon}"></i> ${mainCategory.name_ku_sorani} (ڕیزبەندی: ${mainCategory.order || 0})</strong>
@@ -523,14 +523,14 @@ window.AdminLogic = {
                             <button class="delete-btn small-btn" data-path="${mainPath}" data-name="${mainCategory.name_ku_sorani}"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
-                </div>\`;
+                </div>`;
 
             const subCategoriesQuery = query(collection(db, mainPath, "subcategories"), orderBy("order", "asc"));
             const subCategoriesSnapshot = await getDocs(subCategoriesQuery);
             for (const subDoc of subCategoriesSnapshot.docs) {
                 const subCategory = { id: subDoc.id, ...subDoc.data() };
-                const subPath = \`${mainPath}/subcategories/${subCategory.id}\`;
-                content += \`
+                const subPath = `${mainPath}/subcategories/${subCategory.id}`;
+                content += `
                     <div class="category-manage-item" style="margin-right: 20px; padding: 8px; border-right: 2px solid #ccc; margin-bottom: 8px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span>- ${subCategory.name_ku_sorani} (ڕیزبەندی: ${subCategory.order || 0})</span>
@@ -539,14 +539,14 @@ window.AdminLogic = {
                                 <button class="delete-btn small-btn" data-path="${subPath}" data-name="${subCategory.name_ku_sorani}"><i class="fas fa-trash"></i></button>
                             </div>
                         </div>
-                    </div>\`;
+                    </div>`;
 
                 const subSubCategoriesQuery = query(collection(db, subPath, "subSubcategories"), orderBy("order", "asc"));
                 const subSubCategoriesSnapshot = await getDocs(subSubCategoriesQuery);
                 for (const subSubDoc of subSubCategoriesSnapshot.docs) {
                     const subSubCategory = { id: subSubDoc.id, ...subSubDoc.data() };
-                    const subSubPath = \`${subPath}/subSubcategories/${subSubCategory.id}\`;
-                    content += \`
+                    const subSubPath = `${subPath}/subSubcategories/${subSubCategory.id}`;
+                    content += `
                         <div class="category-manage-item" style="margin-right: 40px; padding: 8px; border-right: 2px solid #e2e8f0; margin-bottom: 8px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span>-- ${subSubCategory.name_ku_sorani} (ڕیزبەندی: ${subSubCategory.order || 0})</span>
@@ -555,7 +555,7 @@ window.AdminLogic = {
                                     <button class="delete-btn small-btn" data-path="${subSubPath}" data-name="${subSubCategory.name_ku_sorani}"><i class="fas fa-trash"></i></button>
                                 </div>
                             </div>
-                        </div>\`;
+                        </div>`;
                 }
             }
         }
@@ -605,7 +605,7 @@ window.AdminLogic = {
     },
 
     handleDeleteCategory: async function(docPath, categoryName) {
-        const confirmation = confirm(\`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە.\`);
+        const confirmation = confirm(`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە.`);
         if (confirmation) {
             try {
                 await deleteDoc(doc(db, docPath));
@@ -640,7 +640,7 @@ window.AdminLogic = {
             const select = document.getElementById(d.id);
             if (select) {
                 const requiredAttrs = d.required ? 'disabled selected' : '';
-                const firstOptionHTML = \`<option value="" ${requiredAttrs}>${d.defaultText}</option>\`;
+                const firstOptionHTML = `<option value="" ${requiredAttrs}>${d.defaultText}</option>`;
                 select.innerHTML = firstOptionHTML;
                 
                 categoriesWithoutAll.forEach(cat => {
@@ -676,7 +676,7 @@ window.AdminLogic = {
 
                 const groupElement = document.createElement('div');
                 groupElement.className = 'admin-list-group';
-                groupElement.innerHTML = \`
+                groupElement.innerHTML = `
                     <div class="admin-list-group-header">
                         <strong><i class="fas fa-images"></i> ${group.name}</strong>
                         <div>
@@ -685,7 +685,7 @@ window.AdminLogic = {
                         </div>
                     </div>
                     <div class="cards-list-container" style="padding: 10px;">...</div>
-                \`;
+                `;
                 container.appendChild(groupElement);
 
                 const cardsContainer = groupElement.querySelector('.cards-list-container');
@@ -699,12 +699,12 @@ window.AdminLogic = {
                             const card = { id: cardDoc.id, ...cardDoc.data() };
                             const cardElement = document.createElement('div');
                             cardElement.className = 'admin-list-item';
-                            cardElement.innerHTML = \`
+                            cardElement.innerHTML = `
                                 <span>- کارت (ڕیز: ${card.order})</span>
                                 <div>
                                     <button class="edit-btn small-btn edit-promo-card-btn" data-group-id="${group.id}" data-card-id="${card.id}"><i class="fas fa-edit"></i></button>
                                     <button class="delete-btn small-btn delete-promo-card-btn" data-group-id="${group.id}" data-card-id="${card.id}"><i class="fas fa-trash"></i></button>
-                                </div>\`;
+                                </div>`;
                             cardsContainer.appendChild(cardElement);
                         });
                     }
@@ -788,7 +788,7 @@ window.AdminLogic = {
 
                 const groupElement = document.createElement('div');
                 groupElement.className = 'admin-list-group';
-                groupElement.innerHTML = \`
+                groupElement.innerHTML = `
                     <div class="admin-list-group-header">
                         <strong><i class="fas fa-tags"></i> ${group.name}</strong>
                         <div>
@@ -797,7 +797,7 @@ window.AdminLogic = {
                         </div>
                     </div>
                     <div class="brands-list-container" style="padding: 10px;">...</div>
-                \`;
+                `;
                 container.appendChild(groupElement);
 
                 const brandsContainer = groupElement.querySelector('.brands-list-container');
@@ -811,12 +811,12 @@ window.AdminLogic = {
                             const brand = { id: brandDoc.id, ...brandDoc.data() };
                             const brandElement = document.createElement('div');
                             brandElement.className = 'admin-list-item';
-                            brandElement.innerHTML = \`
+                            brandElement.innerHTML = `
                                 <span>- ${brand.name.ku_sorani} (ڕیز: ${brand.order})</span>
                                 <div>
                                     <button class="edit-btn small-btn edit-brand-btn" data-group-id="${group.id}" data-brand-id="${brand.id}"><i class="fas fa-edit"></i></button>
                                     <button class="delete-btn small-btn delete-brand-btn" data-group-id="${group.id}" data-brand-id="${brand.id}"><i class="fas fa-trash"></i></button>
-                                </div>\`;
+                                </div>`;
                             brandsContainer.appendChild(brandElement);
                         });
                     }
@@ -908,7 +908,7 @@ window.AdminLogic = {
                 const rowElement = document.createElement('div');
                 rowElement.className = 'admin-list-group';
                 
-                rowElement.innerHTML = \`
+                rowElement.innerHTML = `
                     <div class="admin-list-group-header">
                         <strong><i class="fas fa-layer-group"></i> ${row.title.ku_sorani} (ڕیز: ${row.order})</strong>
                         <div>
@@ -917,7 +917,7 @@ window.AdminLogic = {
                         </div>
                     </div>
                     <div class="cards-list-container" style="padding: 10px;">...خەریکی بارکردنی کارتەکانە</div>
-                \`;
+                `;
                 container.appendChild(rowElement);
 
                 const cardsContainer = rowElement.querySelector('.cards-list-container');
@@ -931,13 +931,13 @@ window.AdminLogic = {
                             const card = { id: cardDoc.id, ...cardDoc.data() };
                             const cardElement = document.createElement('div');
                             cardElement.className = 'admin-list-item';
-                            cardElement.innerHTML = \`
+                            cardElement.innerHTML = `
                                 <span>- ${card.name.ku_sorani} (ڕیز: ${card.order})</span>
                                 <div>
                                     <button class="edit-card-btn edit-btn small-btn" data-row-id="${row.id}" data-card-id="${card.id}"><i class="fas fa-edit"></i></button>
                                     <button class="delete-card-btn delete-btn small-btn" data-row-id="${row.id}" data-card-id="${card.id}"><i class="fas fa-trash"></i></button>
                                 </div>
-                            \`;
+                            `;
                             cardsContainer.appendChild(cardElement);
                         });
                     }
@@ -1065,7 +1065,7 @@ window.AdminLogic = {
 
                 const itemName = (item.name && typeof item.name === 'object') ? (item.name[getCurrentLanguage()] || item.name.ku_sorani) : item.name;
 
-                itemElement.innerHTML = \`
+                itemElement.innerHTML = `
                     <div class="layout-item-info">
                         <i class="fas fa-grip-vertical drag-handle"></i>
                         <span>${itemName}</span>
@@ -1077,7 +1077,7 @@ window.AdminLogic = {
                         </label>
                         <button class="delete-layout-item-btn delete-btn small-btn"><i class="fas fa-trash"></i></button>
                     </div>
-                \`;
+                `;
                 container.appendChild(itemElement);
             });
 
@@ -1165,7 +1165,7 @@ window.AdminLogic = {
         const categories = getCategories();
         const categoriesWithoutAll = categories.filter(cat => cat.id && cat.id !== 'all');
         
-        select.innerHTML = \`<option value="" disabled selected data-translate-key="admin_category_layout_select">${t('admin_category_layout_select')}</option>\`;
+        select.innerHTML = `<option value="" disabled selected data-translate-key="admin_category_layout_select">${t('admin_category_layout_select')}</option>`;
         categoriesWithoutAll.forEach(cat => {
             const option = document.createElement('option');
             option.value = cat.id;
@@ -1216,7 +1216,7 @@ window.AdminLogic = {
         }
 
         sectionsArray.forEach((item, index) => {
-            if (!item.id) item.id = \`section_${Date.now()}_${index}\`;
+            if (!item.id) item.id = `section_${Date.now()}_${index}`;
             
             const itemElement = document.createElement('div');
             itemElement.className = 'layout-item';
@@ -1226,7 +1226,7 @@ window.AdminLogic = {
 
             const itemName = (item.name && typeof item.name === 'object') ? (item.name[getCurrentLanguage()] || item.name.ku_sorani) : item.name;
 
-            itemElement.innerHTML = \`
+            itemElement.innerHTML = `
                 <div class="layout-item-info">
                     <i class="fas fa-grip-vertical drag-handle"></i>
                     <span>${itemName}</span>
@@ -1234,7 +1234,7 @@ window.AdminLogic = {
                 <div class="layout-item-actions">
                     <button class="delete-layout-item-btn delete-btn small-btn"><i class="fas fa-trash"></i></button>
                 </div>
-            \`;
+            `;
             container.appendChild(itemElement);
         });
     },
@@ -1342,7 +1342,7 @@ window.AdminLogic = {
         }
         
         const newSectionData = {
-            id: \`section_${Date.now()}\`, 
+            id: `section_${Date.now()}`, 
             name: nameObj,
             type,
             enabled: true, 
@@ -1449,18 +1449,18 @@ window.AdminLogic = {
                 }
                 
                 const snapshot = await getDocs(query(collectionRef, orderBy(orderField)));
-                groupSelect.innerHTML = \`<option value="" disabled selected>-- گرووپ/ڕیزێک هەڵبژێرە --</option>\`;
+                groupSelect.innerHTML = `<option value="" disabled selected>-- گرووپ/ڕیزێک هەڵبژێرە --</option>`;
                 snapshot.forEach(doc => {
                     const data = doc.data();
                     const name = nameFieldAccessor(data);
-                    groupSelect.innerHTML += \`<option value="${doc.id}">${name}</option>\`;
+                    groupSelect.innerHTML += `<option value="${doc.id}">${name}</option>`;
                 });
             } else if (type === 'single_category_row') {
                 categoryContainer.style.display = 'block';
                 mainCatSelect.required = true;
                 mainCatSelect.innerHTML = '<option value="">-- جۆری سەرەکی هەڵبژێرە (پێویستە) --</option>';
                 getCategories().filter(c => c.id !== 'all').forEach(cat => {
-                    mainCatSelect.innerHTML += \`<option value="${cat.id}">${cat.name_ku_sorani}</option>\`;
+                    mainCatSelect.innerHTML += `<option value="${cat.id}">${cat.name_ku_sorani}</option>`;
                 });
             }
         });
@@ -1479,11 +1479,11 @@ window.AdminLogic = {
             if (mainCatId) {
                 subContainer.style.display = 'block';
                 subSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
-                const q = query(collection(db, \`categories/${mainCatId}/subcategories\`), orderBy('order'));
+                const q = query(collection(db, `categories/${mainCatId}/subcategories`), orderBy('order'));
                 const snapshot = await getDocs(q);
                 subSelect.innerHTML = '<option value="">-- هەموو (یان هەڵبژێرە) --</option>';
                 snapshot.forEach(doc => {
-                    subSelect.innerHTML += \`<option value="${doc.id}">${doc.data().name_ku_sorani}</option>\`;
+                    subSelect.innerHTML += `<option value="${doc.id}">${doc.data().name_ku_sorani}</option>`;
                 });
             } else {
                 subContainer.style.display = 'none';
@@ -1501,11 +1501,11 @@ window.AdminLogic = {
             if (mainCatId && subCatId) {
                 subSubContainer.style.display = 'block';
                 subSubSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
-                const q = query(collection(db, \`categories/${mainCatId}/subcategories/${subCatId}/subSubcategories\`), orderBy('order'));
+                const q = query(collection(db, `categories/${mainCatId}/subcategories/${subCatId}/subSubcategories`), orderBy('order'));
                 const snapshot = await getDocs(q);
                 subSubSelect.innerHTML = '<option value="">-- هەموو (یان هەڵبژێرە) --</option>';
                 snapshot.forEach(doc => {
-                    subSubSelect.innerHTML += \`<option value="${doc.id}">${doc.data().name_ku_sorani}</option>\`;
+                    subSubSelect.innerHTML += `<option value="${doc.id}">${doc.data().name_ku_sorani}</option>`;
                 });
             } else {
                 subSubContainer.style.display = 'none';
@@ -1716,7 +1716,7 @@ window.AdminLogic = {
                     subCatSelect.innerHTML = '<option value="" disabled selected>-- جۆری لاوەکی هەڵبژێرە --</option>';
                     querySnapshot.docs.forEach(doc => {
                         const subcat = { id: doc.id, ...doc.data() };
-                        subCatSelect.innerHTML += \`<option value="${subcat.id}">${subcat.name_ku_sorani}</option>\`;
+                        subCatSelect.innerHTML += `<option value="${subcat.id}">${subcat.name_ku_sorani}</option>`;
                     });
                 }
             } catch(error) {
@@ -2077,7 +2077,7 @@ window.AdminLogic = {
                 brandSubCatSelect.innerHTML = '';
             }
         });
-
+        
         // [ زیادکرا بۆ چاککردن ] - زیادکردنی گوێگر بۆ لیستی جۆری سەرەکی لە فۆڕمی "کارت"
         document.getElementById('shortcutCardMainCategory').addEventListener('change', async (e) => {
             const mainCatId = e.target.value;
@@ -2091,11 +2091,11 @@ window.AdminLogic = {
             if (mainCatId) {
                 subCatContainer.style.display = 'block';
                 subCatSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
-                const q = query(collection(db, \`categories/${mainCatId}/subcategories\`), orderBy('order'));
+                const q = query(collection(db, `categories/${mainCatId}/subcategories`), orderBy('order'));
                 const snapshot = await getDocs(q);
                 subCatSelect.innerHTML = '<option value="">-- هەموو لاوەکی (یان هەڵبژێرە) --</option>';
                 snapshot.forEach(doc => {
-                    subCatSelect.innerHTML += \`<option value="${doc.id}">${doc.data().name_ku_sorani}</option>\`;
+                    subCatSelect.innerHTML += `<option value="${doc.id}">${doc.data().name_ku_sorani}</option>`;
                 });
             } else {
                 subCatContainer.style.display = 'none';
@@ -2114,11 +2114,11 @@ window.AdminLogic = {
             if (mainCatId && subCatId) {
                 subSubCatContainer.style.display = 'block';
                 subSubCatSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
-                const q = query(collection(db, \`categories/${mainCatId}/subcategories/${subCatId}/subSubcategories\`), orderBy('order'));
+                const q = query(collection(db, `categories/${mainCatId}/subcategories/${subCatId}/subSubcategories`), orderBy('order'));
                 const snapshot = await getDocs(q);
                 subSubCatSelect.innerHTML = '<option value="">-- هەموو لاوەکی لاوەکی (یان هەڵبژێرە) --</option>';
                 snapshot.forEach(doc => {
-                    subSubCatSelect.innerHTML += \`<option value="${doc.id}">${doc.data().name_ku_sorani}</option>\`;
+                    subSubCatSelect.innerHTML += `<option value="${doc.id}">${doc.data().name_ku_sorani}</option>`;
                 });
             } else {
                 subSubCatContainer.style.display = 'none';
@@ -2206,3 +2206,4 @@ window.AdminLogic = {
             });
         }
     }
+};
