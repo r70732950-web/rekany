@@ -6,7 +6,7 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -137,6 +137,11 @@
                         </div>
                         <button type="submit">چوونەژوورەوە</button>
                         <p id="userLoginError" style="color:var(--danger-color); margin-top:10px; display:none; text-align: center;"></p>
+                        
+                        <!-- بەشی زیادکراو: بیرچوونەوەی وشەی نهێنی -->
+                        <p id="forgotPasswordLink" style="text-align: center; color: var(--primary-color); cursor: pointer; margin-top: 15px; font-size: 14px;" data-translate-key="forgot_password">
+                            وشەی نهێنیت لەبیرکردووە؟
+                        </p>
                     </form>
 
                     <form id="userSignUpForm" style="display: none;">
@@ -1107,3 +1112,4 @@
     <script src="admin.js" defer></script>
 </body>
 </html>
+

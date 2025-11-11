@@ -1,12 +1,12 @@
-// app-core.js (چاککراو بۆ سیستەمی بەکارهێنەر)
 import {
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
     categoryLayoutsCollection, 
-    // [ 💡 گۆڕانکاری لێرە کرا 💡 ]
-    usersCollection, // کۆڵێکشنی نوێی بەکارهێنەران
-    createUserWithEmailAndPassword, updateProfile, // فانکشنی نوێی Auth
+    usersCollection, 
+    createUserWithEmailAndPassword, updateProfile, 
+    // [ 💡 گۆڕانکاری لێرە کرا 💡 ] - sendPasswordResetEmail زیادکرا
+    sendPasswordResetEmail,
     translations, state,
     CART_KEY, FAVORITES_KEY, PRODUCTS_PER_PAGE,
 } from './app-setup.js';
@@ -62,7 +62,7 @@ export function isFavorite(productId) {
     return state.favorites.includes(productId);
 }
 
-// فانکشنی چوونەژوورەوەی ئەدمین (وەک خۆی دەمێنێتەوە)
+// فانکشنی چوونەژوورەوەی ئەدمین
 async function handleLogin(email, password) {
     try {
         await signInWithEmailAndPassword(auth, email, password);
@@ -71,7 +71,7 @@ async function handleLogin(email, password) {
     }
 }
 
-// [ 💡 فانکشنی نوێ زیادکرا 💡 ]
+// فانکشنی چوونەژوورەوەی بەکارهێنەر
 export async function handleUserLogin(email, password) {
     try {
         await signInWithEmailAndPassword(auth, email, password);
@@ -82,7 +82,7 @@ export async function handleUserLogin(email, password) {
     }
 }
 
-// [ 💡 فانکشنی نوێ زیادکرا 💡 ]
+// فانکشنی خۆتۆمارکردنی بەکارهێنەر
 export async function handleUserSignUp(name, email, password) {
     try {
         // 1. دروستکردنی بەکارهێنەر لە Auth
@@ -98,9 +98,9 @@ export async function handleUserSignUp(name, email, password) {
             email: user.email,
             displayName: name,
             createdAt: Date.now(),
-            name: "",      // بۆ زانیاری گەیاندن (سەرەتا بەتاڵە)
-            address: "",  // بۆ زانیاری گەیاندن (سەرەتا بەتاڵە)
-            phone: ""     // بۆ زانیاری گەیاندن (سەرەتا بەتاڵە)
+            name: "",      
+            address: "",  
+            phone: ""     
         });
 
         return { success: true, message: t('user_signup_success') };
@@ -116,13 +116,30 @@ export async function handleUserSignUp(name, email, password) {
     }
 }
 
-// [ 💡 فانکشنی نوێ زیادکرا 💡 ]
+// فانکشنی چوونەدەرەوەی بەکارهێنەر
 export async function handleUserLogout() {
     try {
         await signOut(auth);
         return { success: true, message: t('user_logout_success') };
     } catch (error) {
         console.error("User logout error:", error);
+        return { success: false, message: t('error_generic') };
+    }
+}
+
+// [ 💡 فانکشنی نوێ زیادکرا: بیرچوونەوەی وشەی نهێنی 💡 ]
+export async function handlePasswordReset(email) {
+    if (!email) {
+        return { success: false, message: t('password_reset_enter_email') };
+    }
+    try {
+        await sendPasswordResetEmail(auth, email);
+        return { success: true, message: t('password_reset_email_sent') };
+    } catch (error) {
+        console.error("Password reset error:", error.code);
+        if (error.code === 'auth/user-not-found') {
+            return { success: false, message: t('password_reset_error_not_found') };
+        }
         return { success: false, message: t('error_generic') };
     }
 }
@@ -736,10 +753,9 @@ export function setLanguageCore(lang) {
 }
 
 // [ 💡 فانکشنی نوێ زیادکرا 💡 ]
-let userProfileUnsubscribe = null; // بۆ ڕاگرتنی گوێگرتن کاتی چوونەدەرەوە
+let userProfileUnsubscribe = null; 
 
 async function loadUserProfile(uid) {
-    // گوێگری پێشوو ڕابگرە (ئەگەر هەبێت)
     if (userProfileUnsubscribe) {
         userProfileUnsubscribe();
         userProfileUnsubscribe = null;
@@ -747,24 +763,20 @@ async function loadUserProfile(uid) {
 
     const userProfileRef = doc(usersCollection, uid);
     
-    // گوێگرتن لە گۆڕانکارییەکانی پڕۆفایل
     userProfileUnsubscribe = onSnapshot(userProfileRef, (docSnap) => {
         if (docSnap.exists()) {
             const profileData = docSnap.data();
-            // پاشەکەوتکردنی زانیاری گەیاندن
             state.userProfile = {
                 name: profileData.name || '',
                 address: profileData.address || '',
                 phone: profileData.phone || ''
             };
-            // نوێکردنەوەی زانیارییەکانی Auth
             if (state.currentUser) {
                 state.currentUser.displayName = profileData.displayName;
                 state.currentUser.email = profileData.email;
             }
             console.log("پڕۆفایلی بەکارهێنەر بارکرا:", state.userProfile);
         } else {
-            // ئەگەر بەهەڵە دۆکیومێنت دروست نەبووبوو، یەکێکی نوێ دروست بکە
             console.warn(`دۆکیومێنتی پڕۆفایل نەدۆزرایەوە بۆ: ${uid}. دروستکردنی یەکێکی نوێ...`);
             setDoc(userProfileRef, {
                 email: state.currentUser.email,
@@ -774,7 +786,6 @@ async function loadUserProfile(uid) {
             }).catch(e => console.error("هەڵە لە دروستکردنی پڕۆفایلی ونبوو:", e));
             state.userProfile = { name: "", address: "", phone: "" };
         }
-        // ئاگادارکردنەوەی UI کە پڕۆفایل ئامادەیە
         document.dispatchEvent(new CustomEvent('profileLoaded'));
     }, (error) => {
         console.error("هەڵە لە گوێگرتن لە پڕۆفایلی بەکارهێنەر:", error);
@@ -793,17 +804,15 @@ export async function initCore() {
                 const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3";
                 let isAdmin = false;
 
-                // گوێگری پڕۆفایلی پێشوو ڕابگرە
                 if (userProfileUnsubscribe) {
                     userProfileUnsubscribe();
                     userProfileUnsubscribe = null;
                 }
 
                 if (user) {
-                    // --- حاڵەتی یەکەم: بەکارهێنەر ئەدمینە ---
                     if (user.uid === adminUID) {
                         isAdmin = true;
-                        state.currentUser = null; // ئەدمین بەکارهێنەری ئاسایی نییە
+                        state.currentUser = null; 
                         state.userProfile = {};
                         
                         const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
@@ -812,15 +821,12 @@ export async function initCore() {
                             window.AdminLogic.initialize();
                         }
                     } 
-                    // --- حاڵەتی دووەم: بەکارهێنەری ئاساییە ---
                     else {
                         isAdmin = false;
-                        state.currentUser = user; // دانانی بەکارهێنەری ئێستا
+                        state.currentUser = user; 
                         
-                        // بارکردنی پڕۆفایلەکەی لە Firestore
                         await loadUserProfile(user.uid);
                         
-                        // ئەگەر پێشتر ئەدمین لۆگین بووبوو، دایبخە
                         const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
                         sessionStorage.removeItem('isAdmin');
                         if (wasAdmin && window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
@@ -828,13 +834,11 @@ export async function initCore() {
                         }
                     }
                 } 
-                // --- حاڵەتی سێیەم: کەس لۆگین نییە (میوان) ---
                 else {
                     isAdmin = false;
                     state.currentUser = null;
-                    state.userProfile = {}; // ڕีسێتکردنی پڕۆفایل
+                    state.userProfile = {}; 
                     
-                    // دڵنیابوونەوە لە چوونەدەرەوەی ئەدمین
                     const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
                     sessionStorage.removeItem('isAdmin');
                     if (wasAdmin && window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
@@ -842,9 +846,7 @@ export async function initCore() {
                     }
                 }
                 
-                // ئاگادارکردنەوەی UI بۆ گۆڕینی دۆخی ئەدمین
                 document.dispatchEvent(new CustomEvent('authChange', { detail: { isAdmin } }));
-                // ئاگادارکردنەوەی UI بۆ گۆڕینی دۆخی بەکارهێنەر
                 document.dispatchEvent(new CustomEvent('userChange', { detail: { user: state.currentUser } }));
             });
 
@@ -886,6 +888,10 @@ export async function initCore() {
 export {
     state, 
     handleLogin, // (ئەمە هی ئەدمینە)
+    
+    // [ 💡 فانکشنی نوێ زیادکرا 💡 ]
+    handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
+    
     fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, 
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
     requestNotificationPermissionCore,

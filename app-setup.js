@@ -1,8 +1,7 @@
-// app-setup.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
-// [ 💡 گۆڕانکاری لێرە کرا 💡 ] - فانکشنی نوێ بۆ دروستکردنی هەژمار زیادکرا
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+// [ 💡 گۆڕانکاری لێرە کرا 💡 ] - sendPasswordResetEmail زیادکرا
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
@@ -25,10 +24,10 @@ export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 export const storage = getStorage(app);
 
-// [ 💡 گۆڕانکاری لێرە کرا 💡 ] - فانکشنە نوێیەکان زیادکران
+// [ 💡 گۆڕانکاری لێرە کرا 💡 ] - sendPasswordResetEmail زیادکرا بۆ export
 export {
     signInWithEmailAndPassword, onAuthStateChanged, signOut,
-    createUserWithEmailAndPassword, updateProfile
+    createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail
 };
 
 export const productsCollection = collection(db, "products");
@@ -38,7 +37,6 @@ export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
 export const shortcutRowsCollection = collection(db, "shortcut_rows");
 export const categoryLayoutsCollection = collection(db, "category_layouts");
-// [ 💡 گۆڕانکاری لێرە کرا 💡 ] - کۆڵێکشنی نوێ بۆ پڕۆفایلی بەکارهێنەران
 export const usersCollection = collection(db, "users");
 
 
@@ -131,7 +129,6 @@ export const translations = {
         admin_category_layout_enable: "چالاککردنی دیزاینی تایbەت بۆ ئەم جۆرە",
         admin_category_layout_info: "ئەگەر چالاک بێت، ئەم دیزاینە لە جیاتی لیستی ئاسایی کاڵاکان پیشان دەدرێت.",
         admin_category_layout_add_section: "زیادکردنی بەش بۆ جۆر",
-        // [ 💡 وەرگێڕانی نوێ لێرە زیادکرا 💡 ]
         user_login_error: "ئیمەیڵ یان وشەی نهێنی هەڵەیە",
         user_signup_email_exists: "ئەم ئیمەیڵە پێشتر بەکارهاتووە",
         user_signup_weak_password: "وشەی نهێنی زۆر لاوازە (پێویستە 6 پیت بێت)",
@@ -139,6 +136,12 @@ export const translations = {
         user_logout_success: "بە سەرکەوتوویی چوویتەدەرەوە",
         auth_tab_login: "چوونەژوورەوە",
         auth_tab_signup: "خۆتۆمارکردن",
+
+        // [ 💡 وەرگێڕانی نوێ زیادکرا 💡 ]
+        forgot_password: "وشەی نهێنیت لەبیرکردووە؟",
+        password_reset_email_sent: "ئیمەیڵێکی ڕێستکردنەوەت بۆ نێردرا. تکایە سەیری ئیمەیڵەکەت بکە.",
+        password_reset_error_not_found: "ئەم ئیمەیڵە تۆمار نەکراوە.",
+        password_reset_enter_email: "تکایە سەرەتا ئیمەیڵەکەت لە خانەی ئیمەیڵ بنووسە.",
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -228,7 +231,6 @@ export const translations = {
         admin_category_layout_enable: "چالاکرنا دیزاینا تایbەت بۆ ڤی جۆری",
         admin_category_layout_info: "ئەگەر بهێتە چالاکرن، ئەڤ دیزاینە دێ ل جهێ لیستا ئاسایی یا کاڵایان هێتە نیشاندان.",
         admin_category_layout_add_section: "زێدەکرنا پشکێ بۆ جۆری",
-        // [ 💡 وەرگێڕانی نوێ لێرە زیادکرا 💡 ]
         user_login_error: "ئیمەیل یان پەیڤا نهێنى یا خەلەتە",
         user_signup_email_exists: "ئەڤ ئیمەیلە بەری نوکە هاتیە بکارئینان",
         user_signup_weak_password: "پەیڤا نهێنى یا لاوازە (پێدڤیە 6 پیت بن)",
@@ -236,6 +238,12 @@ export const translations = {
         user_logout_success: "ب سەرکەفتیانە چوويه دەر",
         auth_tab_login: "چوونا ژوور",
         auth_tab_signup: "خۆتۆمارکرن",
+
+        // [ 💡 وەرگێڕانی نوێ زیادکرا 💡 ]
+        forgot_password: "تە پەیڤا نهێنى ژبیرکریە؟",
+        password_reset_email_sent: "ئیمەیلەکا رێستکرنێ بۆ تە هاتە فرێکرن. هیڤی دکەین سحکە ئیمەیلا خۆ.",
+        password_reset_error_not_found: "ئەڤ ئیمەیلە تۆمار نەکریە.",
+        password_reset_enter_email: "هیڤی دکەین ئێکەم جار ئیمەیلا خۆ ل خانەیا ئیمەیلێ بنڤیسە.",
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -325,7 +333,6 @@ export const translations = {
         admin_category_layout_enable: "تفعيل التصميم المخصص لهذه الفئة",
         admin_category_layout_info: "في حال تفعيله، سيتم عرض هذا التصميم بدلاً من قائمة المنتجات العادية.",
         admin_category_layout_add_section: "إضافة قسم للفئة",
-        // [ 💡 وەرگێڕانی نوێ لێرە زیادکرا 💡 ]
         user_login_error: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
         user_signup_email_exists: "هذا البريد الإلكتروني مستخدم بالفعل",
         user_signup_weak_password: "كلمة المرور ضعيفة جداً (يجب أن تكون 6 أحرف على الأقل)",
@@ -333,6 +340,12 @@ export const translations = {
         user_logout_success: "تم تسجيل الخروج بنجاح",
         auth_tab_login: "تسجيل الدخول",
         auth_tab_signup: "إنشاء حساب",
+
+        // [ 💡 وەرگێڕانی نوێ زیادکرا 💡 ]
+        forgot_password: "هل نسيت كلمة المرور؟",
+        password_reset_email_sent: "تم إرسال بريد إلكتروني لإعادة تعيين كلمة المرور. يرجى التحقق من بريدك.",
+        password_reset_error_not_found: "هذا البريد الإلكتروني غير مسجل.",
+        password_reset_enter_email: "يرجى إدخال بريدك الإلكتروني في حقل البريد أولاً.",
     }
 };
 
@@ -341,10 +354,8 @@ export let state = {
     deferredPrompt: null,
     cart: JSON.parse(localStorage.getItem("maten_store_cart")) || [],
     favorites: JSON.parse(localStorage.getItem("maten_store_favorites")) || [],
-    // [ 💡 گۆڕانکاری لێرە کرا 💡 ] - 'userProfile' ئێستا هی Firestore دەبێت، نەک localStorage
-    userProfile: {}, // This will be loaded from Firestore
-    // [ 💡 گۆڕانکاری لێرە کرا 💡 ] - دۆخی بەکارهێنەری ئێستا پاشەکەوت دەکەین
-    currentUser: null, // Holds the auth user object (null if logged out)
+    userProfile: {}, 
+    currentUser: null, 
     editingProductId: null, 
     products: [],
     categories: [], 
@@ -368,8 +379,6 @@ export let state = {
 
 export const CART_KEY = "maten_store_cart";
 export const FAVORITES_KEY = "maten_store_favorites";
-// [ 💡 گۆڕانکاری لێرە کرا 💡 ] - ئەمەمان چیتر ناوێت چونکە پڕۆفایل لە Firestore دادەنرێت
-// export const PROFILE_KEY = "maten_store_profile";
 export const PRODUCTS_PER_PAGE = 25;
 
 export const loginModal = document.getElementById('loginModal');

@@ -1,4 +1,3 @@
-// app-ui.js (چاککراو بۆ سیستەمی بەکارهێنەر)
 import {
     loginModal, addProductBtn, productFormModal, skeletonLoader, searchInput,
     clearSearchBtn, loginForm, productForm, formTitle, imageInputsContainer, loader,
@@ -28,14 +27,14 @@ import {
 import {
     state, 
     t, debounce, formatDescription,
-    handleLogin, // (ئەمە هی ئەدمینە)
-    // [ 💡 فانکشنی نوێی بەکارهێنەر لێرە زیادکرا 💡 ]
-    handleUserLogin, handleUserSignUp, handleUserLogout,
+    handleLogin, 
+    // [ 💡 گۆڕانکاری لێرە کرا 💡 ] - handlePasswordReset زیادکرا
+    handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
     fetchCategories, fetchProductById, fetchProducts, fetchSubcategories, 
     fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, fetchSubSubcategories,
     addToCartCore, updateCartQuantityCore, removeFromCartCore, generateOrderMessageCore,
     toggleFavoriteCore, isFavorite, saveFavorites,
-    saveProfileCore, // (ئەمە نوێکراوەتەوە)
+    saveProfileCore, 
     setLanguageCore,
     requestNotificationPermissionCore, checkNewAnnouncementsCore, updateLastSeenAnnouncementTimestamp,
     handleInstallPrompt, forceUpdateCore,
@@ -178,7 +177,6 @@ export function openPopup(id, type = 'sheet') {
         if (id === 'categoriesSheet') renderCategoriesSheetUI();
         if (id === 'notificationsSheet') renderUserNotificationsUI();
         if (id === 'termsSheet') renderPoliciesUI();
-        // [ 💡 گۆڕانکاری لێرە کرا 💡 ] - پڕکردنەوەی پڕۆفایل لە ڕێگەی `updateProfileSheetUI` دەکرێت
         if (id === 'profileSheet') {
             updateProfileSheetUI();
         }
@@ -957,18 +955,14 @@ function updateAdminUIAuth(isAdmin) {
     }
 }
 
-// [ 💡 فانکشنی نوێ زیادکرا 💡 ]
-// ئەم فانکشنە بڕیار دەدات چی لەناو شاشەی پڕۆفایل پیشان بدرێت
 function updateProfileSheetUI() {
     const authView = document.getElementById('authView');
     const profileView = document.getElementById('profileView');
     
-    // ئەگەر بەکارهێنەر میوان بێت (لۆگین نەبووبێت)
     if (!state.currentUser) {
         authView.style.display = 'block';
         profileView.style.display = 'none';
 
-        // دڵنیابوونەوە لەوەی تابی لۆگین سەرەتا دیارە
         document.getElementById('authTabLogin').classList.add('active');
         document.getElementById('authTabLogin').style.color = 'var(--primary-color)';
         document.getElementById('authTabLogin').style.borderBottomColor = 'var(--primary-color)';
@@ -980,17 +974,13 @@ function updateProfileSheetUI() {
         document.getElementById('userLoginForm').style.display = 'block';
         document.getElementById('userSignUpForm').style.display = 'none';
 
-    } 
-    // ئەگەر بەکارهێنەر لۆگین بووبێت
-    else {
+    } else {
         authView.style.display = 'none';
         profileView.style.display = 'block';
 
-        // پڕکردنەوەی زانیارییەکان
         document.getElementById('profileDisplayName').textContent = state.currentUser.displayName || "بەکارهێنەر";
         document.getElementById('profileDisplayEmail').textContent = state.currentUser.email;
 
-        // پڕکردنەوەی فۆڕمی زانیاری گەیاندن
         document.getElementById('profileName').value = state.userProfile.name || '';
         document.getElementById('profileAddress').value = state.userProfile.address || '';
         document.getElementById('profilePhone').value = state.userProfile.phone || '';
@@ -1079,7 +1069,6 @@ function setupUIEventListeners() {
     document.querySelectorAll('.close').forEach(btn => btn.onclick = closeCurrentPopup);
     window.onclick = (e) => { if (e.target.classList.contains('modal')) closeCurrentPopup(); };
 
-    // چوونەژوورەوەی ئەدمین
     loginForm.onsubmit = async (e) => {
         e.preventDefault();
         try {
@@ -1090,8 +1079,6 @@ function setupUIEventListeners() {
         }
     };
     
-    // [ 💡 لۆجیکی نوێی بەکارهێنەر لێرە زیادکرا 💡 ]
-    // گۆڕینی نێوان تابی چوونەژوورەوە و خۆتۆمارکردن
     const authTabLogin = document.getElementById('authTabLogin');
     const authTabSignUp = document.getElementById('authTabSignUp');
     const userLoginForm = document.getElementById('userLoginForm');
@@ -1119,7 +1106,6 @@ function setupUIEventListeners() {
         userSignUpForm.style.display = 'block';
     };
 
-    // فۆڕمی چوونەژوورەوەی بەکارهێنەر
     userLoginForm.onsubmit = async (e) => {
         e.preventDefault();
         const email = document.getElementById('userLoginEmail').value;
@@ -1132,7 +1118,7 @@ function setupUIEventListeners() {
         const result = await handleUserLogin(email, password);
         
         if (result.success) {
-            closeCurrentPopup(); // `onAuthStateChanged` پڕۆفایل نوێ دەکاتەوە
+            closeCurrentPopup(); 
         } else {
             errorP.textContent = result.message;
             errorP.style.display = 'block';
@@ -1140,7 +1126,32 @@ function setupUIEventListeners() {
         }
     };
 
-    // فۆڕمی خۆتۆمارکردنی بەکارهێنەر
+    // [ 💡 کۆدی نوێ بۆ لینکەکەی Forgot Password 💡 ]
+    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+    if (forgotPasswordLink) {
+        forgotPasswordLink.onclick = async () => {
+            const email = document.getElementById('userLoginEmail').value;
+            const errorP = document.getElementById('userLoginError');
+            errorP.style.display = 'none';
+
+            if (!email) {
+                showNotification(t('password_reset_enter_email'), 'error');
+                errorP.textContent = t('password_reset_enter_email');
+                errorP.style.display = 'block';
+                return;
+            }
+            
+            const result = await handlePasswordReset(email);
+            
+            showNotification(result.message, result.success ? 'success' : 'error');
+            
+            if (!result.success) {
+                errorP.textContent = result.message;
+                errorP.style.display = 'block';
+            }
+        };
+    }
+
     userSignUpForm.onsubmit = async (e) => {
         e.preventDefault();
         const name = document.getElementById('userSignUpName').value;
@@ -1155,7 +1166,7 @@ function setupUIEventListeners() {
         
         if (result.success) {
             showNotification(result.message, 'success');
-            closeCurrentPopup(); // `onAuthStateChanged` پڕۆفایل نوێ دەکاتەوە
+            closeCurrentPopup(); 
         } else {
             errorP.textContent = result.message;
             errorP.style.display = 'block';
@@ -1163,14 +1174,10 @@ function setupUIEventListeners() {
         }
     };
 
-    // دوگمەی چوونەدەرەوەی بەکارهێنەر
     document.getElementById('userLogoutBtn').onclick = async () => {
         const result = await handleUserLogout();
         showNotification(result.message, result.success ? 'success' : 'error');
-        // `onAuthStateChanged` پڕۆفایل نوێ دەکاتەوە
     };
-
-    // [ 💡 کۆتایی لۆجیکی نوێی بەکارهێنەر 💡 ]
 
 
     const debouncedSearch = debounce(async (term) => {
@@ -1211,8 +1218,6 @@ function setupUIEventListeners() {
         debouncedSubpageSearch('');
     };
 
-    // [ 💡 فۆڕمی پڕۆفایل نوێکرایەوە 💡 ]
-    // ئەمە ئێستا تەنها زانیاری گەیاندن پاشەکەوت دەکات
     profileForm.onsubmit = async (e) => {
         e.preventDefault();
         const profileData = {
@@ -1285,7 +1290,6 @@ function setupUIEventListeners() {
         observer.observe(scrollTrigger);
     }
 
-    // گوێگرتن بۆ گۆڕانی دۆخی ئەدمین
     document.addEventListener('authChange', (e) => {
         updateAdminUIAuth(e.detail.isAdmin);
         if(e.detail.isAdmin && loginModal.style.display === 'block') {
@@ -1293,18 +1297,13 @@ function setupUIEventListeners() {
         }
     });
     
-    // [ 💡 گوێگری نوێ زیادکرا 💡 ]
-    // گوێگرتن بۆ گۆڕانی دۆخی بەکارهێنەر (لۆگین یان لۆگئاوت)
     document.addEventListener('userChange', () => {
-        // ئەگەر شاشەی پڕۆفایل کرابووەوە، نوێی بکەرەوە
         if (document.getElementById('profileSheet')?.classList.contains('show')) {
             updateProfileSheetUI();
         }
     });
     
-    // گوێگرتن بۆ کاتی باربوونی داتای پڕۆفایل
     document.addEventListener('profileLoaded', () => {
-        // ئەگەر شاشەی پڕۆفایل کرابووەوە، داتاکان پڕ بکەرەوە
         if (document.getElementById('profileSheet')?.classList.contains('show')) {
             updateProfileSheetUI();
         }
@@ -1378,8 +1377,6 @@ async function handleSetLanguage(lang) {
          window.AdminLogic.renderCategoryLayoutAdmin?.();
     }
     
-    // [ 💡 نوێکراوەتەوە 💡 ]
-    // نوێکردنەوەی تێکستی تابەکانی چوونەژوورەوە
     const authTabLogin = document.getElementById('authTabLogin');
     const authTabSignUp = document.getElementById('authTabSignUp');
     if (authTabLogin) authTabLogin.textContent = t('auth_tab_login');
@@ -1474,8 +1471,6 @@ async function initializeUI() {
     });
      document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === state.currentLanguage)); 
     
-    // [ 💡 نوێکراوەتەوە 💡 ]
-    // نوێکردنەوەی تێکستی تابەکانی چوونەژوورەوە
     const authTabLogin = document.getElementById('authTabLogin');
     const authTabSignUp = document.getElementById('authTabSignUp');
     if (authTabLogin) authTabLogin.textContent = t('auth_tab_login');
