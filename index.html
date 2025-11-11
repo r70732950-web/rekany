@@ -119,28 +119,75 @@
                 <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
             </div>
             <div class="sheet-content">
-                <form id="profileForm">
-                    <div class="form-group">
-                        <label for="profileName" data-translate-key="profile_name">ناو:</label>
-                        <input type="text" id="profileName" placeholder="ناوی سیانی بنووسە" required>
+
+                <div id="authView" style="display: none;">
+                    <div class="auth-tabs" style="display: flex; margin-bottom: 15px; border-bottom: 1px solid var(--medium-gray);">
+                        <button id="authTabLogin" class="auth-tab active" style="flex: 1; padding: 10px; border: none; background: none; font-weight: bold; border-bottom: 3px solid var(--primary-color); color: var(--primary-color);">چوونەژوورەوە</button>
+                        <button id="authTabSignUp" class="auth-tab" style="flex: 1; padding: 10px; border: none; background: none; font-weight: bold; border-bottom: 3px solid transparent; color: var(--dark-gray);">خۆتۆمارکردن</button>
                     </div>
-                    <div class="form-group">
-                        <label for="profileAddress" data-translate-key="profile_address">ناونیشان:</label>
-                        <input type="text" id="profileAddress" placeholder="شار، گەڕەک، کۆڵان..." required>
-                        <button type="button" id="getLocationBtn" class="location-btn">
-                            <i class="fas fa-map-marker-alt"></i>
-                            <span>وەرگرتنی ناونیشانم بە GPS</span>
-                        </button>
-                    </div>
-                    <div class="form-group">
-                        <label for="profilePhone" data-translate-key="profile_phone">ژمارەی تەلەفۆن:</label>
-                        <input type="tel" id="profilePhone" placeholder="07XX XXX XXXX" required>
-                    </div>
-                    <button type="submit" data-translate-key="save_button">پاشەکەوتکردن</button>
-                </form>
+
+                    <form id="userLoginForm" style="display: block;">
+                        <div class="form-group">
+                            <label for="userLoginEmail">ئیمەیڵ:</label>
+                            <input type="email" id="userLoginEmail" required autocomplete="email">
+                        </div>
+                        <div class="form-group">
+                            <label for="userLoginPassword">وشەی نهێنی:</label>
+                            <input type="password" id="userLoginPassword" required autocomplete="current-password">
+                        </div>
+                        <button type="submit">چوونەژوورەوە</button>
+                        <p id="userLoginError" style="color:var(--danger-color); margin-top:10px; display:none; text-align: center;"></p>
+                    </form>
+
+                    <form id="userSignUpForm" style="display: none;">
+                         <div class="form-group">
+                            <label for="userSignUpName">ناو (بۆ پڕۆفایل):</label>
+                            <input type="text" id="userSignUpName" required autocomplete="name">
+                        </div>
+                        <div class="form-group">
+                            <label for="userSignUpEmail">ئیمەیڵ:</label>
+                            <input type="email" id="userSignUpEmail" required autocomplete="email">
+                        </div>
+                        <div class="form-group">
+                            <label for="userSignUpPassword">وشەی نهێنی (لانیکەم ٦ پیت):</label>
+                            <input type="password" id="userSignUpPassword" required minlength="6" autocomplete="new-password">
+                        </div>
+                        <button type="submit">خۆتۆمارکردن</button>
+                        <p id="userSignUpError" style="color:var(--danger-color); margin-top:10px; display:none; text-align: center;"></p>
+                    </form>
+                </div>
+
+                <div id="profileView" style="display: none;">
+                    <p style="margin-bottom: 5px; font-weight: bold; font-size: 1.1em;">بەخێربێیت، <span id="profileDisplayName"></span>!</p>
+                    <p id="profileDisplayEmail" style="margin-bottom: 20px; color: var(--dark-gray); border-bottom: 1px solid var(--medium-gray); padding-bottom: 15px;"></p>
+                    
+                    <form id="profileForm">
+                        <div class="form-group">
+                            <label for="profileName" data-translate-key="profile_name">ناو (بۆ گەیاندن):</label>
+                            <input type="text" id="profileName" placeholder="ناوی سیانی بنووسە" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profileAddress" data-translate-key="profile_address">ناونیشان:</label>
+                            <input type="text" id="profileAddress" placeholder="شار، گەڕەک، کۆڵان..." required>
+                            <button type="button" id="getLocationBtn" class="location-btn">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span>وەرگرتنی ناونیشانم بە GPS</span>
+                            </button>
+                        </div>
+                        <div class="form-group">
+                            <label for="profilePhone" data-translate-key="profile_phone">ژمارەی تەلەفۆن:</label>
+                            <input type="tel" id="profilePhone" placeholder="07XX XXX XXXX" required>
+                        </div>
+                        <button type="submit" data-translate-key="save_button">پاشەکەوتکردنی زانیاری گەیاندن</button>
+                    </form>
+                    
+                    <button id="userLogoutBtn" style="width: 100%; padding: 10px; background-color: var(--danger-color); color: white; border: none; border-radius: 6px; font-weight: bold; margin-top: 15px; cursor: pointer;">
+                        <i class="fas fa-sign-out-alt"></i> چوونەدەرەوە
+                    </button>
+                </div>
+                
             </div>
         </div>
-
         <div id="favoritesSheet" class="bottom-sheet">
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
@@ -366,7 +413,7 @@
                              <label>ژمارەی ڕیزبەندی:</label>
                              <input type="number" id="mainCategoryOrder" value="10" required>
                          </div>
-                         <button type="submit" style="background-color: var(--primary-color);">پاشەکەوتکردنی جۆری سەرەکی</button>
+                         <button type="submit" style="background-color: var(--primary-color);">پاشەکەوتکردنی جۆری سەرەki</button>
                      </form>
                  </div>
 
@@ -845,6 +892,14 @@
                              <label for="announcementContentAr">ناوەڕۆک (عربي):</label>
                              <textarea id="announcementContentAr" rows="3" required></textarea>
                          </div>
+                         
+                         <hr style="margin: 20px 0; border-top: 1px solid var(--section-border);">
+                         <div class="form-group">
+                             <label for="announcementImageUrl">لینکی وێنە (ئارەزوومەندانە):</label>
+                             <input type="url" id="announcementImageUrl" placeholder="https://.../wene.png">
+                             <small>ئەڤ وێنەیە دێ دناڤ ئاگەهداریێ دا دەركەڤیت</small>
+                         </div>
+
                          <button type="submit" data-translate-key="send_announcement_button">ناردنی ئاگەهداری</button>
                      </form>
                      <hr style="margin: 25px 0;">

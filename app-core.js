@@ -1,14 +1,19 @@
-// app-core.js
+// app-core.js (چاککراو بۆ سیستەمی بەکارهێنەر)
 import {
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
     categoryLayoutsCollection, 
+    // [ 💡 گۆڕانکاری لێرە کرا 💡 ]
+    usersCollection, // کۆڵێکشنی نوێی بەکارهێنەران
+    createUserWithEmailAndPassword, updateProfile, // فانکشنی نوێی Auth
     translations, state,
-    CART_KEY, FAVORITES_KEY, PROFILE_KEY, PRODUCTS_PER_PAGE,
+    CART_KEY, FAVORITES_KEY, PRODUCTS_PER_PAGE,
 } from './app-setup.js';
 
-import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+import { 
+    signInWithEmailAndPassword, onAuthStateChanged, signOut 
+} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import {
     enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc,
     onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where,
@@ -57,6 +62,7 @@ export function isFavorite(productId) {
     return state.favorites.includes(productId);
 }
 
+// فانکشنی چوونەژوورەوەی ئەدمین (وەک خۆی دەمێنێتەوە)
 async function handleLogin(email, password) {
     try {
         await signInWithEmailAndPassword(auth, email, password);
@@ -65,9 +71,62 @@ async function handleLogin(email, password) {
     }
 }
 
-async function handleLogout() {
-    await signOut(auth);
+// [ 💡 فانکشنی نوێ زیادکرا 💡 ]
+export async function handleUserLogin(email, password) {
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        return { success: true };
+    } catch (error) {
+        console.error("User login error:", error.code);
+        return { success: false, message: t('user_login_error') };
+    }
 }
+
+// [ 💡 فانکشنی نوێ زیادکرا 💡 ]
+export async function handleUserSignUp(name, email, password) {
+    try {
+        // 1. دروستکردنی بەکارهێنەر لە Auth
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // 2. نوێکردنەوەی پڕۆفایلی Auth (بۆ دانانی ناو)
+        await updateProfile(user, { displayName: name });
+
+        // 3. دروستکردنی دۆکیومێنتی پڕۆفایل لە Firestore
+        const userProfileRef = doc(usersCollection, user.uid);
+        await setDoc(userProfileRef, {
+            email: user.email,
+            displayName: name,
+            createdAt: Date.now(),
+            name: "",      // بۆ زانیاری گەیاندن (سەرەتا بەتاڵە)
+            address: "",  // بۆ زانیاری گەیاندن (سەرەتا بەتاڵە)
+            phone: ""     // بۆ زانیاری گەیاندن (سەرەتا بەتاڵە)
+        });
+
+        return { success: true, message: t('user_signup_success') };
+    } catch (error) {
+        console.error("User signup error:", error.code);
+        if (error.code === 'auth/email-already-in-use') {
+            return { success: false, message: t('user_signup_email_exists') };
+        }
+        if (error.code === 'auth/weak-password') {
+            return { success: false, message: t('user_signup_weak_password') };
+        }
+        return { success: false, message: t('error_generic') };
+    }
+}
+
+// [ 💡 فانکشنی نوێ زیادکرا 💡 ]
+export async function handleUserLogout() {
+    try {
+        await signOut(auth);
+        return { success: true, message: t('user_logout_success') };
+    } catch (error) {
+        console.error("User logout error:", error);
+        return { success: false, message: t('error_generic') };
+    }
+}
+
 
 async function fetchCategories() {
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
@@ -475,6 +534,7 @@ export function generateOrderMessageCore() {
     });
     message += `\n${t('order_total')}: ${total.toLocaleString()} د.ع.\n`;
 
+    // [ 💡 گۆڕانکاری لێرە کرا 💡 ] - ئێستا زانیاری پڕۆفایل لە state.userProfile وەردەگرێت کە لە Firestoreـەوە هاتووە
     if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
         message += `\n${t('order_user_info')}\n`;
         message += `${t('order_user_name')}: ${state.userProfile.name}\n`;
@@ -499,24 +559,28 @@ export function toggleFavoriteCore(productId) {
     }
 }
 
-export function saveProfileCore(profileData) {
-    state.userProfile = {
-        name: profileData.name || '',
-        address: profileData.address || '',
-        phone: profileData.phone || '',
-    };
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(state.userProfile));
-    return t('profile_saved');
-}
-
-export function setLanguageCore(lang) {
-    state.currentLanguage = lang;
-    localStorage.setItem('language', lang);
-    document.documentElement.lang = lang.startsWith('ar') ? 'ar' : 'ku';
-    document.documentElement.dir = 'rtl';
-    state.productCache = {};
-    const homeContainer = document.getElementById('homePageSectionsContainer');
-    if (homeContainer) homeContainer.innerHTML = '';
+// [ 💡 فانکشنی saveProfileCore بە تەواوی نوێکرایەوە 💡 ]
+export async function saveProfileCore(profileData) {
+    // 1. دڵنیابە کە بەکارهێنەر لۆگینە
+    if (!state.currentUser) {
+        return { success: false, message: "تکایە سەرەتا بچۆ ژوورەوە" }; 
+    }
+    try {
+        // 2. دۆکیومێنتی بەکارهێنەر لە 'users' بدۆزەرەوە
+        const userProfileRef = doc(usersCollection, state.currentUser.uid);
+        
+        // 3. داتاکە نوێ بکەرەوە (merge: true مانای وایە داتاکانی تر nasrênewe)
+        await setDoc(userProfileRef, {
+            name: profileData.name || '',
+            address: profileData.address || '',
+            phone: profileData.phone || '',
+        }, { merge: true }); 
+        
+        return { success: true, message: t('profile_saved') };
+    } catch (error) {
+        console.error("Error saving profile to Firestore:", error);
+        return { success: false, message: t('error_generic') };
+    }
 }
 
 async function requestNotificationPermissionCore() {
@@ -526,7 +590,7 @@ async function requestNotificationPermissionCore() {
         if (permission === 'granted') {
             console.log('Notification permission granted.');
             const currentToken = await getToken(messaging, {
-                vapidKey: 'BIepTNN6INcxIW9Of96udIKoMXZNTmP3q3aflB6kNLY3FnYe_3U6bfm3gJirbU9RgM3Ex0o1oOScF_sRBTsPyfQ' 
+                serviceWorkerRegistration: await navigator.serviceWorker.ready 
             });
             if (currentToken) {
                 console.log('FCM Token:', currentToken);
@@ -550,9 +614,10 @@ async function saveTokenToFirestore(token) {
     try {
         const tokensCollection = collection(db, 'device_tokens');
         await setDoc(doc(tokensCollection, token), {
-            createdAt: Date.now()
+            createdAt: Date.now(),
+            language: state.currentLanguage 
         });
-        console.log('Token saved to Firestore.');
+        console.log(`Token saved to Firestore with language: ${state.currentLanguage}`);
     } catch (error) {
         console.error('Error saving token to Firestore: ', error);
     }
@@ -638,6 +703,84 @@ async function initializeCoreLogic() {
     await fetchCategories();
 }
 
+async function updateTokenLanguageInFirestore(newLang) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        console.log(`Language changed to ${newLang}, updating token in Firestore...`);
+        try {
+            const currentToken = await getToken(messaging, {
+                serviceWorkerRegistration: await navigator.serviceWorker.ready
+            });
+            
+            if (currentToken) {
+                const tokensCollection = collection(db, 'device_tokens');
+                await setDoc(doc(tokensCollection, currentToken), {
+                    language: newLang 
+                }, { merge: true }); 
+                console.log(`Token ${currentToken} language updated to ${newLang}.`);
+            }
+        } catch (error) {
+            console.error('Error updating token language:', error);
+        }
+    }
+}
+
+export function setLanguageCore(lang) {
+    state.currentLanguage = lang;
+    localStorage.setItem('language', lang);
+    document.documentElement.lang = lang.startsWith('ar') ? 'ar' : 'ku';
+    document.documentElement.dir = 'rtl';
+    state.productCache = {};
+    const homeContainer = document.getElementById('homePageSectionsContainer');
+    if (homeContainer) homeContainer.innerHTML = '';
+    updateTokenLanguageInFirestore(lang);
+}
+
+// [ 💡 فانکشنی نوێ زیادکرا 💡 ]
+let userProfileUnsubscribe = null; // بۆ ڕاگرتنی گوێگرتن کاتی چوونەدەرەوە
+
+async function loadUserProfile(uid) {
+    // گوێگری پێشوو ڕابگرە (ئەگەر هەبێت)
+    if (userProfileUnsubscribe) {
+        userProfileUnsubscribe();
+        userProfileUnsubscribe = null;
+    }
+
+    const userProfileRef = doc(usersCollection, uid);
+    
+    // گوێگرتن لە گۆڕانکارییەکانی پڕۆفایل
+    userProfileUnsubscribe = onSnapshot(userProfileRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const profileData = docSnap.data();
+            // پاشەکەوتکردنی زانیاری گەیاندن
+            state.userProfile = {
+                name: profileData.name || '',
+                address: profileData.address || '',
+                phone: profileData.phone || ''
+            };
+            // نوێکردنەوەی زانیارییەکانی Auth
+            if (state.currentUser) {
+                state.currentUser.displayName = profileData.displayName;
+                state.currentUser.email = profileData.email;
+            }
+            console.log("پڕۆفایلی بەکارهێنەر بارکرا:", state.userProfile);
+        } else {
+            // ئەگەر بەهەڵە دۆکیومێنت دروست نەبووبوو، یەکێکی نوێ دروست بکە
+            console.warn(`دۆکیومێنتی پڕۆفایل نەدۆزرایەوە بۆ: ${uid}. دروستکردنی یەکێکی نوێ...`);
+            setDoc(userProfileRef, {
+                email: state.currentUser.email,
+                displayName: state.currentUser.displayName,
+                createdAt: Date.now(),
+                name: "", address: "", phone: ""
+            }).catch(e => console.error("هەڵە لە دروستکردنی پڕۆفایلی ونبوو:", e));
+            state.userProfile = { name: "", address: "", phone: "" };
+        }
+        // ئاگادارکردنەوەی UI کە پڕۆفایل ئامادەیە
+        document.dispatchEvent(new CustomEvent('profileLoaded'));
+    }, (error) => {
+        console.error("هەڵە لە گوێگرتن لە پڕۆفایلی بەکارهێنەر:", error);
+    });
+}
+
 export async function initCore() {
     return enableIndexedDbPersistence(db)
         .then(() => console.log("Firestore offline persistence enabled."))
@@ -645,24 +788,64 @@ export async function initCore() {
         .finally(async () => { 
             await initializeCoreLogic(); 
 
+            // [ 💡 لۆجیکی onAuthStateChanged بە تەواوی نوێکرایەوە 💡 ]
             onAuthStateChanged(auth, async (user) => {
-                const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3"; 
-                const isAdmin = user && user.uid === adminUID;
-                const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
+                const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3";
+                let isAdmin = false;
 
-                if (isAdmin) {
-                    sessionStorage.setItem('isAdmin', 'true');
-                    if (!wasAdmin && window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
-                         window.AdminLogic.initialize();
+                // گوێگری پڕۆفایلی پێشوو ڕابگرە
+                if (userProfileUnsubscribe) {
+                    userProfileUnsubscribe();
+                    userProfileUnsubscribe = null;
+                }
+
+                if (user) {
+                    // --- حاڵەتی یەکەم: بەکارهێنەر ئەدمینە ---
+                    if (user.uid === adminUID) {
+                        isAdmin = true;
+                        state.currentUser = null; // ئەدمین بەکارهێنەری ئاسایی نییە
+                        state.userProfile = {};
+                        
+                        const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
+                        sessionStorage.setItem('isAdmin', 'true');
+                        if (!wasAdmin && window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
+                            window.AdminLogic.initialize();
+                        }
+                    } 
+                    // --- حاڵەتی دووەم: بەکارهێنەری ئاساییە ---
+                    else {
+                        isAdmin = false;
+                        state.currentUser = user; // دانانی بەکارهێنەری ئێستا
+                        
+                        // بارکردنی پڕۆفایلەکەی لە Firestore
+                        await loadUserProfile(user.uid);
+                        
+                        // ئەگەر پێشتر ئەدمین لۆگین بووبوو، دایبخە
+                        const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
+                        sessionStorage.removeItem('isAdmin');
+                        if (wasAdmin && window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
+                            window.AdminLogic.deinitialize();
+                        }
                     }
-                } else {
+                } 
+                // --- حاڵەتی سێیەم: کەس لۆگین نییە (میوان) ---
+                else {
+                    isAdmin = false;
+                    state.currentUser = null;
+                    state.userProfile = {}; // ڕีسێتکردنی پڕۆفایل
+                    
+                    // دڵنیابوونەوە لە چوونەدەرەوەی ئەدمین
+                    const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
                     sessionStorage.removeItem('isAdmin');
-                     if (user) { await signOut(auth); } 
                     if (wasAdmin && window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
-                         window.AdminLogic.deinitialize();
+                        window.AdminLogic.deinitialize();
                     }
                 }
+                
+                // ئاگادارکردنەوەی UI بۆ گۆڕینی دۆخی ئەدمین
                 document.dispatchEvent(new CustomEvent('authChange', { detail: { isAdmin } }));
+                // ئاگادارکردنەوەی UI بۆ گۆڕینی دۆخی بەکارهێنەر
+                document.dispatchEvent(new CustomEvent('userChange', { detail: { user: state.currentUser } }));
             });
 
             onMessage(messaging, (payload) => {
@@ -678,8 +861,8 @@ export async function initCore() {
             });
 
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js').then(registration => {
-                    console.log('SW registered.');
+                navigator.serviceWorker.register('/sw.js', { type: 'module' }).then(registration => {
+                    console.log('SW registered (as module).'); 
                     registration.addEventListener('updatefound', () => {
                         const newWorker = registration.installing;
                         console.log('New SW found!', newWorker);
@@ -699,9 +882,10 @@ export async function initCore() {
         });
 }
 
+
 export {
     state, 
-    handleLogin, handleLogout, 
+    handleLogin, // (ئەمە هی ئەدمینە)
     fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, 
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
     requestNotificationPermissionCore,

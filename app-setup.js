@@ -1,7 +1,8 @@
 // app-setup.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+// [ 💡 گۆڕانکاری لێرە کرا 💡 ] - فانکشنی نوێ بۆ دروستکردنی هەژمار زیادکرا
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
@@ -24,6 +25,12 @@ export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 export const storage = getStorage(app);
 
+// [ 💡 گۆڕانکاری لێرە کرا 💡 ] - فانکشنە نوێیەکان زیادکران
+export {
+    signInWithEmailAndPassword, onAuthStateChanged, signOut,
+    createUserWithEmailAndPassword, updateProfile
+};
+
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
@@ -31,6 +38,9 @@ export const promoGroupsCollection = collection(db, "promo_groups");
 export const brandGroupsCollection = collection(db, "brand_groups");
 export const shortcutRowsCollection = collection(db, "shortcut_rows");
 export const categoryLayoutsCollection = collection(db, "category_layouts");
+// [ 💡 گۆڕانکاری لێرە کرا 💡 ] - کۆڵێکشنی نوێ بۆ پڕۆفایلی بەکارهێنەران
+export const usersCollection = collection(db, "users");
+
 
 export const translations = {
     ku_sorani: {
@@ -65,7 +75,7 @@ export const translations = {
         nav_profile: "پڕۆفایل",
         nav_settings: "ڕێکخستن",
         contact_us_title: "پەیوەندیمان پێوە بکە",
-        add_to_cart: "زیادکردن بۆ سەبەتە",
+        add_to_cart: "زیادکردن بۆ سەbەتە",
         added_to_cart: "زیادکرا",
         product_not_found_error: "هەڵە: کاڵاکە نەدۆزرایەوە!",
         delete_confirm: "دڵنیایت دەتەوێت ئەم کاڵایە بسڕیتەوە؟",
@@ -84,7 +94,7 @@ export const translations = {
         profile_saved: "زانیارییەکانی پڕۆفایل پاشەکەوتکران",
         all_categories_label: "هەموو",
         install_app: "دامەزراندنی ئەپ",
-        product_added_to_cart: "کاڵاکە زیادکرا بۆ سەبەتە",
+        product_added_to_cart: "کاڵاکە زیادکرا بۆ سەbەتە",
         product_added_to_favorites: "زیادکرا بۆ لیستی دڵخوازەکان",
         product_removed_from_favorites: "لە لیستی دڵخوازەکان سڕدرایەوە",
         manage_categories_title: "بەڕێوەبردنی جۆرەکان",
@@ -118,9 +128,17 @@ export const translations = {
         share_error: "هاوبەشیپێکردن سەرکەوتوو نەبوو",
         admin_category_layout_title: "دیزاینی لاپەڕەی جۆرەکان",
         admin_category_layout_select: "-- جۆری سەرەki هەڵبژێرە --",
-        admin_category_layout_enable: "چالاککردنی دیزاینی تایبەت بۆ ئەم جۆرە",
+        admin_category_layout_enable: "چالاککردنی دیزاینی تایbەت بۆ ئەم جۆرە",
         admin_category_layout_info: "ئەگەر چالاک بێت، ئەم دیزاینە لە جیاتی لیستی ئاسایی کاڵاکان پیشان دەدرێت.",
         admin_category_layout_add_section: "زیادکردنی بەش بۆ جۆر",
+        // [ 💡 وەرگێڕانی نوێ لێرە زیادکرا 💡 ]
+        user_login_error: "ئیمەیڵ یان وشەی نهێنی هەڵەیە",
+        user_signup_email_exists: "ئەم ئیمەیڵە پێشتر بەکارهاتووە",
+        user_signup_weak_password: "وشەی نهێنی زۆر لاوازە (پێویستە 6 پیت بێت)",
+        user_signup_success: "هەژمارەکەت بە سەرکەوتوویی دروستکرا",
+        user_logout_success: "بە سەرکەوتوویی چوویتەدەرەوە",
+        auth_tab_login: "چوونەژوورەوە",
+        auth_tab_signup: "خۆتۆمارکردن",
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -132,7 +150,7 @@ export const translations = {
         cart_empty: "سەلکا تە یا ڤالایە",
         total_price: "کۆمێ گشتی:",
         send_whatsapp: "فرێکرن ب رێکا واتسئاپ",
-        send_viber: "فرێکرن ب رێکا ڤایبەر",
+        send_viber: "فرێکرن ب رێکا ڤایbەر",
         send_telegram: "فرێکرن ب رێکا تێلێگرام",
         favorites_title: "لیستا حەزژێکریان",
         favorites_empty: "لیستا حەزژێکریێن تە یا ڤالایە",
@@ -157,7 +175,7 @@ export const translations = {
         add_to_cart: "زێدەکرن بۆ سەلکێ",
         added_to_cart: "زێدەکر",
         product_not_found_error: "خەلەتی: کاڵا نەهاتە دیتن!",
-        delete_confirm: "تو پشتڕاستی دێ ڤی کاڵای ژێبەى؟",
+        delete_confirm: "تو پشتڕاستی دێ ڤی کاڵای ژێbەى؟",
         product_deleted: "کاڵا هاتە ژێبرن",
         product_delete_error: "خەلەتی د ژێبرنا کاڵای دا",
         order_greeting: "سلاڤ! ئەز پێدڤی ب ڤان کاڵایێن خوارێ مە:",
@@ -186,7 +204,7 @@ export const translations = {
         sent_announcements: "ئاگەهداریێن هاتینە فرێکرن",
         no_announcements_sent: "چ ئاگەهداری نەهاتینە فرێکرن",
         announcement_deleted_success: "ئاگەهداری هاتە ژێبرن",
-        announcement_delete_confirm: "تو پشتڕاستی دێ ڤێ ئaگەهداریێ ژێبەی؟",
+        announcement_delete_confirm: "تو پشتڕاستی دێ ڤێ ئaگەهداریێ ژێbەی؟",
         enable_notifications: "چالاکرنا ئاگەهداریان",
         error_generic: "خەلەتییەک چێبوو!",
         terms_policies_title: "مەرج و سیاسەت",
@@ -196,7 +214,7 @@ export const translations = {
         no_policies_found: "چ مەرج و سیاسەت نەهاتینە دانان.",
         has_discount_badge: "داشکان تێدایە",
         force_update: "ناچارکرن ب نویکرنەوە (ژێبرنا کاشی)",
-        update_confirm: "تو پشتراستی دێ ئەپی نویکەیەڤە؟ دێ هەمی کاش د ناڤ وێبگەرا تە دا هێتە ژێبرن.",
+        update_confirm: "تو پشتراستی دێ ئەپی نویکەیەڤە؟ دێ هەمی کاش د ناڤ وێbگەرا تە دا هێتە ژێبرن.",
         update_success: "ئەپ ب سەرکەfتیانە هاتە نویکرن!",
         newest_products: "نوترین کاڵا",
         see_all: "هەمیا ببینە",
@@ -207,9 +225,17 @@ export const translations = {
         share_error: "پارڤەکرن سەرنەکەفت",
         admin_category_layout_title: "دیزاینا لاپەرێ جوران",
         admin_category_layout_select: "-- جۆرێ سەرەki هەلبژێرە --",
-        admin_category_layout_enable: "چالاکرنا دیزاینا تایبەت بۆ ڤی جۆری",
+        admin_category_layout_enable: "چالاکرنا دیزاینا تایbەت بۆ ڤی جۆری",
         admin_category_layout_info: "ئەگەر بهێتە چالاکرن، ئەڤ دیزاینە دێ ل جهێ لیستا ئاسایی یا کاڵایان هێتە نیشاندان.",
         admin_category_layout_add_section: "زێدەکرنا پشکێ بۆ جۆری",
+        // [ 💡 وەرگێڕانی نوێ لێرە زیادکرا 💡 ]
+        user_login_error: "ئیمەیل یان پەیڤا نهێنى یا خەلەتە",
+        user_signup_email_exists: "ئەڤ ئیمەیلە بەری نوکە هاتیە بکارئینان",
+        user_signup_weak_password: "پەیڤا نهێنى یا لاوازە (پێدڤیە 6 پیت بن)",
+        user_signup_success: "هەژمارا تە ب سەرکەفتیانە هاتە دروستکرن",
+        user_logout_success: "ب سەرکەفتیانە چوويه دەر",
+        auth_tab_login: "چوونا ژوور",
+        auth_tab_signup: "خۆتۆمارکرن",
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -299,6 +325,14 @@ export const translations = {
         admin_category_layout_enable: "تفعيل التصميم المخصص لهذه الفئة",
         admin_category_layout_info: "في حال تفعيله، سيتم عرض هذا التصميم بدلاً من قائمة المنتجات العادية.",
         admin_category_layout_add_section: "إضافة قسم للفئة",
+        // [ 💡 وەرگێڕانی نوێ لێرە زیادکرا 💡 ]
+        user_login_error: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+        user_signup_email_exists: "هذا البريد الإلكتروني مستخدم بالفعل",
+        user_signup_weak_password: "كلمة المرور ضعيفة جداً (يجب أن تكون 6 أحرف على الأقل)",
+        user_signup_success: "تم إنشاء حسابك بنجاح",
+        user_logout_success: "تم تسجيل الخروج بنجاح",
+        auth_tab_login: "تسجيل الدخول",
+        auth_tab_signup: "إنشاء حساب",
     }
 };
 
@@ -307,7 +341,10 @@ export let state = {
     deferredPrompt: null,
     cart: JSON.parse(localStorage.getItem("maten_store_cart")) || [],
     favorites: JSON.parse(localStorage.getItem("maten_store_favorites")) || [],
-    userProfile: JSON.parse(localStorage.getItem("maten_store_profile")) || {},
+    // [ 💡 گۆڕانکاری لێرە کرا 💡 ] - 'userProfile' ئێستا هی Firestore دەبێت، نەک localStorage
+    userProfile: {}, // This will be loaded from Firestore
+    // [ 💡 گۆڕانکاری لێرە کرا 💡 ] - دۆخی بەکارهێنەری ئێستا پاشەکەوت دەکەین
+    currentUser: null, // Holds the auth user object (null if logged out)
     editingProductId: null, 
     products: [],
     categories: [], 
@@ -331,7 +368,8 @@ export let state = {
 
 export const CART_KEY = "maten_store_cart";
 export const FAVORITES_KEY = "maten_store_favorites";
-export const PROFILE_KEY = "maten_store_profile";
+// [ 💡 گۆڕانکاری لێرە کرا 💡 ] - ئەمەمان چیتر ناوێت چونکە پڕۆفایل لە Firestore دادەنرێت
+// export const PROFILE_KEY = "maten_store_profile";
 export const PRODUCTS_PER_PAGE = 25;
 
 export const loginModal = document.getElementById('loginModal');

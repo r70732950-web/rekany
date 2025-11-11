@@ -1242,7 +1242,7 @@ window.AdminLogic = {
     saveCategoryLayout: async function() {
         const categoryId = this.currentCategoryLayoutId;
         if (!categoryId) {
-            showNotification('هیچ جۆرێک هەڵنەبژێردراوە', 'error');
+            showNotification('هیچ جۆرێک هەڵنەbژێردراوە', 'error');
             return;
         }
         
@@ -1331,13 +1331,13 @@ window.AdminLogic = {
             specificIdData = { groupId };
         } else if (type === 'single_shortcut_row') {
             const rowId = document.getElementById('specificItemGroupId').value;
-            if (!rowId) { showNotification('تکایە ڕیزێک هەڵبژێرە', 'error'); submitButton.disabled = false; return; }
+            if (!rowId) { showNotification('تکایە ڕیزێک هەڵbژێرە', 'error'); submitButton.disabled = false; return; }
             specificIdData = { rowId };
         } else if (type === 'single_category_row') {
             const catId = document.getElementById('newSectionMainCategory').value;
             const subCatId = document.getElementById('newSectionSubcategory').value;
             const subSubCatId = document.getElementById('newSectionSubSubcategory').value;
-            if (!catId) { showNotification('تکایە جۆری سەرەki هەڵبژێرە', 'error'); submitButton.disabled = false; return; }
+            if (!catId) { showNotification('تکایە جۆری سەرەki هەڵbژێرە', 'error'); submitButton.disabled = false; return; }
             specificIdData = { categoryId: catId, subcategoryId: subCatId || null, subSubcategoryId: subSubCatId || null };
         }
         
@@ -1449,7 +1449,7 @@ window.AdminLogic = {
                 }
                 
                 const snapshot = await getDocs(query(collectionRef, orderBy(orderField)));
-                groupSelect.innerHTML = `<option value="" disabled selected>-- گرووپ/ڕیزێک هەڵبژێرە --</option>`;
+                groupSelect.innerHTML = `<option value="" disabled selected>-- گرووپ/ڕیزێک هەڵbژێرە --</option>`;
                 snapshot.forEach(doc => {
                     const data = doc.data();
                     const name = nameFieldAccessor(data);
@@ -1458,7 +1458,7 @@ window.AdminLogic = {
             } else if (type === 'single_category_row') {
                 categoryContainer.style.display = 'block';
                 mainCatSelect.required = true;
-                mainCatSelect.innerHTML = '<option value="">-- جۆری سەرەکی هەڵبژێرە (پێویستە) --</option>';
+                mainCatSelect.innerHTML = '<option value="">-- جۆری سەرەکی هەڵbژێرە (پێویستە) --</option>';
                 getCategories().filter(c => c.id !== 'all').forEach(cat => {
                     mainCatSelect.innerHTML += `<option value="${cat.id}">${cat.name_ku_sorani}</option>`;
                 });
@@ -1481,7 +1481,7 @@ window.AdminLogic = {
                 subSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
                 const q = query(collection(db, `categories/${mainCatId}/subcategories`), orderBy('order'));
                 const snapshot = await getDocs(q);
-                subSelect.innerHTML = '<option value="">-- هەموو (یان هەڵبژێرە) --</option>';
+                subSelect.innerHTML = '<option value="">-- هەموو (یان هەڵbژێرە) --</option>';
                 snapshot.forEach(doc => {
                     subSelect.innerHTML += `<option value="${doc.id}">${doc.data().name_ku_sorani}</option>`;
                 });
@@ -1503,7 +1503,7 @@ window.AdminLogic = {
                 subSubSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
                 const q = query(collection(db, `categories/${mainCatId}/subcategories/${subCatId}/subSubcategories`), orderBy('order'));
                 const snapshot = await getDocs(q);
-                subSubSelect.innerHTML = '<option value="">-- هەموو (یان هەڵبژێرە) --</option>';
+                subSubSelect.innerHTML = '<option value="">-- هەموو (یان هەڵbژێرە) --</option>';
                 snapshot.forEach(doc => {
                     subSubSelect.innerHTML += `<option value="${doc.id}">${doc.data().name_ku_sorani}</option>`;
                 });
@@ -1661,7 +1661,7 @@ window.AdminLogic = {
                 const parentCategoryId = document.getElementById('parentCategorySelect').value;
 
                 if (!parentCategoryId) {
-                    showNotification('تکایە جۆری سەرەکی هەڵبژێرە', 'error');
+                    showNotification('تکایە جۆری سەرەکی هەڵbژێرە', 'error');
                     return;
                 }
 
@@ -1698,7 +1698,7 @@ window.AdminLogic = {
             const subCatSelect = document.getElementById('parentSubcategorySelectForSubSub');
             
             if (!mainCatId) {
-                subCatSelect.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەki بە --</option>';
+                subCatSelect.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵbژاردنی جۆری سەرەki بە --</option>';
                 return;
             }
 
@@ -1713,7 +1713,7 @@ window.AdminLogic = {
                 if (querySnapshot.empty) {
                     subCatSelect.innerHTML = '<option value="" disabled selected>هیچ جۆرێکی لاوەکی نییە</option>';
                 } else {
-                    subCatSelect.innerHTML = '<option value="" disabled selected>-- جۆری لاوەکی هەڵبژێرە --</option>';
+                    subCatSelect.innerHTML = '<option value="" disabled selected>-- جۆری لاوەکی هەڵbژێرە --</option>';
                     querySnapshot.docs.forEach(doc => {
                         const subcat = { id: doc.id, ...doc.data() };
                         subCatSelect.innerHTML += `<option value="${subcat.id}">${subcat.name_ku_sorani}</option>`;
@@ -1737,7 +1737,7 @@ window.AdminLogic = {
                 const subCatId = subCatSelect.value;
 
                 if (!mainCatId || !subCatId) {
-                    showNotification('تکایە هەردوو جۆرەکە هەڵبژێرە', 'error');
+                    showNotification('تکایە هەردوو جۆرەکە هەڵbژێرە', 'error');
                     return;
                 }
 
@@ -1756,7 +1756,7 @@ window.AdminLogic = {
                     showNotification('جۆری نوێ بە سەرکەوتوویی زیادکرا', 'success');
                     addSubSubcategoryForm.reset();
                     mainCatSelect.value = '';
-                    subCatSelect.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەki بە --</option>';
+                    subCatSelect.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵbژاردنی جۆری سەرەki بە --</option>';
                     clearProductCache();
                 } catch (error) {
                     console.error("Error adding sub-subcategory: ", error);
@@ -1825,7 +1825,9 @@ window.AdminLogic = {
                         ku_badini: document.getElementById('announcementContentKuBadini').value,
                         ar: document.getElementById('announcementContentAr').value,
                     },
-                    createdAt: Date.now()
+                    createdAt: Date.now(),
+                    // [ 💡 گۆڕانکاری لێرە کرا 💡 ]
+                    imageUrl: document.getElementById('announcementImageUrl').value.trim() || null
                 };
 
                 try {
@@ -1944,7 +1946,7 @@ window.AdminLogic = {
         document.getElementById('addPromoCardForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const groupId = document.getElementById('promoCardGroupSelect').value;
-            if (!groupId) { showNotification('تکایە گرووپێک هەڵبژێرە', 'error'); return; }
+            if (!groupId) { showNotification('تکایە گرووپێک هەڵbژێرە', 'error'); return; }
 
             const submitButton = e.target.querySelector('button[type="submit"]');
             submitButton.disabled = true;
@@ -2004,7 +2006,7 @@ window.AdminLogic = {
         document.getElementById('addBrandForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const groupId = document.getElementById('brandGroupSelect').value;
-            if (!groupId) { showNotification('تکایە گرووپێک هەڵبژێرە', 'error'); return; }
+            if (!groupId) { showNotification('تکایە گرووپێک هەڵbژێرە', 'error'); return; }
 
             const submitButton = e.target.querySelector('button[type="submit"]');
             submitButton.disabled = true;
@@ -2093,7 +2095,7 @@ window.AdminLogic = {
                 subCatSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
                 const q = query(collection(db, `categories/${mainCatId}/subcategories`), orderBy('order'));
                 const snapshot = await getDocs(q);
-                subCatSelect.innerHTML = '<option value="">-- هەموو لاوەکی (یان هەڵبژێرە) --</option>';
+                subCatSelect.innerHTML = '<option value="">-- هەموو لاوەکی (یان هەڵbژێرە) --</option>';
                 snapshot.forEach(doc => {
                     subCatSelect.innerHTML += `<option value="${doc.id}">${doc.data().name_ku_sorani}</option>`;
                 });
@@ -2116,7 +2118,7 @@ window.AdminLogic = {
                 subSubCatSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
                 const q = query(collection(db, `categories/${mainCatId}/subcategories/${subCatId}/subSubcategories`), orderBy('order'));
                 const snapshot = await getDocs(q);
-                subSubCatSelect.innerHTML = '<option value="">-- هەموو لاوەکی لاوەکی (یان هەڵبژێرە) --</option>';
+                subSubCatSelect.innerHTML = '<option value="">-- هەموو لاوەکی لاوەکی (یان هەڵbژێرە) --</option>';
                 snapshot.forEach(doc => {
                     subSubCatSelect.innerHTML += `<option value="${doc.id}">${doc.data().name_ku_sorani}</option>`;
                 });
