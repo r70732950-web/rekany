@@ -5,7 +5,6 @@ import {
     categoryLayoutsCollection, 
     usersCollection, 
     createUserWithEmailAndPassword, updateProfile, 
-    // [ 💡 گۆڕانکاری لێرە کرا 💡 ] - sendPasswordResetEmail زیادکرا
     sendPasswordResetEmail,
     translations, state,
     CART_KEY, FAVORITES_KEY, PRODUCTS_PER_PAGE,
@@ -71,8 +70,9 @@ async function handleLogin(email, password) {
     }
 }
 
+// [ 💡 چاککراوە: export لێرە لابرا ]
 // فانکشنی چوونەژوورەوەی بەکارهێنەر
-export async function handleUserLogin(email, password) {
+async function handleUserLogin(email, password) {
     try {
         await signInWithEmailAndPassword(auth, email, password);
         return { success: true };
@@ -82,8 +82,9 @@ export async function handleUserLogin(email, password) {
     }
 }
 
+// [ 💡 چاککراوە: export لێرە لابرا ]
 // فانکشنی خۆتۆمارکردنی بەکارهێنەر
-export async function handleUserSignUp(name, email, password) {
+async function handleUserSignUp(name, email, password) {
     try {
         // 1. دروستکردنی بەکارهێنەر لە Auth
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -116,8 +117,9 @@ export async function handleUserSignUp(name, email, password) {
     }
 }
 
+// [ 💡 چاککراوە: export لێرە لابرا ]
 // فانکشنی چوونەدەرەوەی بەکارهێنەر
-export async function handleUserLogout() {
+async function handleUserLogout() {
     try {
         await signOut(auth);
         return { success: true, message: t('user_logout_success') };
@@ -127,8 +129,9 @@ export async function handleUserLogout() {
     }
 }
 
-// [ 💡 فانکشنی نوێ زیادکرا: بیرچوونەوەی وشەی نهێنی 💡 ]
-export async function handlePasswordReset(email) {
+// [ 💡 چاککراوە: export لێرە لابرا ]
+// بیرچوونەوەی وشەی نهێنی
+async function handlePasswordReset(email) {
     if (!email) {
         return { success: false, message: t('password_reset_enter_email') };
     }
@@ -799,7 +802,6 @@ export async function initCore() {
         .finally(async () => { 
             await initializeCoreLogic(); 
 
-            // [ 💡 لۆجیکی onAuthStateChanged بە تەواوی نوێکرایەوە 💡 ]
             onAuthStateChanged(auth, async (user) => {
                 const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3";
                 let isAdmin = false;
@@ -887,9 +889,9 @@ export async function initCore() {
 
 export {
     state, 
-    handleLogin, // (ئەمە هی ئەدمینە)
+    handleLogin, 
     
-    // [ 💡 فانکشنی نوێ زیادکرا 💡 ]
+    // [ 💡 ئەم export ـانە وەک خۆیان مانەوە ]
     handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
     
     fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, 
