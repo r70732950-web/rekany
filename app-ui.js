@@ -31,7 +31,6 @@ import {
     handleLogin, // (ئەمە هی ئەدمینە)
     // [ 💡 فانکشنی نوێی بەکارهێنەر لێرە زیادکرا 💡 ]
     handleUserLogin, handleUserSignUp, handleUserLogout,
-    handlePasswordReset, // <-- [نوێ] زیادکرا بۆ بیرچوونەوە
     fetchCategories, fetchProductById, fetchProducts, fetchSubcategories, 
     fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, fetchSubSubcategories,
     addToCartCore, updateCartQuantityCore, removeFromCartCore, generateOrderMessageCore,
@@ -179,6 +178,7 @@ export function openPopup(id, type = 'sheet') {
         if (id === 'categoriesSheet') renderCategoriesSheetUI();
         if (id === 'notificationsSheet') renderUserNotificationsUI();
         if (id === 'termsSheet') renderPoliciesUI();
+        // [ 💡 گۆڕانکاری لێرە کرا 💡 ] - پڕکردنەوەی پڕۆفایل لە ڕێگەی `updateProfileSheetUI` دەکرێت
         if (id === 'profileSheet') {
             updateProfileSheetUI();
         }
@@ -957,14 +957,18 @@ function updateAdminUIAuth(isAdmin) {
     }
 }
 
+// [ 💡 فانکشنی نوێ زیادکرا 💡 ]
+// ئەم فانکشنە بڕیار دەدات چی لەناو شاشەی پڕۆفایل پیشان بدرێت
 function updateProfileSheetUI() {
     const authView = document.getElementById('authView');
     const profileView = document.getElementById('profileView');
     
+    // ئەگەر بەکارهێنەر میوان بێت (لۆگین نەبووبێت)
     if (!state.currentUser) {
         authView.style.display = 'block';
         profileView.style.display = 'none';
 
+        // دڵنیابوونەوە لەوەی تابی لۆگین سەرەتا دیارە
         document.getElementById('authTabLogin').classList.add('active');
         document.getElementById('authTabLogin').style.color = 'var(--primary-color)';
         document.getElementById('authTabLogin').style.borderBottomColor = 'var(--primary-color)';
@@ -977,13 +981,16 @@ function updateProfileSheetUI() {
         document.getElementById('userSignUpForm').style.display = 'none';
 
     } 
+    // ئەگەر بەکارهێنەر لۆگین بووبێت
     else {
         authView.style.display = 'none';
         profileView.style.display = 'block';
 
+        // پڕکردنەوەی زانیارییەکان
         document.getElementById('profileDisplayName').textContent = state.currentUser.displayName || "بەکارهێنەر";
         document.getElementById('profileDisplayEmail').textContent = state.currentUser.email;
 
+        // پڕکردنەوەی فۆڕمی زانیاری گەیاندن
         document.getElementById('profileName').value = state.userProfile.name || '';
         document.getElementById('profileAddress').value = state.userProfile.address || '';
         document.getElementById('profilePhone').value = state.userProfile.phone || '';
@@ -1156,33 +1163,6 @@ function setupUIEventListeners() {
         }
     };
 
-    // === [نوێ] گوێگرتن بۆ لینکی بیرچوونەوەی وشەی نهێنی ===
-    document.getElementById('forgotPasswordLink').onclick = async (e) => {
-        e.preventDefault();
-        
-        const emailInput = document.getElementById('userLoginEmail');
-        const email = emailInput.value;
-        
-        if (!email) {
-            showNotification('تکایە ئیمەیڵەکەت لە خانەی ئیمەیڵ بنووسە، پاشان کلیک بکە', 'error');
-            emailInput.focus();
-            return;
-        }
-        
-        const link = e.currentTarget;
-        const originalText = link.textContent;
-        link.textContent = '...چاوەڕوان بە';
-        link.style.pointerEvents = 'none'; // ڕێگری لە دووبارە کلیککردن
-
-        const result = await handlePasswordReset(email);
-        
-        showNotification(result.message, result.success ? 'success' : 'error');
-        
-        link.textContent = originalText;
-        link.style.pointerEvents = 'auto';
-    };
-    // ==========================================
-
     // دوگمەی چوونەدەرەوەی بەکارهێنەر
     document.getElementById('userLogoutBtn').onclick = async () => {
         const result = await handleUserLogout();
@@ -1232,6 +1212,7 @@ function setupUIEventListeners() {
     };
 
     // [ 💡 فۆڕمی پڕۆفایل نوێکرایەوە 💡 ]
+    // ئەمە ئێستا تەنها زانیاری گەیاندن پاشەکەوت دەکات
     profileForm.onsubmit = async (e) => {
         e.preventDefault();
         const profileData = {
@@ -1313,13 +1294,17 @@ function setupUIEventListeners() {
     });
     
     // [ 💡 گوێگری نوێ زیادکرا 💡 ]
+    // گوێگرتن بۆ گۆڕانی دۆخی بەکارهێنەر (لۆگین یان لۆگئاوت)
     document.addEventListener('userChange', () => {
+        // ئەگەر شاشەی پڕۆفایل کرابووەوە، نوێی بکەرەوە
         if (document.getElementById('profileSheet')?.classList.contains('show')) {
             updateProfileSheetUI();
         }
     });
     
+    // گوێگرتن بۆ کاتی باربوونی داتای پڕۆفایل
     document.addEventListener('profileLoaded', () => {
+        // ئەگەر شاشەی پڕۆفایل کرابووەوە، داتاکان پڕ بکەرەوە
         if (document.getElementById('profileSheet')?.classList.contains('show')) {
             updateProfileSheetUI();
         }
@@ -1394,14 +1379,11 @@ async function handleSetLanguage(lang) {
     }
     
     // [ 💡 نوێکراوەتەوە 💡 ]
-    // نوێکردنەوەی تێکستی تابەکانی چوونەژوورەوە و لینکی بیرچوونەوە
+    // نوێکردنەوەی تێکستی تابەکانی چوونەژوورەوە
     const authTabLogin = document.getElementById('authTabLogin');
     const authTabSignUp = document.getElementById('authTabSignUp');
-    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
-    
     if (authTabLogin) authTabLogin.textContent = t('auth_tab_login');
     if (authTabSignUp) authTabSignUp.textContent = t('auth_tab_signup');
-    if (forgotPasswordLink) forgotPasswordLink.textContent = t('forgot_password');
 }
 
 window.addEventListener('popstate', async (event) => {
@@ -1493,14 +1475,11 @@ async function initializeUI() {
      document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === state.currentLanguage)); 
     
     // [ 💡 نوێکراوەتەوە 💡 ]
-    // نوێکردنەوەی تێکستی تابەکانی چوونەژوورەوە و لینکی بیرچوونەوە
+    // نوێکردنەوەی تێکستی تابەکانی چوونەژوورەوە
     const authTabLogin = document.getElementById('authTabLogin');
     const authTabSignUp = document.getElementById('authTabSignUp');
-    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
-
     if (authTabLogin) authTabLogin.textContent = t('auth_tab_login');
     if (authTabSignUp) authTabSignUp.textContent = t('auth_tab_signup');
-    if (forgotPasswordLink) forgotPasswordLink.textContent = t('forgot_password');
 
 
     renderCategoriesSheetUI();
