@@ -4,9 +4,10 @@ import {
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
     categoryLayoutsCollection, 
-    // [ 💡 گۆڕانکاری لێرە کرا 💡 ]
-    usersCollection, // کۆڵێکشنی نوێی بەکارهێنەران
-    createUserWithEmailAndPassword, updateProfile, // فانکشنی نوێی Auth
+    // [ 💡 GORANKARI LÊRE HAT KIRIN 💡 ]
+    usersCollection, 
+    createUserWithEmailAndPassword, updateProfile, 
+    sendPasswordResetEmail, // <-- Fenkşna nû hat import kirin
     translations, state,
     CART_KEY, FAVORITES_KEY, PRODUCTS_PER_PAGE,
 } from './app-setup.js';
@@ -126,6 +127,24 @@ export async function handleUserLogout() {
         return { success: false, message: t('error_generic') };
     }
 }
+
+// [ 💡 FENKŞNA NÛ YA "PASSWORD RESET" LÊRE HAT ZÊDEKIRIN 💡 ]
+export async function handlePasswordReset(email) {
+    if (!email || email.trim() === '') {
+        return { success: false, message: t('forgot_password_no_email') };
+    }
+    try {
+        await sendPasswordResetEmail(auth, email);
+        return { success: true, message: t('forgot_password_success') };
+    } catch (error) {
+        console.error("Password reset error:", error.code);
+        if (error.code === 'auth/user-not-found') {
+            return { success: false, message: t('forgot_password_not_found') };
+        }
+        return { success: false, message: t('error_generic') };
+    }
+}
+// [ 💡 KOTAHIYA FENKŞNA NÛ 💡 ]
 
 
 async function fetchCategories() {
@@ -534,7 +553,6 @@ export function generateOrderMessageCore() {
     });
     message += `\n${t('order_total')}: ${total.toLocaleString()} د.ع.\n`;
 
-    // [ 💡 گۆڕانکاری لێرە کرا 💡 ] - ئێستا زانیاری پڕۆفایل لە state.userProfile وەردەگرێت کە لە Firestoreـەوە هاتووە
     if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
         message += `\n${t('order_user_info')}\n`;
         message += `${t('order_user_name')}: ${state.userProfile.name}\n`;
@@ -559,17 +577,13 @@ export function toggleFavoriteCore(productId) {
     }
 }
 
-// [ 💡 فانکشنی saveProfileCore بە تەواوی نوێکرایەوە 💡 ]
 export async function saveProfileCore(profileData) {
-    // 1. دڵنیابە کە بەکارهێنەر لۆگینە
     if (!state.currentUser) {
         return { success: false, message: "تکایە سەرەتا بچۆ ژوورەوە" }; 
     }
     try {
-        // 2. دۆکیومێنتی بەکارهێنەر لە 'users' بدۆزەرەوە
         const userProfileRef = doc(usersCollection, state.currentUser.uid);
         
-        // 3. داتاکە نوێ بکەرەوە (merge: true مانای وایە داتاکانی تر nasrênewe)
         await setDoc(userProfileRef, {
             name: profileData.name || '',
             address: profileData.address || '',
@@ -886,6 +900,8 @@ export async function initCore() {
 export {
     state, 
     handleLogin, // (ئەمە هی ئەدمینە)
+    // [ 💡 GORANKARI LÊRE HAT KIRIN 💡 ]
+    handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
     fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, 
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
     requestNotificationPermissionCore,
