@@ -893,6 +893,7 @@ export {
     saveCurrentScrollPositionCore, applyFilterStateCore, navigateToFilterCore,
     setLanguageCore, toggleFavoriteCore, isFavorite, addToCartCore, updateCartQuantityCore, removeFromCartCore, formatDescription,
     fetchCategoryLayout, initCore,
+    saveFavorites, // [ 💡 زیادکرا: ئەمە کێشەکەی چارەسەر دەکات ]
 
     db, 
     productsCollection,
