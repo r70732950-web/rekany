@@ -39,7 +39,8 @@ import {
     handleInstallPrompt, forceUpdateCore,
     saveCurrentScrollPositionCore, applyFilterStateCore, navigateToFilterCore,
     initCore,
-    sendMessageCore, subscribeToChatCore, // [ 💡 IMPORTED ]
+    // Chat Imports
+    sendMessageCore, subscribeToChatMessages, subscribeToMyChatStatus, markChatAsReadCore,
     db,
     collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection
 } from './app-core.js';
@@ -166,7 +167,8 @@ export function openPopup(id, type = 'sheet') {
     if (type === 'sheet') {
         const sheetContent = element.querySelector('.sheet-content');
         if (sheetContent) {
-            sheetContent.scrollTop = 0;
+            // Don't scroll to top if it's chat sheet to keep latest messages visible
+            if (id !== 'chatSheet') sheetContent.scrollTop = 0;
         }
 
         sheetOverlay.classList.add('show');
@@ -177,8 +179,11 @@ export function openPopup(id, type = 'sheet') {
         if (id === 'categoriesSheet') renderCategoriesSheetUI();
         if (id === 'notificationsSheet') renderUserNotificationsUI();
         if (id === 'termsSheet') renderPoliciesUI();
-        if (id === 'profileSheet') {
-            updateProfileSheetUI();
+        if (id === 'profileSheet') updateProfileSheetUI();
+        if (id === 'chatSheet') {
+            // Scroll chat to bottom
+            const messagesContainer = document.getElementById('chatMessages');
+            if(messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
     } else { 
         element.style.display = 'block';
@@ -216,10 +221,7 @@ function updateCartCountUI() {
 
 
 export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
-    if (!container) {
-        console.error("Skeleton loader container not found:", container);
-        return;
-     }
+    if (!container) return;
     container.innerHTML = ''; 
     for (let i = 0; i < count; i++) {
         const skeletonCard = document.createElement('div');
@@ -316,7 +318,6 @@ export function createProductCardElementUI(product) {
                   document.body.removeChild(textArea);
              }
          } catch (err) {
-             console.error('Share error:', err);
               if (err.name !== 'AbortError') showNotification(t('share_error'), 'error');
          }
     });
@@ -374,16 +375,24 @@ export function setupScrollAnimations() {
 
 function renderCartUI() {
     cartItemsContainer.innerHTML = '';
+    // Handle the Chat help button visibility in Cart
+    const cartHelpBtn = document.getElementById('cartHelpBtn');
+    
     if (state.cart.length === 0) {
         emptyCartMessage.style.display = 'block';
         cartTotal.style.display = 'none';
         cartActions.style.display = 'none';
+        if(cartHelpBtn) cartHelpBtn.style.display = 'none';
         return;
     }
 
     emptyCartMessage.style.display = 'none';
     cartTotal.style.display = 'block';
     cartActions.style.display = 'block';
+    if(cartHelpBtn) {
+        cartHelpBtn.style.display = 'flex';
+        cartHelpBtn.onclick = handleCartHelpRequest;
+    }
     renderCartActionButtonsUI(); 
 
     let total = 0;
@@ -422,60 +431,64 @@ function renderCartUI() {
     cartItemsContainer.querySelectorAll('.cart-item-remove').forEach(btn => btn.onclick = (e) => handleRemoveFromCartUI(e.currentTarget.dataset.id));
 }
 
+// [ 💡 New Function 💡 ] - Handles clicking "Ask about these items" in cart
+function handleCartHelpRequest() {
+    if (!state.currentUser) {
+        showNotification("تکایە سەرەتا بچۆ ژوورەوە", 'error');
+        openPopup('profileSheet');
+        return;
+    }
+    
+    const messageText = generateOrderMessageCore();
+    const chatInput = document.getElementById('chatInput');
+    if(chatInput) {
+        chatInput.value = "سڵاو، پرسیارم هەیە دەربارەی ئەم کاڵایانە:\n" + messageText;
+    }
+    
+    openPopup('chatSheet');
+}
+
 async function renderCartActionButtonsUI() {
     const container = document.getElementById('cartActions');
     container.innerHTML = ''; 
 
-    // [ 💡 نوێ: دوگمەی چەت زیادکرا 💡 ]
-    const chatBtn = document.createElement('button');
-    chatBtn.className = 'whatsapp-btn'; 
-    chatBtn.style.backgroundColor = '#4a5568'; 
-    chatBtn.style.marginBottom = '10px';
-    chatBtn.innerHTML = `<i class="fas fa-comments"></i> <span>چەتکردن لەگەڵ پشتگیری (Admin)</span>`;
-    chatBtn.onclick = () => {
-        if (!state.currentUser) {
-            showNotification('تکایە سەرەتا بچۆ ژوورەوە', 'error');
-            openPopup('profileSheet'); // کردنەوەی پڕۆفایل بۆ لۆگین
-        } else {
-            initializeChatUI(state.currentUser.uid, false);
-        }
-    };
-    container.appendChild(chatBtn);
-
     const methods = await fetchContactMethods(); 
 
-    if (methods && methods.length > 0) {
-        methods.forEach(method => {
-            const btn = document.createElement('button');
-            btn.className = 'whatsapp-btn'; 
-            btn.style.backgroundColor = method.color;
-
-            const name = method['name_' + state.currentLanguage] || method.name_ku_sorani;
-            btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
-
-            btn.onclick = () => {
-                const message = generateOrderMessageCore(); 
-                if (!message) return;
-
-                let link = '';
-                const encodedMessage = encodeURIComponent(message);
-                const value = method.value;
-
-                switch (method.type) {
-                    case 'whatsapp': link = `https://wa.me/${value}?text=${encodedMessage}`; break;
-                    case 'viber': link = `viber://chat?number=%2B${value}&text=${encodedMessage}`; break; 
-                    case 'telegram': link = `https://t.me/${value}?text=${encodedMessage}`; break;
-                    case 'phone': link = `tel:${value}`; break;
-                    case 'url': link = value; break; 
-                }
-
-                if (link) {
-                    window.open(link, '_blank');
-                }
-            };
-            container.appendChild(btn);
-        });
+    if (!methods || methods.length === 0) {
+        container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
+        return;
     }
+
+    methods.forEach(method => {
+        const btn = document.createElement('button');
+        btn.className = 'whatsapp-btn'; 
+        btn.style.backgroundColor = method.color;
+
+        const name = method['name_' + state.currentLanguage] || method.name_ku_sorani;
+        btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
+
+        btn.onclick = () => {
+            const message = generateOrderMessageCore(); 
+            if (!message) return;
+
+            let link = '';
+            const encodedMessage = encodeURIComponent(message);
+            const value = method.value;
+
+            switch (method.type) {
+                case 'whatsapp': link = `https://wa.me/${value}?text=${encodedMessage}`; break;
+                case 'viber': link = `viber://chat?number=%2B${value}&text=${encodedMessage}`; break; 
+                case 'telegram': link = `https://t.me/${value}?text=${encodedMessage}`; break;
+                case 'phone': link = `tel:${value}`; break;
+                case 'url': link = value; break; 
+            }
+
+            if (link) {
+                window.open(link, '_blank');
+            }
+        };
+        container.appendChild(btn);
+    });
 }
 
 
@@ -944,7 +957,8 @@ function updateAdminUIAuth(isAdmin) {
          'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
          'adminContactMethodsManagement', 'adminShortcutRowsManagement',
          'adminHomeLayoutManagement',
-         'adminCategoryLayoutManagement' 
+         'adminCategoryLayoutManagement',
+         'adminChatManagement' // Added chat section
     ];
     
     adminSections.forEach(id => {
@@ -952,12 +966,13 @@ function updateAdminUIAuth(isAdmin) {
         if (section) section.style.display = isAdmin ? 'block' : 'none';
     });
 
-    const adminChatBtn = document.getElementById('adminChatListBtn');
-    if (adminChatBtn) adminChatBtn.style.display = isAdmin ? 'flex' : 'none';
-
     settingsLogoutBtn.style.display = isAdmin ? 'flex' : 'none';
     settingsAdminLoginBtn.style.display = isAdmin ? 'none' : 'flex';
     addProductBtn.style.display = isAdmin ? 'flex' : 'none';
+    
+    // Hide Chat floating button for admin
+    const chatBtn = document.getElementById('chatFloatingBtn');
+    if (chatBtn) chatBtn.style.display = isAdmin ? 'none' : 'flex';
 
     const favoritesSheet = document.getElementById('favoritesSheet');
     if (favoritesSheet?.classList.contains('show')) {
@@ -968,6 +983,10 @@ function updateAdminUIAuth(isAdmin) {
         fetchProductById(state.currentProductId).then(product => {
             if (product) showProductDetailsUI(product); 
         });
+    }
+    
+    if (isAdmin && window.AdminLogic && window.AdminLogic.setupChatAdmin) {
+        window.AdminLogic.setupChatAdmin();
     }
 }
 
@@ -1053,6 +1072,126 @@ function handleToggleFavoriteUI(productId) {
     if (document.getElementById('favoritesSheet')?.classList.contains('show')) {
         renderFavoritesPageUI();
     }
+}
+
+// [ 💡 New Function 💡 ] - Setup Chat Listeners
+function setupChatUI() {
+    const chatBtn = document.getElementById('chatFloatingBtn');
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+    const chatUnreadBadge = document.getElementById('chatUnreadBadge');
+
+    if (!chatBtn || !chatForm) return;
+
+    // Open Chat
+    chatBtn.addEventListener('click', () => {
+        if (!state.currentUser) {
+            showNotification('تکایە سەرەتا بچۆ ژوورەوە بۆ ئەوەی چات بکەیت', 'error');
+            openPopup('profileSheet');
+            return;
+        }
+        document.getElementById('chatSheetTitle').innerHTML = `<i class="fas fa-comments"></i> <span>${t('contact_us_title')}</span>`;
+        openPopup('chatSheet');
+        markChatAsReadCore(state.currentUser.uid, false);
+    });
+
+    // Send Message
+    chatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const text = chatInput.value.trim();
+        if (!text) return;
+
+        if (!state.currentUser) {
+            showNotification('تکایە سەرەتا بچۆ ژوورەوە', 'error');
+            return;
+        }
+
+        const originalText = text;
+        chatInput.value = ''; 
+        
+        // Send to admin (since this is user UI)
+        // If current user is admin, they should use admin panel, but this handles generic sending
+        const result = await sendMessageCore(text); 
+        if (!result.success) {
+            showNotification('نەتوانرا بنێردرێت: ' + result.message, 'error');
+            chatInput.value = originalText; 
+        }
+    });
+
+    // Listener for User Messages & Badge
+    let chatUnsubscribe = null;
+    let badgeUnsubscribe = null;
+
+    document.addEventListener('userChange', (e) => {
+        const user = e.detail.user;
+        if (chatUnsubscribe) chatUnsubscribe();
+        if (badgeUnsubscribe) badgeUnsubscribe();
+
+        if (user && !sessionStorage.getItem('isAdmin')) { // Only for normal users
+            chatBtn.style.display = 'flex';
+            
+            // Listen to messages
+            chatUnsubscribe = subscribeToChatMessages(user.uid, (messages) => {
+                renderChatMessages(messages, user.uid);
+            });
+
+            // Listen to badge
+            badgeUnsubscribe = subscribeToMyChatStatus(user.uid, (data) => {
+                if (data && data.unreadCount > 0) {
+                    chatUnreadBadge.textContent = data.unreadCount;
+                    chatUnreadBadge.style.display = 'flex';
+                } else {
+                    chatUnreadBadge.style.display = 'none';
+                }
+            });
+        } else {
+            chatBtn.style.display = 'none';
+        }
+    });
+}
+
+function renderChatMessages(messages, currentUserId) {
+    const container = document.getElementById('chatMessages');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+
+    if (messages.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color: #aaa; margin-top: 20px;">سڵاو! چۆن دەتوانین هاوکاریت بکەین؟</p>';
+        return;
+    }
+
+    messages.forEach(msg => {
+        const div = document.createElement('div');
+        // Check who sent it. If I am sender, it's 'user' style (right side).
+        // If senderId matches my UID, it's me.
+        const isMe = msg.senderId === currentUserId; 
+        
+        // Wait, logic check: 
+        // If I am Normal User: My ID = currentUserId. Messages with my ID are 'user' style. Admin messages are 'admin' style.
+        // If I am Admin viewing a user chat: Messages with Admin ID are 'user' style (my sent messages). User messages are 'admin' style.
+        // SIMPLIFICATION: 
+        // Let's assume standard view:
+        // User View: My messages (Right/Green), Admin messages (Left/Gray).
+        
+        // In App UI (User View):
+        const isMyMessage = msg.senderId === auth.currentUser?.uid;
+        
+        div.className = `message-bubble ${isMyMessage ? 'user' : 'admin'}`;
+        
+        // Convert timestamp
+        let timeStr = '';
+        if (msg.timestamp) {
+            const date = msg.timestamp.toDate ? msg.timestamp.toDate() : new Date(msg.timestamp);
+            timeStr = `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+        }
+
+        div.innerHTML = `${msg.text.replace(/\n/g, '<br>')}<span class="message-time">${timeStr}</span>`;
+        container.appendChild(div);
+    });
+
+    container.scrollTop = container.scrollHeight;
 }
 
 
@@ -1355,6 +1494,7 @@ function setupUIEventListeners() {
     });
 
     setupGpsButtonUI();
+    setupChatUI(); // Initialize Chat UI
 }
 
 async function handleSetLanguage(lang) {
@@ -1654,71 +1794,8 @@ function setupGpsButtonUI() {
      });
 }
 
-// [ 💡 نوێ: فانکشنی Chat UI 💡 ]
-let chatUnsubscribe = null;
-
-export function initializeChatUI(userId, isAdminView = false) {
-    // ئەگەر ئەدمین بێت، هەمان شیت بەکاردێنین، بەڵام وا دایدەنێین کە userId هی یوزەرەکەیە
-    const messagesContainer = document.getElementById('chatMessagesContainer');
-    const inputField = document.getElementById('chatMessageInput');
-    const sendBtn = document.getElementById('sendMessageBtn');
-
-    // کردنەوەی شیت
-    openPopup('chatSheet');
-
-    messagesContainer.innerHTML = '<div style="display:flex; justify-content:center; align-items:center; height:100%;"><i class="fas fa-spinner fa-spin"></i></div>';
-    
-    if (chatUnsubscribe) chatUnsubscribe(); 
-
-    chatUnsubscribe = subscribeToChatCore(userId, (messages) => {
-        messagesContainer.innerHTML = '';
-        if (messages.length === 0) {
-            messagesContainer.innerHTML = '<p style="text-align:center; opacity:0.5; margin-top:20px; padding:20px;">سڵاو! چۆن دەتوانین یارمەتیت بدەین؟</p>';
-        }
-        
-        messages.forEach(msg => {
-            const div = document.createElement('div');
-            // ئەگەر ئەدمین بێت، نامەی ئەدمین (msg.isAdmin=true) لای ڕاست (User style) نیشان دەدرێت
-            // ئەگەر یوزەر بێت، نامەی یوزەر (msg.isAdmin=false) لای ڕاست (User style) نیشان دەدرێت
-            // واتە: isMe true بێت دەکەوێتە لای ڕاست
-            
-            const isMe = isAdminView ? msg.isAdmin : !msg.isAdmin;
-            div.className = `message-bubble ${isMe ? 'user' : 'admin'}`;
-            
-            const time = new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            div.innerHTML = `
-                ${msg.text}
-                <span class="message-time">${time}</span>
-            `;
-            messagesContainer.appendChild(div);
-        });
-        
-        messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: 'smooth' });
-    });
-
-    // لابردنی Event Listenerـە کۆنەکان
-    const newSendBtn = sendBtn.cloneNode(true);
-    sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
-    
-    const newInputField = inputField.cloneNode(true);
-    inputField.parentNode.replaceChild(newInputField, inputField);
-
-    // هەڵبژاردنەوەی توخمە نوێیەکان
-    const finalSendBtn = document.getElementById('sendMessageBtn');
-    const finalInput = document.getElementById('chatMessageInput');
-
-    finalSendBtn.onclick = async () => {
-        const text = finalInput.value;
-        if (!text.trim()) return;
-        
-        finalInput.value = '';
-        await sendMessageCore(text, isAdminView, userId);
-    };
-
-    finalInput.onkeypress = (e) => {
-        if (e.key === 'Enter') finalSendBtn.click();
-    };
-}
+// Make Chat UI render function globally available for Admin
+window.renderChatMessages = renderChatMessages;
 
 document.addEventListener('DOMContentLoaded', initializeUI);
 
@@ -1728,8 +1805,4 @@ if (!window.globalAdminTools) {
 
 window.globalAdminTools.openPopup = openPopup;
 window.globalAdminTools.closeCurrentPopup = closeCurrentPopup;
-window.globalAdminTools.showNotification = showNotification; 
-window.globalAdminTools.initializeChatUI = initializeChatUI; // [ 💡 زیادکرا بۆ ئەدمین ]
-window.globalAdminTools.fetchContactMethods = fetchContactMethods;
-
-console.log('openPopup, closeCurrentPopup, showNotification & initializeChatUI added to globalAdminTools.');
+window.globalAdminTools.showNotification = showNotification;

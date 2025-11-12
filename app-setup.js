@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
+// [ 💡 گۆڕانکاری لێرە کرا 💡 ] - sendPasswordResetEmail زیادکرا
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
@@ -23,6 +24,7 @@ export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 export const storage = getStorage(app);
 
+// [ 💡 گۆڕانکاری لێرە کرا 💡 ] - sendPasswordResetEmail زیادکرا بۆ export
 export {
     signInWithEmailAndPassword, onAuthStateChanged, signOut,
     createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail
@@ -36,7 +38,6 @@ export const brandGroupsCollection = collection(db, "brand_groups");
 export const shortcutRowsCollection = collection(db, "shortcut_rows");
 export const categoryLayoutsCollection = collection(db, "category_layouts");
 export const usersCollection = collection(db, "users");
-export const chatsCollection = collection(db, "chats"); // [ 💡 New Collection ]
 
 
 export const translations = {
@@ -135,6 +136,8 @@ export const translations = {
         user_logout_success: "بە سەرکەوتوویی چوویتەدەرەوە",
         auth_tab_login: "چوونەژوورەوە",
         auth_tab_signup: "خۆتۆمارکردن",
+
+        // [ 💡 وەرگێڕانی نوێ زیادکرا 💡 ]
         forgot_password: "وشەی نهێنیت لەبیرکردووە؟",
         password_reset_email_sent: "ئیمەیڵێکی ڕێستکردنەوەت بۆ نێردرا. تکایە سەیری ئیمەیڵەکەت بکە.",
         password_reset_error_not_found: "ئەم ئیمەیڵە تۆمار نەکراوە.",
@@ -235,6 +238,8 @@ export const translations = {
         user_logout_success: "ب سەرکەفتیانە چوويه دەر",
         auth_tab_login: "چوونا ژوور",
         auth_tab_signup: "خۆتۆمارکرن",
+
+        // [ 💡 وەرگێڕانی نوێ زیادکرا 💡 ]
         forgot_password: "تە پەیڤا نهێنى ژبیرکریە؟",
         password_reset_email_sent: "ئیمەیلەکا رێستکرنێ بۆ تە هاتە فرێکرن. هیڤی دکەین سحکە ئیمەیلا خۆ.",
         password_reset_error_not_found: "ئەڤ ئیمەیلە تۆمار نەکریە.",
@@ -335,6 +340,8 @@ export const translations = {
         user_logout_success: "تم تسجيل الخروج بنجاح",
         auth_tab_login: "تسجيل الدخول",
         auth_tab_signup: "إنشاء حساب",
+
+        // [ 💡 وەرگێڕانی نوێ زیادکرا 💡 ]
         forgot_password: "هل نسيت كلمة المرور؟",
         password_reset_email_sent: "تم إرسال بريد إلكتروني لإعادة تعيين كلمة المرور. يرجى التحقق من بريدك.",
         password_reset_error_not_found: "هذا البريد الإلكتروني غير مسجل.",
