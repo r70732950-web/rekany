@@ -1,12 +1,9 @@
-// app-setup.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
-// [ 💡 گۆڕانکاری لێرە کرا 💡 ] - sendPasswordResetEmail زیادکرا
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
-
 
 const firebaseConfig = {
     apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", 
@@ -25,12 +22,12 @@ export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 export const storage = getStorage(app);
 
-// [ 💡 گۆڕانکاری لێرە کرا 💡 ] - sendPasswordResetEmail زیادکرا بۆ export
 export {
     signInWithEmailAndPassword, onAuthStateChanged, signOut,
     createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail
 };
 
+// Collections
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
 export const announcementsCollection = collection(db, "announcements");
@@ -39,6 +36,9 @@ export const brandGroupsCollection = collection(db, "brand_groups");
 export const shortcutRowsCollection = collection(db, "shortcut_rows");
 export const categoryLayoutsCollection = collection(db, "category_layouts");
 export const usersCollection = collection(db, "users");
+// [NEW] - Chat & Order Collections
+export const chatsCollection = collection(db, "chats");
+export const ordersCollection = collection(db, "orders");
 
 
 export const translations = {
@@ -137,12 +137,21 @@ export const translations = {
         user_logout_success: "بە سەرکەوتوویی چوویتەدەرەوە",
         auth_tab_login: "چوونەژوورەوە",
         auth_tab_signup: "خۆتۆمارکردن",
-
-        // [ 💡 وەرگێڕانی نوێ زیادکرا 💡 ]
         forgot_password: "وشەی نهێنیت لەبیرکردووە؟",
         password_reset_email_sent: "ئیمەیڵێکی ڕێستکردنەوەت بۆ نێردرا. تکایە سەیری ئیمەیڵەکەت بکە.",
         password_reset_error_not_found: "ئەم ئیمەیڵە تۆمار نەکراوە.",
         password_reset_enter_email: "تکایە سەرەتا ئیمەیڵەکەت لە خانەی ئیمەیڵ بنووسە.",
+
+        // [NEW] Chat & Order Translations
+        nav_messages: "نامەکان",
+        chat_placeholder: "نامەیەک بنووسە...",
+        recording_text: "خەریکی تۆمارکردنە...",
+        order_success_title: "داواکاری نێردرا!",
+        order_success_msg: "بە زووترین کات پەیوەندیت پێوە دەکەین.",
+        direct_order_btn: "ناردنی داواکاری ڕاستەوخۆ",
+        online_status: "ل هێڵە (Online)",
+        offline_status: "ئۆفلاین",
+        support_name: "پشتگیری (Support)"
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -239,12 +248,21 @@ export const translations = {
         user_logout_success: "ب سەرکەفتیانە چوويه دەر",
         auth_tab_login: "چوونا ژوور",
         auth_tab_signup: "خۆتۆمارکرن",
-
-        // [ 💡 وەرگێڕانی نوێ زیادکرا 💡 ]
         forgot_password: "تە پەیڤا نهێنى ژبیرکریە؟",
         password_reset_email_sent: "ئیمەیلەکا رێستکرنێ بۆ تە هاتە فرێکرن. هیڤی دکەین سحکە ئیمەیلا خۆ.",
         password_reset_error_not_found: "ئەڤ ئیمەیلە تۆمار نەکریە.",
         password_reset_enter_email: "هیڤی دکەین ئێکەم جار ئیمەیلا خۆ ل خانەیا ئیمەیلێ بنڤیسە.",
+
+        // [NEW] Chat & Order Translations
+        nav_messages: "نامە",
+        chat_placeholder: "نامەیەکێ بنڤیسە...",
+        recording_text: "...تۆمار دکەت",
+        order_success_title: "داخازی هاتە فرێکرن!",
+        order_success_msg: "دێ ب زووترین دەم پەیوەندیێ ب تە کەین.",
+        direct_order_btn: "فرێکرنا داخازیێ راستەوخۆ",
+        online_status: "ل هێڵە (Online)",
+        offline_status: "ئۆفلاین",
+        support_name: "پشتگیری (Support)"
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -341,12 +359,21 @@ export const translations = {
         user_logout_success: "تم تسجيل الخروج بنجاح",
         auth_tab_login: "تسجيل الدخول",
         auth_tab_signup: "إنشاء حساب",
-
-        // [ 💡 وەرگێڕانی نوێ زیادکرا 💡 ]
         forgot_password: "هل نسيت كلمة المرور؟",
         password_reset_email_sent: "تم إرسال بريد إلكتروني لإعادة تعيين كلمة المرور. يرجى التحقق من بريدك.",
         password_reset_error_not_found: "هذا البريد الإلكتروني غير مسجل.",
         password_reset_enter_email: "يرجى إدخال بريدك الإلكتروني في حقل البريد أولاً.",
+
+        // [NEW] Chat & Order Translations
+        nav_messages: "الرسائل",
+        chat_placeholder: "أكتب رسالة...",
+        recording_text: "جاري التسجيل...",
+        order_success_title: "تم إرسال الطلب!",
+        order_success_msg: "سنتصل بك في أقرب وقت.",
+        direct_order_btn: "إرسال طلب مباشر",
+        online_status: "متصل (Online)",
+        offline_status: "غير متصل",
+        support_name: "الدعم (Support)"
     }
 };
 
@@ -375,7 +402,13 @@ export let state = {
     currentPopupState: null, 
     pendingFilterNav: null, 
     sliderIntervals: {}, 
-    contactInfo: {}, 
+    contactInfo: {},
+    // [NEW] Chat States
+    activeChatUserId: null,
+    audioRecorder: null,
+    audioChunks: [],
+    isRecording: false,
+    recordingTimer: null,
 };
 
 export const CART_KEY = "maten_store_cart";
@@ -473,6 +506,28 @@ export const categoryLayoutEnableToggle = document.getElementById('categoryLayou
 export const categoryLayoutListContainer = document.getElementById('categoryLayoutListContainer');
 export const addCategorySectionBtn = document.getElementById('addCategorySectionBtn');
 
+// [NEW] Chat DOM Elements
+export const messagesBtn = document.getElementById('messagesBtn');
+export const chatPage = document.getElementById('chatPage');
+export const messagesList = document.getElementById('messagesList');
+export const chatInput = document.getElementById('chatInput');
+export const chatSendBtn = document.getElementById('chatSendBtn');
+export const chatMicBtn = document.getElementById('chatMicBtn');
+export const chatAttachBtn = document.getElementById('chatAttachBtn');
+export const chatFileInput = document.getElementById('chatFileInput');
+export const attachmentPreview = document.getElementById('attachmentPreview');
+export const attachmentImg = document.getElementById('attachmentImg');
+export const removeAttachmentBtn = document.getElementById('removeAttachmentBtn');
+export const recordingUI = document.getElementById('recordingUI');
+export const recordTimer = document.getElementById('recordTimer');
+export const cancelRecordBtn = document.getElementById('cancelRecordBtn');
+export const sendRecordBtn = document.getElementById('sendRecordBtn');
+export const adminChatListPage = document.getElementById('adminChatListPage');
+export const adminChatUsersList = document.getElementById('adminChatUsersList');
+export const adminUnreadBadge = document.getElementById('adminUnreadBadge');
+export const openAdminChatsBtn = document.getElementById('openAdminChatsBtn');
+export const totalUnreadBadge = document.getElementById('totalUnreadBadge');
+
 window.globalAdminTools = {
     db, auth,
     storage, ref, uploadBytes, getDownloadURL,
@@ -482,6 +537,8 @@ window.globalAdminTools = {
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
     categoryLayoutsCollection, 
+    // [NEW] Expose Chat Collections
+    chatsCollection, ordersCollection,
 
     setEditingProductId: (id) => { state.editingProductId = id; },
     getEditingProductId: () => state.editingProductId,
