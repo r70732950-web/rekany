@@ -28,7 +28,6 @@ import {
     state, 
     t, debounce, formatDescription,
     handleLogin, 
-    // [ 💡 گۆڕانکاری لێرە کرا 💡 ] - handlePasswordReset زیادکرا
     handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
     fetchCategories, fetchProductById, fetchProducts, fetchSubcategories, 
     fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, fetchSubSubcategories,
@@ -40,6 +39,7 @@ import {
     handleInstallPrompt, forceUpdateCore,
     saveCurrentScrollPositionCore, applyFilterStateCore, navigateToFilterCore,
     initCore,
+    sendMessageCore, subscribeToChatCore, // [ 💡 IMPORTED ]
     db,
     collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection
 } from './app-core.js';
@@ -426,43 +426,56 @@ async function renderCartActionButtonsUI() {
     const container = document.getElementById('cartActions');
     container.innerHTML = ''; 
 
+    // [ 💡 نوێ: دوگمەی چەت زیادکرا 💡 ]
+    const chatBtn = document.createElement('button');
+    chatBtn.className = 'whatsapp-btn'; 
+    chatBtn.style.backgroundColor = '#4a5568'; 
+    chatBtn.style.marginBottom = '10px';
+    chatBtn.innerHTML = `<i class="fas fa-comments"></i> <span>چەتکردن لەگەڵ پشتگیری (Admin)</span>`;
+    chatBtn.onclick = () => {
+        if (!state.currentUser) {
+            showNotification('تکایە سەرەتا بچۆ ژوورەوە', 'error');
+            openPopup('profileSheet'); // کردنەوەی پڕۆفایل بۆ لۆگین
+        } else {
+            initializeChatUI(state.currentUser.uid, false);
+        }
+    };
+    container.appendChild(chatBtn);
+
     const methods = await fetchContactMethods(); 
 
-    if (!methods || methods.length === 0) {
-        container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
-        return;
+    if (methods && methods.length > 0) {
+        methods.forEach(method => {
+            const btn = document.createElement('button');
+            btn.className = 'whatsapp-btn'; 
+            btn.style.backgroundColor = method.color;
+
+            const name = method['name_' + state.currentLanguage] || method.name_ku_sorani;
+            btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
+
+            btn.onclick = () => {
+                const message = generateOrderMessageCore(); 
+                if (!message) return;
+
+                let link = '';
+                const encodedMessage = encodeURIComponent(message);
+                const value = method.value;
+
+                switch (method.type) {
+                    case 'whatsapp': link = `https://wa.me/${value}?text=${encodedMessage}`; break;
+                    case 'viber': link = `viber://chat?number=%2B${value}&text=${encodedMessage}`; break; 
+                    case 'telegram': link = `https://t.me/${value}?text=${encodedMessage}`; break;
+                    case 'phone': link = `tel:${value}`; break;
+                    case 'url': link = value; break; 
+                }
+
+                if (link) {
+                    window.open(link, '_blank');
+                }
+            };
+            container.appendChild(btn);
+        });
     }
-
-    methods.forEach(method => {
-        const btn = document.createElement('button');
-        btn.className = 'whatsapp-btn'; 
-        btn.style.backgroundColor = method.color;
-
-        const name = method['name_' + state.currentLanguage] || method.name_ku_sorani;
-        btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
-
-        btn.onclick = () => {
-            const message = generateOrderMessageCore(); 
-            if (!message) return;
-
-            let link = '';
-            const encodedMessage = encodeURIComponent(message);
-            const value = method.value;
-
-            switch (method.type) {
-                case 'whatsapp': link = `https://wa.me/${value}?text=${encodedMessage}`; break;
-                case 'viber': link = `viber://chat?number=%2B${value}&text=${encodedMessage}`; break; 
-                case 'telegram': link = `https://t.me/${value}?text=${encodedMessage}`; break;
-                case 'phone': link = `tel:${value}`; break;
-                case 'url': link = value; break; 
-            }
-
-            if (link) {
-                window.open(link, '_blank');
-            }
-        };
-        container.appendChild(btn);
-    });
 }
 
 
@@ -939,6 +952,9 @@ function updateAdminUIAuth(isAdmin) {
         if (section) section.style.display = isAdmin ? 'block' : 'none';
     });
 
+    const adminChatBtn = document.getElementById('adminChatListBtn');
+    if (adminChatBtn) adminChatBtn.style.display = isAdmin ? 'flex' : 'none';
+
     settingsLogoutBtn.style.display = isAdmin ? 'flex' : 'none';
     settingsAdminLoginBtn.style.display = isAdmin ? 'none' : 'flex';
     addProductBtn.style.display = isAdmin ? 'flex' : 'none';
@@ -1126,7 +1142,6 @@ function setupUIEventListeners() {
         }
     };
 
-    // [ 💡 کۆدی نوێ بۆ لینکەکەی Forgot Password 💡 ]
     const forgotPasswordLink = document.getElementById('forgotPasswordLink');
     if (forgotPasswordLink) {
         forgotPasswordLink.onclick = async () => {
@@ -1639,6 +1654,72 @@ function setupGpsButtonUI() {
      });
 }
 
+// [ 💡 نوێ: فانکشنی Chat UI 💡 ]
+let chatUnsubscribe = null;
+
+export function initializeChatUI(userId, isAdminView = false) {
+    // ئەگەر ئەدمین بێت، هەمان شیت بەکاردێنین، بەڵام وا دایدەنێین کە userId هی یوزەرەکەیە
+    const messagesContainer = document.getElementById('chatMessagesContainer');
+    const inputField = document.getElementById('chatMessageInput');
+    const sendBtn = document.getElementById('sendMessageBtn');
+
+    // کردنەوەی شیت
+    openPopup('chatSheet');
+
+    messagesContainer.innerHTML = '<div style="display:flex; justify-content:center; align-items:center; height:100%;"><i class="fas fa-spinner fa-spin"></i></div>';
+    
+    if (chatUnsubscribe) chatUnsubscribe(); 
+
+    chatUnsubscribe = subscribeToChatCore(userId, (messages) => {
+        messagesContainer.innerHTML = '';
+        if (messages.length === 0) {
+            messagesContainer.innerHTML = '<p style="text-align:center; opacity:0.5; margin-top:20px; padding:20px;">سڵاو! چۆن دەتوانین یارمەتیت بدەین؟</p>';
+        }
+        
+        messages.forEach(msg => {
+            const div = document.createElement('div');
+            // ئەگەر ئەدمین بێت، نامەی ئەدمین (msg.isAdmin=true) لای ڕاست (User style) نیشان دەدرێت
+            // ئەگەر یوزەر بێت، نامەی یوزەر (msg.isAdmin=false) لای ڕاست (User style) نیشان دەدرێت
+            // واتە: isMe true بێت دەکەوێتە لای ڕاست
+            
+            const isMe = isAdminView ? msg.isAdmin : !msg.isAdmin;
+            div.className = `message-bubble ${isMe ? 'user' : 'admin'}`;
+            
+            const time = new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            div.innerHTML = `
+                ${msg.text}
+                <span class="message-time">${time}</span>
+            `;
+            messagesContainer.appendChild(div);
+        });
+        
+        messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: 'smooth' });
+    });
+
+    // لابردنی Event Listenerـە کۆنەکان
+    const newSendBtn = sendBtn.cloneNode(true);
+    sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
+    
+    const newInputField = inputField.cloneNode(true);
+    inputField.parentNode.replaceChild(newInputField, inputField);
+
+    // هەڵبژاردنەوەی توخمە نوێیەکان
+    const finalSendBtn = document.getElementById('sendMessageBtn');
+    const finalInput = document.getElementById('chatMessageInput');
+
+    finalSendBtn.onclick = async () => {
+        const text = finalInput.value;
+        if (!text.trim()) return;
+        
+        finalInput.value = '';
+        await sendMessageCore(text, isAdminView, userId);
+    };
+
+    finalInput.onkeypress = (e) => {
+        if (e.key === 'Enter') finalSendBtn.click();
+    };
+}
+
 document.addEventListener('DOMContentLoaded', initializeUI);
 
 if (!window.globalAdminTools) {
@@ -1648,5 +1729,7 @@ if (!window.globalAdminTools) {
 window.globalAdminTools.openPopup = openPopup;
 window.globalAdminTools.closeCurrentPopup = closeCurrentPopup;
 window.globalAdminTools.showNotification = showNotification; 
+window.globalAdminTools.initializeChatUI = initializeChatUI; // [ 💡 زیادکرا بۆ ئەدمین ]
+window.globalAdminTools.fetchContactMethods = fetchContactMethods;
 
-console.log('openPopup, closeCurrentPopup, & showNotification ji bo admin.js hatin zêdekirin.');
+console.log('openPopup, closeCurrentPopup, showNotification & initializeChatUI added to globalAdminTools.');

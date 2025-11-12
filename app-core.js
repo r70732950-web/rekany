@@ -70,7 +70,6 @@ async function handleLogin(email, password) {
     }
 }
 
-// [ 💡 چاککراوە: export لێرە لابرا ]
 // فانکشنی چوونەژوورەوەی بەکارهێنەر
 async function handleUserLogin(email, password) {
     try {
@@ -82,7 +81,6 @@ async function handleUserLogin(email, password) {
     }
 }
 
-// [ 💡 چاککراوە: export لێرە لابرا ]
 // فانکشنی خۆتۆمارکردنی بەکارهێنەر
 async function handleUserSignUp(name, email, password) {
     try {
@@ -117,7 +115,6 @@ async function handleUserSignUp(name, email, password) {
     }
 }
 
-// [ 💡 چاککراوە: export لێرە لابرا ]
 // فانکشنی چوونەدەرەوەی بەکارهێنەر
 async function handleUserLogout() {
     try {
@@ -129,7 +126,6 @@ async function handleUserLogout() {
     }
 }
 
-// [ 💡 چاککراوە: export لێرە لابرا ]
 // بیرچوونەوەی وشەی نهێنی
 async function handlePasswordReset(email) {
     if (!email) {
@@ -554,7 +550,6 @@ export function generateOrderMessageCore() {
     });
     message += `\n${t('order_total')}: ${total.toLocaleString()} د.ع.\n`;
 
-    // [ 💡 گۆڕانکاری لێرە کرا 💡 ] - ئێستا زانیاری پڕۆفایل لە state.userProfile وەردەگرێت کە لە Firestoreـەوە هاتووە
     if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
         message += `\n${t('order_user_info')}\n`;
         message += `${t('order_user_name')}: ${state.userProfile.name}\n`;
@@ -579,17 +574,13 @@ export function toggleFavoriteCore(productId) {
     }
 }
 
-// [ 💡 فانکشنی saveProfileCore بە تەواوی نوێکرایەوە 💡 ]
 export async function saveProfileCore(profileData) {
-    // 1. دڵنیابە کە بەکارهێنەر لۆگینە
     if (!state.currentUser) {
         return { success: false, message: "تکایە سەرەتا بچۆ ژوورەوە" }; 
     }
     try {
-        // 2. دۆکیومێنتی بەکارهێنەر لە 'users' بدۆزەرەوە
         const userProfileRef = doc(usersCollection, state.currentUser.uid);
         
-        // 3. داتاکە نوێ بکەرەوە (merge: true مانای وایە داتاکانی تر nasrênewe)
         await setDoc(userProfileRef, {
             name: profileData.name || '',
             address: profileData.address || '',
@@ -755,7 +746,6 @@ export function setLanguageCore(lang) {
     updateTokenLanguageInFirestore(lang);
 }
 
-// [ 💡 فانکشنی نوێ زیادکرا 💡 ]
 let userProfileUnsubscribe = null; 
 
 async function loadUserProfile(uid) {
@@ -792,6 +782,58 @@ async function loadUserProfile(uid) {
         document.dispatchEvent(new CustomEvent('profileLoaded'));
     }, (error) => {
         console.error("هەڵە لە گوێگرتن لە پڕۆفایلی بەکارهێنەر:", error);
+    });
+}
+
+// --- CHAT FUNCTIONS ---
+
+// ناردنی نامە (بۆ یوزەر و ئەدمین)
+export async function sendMessageCore(text, isAdmin = false, targetUserId = null) {
+    const userId = isAdmin ? targetUserId : (state.currentUser ? state.currentUser.uid : null);
+    
+    if (!userId || !text.trim()) return { success: false };
+
+    try {
+        const chatDocRef = doc(db, "chats", userId);
+        const messagesColRef = collection(chatDocRef, "messages");
+
+        // زیادکردنی نامە بۆ Sub-collection
+        await addDoc(messagesColRef, {
+            text: text.trim(),
+            senderId: isAdmin ? 'admin' : userId,
+            timestamp: Date.now(), 
+            isAdmin: isAdmin
+        });
+
+        // نوێکردنەوەی دۆکیومێنتی سەرەکی چەت (بۆ ئەوەی لە لیستی ئەدمین دەربکەوێت)
+        const updateData = {
+            lastMessage: text.trim(),
+            lastMessageTime: Date.now(),
+            userId: userId,
+            userName: isAdmin ? null : (state.currentUser.displayName || 'بەکارهێنەر'), // ئەدمین ناو ناگۆڕێت
+        };
+
+        if (isAdmin) {
+            // ئەگەر ئەدمین بێت، دەکرێت unreadCountUser زیاد بکەین ئەگەر پێویست بوو
+        } else {
+            updateData.unreadAdmin = true; // نیشانەیەک بۆ ئەدمین کە نامەی نوێ هەیە
+        }
+
+        await setDoc(chatDocRef, updateData, { merge: true });
+
+        return { success: true };
+    } catch (error) {
+        console.error("Error sending message:", error);
+        return { success: false, error };
+    }
+}
+
+// وەرگرتنی نامەکان (Real-time)
+export function subscribeToChatCore(userId, callback) {
+    const q = query(collection(db, "chats", userId, "messages"), orderBy("timestamp", "asc"));
+    return onSnapshot(q, (snapshot) => {
+        const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        callback(messages);
     });
 }
 
@@ -891,7 +933,6 @@ export {
     state, 
     handleLogin, 
     
-    // [ 💡 ئەم export ـانە وەک خۆیان مانەوە ]
     handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
     
     fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, 
@@ -899,6 +940,8 @@ export {
     requestNotificationPermissionCore,
     handleInstallPrompt, 
     forceUpdateCore, 
+    sendMessageCore,
+    subscribeToChatCore,
 
     db, 
     productsCollection,

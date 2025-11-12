@@ -79,6 +79,32 @@
 
         <div id="sheet-overlay" class="sheet-overlay"></div>
 
+        <div id="chatSheet" class="bottom-sheet" style="height: 80vh;">
+            <div class="sheet-header">
+                <span class="sheet-handle"></span>
+                <h2 class="sheet-title"><i class="fas fa-comments"></i> پشتگیری & نامە</h2>
+                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
+            </div>
+            <div class="sheet-content" style="padding: 0; height: 100%; position: relative; overflow: hidden; display: flex; flex-direction: column;">
+                <div id="chatMessagesContainer" class="chat-container">
+                    </div>
+                <div id="chatInputArea" class="chat-input-area">
+                    <input type="text" id="chatMessageInput" class="chat-input" placeholder="نامەیەک بنووسە...">
+                    <button id="sendMessageBtn" class="send-msg-btn"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <div id="adminChatListModal" class="modal">
+            <div class="modal-content" style="max-height: 80vh; overflow-y: auto;">
+                <span class="close" aria-label="Close">&times;</span>
+                <h2 style="text-align: center; margin-bottom: 18px;">نامەی بەکارهێنەران</h2>
+                <div id="adminChatListContainer">
+                    <p style="text-align:center;">...بارکردن</p>
+                </div>
+            </div>
+        </div>
+
         <div id="notificationsSheet" class="bottom-sheet">
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
@@ -138,7 +164,6 @@
                         <button type="submit">چوونەژوورەوە</button>
                         <p id="userLoginError" style="color:var(--danger-color); margin-top:10px; display:none; text-align: center;"></p>
                         
-                        <!-- بەشی زیادکراو: بیرچوونەوەی وشەی نهێنی -->
                         <p id="forgotPasswordLink" style="text-align: center; color: var(--primary-color); cursor: pointer; margin-top: 15px; font-size: 14px;" data-translate-key="forgot_password">
                             وشەی نهێنیت لەبیرکردووە؟
                         </p>
@@ -353,6 +378,14 @@
             </div>
 
             <div class="settings-group">
+                <div class="settings-item" id="adminChatListBtn" style="display: none; cursor: pointer; background-color: #f0fff4;">
+                     <div>
+                        <i class="fas fa-comments" style="margin-left: 10px; color: var(--accent-color);"></i>
+                        <span style="color: var(--accent-color); font-weight: bold;">نامەی بەکارهێنەران (Admin)</span>
+                    </div>
+                    <i class="fas fa-chevron-left"></i>
+                </div>
+
                 <div class="settings-item" id="settingsAdminLoginBtn">
                     <div>
                         <i class="fas fa-user-shield" style="margin-left: 10px;"></i>
@@ -1112,4 +1145,3 @@
     <script src="admin.js" defer></script>
 </body>
 </html>
-

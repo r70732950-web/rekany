@@ -8,7 +8,8 @@ const {
     shortcutRowsCollection, 
     categoryLayoutsCollection, 
     setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage,
-    clearProductCache
+    clearProductCache,
+    initializeChatUI // [ 💡 Imported from window.globalAdminTools ]
 } = window.globalAdminTools;
 
 window.AdminLogic = {
@@ -109,16 +110,76 @@ window.AdminLogic = {
         const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
         const settingsAdminLoginBtn = document.getElementById('settingsAdminLoginBtn');
         const addProductBtn = document.getElementById('addProductBtn');
+        const adminChatBtn = document.getElementById('adminChatListBtn');
 
         if (isAdmin) {
             settingsLogoutBtn.style.display = 'flex';
             settingsAdminLoginBtn.style.display = 'none';
             addProductBtn.style.display = 'flex';
+            if(adminChatBtn) adminChatBtn.style.display = 'flex';
         } else {
             settingsLogoutBtn.style.display = 'none';
             settingsAdminLoginBtn.style.display = 'flex';
             addProductBtn.style.display = 'none';
+            if(adminChatBtn) adminChatBtn.style.display = 'none';
         }
+    },
+
+    // [ 💡 نوێ: کردنەوەی لیستی نامەکان بۆ ئەدمین 💡 ]
+    openAdminChatList: function() {
+        openPopup('adminChatListModal', 'modal');
+        const container = document.getElementById('adminChatListContainer');
+        container.innerHTML = '<p style="text-align:center; padding:20px;">...بارکردن</p>';
+
+        // هێنانی لیستەکە بەپێی کاتی کۆتا نامە
+        const q = query(collection(db, "chats"), orderBy("lastMessageTime", "desc"));
+        
+        onSnapshot(q, (snapshot) => {
+            container.innerHTML = '';
+            if (snapshot.empty) {
+                container.innerHTML = '<p style="text-align:center; padding:20px; color:var(--dark-gray);">هیچ نامەیەک نییە.</p>';
+                return;
+            }
+
+            snapshot.forEach(docSnap => {
+                const chat = docSnap.data();
+                const chatId = docSnap.id;
+                
+                // کاتی کۆتا نامە
+                const time = chat.lastMessageTime ? new Date(chat.lastMessageTime).toLocaleDateString('ku') : '';
+
+                const div = document.createElement('div');
+                div.className = `admin-chat-list-item ${chat.unreadAdmin ? 'unread' : ''}`;
+                
+                div.innerHTML = `
+                    <div style="flex-grow: 1; overflow: hidden;">
+                        <div class="chat-user-info" style="display:flex; justify-content:space-between;">
+                            <span>${chat.userName || 'بەکارهێنەر'} ${chat.unreadAdmin ? '<span class="chat-badge">نوێ</span>' : ''}</span>
+                            <span style="font-size:11px; color:gray; font-weight:normal;">${time}</span>
+                        </div>
+                        <div class="chat-last-msg">${chat.lastMessage || '...'}</div>
+                    </div>
+                    <i class="fas fa-chevron-left" style="margin-right: 10px;"></i>
+                `;
+                
+                div.onclick = async () => {
+                    // مارک کردنی وەک خوێندراوە
+                    if (chat.unreadAdmin) {
+                        await updateDoc(doc(db, "chats", chatId), { unreadAdmin: false });
+                    }
+                    
+                    closeCurrentPopup(); // داخستنی مۆداڵی لیست
+                    
+                    // کردنەوەی پەنجەرەی چەت (وەک ئەدمین)
+                    if (window.globalAdminTools.initializeChatUI) {
+                        window.globalAdminTools.initializeChatUI(chatId, true);
+                    } else {
+                        showNotification('هەڵە لە بارکردنی چەت', 'error');
+                    }
+                };
+                container.appendChild(div);
+            });
+        });
     },
 
     editProduct: async function(productId) {
@@ -345,8 +406,7 @@ window.AdminLogic = {
                     }
                     select.appendChild(option);
                 });
-            }
-        } catch (error) {
+            } catch (error) {
             console.error("Error fetching sub-subcategories for form:", error);
             select.innerHTML = '<option value="" disabled>هەڵەیەک ڕوویدا</option>';
         } finally {
@@ -1398,6 +1458,11 @@ window.AdminLogic = {
         
         document.getElementById('saveLayoutBtn')?.addEventListener('click', () => self.saveHomeLayout());
         
+        // [ 💡 نوێ: گوێگر بۆ دوگمەی کردنەوەی لیستی چەتی ئەدمین 💡 ]
+        document.getElementById('adminChatListBtn')?.addEventListener('click', () => {
+            self.openAdminChatList();
+        });
+
         document.getElementById('addHomeSectionBtn')?.addEventListener('click', () => {
             self.openAddSectionModal('home');
         });
