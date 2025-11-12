@@ -71,6 +71,7 @@ async function handleLogin(email, password) {
     }
 }
 
+// [ 💡 چاککراوە: export لێرە لابرا ]
 // فانکشنی چوونەژوورەوەی بەکارهێنەر
 async function handleUserLogin(email, password) {
     try {
@@ -82,6 +83,7 @@ async function handleUserLogin(email, password) {
     }
 }
 
+// [ 💡 چاککراوە: export لێرە لابرا ]
 // فانکشنی خۆتۆمارکردنی بەکارهێنەر
 async function handleUserSignUp(name, email, password) {
     try {
@@ -116,6 +118,7 @@ async function handleUserSignUp(name, email, password) {
     }
 }
 
+// [ 💡 چاککراوە: export لێرە لابرا ]
 // فانکشنی چوونەدەرەوەی بەکارهێنەر
 async function handleUserLogout() {
     try {
@@ -127,6 +130,7 @@ async function handleUserLogout() {
     }
 }
 
+// [ 💡 چاککراوە: export لێرە لابرا ]
 // بیرچوونەوەی وشەی نهێنی
 async function handlePasswordReset(email) {
     if (!email) {
@@ -551,6 +555,7 @@ export function generateOrderMessageCore() {
     });
     message += `\n${t('order_total')}: ${total.toLocaleString()} د.ع.\n`;
 
+    // [ 💡 گۆڕانکاری لێرە کرا 💡 ] - ئێستا زانیاری پڕۆفایل لە state.userProfile وەردەگرێت کە لە Firestoreـەوە هاتووە
     if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
         message += `\n${t('order_user_info')}\n`;
         message += `${t('order_user_name')}: ${state.userProfile.name}\n`;
@@ -575,13 +580,17 @@ export function toggleFavoriteCore(productId) {
     }
 }
 
+// [ 💡 فانکشنی saveProfileCore بە تەواوی نوێکرایەوە 💡 ]
 export async function saveProfileCore(profileData) {
+    // 1. دڵنیابە کە بەکارهێنەر لۆگینە
     if (!state.currentUser) {
         return { success: false, message: "تکایە سەرەتا بچۆ ژوورەوە" }; 
     }
     try {
+        // 2. دۆکیومێنتی بەکارهێنەر لە 'users' بدۆزەرەوە
         const userProfileRef = doc(usersCollection, state.currentUser.uid);
         
+        // 3. داتاکە نوێ بکەرەوە (merge: true مانای وایە داتاکانی تر nasrênewe)
         await setDoc(userProfileRef, {
             name: profileData.name || '',
             address: profileData.address || '',
@@ -747,6 +756,7 @@ export function setLanguageCore(lang) {
     updateTokenLanguageInFirestore(lang);
 }
 
+// [ 💡 فانکشنی نوێ زیادکرا 💡 ]
 let userProfileUnsubscribe = null; 
 
 async function loadUserProfile(uid) {
@@ -881,17 +891,15 @@ export async function initCore() {
 export {
     state, 
     handleLogin, 
+    
+    // [ 💡 ئەم export ـانە وەک خۆیان مانەوە ]
     handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
+    
     fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, 
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
     requestNotificationPermissionCore,
     handleInstallPrompt, 
     forceUpdateCore, 
-    saveProfileCore,
-    generateOrderMessageCore, saveCart, t, 
-    checkNewAnnouncementsCore, updateLastSeenAnnouncementTimestamp,
-    saveCurrentScrollPositionCore, applyFilterStateCore, navigateToFilterCore,
-    setLanguageCore, toggleFavoriteCore, isFavorite, addToCartCore, updateCartQuantityCore, removeFromCartCore, formatDescription,
 
     db, 
     productsCollection,
