@@ -21,7 +21,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
-export function debounce(func, delay = 500) {
+function debounce(func, delay = 500) {
     let timeout;
     return (...args) => {
         clearTimeout(timeout);
@@ -31,7 +31,7 @@ export function debounce(func, delay = 500) {
     };
 }
 
-export function t(key, replacements = {}) {
+function t(key, replacements = {}) {
     let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
     for (const placeholder in replacements) {
         translation = translation.replace(`{${placeholder}}`, replacements[placeholder]);
@@ -39,7 +39,7 @@ export function t(key, replacements = {}) {
     return translation;
 }
 
-export function formatDescription(text) {
+function formatDescription(text) {
     if (!text) return '';
     let escapedText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
@@ -50,15 +50,15 @@ export function formatDescription(text) {
     return textWithLinks.replace(/\n/g, '<br>');
 }
 
-export function saveCart() {
+function saveCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
 }
 
-export function saveFavorites() {
+function saveFavorites() {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(state.favorites));
 }
 
-export function isFavorite(productId) {
+function isFavorite(productId) {
     return state.favorites.includes(productId);
 }
 
@@ -229,7 +229,7 @@ async function fetchRelatedProducts(currentProduct) {
     }
 }
 
-export async function fetchCategoryLayout(categoryId) { 
+async function fetchCategoryLayout(categoryId) { 
     if (!categoryId) return null;
     try {
         const layoutDocRef = doc(db, "category_layouts", categoryId);
@@ -484,7 +484,7 @@ async function fetchInitialProductsForHome(limitCount = 10) {
     }
 }
 
-export async function addToCartCore(productId) {
+async function addToCartCore(productId) {
     let product = state.products.find(p => p.id === productId);
 
     if (!product) {
@@ -514,7 +514,7 @@ export async function addToCartCore(productId) {
     return { success: true, message: t('product_added_to_cart') };
 }
 
-export function updateCartQuantityCore(productId, change) {
+function updateCartQuantityCore(productId, change) {
     const cartItemIndex = state.cart.findIndex(item => item.id === productId);
     if (cartItemIndex > -1) {
         state.cart[cartItemIndex].quantity += change;
@@ -527,7 +527,7 @@ export function updateCartQuantityCore(productId, change) {
     return false; 
 }
 
-export function removeFromCartCore(productId) {
+function removeFromCartCore(productId) {
     const initialLength = state.cart.length;
     state.cart = state.cart.filter(item => item.id !== productId);
     if (state.cart.length < initialLength) {
@@ -537,7 +537,7 @@ export function removeFromCartCore(productId) {
     return false; 
 }
 
-export function generateOrderMessageCore() {
+function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
     let total = 0;
@@ -562,7 +562,7 @@ export function generateOrderMessageCore() {
     return message;
 }
 
-export function toggleFavoriteCore(productId) {
+function toggleFavoriteCore(productId) {
     const isCurrentlyFavorite = isFavorite(productId);
     if (isCurrentlyFavorite) {
         state.favorites = state.favorites.filter(id => id !== productId);
@@ -575,7 +575,7 @@ export function toggleFavoriteCore(productId) {
     }
 }
 
-export async function saveProfileCore(profileData) {
+async function saveProfileCore(profileData) {
     if (!state.currentUser) {
         return { success: false, message: "تکایە سەرەتا بچۆ ژوورەوە" }; 
     }
@@ -635,12 +635,12 @@ async function saveTokenToFirestore(token) {
     }
 }
 
-export function checkNewAnnouncementsCore(latestAnnouncementTimestamp) {
+function checkNewAnnouncementsCore(latestAnnouncementTimestamp) {
     const lastSeenTimestamp = localStorage.getItem('lastSeenAnnouncementTimestamp') || 0;
     return latestAnnouncementTimestamp > lastSeenTimestamp;
 }
 
-export function updateLastSeenAnnouncementTimestamp(timestamp) {
+function updateLastSeenAnnouncementTimestamp(timestamp) {
      localStorage.setItem('lastSeenAnnouncementTimestamp', timestamp);
 }
 
@@ -678,7 +678,7 @@ async function forceUpdateCore() {
     return { success: false, message: 'Update cancelled.' }; 
 }
 
-export function saveCurrentScrollPositionCore() {
+function saveCurrentScrollPositionCore() {
     const currentState = history.state;
     const activePage = document.getElementById(state.currentPageId); 
 
@@ -687,14 +687,14 @@ export function saveCurrentScrollPositionCore() {
     }
 }
 
-export function applyFilterStateCore(filterState) {
+function applyFilterStateCore(filterState) {
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
     state.currentSubSubcategory = filterState.subSubcategory || 'all';
     state.currentSearch = filterState.search || '';
 }
 
-export function navigateToFilterCore(newState) {
+function navigateToFilterCore(newState) {
     saveCurrentScrollPositionCore(); 
     const finalState = { ...history.state, ...newState }; 
 
@@ -736,7 +736,7 @@ async function updateTokenLanguageInFirestore(newLang) {
     }
 }
 
-export function setLanguageCore(lang) {
+function setLanguageCore(lang) {
     state.currentLanguage = lang;
     localStorage.setItem('language', lang);
     document.documentElement.lang = lang.startsWith('ar') ? 'ar' : 'ku';
@@ -786,7 +786,7 @@ async function loadUserProfile(uid) {
     });
 }
 
-export async function initCore() {
+async function initCore() {
     return enableIndexedDbPersistence(db)
         .then(() => console.log("Firestore offline persistence enabled."))
         .catch((err) => console.warn("Firestore Persistence failed:", err.code))
@@ -888,10 +888,11 @@ export {
     handleInstallPrompt, 
     forceUpdateCore, 
     saveProfileCore,
-    generateOrderMessageCore, saveCart, t, 
+    generateOrderMessageCore, saveCart, t, debounce,
     checkNewAnnouncementsCore, updateLastSeenAnnouncementTimestamp,
     saveCurrentScrollPositionCore, applyFilterStateCore, navigateToFilterCore,
     setLanguageCore, toggleFavoriteCore, isFavorite, addToCartCore, updateCartQuantityCore, removeFromCartCore, formatDescription,
+    fetchCategoryLayout, initCore,
 
     db, 
     productsCollection,

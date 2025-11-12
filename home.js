@@ -714,4 +714,5 @@ async function createAllProductsSectionElement() {
     });
     return container;
 }
+
 ```
