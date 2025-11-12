@@ -6,11 +6,11 @@ import {
 } from './app-setup.js';
 
 import { 
-    state, t, saveCart, generateOrderMessageCore 
+    state, t, saveCart
 } from './app-core.js';
 
 import { 
-    showNotification, openPopup, closeCurrentPopup, renderSkeletonLoader 
+    showNotification, openPopup, closeCurrentPopup
 } from './app-ui.js';
 
 import { 
@@ -39,13 +39,23 @@ function setupChatUI() {
     // 1. Add "Direct Order" button to Cart Sheet
     const cartActions = document.getElementById('cartActions');
     if (cartActions) {
+        // سڕینەوەی دوگمەی کۆن ئەگەر هەبێت بۆ دوورکەوتنەوە لە دووبارەبوونەوە
+        const existingBtn = cartActions.querySelector('.direct-order-btn');
+        if(existingBtn) existingBtn.remove();
+
         const directOrderBtn = document.createElement('button');
-        directOrderBtn.className = 'whatsapp-btn';
+        directOrderBtn.className = 'whatsapp-btn direct-order-btn'; 
         directOrderBtn.style.backgroundColor = 'var(--primary-color)';
         directOrderBtn.style.marginTop = '10px';
         directOrderBtn.innerHTML = `<i class="fas fa-paper-plane"></i> <span>${t('submit_order_direct')}</span>`;
         directOrderBtn.onclick = handleDirectOrder;
-        cartActions.insertBefore(directOrderBtn, cartActions.firstChild);
+        
+        // دانانی لە سەرەتای لیستی دوگمەکان
+        if (cartActions.firstChild) {
+            cartActions.insertBefore(directOrderBtn, cartActions.firstChild);
+        } else {
+            cartActions.appendChild(directOrderBtn);
+        }
     }
 
     // 2. Setup Chat Page HTML Structure (Injecting dynamically if empty)
@@ -63,8 +73,7 @@ function setupChatUI() {
                     </div>
                 </div>
                 <div class="chat-messages" id="chatMessagesArea">
-                    <!-- Messages go here -->
-                </div>
+                    </div>
                 <div class="typing-indicator" id="typingIndicator">${t('typing')}</div>
                 
                 <div class="chat-input-area" id="chatInputArea">
@@ -118,7 +127,7 @@ function setupChatListeners() {
         };
     }
 
-    // Input handling
+    // Input handling - [ چاککراوە: پشکنین بۆ بوونی توخمەکان ]
     const textInput = document.getElementById('chatTextInput');
     const sendBtn = document.getElementById('chatSendBtn');
     const voiceBtn = document.getElementById('chatVoiceBtn');
@@ -129,11 +138,11 @@ function setupChatListeners() {
         textInput.addEventListener('input', (e) => {
             const val = e.target.value.trim();
             if (val.length > 0) {
-                sendBtn.style.display = 'flex';
-                voiceBtn.style.display = 'none';
+                if(sendBtn) sendBtn.style.display = 'flex';
+                if(voiceBtn) voiceBtn.style.display = 'none';
             } else {
-                sendBtn.style.display = 'none';
-                voiceBtn.style.display = 'flex';
+                if(sendBtn) sendBtn.style.display = 'none';
+                if(voiceBtn) voiceBtn.style.display = 'flex';
             }
         });
 
@@ -172,32 +181,54 @@ function openChatPage(targetUserId = null) {
     // If User is not logged in
     if (!state.currentUser && !isAdmin) {
         history.pushState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', '#chat');
-        showPage('chatPage');
-        document.getElementById('chatLoginRequired').style.display = 'flex';
-        document.getElementById('chatInputArea').style.display = 'none';
-        document.getElementById('chatMessagesArea').style.display = 'none';
+        
+        // Manually show page logic (duplicated from app-ui logic to avoid circular deps issues)
+        document.querySelectorAll('.page').forEach(page => {
+            const isActive = page.id === 'chatPage';
+            page.classList.toggle('page-active', isActive);
+            page.classList.toggle('page-hidden', !isActive);
+        });
+
+        const loginReq = document.getElementById('chatLoginRequired');
+        const inputArea = document.getElementById('chatInputArea');
+        const msgArea = document.getElementById('chatMessagesArea');
+        
+        if(loginReq) loginReq.style.display = 'flex';
+        if(inputArea) inputArea.style.display = 'none';
+        if(msgArea) msgArea.style.display = 'none';
         return;
     }
 
     // Show Chat UI
     history.pushState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', '#chat');
-    showPage('chatPage');
     
-    document.getElementById('chatLoginRequired').style.display = 'none';
-    document.getElementById('chatInputArea').style.display = 'flex';
+    document.querySelectorAll('.page').forEach(page => {
+        const isActive = page.id === 'chatPage';
+        page.classList.toggle('page-active', isActive);
+        page.classList.toggle('page-hidden', !isActive);
+    });
+    
+    const loginReq = document.getElementById('chatLoginRequired');
+    const inputArea = document.getElementById('chatInputArea');
     const msgArea = document.getElementById('chatMessagesArea');
-    msgArea.style.display = 'flex';
-    msgArea.innerHTML = ''; // Clear previous
+
+    if(loginReq) loginReq.style.display = 'none';
+    if(inputArea) inputArea.style.display = 'flex';
+    if(msgArea) {
+        msgArea.style.display = 'flex';
+        msgArea.innerHTML = ''; // Clear previous
+    }
 
     // Setup context
     if (isAdmin) {
         activeChatUserId = targetUserId;
-        document.getElementById('chatHeaderName').textContent = "User"; // We can fetch name later
-        // Hide Admin navigation if inside a chat
-        updateActiveNav('chatBtn'); // Highlight nav
+        const headerName = document.getElementById('chatHeaderName');
+        if(headerName) headerName.textContent = "User"; 
+        updateActiveNav('chatBtn'); 
     } else {
         activeChatUserId = state.currentUser.uid;
-        document.getElementById('chatHeaderName').textContent = t('admin_badge');
+        const headerName = document.getElementById('chatHeaderName');
+        if(headerName) headerName.textContent = t('admin_badge');
     }
 
     subscribeToMessages(activeChatUserId);
@@ -205,7 +236,13 @@ function openChatPage(targetUserId = null) {
 
 function openAdminChatList() {
     history.pushState({ type: 'page', id: 'adminChatListPage', title: t('conversations_title') }, '', '#admin-chats');
-    showPage('adminChatListPage');
+    
+    document.querySelectorAll('.page').forEach(page => {
+        const isActive = page.id === 'adminChatListPage';
+        page.classList.toggle('page-active', isActive);
+        page.classList.toggle('page-hidden', !isActive);
+    });
+
     subscribeToAllConversations();
 }
 
@@ -220,7 +257,8 @@ function subscribeToMessages(chatUserId) {
     const msgArea = document.getElementById('chatMessagesArea');
     
     messagesUnsubscribe = onSnapshot(q, (snapshot) => {
-        // Clear messages only on first load to avoid flickering, logic handled by appending
+        if(!msgArea) return;
+
         msgArea.innerHTML = ''; 
         
         if (snapshot.empty) {
@@ -263,20 +301,24 @@ function renderSingleMessage(msg, container, chatUserId) {
         `;
     } else if (msg.type === 'order') {
         const order = msg.orderDetails;
-        contentHtml = `
-            <div class="order-bubble">
-                <div class="order-bubble-header"><i class="fas fa-receipt"></i> ${t('order_notification_title')}</div>
-                <div class="order-bubble-content">
-                    ${order.items.map(i => `
-                        <div class="order-bubble-item">
-                            <span>${i.name} (x${i.quantity})</span>
-                            <span>${(i.price * i.quantity).toLocaleString()}</span>
-                        </div>
-                    `).join('')}
-                    <div class="order-bubble-total">${t('total_price')} ${order.total.toLocaleString()} د.ع</div>
+        if(order && order.items) {
+            contentHtml = `
+                <div class="order-bubble">
+                    <div class="order-bubble-header"><i class="fas fa-receipt"></i> ${t('order_notification_title')}</div>
+                    <div class="order-bubble-content">
+                        ${order.items.map(i => `
+                            <div class="order-bubble-item">
+                                <span>${i.name && i.name[state.currentLanguage] ? i.name[state.currentLanguage] : (i.name.ku_sorani || i.name)} (x${i.quantity})</span>
+                                <span>${(i.price * i.quantity).toLocaleString()}</span>
+                            </div>
+                        `).join('')}
+                        <div class="order-bubble-total">${t('total_price')} ${order.total.toLocaleString()} د.ع</div>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        } else {
+            contentHtml = `<p>داواکاری (هەڵە لە داتا)</p>`;
+        }
     }
 
     // Time Formatting
@@ -301,11 +343,17 @@ function renderSingleMessage(msg, container, chatUserId) {
     container.appendChild(div);
 }
 
+// [ 💡 بەشی چاککراو: sendMessage 💡 ]
 async function sendMessage(type, file = null, orderData = null) {
     if (!state.currentUser && sessionStorage.getItem('isAdmin') !== 'true') return;
 
+    // [ چاککردن ] : دڵنیابوونەوە لەوەی ئینپوتەکە هەیە یان نا
     const textInput = document.getElementById('chatTextInput');
-    const content = textInput.value.trim();
+    let content = '';
+    
+    if (textInput) {
+        content = textInput.value.trim();
+    }
     
     if (type === 'text' && !content) return;
 
@@ -313,6 +361,11 @@ async function sendMessage(type, file = null, orderData = null) {
     const senderId = isAdmin ? 'admin' : state.currentUser.uid;
     // If admin, sending TO activeChatUserId. If user, sending TO 'admin' (but doc is their own ID)
     const docId = isAdmin ? activeChatUserId : state.currentUser.uid;
+
+    if (!docId) {
+        console.error("No recipient ID found.");
+        return;
+    }
 
     // Prepare Message Data
     const messageData = {
@@ -325,11 +378,13 @@ async function sendMessage(type, file = null, orderData = null) {
     };
 
     try {
-        // Clear Input immediately for UX
-        if (type === 'text') {
+        // Clear Input immediately for UX (only if text input exists)
+        if (type === 'text' && textInput) {
             textInput.value = '';
-            document.getElementById('chatSendBtn').style.display = 'none';
-            document.getElementById('chatVoiceBtn').style.display = 'flex';
+            const sendBtn = document.getElementById('chatSendBtn');
+            const voiceBtn = document.getElementById('chatVoiceBtn');
+            if(sendBtn) sendBtn.style.display = 'none';
+            if(voiceBtn) voiceBtn.style.display = 'flex';
         }
 
         // Handle File Uploads
@@ -366,8 +421,6 @@ async function sendMessage(type, file = null, orderData = null) {
                 email: state.currentUser.email,
                 uid: state.currentUser.uid
             };
-            // Increment unread count for Admin
-            // We need a way to increment strictly. For now, just update flag.
         }
 
         await setDoc(chatDocRef, chatUpdateData, { merge: true });
@@ -382,6 +435,7 @@ async function sendMessage(type, file = null, orderData = null) {
 
 async function handleVoiceRecording() {
     const btn = document.getElementById('chatVoiceBtn');
+    if(!btn) return;
     
     if (!mediaRecorder || mediaRecorder.state === 'inactive') {
         // Start Recording
@@ -448,17 +502,15 @@ async function handleDirectOrder() {
         await addDoc(ordersCollection, orderData);
 
         // 2. Send 'order' message to chat
+        // [ چاککراوە ] ئەمە چیتر کێشە دروست ناکات چونکە sendMessage پشکنین بۆ ئینپوت دەکات
         await sendMessage('order', null, orderData);
 
         // 3. Clear Cart
         state.cart = [];
         saveCart();
+        
         // Update UI
-        if (window.globalAdminTools && window.globalAdminTools.updateCartCountUI) {
-             // This function isn't exported globally, so we trigger a reload or specific UI update
-             // Better: Dispatch an event or manually update
-             document.querySelectorAll('.cart-count').forEach(el => el.textContent = '0');
-        }
+        document.querySelectorAll('.cart-count').forEach(el => el.textContent = '0');
 
         // 4. Navigate to Chat
         openChatPage();
@@ -479,7 +531,9 @@ function subscribeToAllConversations() {
     const container = document.getElementById('adminConversationList');
 
     conversationsUnsubscribe = onSnapshot(q, (snapshot) => {
+        if(!container) return;
         container.innerHTML = '';
+        
         if (snapshot.empty) {
             container.innerHTML = `<p class="text-center p-4">No conversations yet.</p>`;
             return;
@@ -562,11 +616,12 @@ function checkUnreadMessages() {
             // Listen to my chat doc
             onSnapshot(doc(db, "chats", user.uid), (docSnap) => {
                 const badge = document.getElementById('chatBadge');
-                if (docSnap.exists() && !docSnap.data().isReadByUser) {
-                    // Simple dot badge
-                    badge.classList.add('has-unread');
-                } else {
-                    badge.classList.remove('has-unread');
+                if (badge) {
+                    if (docSnap.exists() && !docSnap.data().isReadByUser) {
+                        badge.classList.add('has-unread');
+                    } else {
+                        badge.classList.remove('has-unread');
+                    }
                 }
             });
         }
@@ -609,16 +664,4 @@ function updateActiveNav(activeBtnId) {
     if (activeBtn) {
         activeBtn.classList.add('active');
     }
-}
-
-// Helper for UI to switch pages
-function showPage(pageId) {
-    // This duplicates some logic from app-ui but needed for independence or we export showPage from app-ui
-    // Since we can't easily export showPage due to circular dependency risk, we toggle classes manually here
-    // OR better: Use window.globalAdminTools or simple DOM manipulation
-    document.querySelectorAll('.page').forEach(page => {
-        const isActive = page.id === pageId;
-        page.classList.toggle('page-active', isActive);
-        page.classList.toggle('page-hidden', !isActive);
-    });
 }
