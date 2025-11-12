@@ -22,603 +22,477 @@ import {
     ref, uploadBytes, getDownloadURL 
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
 
-// Variables to handle listeners
-let messagesUnsubscribe = null;
-let conversationsUnsubscribe = null;
-let activeChatUserId = null; // For Admin: keeping track of which user we are chatting with
-let mediaRecorder = null;
-let audioChunks = [];
+let chatUnsubscribe = null;
+let adminChatsUnsubscribe = null;
+let currentChatId = null;
+
+// --- 1. دەستپێکردن و لۆجیکی سەرەکی ---
 
 export function initChatSystem() {
-    setupChatUI();
-    setupChatListeners();
+    // گوێگرتن لە دوگمەی کردنەوەی چات لە خوارەوە
+    const chatBtn = document.getElementById('chatBtn');
+    if (chatBtn) {
+        chatBtn.addEventListener('click', () => {
+            openUserChat();
+        });
+    }
+
+    // گوێگرتن لە دوگمەی چاتی ئەدمین لە ڕێکخستنەکان
+    const adminChatsBtn = document.getElementById('adminChatsBtn');
+    if (adminChatsBtn) {
+        adminChatsBtn.addEventListener('click', () => {
+            openAdminChatList();
+        });
+    }
+
+    // پشکنینی نامەی نەخوێندراوە بۆBadge
     checkUnreadMessages();
 }
 
-function setupChatUI() {
-    // 1. Add "Direct Order" button to Cart Sheet
-    const cartActions = document.getElementById('cartActions');
-    if (cartActions) {
-        const directOrderBtn = document.createElement('button');
-        directOrderBtn.className = 'whatsapp-btn';
-        directOrderBtn.style.backgroundColor = 'var(--primary-color)';
-        directOrderBtn.style.marginTop = '10px';
-        directOrderBtn.innerHTML = `<i class="fas fa-paper-plane"></i> <span>${t('submit_order_direct')}</span>`;
-        directOrderBtn.onclick = handleDirectOrder;
-        cartActions.insertBefore(directOrderBtn, cartActions.firstChild);
-    }
-
-    // 2. Setup Chat Page HTML Structure (Injecting dynamically if empty)
-    const chatPage = document.getElementById('chatPage');
-    if (chatPage && chatPage.innerHTML.trim() === '') {
-        chatPage.innerHTML = `
-            <div class="chat-container">
-                <div class="chat-header" id="chatPageHeader">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <div class="conversation-avatar" id="chatHeaderAvatar"><i class="fas fa-user"></i></div>
-                        <div>
-                            <div class="conversation-name" id="chatHeaderName">Admin</div>
-                            <div class="conversation-time" id="chatHeaderStatus"><span class="chat-status-dot online"></span> ${t('online')}</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="chat-messages" id="chatMessagesArea">
-                    <!-- Messages go here -->
-                </div>
-                <div class="typing-indicator" id="typingIndicator">${t('typing')}</div>
-                
-                <div class="chat-input-area" id="chatInputArea">
-                    <button class="chat-action-btn" id="chatImageBtn"><i class="fas fa-image"></i></button>
-                    <input type="file" id="chatImageInput" accept="image/*" style="display:none;">
-                    
-                    <input type="text" class="chat-input" id="chatTextInput" placeholder="${t('type_message')}">
-                    
-                    <button class="chat-action-btn chat-record-btn" id="chatVoiceBtn"><i class="fas fa-microphone"></i></button>
-                    <button class="chat-action-btn chat-send-btn" id="chatSendBtn" style="display:none;"><i class="fas fa-paper-plane"></i></button>
-                </div>
-
-                <div id="chatLoginRequired" class="chat-login-required" style="display:none;">
-                    <i class="fas fa-lock"></i>
-                    <h3>پێویستە بچیتە ژوورەوە</h3>
-                    <p>بۆ بەکارهێنانی چات و ناردنی داواکاری، تکایە سەرەتا بچۆ ژوورەوە.</p>
-                    <button class="chat-login-btn" onclick="window.globalAdminTools.openPopup('profileSheet')">چوونەژوورەوە / خۆتۆمارکردن</button>
-                </div>
-            </div>
-        `;
-    }
-
-    // 3. Setup Admin Chat List Page
-    const adminChatListPage = document.getElementById('adminChatListPage');
-    if (adminChatListPage && adminChatListPage.innerHTML.trim() === '') {
-        adminChatListPage.innerHTML = `
-            <div class="settings-page" style="padding-top: 60px;">
-                <h3 class="section-title"><i class="fas fa-inbox"></i> ${t('conversations_title')}</h3>
-                <div class="conversation-list" id="adminConversationList">
-                    <div class="text-center p-4">...Loading</div>
-                </div>
-            </div>
-        `;
-    }
-}
-
-function setupChatListeners() {
-    // Nav Button
-    const chatBtn = document.getElementById('chatBtn');
-    if (chatBtn) {
-        chatBtn.onclick = () => {
-            openChatPage();
-        };
-    }
-
-    // Admin Chat List Button (in Settings)
-    const adminChatsBtn = document.getElementById('adminChatsBtn');
-    if (adminChatsBtn) {
-        adminChatsBtn.onclick = () => {
-            openAdminChatList();
-        };
-    }
-
-    // Input handling
-    const textInput = document.getElementById('chatTextInput');
-    const sendBtn = document.getElementById('chatSendBtn');
-    const voiceBtn = document.getElementById('chatVoiceBtn');
-    const imageBtn = document.getElementById('chatImageBtn');
-    const imageInput = document.getElementById('chatImageInput');
-
-    if (textInput) {
-        textInput.addEventListener('input', (e) => {
-            const val = e.target.value.trim();
-            if (val.length > 0) {
-                sendBtn.style.display = 'flex';
-                voiceBtn.style.display = 'none';
-            } else {
-                sendBtn.style.display = 'none';
-                voiceBtn.style.display = 'flex';
-            }
-        });
-
-        textInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage('text');
-        });
-    }
-
-    if (sendBtn) sendBtn.onclick = () => sendMessage('text');
-    
-    if (voiceBtn) {
-        voiceBtn.onclick = handleVoiceRecording;
-    }
-
-    if (imageBtn && imageInput) {
-        imageBtn.onclick = () => imageInput.click();
-        imageInput.onchange = (e) => {
-            if (e.target.files.length > 0) {
-                sendMessage('image', e.target.files[0]);
-            }
-        };
-    }
-}
-
-// --- NAVIGATION Logic ---
-
-function openChatPage(targetUserId = null) {
-    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-    
-    if (isAdmin && !targetUserId) {
-        // Admin clicked "Messages" on nav -> Go to conversation list
-        openAdminChatList();
-        return;
-    }
-
-    // If User is not logged in
-    if (!state.currentUser && !isAdmin) {
-        history.pushState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', '#chat');
-        showPage('chatPage');
-        document.getElementById('chatLoginRequired').style.display = 'flex';
-        document.getElementById('chatInputArea').style.display = 'none';
-        document.getElementById('chatMessagesArea').style.display = 'none';
-        return;
-    }
-
-    // Show Chat UI
-    history.pushState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', '#chat');
-    showPage('chatPage');
-    
-    document.getElementById('chatLoginRequired').style.display = 'none';
-    document.getElementById('chatInputArea').style.display = 'flex';
-    const msgArea = document.getElementById('chatMessagesArea');
-    msgArea.style.display = 'flex';
-    msgArea.innerHTML = ''; // Clear previous
-
-    // Setup context
-    if (isAdmin) {
-        activeChatUserId = targetUserId;
-        document.getElementById('chatHeaderName').textContent = "User"; // We can fetch name later
-        // Hide Admin navigation if inside a chat
-        updateActiveNav('chatBtn'); // Highlight nav
-    } else {
-        activeChatUserId = state.currentUser.uid;
-        document.getElementById('chatHeaderName').textContent = t('admin_badge');
-    }
-
-    subscribeToMessages(activeChatUserId);
-}
-
-function openAdminChatList() {
-    history.pushState({ type: 'page', id: 'adminChatListPage', title: t('conversations_title') }, '', '#admin-chats');
-    showPage('adminChatListPage');
-    subscribeToAllConversations();
-}
-
-// --- MESSAGING LOGIC ---
-
-function subscribeToMessages(chatUserId) {
-    if (messagesUnsubscribe) messagesUnsubscribe();
-
-    const messagesRef = collection(db, "chats", chatUserId, "messages");
-    const q = query(messagesRef, orderBy("timestamp", "asc"));
-
-    const msgArea = document.getElementById('chatMessagesArea');
-    
-    messagesUnsubscribe = onSnapshot(q, (snapshot) => {
-        // Clear messages only on first load to avoid flickering, logic handled by appending
-        msgArea.innerHTML = ''; 
-        
-        if (snapshot.empty) {
-            msgArea.innerHTML = `<div class="empty-chat-state"><i class="fas fa-comments"></i><p>${t('no_messages')}</p></div>`;
-            return;
-        }
-
-        snapshot.docs.forEach(doc => {
-            const msg = doc.data();
-            renderSingleMessage(msg, msgArea, chatUserId);
-        });
-
-        // Scroll to bottom
-        msgArea.scrollTop = msgArea.scrollHeight;
-
-        // Mark as read if I am the receiver
-        markMessagesAsRead(snapshot.docs, chatUserId);
-    });
-}
-
-function renderSingleMessage(msg, container, chatUserId) {
-    const isMe = msg.senderId === (sessionStorage.getItem('isAdmin') === 'true' ? 'admin' : state.currentUser.uid);
-    const alignClass = isMe ? 'message-sent' : 'message-received';
-    
-    const div = document.createElement('div');
-    div.className = `message-bubble ${alignClass}`;
-
-    let contentHtml = '';
-    
-    if (msg.type === 'text') {
-        contentHtml = `<p>${msg.content}</p>`;
-    } else if (msg.type === 'image') {
-        contentHtml = `<img src="${msg.fileUrl}" class="chat-image" onclick="window.open('${msg.fileUrl}', '_blank')">`;
-    } else if (msg.type === 'audio') {
-        contentHtml = `
-            <div class="audio-player">
-                <button class="audio-control-btn" onclick="playAudio(this, '${msg.fileUrl}')"><i class="fas fa-play"></i></button>
-                <div class="audio-progress"><div class="audio-progress-bar"></div></div>
-            </div>
-        `;
-    } else if (msg.type === 'order') {
-        const order = msg.orderDetails;
-        contentHtml = `
-            <div class="order-bubble">
-                <div class="order-bubble-header"><i class="fas fa-receipt"></i> ${t('order_notification_title')}</div>
-                <div class="order-bubble-content">
-                    ${order.items.map(i => `
-                        <div class="order-bubble-item">
-                            <span>${i.name} (x${i.quantity})</span>
-                            <span>${(i.price * i.quantity).toLocaleString()}</span>
-                        </div>
-                    `).join('')}
-                    <div class="order-bubble-total">${t('total_price')} ${order.total.toLocaleString()} د.ع</div>
-                </div>
-            </div>
-        `;
-    }
-
-    // Time Formatting
-    const date = msg.timestamp ? new Date(msg.timestamp.toDate()) : new Date();
-    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
-    // Status Icon
-    let statusIcon = '';
-    if (isMe) {
-        const statusClass = msg.isRead ? 'seen' : '';
-        const iconClass = msg.isRead ? 'fa-check-double' : 'fa-check';
-        statusIcon = `<i class="fas ${iconClass} message-status-icon ${statusClass}"></i>`;
-    }
-
-    div.innerHTML = `
-        ${contentHtml}
-        <div class="message-time">
-            ${timeStr} ${statusIcon}
-        </div>
-    `;
-
-    container.appendChild(div);
-}
-
-async function sendMessage(type, file = null, orderData = null) {
-    if (!state.currentUser && sessionStorage.getItem('isAdmin') !== 'true') return;
-
-    const textInput = document.getElementById('chatTextInput');
-    const content = textInput.value.trim();
-    
-    if (type === 'text' && !content) return;
-
-    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-    const senderId = isAdmin ? 'admin' : state.currentUser.uid;
-    // If admin, sending TO activeChatUserId. If user, sending TO 'admin' (but doc is their own ID)
-    const docId = isAdmin ? activeChatUserId : state.currentUser.uid;
-
-    // Prepare Message Data
-    const messageData = {
-        senderId: senderId,
-        receiverId: isAdmin ? activeChatUserId : 'admin',
-        type: type,
-        content: type === 'text' ? content : '',
-        timestamp: serverTimestamp(),
-        isRead: false
-    };
-
-    try {
-        // Clear Input immediately for UX
-        if (type === 'text') {
-            textInput.value = '';
-            document.getElementById('chatSendBtn').style.display = 'none';
-            document.getElementById('chatVoiceBtn').style.display = 'flex';
-        }
-
-        // Handle File Uploads
-        if (file) {
-            showNotification('...Uploading', 'success');
-            const storageRef = ref(storage, `chats/${docId}/${Date.now()}_${file.name || 'audio.webm'}`);
-            const snapshot = await uploadBytes(storageRef, file);
-            const downloadURL = await getDownloadURL(snapshot.ref);
-            messageData.fileUrl = downloadURL;
-        }
-
-        // Handle Orders
-        if (type === 'order') {
-            messageData.orderDetails = orderData;
-        }
-
-        // 1. Add Message to Subcollection
-        const messagesRef = collection(db, "chats", docId, "messages");
-        await addDoc(messagesRef, messageData);
-
-        // 2. Update Main Chat Document (For Conversation List)
-        const chatDocRef = doc(db, "chats", docId);
-        const chatUpdateData = {
-            lastMessage: type === 'text' ? content : (type === 'image' ? '📷 Image' : (type === 'audio' ? '🎤 Audio' : '📦 Order')),
-            lastMessageTime: serverTimestamp(),
-            isReadByAdmin: isAdmin, // If admin sent it, it's read by admin
-            isReadByUser: !isAdmin  // If user sent it, it's read by user
-        };
-
-        // If user sending, make sure we have their profile info in the chat doc
-        if (!isAdmin) {
-            chatUpdateData.userInfo = {
-                displayName: state.currentUser.displayName || 'Unknown',
-                email: state.currentUser.email,
-                uid: state.currentUser.uid
-            };
-            // Increment unread count for Admin
-            // We need a way to increment strictly. For now, just update flag.
-        }
-
-        await setDoc(chatDocRef, chatUpdateData, { merge: true });
-
-    } catch (error) {
-        console.error("Send Message Error:", error);
-        showNotification(t('error_generic'), 'error');
-    }
-}
-
-// --- VOICE RECORDING ---
-
-async function handleVoiceRecording() {
-    const btn = document.getElementById('chatVoiceBtn');
-    
-    if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-        // Start Recording
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            audioChunks = [];
-
-            mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
-            mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                await sendMessage('audio', audioBlob);
-                btn.classList.remove('recording');
-            };
-
-            mediaRecorder.start();
-            btn.classList.add('recording');
-            showNotification(t('recording'), 'success');
-
-        } catch (err) {
-            console.error("Mic Error:", err);
-            showNotification('دەسەڵاتی مایکڕۆفۆن نەدراوە', 'error');
-        }
-    } else {
-        // Stop Recording
-        mediaRecorder.stop();
-    }
-}
-
-// --- DIRECT ORDERS ---
-
-async function handleDirectOrder() {
-    if (!state.currentUser) {
-        showNotification('تکایە سەرەتا بچۆ ژوورەوە', 'error');
-        openPopup('profileSheet');
-        return;
-    }
-
-    if (state.cart.length === 0) {
-        showNotification(t('cart_empty'), 'error');
-        return;
-    }
-
-    const confirmOrder = confirm("دڵنیایت دەتەوێت داواکارییەکەت بنێریت؟");
-    if (!confirmOrder) return;
-
-    closeCurrentPopup(); // Close Cart Sheet
-
-    // Prepare Order Data
-    const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const orderData = {
-        userId: state.currentUser.uid,
-        userName: state.userProfile.name || state.currentUser.displayName,
-        userPhone: state.userProfile.phone || '',
-        userAddress: state.userProfile.address || '',
-        items: state.cart,
-        total: total,
-        status: 'pending', // pending, accepted, rejected, delivered
-        createdAt: serverTimestamp()
-    };
-
-    try {
-        // 1. Save to 'orders' collection
-        await addDoc(ordersCollection, orderData);
-
-        // 2. Send 'order' message to chat
-        await sendMessage('order', null, orderData);
-
-        // 3. Clear Cart
-        state.cart = [];
-        saveCart();
-        // Update UI
-        if (window.globalAdminTools && window.globalAdminTools.updateCartCountUI) {
-             // This function isn't exported globally, so we trigger a reload or specific UI update
-             // Better: Dispatch an event or manually update
-             document.querySelectorAll('.cart-count').forEach(el => el.textContent = '0');
-        }
-
-        // 4. Navigate to Chat
-        openChatPage();
-        showNotification(t('order_submitted'), 'success');
-
-    } catch (error) {
-        console.error("Order Error:", error);
-        showNotification(t('error_generic'), 'error');
-    }
-}
-
-// --- ADMIN CONVERSATION LIST ---
-
-function subscribeToAllConversations() {
-    if (conversationsUnsubscribe) conversationsUnsubscribe();
-
-    const q = query(chatsCollection, orderBy("lastMessageTime", "desc"));
-    const container = document.getElementById('adminConversationList');
-
-    conversationsUnsubscribe = onSnapshot(q, (snapshot) => {
-        container.innerHTML = '';
-        if (snapshot.empty) {
-            container.innerHTML = `<p class="text-center p-4">No conversations yet.</p>`;
-            return;
-        }
-
-        let unreadTotal = 0;
-
-        snapshot.docs.forEach(doc => {
-            const data = doc.data();
-            const isUnread = !data.isReadByAdmin;
-            if(isUnread) unreadTotal++;
-
-            const date = data.lastMessageTime ? new Date(data.lastMessageTime.toDate()) : new Date();
-            const timeStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            const div = document.createElement('div');
-            div.className = `conversation-item ${isUnread ? 'unread' : ''}`;
-            div.innerHTML = `
-                <div class="conversation-avatar"><i class="fas fa-user"></i></div>
-                <div class="conversation-info">
-                    <div class="conversation-name">
-                        ${data.userInfo?.displayName || 'User'}
-                        <span class="conversation-time">${timeStr}</span>
-                    </div>
-                    <div class="conversation-last-msg">
-                        ${isUnread ? `<span class="unread-count">New</span>` : ''}
-                        ${data.lastMessage}
-                    </div>
-                </div>
-            `;
-            div.onclick = () => {
-                openChatPage(doc.id);
-            };
-            container.appendChild(div);
-        });
-
-        // Update Admin Badge in Settings
-        const badge = document.getElementById('adminUnreadBadge');
-        if(badge) {
-            badge.textContent = unreadTotal;
-            badge.style.display = unreadTotal > 0 ? 'inline-block' : 'none';
-        }
-    });
-}
-
-// --- HELPER: Read Receipts ---
-
-async function markMessagesAsRead(msgDocs, chatUserId) {
-    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-    const batch = writeBatch(db);
-    let hasUpdates = false;
-
-    msgDocs.forEach(docSnap => {
-        const msg = docSnap.data();
-        // If I am the receiver AND it is not read yet
-        const amIReceiver = (isAdmin && msg.receiverId === 'admin') || (!isAdmin && msg.receiverId === state.currentUser?.uid);
-        
-        if (amIReceiver && !msg.isRead) {
-            batch.update(docSnap.ref, { isRead: true });
-            hasUpdates = true;
-        }
-    });
-
-    // Also update main chat doc read status
-    if (hasUpdates) {
-        const chatDocRef = doc(db, "chats", chatUserId);
-        const fieldToUpdate = isAdmin ? { isReadByAdmin: true } : { isReadByUser: true };
-        batch.update(chatDocRef, fieldToUpdate);
-        
-        await batch.commit();
-    }
-}
-
-// --- HELPER: Check Unread for Main Nav Badge ---
 function checkUnreadMessages() {
-    if (sessionStorage.getItem('isAdmin') === 'true') return; // Admin handled in list
-    
     auth.onAuthStateChanged(user => {
         if (user) {
-            // Listen to my chat doc
-            onSnapshot(doc(db, "chats", user.uid), (docSnap) => {
-                const badge = document.getElementById('chatBadge');
-                if (docSnap.exists() && !docSnap.data().isReadByUser) {
-                    // Simple dot badge
-                    badge.classList.add('has-unread');
-                } else {
-                    badge.classList.remove('has-unread');
+            const q = query(
+                chatsCollection, 
+                where('userId', '==', user.uid)
+            );
+            onSnapshot(q, (snapshot) => {
+                if (!snapshot.empty) {
+                    const data = snapshot.docs[0].data();
+                    const unread = data.unreadCountUser || 0;
+                    const badge = document.getElementById('chatBadge');
+                    if (badge) {
+                        badge.style.display = unread > 0 ? 'flex' : 'none';
+                        badge.textContent = unread;
+                    }
                 }
             });
         }
     });
 }
 
-// Global Audio Player helper
-window.playAudio = function(btn, url) {
-    const audio = new Audio(url);
-    const player = btn.closest('.audio-player');
-    const progressBar = player.querySelector('.audio-progress-bar');
-    const icon = btn.querySelector('i');
+// --- 2. چاتی بەکارهێنەر (User Side) ---
 
-    if (window.currentAudio && window.currentAudio !== audio) {
-        window.currentAudio.pause();
-        // Reset icons would be complex without ID, simplified for now
+async function openUserChat() {
+    if (!auth.currentUser) {
+        showNotification("تکایە سەرەتا بچۆ ژوورەوە", "error");
+        openPopup('profileSheet'); 
+        return;
     }
-    window.currentAudio = audio;
 
-    icon.className = 'fas fa-pause';
-    audio.play();
-
-    audio.ontimeupdate = () => {
-        const percent = (audio.currentTime / audio.duration) * 100;
-        progressBar.style.width = `${percent}%`;
-    };
-
-    audio.onended = () => {
-        icon.className = 'fas fa-play';
-        progressBar.style.width = '0%';
-    };
-};
-
-// Navigation helper for app-ui.js to use
-function updateActiveNav(activeBtnId) {
-    document.querySelectorAll('.bottom-nav-item').forEach(btn => {
-        btn.classList.remove('active');
+    const chatPage = document.getElementById('chatPage');
+    chatPage.innerHTML = ''; // پاککردنەوە
+    renderSkeletonLoader(chatPage);
+    
+    // گۆڕینی لاپەڕە
+    history.pushState({ type: 'page', id: 'chatPage', title: 'نامەکان' }, '', '#chat');
+    document.querySelectorAll('.page').forEach(p => {
+        p.classList.remove('page-active');
+        p.classList.add('page-hidden');
     });
-    const activeBtn = document.getElementById(activeBtnId);
-    if (activeBtn) {
-        activeBtn.classList.add('active');
+    chatPage.classList.remove('page-hidden');
+    chatPage.classList.add('page-active');
+
+    // دروستکردنی UI
+    renderChatUI(chatPage, 'user', auth.currentUser.uid);
+    
+    // هێنان یان دروستکردنی چات
+    await setupChatListener(auth.currentUser.uid, 'user');
+}
+
+// --- 3. چاتی ئەدمین (Admin Side) ---
+
+function openAdminChatList() {
+    const listPage = document.getElementById('adminChatListPage');
+    listPage.innerHTML = '';
+    renderSkeletonLoader(listPage);
+
+    history.pushState({ type: 'page', id: 'adminChatListPage', title: 'لیستی نامەکان' }, '', '#admin-chats');
+    document.querySelectorAll('.page').forEach(p => {
+        p.classList.remove('page-active');
+        p.classList.add('page-hidden');
+    });
+    listPage.classList.remove('page-hidden');
+    listPage.classList.add('page-active');
+
+    renderAdminChatListUI(listPage);
+}
+
+function renderAdminChatListUI(container) {
+    container.innerHTML = `
+        <div class="section" style="min-height: 100vh;">
+            <div style="padding: 15px; border-bottom: 1px solid var(--section-border); background: white; position: sticky; top: 0; z-index: 10;">
+                <h3 style="margin:0;">نامەکانی بەکارهێنەران</h3>
+            </div>
+            <div id="adminChatListItems" style="padding: 10px;">
+                <p style="text-align:center;">...بارکردن</p>
+            </div>
+        </div>
+    `;
+
+    const listContainer = document.getElementById('adminChatListItems');
+    
+    // هێنانی هەموو چاتەکان بەپێی کاتی کۆتا نامە
+    const q = query(chatsCollection, orderBy('lastMessageTime', 'desc'));
+    
+    if (adminChatsUnsubscribe) adminChatsUnsubscribe();
+
+    adminChatsUnsubscribe = onSnapshot(q, async (snapshot) => {
+        listContainer.innerHTML = '';
+        if (snapshot.empty) {
+            listContainer.innerHTML = '<p style="text-align:center;">هیچ نامەیەک نییە</p>';
+            return;
+        }
+
+        for (const chatDoc of snapshot.docs) {
+            const chatData = chatDoc.data();
+            const userDocRef = doc(usersCollection, chatData.userId);
+            let userName = "بەکارهێنەر";
+            
+            try {
+                const userSnap = await getDoc(userDocRef);
+                if (userSnap.exists()) {
+                    const userData = userSnap.data();
+                    userName = userData.displayName || userData.name || userData.email || "بەکارهێنەر";
+                }
+            } catch (e) { console.error(e); }
+
+            const unreadClass = chatData.unreadCountAdmin > 0 ? 'background-color: #e6fffa;' : 'background-color: white;';
+            const badgeHtml = chatData.unreadCountAdmin > 0 ? `<span class="notification-badge" style="position:static; display:inline-block;">${chatData.unreadCountAdmin}</span>` : '';
+
+            const item = document.createElement('div');
+            item.style = `padding: 15px; border-radius: 8px; border: 1px solid var(--section-border); margin-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; ${unreadClass}`;
+            item.innerHTML = `
+                <div>
+                    <div style="font-weight: bold; font-size: 16px;">${userName}</div>
+                    <div style="font-size: 13px; color: var(--text-light); margin-top: 4px;">${chatData.lastMessage || 'وێنە/دەنگ'}</div>
+                    <div style="font-size: 11px; color: var(--dark-gray); margin-top: 4px;">${new Date(chatData.lastMessageTime?.toDate()).toLocaleString('ku')}</div>
+                </div>
+                ${badgeHtml}
+            `;
+            item.onclick = () => openAdminChatDetails(chatData.userId, userName);
+            listContainer.appendChild(item);
+        }
+    });
+}
+
+function openAdminChatDetails(targetUserId, targetUserName) {
+    const chatPage = document.getElementById('chatPage');
+    chatPage.innerHTML = '';
+    
+    history.pushState({ type: 'page', id: 'chatPage', title: targetUserName }, '', `#chat-${targetUserId}`);
+    document.querySelectorAll('.page').forEach(p => {
+        p.classList.remove('page-active');
+        p.classList.add('page-hidden');
+    });
+    chatPage.classList.remove('page-hidden');
+    chatPage.classList.add('page-active');
+
+    renderChatUI(chatPage, 'admin', targetUserId, targetUserName);
+    setupChatListener(targetUserId, 'admin');
+}
+
+
+// --- 4. دروستکردنی ڕووکاری چات (UI Rendering) ---
+
+function renderChatUI(container, role, targetUserId, headerTitle = 'پشتیوانی') {
+    container.innerHTML = `
+        <div class="chat-container" style="display: flex; flex-direction: column; height: 100vh; background-color: #fff;">
+            <!-- Header -->
+            <div class="chat-header" style="padding: 10px 15px; border-bottom: 1px solid var(--medium-gray); display: flex; align-items: center; gap: 10px; background: white; z-index: 10;">
+                <button id="chatBackBtn" style="border:none; background:none; font-size: 20px;"><i class="fas fa-arrow-right"></i></button>
+                <div style="font-weight: bold; font-size: 16px;">${headerTitle}</div>
+            </div>
+
+            <!-- Messages Area -->
+            <div id="messagesArea" style="flex: 1; overflow-y: auto; padding: 15px; background-color: #f0f2f5; display: flex; flex-direction: column; gap: 10px;">
+                <div style="text-align:center; color: var(--dark-gray); margin-top: 20px;">
+                    <i class="fas fa-lock" style="font-size: 12px;"></i> نامەکان پارێزراون
+                </div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div id="typingIndicator" style="padding: 5px 15px; font-size: 12px; color: var(--dark-gray); display: none;">
+                بەرامبەر دەنووسێت...
+            </div>
+
+            <!-- Input Area -->
+            <div class="chat-input-area" style="padding: 10px; border-top: 1px solid var(--medium-gray); background: white; display: flex; align-items: center; gap: 10px;">
+                <button id="attachBtn" style="color: var(--dark-gray); background: none; border: none; font-size: 20px;"><i class="fas fa-paperclip"></i></button>
+                <input type="file" id="fileInput" hidden accept="image/*,audio/*">
+                
+                <div style="flex: 1; position: relative;">
+                    <input type="text" id="chatInput" placeholder="نامەکەت بنووسە..." style="width: 100%; padding: 10px 15px; border-radius: 20px; border: 1px solid var(--medium-gray); background: var(--light-gray);">
+                </div>
+                
+                <button id="sendBtn" style="background-color: var(--primary-color); color: white; width: 40px; height: 40px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('chatBackBtn').onclick = () => history.back();
+    
+    const input = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const attachBtn = document.getElementById('attachBtn');
+    const fileInput = document.getElementById('fileInput');
+
+    // ناردن بە Enter
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    // ناردن بە دوگمە
+    sendBtn.onclick = () => sendMessage();
+
+    // هەڵبژاردنی فایل
+    attachBtn.onclick = () => fileInput.click();
+    fileInput.onchange = (e) => {
+        if (e.target.files[0]) {
+            handleFileUpload(e.target.files[0]);
+        }
+    };
+}
+
+// --- 5. لۆجیکی ناردن و وەرگرتنی نامە ---
+
+async function setupChatListener(targetUserId, role) {
+    currentChatId = targetUserId; // چونکە chatId هەمان userIdـیە بۆ سادەیی
+    const messagesArea = document.getElementById('messagesArea');
+    
+    const chatDocRef = doc(chatsCollection, currentChatId);
+    
+    // دڵنیابوونەوە لە دروستبوونی دۆکیومێنتی چات
+    const chatSnap = await getDoc(chatDocRef);
+    if (!chatSnap.exists()) {
+        if (role === 'user') {
+            await setDoc(chatDocRef, {
+                userId: targetUserId,
+                createdAt: serverTimestamp(),
+                lastMessage: '',
+                lastMessageTime: serverTimestamp(),
+                unreadCountUser: 0,
+                unreadCountAdmin: 0
+            });
+        } else {
+            messagesArea.innerHTML += `<p style="text-align:center;">ئەم بەکارهێنەرە هێشتا چاتی دەستپێنەکردووە.</p>`;
+            return;
+        }
+    }
+
+    // سفرکردنەوەی نامە نەخوێندراوەکان
+    if (role === 'user') {
+        await updateDoc(chatDocRef, { unreadCountUser: 0 });
+    } else {
+        await updateDoc(chatDocRef, { unreadCountAdmin: 0 });
+    }
+
+    // گوێگرتن لە نامەکان (Messages)
+    const messagesQuery = query(
+        collection(db, 'chats', currentChatId, 'messages'),
+        orderBy('timestamp', 'asc')
+    );
+
+    if (chatUnsubscribe) chatUnsubscribe();
+
+    chatUnsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+        messagesArea.innerHTML = '';
+        snapshot.forEach(doc => {
+            renderMessage(doc.data(), role);
+        });
+        messagesArea.scrollTop = messagesArea.scrollHeight; // Scroll to bottom
+    });
+}
+
+function renderMessage(msg, role) {
+    const messagesArea = document.getElementById('messagesArea');
+    const isMe = (role === 'user' && msg.senderId === auth.currentUser.uid) || 
+                 (role === 'admin' && msg.senderId !== currentChatId); // ئەدمین نامەی خۆی دەناسێتەوە
+
+    const align = isMe ? 'flex-end' : 'flex-start';
+    const bg = isMe ? 'var(--primary-color)' : 'white';
+    const color = isMe ? 'white' : 'black';
+    const radius = isMe ? '18px 18px 0 18px' : '18px 18px 18px 0';
+
+    let contentHtml = '';
+    if (msg.type === 'text') {
+        contentHtml = `<div style="padding: 8px 12px;">${msg.content}</div>`;
+    } else if (msg.type === 'image') {
+        contentHtml = `<img src="${msg.content}" style="max-width: 200px; border-radius: 12px; margin: 5px;">`;
+    } else if (msg.type === 'audio') {
+        contentHtml = `<audio controls src="${msg.content}" style="max-width: 200px; margin: 5px;"></audio>`;
+    }
+
+    const msgDiv = document.createElement('div');
+    msgDiv.style = `display: flex; justify-content: ${align}; margin-bottom: 8px;`;
+    msgDiv.innerHTML = `
+        <div style="max-width: 70%; background-color: ${bg}; color: ${color}; border-radius: ${radius}; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+            ${contentHtml}
+            <div style="font-size: 9px; opacity: 0.7; text-align: right; padding: 0 8px 4px;">
+                ${new Date(msg.timestamp?.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+            </div>
+        </div>
+    `;
+    messagesArea.appendChild(msgDiv);
+}
+
+// [ 💡 چاککراوە ] فەنکشنەکە ئێستا دەتوانێت دەق ڕاستەوخۆ وەربگرێت بەبێ پشتبەستن بە ئینپوت
+async function sendMessage(type = 'text', content = null) {
+    if (!currentChatId) return;
+
+    let textToSend = '';
+    const input = document.getElementById('chatInput');
+
+    if (type === 'text') {
+        if (content) {
+            textToSend = content; // ئەگەر دەقەکە ڕاستەوخۆ پێی درابێت (وەک داواکاری)
+        } else if (input) {
+            textToSend = input.value.trim(); // ئەگەر لە خانەی نووسین وەریبگرێت
+        }
+        
+        if (!textToSend) return; // ئەگەر هیچ نەبێت، هیچ مەکە
+    } else {
+        textToSend = content; // بۆ وێنە و دەنگ، لینکەکە لێرە دێت
+    }
+
+    const msgData = {
+        senderId: auth.currentUser.uid,
+        type: type,
+        content: textToSend,
+        timestamp: serverTimestamp(),
+        read: false
+    };
+
+    try {
+        // 1. زیادکردنی نامە
+        await addDoc(collection(db, 'chats', currentChatId, 'messages'), msgData);
+
+        // 2. نوێکردنەوەی چاتی سەرەکی
+        const updateData = {
+            lastMessage: type === 'text' ? textToSend : (type === 'image' ? '📷 وێنە' : '🎤 دەنگ'),
+            lastMessageTime: serverTimestamp()
+        };
+
+        // زیادکردنی ژمارەی نەخوێندراوە
+        // ئەگەر یوزەر بینێرێت، بۆ ئەدمین زیاد دەبێت
+        const chatDoc = await getDoc(doc(chatsCollection, currentChatId));
+        const currentCount = chatDoc.data() || {};
+        
+        if (auth.currentUser.uid === currentChatId) {
+            // یوزەر دەینێرێت
+            updateData.unreadCountAdmin = (currentCount.unreadCountAdmin || 0) + 1;
+        } else {
+            // ئەدمین دەینێرێت
+            updateData.unreadCountUser = (currentCount.unreadCountUser || 0) + 1;
+        }
+
+        await updateDoc(doc(chatsCollection, currentChatId), updateData);
+
+        if (input) input.value = ''; // پاککردنەوەی خانەکە ئەگەر هەبوو
+
+    } catch (error) {
+        console.error("Error sending message:", error);
+        showNotification("نەتوانرا نامە بنێردرێت", "error");
     }
 }
 
-// Helper for UI to switch pages
-function showPage(pageId) {
-    // This duplicates some logic from app-ui but needed for independence or we export showPage from app-ui
-    // Since we can't easily export showPage due to circular dependency risk, we toggle classes manually here
-    // OR better: Use window.globalAdminTools or simple DOM manipulation
-    document.querySelectorAll('.page').forEach(page => {
-        const isActive = page.id === pageId;
-        page.classList.toggle('page-active', isActive);
-        page.classList.toggle('page-hidden', !isActive);
-    });
+async function handleFileUpload(file) {
+    if (!file) return;
+    
+    // پشکنینی قەبارە (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showNotification("قەبارەی فایل زۆر گەورەیە (دەبێت کەمتر بێت لە 5MB)", "error");
+        return;
+    }
+
+    const type = file.type.startsWith('image/') ? 'image' : 'audio';
+    const path = `chats/${currentChatId}/${Date.now()}_${file.name}`;
+    const storageRef = ref(storage, path);
+
+    try {
+        showNotification("خەریکی ناردنە...", "success");
+        await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(storageRef);
+        await sendMessage(type, url);
+    } catch (error) {
+        console.error(error);
+        showNotification("هەڵە لە ناردنی فایل", "error");
+    }
+}
+
+// --- 6. داواکاری ڕاستەوخۆ (Direct Order) ---
+
+export async function handleDirectOrder(cartActionsContainer) {
+    if (!auth.currentUser) {
+        showNotification("تکایە سەرەتا بچۆ ژوورەوە", "error");
+        openPopup('profileSheet');
+        return;
+    }
+
+    if (state.cart.length === 0) {
+        showNotification("سەبەتەکەت بەتاڵە", "error");
+        return;
+    }
+
+    const confirmBtn = cartActionsContainer.querySelector('.direct-order-btn');
+    if(confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...ناردن';
+    }
+
+    try {
+        // 1. دروستکردنی دەقی داواکاری
+        const orderMsg = generateOrderMessageCore();
+
+        // 2. تۆمارکردنی لە کۆلێکشن-ی Orders (بۆ ڕێکخستن)
+        await addDoc(ordersCollection, {
+            userId: auth.currentUser.uid,
+            items: state.cart,
+            total: document.getElementById('totalAmount')?.textContent || '0',
+            status: 'pending', // pending, processing, completed, cancelled
+            createdAt: serverTimestamp(),
+            userInfo: state.userProfile
+        });
+
+        // 3. دڵنیابوونەوە لەوەی چاتەکە بوونی هەیە
+        currentChatId = auth.currentUser.uid;
+        const chatDocRef = doc(chatsCollection, currentChatId);
+        const chatSnap = await getDoc(chatDocRef);
+        
+        if (!chatSnap.exists()) {
+            await setDoc(chatDocRef, {
+                userId: auth.currentUser.uid,
+                createdAt: serverTimestamp(),
+                lastMessage: '',
+                lastMessageTime: serverTimestamp(),
+                unreadCountUser: 0,
+                unreadCountAdmin: 0
+            });
+        }
+
+        // 4. ناردنی داواکاری وەک نامە لە چات
+        // لێرەدا دەقەکە ڕاستەوخۆ دەدەین بە فەنکشنەکە نەک لە ڕێگەی ئینپوت
+        await sendMessage('text', orderMsg);
+
+        // 5. بەتاڵکردنەوەی سەبەتە
+        state.cart = [];
+        saveCart();
+        
+        // 6. داخستنی شیتەکان و کردنەوەی چات
+        closeCurrentPopup(); // داخستنی سەبەتە
+        showNotification("داواکارییەکەت بە سەرکەوتوویی نێردرا", "success");
+        setTimeout(() => {
+            openUserChat(); // کردنەوەی چات بۆ بینینی داواکارییەکە
+        }, 500);
+
+    } catch (error) {
+        console.error("Order Error:", error);
+        showNotification("هەڵەیەک ڕوویدا لە ناردنی داواکاری", "error");
+        if(confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = 'هەوڵبدەرەوە';
+        }
+    }
 }
