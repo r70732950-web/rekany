@@ -638,12 +638,10 @@ async function loadUserProfile(uid) {
    CHAT LOGIC (NEWLY ADDED)
    ========================================= */
 
-// ناردنی نامە (بۆ بەکارهێنەر و ئەدمین)
-export async function sendMessageCore(text, targetUserId = null) {
+async function sendMessageCore(text, targetUserId = null) {
     const currentUser = auth.currentUser;
     if (!currentUser) return { success: false, error: 'User not logged in' };
 
-    // ئەگەر ئەدمین بوو، targetUserId بەکاردێنێت، ئەگەرنا هی خۆی بەکاردێنێت
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     const chatId = isAdmin ? targetUserId : currentUser.uid;
 
@@ -654,7 +652,6 @@ export async function sendMessageCore(text, targetUserId = null) {
 
     try {
         await runTransaction(db, async (transaction) => {
-            // 1. زیادکردنی نامەکە بۆ Sub-collection
             const newMessageRef = doc(messagesRef);
             transaction.set(newMessageRef, {
                 text: text,
@@ -663,7 +660,6 @@ export async function sendMessageCore(text, targetUserId = null) {
                 type: 'text'
             });
 
-            // 2. نوێکردنەوەی دۆکیومێنتی سەرەکی چات (بۆ لیستەکە)
             const chatDoc = await transaction.get(chatDocRef);
             
             let updateData = {
@@ -671,14 +667,11 @@ export async function sendMessageCore(text, targetUserId = null) {
                 lastMessageTime: serverTimestamp(),
             };
 
-            // ئەگەر بەکارهێنەر خۆی بوو، ناوەکەی نوێ دەکەینەوە
             if (!isAdmin) {
                 updateData.userName = currentUser.displayName || 'User';
-                updateData.adminUnread = true; // بۆ ئەوەی لای ئەدمین وەک نەخوێندراوە دەربکەوێت
+                updateData.adminUnread = true; 
             } else {
-                // ئەگەر ئەدمین بوو
-                updateData.adminUnread = false; // چونکە ئەدمین وەڵامی دایەوە
-                // زیادکردنی ژمارەی unreadCount بۆ بەکارهێنەر
+                updateData.adminUnread = false; 
                 const currentUnread = chatDoc.exists() ? (chatDoc.data().unreadCount || 0) : 0;
                 updateData.unreadCount = currentUnread + 1;
             }
@@ -692,8 +685,7 @@ export async function sendMessageCore(text, targetUserId = null) {
     }
 }
 
-// گوێگرتن لە نامەکانی چاتێکی دیاریکراو
-export function subscribeToChatMessages(userId, callback) {
+function subscribeToChatMessages(userId, callback) {
     const q = query(
         collection(db, 'chats', userId, 'messages'),
         orderBy('timestamp', 'asc')
@@ -704,8 +696,7 @@ export function subscribeToChatMessages(userId, callback) {
     });
 }
 
-// (بۆ ئەدمین) گوێگرتن لە لیستی هەموو چاتەکان
-export function subscribeToAllChatsAdmin(callback) {
+function subscribeToAllChatsAdmin(callback) {
     const q = query(collection(db, 'chats'), orderBy('lastMessageTime', 'desc'));
     return onSnapshot(q, (snapshot) => {
         const chats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -713,8 +704,7 @@ export function subscribeToAllChatsAdmin(callback) {
     });
 }
 
-// (بۆ بەکارهێنەر) گوێگرتن لە دۆکیومێنتی چاتی خۆی (بۆ زانینی unreadCount)
-export function subscribeToMyChatStatus(userId, callback) {
+function subscribeToMyChatStatus(userId, callback) {
     return onSnapshot(doc(db, 'chats', userId), (docSnap) => {
         if (docSnap.exists()) {
             callback(docSnap.data());
@@ -722,8 +712,7 @@ export function subscribeToMyChatStatus(userId, callback) {
     });
 }
 
-// سفرکردنەوەی ژمارەی نامە نەخوێندراوەکان
-export async function markChatAsReadCore(userId, isAdmin) {
+async function markChatAsReadCore(userId, isAdmin) {
     try {
         const chatRef = doc(db, 'chats', userId);
         const updateData = isAdmin ? { adminUnread: false } : { unreadCount: 0 };
@@ -751,7 +740,7 @@ export async function initCore() {
                 if (user) {
                     if (user.uid === adminUID) {
                         isAdmin = true;
-                        state.currentUser = user; // Admin is also a user regarding Auth object
+                        state.currentUser = user; 
                         state.userProfile = { name: 'Admin', address: '', phone: '' };
                         
                         const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
@@ -817,7 +806,6 @@ export {
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
     requestNotificationPermissionCore, handleInstallPrompt, forceUpdateCore, 
     
-    // Chat Exports
     sendMessageCore, subscribeToChatMessages, subscribeToAllChatsAdmin, subscribeToMyChatStatus, markChatAsReadCore,
 
     db, productsCollection, collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
