@@ -98,7 +98,9 @@ window.AdminLogic = {
             'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
             'adminContactMethodsManagement', 'adminShortcutRowsManagement',
             'adminHomeLayoutManagement',
-            'adminCategoryLayoutManagement' 
+            'adminCategoryLayoutManagement',
+            // [ 💡 نوێ ] بەشی چات بۆ ئەدمین
+            'adminChatsManagement'
         ];
         
         adminSections.forEach(id => {

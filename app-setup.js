@@ -1,9 +1,11 @@
+// app-setup.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
+
 
 const firebaseConfig = {
     apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", 
@@ -24,7 +26,8 @@ export const storage = getStorage(app);
 
 export {
     signInWithEmailAndPassword, onAuthStateChanged, signOut,
-    createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail
+    createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail,
+    serverTimestamp
 };
 
 // Collections
@@ -36,7 +39,8 @@ export const brandGroupsCollection = collection(db, "brand_groups");
 export const shortcutRowsCollection = collection(db, "shortcut_rows");
 export const categoryLayoutsCollection = collection(db, "category_layouts");
 export const usersCollection = collection(db, "users");
-// [NEW] - Chat & Order Collections
+
+// [ 💡 نوێ ] - کۆلێکشنی تایبەت بە چات و داواکارییەکان
 export const chatsCollection = collection(db, "chats");
 export const ordersCollection = collection(db, "orders");
 
@@ -68,13 +72,35 @@ export const translations = {
         profile_address: "ناونیشان:",
         profile_phone: "ژمارەی تەلەفۆن:",
         save_button: "پاشەکەوتکردن",
-        nav_home: "سەرەki",
+        nav_home: "سەرەکی",
         nav_categories: "جۆرەکان",
         nav_cart: "سەبەتە",
         nav_profile: "پڕۆفایل",
         nav_settings: "ڕێکخستن",
+        
+        // [ 💡 نوێ ] - وەرگێڕانی تایبەت بە چات
+        nav_chat: "نامەکان",
+        chat_title: "پەیوەندی",
+        type_message: "نامەیەک بنووسە...",
+        recording: "...تۆمارکردن",
+        send: "ناردن",
+        sent: "نێردرا",
+        delivered: "گەیشت",
+        seen: "بینرا",
+        admin_badge: "بەڕێوەبەر",
+        online: "لەسەر خەتە",
+        typing: "دەنووسێت...",
+        no_messages: "هیچ نامەیەک نییە، دەست بە گفتوگۆ بکە!",
+        conversations_title: "نامەکانی بەکارهێنەران",
+        
+        // [ 💡 نوێ ] - وەرگێڕانی داواکاری
+        order_submitted: "داواکارییەکەت بە سەرکەوتوویی نێردرا",
+        submit_order_direct: "ناردنی داواکاری ڕاستەوخۆ",
+        order_notification_title: "داواکاری نوێ",
+        order_details: "وردەکاری داواکاری",
+
         contact_us_title: "پەیوەندیمان پێوە بکە",
-        add_to_cart: "زیادکردن بۆ سەbەتە",
+        add_to_cart: "زیادکردن بۆ سەبەتە",
         added_to_cart: "زیادکرا",
         product_not_found_error: "هەڵە: کاڵاکە نەدۆزرایەوە!",
         delete_confirm: "دڵنیایت دەتەوێت ئەم کاڵایە بسڕیتەوە؟",
@@ -93,7 +119,7 @@ export const translations = {
         profile_saved: "زانیارییەکانی پڕۆفایل پاشەکەوتکران",
         all_categories_label: "هەموو",
         install_app: "دامەزراندنی ئەپ",
-        product_added_to_cart: "کاڵاکە زیادکرا بۆ سەbەتە",
+        product_added_to_cart: "کاڵاکە زیادکرا بۆ سەبەتە",
         product_added_to_favorites: "زیادکرا بۆ لیستی دڵخوازەکان",
         product_removed_from_favorites: "لە لیستی دڵخوازەکان سڕدرایەوە",
         manage_categories_title: "بەڕێوەبردنی جۆرەکان",
@@ -127,7 +153,7 @@ export const translations = {
         share_error: "هاوبەشیپێکردن سەرکەوتوو نەبوو",
         admin_category_layout_title: "دیزاینی لاپەڕەی جۆرەکان",
         admin_category_layout_select: "-- جۆری سەرەki هەڵبژێرە --",
-        admin_category_layout_enable: "چالاککردنی دیزاینی تایbەت بۆ ئەم جۆرە",
+        admin_category_layout_enable: "چالاککردنی دیزاینی تایبەت بۆ ئەم جۆرە",
         admin_category_layout_info: "ئەگەر چالاک بێت، ئەم دیزاینە لە جیاتی لیستی ئاسایی کاڵاکان پیشان دەدرێت.",
         admin_category_layout_add_section: "زیادکردنی بەش بۆ جۆر",
         user_login_error: "ئیمەیڵ یان وشەی نهێنی هەڵەیە",
@@ -141,17 +167,6 @@ export const translations = {
         password_reset_email_sent: "ئیمەیڵێکی ڕێستکردنەوەت بۆ نێردرا. تکایە سەیری ئیمەیڵەکەت بکە.",
         password_reset_error_not_found: "ئەم ئیمەیڵە تۆمار نەکراوە.",
         password_reset_enter_email: "تکایە سەرەتا ئیمەیڵەکەت لە خانەی ئیمەیڵ بنووسە.",
-
-        // [NEW] Chat & Order Translations
-        nav_messages: "نامەکان",
-        chat_placeholder: "نامەیەک بنووسە...",
-        recording_text: "خەریکی تۆمارکردنە...",
-        order_success_title: "داواکاری نێردرا!",
-        order_success_msg: "بە زووترین کات پەیوەندیت پێوە دەکەین.",
-        direct_order_btn: "ناردنی داواکاری ڕاستەوخۆ",
-        online_status: "ل هێڵە (Online)",
-        offline_status: "ئۆفلاین",
-        support_name: "پشتگیری (Support)"
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -163,7 +178,7 @@ export const translations = {
         cart_empty: "سەلکا تە یا ڤالایە",
         total_price: "کۆمێ گشتی:",
         send_whatsapp: "فرێکرن ب رێکا واتسئاپ",
-        send_viber: "فرێکرن ب رێکا ڤایbەر",
+        send_viber: "فرێکرن ب رێکا ڤایبەر",
         send_telegram: "فرێکرن ب رێکا تێلێگرام",
         favorites_title: "لیستا حەزژێکریان",
         favorites_empty: "لیستا حەزژێکریێن تە یا ڤالایە",
@@ -179,16 +194,36 @@ export const translations = {
         profile_address: "ناڤ و نیشان:",
         profile_phone: "ژمارا تەلەفونێ:",
         save_button: "پاشەکەفتکرن",
-        nav_home: "سەرەki",
+        nav_home: "سەرەکی",
         nav_categories: "جۆر",
         nav_cart: "سەلک",
         nav_profile: "پروفایل",
         nav_settings: "ڕێکخستن",
+
+        // [ 💡 نوێ ]
+        nav_chat: "نامە",
+        chat_title: "پەیوەندی",
+        type_message: "نامەیەکێ بنڤیسە...",
+        recording: "...تۆمارکرن",
+        send: "فرێکرن",
+        sent: "هاتە فرێکرن",
+        delivered: "گەهشت",
+        seen: "هاتە دیتن",
+        admin_badge: "بەرپرس",
+        online: "ل سەر خەتە",
+        typing: "یێ دنڤیسیت...",
+        no_messages: "چ نامە نینن، دەست ب ئاخفتنێ بکە!",
+        conversations_title: "نامەیێن بکارهێنەران",
+        order_submitted: "داخازیا تە ب سەرکەفتیانە هاتە فرێکرن",
+        submit_order_direct: "فرێکرنا داخازیێ راستەوخۆ",
+        order_notification_title: "داخازیەکا نوو",
+        order_details: "وردەکاریێن داخازیێ",
+
         contact_us_title: "پەیوەندیێ ب مە بکە",
         add_to_cart: "زێدەکرن بۆ سەلکێ",
         added_to_cart: "زێدەکر",
         product_not_found_error: "خەلەتی: کاڵا نەهاتە دیتن!",
-        delete_confirm: "تو پشتڕاستی دێ ڤی کاڵای ژێbەى؟",
+        delete_confirm: "تو پشتڕاستی دێ ڤی کاڵای ژێبەى؟",
         product_deleted: "کاڵا هاتە ژێبرن",
         product_delete_error: "خەلەتی د ژێبرنا کاڵای دا",
         order_greeting: "سلاڤ! ئەز پێدڤی ب ڤان کاڵایێن خوارێ مە:",
@@ -207,28 +242,28 @@ export const translations = {
         product_added_to_cart: "کاڵا هاتە زێدەکرن بۆ سەلکێ",
         product_added_to_favorites: "هاتە زێدەکرن بۆ لیستا حەزژێکریان",
         product_removed_from_favorites: "ژ لیستا حەزژێکریان هاتە ژێبرن",
-        manage_categories_title: "рێکخستنا جوران",
-        manage_contact_methods_title: "рێکخستنا رێکێن فرێکرنا داخازیێ",
+        manage_categories_title: "ڕێکخستنا جوران",
+        manage_contact_methods_title: "ڕێکخستنا رێکێن فرێکرنا داخازیێ",
         notifications_title: "ئاگەهداری",
         no_notifications_found: "چ ئاگەهداری نینن",
-        manage_announcements_title: "рێکخستنا ئاگەهداریان",
+        manage_announcements_title: "ڕێکخستنا ئاگەهداریان",
         send_new_announcement: "فرێکرنا ئاگەهداریەکا نوو",
         send_announcement_button: "ئاگەهداریێ فرێکە",
         sent_announcements: "ئاگەهداریێن هاتینە فرێکرن",
         no_announcements_sent: "چ ئاگەهداری نەهاتینە فرێکرن",
         announcement_deleted_success: "ئاگەهداری هاتە ژێبرن",
-        announcement_delete_confirm: "تو پشتڕاستی دێ ڤێ ئaگەهداریێ ژێbەی؟",
+        announcement_delete_confirm: "تو پشتڕاستی دێ ڤێ ئاگەهداریێ ژێبەی؟",
         enable_notifications: "چالاکرنا ئاگەهداریان",
         error_generic: "خەلەتییەک چێبوو!",
         terms_policies_title: "مەرج و سیاسەت",
-        manage_policies_title: "рێکخستنا مەرج و سیاسەتان",
+        manage_policies_title: "ڕێکخستنا مەرج و سیاسەتان",
         policies_saved_success: "مەرج و سیاسەت هاتنە پاشەکەفتکرن",
         loading_policies: "...د بارکرنا سیاسەتان دایە",
         no_policies_found: "چ مەرج و سیاسەت نەهاتینە دانان.",
         has_discount_badge: "داشکان تێدایە",
         force_update: "ناچارکرن ب نویکرنەوە (ژێبرنا کاشی)",
-        update_confirm: "تو پشتراستی دێ ئەپی نویکەیەڤە؟ دێ هەمی کاش د ناڤ وێbگەرا تە دا هێتە ژێبرن.",
-        update_success: "ئەپ ب سەرکەfتیانە هاتە نویکرن!",
+        update_confirm: "تو پشتراستی دێ ئەپی نویکەیەڤە؟ دێ هەمی کاش د ناڤ وێبگەرا تە دا هێتە ژێبرن.",
+        update_success: "ئەپ ب سەرکەفتیانە هاتە نویکرن!",
         newest_products: "نوترین کاڵا",
         see_all: "هەمیا ببینە",
         all_products_section_title: "هەمی کاڵا",
@@ -238,7 +273,7 @@ export const translations = {
         share_error: "پارڤەکرن سەرنەکەفت",
         admin_category_layout_title: "دیزاینا لاپەرێ جوران",
         admin_category_layout_select: "-- جۆرێ سەرەki هەلبژێرە --",
-        admin_category_layout_enable: "چالاکرنا دیزاینا تایbەت بۆ ڤی جۆری",
+        admin_category_layout_enable: "چالاکرنا دیزاینا تایبەت بۆ ڤی جۆری",
         admin_category_layout_info: "ئەگەر بهێتە چالاکرن، ئەڤ دیزاینە دێ ل جهێ لیستا ئاسایی یا کاڵایان هێتە نیشاندان.",
         admin_category_layout_add_section: "زێدەکرنا پشکێ بۆ جۆری",
         user_login_error: "ئیمەیل یان پەیڤا نهێنى یا خەلەتە",
@@ -252,17 +287,6 @@ export const translations = {
         password_reset_email_sent: "ئیمەیلەکا رێستکرنێ بۆ تە هاتە فرێکرن. هیڤی دکەین سحکە ئیمەیلا خۆ.",
         password_reset_error_not_found: "ئەڤ ئیمەیلە تۆمار نەکریە.",
         password_reset_enter_email: "هیڤی دکەین ئێکەم جار ئیمەیلا خۆ ل خانەیا ئیمەیلێ بنڤیسە.",
-
-        // [NEW] Chat & Order Translations
-        nav_messages: "نامە",
-        chat_placeholder: "نامەیەکێ بنڤیسە...",
-        recording_text: "...تۆمار دکەت",
-        order_success_title: "داخازی هاتە فرێکرن!",
-        order_success_msg: "دێ ب زووترین دەم پەیوەندیێ ب تە کەین.",
-        direct_order_btn: "فرێکرنا داخازیێ راستەوخۆ",
-        online_status: "ل هێڵە (Online)",
-        offline_status: "ئۆفلاین",
-        support_name: "پشتگیری (Support)"
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -295,6 +319,26 @@ export const translations = {
         nav_cart: "السلة",
         nav_profile: "ملفي",
         nav_settings: "الإعدادات",
+        
+        // [ 💡 نوێ ]
+        nav_chat: "الرسائل",
+        chat_title: "المحادثة",
+        type_message: "اكتب رسالة...",
+        recording: "...جار التسجيل",
+        send: "إرسال",
+        sent: "تم الإرسال",
+        delivered: "تم الوصول",
+        seen: "تمت المشاهدة",
+        admin_badge: "مسؤول",
+        online: "متصل",
+        typing: "يكتب...",
+        no_messages: "لا توجد رسائل، ابدأ المحادثة!",
+        conversations_title: "رسائل المستخدمين",
+        order_submitted: "تم إرسال طلبك بنجاح",
+        submit_order_direct: "إرسال الطلب مباشرة",
+        order_notification_title: "طلب جديد",
+        order_details: "تفاصيل الطلب",
+
         contact_us_title: "تواصل معنا",
         add_to_cart: "إضافة إلى السلة",
         added_to_cart: "تمت الإضافة",
@@ -323,7 +367,7 @@ export const translations = {
         notifications_title: "الإشعارات",
         no_notifications_found: "لا توجد إشعارات",
         manage_announcements_title: "إدارة الإشعارات العامة",
-        send_new_announcement: "إرسال إشعار جدید",
+        send_new_announcement: "إرسال إشعار جديد",
         send_announcement_button: "إرسال الإشعار",
         sent_announcements: "الإشعارات المرسلة",
         no_announcements_sent: "لم يتم إرسال أي إشعارات",
@@ -363,17 +407,6 @@ export const translations = {
         password_reset_email_sent: "تم إرسال بريد إلكتروني لإعادة تعيين كلمة المرور. يرجى التحقق من بريدك.",
         password_reset_error_not_found: "هذا البريد الإلكتروني غير مسجل.",
         password_reset_enter_email: "يرجى إدخال بريدك الإلكتروني في حقل البريد أولاً.",
-
-        // [NEW] Chat & Order Translations
-        nav_messages: "الرسائل",
-        chat_placeholder: "أكتب رسالة...",
-        recording_text: "جاري التسجيل...",
-        order_success_title: "تم إرسال الطلب!",
-        order_success_msg: "سنتصل بك في أقرب وقت.",
-        direct_order_btn: "إرسال طلب مباشر",
-        online_status: "متصل (Online)",
-        offline_status: "غير متصل",
-        support_name: "الدعم (Support)"
     }
 };
 
@@ -402,19 +435,17 @@ export let state = {
     currentPopupState: null, 
     pendingFilterNav: null, 
     sliderIntervals: {}, 
-    contactInfo: {},
-    // [NEW] Chat States
+    contactInfo: {}, 
+    // [ 💡 نوێ ] - تایبەت بە چات
     activeChatUserId: null,
-    audioRecorder: null,
-    audioChunks: [],
-    isRecording: false,
-    recordingTimer: null,
+    unreadMessagesCount: 0,
 };
 
 export const CART_KEY = "maten_store_cart";
 export const FAVORITES_KEY = "maten_store_favorites";
 export const PRODUCTS_PER_PAGE = 25;
 
+// Elements Exports
 export const loginModal = document.getElementById('loginModal');
 export const addProductBtn = document.getElementById('addProductBtn'); 
 export const productFormModal = document.getElementById('productFormModal');
@@ -451,7 +482,7 @@ export const settingsBtn = document.getElementById('settingsBtn');
 export const settingsFavoritesBtn = document.getElementById('settingsFavoritesBtn');
 export const settingsAdminLoginBtn = document.getElementById('settingsAdminLoginBtn');
 export const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
-export const profileBtn = document.getElementById('profileBtn');
+export const profileBtn = document.getElementById('profileBtn'); // تێبینی: ئەمە دەبێتە دوگمەی چات لە هەنگاوەکانی داهاتوودا
 export const contactToggle = document.getElementById('contactToggle');
 export const notificationBtn = document.getElementById('notificationBtn');
 export const notificationBadge = document.getElementById('notificationBadge');
@@ -506,28 +537,6 @@ export const categoryLayoutEnableToggle = document.getElementById('categoryLayou
 export const categoryLayoutListContainer = document.getElementById('categoryLayoutListContainer');
 export const addCategorySectionBtn = document.getElementById('addCategorySectionBtn');
 
-// [NEW] Chat DOM Elements
-export const messagesBtn = document.getElementById('messagesBtn');
-export const chatPage = document.getElementById('chatPage');
-export const messagesList = document.getElementById('messagesList');
-export const chatInput = document.getElementById('chatInput');
-export const chatSendBtn = document.getElementById('chatSendBtn');
-export const chatMicBtn = document.getElementById('chatMicBtn');
-export const chatAttachBtn = document.getElementById('chatAttachBtn');
-export const chatFileInput = document.getElementById('chatFileInput');
-export const attachmentPreview = document.getElementById('attachmentPreview');
-export const attachmentImg = document.getElementById('attachmentImg');
-export const removeAttachmentBtn = document.getElementById('removeAttachmentBtn');
-export const recordingUI = document.getElementById('recordingUI');
-export const recordTimer = document.getElementById('recordTimer');
-export const cancelRecordBtn = document.getElementById('cancelRecordBtn');
-export const sendRecordBtn = document.getElementById('sendRecordBtn');
-export const adminChatListPage = document.getElementById('adminChatListPage');
-export const adminChatUsersList = document.getElementById('adminChatUsersList');
-export const adminUnreadBadge = document.getElementById('adminUnreadBadge');
-export const openAdminChatsBtn = document.getElementById('openAdminChatsBtn');
-export const totalUnreadBadge = document.getElementById('totalUnreadBadge');
-
 window.globalAdminTools = {
     db, auth,
     storage, ref, uploadBytes, getDownloadURL,
@@ -537,7 +546,7 @@ window.globalAdminTools = {
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
     categoryLayoutsCollection, 
-    // [NEW] Expose Chat Collections
+    // [ 💡 نوێ ]
     chatsCollection, ordersCollection,
 
     setEditingProductId: (id) => { state.editingProductId = id; },

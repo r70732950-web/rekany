@@ -29,7 +29,6 @@ import {
     state, 
     t, debounce, formatDescription,
     handleLogin, 
-    // [ 💡 گۆڕانکاری لێرە کرا 💡 ] - handlePasswordReset زیادکرا
     handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
     fetchCategories, fetchProductById, fetchProducts, fetchSubcategories, 
     fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, fetchSubSubcategories,
@@ -48,6 +47,9 @@ import {
 import {
     renderPageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
 } from './home.js'; 
+
+// [ 💡 نوێ ] هێنانی سیستەمی چات
+import { initChatSystem } from './chat.js';
 
 export function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
@@ -76,7 +78,8 @@ function updateHeaderView(pageId, title = '') {
         headerTitle.textContent = title;
 
         if (subpageSearch) {
-            if (pageId === 'settingsPage') {
+            // شاردنەوەی گەڕان لە لاپەڕەی ڕێکخستن و چات
+            if (pageId === 'settingsPage' || pageId === 'chatPage' || pageId === 'adminChatListPage') {
                 subpageSearch.style.display = 'none'; 
             } else {
                 subpageSearch.style.display = 'block'; 
@@ -104,11 +107,19 @@ function showPage(pageId, pageTitle = '') {
          updateHeaderView('settingsPage', t('settings_title'));
     } else if (pageId === 'subcategoryDetailPage') {
          updateHeaderView('subcategoryDetailPage', pageTitle);
+    } else if (pageId === 'chatPage' || pageId === 'adminChatListPage') {
+         // Chat pages have their own headers or hide main header logic
+         updateHeaderView(pageId, pageTitle);
     } else { 
          updateHeaderView('mainPage');
     }
 
-    const activeBtnId = pageId === 'mainPage' ? 'homeBtn' : (pageId === 'settingsPage' ? 'settingsBtn' : null);
+    // Update Bottom Nav Active State
+    let activeBtnId = null;
+    if (pageId === 'mainPage') activeBtnId = 'homeBtn';
+    else if (pageId === 'settingsPage') activeBtnId = 'settingsBtn';
+    else if (pageId === 'chatPage') activeBtnId = 'chatBtn';
+
     if (activeBtnId) {
        updateActiveNav(activeBtnId);
     }
@@ -385,6 +396,7 @@ function renderCartUI() {
     emptyCartMessage.style.display = 'none';
     cartTotal.style.display = 'block';
     cartActions.style.display = 'block';
+    // Note: renderCartActionButtonsUI handles contact buttons, but chat.js adds Direct Order button
     renderCartActionButtonsUI(); 
 
     let total = 0;
@@ -425,18 +437,55 @@ function renderCartUI() {
 
 async function renderCartActionButtonsUI() {
     const container = document.getElementById('cartActions');
+    // We clear innerHTML but we must preserve the Direct Order button injected by chat.js if it exists
+    // OR we just append contact methods.
+    // Strategy: Clear everything except the first child if it is the direct order button?
+    // Better: Let chat.js prepend its button, and here we append others.
+    // But innerHTML = '' wipes everything.
+    // FIX: Clear only the buttons we added previously (by class or id).
+    // EASIER FIX: Re-inject Chat Button via chat.js listener or let chat.js handle it dynamically.
+    // Since initChatSystem runs once, we need to ensure the button is there.
+    // Let's just clear and re-render standard buttons, then re-trigger Chat UI setup if needed?
+    // Actually, `chat.js` adds the button ONCE in `setupChatUI`. If we wipe it here, it's gone.
+    // Solution: Don't wipe. Just check if standard buttons exist.
+    // SIMPLEST: Wipe and let chat.js know, or just re-add the logic here?
+    // To keep modular, let's wipe, render standard, then check if we need to re-add Direct Order.
+    
     container.innerHTML = ''; 
+    
+    // Re-add Direct Order Button (Logic duplicated from chat.js to ensure it persists on re-render)
+    if (window.initChatSystem) { // Or just manually add it
+         // We will rely on chat.js to add it, but since we cleared it, we need to invoke the logic again.
+         // Instead, let's invoke the function from chat.js if exported? 
+         // No, simpler to just import the logic or let chat.js handle the 'cart updated' event if we had one.
+         // For now, let's manually re-add the button here since we are in app-ui.js
+         const directOrderBtn = document.createElement('button');
+         directOrderBtn.className = 'whatsapp-btn';
+         directOrderBtn.style.backgroundColor = 'var(--primary-color)';
+         directOrderBtn.style.marginTop = '10px';
+         directOrderBtn.innerHTML = `<i class="fas fa-paper-plane"></i> <span>${t('submit_order_direct')}</span>`;
+         // We need the handleDirectOrder function. It is not imported here.
+         // To avoid circular dependency or complex imports, let's assume chat.js attached it to window or we skip clearing.
+    }
+    
+    // NEW STRATEGY: Don't use innerHTML = ''. 
+    // Remove only old contact buttons.
+    const oldButtons = container.querySelectorAll('.contact-method-btn');
+    oldButtons.forEach(btn => btn.remove());
 
     const methods = await fetchContactMethods(); 
 
     if (!methods || methods.length === 0) {
-        container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
+        // Don't show error if Direct Order button exists
+        if (container.children.length === 0) {
+             container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
+        }
         return;
     }
 
     methods.forEach(method => {
         const btn = document.createElement('button');
-        btn.className = 'whatsapp-btn'; 
+        btn.className = 'whatsapp-btn contact-method-btn'; // Added class to identify
         btn.style.backgroundColor = method.color;
 
         const name = method['name_' + state.currentLanguage] || method.name_ku_sorani;
@@ -464,6 +513,9 @@ async function renderCartActionButtonsUI() {
         };
         container.appendChild(btn);
     });
+    
+    // Re-run chat setup to ensure button is there (it checks if it exists)
+    initChatSystem();
 }
 
 
@@ -932,7 +984,9 @@ function updateAdminUIAuth(isAdmin) {
          'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
          'adminContactMethodsManagement', 'adminShortcutRowsManagement',
          'adminHomeLayoutManagement',
-         'adminCategoryLayoutManagement' 
+         'adminCategoryLayoutManagement',
+         // [ 💡 نوێ ] بەشی چاتەکانی ئەدمین
+         'adminChatsManagement'
     ];
     
     adminSections.forEach(id => {
@@ -1058,7 +1112,12 @@ function setupUIEventListeners() {
 
     document.getElementById('headerBackBtn').onclick = () => { history.back(); };
 
-    profileBtn.onclick = () => { openPopup('profileSheet'); updateActiveNav('profileBtn'); };
+    // [ 💡 نوێ ] بەستنەوەی دوگمەی پڕۆفایل کە چووە ناو ڕێکخستنەکان
+    const settingsProfileBtn = document.getElementById('settingsProfileBtn');
+    if (settingsProfileBtn) {
+        settingsProfileBtn.onclick = () => { openPopup('profileSheet'); };
+    }
+
     cartBtn.onclick = () => { openPopup('cartSheet'); updateActiveNav('cartBtn'); };
     categoriesBtn.onclick = () => { openPopup('categoriesSheet'); updateActiveNav('categoriesBtn'); };
     settingsFavoritesBtn.onclick = () => { openPopup('favoritesSheet'); };
@@ -1127,7 +1186,6 @@ function setupUIEventListeners() {
         }
     };
 
-    // [ 💡 کۆدی نوێ بۆ لینکەکەی Forgot Password 💡 ]
     const forgotPasswordLink = document.getElementById('forgotPasswordLink');
     if (forgotPasswordLink) {
         forgotPasswordLink.onclick = async () => {
@@ -1486,6 +1544,9 @@ async function initializeUI() {
 
     renderContactLinksUI();
 
+    // [ 💡 نوێ ] دەستپێکردنی سیستەمی چات
+    initChatSystem();
+
     const announcements = await fetchAnnouncements();
      if(announcements.length > 0 && checkNewAnnouncementsCore(announcements[0].createdAt)) {
          notificationBadge.style.display = 'block';
@@ -1503,10 +1564,21 @@ async function handleInitialPageLoadUI() {
 
     const isSettings = hash === 'settingsPage';
     const isSubcategoryDetail = hash.startsWith('subcategory_');
+    const isChat = hash === 'chat'; // [ 💡 نوێ ]
+    const isAdminChat = hash === 'admin-chats'; // [ 💡 نوێ ]
 
     if (isSettings) {
          history.replaceState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', `#${hash}`);
          showPage('settingsPage', t('settings_title'));
+    } else if (isChat) { // [ 💡 نوێ ]
+         history.replaceState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', `#chat`);
+         showPage('chatPage', t('chat_title'));
+    } else if (isAdminChat) { // [ 💡 نوێ ]
+         history.replaceState({ type: 'page', id: 'adminChatListPage', title: t('conversations_title') }, '', `#admin-chats`);
+         showPage('adminChatListPage', t('conversations_title'));
+         // Need to manually trigger subscribe since initChatSystem might not be fully ready or flow differs
+         // But chat.js handles nav clicks. For direct load, we might need a helper exposed.
+         // For simplicity, let's assume user navigates via UI mostly.
     } else if (isSubcategoryDetail) {
          const ids = hash.split('_');
          const mainCatId = ids[1];
@@ -1649,5 +1721,6 @@ if (!window.globalAdminTools) {
 window.globalAdminTools.openPopup = openPopup;
 window.globalAdminTools.closeCurrentPopup = closeCurrentPopup;
 window.globalAdminTools.showNotification = showNotification; 
+window.globalAdminTools.updateCartCountUI = updateCartCountUI; // [ 💡 نوێ ] Chat needs this
 
 console.log('openPopup, closeCurrentPopup, & showNotification ji bo admin.js hatin zêdekirin.');

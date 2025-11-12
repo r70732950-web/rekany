@@ -6,7 +6,7 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -77,17 +77,6 @@
             </div>
         </div>
 
-        <!-- [NEW] Order Success Modal -->
-        <div id="orderSuccessModal" class="modal">
-            <div class="modal-content order-success-modal">
-                <span class="close">&times;</span>
-                <i class="fas fa-check-circle order-success-icon"></i>
-                <h2 data-translate-key="order_success_title">داواکاری نێردرا!</h2>
-                <p data-translate-key="order_success_msg">بە زووترین کات پەیوەندیت پێوە دەکەین.</p>
-                <button id="closeOrderSuccessBtn" style="margin-top:15px; background-color: var(--primary-color); color: white; padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold;">باشە</button>
-            </div>
-        </div>
-
         <div id="sheet-overlay" class="sheet-overlay"></div>
 
         <div id="notificationsSheet" class="bottom-sheet">
@@ -110,7 +99,9 @@
                 <div id="emptyCartMessage" class="cart-empty" style="display:none;"><i class="fas fa-shopping-basket"></i><p data-translate-key="cart_empty">سەبەتەکەت بەتاڵە</p></div>
                 <div id="cartTotal" class="cart-total" style="display:none;"><span data-translate-key="total_price">کۆی گشتی:</span> <span id="totalAmount">0</span> د.ع.</div>
 
-                <div id="cartActions" style="display:none; margin-top: 15px;"></div>
+                <div id="cartActions" style="display:none; margin-top: 15px;">
+                    <!-- دوگمەی داواکاری ڕاستەوخۆ لێرە زیاد دەبێت لە ڕێگەی JS -->
+                </div>
             </div>
         </div>
 
@@ -284,63 +275,14 @@
              </div>
         </div>
 
-        <!-- [NEW] Chat Page for Users -->
-        <div class="page page-hidden" id="chatPage" style="background: #e5ddd5; z-index: 2000;">
-            <div class="chat-page-container">
-                <div class="chat-header">
-                    <button id="chatBackBtn" class="header-icon-btn"><i class="fas fa-arrow-right"></i></button>
-                    <div class="user-avatar-circle" style="background: var(--primary-color); color: white;">
-                        <i class="fas fa-headset"></i>
-                    </div>
-                    <div class="chat-user-status">
-                        <span class="chat-user-name">پشتگیری (Support)</span>
-                        <span class="status-text" id="supportStatusText">ل هێڵە (Online)</span>
-                    </div>
-                </div>
-
-                <div class="messages-list" id="messagesList">
-                    <!-- Messages will appear here -->
-                </div>
-
-                <div id="attachmentPreview" class="attachment-preview-container">
-                    <img id="attachmentImg" class="attachment-preview-img">
-                    <button id="removeAttachmentBtn" class="remove-attachment-btn">&times;</button>
-                </div>
-
-                <div class="chat-input-container">
-                    <button id="chatAttachBtn" class="chat-action-btn"><i class="fas fa-paperclip"></i></button>
-                    <input type="file" id="chatFileInput" hidden accept="image/*">
-                    
-                    <div class="chat-input-wrapper">
-                        <textarea id="chatInput" class="chat-text-input" rows="1" placeholder="نامەیەک بنووسە..." style="height: 40px;"></textarea>
-                    </div>
-                    
-                    <button id="chatMicBtn" class="chat-action-btn"><i class="fas fa-microphone"></i></button>
-                    <button id="chatSendBtn" class="chat-send-btn" style="display:none;"><i class="fas fa-paper-plane"></i></button>
-                </div>
-                
-                <div id="recordingUI" class="chat-input-container recording-ui">
-                    <span class="record-timer" id="recordTimer">00:00</span>
-                    <span style="flex:1; text-align:center;">خەریکی تۆمارکردنە...</span>
-                    <button id="cancelRecordBtn" class="chat-action-btn" style="color: var(--danger-color);"><i class="fas fa-trash"></i></button>
-                    <button id="sendRecordBtn" class="chat-send-btn"><i class="fas fa-paper-plane"></i></button>
-                </div>
-            </div>
+        <!-- [ 💡 نوێ ] لاپەڕەی چات -->
+        <div class="page page-hidden" id="chatPage">
+            <!-- لەڕێگەی JS ناوەڕۆکەکەی پڕ دەکرێتەوە -->
         </div>
 
-        <!-- [NEW] Admin Chat List Page -->
+        <!-- [ 💡 نوێ ] لاپەڕەی لیستی چاتەکان (بۆ ئەدمین) -->
         <div class="page page-hidden" id="adminChatListPage">
-            <div class="app-header">
-                <div class="subpage-header-content" style="display: flex;">
-                    <button id="adminChatListBackBtn" class="header-icon-btn"><i class="fas fa-arrow-right"></i></button>
-                    <h2 class="header-title">نامەی بەکارهێنەران</h2>
-                </div>
-            </div>
-            <div class="main-content" style="padding-top: 60px;">
-                <div id="adminChatUsersList">
-                    <div style="text-align:center; padding:20px;">خەریکی بارکردنە...</div>
-                </div>
-            </div>
+            <!-- لەڕێگەی JS ناوەڕۆکەکەی پڕ دەکرێتەوە -->
         </div>
 
         <div class="settings-page page page-hidden" id="settingsPage">
@@ -360,24 +302,12 @@
                 </div>
             </div>
 
-            <!-- [NEW] Admin Chat Entry -->
-            <div class="settings-group" id="adminChatManagement" style="display: none;">
-                <div class="settings-item" id="openAdminChatsBtn">
-                    <div>
-                        <i class="fas fa-comments" style="margin-left: 10px; color: var(--accent-color);"></i>
-                        <span>نامەی بەکارهێنەران (Admin Chat)</span>
-                        <span id="adminUnreadBadge" class="notification-badge" style="position:static; display:inline-block; margin-right:10px;">0</span>
-                    </div>
-                    <i class="fas fa-chevron-left"></i>
-                </div>
-            </div>
-
-            <!-- [NEW] Profile Entry (Moved from Bottom Nav) -->
+            <!-- [ 💡 نوێ ] دوگمەی پڕۆفایل لێرە زیادکرا چونکە لە Bottom Nav لابرا -->
             <div class="settings-group">
                 <div class="settings-item" id="settingsProfileBtn">
                     <div>
-                        <i class="fas fa-user-circle" style="margin-left: 10px;"></i>
-                        <span data-translate-key="nav_profile">پڕۆفایل</span>
+                        <i class="fas fa-user" style="margin-left: 10px; color: var(--primary-color)"></i>
+                        <span data-translate-key="profile_title">پڕۆفایلی من</span>
                     </div>
                     <i class="fas fa-chevron-left"></i>
                 </div>
@@ -455,7 +385,18 @@
                 </div>
             </div>
 
-            <!-- Admin Management Sections (No changes here) -->
+            <!-- [ 💡 نوێ ] بەشی بەڕێوەبردنی نامەکانی ئەدمین -->
+            <div class="settings-group" id="adminChatsManagement" style="display: none;">
+                <div class="settings-item" id="adminChatsBtn">
+                    <div>
+                        <i class="fas fa-inbox" style="margin-left: 10px; color: var(--accent-color);"></i>
+                        <span data-translate-key="conversations_title">نامەکانی بەکارهێنەران</span>
+                        <span id="adminUnreadBadge" class="notification-badge" style="position: relative; top: -2px; margin-right: 5px; display:none;"></span>
+                    </div>
+                    <i class="fas fa-chevron-left"></i>
+                </div>
+            </div>
+
             <div class="settings-group" id="adminPoliciesManagement" style="display: none;">
                  <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
                      <i class="fas fa-edit"></i> <span data-translate-key="manage_policies_title">بەڕێوەبردنی مەرج و ڕێساکان</span>
@@ -1164,7 +1105,6 @@
             </div>
         </div>
 
-        <!-- [UPDATED] Bottom Navigation -->
         <div class="bottom-nav">
              <button id="homeBtn" class="bottom-nav-item">
                  <i class="fas fa-home"></i>
@@ -1180,13 +1120,13 @@
                  <span data-translate-key="nav_cart">سەبەتە</span>
              </button>
              
-             <!-- [NEW] Messages Button replaces Profile -->
-             <button id="messagesBtn" class="bottom-nav-item">
-                 <span class="nav-badge" id="totalUnreadBadge" style="display:none;">0</span>
+             <!-- [ 💡 نوێ ] دوگمەی چات لێرە دانرا لە جیاتی پڕۆفایل -->
+             <button id="chatBtn" class="bottom-nav-item">
+                 <span class="chat-badge" id="chatBadge"></span>
                  <i class="fas fa-comment-dots"></i>
-                 <span data-translate-key="nav_messages">نامەکان</span>
+                 <span data-translate-key="nav_chat">نامەکان</span>
              </button>
-             
+
               <button id="settingsBtn" class="bottom-nav-item">
                  <i class="fas fa-cog"></i>
                  <span data-translate-key="nav_settings">ڕێکخستن</span>
@@ -1201,14 +1141,7 @@
     <script type="module" src="app-core.js"></script>
     <script type="module" src="app-ui.js"></script>
     <script type="module" src="home.js"></script>
-    <!-- [NEW] Import Chat Logic -->
-    <script type="module">
-        import { initChatSystem } from './chat.js';
-        // Initialize chat when DOM is ready
-        document.addEventListener('DOMContentLoaded', () => {
-            initChatSystem();
-        });
-    </script>
+    <script type="module" src="chat.js"></script> <!-- [ 💡 نوێ ] -->
     <script src="admin.js" defer></script>
 </body>
 </html>
