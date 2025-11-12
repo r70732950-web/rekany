@@ -56,12 +56,6 @@
             </div>
         </header>
 
-        <!-- Chat Floating Button (New Addition) -->
-        <div id="chatFloatingBtn" class="chat-fab" style="display: none;">
-            <i class="fas fa-comments"></i>
-            <span id="chatUnreadBadge" class="unread-badge" style="display: none;">0</span>
-        </div>
-
         <div id="loginModal" class="modal">
             <div class="modal-content">
                 <span class="close" aria-label="Close">&times;</span>
@@ -85,26 +79,6 @@
 
         <div id="sheet-overlay" class="sheet-overlay"></div>
 
-        <!-- Chat Sheet (New Addition) -->
-        <div id="chatSheet" class="bottom-sheet">
-            <div class="sheet-header">
-                <span class="sheet-handle"></span>
-                <h2 class="sheet-title" id="chatSheetTitle"><i class="fas fa-comments"></i> <span data-translate-key="contact_us_title">پەیوەندی</span></h2>
-                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
-            </div>
-            <div class="sheet-content" style="padding: 0; overflow: hidden;">
-                <div class="chat-container">
-                    <div id="chatMessages" class="chat-messages">
-                        <!-- Messages will appear here -->
-                    </div>
-                    <form id="chatForm" class="chat-input-wrapper">
-                        <textarea id="chatInput" class="chat-input" rows="1" placeholder="نامەکەت بنووسە..." required></textarea>
-                        <button type="submit" class="chat-send-btn"><i class="fas fa-paper-plane"></i></button>
-                    </form>
-                </div>
-            </div>
-        </div>
-
         <div id="notificationsSheet" class="bottom-sheet">
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
@@ -124,12 +98,6 @@
                 <div id="cartItemsContainer"></div>
                 <div id="emptyCartMessage" class="cart-empty" style="display:none;"><i class="fas fa-shopping-basket"></i><p data-translate-key="cart_empty">سەبەتەکەت بەتاڵە</p></div>
                 <div id="cartTotal" class="cart-total" style="display:none;"><span data-translate-key="total_price">کۆی گشتی:</span> <span id="totalAmount">0</span> د.ع.</div>
-
-                <!-- Chat Button inside Cart (New Addition) -->
-                <button id="cartHelpBtn" class="cart-help-btn" style="display: none;">
-                    <i class="fas fa-question-circle"></i>
-                    <span>پرسیارت لەسەر ئەم کاڵایانە هەیە؟</span>
-                </button>
 
                 <div id="cartActions" style="display:none; margin-top: 15px;"></div>
             </div>
@@ -169,6 +137,8 @@
                         </div>
                         <button type="submit">چوونەژوورەوە</button>
                         <p id="userLoginError" style="color:var(--danger-color); margin-top:10px; display:none; text-align: center;"></p>
+                        
+                        <!-- بەشی زیادکراو: بیرچوونەوەی وشەی نهێنی -->
                         <p id="forgotPasswordLink" style="text-align: center; color: var(--primary-color); cursor: pointer; margin-top: 15px; font-size: 14px;" data-translate-key="forgot_password">
                             وشەی نهێنیت لەبیرکردووە؟
                         </p>
@@ -396,17 +366,6 @@
                         <span data-translate-key="logout_nav">چوونەدەرەوە</span>
                     </div>
                     <i class="fas fa-chevron-left"></i>
-                </div>
-            </div>
-
-            <!-- Admin Chat Management Section (New Addition) -->
-            <div class="settings-group" id="adminChatManagement" style="display: none;">
-                <h3 class="section-title" style="margin: 0; border-radius: 0; box-shadow: none;">
-                    <i class="fas fa-comments"></i> <span>بەڕێوەبردنی نامەکان</span>
-                </h3>
-                <div id="adminChatListContainer" style="max-height: 400px; overflow-y: auto;">
-                    <!-- Chat items will be loaded here -->
-                    <p style="padding: 15px; text-align: center; color: #718096;">...چاوەڕوانی بارکردنی نامەکان</p>
                 </div>
             </div>
 

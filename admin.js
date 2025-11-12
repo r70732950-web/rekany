@@ -1,5 +1,6 @@
+// admin.js
 const {
-    db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction, serverTimestamp,
+    db, auth, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection, query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction, 
     storage, ref, uploadBytes, getDownloadURL, 
     showNotification, t, openPopup, closeCurrentPopup, 
     productsCollection, categoriesCollection, announcementsCollection,
@@ -12,13 +13,11 @@ const {
 
 window.AdminLogic = {
     listenersAttached: false,
+    
     currentImageUrls: ["", "", "", ""], 
+    
     currentLayoutEditorContext: { type: 'home', id: null }, 
     currentCategoryLayoutId: null, 
-    
-    // Chat Variables
-    currentChatTargetId: null,
-    adminChatUnsubscribe: null,
 
     initialize: function() {
         console.log("Admin logic initialized.");
@@ -34,159 +33,25 @@ window.AdminLogic = {
         this.updateAdminCategoryDropdowns(); 
         this.updateShortcutCardCategoryDropdowns();
         this.renderHomeLayoutAdmin();
+        
         this.renderPromoGroupsAdminList();
         this.renderBrandGroupsAdminList();
+        
         this.updateCategoryLayoutDropdowns(); 
         this.setupCategoryLayoutListeners(); 
-        this.setupChatAdmin(); // Initialize Chat System
     },
 
     deinitialize: function() {
         console.log("Admin logic de-initialized.");
         this.updateAdminUI(false);
-        if(this.adminChatUnsubscribe) this.adminChatUnsubscribe();
     },
-
-    // --- CHAT SYSTEM LOGIC ---
-
-    setupChatAdmin: function() {
-        const container = document.getElementById('adminChatListContainer');
-        if (!container) return;
-
-        // Listen to all chats ordered by time
-        const q = query(collection(db, 'chats'), orderBy('lastMessageTime', 'desc'));
-        
-        onSnapshot(q, (snapshot) => {
-            container.innerHTML = '';
-            if (snapshot.empty) {
-                container.innerHTML = '<p style="padding: 15px; text-align: center; color: #718096;">هیچ نامەیەک نەهاتووە.</p>';
-                return;
-            }
-
-            snapshot.forEach(docSnap => {
-                const chat = { id: docSnap.id, ...docSnap.data() };
-                const date = chat.lastMessageTime ? new Date(chat.lastMessageTime.toDate()) : new Date();
-                const timeStr = `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
-                
-                // Check if unread by admin
-                const isUnread = chat.adminUnread === true; // or check unreadCount based on logic
-
-                const item = document.createElement('div');
-                item.className = 'admin-list-item';
-                item.style.cursor = 'pointer';
-                item.style.backgroundColor = isUnread ? '#ebf8ff' : 'white';
-                item.style.borderRight = isUnread ? '4px solid var(--primary-color)' : 'none';
-                
-                item.innerHTML = `
-                    <div style="flex: 1; overflow: hidden;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                            <strong style="font-size: 15px;">${chat.userName || 'User'}</strong>
-                            <span style="font-size: 12px; color: #718096;">${timeStr}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <p style="margin: 0; font-size: 13px; color: #4a5568; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%;">
-                                ${chat.lastMessage || '...'}
-                            </p>
-                            ${isUnread ? '<span style="background: var(--danger-color); width: 10px; height: 10px; border-radius: 50%;"></span>' : ''}
-                        </div>
-                    </div>
-                `;
-                
-                item.onclick = () => this.openChatWithUser(chat.id, chat.userName);
-                container.appendChild(item);
-            });
-        });
-    },
-
-    openChatWithUser: function(userId, userName) {
-        this.currentChatTargetId = userId;
-        
-        // Open UI
-        document.getElementById('chatSheetTitle').innerHTML = `<i class="fas fa-user"></i> <span>${userName || 'User'}</span>`;
-        openPopup('chatSheet');
-
-        // Mark as read
-        updateDoc(doc(db, 'chats', userId), { adminUnread: false });
-
-        // Handle Form Submit (Override User Logic)
-        const chatForm = document.getElementById('chatForm');
-        // Clone to remove old listeners
-        const newChatForm = chatForm.cloneNode(true);
-        chatForm.parentNode.replaceChild(newChatForm, chatForm);
-        
-        const self = this;
-        newChatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const input = document.getElementById('chatInput');
-            const text = input.value.trim();
-            if(!text) return;
-            
-            input.value = '';
-            await self.sendAdminMessage(text);
-        });
-
-        // Subscribe to messages
-        if(this.adminChatUnsubscribe) this.adminChatUnsubscribe();
-        
-        const messagesQuery = query(collection(db, 'chats', userId, 'messages'), orderBy('timestamp', 'asc'));
-        this.adminChatUnsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-            const messages = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-            // Use global render function from app-ui.js
-            if(window.renderChatMessages) {
-                // Pass userId as currentUserId so Admin messages (senderId = adminUID) appear on right?
-                // Wait, logic in app-ui renderChatMessages:
-                // const isMyMessage = msg.senderId === auth.currentUser?.uid;
-                // If I am admin, auth.currentUser.uid IS adminUID.
-                // So my messages will be green (right), user messages (senderId != adminUID) will be gray (left).
-                // This is perfect.
-                window.renderChatMessages(messages, auth.currentUser.uid);
-            }
-        });
-    },
-
-    sendAdminMessage: async function(text) {
-        if (!this.currentChatTargetId) return;
-        
-        const chatId = this.currentChatTargetId;
-        const currentUser = auth.currentUser;
-
-        try {
-            const messagesRef = collection(db, 'chats', chatId, 'messages');
-            const chatDocRef = doc(db, 'chats', chatId);
-
-            await runTransaction(db, async (transaction) => {
-                const newMessageRef = doc(messagesRef);
-                transaction.set(newMessageRef, {
-                    text: text,
-                    senderId: currentUser.uid, // Admin ID
-                    timestamp: serverTimestamp(),
-                    type: 'text'
-                });
-
-                const chatDoc = await transaction.get(chatDocRef);
-                const currentUnread = chatDoc.exists() ? (chatDoc.data().unreadCount || 0) : 0;
-
-                transaction.set(chatDocRef, {
-                    lastMessage: text,
-                    lastMessageTime: serverTimestamp(),
-                    adminUnread: false,
-                    unreadCount: currentUnread + 1 // Increment unread for user
-                }, { merge: true });
-            });
-        } catch (error) {
-            console.error("Error sending admin message:", error);
-            showNotification('نەتوانرا بنێردرێت', 'error');
-        }
-    },
-
-    // --- END CHAT LOGIC ---
 
     migrateAndSetupDefaultHomeLayout: async function() {
         const layoutCollectionRef = collection(db, 'home_layout');
         const snapshot = await getDocs(query(layoutCollectionRef, limit(1)));
     
         if (snapshot.empty) {
-            console.log("Creating default layout.");
+            console.log("`home_layout` collection is empty. Creating default layout.");
             await this.createDefaultHomeLayout(layoutCollectionRef);
             return;
         }
@@ -195,11 +60,18 @@ window.AdminLogic = {
         const isOldStructure = typeof firstDocData.name === 'string' || !firstDocData.hasOwnProperty('name');
     
         if (isOldStructure) {
+            console.warn("Old home_layout structure detected. Migrating to new structure...");
             showNotification('خەریکی نوێکردنەوەی سیستەمی ڕیزبەندییە...', 'success');
+            
             const allDocsSnapshot = await getDocs(layoutCollectionRef);
             const deletePromises = allDocsSnapshot.docs.map(doc => deleteDoc(doc.ref));
             await Promise.all(deletePromises);
+            console.log("Old layout deleted.");
+    
             await this.createDefaultHomeLayout(layoutCollectionRef);
+            console.log("New default layout created after migration.");
+        } else {
+            console.log("`home_layout` structure is up to date.");
         }
     },
 
@@ -212,8 +84,8 @@ window.AdminLogic = {
         ];
         const addPromises = defaultLayout.map(item => addDoc(collectionRef, item));
         
-        try { await setDoc(doc(promoGroupsCollection, 'default'), { name: 'گرووپی سەرەki', createdAt: Date.now() }); } catch(e){}
-        try { await setDoc(doc(brandGroupsCollection, 'default'), { name: 'گرووپی سەرەki', createdAt: Date.now() }); } catch(e){}
+        await setDoc(doc(promoGroupsCollection, 'default'), { name: 'گرووپی سەرەki', createdAt: Date.now() });
+        await setDoc(doc(brandGroupsCollection, 'default'), { name: 'گرووپی سەرەki', createdAt: Date.now() });
 
         await Promise.all(addPromises);
     },
@@ -226,8 +98,7 @@ window.AdminLogic = {
             'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
             'adminContactMethodsManagement', 'adminShortcutRowsManagement',
             'adminHomeLayoutManagement',
-            'adminCategoryLayoutManagement',
-            'adminChatManagement'
+            'adminCategoryLayoutManagement' 
         ];
         
         adminSections.forEach(id => {
@@ -238,18 +109,15 @@ window.AdminLogic = {
         const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
         const settingsAdminLoginBtn = document.getElementById('settingsAdminLoginBtn');
         const addProductBtn = document.getElementById('addProductBtn');
-        const chatBtn = document.getElementById('chatFloatingBtn');
 
         if (isAdmin) {
             settingsLogoutBtn.style.display = 'flex';
             settingsAdminLoginBtn.style.display = 'none';
             addProductBtn.style.display = 'flex';
-            if(chatBtn) chatBtn.style.display = 'none'; // Admin doesn't chat with himself via floating button
         } else {
             settingsLogoutBtn.style.display = 'none';
             settingsAdminLoginBtn.style.display = 'flex';
             addProductBtn.style.display = 'none';
-            if(chatBtn && auth.currentUser) chatBtn.style.display = 'flex';
         }
     },
 
@@ -275,6 +143,8 @@ window.AdminLogic = {
             document.getElementById('productNameAr').value = product.name.ar || '';
         } else {
             document.getElementById('productNameKuSorani').value = product.name;
+            document.getElementById('productNameKuBadini').value = '';
+            document.getElementById('productNameAr').value = '';
         }
 
         document.getElementById('productPrice').value = product.price;
@@ -299,6 +169,10 @@ window.AdminLogic = {
             document.getElementById('shippingInfoKuSorani').value = product.shippingInfo.ku_sorani || '';
             document.getElementById('shippingInfoKuBadini').value = product.shippingInfo.ku_badini || '';
             document.getElementById('shippingInfoAr').value = product.shippingInfo.ar || '';
+        } else {
+            document.getElementById('shippingInfoKuSorani').value = '';
+            document.getElementById('shippingInfoKuBadini').value = '';
+            document.getElementById('shippingInfoAr').value = '';
         }
 
         await this.populateSubcategoriesDropdown(categoryId, product.subcategoryId);
@@ -364,7 +238,9 @@ window.AdminLogic = {
         try {
             const fileName = `products/${Date.now()}-${file.name}`;
             const storageRef = ref(storage, fileName);
+
             await uploadBytes(storageRef, file);
+
             const downloadURL = await getDownloadURL(storageRef);
 
             this.currentImageUrls[index] = downloadURL;
@@ -372,6 +248,7 @@ window.AdminLogic = {
             preview.src = downloadURL;
             preview.style.display = 'block';
             removeBtn.style.display = 'flex';
+
         } catch (error) {
             console.error("Error uploading image:", error);
             showNotification('هەڵەیەک لە کاتی بلندکردنی وێنەکە ڕوویدا!', 'error');
@@ -384,10 +261,12 @@ window.AdminLogic = {
     handleImageRemove: function(slot) {
         const index = slot.dataset.index;
         this.currentImageUrls[index] = ""; 
+
         slot.querySelector('.image-upload-preview').src = '';
         slot.querySelector('.image-upload-preview').style.display = 'none';
         slot.querySelector('.image-upload-label').style.display = 'flex';
         slot.querySelector('.image-upload-remove-btn').style.display = 'none';
+        
         slot.querySelector('.image-upload-input').value = null; 
     },
 
@@ -428,6 +307,7 @@ window.AdminLogic = {
                 });
             }
         } catch (error) {
+            console.error("Error fetching subcategories for form:", error);
             productSubcategorySelect.innerHTML = '<option value="" disabled selected>هەڵەیەک ڕوویدا</option>';
         } finally {
             productSubcategorySelect.disabled = false;
@@ -467,6 +347,7 @@ window.AdminLogic = {
                 });
             }
         } catch (error) {
+            console.error("Error fetching sub-subcategories for form:", error);
             select.innerHTML = '<option value="" disabled>هەڵەیەک ڕوویدا</option>';
         } finally {
             select.disabled = false;
@@ -484,7 +365,9 @@ window.AdminLogic = {
                 document.getElementById('policiesContentKuBadini').value = policies.ku_badini || '';
                 document.getElementById('policiesContentAr').value = policies.ar || '';
             }
-        } catch (error) { console.error("Error loading policies:", error); }
+        } catch (error) {
+            console.error("Error loading policies for admin:", error);
+        }
     },
 
     deleteAnnouncement: async function(id) {
@@ -528,9 +411,11 @@ window.AdminLogic = {
     deleteSocialMediaLink: async function(linkId) {
         if (confirm('دڵنیایت دەتەوێت ئەم لینکە بسڕیتەوە؟')) {
             try {
-                await deleteDoc(doc(db, 'settings', 'contactInfo', 'socialLinks', linkId));
+                const linkRef = doc(db, 'settings', 'contactInfo', 'socialLinks', linkId);
+                await deleteDoc(linkRef);
                 showNotification('لینکەکە سڕدرایەوە', 'success');
             } catch (error) {
+                console.error("Error deleting social link: ", error);
                 showNotification(t('error_generic'), 'error');
             }
         }
@@ -538,7 +423,8 @@ window.AdminLogic = {
 
     renderSocialMediaLinks: function() {
         const socialLinksListContainer = document.getElementById('socialLinksListContainer');
-        const q = query(collection(db, 'settings', 'contactInfo', 'socialLinks'), orderBy("createdAt", "desc"));
+        const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
+        const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
 
         onSnapshot(q, (snapshot) => {
             socialLinksListContainer.innerHTML = '';
@@ -549,6 +435,7 @@ window.AdminLogic = {
             snapshot.forEach(doc => {
                 const link = { id: doc.id, ...doc.data() };
                 const name = link['name_' + getCurrentLanguage()] || link.name_ku_sorani;
+
                 const item = document.createElement('div');
                 item.className = 'social-link-item';
                 item.innerHTML = `
@@ -561,6 +448,7 @@ window.AdminLogic = {
                     </div>
                     <button class="delete-btn"><i class="fas fa-trash"></i></button>
                 `;
+
                 item.querySelector('.delete-btn').onclick = () => this.deleteSocialMediaLink(link.id);
                 socialLinksListContainer.appendChild(item);
             });
@@ -570,9 +458,11 @@ window.AdminLogic = {
     deleteContactMethod: async function(methodId) {
         if (confirm('دڵنیایت دەتەوێت ئەم شێوازە بسڕیتەوە؟')) {
             try {
-                await deleteDoc(doc(db, 'settings', 'contactInfo', 'contactMethods', methodId));
+                const methodRef = doc(db, 'settings', 'contactInfo', 'contactMethods', methodId);
+                await deleteDoc(methodRef);
                 showNotification('شێوازەکە سڕدرایەوە', 'success');
             } catch (error) {
+                console.error("Error deleting contact method: ", error);
                 showNotification('هەڵەیەک لە сڕینەوە ڕوویدا', 'error');
             }
         }
@@ -580,7 +470,8 @@ window.AdminLogic = {
 
     renderContactMethodsAdmin: function() {
         const container = document.getElementById('contactMethodsListContainer');
-        const q = query(collection(db, 'settings', 'contactInfo', 'contactMethods'), orderBy("createdAt", "desc"));
+        const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
+        const q = query(methodsCollection, orderBy("createdAt", "desc"));
 
         onSnapshot(q, (snapshot) => {
             container.innerHTML = '';
@@ -591,6 +482,7 @@ window.AdminLogic = {
             snapshot.forEach(doc => {
                 const method = { id: doc.id, ...doc.data() };
                 const name = method['name_' + getCurrentLanguage()] || method.name_ku_sorani;
+
                 const item = document.createElement('div');
                 item.className = 'social-link-item';
                 item.innerHTML = `
@@ -603,6 +495,7 @@ window.AdminLogic = {
                     </div>
                     <button class="delete-btn"><i class="fas fa-trash"></i></button>
                 `;
+
                 item.querySelector('.delete-btn').onclick = () => this.deleteContactMethod(method.id);
                 container.appendChild(item);
             });
@@ -712,7 +605,8 @@ window.AdminLogic = {
     },
 
     handleDeleteCategory: async function(docPath, categoryName) {
-        if (confirm(`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە.`)) {
+        const confirmation = confirm(`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە.`);
+        if (confirmation) {
             try {
                 await deleteDoc(doc(db, docPath));
                 showNotification('جۆرەکە بە سەرکەوتوویی سڕدرایەوە', 'success');
@@ -721,6 +615,7 @@ window.AdminLogic = {
                 this.updateShortcutCardCategoryDropdowns();
                 this.updateCategoryLayoutDropdowns();
             } catch (error) {
+                console.error("Error deleting category: ", error);
                 showNotification('هەڵەیەک ڕوویدا لە کاتی sڕینەوە', 'error');
             }
         }
@@ -747,6 +642,7 @@ window.AdminLogic = {
                 const requiredAttrs = d.required ? 'disabled selected' : '';
                 const firstOptionHTML = `<option value="" ${requiredAttrs}>${d.defaultText}</option>`;
                 select.innerHTML = firstOptionHTML;
+                
                 categoriesWithoutAll.forEach(cat => {
                     const option = document.createElement('option');
                     option.value = cat.id;
@@ -1003,6 +899,7 @@ window.AdminLogic = {
 
             snapshot.forEach(rowDoc => {
                 const row = { id: rowDoc.id, ...rowDoc.data() };
+                
                 const option = document.createElement('option');
                 option.value = row.id;
                 option.textContent = row.title.ku_sorani;
@@ -1010,6 +907,7 @@ window.AdminLogic = {
 
                 const rowElement = document.createElement('div');
                 rowElement.className = 'admin-list-group';
+                
                 rowElement.innerHTML = `
                     <div class="admin-list-group-header">
                         <strong><i class="fas fa-layer-group"></i> ${row.title.ku_sorani} (ڕیز: ${row.order})</strong>
@@ -1071,11 +969,13 @@ window.AdminLogic = {
                 const cardsSnapshot = await getDocs(cardsRef);
                 const deletePromises = cardsSnapshot.docs.map(d => deleteDoc(d.ref));
                 await Promise.all(deletePromises);
+
                 await deleteDoc(doc(db, "shortcut_rows", rowId));
                 showNotification('ڕیزەکە بە تەواوی سڕدرایەوە', 'success');
                 clearProductCache();
             } catch (error) {
                 showNotification('هەڵەیەک ڕوویدا', 'error');
+                console.error("Error deleting shortcut row: ", error);
             }
         }
     },
@@ -1094,6 +994,7 @@ window.AdminLogic = {
             
             const mainCatSelect = document.getElementById('shortcutCardMainCategory');
             mainCatSelect.value = card.categoryId || '';
+            
             mainCatSelect.dispatchEvent(new Event('change')); 
 
             setTimeout(() => {
@@ -1120,6 +1021,7 @@ window.AdminLogic = {
                 clearProductCache();
             } catch (error) {
                 showNotification('هەڵەیەک ڕوویدا', 'error');
+                console.error("Error deleting shortcut card: ", error);
             }
         }
     },
@@ -1238,6 +1140,7 @@ window.AdminLogic = {
             const docId = item.dataset.id;
             const isEnabled = item.querySelector('.enabled-toggle').checked;
             const newOrder = index + 1;
+            
             const docRef = doc(db, 'home_layout', docId);
             updatePromises.push(updateDoc(docRef, { order: newOrder, enabled: isEnabled }));
         });
@@ -1247,6 +1150,7 @@ window.AdminLogic = {
             showNotification('ڕیزبەندی پەڕەی سەرەki پاشەکەوت کرا', 'success');
             clearProductCache();
         } catch (error) {
+            console.error("Error saving layout:", error);
             showNotification('هەڵەیەک لە پاشەکەوتکردن ڕوویدا', 'error');
         } finally {
             saveBtn.disabled = false;
@@ -1272,6 +1176,7 @@ window.AdminLogic = {
 
     loadCategoryLayoutEditor: async function(categoryId) {
         if (!categoryId) return;
+        
         this.currentCategoryLayoutId = categoryId; 
         const editorContainer = document.getElementById('categoryLayoutEditorContainer');
         const toggle = document.getElementById('categoryLayoutEnableToggle');
@@ -1293,6 +1198,7 @@ window.AdminLogic = {
                 this.renderCategoryLayoutSections([]);
             }
         } catch (error) {
+            console.error("Error loading category layout:", error);
             showNotification('هەڵە لە بارکردنی دیزاینی جۆر', 'error');
             listContainer.innerHTML = '<p style="color: red;">هەڵە لە بارکردن.</p>';
         }
@@ -1311,6 +1217,7 @@ window.AdminLogic = {
 
         sectionsArray.forEach((item, index) => {
             if (!item.id) item.id = `section_${Date.now()}_${index}`;
+            
             const itemElement = document.createElement('div');
             itemElement.className = 'layout-item';
             itemElement.dataset.id = item.id; 
@@ -1364,6 +1271,7 @@ window.AdminLogic = {
             showNotification('دیزاینی جۆر پاشەکەوت کرا', 'success');
             clearProductCache(); 
         } catch (error) {
+            console.error("Error saving category layout:", error);
             showNotification('هەڵەیەک لە پاشەکەوتکردن ڕوویدا', 'error');
         } finally {
             saveBtn.disabled = false;
@@ -1385,10 +1293,12 @@ window.AdminLogic = {
             showNotification('تکایە سەرەتا جۆرێک هەڵبژێرە', 'error');
             return;
         }
+        
         this.currentLayoutEditorContext = {
             type: contextType,
             id: contextType === 'category' ? this.currentCategoryLayoutId : null
         };
+        
         document.getElementById('addHomeSectionForm').reset();
         document.getElementById('specificItemGroupSelectContainer').style.display = 'none';
         document.getElementById('specificCategorySelectContainer').style.display = 'none';
@@ -1399,6 +1309,7 @@ window.AdminLogic = {
         } else {
             modalTitle.textContent = 'زیادکردنی بەشی نوێ بۆ پەڕەی سەرەki';
         }
+        
         openPopup('addHomeSectionModal', 'modal');
     },
 
@@ -1447,11 +1358,13 @@ window.AdminLogic = {
                 const lastDocSnap = await getDocs(q);
                 const lastOrder = lastDocSnap.empty ? 0 : lastDocSnap.docs[0].data().order;
                 newSectionData.order = lastOrder + 1;
+                
                 await addDoc(layoutCollectionRef, newSectionData);
                 
             } else if (context.type === 'category') {
                 const categoryId = context.id;
                 const layoutDocRef = doc(db, 'category_layouts', categoryId);
+                
                 await runTransaction(db, async (transaction) => {
                     const docSnap = await transaction.get(layoutDocRef);
                     let sections = [];
@@ -1460,8 +1373,10 @@ window.AdminLogic = {
                     }
                     newSectionData.order = sections.length + 1;
                     sections.push(newSectionData);
+                    
                     transaction.set(layoutDocRef, { sections: sections }, { merge: true });
                 });
+                
                 this.renderCategoryLayoutSections((await getDoc(layoutDocRef)).data().sections);
             }
             
@@ -1470,6 +1385,7 @@ window.AdminLogic = {
             clearProductCache();
             
         } catch (error) {
+            console.error("Error adding new section:", error);
             showNotification('هەڵەیەک ڕوویدا', 'error');
         } finally {
             submitButton.disabled = false;
@@ -1481,6 +1397,7 @@ window.AdminLogic = {
         const self = this;
         
         document.getElementById('saveLayoutBtn')?.addEventListener('click', () => self.saveHomeLayout());
+        
         document.getElementById('addHomeSectionBtn')?.addEventListener('click', () => {
             self.openAddSectionModal('home');
         });
@@ -1555,6 +1472,7 @@ window.AdminLogic = {
             const subContainer = document.getElementById('newSectionSubcategoryContainer');
             const subSubContainer = document.getElementById('newSectionSubSubcategoryContainer');
             const subSelect = document.getElementById('newSectionSubcategory');
+            
             subSubContainer.style.display = 'none';
             subSelect.innerHTML = '';
             
@@ -1577,6 +1495,7 @@ window.AdminLogic = {
             const subCatId = e.target.value;
             const subSubContainer = document.getElementById('newSectionSubSubcategoryContainer');
             const subSubSelect = document.getElementById('newSectionSubSubcategory');
+            
             subSubSelect.innerHTML = '';
 
             if (mainCatId && subCatId) {
@@ -1695,6 +1614,7 @@ window.AdminLogic = {
                 closeCurrentPopup();
             } catch (error) {
                 showNotification(t('error_generic'), 'error');
+                console.error("Error saving product:", error);
             } finally {
                 submitButton.disabled = false;
                 submitButton.textContent = getEditingProductId() ? 'نوێکردنەوە' : 'پاشەکەوتکردن';
@@ -1724,6 +1644,7 @@ window.AdminLogic = {
                     addCategoryForm.reset();
                     clearProductCache();
                 } catch (error) {
+                    console.error("Error adding main category: ", error);
                     showNotification(t('error_generic'), 'error');
                 } finally {
                     submitButton.disabled = false;
@@ -1762,6 +1683,7 @@ window.AdminLogic = {
                     addSubcategoryForm.reset();
                     clearProductCache();
                 } catch (error) {
+                    console.error("Error adding subcategory: ", error);
                     showNotification(t('error_generic'), 'error');
                 } finally {
                     submitButton.disabled = false;
@@ -1770,6 +1692,7 @@ window.AdminLogic = {
             });
         }
         
+        // [ زیادکرا بۆ چاککردن ] - زیادکردنی گوێگر بۆ لیستی جۆری سەرەکی لە فۆڕمی زیادکردنی "لاوەکی لاوەکی"
         document.getElementById('parentMainCategorySelectForSubSub').addEventListener('change', async (e) => {
             const mainCatId = e.target.value;
             const subCatSelect = document.getElementById('parentSubcategorySelectForSubSub');
@@ -1797,6 +1720,7 @@ window.AdminLogic = {
                     });
                 }
             } catch(error) {
+                console.error("Error populating subcategories in SubSub form:", error);
                 subCatSelect.innerHTML = '<option value="" disabled selected>هەڵەیەک ڕوویدا</option>';
             } finally {
                 subCatSelect.disabled = false;
@@ -1835,6 +1759,7 @@ window.AdminLogic = {
                     subCatSelect.innerHTML = '<option value="" disabled selected>-- چاوەڕێی هەڵbژاردنی جۆری سەرەki بە --</option>';
                     clearProductCache();
                 } catch (error) {
+                    console.error("Error adding sub-subcategory: ", error);
                     showNotification('هەڵەیەک ڕوویدا', 'error');
                 }
             });
@@ -1872,6 +1797,7 @@ window.AdminLogic = {
                     closeCurrentPopup();
                     clearProductCache();
                 } catch (error) {
+                    console.error("Error updating category: ", error);
                     showNotification('هەڵەیەک ڕوویدا', 'error');
                 } finally {
                     submitButton.disabled = false;
@@ -1900,6 +1826,7 @@ window.AdminLogic = {
                         ar: document.getElementById('announcementContentAr').value,
                     },
                     createdAt: Date.now(),
+                    // [ 💡 گۆڕانکاری لێرە کرا 💡 ]
                     imageUrl: document.getElementById('announcementImageUrl').value.trim() || null
                 };
 
@@ -1908,6 +1835,7 @@ window.AdminLogic = {
                     showNotification('ئاگەداری بە سەرکەوتوویی نێردرا', 'success');
                     announcementForm.reset();
                 } catch (error) {
+                    console.error("Error sending announcement: ", error);
                     showNotification(t('error_generic'), 'error');
                 } finally {
                     submitButton.disabled = false;
@@ -1936,6 +1864,7 @@ window.AdminLogic = {
                     await setDoc(docRef, policiesData, { merge: true });
                     showNotification(t('policies_saved_success'), 'success');
                 } catch (error) {
+                    console.error("Error saving policies:", error);
                     showNotification(t('error_generic'), 'error');
                 } finally {
                     submitButton.disabled = false;
@@ -1996,6 +1925,7 @@ window.AdminLogic = {
                     showNotification('شێوازی نوێ بە سەرکەوتوویی زیادکرا', 'success');
                     addContactMethodForm.reset();
                 } catch (error) {
+                    console.error("Error adding contact method: ", error);
                     showNotification(t('error_generic'), 'error');
                 } finally {
                     submitButton.disabled = false;
@@ -2109,7 +2039,7 @@ window.AdminLogic = {
                 document.getElementById('brandSubcategoryContainer').style.display = 'none';
                 submitButton.textContent = 'پاشەکەوتکردنی براند';
                 clearProductCache();
-            } catch (error) { showNotification('هەڵەیەک ڕوویدا', 'error'); } 
+            } catch (error) { console.error("Error saving brand:", error); showNotification('هەڵەیەک ڕوویدا', 'error'); } 
             finally { submitButton.disabled = false; }
         });
 
@@ -2150,6 +2080,7 @@ window.AdminLogic = {
             }
         });
         
+        // [ زیادکرا بۆ چاککردن ] - زیادکردنی گوێگر بۆ لیستی جۆری سەرەکی لە فۆڕمی "کارت"
         document.getElementById('shortcutCardMainCategory').addEventListener('change', async (e) => {
             const mainCatId = e.target.value;
             const subCatContainer = document.getElementById('shortcutCardSubContainer');
@@ -2173,6 +2104,7 @@ window.AdminLogic = {
             }
         });
         
+        // [ زیادکرا بۆ چاککردن ] - زیادکردنی گوێگر بۆ لیستی جۆری لاوەکی لە فۆڕمی "کارت"
         document.getElementById('shortcutCardSubcategory').addEventListener('change', async (e) => {
             const mainCatId = document.getElementById('shortcutCardMainCategory').value;
             const subCatId = e.target.value;

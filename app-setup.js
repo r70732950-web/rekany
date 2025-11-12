@@ -1,3 +1,4 @@
+// app-setup.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
 // [ 💡 گۆڕانکاری لێرە کرا 💡 ] - sendPasswordResetEmail زیادکرا

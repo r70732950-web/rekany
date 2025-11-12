@@ -1,3 +1,4 @@
+// app-core.js
 import {
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
@@ -16,7 +17,7 @@ import {
 import {
     enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc,
     onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where,
-    startAfter, addDoc, runTransaction, serverTimestamp 
+    startAfter, addDoc, runTransaction
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
@@ -61,6 +62,7 @@ export function isFavorite(productId) {
     return state.favorites.includes(productId);
 }
 
+// فانکشنی چوونەژوورەوەی ئەدمین
 async function handleLogin(email, password) {
     try {
         await signInWithEmailAndPassword(auth, email, password);
@@ -69,6 +71,8 @@ async function handleLogin(email, password) {
     }
 }
 
+// [ 💡 چاککراوە: export لێرە لابرا ]
+// فانکشنی چوونەژوورەوەی بەکارهێنەر
 async function handleUserLogin(email, password) {
     try {
         await signInWithEmailAndPassword(auth, email, password);
@@ -79,18 +83,28 @@ async function handleUserLogin(email, password) {
     }
 }
 
+// [ 💡 چاککراوە: export لێرە لابرا ]
+// فانکشنی خۆتۆمارکردنی بەکارهێنەر
 async function handleUserSignUp(name, email, password) {
     try {
+        // 1. دروستکردنی بەکارهێنەر لە Auth
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
+
+        // 2. نوێکردنەوەی پڕۆفایلی Auth (بۆ دانانی ناو)
         await updateProfile(user, { displayName: name });
+
+        // 3. دروستکردنی دۆکیومێنتی پڕۆفایل لە Firestore
         const userProfileRef = doc(usersCollection, user.uid);
         await setDoc(userProfileRef, {
             email: user.email,
             displayName: name,
             createdAt: Date.now(),
-            name: "", address: "", phone: ""     
+            name: "",      
+            address: "",  
+            phone: ""     
         });
+
         return { success: true, message: t('user_signup_success') };
     } catch (error) {
         console.error("User signup error:", error.code);
@@ -104,6 +118,8 @@ async function handleUserSignUp(name, email, password) {
     }
 }
 
+// [ 💡 چاککراوە: export لێرە لابرا ]
+// فانکشنی چوونەدەرەوەی بەکارهێنەر
 async function handleUserLogout() {
     try {
         await signOut(auth);
@@ -114,6 +130,8 @@ async function handleUserLogout() {
     }
 }
 
+// [ 💡 چاککراوە: export لێرە لابرا ]
+// بیرچوونەوەی وشەی نهێنی
 async function handlePasswordReset(email) {
     if (!email) {
         return { success: false, message: t('password_reset_enter_email') };
@@ -129,6 +147,7 @@ async function handlePasswordReset(email) {
         return { success: false, message: t('error_generic') };
     }
 }
+
 
 async function fetchCategories() {
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
@@ -170,6 +189,7 @@ async function fetchProductById(productId) {
         if (docSnap.exists()) {
             return { id: docSnap.id, ...docSnap.data() };
         } else {
+            console.warn(`Product with ID ${productId} not found.`);
             return null;
         }
     } catch (error) {
@@ -180,6 +200,7 @@ async function fetchProductById(productId) {
 
 async function fetchRelatedProducts(currentProduct) {
     if (!currentProduct.subcategoryId && !currentProduct.categoryId) return [];
+
     const baseQuery = collection(db, "products");
     let conditions = [];
     let orderByClauses = []; 
@@ -191,16 +212,23 @@ async function fetchRelatedProducts(currentProduct) {
     } else { 
         conditions.push(where('categoryId', '==', currentProduct.categoryId));
     }
+
     orderByClauses.push(orderBy('createdAt', 'desc'));
+
     const q = query(baseQuery, ...conditions, ...orderByClauses, limit(7));
 
     try {
         const snapshot = await getDocs(q);
         const allRelated = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const filteredProducts = allRelated.filter(product => product.id !== currentProduct.id).slice(0, 6); 
+
+        const filteredProducts = allRelated
+            .filter(product => product.id !== currentProduct.id) 
+            .slice(0, 6); 
+
         return filteredProducts;
+        
     } catch (error) {
-        console.error("Error fetching related products:", error);
+        console.error("Error fetching related products (new method):", error);
         return [];
     }
 }
@@ -210,6 +238,7 @@ export async function fetchCategoryLayout(categoryId) {
     try {
         const layoutDocRef = doc(db, "category_layouts", categoryId);
         const docSnap = await getDoc(layoutDocRef);
+        
         if (docSnap.exists()) {
             const data = docSnap.data();
             if (data.enabled === true && Array.isArray(data.sections)) {
@@ -224,6 +253,7 @@ export async function fetchCategoryLayout(categoryId) {
 }
 
 async function fetchProducts(searchTerm = '', isNewSearch = false) {
+    
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
     if (shouldShowHomeSections) {
         return { isHome: true, layout: null, products: [], allLoaded: true };
@@ -232,6 +262,7 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
     const shouldShowCategoryLayout = !searchTerm && state.currentCategory !== 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
     if (shouldShowCategoryLayout) {
         const categoryLayoutData = await fetchCategoryLayout(state.currentCategory);
+        
         if (categoryLayoutData) { 
             return { isHome: true, layout: categoryLayoutData.sections, products: [], allLoaded: true };
         }
@@ -246,11 +277,13 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
     }
 
     if (state.isLoadingMoreProducts) return null; 
+
     if (isNewSearch) {
         state.allProductsLoaded = false;
         state.lastVisibleProductDoc = null;
         state.products = [];
     }
+
     if (state.allProductsLoaded && !isNewSearch) return null; 
 
     state.isLoadingMoreProducts = true;
@@ -260,9 +293,15 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
         let conditions = [];
         let orderByClauses = [];
 
-        if (state.currentCategory && state.currentCategory !== 'all') conditions.push(where("categoryId", "==", state.currentCategory));
-        if (state.currentSubcategory && state.currentSubcategory !== 'all') conditions.push(where("subcategoryId", "==", state.currentSubcategory));
-        if (state.currentSubSubcategory && state.currentSubSubcategory !== 'all') conditions.push(where("subSubcategoryId", "==", state.currentSubSubcategory));
+        if (state.currentCategory && state.currentCategory !== 'all') {
+            conditions.push(where("categoryId", "==", state.currentCategory));
+        }
+        if (state.currentSubcategory && state.currentSubcategory !== 'all') {
+            conditions.push(where("subcategoryId", "==", state.currentSubcategory));
+        }
+        if (state.currentSubSubcategory && state.currentSubSubcategory !== 'all') {
+            conditions.push(where("subSubcategoryId", "==", state.currentSubSubcategory));
+        }
 
         const finalSearchTerm = searchTerm.trim().toLowerCase();
         if (finalSearchTerm) {
@@ -273,7 +312,11 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
         orderByClauses.push(orderBy("createdAt", "desc"));
 
         let finalQuery = query(productsQuery, ...conditions, ...orderByClauses);
-        if (state.lastVisibleProductDoc && !isNewSearch) finalQuery = query(finalQuery, startAfter(state.lastVisibleProductDoc));
+
+        if (state.lastVisibleProductDoc && !isNewSearch) {
+            finalQuery = query(finalQuery, startAfter(state.lastVisibleProductDoc));
+        }
+
         finalQuery = query(finalQuery, limit(PRODUCTS_PER_PAGE));
 
         const productSnapshot = await getDocs(finalQuery);
@@ -292,6 +335,7 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
         } else {
             state.products = [...state.products, ...newProducts];
         }
+        
         return { isHome: false, products: newProducts, allLoaded: state.allProductsLoaded };
 
     } catch (error) {
@@ -310,7 +354,10 @@ async function fetchPolicies() {
             return docSnap.data().content;
         }
         return null;
-    } catch (error) { return null; }
+    } catch (error) {
+        console.error("Error fetching policies:", error);
+        return null;
+    }
 }
 
 async function fetchAnnouncements() {
@@ -318,7 +365,10 @@ async function fetchAnnouncements() {
         const q = query(announcementsCollection, orderBy("createdAt", "desc"));
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) { return []; }
+    } catch (error) {
+        console.error("Error fetching announcements:", error);
+        return [];
+    }
 }
 
 async function fetchContactMethods() {
@@ -327,7 +377,10 @@ async function fetchContactMethods() {
         const q = query(methodsCollection, orderBy("createdAt"));
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) { return []; }
+    } catch (error) {
+        console.error("Error fetching contact methods:", error);
+        return [];
+    }
 }
 
 async function fetchHomeLayout() {
@@ -335,7 +388,10 @@ async function fetchHomeLayout() {
         const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
         const layoutSnapshot = await getDocs(layoutQuery);
         return layoutSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) { return []; }
+    } catch (error) {
+        console.error("Error fetching home layout:", error);
+        return [];
+    }
 }
 
 async function fetchPromoGroupCards(groupId) {
@@ -343,7 +399,10 @@ async function fetchPromoGroupCards(groupId) {
         const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
         return cardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) { return []; }
+    } catch (error) {
+        console.error(`Error fetching promo cards for group ${groupId}:`, error);
+        return [];
+    }
 }
 
 async function fetchBrandGroupBrands(groupId) {
@@ -351,7 +410,10 @@ async function fetchBrandGroupBrands(groupId) {
         const q = query(collection(db, "brand_groups", groupId, "brands"), orderBy("order", "asc"), limit(30));
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) { return []; }
+    } catch (error) {
+        console.error(`Error fetching brands for group ${groupId}:`, error);
+        return [];
+    }
 }
 
 async function fetchNewestProducts(limitCount = 10) {
@@ -365,7 +427,10 @@ async function fetchNewestProducts(limitCount = 10) {
         );
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) { return []; }
+    } catch (error) {
+        console.error("Error fetching newest products:", error);
+        return [];
+    }
 }
 
 async function fetchShortcutRowCards(rowId) {
@@ -374,7 +439,10 @@ async function fetchShortcutRowCards(rowId) {
         const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
         return cardsSnapshot.docs.map(cardDoc => ({ id: cardDoc.id, ...cardDoc.data() }));
-    } catch(error) { return []; }
+    } catch(error) {
+        console.error(`Error fetching shortcut cards for row ${rowId}:`, error);
+        return [];
+    }
 }
 
 async function fetchCategoryRowProducts(sectionData) {
@@ -390,13 +458,23 @@ async function fetchCategoryRowProducts(sectionData) {
     } else if (categoryId) {
         queryField = 'categoryId';
         queryValue = categoryId;
-    } else { return []; }
+    } else {
+        return []; 
+    }
 
     try {
-        const q = query(productsCollection, where(queryField, '==', queryValue), orderBy('createdAt', 'desc'), limit(10));
+        const q = query(
+            productsCollection,
+            where(queryField, '==', queryValue),
+            orderBy('createdAt', 'desc'),
+            limit(10)
+        );
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) { return []; }
+    } catch (error) {
+        console.error(`Error fetching products for single category row:`, error);
+        return [];
+    }
 }
 
 async function fetchInitialProductsForHome(limitCount = 10) {
@@ -404,19 +482,37 @@ async function fetchInitialProductsForHome(limitCount = 10) {
         const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(limitCount));
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) { return []; }
+    } catch (error) {
+        console.error("Error fetching initial products for home page:", error);
+        return [];
+    }
 }
 
 export async function addToCartCore(productId) {
     let product = state.products.find(p => p.id === productId);
+
     if (!product) {
+        console.warn("Product not found in local cache for cart. Fetching...");
         product = await fetchProductById(productId);
-        if (!product) return { success: false, message: t('product_not_found_error') };
+        if (!product) {
+            console.error(`Failed to add product ${productId} to cart: Not found.`);
+            return { success: false, message: t('product_not_found_error') };
+        }
     }
+
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
     const existingItem = state.cart.find(item => item.id === productId);
-    if (existingItem) { existingItem.quantity++; } else {
-        state.cart.push({ id: product.id, name: product.name, price: product.price, image: mainImage, quantity: 1 });
+
+    if (existingItem) {
+        existingItem.quantity++;
+    } else {
+        state.cart.push({
+            id: product.id,
+            name: product.name, 
+            price: product.price,
+            image: mainImage,
+            quantity: 1
+        });
     }
     saveCart();
     return { success: true, message: t('product_added_to_cart') };
@@ -426,7 +522,9 @@ export function updateCartQuantityCore(productId, change) {
     const cartItemIndex = state.cart.findIndex(item => item.id === productId);
     if (cartItemIndex > -1) {
         state.cart[cartItemIndex].quantity += change;
-        if (state.cart[cartItemIndex].quantity <= 0) { state.cart.splice(cartItemIndex, 1); }
+        if (state.cart[cartItemIndex].quantity <= 0) {
+            state.cart.splice(cartItemIndex, 1); 
+        }
         saveCart();
         return true; 
     }
@@ -436,12 +534,16 @@ export function updateCartQuantityCore(productId, change) {
 export function removeFromCartCore(productId) {
     const initialLength = state.cart.length;
     state.cart = state.cart.filter(item => item.id !== productId);
-    if (state.cart.length < initialLength) { saveCart(); return true; }
+    if (state.cart.length < initialLength) {
+        saveCart();
+        return true; 
+    }
     return false; 
 }
 
 export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
+
     let total = 0;
     let message = t('order_greeting') + "\n\n";
     state.cart.forEach(item => {
@@ -452,12 +554,16 @@ export function generateOrderMessageCore() {
         message += `- ${itemNameInCurrentLang} | ${itemDetails}\n`;
     });
     message += `\n${t('order_total')}: ${total.toLocaleString()} د.ع.\n`;
+
+    // [ 💡 گۆڕانکاری لێرە کرا 💡 ] - ئێستا زانیاری پڕۆفایل لە state.userProfile وەردەگرێت کە لە Firestoreـەوە هاتووە
     if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
         message += `\n${t('order_user_info')}\n`;
         message += `${t('order_user_name')}: ${state.userProfile.name}\n`;
         message += `${t('order_user_address')}: ${state.userProfile.address}\n`;
         message += `${t('order_user_phone')}: ${state.userProfile.phone}\n`;
-    } else { message += `\n${t('order_prompt_info')}\n`; }
+    } else {
+        message += `\n${t('order_prompt_info')}\n`;
+    }
     return message;
 }
 
@@ -474,39 +580,68 @@ export function toggleFavoriteCore(productId) {
     }
 }
 
+// [ 💡 فانکشنی saveProfileCore بە تەواوی نوێکرایەوە 💡 ]
 export async function saveProfileCore(profileData) {
-    if (!state.currentUser) { return { success: false, message: "تکایە سەرەتا بچۆ ژوورەوە" }; }
+    // 1. دڵنیابە کە بەکارهێنەر لۆگینە
+    if (!state.currentUser) {
+        return { success: false, message: "تکایە سەرەتا بچۆ ژوورەوە" }; 
+    }
     try {
+        // 2. دۆکیومێنتی بەکارهێنەر لە 'users' بدۆزەرەوە
         const userProfileRef = doc(usersCollection, state.currentUser.uid);
+        
+        // 3. داتاکە نوێ بکەرەوە (merge: true مانای وایە داتاکانی تر nasrênewe)
         await setDoc(userProfileRef, {
             name: profileData.name || '',
             address: profileData.address || '',
             phone: profileData.phone || '',
         }, { merge: true }); 
+        
         return { success: true, message: t('profile_saved') };
-    } catch (error) { return { success: false, message: t('error_generic') }; }
+    } catch (error) {
+        console.error("Error saving profile to Firestore:", error);
+        return { success: false, message: t('error_generic') };
+    }
 }
 
 async function requestNotificationPermissionCore() {
+    console.log('Requesting notification permission...');
     try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
+            console.log('Notification permission granted.');
             const currentToken = await getToken(messaging, {
                 serviceWorkerRegistration: await navigator.serviceWorker.ready 
             });
             if (currentToken) {
+                console.log('FCM Token:', currentToken);
                 await saveTokenToFirestore(currentToken);
                 return { granted: true, message: 'مۆڵەتی ناردنی ئاگەداری درا' };
-            } else { return { granted: false, message: 'تۆکن وەرنەگیرا' }; }
-        } else { return { granted: false, message: 'مۆڵەت نەدرا' }; }
-    } catch (error) { return { granted: false, message: t('error_generic') }; }
+            } else {
+                console.log('No registration token available.');
+                return { granted: false, message: 'تۆکن وەرنەگیرا' };
+            }
+        } else {
+            console.log('Unable to get permission to notify.');
+            return { granted: false, message: 'مۆڵەت نەدرا' };
+        }
+    } catch (error) {
+        console.error('An error occurred while requesting permission: ', error);
+        return { granted: false, message: t('error_generic') };
+    }
 }
 
 async function saveTokenToFirestore(token) {
     try {
         const tokensCollection = collection(db, 'device_tokens');
-        await setDoc(doc(tokensCollection, token), { createdAt: Date.now(), language: state.currentLanguage });
-    } catch (error) { console.error('Error saving token: ', error); }
+        await setDoc(doc(tokensCollection, token), {
+            createdAt: Date.now(),
+            language: state.currentLanguage 
+        });
+        console.log(`Token saved to Firestore with language: ${state.currentLanguage}`);
+    } catch (error) {
+        console.error('Error saving token to Firestore: ', error);
+    }
 }
 
 export function checkNewAnnouncementsCore(latestAnnouncementTimestamp) {
@@ -522,6 +657,8 @@ async function handleInstallPrompt(installBtn) {
     if (state.deferredPrompt) {
         installBtn.style.display = 'none'; 
         state.deferredPrompt.prompt();
+        const { outcome } = await state.deferredPrompt.userChoice;
+        console.log(`User response to the install prompt: ${outcome}`);
         state.deferredPrompt = null; 
     }
 }
@@ -531,14 +668,21 @@ async function forceUpdateCore() {
         try {
             if ('serviceWorker' in navigator) {
                 const registrations = await navigator.serviceWorker.getRegistrations();
-                for (const registration of registrations) { await registration.unregister(); }
+                for (const registration of registrations) {
+                    await registration.unregister();
+                }
+                console.log('Service Workers unregistered.');
             }
             if (window.caches) {
                 const keys = await window.caches.keys();
                 await Promise.all(keys.map(key => window.caches.delete(key)));
+                console.log('All caches cleared.');
             }
             return { success: true, message: t('update_success') };
-        } catch (error) { return { success: false, message: t('error_generic') }; }
+        } catch (error) {
+            console.error('Error during force update:', error);
+            return { success: false, message: t('error_generic') };
+        }
     }
     return { success: false, message: 'Update cancelled.' }; 
 }
@@ -546,6 +690,7 @@ async function forceUpdateCore() {
 export function saveCurrentScrollPositionCore() {
     const currentState = history.state;
     const activePage = document.getElementById(state.currentPageId); 
+
     if (activePage && state.currentPageId === 'mainPage' && currentState && !currentState.type) {
         history.replaceState({ ...currentState, scroll: activePage.scrollTop }, '');
     }
@@ -561,13 +706,16 @@ export function applyFilterStateCore(filterState) {
 export function navigateToFilterCore(newState) {
     saveCurrentScrollPositionCore(); 
     const finalState = { ...history.state, ...newState }; 
+
     const params = new URLSearchParams();
     if (finalState.category && finalState.category !== 'all') params.set('category', finalState.category);
     if (finalState.subcategory && finalState.subcategory !== 'all') params.set('subcategory', finalState.subcategory);
     if (finalState.subSubcategory && finalState.subSubcategory !== 'all') params.set('subSubcategory', finalState.subSubcategory);
     if (finalState.search) params.set('search', finalState.search);
     const newUrl = `${window.location.pathname}?${params.toString()}`;
+
     history.pushState(finalState, '', newUrl);
+
     applyFilterStateCore(finalState);
 }
 
@@ -578,15 +726,22 @@ async function initializeCoreLogic() {
 
 async function updateTokenLanguageInFirestore(newLang) {
     if ('Notification' in window && Notification.permission === 'granted') {
+        console.log(`Language changed to ${newLang}, updating token in Firestore...`);
         try {
             const currentToken = await getToken(messaging, {
                 serviceWorkerRegistration: await navigator.serviceWorker.ready
             });
+            
             if (currentToken) {
                 const tokensCollection = collection(db, 'device_tokens');
-                await setDoc(doc(tokensCollection, currentToken), { language: newLang }, { merge: true }); 
+                await setDoc(doc(tokensCollection, currentToken), {
+                    language: newLang 
+                }, { merge: true }); 
+                console.log(`Token ${currentToken} language updated to ${newLang}.`);
             }
-        } catch (error) { console.error('Error updating token language:', error); }
+        } catch (error) {
+            console.error('Error updating token language:', error);
+        }
     }
 }
 
@@ -601,6 +756,7 @@ export function setLanguageCore(lang) {
     updateTokenLanguageInFirestore(lang);
 }
 
+// [ 💡 فانکشنی نوێ زیادکرا 💡 ]
 let userProfileUnsubscribe = null; 
 
 async function loadUserProfile(uid) {
@@ -608,7 +764,9 @@ async function loadUserProfile(uid) {
         userProfileUnsubscribe();
         userProfileUnsubscribe = null;
     }
+
     const userProfileRef = doc(usersCollection, uid);
+    
     userProfileUnsubscribe = onSnapshot(userProfileRef, (docSnap) => {
         if (docSnap.exists()) {
             const profileData = docSnap.data();
@@ -621,113 +779,27 @@ async function loadUserProfile(uid) {
                 state.currentUser.displayName = profileData.displayName;
                 state.currentUser.email = profileData.email;
             }
+            console.log("پڕۆفایلی بەکارهێنەر بارکرا:", state.userProfile);
         } else {
+            console.warn(`دۆکیومێنتی پڕۆفایل نەدۆزرایەوە بۆ: ${uid}. دروستکردنی یەکێکی نوێ...`);
             setDoc(userProfileRef, {
                 email: state.currentUser.email,
                 displayName: state.currentUser.displayName,
                 createdAt: Date.now(),
                 name: "", address: "", phone: ""
-            }).catch(e => console.error("Error creating missing profile:", e));
+            }).catch(e => console.error("هەڵە لە دروستکردنی پڕۆفایلی ونبوو:", e));
             state.userProfile = { name: "", address: "", phone: "" };
         }
         document.dispatchEvent(new CustomEvent('profileLoaded'));
+    }, (error) => {
+        console.error("هەڵە لە گوێگرتن لە پڕۆفایلی بەکارهێنەر:", error);
     });
 }
-
-/* =========================================
-   CHAT LOGIC (NEWLY ADDED)
-   ========================================= */
-
-async function sendMessageCore(text, targetUserId = null) {
-    const currentUser = auth.currentUser;
-    if (!currentUser) return { success: false, error: 'User not logged in' };
-
-    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-    const chatId = isAdmin ? targetUserId : currentUser.uid;
-
-    if (!chatId) return { success: false, message: "No target chat ID" };
-
-    const messagesRef = collection(db, 'chats', chatId, 'messages');
-    const chatDocRef = doc(db, 'chats', chatId);
-
-    try {
-        await runTransaction(db, async (transaction) => {
-            const newMessageRef = doc(messagesRef);
-            transaction.set(newMessageRef, {
-                text: text,
-                senderId: currentUser.uid,
-                timestamp: serverTimestamp(),
-                type: 'text'
-            });
-
-            const chatDoc = await transaction.get(chatDocRef);
-            
-            let updateData = {
-                lastMessage: text,
-                lastMessageTime: serverTimestamp(),
-            };
-
-            if (!isAdmin) {
-                updateData.userName = currentUser.displayName || 'User';
-                updateData.adminUnread = true; 
-            } else {
-                updateData.adminUnread = false; 
-                const currentUnread = chatDoc.exists() ? (chatDoc.data().unreadCount || 0) : 0;
-                updateData.unreadCount = currentUnread + 1;
-            }
-
-            transaction.set(chatDocRef, updateData, { merge: true });
-        });
-        return { success: true };
-    } catch (error) {
-        console.error("Error sending message:", error);
-        return { success: false, message: error.message };
-    }
-}
-
-function subscribeToChatMessages(userId, callback) {
-    const q = query(
-        collection(db, 'chats', userId, 'messages'),
-        orderBy('timestamp', 'asc')
-    );
-    return onSnapshot(q, (snapshot) => {
-        const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        callback(messages);
-    });
-}
-
-function subscribeToAllChatsAdmin(callback) {
-    const q = query(collection(db, 'chats'), orderBy('lastMessageTime', 'desc'));
-    return onSnapshot(q, (snapshot) => {
-        const chats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        callback(chats);
-    });
-}
-
-function subscribeToMyChatStatus(userId, callback) {
-    return onSnapshot(doc(db, 'chats', userId), (docSnap) => {
-        if (docSnap.exists()) {
-            callback(docSnap.data());
-        }
-    });
-}
-
-async function markChatAsReadCore(userId, isAdmin) {
-    try {
-        const chatRef = doc(db, 'chats', userId);
-        const updateData = isAdmin ? { adminUnread: false } : { unreadCount: 0 };
-        await updateDoc(chatRef, updateData);
-    } catch (e) { console.error("Error marking read:", e); }
-}
-
-/* =========================================
-   END CHAT LOGIC
-   ========================================= */
 
 export async function initCore() {
     return enableIndexedDbPersistence(db)
         .then(() => console.log("Firestore offline persistence enabled."))
-        .catch((err) => console.warn("Persistence failed:", err.code))
+        .catch((err) => console.warn("Firestore Persistence failed:", err.code))
         .finally(async () => { 
             await initializeCoreLogic(); 
 
@@ -735,33 +807,41 @@ export async function initCore() {
                 const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3";
                 let isAdmin = false;
 
-                if (userProfileUnsubscribe) { userProfileUnsubscribe(); userProfileUnsubscribe = null; }
+                if (userProfileUnsubscribe) {
+                    userProfileUnsubscribe();
+                    userProfileUnsubscribe = null;
+                }
 
                 if (user) {
                     if (user.uid === adminUID) {
                         isAdmin = true;
-                        state.currentUser = user; 
-                        state.userProfile = { name: 'Admin', address: '', phone: '' };
+                        state.currentUser = null; 
+                        state.userProfile = {};
                         
                         const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
                         sessionStorage.setItem('isAdmin', 'true');
                         if (!wasAdmin && window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
                             window.AdminLogic.initialize();
                         }
-                    } else {
+                    } 
+                    else {
                         isAdmin = false;
                         state.currentUser = user; 
+                        
                         await loadUserProfile(user.uid);
+                        
                         const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
                         sessionStorage.removeItem('isAdmin');
                         if (wasAdmin && window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
                             window.AdminLogic.deinitialize();
                         }
                     }
-                } else {
+                } 
+                else {
                     isAdmin = false;
                     state.currentUser = null;
                     state.userProfile = {}; 
+                    
                     const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
                     sessionStorage.removeItem('isAdmin');
                     if (wasAdmin && window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
@@ -774,40 +854,55 @@ export async function initCore() {
             });
 
             onMessage(messaging, (payload) => {
-                console.log('Message received. ', payload);
+                console.log('Foreground message received: ', payload);
                 document.dispatchEvent(new CustomEvent('fcmMessage', { detail: payload }));
             });
 
              window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
                 state.deferredPrompt = e;
+                console.log('`beforeinstallprompt` event fired.');
                 document.dispatchEvent(new Event('installPromptReady')); 
             });
 
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('/sw.js', { type: 'module' }).then(registration => {
+                    console.log('SW registered (as module).'); 
                     registration.addEventListener('updatefound', () => {
                         const newWorker = registration.installing;
+                        console.log('New SW found!', newWorker);
                         newWorker.addEventListener('statechange', () => {
                             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                                 document.dispatchEvent(new CustomEvent('swUpdateReady', { detail: { registration } }));
                             }
                         });
                     });
-                }).catch(err => console.error('SW failed: ', err));
-                navigator.serviceWorker.addEventListener('controllerchange', () => { window.location.reload(); });
+                }).catch(err => console.error('SW registration failed: ', err));
+
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                     console.log('New SW activated. Reloading...');
+                     window.location.reload();
+                });
             }
         });
 }
 
+
 export {
-    state, handleLogin, handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
+    state, 
+    handleLogin, 
+    
+    // [ 💡 ئەم export ـانە وەک خۆیان مانەوە ]
+    handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
+    
     fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, 
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
-    requestNotificationPermissionCore, handleInstallPrompt, forceUpdateCore, 
-    
-    sendMessageCore, subscribeToChatMessages, subscribeToAllChatsAdmin, subscribeToMyChatStatus, markChatAsReadCore,
+    requestNotificationPermissionCore,
+    handleInstallPrompt, 
+    forceUpdateCore, 
 
-    db, productsCollection, collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
+    db, 
+    productsCollection,
+    collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
     query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction
 };

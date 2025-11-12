@@ -1,3 +1,4 @@
+// app-ui.js
 import {
     loginModal, addProductBtn, productFormModal, skeletonLoader, searchInput,
     clearSearchBtn, loginForm, productForm, formTitle, imageInputsContainer, loader,
@@ -28,6 +29,7 @@ import {
     state, 
     t, debounce, formatDescription,
     handleLogin, 
+    // [ 💡 گۆڕانکاری لێرە کرا 💡 ] - handlePasswordReset زیادکرا
     handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
     fetchCategories, fetchProductById, fetchProducts, fetchSubcategories, 
     fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, fetchSubSubcategories,
@@ -39,8 +41,6 @@ import {
     handleInstallPrompt, forceUpdateCore,
     saveCurrentScrollPositionCore, applyFilterStateCore, navigateToFilterCore,
     initCore,
-    // Chat Imports
-    sendMessageCore, subscribeToChatMessages, subscribeToMyChatStatus, markChatAsReadCore,
     db,
     collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection
 } from './app-core.js';
@@ -167,8 +167,7 @@ export function openPopup(id, type = 'sheet') {
     if (type === 'sheet') {
         const sheetContent = element.querySelector('.sheet-content');
         if (sheetContent) {
-            // Don't scroll to top if it's chat sheet to keep latest messages visible
-            if (id !== 'chatSheet') sheetContent.scrollTop = 0;
+            sheetContent.scrollTop = 0;
         }
 
         sheetOverlay.classList.add('show');
@@ -179,11 +178,8 @@ export function openPopup(id, type = 'sheet') {
         if (id === 'categoriesSheet') renderCategoriesSheetUI();
         if (id === 'notificationsSheet') renderUserNotificationsUI();
         if (id === 'termsSheet') renderPoliciesUI();
-        if (id === 'profileSheet') updateProfileSheetUI();
-        if (id === 'chatSheet') {
-            // Scroll chat to bottom
-            const messagesContainer = document.getElementById('chatMessages');
-            if(messagesContainer) messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        if (id === 'profileSheet') {
+            updateProfileSheetUI();
         }
     } else { 
         element.style.display = 'block';
@@ -221,7 +217,10 @@ function updateCartCountUI() {
 
 
 export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
-    if (!container) return;
+    if (!container) {
+        console.error("Skeleton loader container not found:", container);
+        return;
+     }
     container.innerHTML = ''; 
     for (let i = 0; i < count; i++) {
         const skeletonCard = document.createElement('div');
@@ -318,6 +317,7 @@ export function createProductCardElementUI(product) {
                   document.body.removeChild(textArea);
              }
          } catch (err) {
+             console.error('Share error:', err);
               if (err.name !== 'AbortError') showNotification(t('share_error'), 'error');
          }
     });
@@ -375,24 +375,16 @@ export function setupScrollAnimations() {
 
 function renderCartUI() {
     cartItemsContainer.innerHTML = '';
-    // Handle the Chat help button visibility in Cart
-    const cartHelpBtn = document.getElementById('cartHelpBtn');
-    
     if (state.cart.length === 0) {
         emptyCartMessage.style.display = 'block';
         cartTotal.style.display = 'none';
         cartActions.style.display = 'none';
-        if(cartHelpBtn) cartHelpBtn.style.display = 'none';
         return;
     }
 
     emptyCartMessage.style.display = 'none';
     cartTotal.style.display = 'block';
     cartActions.style.display = 'block';
-    if(cartHelpBtn) {
-        cartHelpBtn.style.display = 'flex';
-        cartHelpBtn.onclick = handleCartHelpRequest;
-    }
     renderCartActionButtonsUI(); 
 
     let total = 0;
@@ -429,23 +421,6 @@ function renderCartUI() {
     cartItemsContainer.querySelectorAll('.increase-btn').forEach(btn => btn.onclick = (e) => handleUpdateQuantityUI(e.currentTarget.dataset.id, 1));
     cartItemsContainer.querySelectorAll('.decrease-btn').forEach(btn => btn.onclick = (e) => handleUpdateQuantityUI(e.currentTarget.dataset.id, -1));
     cartItemsContainer.querySelectorAll('.cart-item-remove').forEach(btn => btn.onclick = (e) => handleRemoveFromCartUI(e.currentTarget.dataset.id));
-}
-
-// [ 💡 New Function 💡 ] - Handles clicking "Ask about these items" in cart
-function handleCartHelpRequest() {
-    if (!state.currentUser) {
-        showNotification("تکایە سەرەتا بچۆ ژوورەوە", 'error');
-        openPopup('profileSheet');
-        return;
-    }
-    
-    const messageText = generateOrderMessageCore();
-    const chatInput = document.getElementById('chatInput');
-    if(chatInput) {
-        chatInput.value = "سڵاو، پرسیارم هەیە دەربارەی ئەم کاڵایانە:\n" + messageText;
-    }
-    
-    openPopup('chatSheet');
 }
 
 async function renderCartActionButtonsUI() {
@@ -957,8 +932,7 @@ function updateAdminUIAuth(isAdmin) {
          'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
          'adminContactMethodsManagement', 'adminShortcutRowsManagement',
          'adminHomeLayoutManagement',
-         'adminCategoryLayoutManagement',
-         'adminChatManagement' // Added chat section
+         'adminCategoryLayoutManagement' 
     ];
     
     adminSections.forEach(id => {
@@ -969,10 +943,6 @@ function updateAdminUIAuth(isAdmin) {
     settingsLogoutBtn.style.display = isAdmin ? 'flex' : 'none';
     settingsAdminLoginBtn.style.display = isAdmin ? 'none' : 'flex';
     addProductBtn.style.display = isAdmin ? 'flex' : 'none';
-    
-    // Hide Chat floating button for admin
-    const chatBtn = document.getElementById('chatFloatingBtn');
-    if (chatBtn) chatBtn.style.display = isAdmin ? 'none' : 'flex';
 
     const favoritesSheet = document.getElementById('favoritesSheet');
     if (favoritesSheet?.classList.contains('show')) {
@@ -983,10 +953,6 @@ function updateAdminUIAuth(isAdmin) {
         fetchProductById(state.currentProductId).then(product => {
             if (product) showProductDetailsUI(product); 
         });
-    }
-    
-    if (isAdmin && window.AdminLogic && window.AdminLogic.setupChatAdmin) {
-        window.AdminLogic.setupChatAdmin();
     }
 }
 
@@ -1072,126 +1038,6 @@ function handleToggleFavoriteUI(productId) {
     if (document.getElementById('favoritesSheet')?.classList.contains('show')) {
         renderFavoritesPageUI();
     }
-}
-
-// [ 💡 New Function 💡 ] - Setup Chat Listeners
-function setupChatUI() {
-    const chatBtn = document.getElementById('chatFloatingBtn');
-    const chatForm = document.getElementById('chatForm');
-    const chatInput = document.getElementById('chatInput');
-    const chatUnreadBadge = document.getElementById('chatUnreadBadge');
-
-    if (!chatBtn || !chatForm) return;
-
-    // Open Chat
-    chatBtn.addEventListener('click', () => {
-        if (!state.currentUser) {
-            showNotification('تکایە سەرەتا بچۆ ژوورەوە بۆ ئەوەی چات بکەیت', 'error');
-            openPopup('profileSheet');
-            return;
-        }
-        document.getElementById('chatSheetTitle').innerHTML = `<i class="fas fa-comments"></i> <span>${t('contact_us_title')}</span>`;
-        openPopup('chatSheet');
-        markChatAsReadCore(state.currentUser.uid, false);
-    });
-
-    // Send Message
-    chatForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const text = chatInput.value.trim();
-        if (!text) return;
-
-        if (!state.currentUser) {
-            showNotification('تکایە سەرەتا بچۆ ژوورەوە', 'error');
-            return;
-        }
-
-        const originalText = text;
-        chatInput.value = ''; 
-        
-        // Send to admin (since this is user UI)
-        // If current user is admin, they should use admin panel, but this handles generic sending
-        const result = await sendMessageCore(text); 
-        if (!result.success) {
-            showNotification('نەتوانرا بنێردرێت: ' + result.message, 'error');
-            chatInput.value = originalText; 
-        }
-    });
-
-    // Listener for User Messages & Badge
-    let chatUnsubscribe = null;
-    let badgeUnsubscribe = null;
-
-    document.addEventListener('userChange', (e) => {
-        const user = e.detail.user;
-        if (chatUnsubscribe) chatUnsubscribe();
-        if (badgeUnsubscribe) badgeUnsubscribe();
-
-        if (user && !sessionStorage.getItem('isAdmin')) { // Only for normal users
-            chatBtn.style.display = 'flex';
-            
-            // Listen to messages
-            chatUnsubscribe = subscribeToChatMessages(user.uid, (messages) => {
-                renderChatMessages(messages, user.uid);
-            });
-
-            // Listen to badge
-            badgeUnsubscribe = subscribeToMyChatStatus(user.uid, (data) => {
-                if (data && data.unreadCount > 0) {
-                    chatUnreadBadge.textContent = data.unreadCount;
-                    chatUnreadBadge.style.display = 'flex';
-                } else {
-                    chatUnreadBadge.style.display = 'none';
-                }
-            });
-        } else {
-            chatBtn.style.display = 'none';
-        }
-    });
-}
-
-function renderChatMessages(messages, currentUserId) {
-    const container = document.getElementById('chatMessages');
-    if (!container) return;
-    
-    container.innerHTML = '';
-    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-
-    if (messages.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color: #aaa; margin-top: 20px;">سڵاو! چۆن دەتوانین هاوکاریت بکەین؟</p>';
-        return;
-    }
-
-    messages.forEach(msg => {
-        const div = document.createElement('div');
-        // Check who sent it. If I am sender, it's 'user' style (right side).
-        // If senderId matches my UID, it's me.
-        const isMe = msg.senderId === currentUserId; 
-        
-        // Wait, logic check: 
-        // If I am Normal User: My ID = currentUserId. Messages with my ID are 'user' style. Admin messages are 'admin' style.
-        // If I am Admin viewing a user chat: Messages with Admin ID are 'user' style (my sent messages). User messages are 'admin' style.
-        // SIMPLIFICATION: 
-        // Let's assume standard view:
-        // User View: My messages (Right/Green), Admin messages (Left/Gray).
-        
-        // In App UI (User View):
-        const isMyMessage = msg.senderId === auth.currentUser?.uid;
-        
-        div.className = `message-bubble ${isMyMessage ? 'user' : 'admin'}`;
-        
-        // Convert timestamp
-        let timeStr = '';
-        if (msg.timestamp) {
-            const date = msg.timestamp.toDate ? msg.timestamp.toDate() : new Date(msg.timestamp);
-            timeStr = `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
-        }
-
-        div.innerHTML = `${msg.text.replace(/\n/g, '<br>')}<span class="message-time">${timeStr}</span>`;
-        container.appendChild(div);
-    });
-
-    container.scrollTop = container.scrollHeight;
 }
 
 
@@ -1281,6 +1127,7 @@ function setupUIEventListeners() {
         }
     };
 
+    // [ 💡 کۆدی نوێ بۆ لینکەکەی Forgot Password 💡 ]
     const forgotPasswordLink = document.getElementById('forgotPasswordLink');
     if (forgotPasswordLink) {
         forgotPasswordLink.onclick = async () => {
@@ -1494,7 +1341,6 @@ function setupUIEventListeners() {
     });
 
     setupGpsButtonUI();
-    setupChatUI(); // Initialize Chat UI
 }
 
 async function handleSetLanguage(lang) {
@@ -1794,9 +1640,6 @@ function setupGpsButtonUI() {
      });
 }
 
-// Make Chat UI render function globally available for Admin
-window.renderChatMessages = renderChatMessages;
-
 document.addEventListener('DOMContentLoaded', initializeUI);
 
 if (!window.globalAdminTools) {
@@ -1805,4 +1648,6 @@ if (!window.globalAdminTools) {
 
 window.globalAdminTools.openPopup = openPopup;
 window.globalAdminTools.closeCurrentPopup = closeCurrentPopup;
-window.globalAdminTools.showNotification = showNotification;
+window.globalAdminTools.showNotification = showNotification; 
+
+console.log('openPopup, closeCurrentPopup, & showNotification ji bo admin.js hatin zêdekirin.');
