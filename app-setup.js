@@ -40,7 +40,6 @@ export const shortcutRowsCollection = collection(db, "shortcut_rows");
 export const categoryLayoutsCollection = collection(db, "category_layouts");
 export const usersCollection = collection(db, "users");
 
-// [ 💡 نوێ ] - کۆلێکشنی تایبەت بە چات و داواکارییەکان
 export const chatsCollection = collection(db, "chats");
 export const ordersCollection = collection(db, "orders");
 
@@ -77,8 +76,6 @@ export const translations = {
         nav_cart: "سەبەتە",
         nav_profile: "پڕۆفایل",
         nav_settings: "ڕێکخستن",
-        
-        // [ 💡 نوێ ] - وەرگێڕانی تایبەت بە چات
         nav_chat: "نامەکان",
         chat_title: "پەیوەندی",
         type_message: "نامەیەک بنووسە...",
@@ -92,13 +89,10 @@ export const translations = {
         typing: "دەنووسێت...",
         no_messages: "هیچ نامەیەک نییە، دەست بە گفتوگۆ بکە!",
         conversations_title: "نامەکانی بەکارهێنەران",
-        
-        // [ 💡 نوێ ] - وەرگێڕانی داواکاری
         order_submitted: "داواکارییەکەت بە سەرکەوتوویی نێردرا",
         submit_order_direct: "ناردنی داواکاری ڕاستەوخۆ",
         order_notification_title: "داواکاری نوێ",
         order_details: "وردەکاری داواکاری",
-
         contact_us_title: "پەیوەندیمان پێوە بکە",
         add_to_cart: "زیادکردن بۆ سەبەتە",
         added_to_cart: "زیادکرا",
@@ -167,6 +161,12 @@ export const translations = {
         password_reset_email_sent: "ئیمەیڵێکی ڕێستکردنەوەت بۆ نێردرا. تکایە سەیری ئیمەیڵەکەت بکە.",
         password_reset_error_not_found: "ئەم ئیمەیڵە تۆمار نەکراوە.",
         password_reset_enter_email: "تکایە سەرەتا ئیمەیڵەکەت لە خانەی ئیمەیڵ بنووسە.",
+        
+        // [ 💡 نوێ ] : وشە نوێیەکان
+        order_confirm_title: "ناردنی داواکاری",
+        order_confirm_msg: "دڵنیایت دەتەوێت ئەم داواکارییە بنێریت؟",
+        yes_send: "بەڵێ، بینێرە",
+        cancel: "پاشگەزبوونەوە"
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -199,8 +199,6 @@ export const translations = {
         nav_cart: "سەلک",
         nav_profile: "پروفایل",
         nav_settings: "ڕێکخستن",
-
-        // [ 💡 نوێ ]
         nav_chat: "نامە",
         chat_title: "پەیوەندی",
         type_message: "نامەیەکێ بنڤیسە...",
@@ -218,7 +216,6 @@ export const translations = {
         submit_order_direct: "فرێکرنا داخازیێ راستەوخۆ",
         order_notification_title: "داخازیەکا نوو",
         order_details: "وردەکاریێن داخازیێ",
-
         contact_us_title: "پەیوەندیێ ب مە بکە",
         add_to_cart: "زێدەکرن بۆ سەلکێ",
         added_to_cart: "زێدەکر",
@@ -287,6 +284,12 @@ export const translations = {
         password_reset_email_sent: "ئیمەیلەکا رێستکرنێ بۆ تە هاتە فرێکرن. هیڤی دکەین سحکە ئیمەیلا خۆ.",
         password_reset_error_not_found: "ئەڤ ئیمەیلە تۆمار نەکریە.",
         password_reset_enter_email: "هیڤی دکەین ئێکەم جار ئیمەیلا خۆ ل خانەیا ئیمەیلێ بنڤیسە.",
+        
+        // [ 💡 نوێ ] : وشە نوێیەکان
+        order_confirm_title: "فرێکرنا داخازیێ",
+        order_confirm_msg: "تۆ پشتڕاستی تە دڤێت ڤێ داخازیێ فرێکەی؟",
+        yes_send: "بەڵێ، فرێکە",
+        cancel: "پەشێمانبوون"
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -319,8 +322,6 @@ export const translations = {
         nav_cart: "السلة",
         nav_profile: "ملفي",
         nav_settings: "الإعدادات",
-        
-        // [ 💡 نوێ ]
         nav_chat: "الرسائل",
         chat_title: "المحادثة",
         type_message: "اكتب رسالة...",
@@ -338,7 +339,6 @@ export const translations = {
         submit_order_direct: "إرسال الطلب مباشرة",
         order_notification_title: "طلب جديد",
         order_details: "تفاصيل الطلب",
-
         contact_us_title: "تواصل معنا",
         add_to_cart: "إضافة إلى السلة",
         added_to_cart: "تمت الإضافة",
@@ -407,6 +407,12 @@ export const translations = {
         password_reset_email_sent: "تم إرسال بريد إلكتروني لإعادة تعيين كلمة المرور. يرجى التحقق من بريدك.",
         password_reset_error_not_found: "هذا البريد الإلكتروني غير مسجل.",
         password_reset_enter_email: "يرجى إدخال بريدك الإلكتروني في حقل البريد أولاً.",
+        
+        // [ 💡 نوێ ] : وشە نوێیەکان
+        order_confirm_title: "تأكيد الطلب",
+        order_confirm_msg: "هل أنت متأكد من أنك تريد إرسال هذا الطلب؟",
+        yes_send: "نعم، أرسل",
+        cancel: "إلغاء"
     }
 };
 
@@ -436,7 +442,6 @@ export let state = {
     pendingFilterNav: null, 
     sliderIntervals: {}, 
     contactInfo: {}, 
-    // [ 💡 نوێ ] - تایبەت بە چات
     activeChatUserId: null,
     unreadMessagesCount: 0,
 };
@@ -482,7 +487,7 @@ export const settingsBtn = document.getElementById('settingsBtn');
 export const settingsFavoritesBtn = document.getElementById('settingsFavoritesBtn');
 export const settingsAdminLoginBtn = document.getElementById('settingsAdminLoginBtn');
 export const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
-export const profileBtn = document.getElementById('profileBtn'); // تێبینی: ئەمە دەبێتە دوگمەی چات لە هەنگاوەکانی داهاتوودا
+export const profileBtn = document.getElementById('profileBtn'); 
 export const contactToggle = document.getElementById('contactToggle');
 export const notificationBtn = document.getElementById('notificationBtn');
 export const notificationBadge = document.getElementById('notificationBadge');
@@ -546,7 +551,6 @@ window.globalAdminTools = {
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
     categoryLayoutsCollection, 
-    // [ 💡 نوێ ]
     chatsCollection, ordersCollection,
 
     setEditingProductId: (id) => { state.editingProductId = id; },

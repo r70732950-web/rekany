@@ -522,21 +522,19 @@ async function handleDirectOrder() {
     const confirmBtn = document.getElementById('confirmOrderBtn');
     const cancelBtn = document.getElementById('cancelOrderBtn');
 
-    // دڵنیابوونەوە لە لابردنی Event Listener ـە کۆنەکان بە بەکارهێنانی clone
     const newConfirmBtn = confirmBtn.cloneNode(true);
     confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
 
     const newCancelBtn = cancelBtn.cloneNode(true);
     cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
 
-    // داخستنی مۆدێل ئەگەر پەشیمان بووەوە
     newCancelBtn.onclick = () => {
         window.globalAdminTools.closeCurrentPopup();
     };
 
-    // ناردنی داواکاری ئەگەر ڕازی بوو
     newConfirmBtn.onclick = async () => {
-        window.globalAdminTools.closeCurrentPopup();
+        window.globalAdminTools.closeCurrentPopup(); // Close Modal
+        window.globalAdminTools.closeCurrentPopup(); // Close Cart Sheet
         await processOrderSubmission();
     };
 }

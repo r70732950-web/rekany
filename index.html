@@ -77,16 +77,16 @@
             </div>
         </div>
 
-        <!-- [ 💡 نوێ ] : مۆدێلی دڵنیابوونەوە لە ناردنی داواکاری -->
+        <!-- [ 💡 چاککراوە ] : بەکارهێنانی data-translate-key -->
         <div id="orderConfirmationModal" class="modal">
             <div class="modal-content" style="text-align: center; padding: 25px;">
                 <span class="close" aria-label="Close">&times;</span>
                 <i class="fas fa-check-circle" style="font-size: 50px; color: var(--primary-color); margin-bottom: 15px;"></i>
-                <h3 style="margin-bottom: 10px; font-weight: bold;">ناردنی داواکاری</h3>
-                <p style="margin-bottom: 25px; color: var(--text-light); line-height: 1.6;">دڵنیایت دەتەوێت ئەم داواکارییە بنێریت؟</p>
+                <h3 style="margin-bottom: 10px; font-weight: bold;" data-translate-key="order_confirm_title">ناردنی داواکاری</h3>
+                <p style="margin-bottom: 25px; color: var(--text-light); line-height: 1.6;" data-translate-key="order_confirm_msg">دڵنیایت دەتەوێت ئەم داواکارییە بنێریت؟</p>
                 <div style="display: flex; gap: 10px;">
-                    <button id="confirmOrderBtn" style="background-color: var(--primary-color); color: white; flex: 1; padding: 12px; border-radius: 8px;">بەڵێ، بینێرە</button>
-                    <button id="cancelOrderBtn" style="background-color: #e2e8f0; color: var(--text-color); flex: 1; padding: 12px; border-radius: 8px;">پاشگەزبوونەوە</button>
+                    <button id="confirmOrderBtn" style="background-color: var(--primary-color); color: white; flex: 1; padding: 12px; border-radius: 8px;" data-translate-key="yes_send">بەڵێ، بینێرە</button>
+                    <button id="cancelOrderBtn" style="background-color: #e2e8f0; color: var(--text-color); flex: 1; padding: 12px; border-radius: 8px;" data-translate-key="cancel">پاشگەزبوونەوە</button>
                 </div>
             </div>
         </div>
@@ -114,7 +114,6 @@
                 <div id="cartTotal" class="cart-total" style="display:none;"><span data-translate-key="total_price">کۆی گشتی:</span> <span id="totalAmount">0</span> د.ع.</div>
 
                 <div id="cartActions" style="display:none; margin-top: 15px;">
-                    <!-- دوگمەی داواکاری ڕاستەوخۆ لێرە زیاد دەبێت لە ڕێگەی JS -->
                 </div>
             </div>
         </div>
@@ -1152,4 +1151,5 @@
     <script src="admin.js" defer></script>
 </body>
 </html>
+
 
