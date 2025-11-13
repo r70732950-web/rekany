@@ -63,31 +63,45 @@ export function showNotification(message, type = 'success') {
     }, 3000);
 }
 
+// [ 💡 نوێکراوە ] - شاردنەوەی هەدەر لە چات
 function updateHeaderView(pageId, title = '') {
+    const appHeader = document.querySelector('.app-header');
     const mainHeader = document.querySelector('.main-header-content');
     const subpageHeader = document.querySelector('.subpage-header-content');
     const headerTitle = document.getElementById('headerTitle');
     const subpageSearch = document.querySelector('.subpage-search'); 
 
-    if (pageId === 'mainPage') {
-        mainHeader.style.display = 'flex';
-        subpageHeader.style.display = 'none';
+    // ئەگەر لە چات بووین، هەموو هەدەرەکە دەشارینەوە
+    if (pageId === 'chatPage') {
+        if (appHeader) appHeader.style.display = 'none';
+        document.body.classList.add('chat-active'); 
     } else {
-        mainHeader.style.display = 'none';
-        subpageHeader.style.display = 'flex';
-        headerTitle.textContent = title;
+        // لە لاپەڕەکانی تر، هەدەرەکە پیشان دەدەینەوە
+        if (appHeader) appHeader.style.display = 'flex';
+        document.body.classList.remove('chat-active');
 
-        if (subpageSearch) {
-            // شاردنەوەی گەڕان لە لاپەڕەی ڕێکخستن و چات
-            if (pageId === 'settingsPage' || pageId === 'chatPage' || pageId === 'adminChatListPage') {
-                subpageSearch.style.display = 'none'; 
-            } else {
-                subpageSearch.style.display = 'block'; 
+        // ئینجا لۆجیکی ئاسایی خۆی جێبەجێ دەکەین
+        if (pageId === 'mainPage') {
+            mainHeader.style.display = 'flex';
+            subpageHeader.style.display = 'none';
+        } else {
+            mainHeader.style.display = 'none';
+            subpageHeader.style.display = 'flex';
+            headerTitle.textContent = title;
+    
+            if (subpageSearch) {
+                // شاردنەوەی گەڕان لە لاپەڕەی ڕێکخستن و چات لیست
+                if (pageId === 'settingsPage' || pageId === 'adminChatListPage') {
+                    subpageSearch.style.display = 'none'; 
+                } else {
+                    subpageSearch.style.display = 'block'; 
+                }
             }
         }
     }
 }
 
+// [ 💡 نوێکراوە ] - کۆنترۆڵی لیستی خوارەوە (Bottom Nav)
 function showPage(pageId, pageTitle = '') {
     state.currentPageId = pageId; 
     document.querySelectorAll('.page').forEach(page => {
@@ -95,6 +109,16 @@ function showPage(pageId, pageTitle = '') {
         page.classList.toggle('page-active', isActive);
         page.classList.toggle('page-hidden', !isActive);
     });
+
+    // دڵنیابوونەوە لە دەرکەوتن یان شاردنەوەی لیستی خوارەوە
+    const bottomNav = document.querySelector('.bottom-nav');
+    if (bottomNav) {
+        if (pageId === 'chatPage') {
+            bottomNav.style.display = 'none';
+        } else {
+            bottomNav.style.display = 'flex';
+        }
+    }
 
     if (pageId !== 'mainPage') {
          requestAnimationFrame(() => { 
@@ -396,7 +420,6 @@ function renderCartUI() {
     emptyCartMessage.style.display = 'none';
     cartTotal.style.display = 'block';
     cartActions.style.display = 'block';
-    // Note: renderCartActionButtonsUI handles contact buttons, but chat.js adds Direct Order button
     renderCartActionButtonsUI(); 
 
     let total = 0;
@@ -437,46 +460,13 @@ function renderCartUI() {
 
 async function renderCartActionButtonsUI() {
     const container = document.getElementById('cartActions');
-    // We clear innerHTML but we must preserve the Direct Order button injected by chat.js if it exists
-    // OR we just append contact methods.
-    // Strategy: Clear everything except the first child if it is the direct order button?
-    // Better: Let chat.js prepend its button, and here we append others.
-    // But innerHTML = '' wipes everything.
-    // FIX: Clear only the buttons we added previously (by class or id).
-    // EASIER FIX: Re-inject Chat Button via chat.js listener or let chat.js handle it dynamically.
-    // Since initChatSystem runs once, we need to ensure the button is there.
-    // Let's just clear and re-render standard buttons, then re-trigger Chat UI setup if needed?
-    // Actually, `chat.js` adds the button ONCE in `setupChatUI`. If we wipe it here, it's gone.
-    // Solution: Don't wipe. Just check if standard buttons exist.
-    // SIMPLEST: Wipe and let chat.js know, or just re-add the logic here?
-    // To keep modular, let's wipe, render standard, then check if we need to re-add Direct Order.
     
-    container.innerHTML = ''; 
-    
-    // Re-add Direct Order Button (Logic duplicated from chat.js to ensure it persists on re-render)
-    if (window.initChatSystem) { // Or just manually add it
-         // We will rely on chat.js to add it, but since we cleared it, we need to invoke the logic again.
-         // Instead, let's invoke the function from chat.js if exported? 
-         // No, simpler to just import the logic or let chat.js handle the 'cart updated' event if we had one.
-         // For now, let's manually re-add the button here since we are in app-ui.js
-         const directOrderBtn = document.createElement('button');
-         directOrderBtn.className = 'whatsapp-btn';
-         directOrderBtn.style.backgroundColor = 'var(--primary-color)';
-         directOrderBtn.style.marginTop = '10px';
-         directOrderBtn.innerHTML = `<i class="fas fa-paper-plane"></i> <span>${t('submit_order_direct')}</span>`;
-         // We need the handleDirectOrder function. It is not imported here.
-         // To avoid circular dependency or complex imports, let's assume chat.js attached it to window or we skip clearing.
-    }
-    
-    // NEW STRATEGY: Don't use innerHTML = ''. 
-    // Remove only old contact buttons.
     const oldButtons = container.querySelectorAll('.contact-method-btn');
     oldButtons.forEach(btn => btn.remove());
 
     const methods = await fetchContactMethods(); 
 
     if (!methods || methods.length === 0) {
-        // Don't show error if Direct Order button exists
         if (container.children.length === 0) {
              container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
         }
@@ -485,7 +475,7 @@ async function renderCartActionButtonsUI() {
 
     methods.forEach(method => {
         const btn = document.createElement('button');
-        btn.className = 'whatsapp-btn contact-method-btn'; // Added class to identify
+        btn.className = 'whatsapp-btn contact-method-btn'; 
         btn.style.backgroundColor = method.color;
 
         const name = method['name_' + state.currentLanguage] || method.name_ku_sorani;
@@ -514,7 +504,6 @@ async function renderCartActionButtonsUI() {
         container.appendChild(btn);
     });
     
-    // Re-run chat setup to ensure button is there (it checks if it exists)
     initChatSystem();
 }
 
