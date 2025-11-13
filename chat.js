@@ -516,7 +516,6 @@ async function handleDirectOrder() {
         return;
     }
 
-    // [ 💡 چاککراوە ]: بەکارهێنانی مۆدێلی تایبەت لەجیاتی confirm()
     window.globalAdminTools.openPopup('orderConfirmationModal', 'modal');
 
     const confirmBtn = document.getElementById('confirmOrderBtn');
@@ -533,13 +532,15 @@ async function handleDirectOrder() {
     };
 
     newConfirmBtn.onclick = async () => {
-        window.globalAdminTools.closeCurrentPopup(); // Close Modal
-        window.globalAdminTools.closeCurrentPopup(); // Close Cart Sheet
-        await processOrderSubmission();
+        // [ 💡 چاککراوە ] - بەکارهێنانی history.go(-2) بۆ داخستنی Modal + Cart بە یەکجار
+        history.go(-2);
+        // کەمێک چاوەڕێ دەکەین تا Popstate کار دەکات، ئینجا چات دەکەینەوە
+        setTimeout(() => {
+             processOrderSubmission();
+        }, 150);
     };
 }
 
-// [ 💡 نوێ ]: فانکشنێکی جیاکراوە بۆ پڕۆسەی ناردنەکە
 async function processOrderSubmission() {
     const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     

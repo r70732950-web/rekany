@@ -9,10 +9,8 @@ import {
     settingsFavoritesBtn, settingsAdminLoginBtn, settingsLogoutBtn, profileBtn, contactToggle,
     notificationBtn, notificationBadge, notificationsSheet, notificationsListContainer,
     termsAndPoliciesBtn, termsSheet, termsContentContainer,
-    
     homePageSectionsContainer, 
     categoryLayoutContainer,  
-
     adminPoliciesManagement, adminSocialMediaManagement, adminAnnouncementManagement, adminPromoCardsManagement,
     adminBrandsManagement, adminCategoryManagement, adminContactMethodsManagement, adminShortcutRowsManagement,
     adminHomeLayoutManagement, policiesForm, socialLinksListContainer, announcementForm,
@@ -48,7 +46,6 @@ import {
     renderPageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
 } from './home.js'; 
 
-// [ 💡 نوێ ] هێنانی سیستەمی چات
 import { initChatSystem } from './chat.js';
 
 export function showNotification(message, type = 'success') {
@@ -63,7 +60,6 @@ export function showNotification(message, type = 'success') {
     }, 3000);
 }
 
-// [ 💡 نوێکراوە ] - شاردنەوەی هەدەر لە چات
 function updateHeaderView(pageId, title = '') {
     const appHeader = document.querySelector('.app-header');
     const mainHeader = document.querySelector('.main-header-content');
@@ -71,16 +67,13 @@ function updateHeaderView(pageId, title = '') {
     const headerTitle = document.getElementById('headerTitle');
     const subpageSearch = document.querySelector('.subpage-search'); 
 
-    // ئەگەر لە چات بووین، هەموو هەدەرەکە دەشارینەوە
     if (pageId === 'chatPage') {
         if (appHeader) appHeader.style.display = 'none';
         document.body.classList.add('chat-active'); 
     } else {
-        // لە لاپەڕەکانی تر، هەدەرەکە پیشان دەدەینەوە
         if (appHeader) appHeader.style.display = 'flex';
         document.body.classList.remove('chat-active');
 
-        // ئینجا لۆجیکی ئاسایی خۆی جێبەجێ دەکەین
         if (pageId === 'mainPage') {
             mainHeader.style.display = 'flex';
             subpageHeader.style.display = 'none';
@@ -90,7 +83,6 @@ function updateHeaderView(pageId, title = '') {
             headerTitle.textContent = title;
     
             if (subpageSearch) {
-                // شاردنەوەی گەڕان لە لاپەڕەی ڕێکخستن و چات لیست
                 if (pageId === 'settingsPage' || pageId === 'adminChatListPage') {
                     subpageSearch.style.display = 'none'; 
                 } else {
@@ -101,7 +93,6 @@ function updateHeaderView(pageId, title = '') {
     }
 }
 
-// [ 💡 نوێکراوە ] - کۆنترۆڵی لیستی خوارەوە (Bottom Nav)
 function showPage(pageId, pageTitle = '') {
     state.currentPageId = pageId; 
     document.querySelectorAll('.page').forEach(page => {
@@ -110,7 +101,6 @@ function showPage(pageId, pageTitle = '') {
         page.classList.toggle('page-hidden', !isActive);
     });
 
-    // دڵنیابوونەوە لە دەرکەوتن یان شاردنەوەی لیستی خوارەوە
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) {
         if (pageId === 'chatPage') {
@@ -132,13 +122,11 @@ function showPage(pageId, pageTitle = '') {
     } else if (pageId === 'subcategoryDetailPage') {
          updateHeaderView('subcategoryDetailPage', pageTitle);
     } else if (pageId === 'chatPage' || pageId === 'adminChatListPage') {
-         // Chat pages have their own headers or hide main header logic
          updateHeaderView(pageId, pageTitle);
     } else { 
          updateHeaderView('mainPage');
     }
 
-    // Update Bottom Nav Active State
     let activeBtnId = null;
     if (pageId === 'mainPage') activeBtnId = 'homeBtn';
     else if (pageId === 'settingsPage') activeBtnId = 'settingsBtn';
@@ -148,7 +136,6 @@ function showPage(pageId, pageTitle = '') {
        updateActiveNav(activeBtnId);
     }
 }
-
 
 function stopAllVideos() {
     const videoWrapper = document.getElementById('videoPlayerWrapper');
@@ -184,20 +171,25 @@ function closeAllPopupsUI() {
     stopAllVideos(); 
 }
 
-export function openPopup(id, type = 'sheet') {
+// [ 💡 چاککراوە ] - زیادکردنی پارامیتەری addToHistory بۆ ڕێگری لە Loop
+export function openPopup(id, type = 'sheet', addToHistory = true) {
     saveCurrentScrollPositionCore(); 
     const element = document.getElementById(id);
     if (!element) return;
 
-    closeAllPopupsUI(); 
+    if (addToHistory) {
+        closeAllPopupsUI(); 
+    } else {
+        // ئەگەر لە Historyـەوە هاتبێت، ئێمە تەنها UIـەکە دەکەینەوە بەبێ داخستنی ئەوانی تر بە شێوەیەک کە History تێک بدات
+        // بەڵام بۆ دڵنیایی هەر دایدەخەین
+        document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
+        document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('show'));
+    }
 
     const activePage = document.getElementById(state.currentPageId);
     if (activePage && id === 'categoriesSheet') { 
         activePage.scrollTo({ top: 0, behavior: 'instant' });
     }
-
-    const newState = { type: type, id: id };
-    state.currentPopupState = newState; 
 
     if (type === 'sheet') {
         const sheetContent = element.querySelector('.sheet-content');
@@ -221,9 +213,13 @@ export function openPopup(id, type = 'sheet') {
     }
     document.body.classList.add('overlay-active'); 
 
-    history.pushState(newState, '', `#${id}`);
+    // [ 💡 چاککراوە ] - تەنها کاتێک زیاد دەکرێت کە ئێمە خۆمان بیکەینەوە، نەک کاتێک Back دەکەین
+    if (addToHistory) {
+        const newState = { type: type, id: id };
+        state.currentPopupState = newState; 
+        history.pushState(newState, '', `#${id}`);
+    }
 }
-
 
 export function closeCurrentPopup() {
     if (history.state && (history.state.type === 'sheet' || history.state.type === 'modal')) {
@@ -233,7 +229,6 @@ export function closeCurrentPopup() {
         state.currentPopupState = null;
     }
 }
-
 
 function updateActiveNav(activeBtnId) {
     document.querySelectorAll('.bottom-nav-item').forEach(btn => {
@@ -250,12 +245,8 @@ function updateCartCountUI() {
     document.querySelectorAll('.cart-count').forEach(el => { el.textContent = totalItems; });
 }
 
-
 export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
-    if (!container) {
-        console.error("Skeleton loader container not found:", container);
-        return;
-     }
+    if (!container) { return; }
     container.innerHTML = ''; 
     for (let i = 0; i < count; i++) {
         const skeletonCard = document.createElement('div');
@@ -352,7 +343,6 @@ export function createProductCardElementUI(product) {
                   document.body.removeChild(textArea);
              }
          } catch (err) {
-             console.error('Share error:', err);
               if (err.name !== 'AbortError') showNotification(t('share_error'), 'error');
          }
     });
@@ -460,7 +450,6 @@ function renderCartUI() {
 
 async function renderCartActionButtonsUI() {
     const container = document.getElementById('cartActions');
-    
     const oldButtons = container.querySelectorAll('.contact-method-btn');
     oldButtons.forEach(btn => btn.remove());
 
@@ -507,7 +496,6 @@ async function renderCartActionButtonsUI() {
     initChatSystem();
 }
 
-
 async function renderFavoritesPageUI() {
     favoritesContainer.innerHTML = '';
 
@@ -543,7 +531,6 @@ async function renderFavoritesPageUI() {
             });
         }
     } catch (error) {
-        console.error("Error rendering favorites:", error);
         favoritesContainer.innerHTML = `<p style="text-align:center; padding: 20px;">${t('error_generic')}</p>`;
     }
 }
@@ -688,7 +675,6 @@ function renderCategoriesSheetUI() {
          loader.style.display = 'none';
      }
 }
-
 
 export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHistory = false) { 
     let subCatName = 'Details'; 
@@ -974,7 +960,6 @@ function updateAdminUIAuth(isAdmin) {
          'adminContactMethodsManagement', 'adminShortcutRowsManagement',
          'adminHomeLayoutManagement',
          'adminCategoryLayoutManagement',
-         // [ 💡 نوێ ] بەشی چاتەکانی ئەدمین
          'adminChatsManagement'
     ];
     
@@ -1101,7 +1086,6 @@ function setupUIEventListeners() {
 
     document.getElementById('headerBackBtn').onclick = () => { history.back(); };
 
-    // [ 💡 نوێ ] بەستنەوەی دوگمەی پڕۆفایل کە چووە ناو ڕێکخستنەکان
     const settingsProfileBtn = document.getElementById('settingsProfileBtn');
     if (settingsProfileBtn) {
         settingsProfileBtn.onclick = () => { openPopup('profileSheet'); };
@@ -1453,7 +1437,7 @@ window.addEventListener('popstate', async (event) => {
                 await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
             }
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
-            openPopup(popState.id, popState.type); 
+            openPopup(popState.id, popState.type, false); // [ 💡 چاککراوە ] - لێرە false دەنێرین بۆ ئەوەی دیسان زیادی نەکات بۆ History
         } else {
             showPage('mainPage'); 
             applyFilterStateCore(popState); 
@@ -1533,7 +1517,6 @@ async function initializeUI() {
 
     renderContactLinksUI();
 
-    // [ 💡 نوێ ] دەستپێکردنی سیستەمی چات
     initChatSystem();
 
     const announcements = await fetchAnnouncements();
@@ -1553,21 +1536,18 @@ async function handleInitialPageLoadUI() {
 
     const isSettings = hash === 'settingsPage';
     const isSubcategoryDetail = hash.startsWith('subcategory_');
-    const isChat = hash === 'chat'; // [ 💡 نوێ ]
-    const isAdminChat = hash === 'admin-chats'; // [ 💡 نوێ ]
+    const isChat = hash === 'chat'; 
+    const isAdminChat = hash === 'admin-chats'; 
 
     if (isSettings) {
          history.replaceState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', `#${hash}`);
          showPage('settingsPage', t('settings_title'));
-    } else if (isChat) { // [ 💡 نوێ ]
+    } else if (isChat) { 
          history.replaceState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', `#chat`);
          showPage('chatPage', t('chat_title'));
-    } else if (isAdminChat) { // [ 💡 نوێ ]
+    } else if (isAdminChat) { 
          history.replaceState({ type: 'page', id: 'adminChatListPage', title: t('conversations_title') }, '', `#admin-chats`);
          showPage('adminChatListPage', t('conversations_title'));
-         // Need to manually trigger subscribe since initChatSystem might not be fully ready or flow differs
-         // But chat.js handles nav clicks. For direct load, we might need a helper exposed.
-         // For simplicity, let's assume user navigates via UI mostly.
     } else if (isSubcategoryDetail) {
          const ids = hash.split('_');
          const mainCatId = ids[1];
@@ -1710,6 +1690,6 @@ if (!window.globalAdminTools) {
 window.globalAdminTools.openPopup = openPopup;
 window.globalAdminTools.closeCurrentPopup = closeCurrentPopup;
 window.globalAdminTools.showNotification = showNotification; 
-window.globalAdminTools.updateCartCountUI = updateCartCountUI; // [ 💡 نوێ ] Chat needs this
+window.globalAdminTools.updateCartCountUI = updateCartCountUI; 
 
 console.log('openPopup, closeCurrentPopup, & showNotification ji bo admin.js hatin zêdekirin.');
