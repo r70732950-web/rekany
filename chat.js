@@ -114,7 +114,6 @@ function setupChatUI() {
 }
 
 function setupChatListeners() {
-    // Nav Button
     const chatBtn = document.getElementById('chatBtn');
     if (chatBtn) {
         chatBtn.onclick = () => {
@@ -122,7 +121,6 @@ function setupChatListeners() {
         };
     }
 
-    // Admin Chat List Button (in Settings)
     const adminChatsBtn = document.getElementById('adminChatsBtn');
     if (adminChatsBtn) {
         adminChatsBtn.onclick = () => {
@@ -180,9 +178,6 @@ function setupChatListeners() {
     }, 1000);
 }
 
-// --- NAVIGATION Logic ---
-
-// [ 💡 چاککراوە ] : زیادکردنی `targetUserName` بۆ ئەوەی ناوی بەکارهێنەر پیشان بدات
 function openChatPage(targetUserId = null, targetUserName = null) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     
@@ -233,16 +228,13 @@ function openChatPage(targetUserId = null, targetUserName = null) {
         msgArea.innerHTML = ''; 
     }
 
-    // [ 💡 چاککراوە ] : لۆجیکی پیشاندانی ناو لە هەدەر
     if (isAdmin) {
         activeChatUserId = targetUserId;
         const headerName = document.getElementById('chatHeaderName');
         if(headerName) {
             if (targetUserName) {
-                // ئەگەر ناوەکە نێردرابوو، ڕاستەوخۆ دایبنێ
                 headerName.textContent = targetUserName;
             } else {
-                // ئەگەر ناوەکە نەبوو، هەوڵ بدە لە دیتابەیس بیهێنیت
                 headerName.textContent = "...";
                 getDoc(doc(db, "chats", targetUserId)).then(docSnap => {
                     if(docSnap.exists()) {
@@ -279,8 +271,6 @@ function openAdminChatList() {
 
     subscribeToAllConversations();
 }
-
-// --- MESSAGING LOGIC ---
 
 function subscribeToMessages(chatUserId) {
     if (messagesUnsubscribe) messagesUnsubscribe();
@@ -339,17 +329,34 @@ function renderSingleMessage(msg, container, chatUserId) {
     } else if (msg.type === 'order') {
         const order = msg.orderDetails;
         if(order && order.items) {
+            // [ 💡 گۆڕانکاری گرنگ ]: دیزاینی نوێ بۆ داواکاری کە وێنە و زانیاری کەسی تێدایە
             contentHtml = `
                 <div class="order-bubble">
                     <div class="order-bubble-header"><i class="fas fa-receipt"></i> ${t('order_notification_title')}</div>
                     <div class="order-bubble-content">
                         ${order.items.map(i => `
-                            <div class="order-bubble-item">
-                                <span>${i.name && i.name[state.currentLanguage] ? i.name[state.currentLanguage] : (i.name.ku_sorani || i.name)} (x${i.quantity})</span>
-                                <span>${(i.price * i.quantity).toLocaleString()}</span>
+                            <div class="order-bubble-item" style="display: flex; align-items: center; gap: 10px; padding: 8px 0;">
+                                <img src="${i.image || 'https://placehold.co/50'}" style="width: 45px; height: 45px; border-radius: 6px; object-fit: cover; border: 1px solid #eee;">
+                                <div style="flex: 1; overflow: hidden;">
+                                    <div style="font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        ${i.name && i.name[state.currentLanguage] ? i.name[state.currentLanguage] : (i.name.ku_sorani || i.name)}
+                                    </div>
+                                    <div style="font-size: 12px; color: #666;">
+                                        ${i.price.toLocaleString()} د.ع <span style="margin-right:5px; color: var(--primary-color);">x${i.quantity}</span>
+                                    </div>
+                                </div>
                             </div>
                         `).join('')}
-                        <div class="order-bubble-total">${t('total_price')} ${order.total.toLocaleString()} د.ع</div>
+                        
+                        <div class="order-bubble-total" style="border-top: 1px dashed #ccc; padding-top: 8px; margin-top: 5px;">
+                            ${t('total_price')} ${order.total.toLocaleString()} د.ع
+                        </div>
+
+                        <div style="background-color: #f9f9f9; padding: 8px; border-radius: 6px; margin-top: 10px; font-size: 12px; color: #444;">
+                            <div style="margin-bottom: 4px;"><i class="fas fa-user" style="width: 15px; text-align: center;"></i> ${order.userName || 'ناو نەنوسراوە'}</div>
+                            <div style="margin-bottom: 4px;"><i class="fas fa-phone" style="width: 15px; text-align: center;"></i> <a href="tel:${order.userPhone}" style="color: inherit; text-decoration: none;">${order.userPhone || 'ژمارە نییە'}</a></div>
+                            <div><i class="fas fa-map-marker-alt" style="width: 15px; text-align: center;"></i> ${order.userAddress || 'ناونیشان نییە'}</div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -456,8 +463,6 @@ async function sendMessage(type, file = null, orderData = null) {
     }
 }
 
-// --- VOICE RECORDING ---
-
 async function handleVoiceRecording() {
     const btn = document.getElementById('chatVoiceBtn');
     if(!btn) return;
@@ -488,8 +493,6 @@ async function handleVoiceRecording() {
     }
 }
 
-// --- DIRECT ORDERS ---
-
 async function handleDirectOrder() {
     if (!state.currentUser) {
         showNotification('تکایە سەرەتا بچۆ ژوورەوە', 'error');
@@ -502,17 +505,26 @@ async function handleDirectOrder() {
         return;
     }
 
+    // [ 💡 چاککراوە ]: پشکنین بۆ ئەوەی بزانیت بەکارهێنەر پڕۆفایلەکەی پڕکردووەتەوە؟
+    if (!state.userProfile.phone || !state.userProfile.address) {
+        showNotification('تکایە سەرەتا زانیارییەکانت (ناونیشان و تەلەفۆن) لە پڕۆفایل پڕبکەرەوە', 'error');
+        openPopup('profileSheet');
+        return;
+    }
+
     const confirmOrder = confirm("دڵنیایت دەتەوێت داواکارییەکەت بنێریت؟");
     if (!confirmOrder) return;
 
     closeCurrentPopup(); 
 
     const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    // [ 💡 نوێ ]: دڵنیابوونەوە لەوەی داتا لە پڕۆفایلەوە دەهێنرێت
     const orderData = {
         userId: state.currentUser.uid,
-        userName: state.userProfile.name || state.currentUser.displayName,
-        userPhone: state.userProfile.phone || '',
-        userAddress: state.userProfile.address || '',
+        userName: state.userProfile.name || state.currentUser.displayName, // بەکارهێنانی ناوی پڕۆفایل
+        userPhone: state.userProfile.phone || '', // بەکارهێنانی تەلەفۆنی پڕۆفایل
+        userAddress: state.userProfile.address || '', // بەکارهێنانی ناونیشانی پڕۆفایل
         items: state.cart,
         total: total,
         status: 'pending', 
@@ -536,8 +548,6 @@ async function handleDirectOrder() {
         showNotification(t('error_generic'), 'error');
     }
 }
-
-// --- ADMIN CONVERSATION LIST ---
 
 function subscribeToAllConversations() {
     if (conversationsUnsubscribe) conversationsUnsubscribe();
@@ -564,7 +574,6 @@ function subscribeToAllConversations() {
             const date = data.lastMessageTime ? new Date(data.lastMessageTime.toDate()) : new Date();
             const timeStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-            // [ 💡 چاککراوە ] : ناوی بەکارهێنەر دەردەهێنین
             const displayName = data.userInfo?.displayName || 'بەکارهێنەر';
 
             const div = document.createElement('div');
@@ -583,7 +592,6 @@ function subscribeToAllConversations() {
                 </div>
             `;
             div.onclick = () => {
-                // [ 💡 چاککراوە ] : ناوەکە دەنێرین بۆ فانکشنەکە
                 openChatPage(doc.id, displayName);
             };
             container.appendChild(div);
@@ -596,8 +604,6 @@ function subscribeToAllConversations() {
         }
     });
 }
-
-// --- HELPER: Read Receipts ---
 
 async function markMessagesAsRead(msgDocs, chatUserId) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
