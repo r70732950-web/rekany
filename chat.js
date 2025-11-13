@@ -330,23 +330,32 @@ function renderSingleMessage(msg, container, chatUserId) {
                     <div class="order-bubble-header"><i class="fas fa-receipt"></i> ${t('order_notification_title')}</div>
                     <div class="order-bubble-content">
                         ${order.items.map(i => {
-                            // [ 💡 ] دۆزینەوەی نرخی گەیاندن
                             const shipping = i.shippingCost || 0;
-                            const singleTotal = i.price + shipping;
+                            // [ 💡 ] حسابکردنی کۆی گشتی بۆ ئەم ئایتمە (نرخ * ژمارە) + گەیاندن
+                            const singleTotal = (i.price * i.quantity) + shipping;
                             
+                            // [ 💡 ] دیزاین: پیشاندانی هاوکێشەکە
                             let priceDisplay = '';
                             if (shipping > 0) {
-                                // [ 💡 ] دیزاین: نرخ + گەیاندن = کۆ
+                                // نموونە: (1000 x 2) + 3000 (گەیاندن) = 5000
                                 priceDisplay = `
                                     <div style="font-size:11px; color:#555;">
-                                        ${i.price.toLocaleString()} + <span style="color:#e53e3e;">${shipping.toLocaleString()} (گەیاندن)</span>
+                                        (${i.price.toLocaleString()} x ${i.quantity}) + <span style="color:#e53e3e;">${shipping.toLocaleString()} (گەیاندن)</span>
                                     </div>
                                     <div style="font-weight:bold; color:var(--primary-color);">
                                         = ${singleTotal.toLocaleString()} د.ع
                                     </div>
                                 `;
                             } else {
-                                priceDisplay = `<div style="font-weight:bold;">${i.price.toLocaleString()} د.ع</div>`;
+                                // نموونە: (1000 x 2) + بێ بەرامبەر
+                                priceDisplay = `
+                                    <div style="font-size:11px; color:#555;">
+                                        (${i.price.toLocaleString()} x ${i.quantity}) + <span style="color:#38a169;">(بێ بەرامبەر)</span>
+                                    </div>
+                                    <div style="font-weight:bold; color:var(--primary-color);">
+                                        = ${singleTotal.toLocaleString()} د.ع
+                                    </div>
+                                `;
                             }
 
                             return `
@@ -554,10 +563,9 @@ async function handleDirectOrder() {
 }
 
 async function processOrderSubmission() {
-    // [ 💡 ] کۆکردنەوەی هەمووی: (نرخ + گەیاندن) * ژمارە
+    // [ 💡 ] کۆکردنەوەی هەمووی: (نرخ * ژمارە) + گەیاندن
     const total = state.cart.reduce((sum, item) => {
-        const itemCost = item.price + (item.shippingCost || 0);
-        return sum + (itemCost * item.quantity);
+        return sum + (item.price * item.quantity) + (item.shippingCost || 0);
     }, 0);
     
     const orderData = {

@@ -171,7 +171,6 @@ function closeAllPopupsUI() {
     stopAllVideos(); 
 }
 
-// [ 💡 چاککراوە ] - زیادکردنی پارامیتەری addToHistory بۆ ڕێگری لە Loop
 export function openPopup(id, type = 'sheet', addToHistory = true) {
     saveCurrentScrollPositionCore(); 
     const element = document.getElementById(id);
@@ -180,8 +179,6 @@ export function openPopup(id, type = 'sheet', addToHistory = true) {
     if (addToHistory) {
         closeAllPopupsUI(); 
     } else {
-        // ئەگەر لە Historyـەوە هاتبێت، ئێمە تەنها UIـەکە دەکەینەوە بەبێ داخستنی ئەوانی تر بە شێوەیەک کە History تێک بدات
-        // بەڵام بۆ دڵنیایی هەر دایدەخەین
         document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
         document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('show'));
     }
@@ -213,7 +210,6 @@ export function openPopup(id, type = 'sheet', addToHistory = true) {
     }
     document.body.classList.add('overlay-active'); 
 
-    // [ 💡 چاککراوە ] - تەنها کاتێک زیاد دەکرێت کە ئێمە خۆمان بیکەینەوە، نەک کاتێک Back دەکەین
     if (addToHistory) {
         const newState = { type: type, id: id };
         state.currentPopupState = newState; 
@@ -398,6 +394,7 @@ export function setupScrollAnimations() {
     });
 }
 
+// [ 💡 گۆڕانکاری لە renderCartUI بۆ پیشاندانی گەیاندن بە ڕوونی ]
 function renderCartUI() {
     cartItemsContainer.innerHTML = '';
     if (state.cart.length === 0) {
@@ -414,18 +411,32 @@ function renderCartUI() {
 
     let total = 0;
     state.cart.forEach(item => {
-        const itemTotal = item.price * item.quantity;
+        // [ 💡 ] گەیاندن یەکجار هەژمار دەکرێت
+        const itemTotal = (item.price * item.quantity) + (item.shippingCost || 0);
         total += itemTotal;
+        
         const cartItem = document.createElement('div');
         cartItem.className = 'cart-item';
 
         const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
 
+        // [ 💡 ] دیزاینی نیشاندانی گەیاندن لەناو سەبەتە
+        let shippingDisplay = '';
+        if (item.shippingCost > 0) {
+            shippingDisplay = `<span style="font-size:12px; color:#e53e3e;">(+ ${item.shippingCost.toLocaleString()} گەیاندن)</span>`;
+        } else {
+            shippingDisplay = `<span style="font-size:12px; color:#38a169;">(گەیاندن بێ بەرامبەر)</span>`;
+        }
+
         cartItem.innerHTML = `
             <img src="${item.image}" alt="${itemNameInCurrentLang}" class="cart-item-image">
             <div class="cart-item-details">
                 <div class="cart-item-title">${itemNameInCurrentLang}</div>
-                <div class="cart-item-price">${item.price.toLocaleString()} د.ع.</div>
+                <div class="cart-item-price">
+                    ${item.price.toLocaleString()} د.ع <span style="font-size:11px; color:#666;">x ${item.quantity}</span>
+                    <br>
+                    ${shippingDisplay}
+                </div>
                 <div class="cart-item-quantity">
                     <button class="quantity-btn increase-btn" data-id="${item.id}">+</button>
                     <span class="quantity-text">${item.quantity}</span>
@@ -433,8 +444,8 @@ function renderCartUI() {
                 </div>
             </div>
             <div class="cart-item-subtotal">
-                <div>${t('total_price')}</div>
-                <span>${itemTotal.toLocaleString()} د.ع.</span>
+                <div>کۆی گشتی</div>
+                <span style="color:var(--primary-color); font-size:16px;">${itemTotal.toLocaleString()} د.ع.</span>
                 <button class="cart-item-remove" data-id="${item.id}"><i class="fas fa-trash"></i></button>
             </div>
         `;

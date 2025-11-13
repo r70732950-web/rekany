@@ -461,7 +461,7 @@ async function fetchInitialProductsForHome(limitCount = 10) {
     }
 }
 
-// [ 💡 گۆڕانکاری: زیادکردن بۆ سەبەتە لەگەڵ نرخی گەیاندن ]
+// [ 💡 گۆڕانکاری: زیادکردن بۆ سەبەتە لەگەڵ هەژمارکردنی گەیاندن ]
 export async function addToCartCore(productId) {
     let product = state.products.find(p => p.id === productId);
 
@@ -473,7 +473,7 @@ export async function addToCartCore(productId) {
         }
     }
 
-    // 1. دەرهێنانی نرخی گەیاندن لەناو نووسین
+    // ١. دۆزینەوەی نرخی گەیاندن لەناو نووسین (ئەگەر نەبێت ٠)
     const shippingText = (product.shippingInfo && product.shippingInfo[state.currentLanguage]) ||
                          (product.shippingInfo && product.shippingInfo.ku_sorani) || '';
     const calculatedShippingCost = extractShippingCostFromText(shippingText);
@@ -483,7 +483,8 @@ export async function addToCartCore(productId) {
 
     if (existingItem) {
         existingItem.quantity++;
-        existingItem.shippingCost = calculatedShippingCost; // نوێکردنەوەی نرخی گەیاندن
+        // دڵنیابوونەوە لەوەی نرخی گەیاندن نوێ بێت
+        existingItem.shippingCost = calculatedShippingCost; 
     } else {
         state.cart.push({
             id: product.id,
@@ -521,7 +522,7 @@ export function removeFromCartCore(productId) {
     return false; 
 }
 
-// [ 💡 گۆڕانکاری: ناردنی نامەی واتسئاپ بە شێوازی 1000+3000=4000 ]
+// [ 💡 گۆڕانکاری: ناردنی نامە بە شێوازی (نرخ x ژمارە) + گەیاندن = کۆ ]
 export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
@@ -530,8 +531,8 @@ export function generateOrderMessageCore() {
     
     state.cart.forEach(item => {
         const shipping = item.shippingCost || 0;
-        const itemOneTotal = item.price + shipping; 
-        const lineTotal = itemOneTotal * item.quantity; 
+        // گەیاندن یەکجار بۆ هەموو ژمارەکان: (1000 * 2) + 3000 = 5000
+        const lineTotal = (item.price * item.quantity) + shipping;
         
         total += lineTotal;
         
@@ -539,16 +540,15 @@ export function generateOrderMessageCore() {
         
         let priceDetails = "";
         if (shipping > 0) {
-             // فۆرمات: نرخ + گەیاندن = کۆ
-             priceDetails = `${item.price.toLocaleString()} + ${shipping.toLocaleString()} (${t('shipping_cost') || 'گەیاندن'}) = ${itemOneTotal.toLocaleString()}`;
+             // شێواز: (1000 x 2) + 3000 (گەیاندن) = 5000
+             priceDetails = `(${item.price.toLocaleString()} x ${item.quantity}) + ${shipping.toLocaleString()} (${t('shipping_cost') || 'گەیاندن'}) = ${lineTotal.toLocaleString()}`;
         } else {
-             priceDetails = `${item.price.toLocaleString()}`;
+             // شێواز: (1000 x 2) + (گەیاندن بێ بەرامبەر) = 2000
+             priceDetails = `(${item.price.toLocaleString()} x ${item.quantity}) + (${t('free_shipping') || 'گەیاندن بێ بەرامبەر'}) = ${lineTotal.toLocaleString()}`;
         }
 
         message += `- ${itemName}\n`;
         message += `   💰 ${priceDetails}\n`;
-        message += `   🔢 ژمارە: ${item.quantity}\n`;
-        message += `   کۆی ئەم کاڵایە: ${lineTotal.toLocaleString()} د.ع\n`;
         message += `   ----------------\n`;
     });
     
