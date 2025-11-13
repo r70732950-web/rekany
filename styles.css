@@ -1,4 +1,3 @@
-/* styles.css */
 :root {
     --primary-color: #1a365d;
     --primary-light: #2a4365;
@@ -31,9 +30,21 @@ body {
     direction: rtl;
     overflow-x: hidden;
     font-family: 'Vazirmatn', sans-serif;
+    /* Prevention of pull-to-refresh on mobile to feel more native */
+    overscroll-behavior-y: none;
 }
 body.overlay-active {
     overflow: hidden;
+}
+
+/* [ 💡 نوێ ] - شاردنەوەی هەدەر کاتێک چات چالاکە */
+body.chat-active .app-header {
+    display: none !important;
+}
+
+/* [ 💡 نوێ ] - شاردنەوەی لیستی خوارەوە کاتێک چات چالاکە */
+body.chat-active .bottom-nav {
+    display: none !important;
 }
 
 .app-container { max-width: 100%; margin: 0 auto; background-color: var(--light-gray); min-height: 100vh; position: relative; overflow-x: hidden; }
@@ -53,6 +64,7 @@ body.overlay-active {
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     border-bottom: 1px solid var(--medium-gray);
     gap: 15px;
+    transition: transform 0.3s ease;
 }
 .logo { display: flex; align-items: center; gap: 10px; }
 .logo-bottom { font-size: 22px; font-weight: bold; color: var(--primary-color); white-space: nowrap; }
@@ -108,18 +120,21 @@ body.overlay-active {
     z-index: 1;
 }
 
-.main-content, #subcategoryDetailPage, .settings-page, #chatPage {
+.main-content, #subcategoryDetailPage, .settings-page {
     padding-top: 80px;
     padding-bottom: 85px;
 }
 
-/* Special padding for Chat Page to fit input area */
+/* [ 💡 نوێکراوە ] - تایبەتمەندییەکانی لاپەڕەی چات بۆ فوول سکرین */
 #chatPage {
-    padding-bottom: 0; /* Chat handles its own scrolling */
+    padding-top: 0 !important; /* لابردنی بۆشایی سەرەوە */
+    padding-bottom: 0 !important;
     display: flex;
     flex-direction: column;
     height: 100vh;
     overflow: hidden;
+    background-color: var(--chat-bg);
+    z-index: 200; /* دڵنیابوونەوە لەوەی لە سەرووی هەموو شتێکەوەیە */
 }
 
 .section {
