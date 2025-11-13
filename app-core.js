@@ -50,14 +50,11 @@ export function formatDescription(text) {
     return textWithLinks.replace(/\n/g, '<br>');
 }
 
-// [ 💡 تایبەتمەندی نوێ: دەرهێنانی نرخی گەیاندن لەناو نووسین ]
+// [ 💡 دۆزینەوەی ژمارەی گەیاندن ]
 function extractShippingCostFromText(text) {
     if (!text) return 0;
-    // لابردنی کۆما (بۆ نموونە 5,000 دەبێتە 5000)
     const cleanText = text.toString().replace(/,/g, '');
-    // گەڕان بەدوای یەکەم ژمارەدا
     const match = cleanText.match(/(\d+)/);
-    // ئەگەر ژمارە هەبوو، دەیکاتە ژمارە، ئەگەر نا دەبێتە 0
     return match ? parseInt(match[0], 10) : 0;
 }
 
@@ -461,7 +458,7 @@ async function fetchInitialProductsForHome(limitCount = 10) {
     }
 }
 
-// [ 💡 گۆڕانکاری: زیادکردن بۆ سەبەتە لەگەڵ هەژمارکردنی گەیاندن ]
+// [ 💡 ] زیادکردن بۆ سەبەتە
 export async function addToCartCore(productId) {
     let product = state.products.find(p => p.id === productId);
 
@@ -473,7 +470,7 @@ export async function addToCartCore(productId) {
         }
     }
 
-    // ١. دۆزینەوەی نرخی گەیاندن لەناو نووسین (ئەگەر نەبێت ٠)
+    // دۆزینەوەی گەیاندن
     const shippingText = (product.shippingInfo && product.shippingInfo[state.currentLanguage]) ||
                          (product.shippingInfo && product.shippingInfo.ku_sorani) || '';
     const calculatedShippingCost = extractShippingCostFromText(shippingText);
@@ -483,14 +480,13 @@ export async function addToCartCore(productId) {
 
     if (existingItem) {
         existingItem.quantity++;
-        // دڵنیابوونەوە لەوەی نرخی گەیاندن نوێ بێت
         existingItem.shippingCost = calculatedShippingCost; 
     } else {
         state.cart.push({
             id: product.id,
             name: product.name, 
             price: product.price,
-            shippingCost: calculatedShippingCost, // پاشەکەوتکردنی نرخی گەیاندن
+            shippingCost: calculatedShippingCost,
             image: mainImage,
             quantity: 1
         });
@@ -522,7 +518,7 @@ export function removeFromCartCore(productId) {
     return false; 
 }
 
-// [ 💡 گۆڕانکاری: ناردنی نامە بە شێوازی (نرخ x ژمارە) + گەیاندن = کۆ ]
+// [ 💡 ] نامەی واتسئاپ بە شێوازی هاوکێشە
 export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
@@ -531,7 +527,7 @@ export function generateOrderMessageCore() {
     
     state.cart.forEach(item => {
         const shipping = item.shippingCost || 0;
-        // گەیاندن یەکجار بۆ هەموو ژمارەکان: (1000 * 2) + 3000 = 5000
+        // گەیاندن یەکجار حساب دەکرێت: (نرخ * ژمارە) + گەیاندن
         const lineTotal = (item.price * item.quantity) + shipping;
         
         total += lineTotal;
@@ -540,10 +536,10 @@ export function generateOrderMessageCore() {
         
         let priceDetails = "";
         if (shipping > 0) {
-             // شێواز: (1000 x 2) + 3000 (گەیاندن) = 5000
+             // (1000 x 2) + 3000 (گەیاندن) = 5000
              priceDetails = `(${item.price.toLocaleString()} x ${item.quantity}) + ${shipping.toLocaleString()} (${t('shipping_cost') || 'گەیاندن'}) = ${lineTotal.toLocaleString()}`;
         } else {
-             // شێواز: (1000 x 2) + (گەیاندن بێ بەرامبەر) = 2000
+             // (1000 x 2) + (گەیاندن بێ بەرامبەر) = 2000
              priceDetails = `(${item.price.toLocaleString()} x ${item.quantity}) + (${t('free_shipping') || 'گەیاندن بێ بەرامبەر'}) = ${lineTotal.toLocaleString()}`;
         }
 
@@ -616,13 +612,22 @@ async function requestNotificationPermissionCore() {
     }
 }
 
+// [ 💡 نوێ ] : زیادکردنی userId بۆ تۆکن
 async function saveTokenToFirestore(token) {
     try {
         const tokensCollection = collection(db, 'device_tokens');
-        await setDoc(doc(tokensCollection, token), {
+        const tokenData = {
             createdAt: Date.now(),
-            language: state.currentLanguage 
-        });
+            language: state.currentLanguage
+        };
+        
+        // ئەگەر بەکارهێنەر هەبوو، IDـیەکەی زیاد بکە
+        if (state.currentUser && state.currentUser.uid) {
+            tokenData.userId = state.currentUser.uid;
+        }
+
+        await setDoc(doc(tokensCollection, token), tokenData, { merge: true });
+        console.log("Token saved with userId:", tokenData.userId);
     } catch (error) { console.error('Error saving token: ', error); }
 }
 
