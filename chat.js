@@ -58,9 +58,11 @@ function setupChatUI() {
         }
     }
 
-    // 2. Setup Chat Page HTML Structure (Injecting dynamically if empty)
+    // 2. Setup Chat Page HTML Structure (Injecting dynamically if empty or missing container)
     const chatPage = document.getElementById('chatPage');
-    if (chatPage && chatPage.innerHTML.trim() === '') {
+    
+    // [ چاککراوە ] : پشکنین دەکات ئەگەر کۆنتەینەری چات نەبوو، دروستی دەکاتەوە
+    if (chatPage && !chatPage.querySelector('.chat-container')) {
         chatPage.innerHTML = `
             <div class="chat-container">
                 <div class="chat-header" id="chatPageHeader">
@@ -98,7 +100,8 @@ function setupChatUI() {
 
     // 3. Setup Admin Chat List Page
     const adminChatListPage = document.getElementById('adminChatListPage');
-    if (adminChatListPage && adminChatListPage.innerHTML.trim() === '') {
+    // [ چاککراوە ] : پشکنین دەکات ئەگەر لیستەکە نەبوو
+    if (adminChatListPage && !adminChatListPage.querySelector('.conversation-list')) {
         adminChatListPage.innerHTML = `
             <div class="settings-page" style="padding-top: 60px;">
                 <h3 class="section-title"><i class="fas fa-inbox"></i> ${t('conversations_title')}</h3>
@@ -128,43 +131,46 @@ function setupChatListeners() {
     }
 
     // Input handling - [ چاککراوە: پشکنین بۆ بوونی توخمەکان ]
-    const textInput = document.getElementById('chatTextInput');
-    const sendBtn = document.getElementById('chatSendBtn');
-    const voiceBtn = document.getElementById('chatVoiceBtn');
-    const imageBtn = document.getElementById('chatImageBtn');
-    const imageInput = document.getElementById('chatImageInput');
+    // ئەمە ڕێگری دەکات لەوەی ئەگەر هێشتا HTML دروست نەبووبوو، هەڵە نەدات
+    setTimeout(() => {
+        const textInput = document.getElementById('chatTextInput');
+        const sendBtn = document.getElementById('chatSendBtn');
+        const voiceBtn = document.getElementById('chatVoiceBtn');
+        const imageBtn = document.getElementById('chatImageBtn');
+        const imageInput = document.getElementById('chatImageInput');
 
-    if (textInput) {
-        textInput.addEventListener('input', (e) => {
-            const val = e.target.value.trim();
-            if (val.length > 0) {
-                if(sendBtn) sendBtn.style.display = 'flex';
-                if(voiceBtn) voiceBtn.style.display = 'none';
-            } else {
-                if(sendBtn) sendBtn.style.display = 'none';
-                if(voiceBtn) voiceBtn.style.display = 'flex';
-            }
-        });
+        if (textInput) {
+            textInput.addEventListener('input', (e) => {
+                const val = e.target.value.trim();
+                if (val.length > 0) {
+                    if(sendBtn) sendBtn.style.display = 'flex';
+                    if(voiceBtn) voiceBtn.style.display = 'none';
+                } else {
+                    if(sendBtn) sendBtn.style.display = 'none';
+                    if(voiceBtn) voiceBtn.style.display = 'flex';
+                }
+            });
 
-        textInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage('text');
-        });
-    }
+            textInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage('text');
+            });
+        }
 
-    if (sendBtn) sendBtn.onclick = () => sendMessage('text');
-    
-    if (voiceBtn) {
-        voiceBtn.onclick = handleVoiceRecording;
-    }
+        if (sendBtn) sendBtn.onclick = () => sendMessage('text');
+        
+        if (voiceBtn) {
+            voiceBtn.onclick = handleVoiceRecording;
+        }
 
-    if (imageBtn && imageInput) {
-        imageBtn.onclick = () => imageInput.click();
-        imageInput.onchange = (e) => {
-            if (e.target.files.length > 0) {
-                sendMessage('image', e.target.files[0]);
-            }
-        };
-    }
+        if (imageBtn && imageInput) {
+            imageBtn.onclick = () => imageInput.click();
+            imageInput.onchange = (e) => {
+                if (e.target.files.length > 0) {
+                    sendMessage('image', e.target.files[0]);
+                }
+            };
+        }
+    }, 500); // کەمێک دواخستن بۆ دڵنیابوون لەوەی DOM ئامادەیە
 }
 
 // --- NAVIGATION Logic ---
@@ -347,7 +353,7 @@ function renderSingleMessage(msg, container, chatUserId) {
 async function sendMessage(type, file = null, orderData = null) {
     if (!state.currentUser && sessionStorage.getItem('isAdmin') !== 'true') return;
 
-    // [ چاککردن ] : دڵنیابوونەوە لەوەی ئینپوتەکە هەیە یان نا
+    // [ چاککراوە ] : دڵنیابوونەوە لەوەی ئینپوتەکە هەیە یان نا پێش ئەوەی .value لێ وەربگرین
     const textInput = document.getElementById('chatTextInput');
     let content = '';
     
@@ -355,6 +361,7 @@ async function sendMessage(type, file = null, orderData = null) {
         content = textInput.value.trim();
     }
     
+    // ئەگەر نامەکە دەق بێت و بەتاڵ بێت، نایەوێت بینێرێت
     if (type === 'text' && !content) return;
 
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
@@ -502,7 +509,7 @@ async function handleDirectOrder() {
         await addDoc(ordersCollection, orderData);
 
         // 2. Send 'order' message to chat
-        // [ چاککراوە ] ئەمە چیتر کێشە دروست ناکات چونکە sendMessage پشکنین بۆ ئینپوت دەکات
+        // [ چاککراوە ] ئێستا ئەمە بێ کێشەیە چونکە sendMessage پشکنین دەکات
         await sendMessage('order', null, orderData);
 
         // 3. Clear Cart
