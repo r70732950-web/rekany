@@ -77,6 +77,20 @@
             </div>
         </div>
 
+        <!-- [ 💡 نوێ ] : مۆدێلی دڵنیابوونەوە لە ناردنی داواکاری -->
+        <div id="orderConfirmationModal" class="modal">
+            <div class="modal-content" style="text-align: center; padding: 25px;">
+                <span class="close" aria-label="Close">&times;</span>
+                <i class="fas fa-check-circle" style="font-size: 50px; color: var(--primary-color); margin-bottom: 15px;"></i>
+                <h3 style="margin-bottom: 10px; font-weight: bold;">ناردنی داواکاری</h3>
+                <p style="margin-bottom: 25px; color: var(--text-light); line-height: 1.6;">دڵنیایت دەتەوێت ئەم داواکارییە بنێریت؟</p>
+                <div style="display: flex; gap: 10px;">
+                    <button id="confirmOrderBtn" style="background-color: var(--primary-color); color: white; flex: 1; padding: 12px; border-radius: 8px;">بەڵێ، بینێرە</button>
+                    <button id="cancelOrderBtn" style="background-color: #e2e8f0; color: var(--text-color); flex: 1; padding: 12px; border-radius: 8px;">پاشگەزبوونەوە</button>
+                </div>
+            </div>
+        </div>
+
         <div id="sheet-overlay" class="sheet-overlay"></div>
 
         <div id="notificationsSheet" class="bottom-sheet">
@@ -275,14 +289,10 @@
              </div>
         </div>
 
-        <!-- [ 💡 نوێ ] لاپەڕەی چات -->
         <div class="page page-hidden" id="chatPage">
-            <!-- لەڕێگەی JS ناوەڕۆکەکەی پڕ دەکرێتەوە -->
         </div>
 
-        <!-- [ 💡 نوێ ] لاپەڕەی لیستی چاتەکان (بۆ ئەدمین) -->
         <div class="page page-hidden" id="adminChatListPage">
-            <!-- لەڕێگەی JS ناوەڕۆکەکەی پڕ دەکرێتەوە -->
         </div>
 
         <div class="settings-page page page-hidden" id="settingsPage">
@@ -302,7 +312,6 @@
                 </div>
             </div>
 
-            <!-- [ 💡 نوێ ] دوگمەی پڕۆفایل لێرە زیادکرا چونکە لە Bottom Nav لابرا -->
             <div class="settings-group">
                 <div class="settings-item" id="settingsProfileBtn">
                     <div>
@@ -385,7 +394,6 @@
                 </div>
             </div>
 
-            <!-- [ 💡 نوێ ] بەشی بەڕێوەبردنی نامەکانی ئەدمین -->
             <div class="settings-group" id="adminChatsManagement" style="display: none;">
                 <div class="settings-item" id="adminChatsBtn">
                     <div>
@@ -1120,7 +1128,6 @@
                  <span data-translate-key="nav_cart">سەبەتە</span>
              </button>
              
-             <!-- [ 💡 نوێ ] دوگمەی چات لێرە دانرا لە جیاتی پڕۆفایل -->
              <button id="chatBtn" class="bottom-nav-item">
                  <span class="chat-badge" id="chatBadge"></span>
                  <i class="fas fa-comment-dots"></i>
@@ -1141,7 +1148,7 @@
     <script type="module" src="app-core.js"></script>
     <script type="module" src="app-ui.js"></script>
     <script type="module" src="home.js"></script>
-    <script type="module" src="chat.js"></script> <!-- [ 💡 نوێ ] -->
+    <script type="module" src="chat.js"></script>
     <script src="admin.js" defer></script>
 </body>
 </html>

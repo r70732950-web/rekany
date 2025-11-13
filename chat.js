@@ -114,6 +114,7 @@ function setupChatUI() {
 }
 
 function setupChatListeners() {
+    // Nav Button
     const chatBtn = document.getElementById('chatBtn');
     if (chatBtn) {
         chatBtn.onclick = () => {
@@ -121,6 +122,7 @@ function setupChatListeners() {
         };
     }
 
+    // Admin Chat List Button (in Settings)
     const adminChatsBtn = document.getElementById('adminChatsBtn');
     if (adminChatsBtn) {
         adminChatsBtn.onclick = () => {
@@ -177,6 +179,8 @@ function setupChatListeners() {
         }
     }, 1000);
 }
+
+// --- NAVIGATION Logic ---
 
 function openChatPage(targetUserId = null, targetUserName = null) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
@@ -272,6 +276,8 @@ function openAdminChatList() {
     subscribeToAllConversations();
 }
 
+// --- MESSAGING LOGIC ---
+
 function subscribeToMessages(chatUserId) {
     if (messagesUnsubscribe) messagesUnsubscribe();
 
@@ -329,7 +335,6 @@ function renderSingleMessage(msg, container, chatUserId) {
     } else if (msg.type === 'order') {
         const order = msg.orderDetails;
         if(order && order.items) {
-            // [ 💡 گۆڕانکاری گرنگ ]: دیزاینی نوێ بۆ داواکاری کە وێنە و زانیاری کەسی تێدایە
             contentHtml = `
                 <div class="order-bubble">
                     <div class="order-bubble-header"><i class="fas fa-receipt"></i> ${t('order_notification_title')}</div>
@@ -505,26 +510,46 @@ async function handleDirectOrder() {
         return;
     }
 
-    // [ 💡 چاککراوە ]: پشکنین بۆ ئەوەی بزانیت بەکارهێنەر پڕۆفایلەکەی پڕکردووەتەوە؟
     if (!state.userProfile.phone || !state.userProfile.address) {
         showNotification('تکایە سەرەتا زانیارییەکانت (ناونیشان و تەلەفۆن) لە پڕۆفایل پڕبکەرەوە', 'error');
         openPopup('profileSheet');
         return;
     }
 
-    const confirmOrder = confirm("دڵنیایت دەتەوێت داواکارییەکەت بنێریت؟");
-    if (!confirmOrder) return;
+    // [ 💡 چاککراوە ]: بەکارهێنانی مۆدێلی تایبەت لەجیاتی confirm()
+    window.globalAdminTools.openPopup('orderConfirmationModal', 'modal');
 
-    closeCurrentPopup(); 
+    const confirmBtn = document.getElementById('confirmOrderBtn');
+    const cancelBtn = document.getElementById('cancelOrderBtn');
 
+    // دڵنیابوونەوە لە لابردنی Event Listener ـە کۆنەکان بە بەکارهێنانی clone
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+    // داخستنی مۆدێل ئەگەر پەشیمان بووەوە
+    newCancelBtn.onclick = () => {
+        window.globalAdminTools.closeCurrentPopup();
+    };
+
+    // ناردنی داواکاری ئەگەر ڕازی بوو
+    newConfirmBtn.onclick = async () => {
+        window.globalAdminTools.closeCurrentPopup();
+        await processOrderSubmission();
+    };
+}
+
+// [ 💡 نوێ ]: فانکشنێکی جیاکراوە بۆ پڕۆسەی ناردنەکە
+async function processOrderSubmission() {
     const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     
-    // [ 💡 نوێ ]: دڵنیابوونەوە لەوەی داتا لە پڕۆفایلەوە دەهێنرێت
     const orderData = {
         userId: state.currentUser.uid,
-        userName: state.userProfile.name || state.currentUser.displayName, // بەکارهێنانی ناوی پڕۆفایل
-        userPhone: state.userProfile.phone || '', // بەکارهێنانی تەلەفۆنی پڕۆفایل
-        userAddress: state.userProfile.address || '', // بەکارهێنانی ناونیشانی پڕۆفایل
+        userName: state.userProfile.name || state.currentUser.displayName, 
+        userPhone: state.userProfile.phone || '', 
+        userAddress: state.userProfile.address || '', 
         items: state.cart,
         total: total,
         status: 'pending', 
@@ -604,6 +629,8 @@ function subscribeToAllConversations() {
         }
     });
 }
+
+// --- HELPER: Read Receipts ---
 
 async function markMessagesAsRead(msgDocs, chatUserId) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
