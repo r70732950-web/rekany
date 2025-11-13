@@ -59,7 +59,6 @@ function setupChatUI() {
     // 2. Setup Chat Page HTML Structure
     const chatPage = document.getElementById('chatPage');
     
-    // [ چاککراوە ] : زیادکردنی دوگمەی گەڕانەوە و هەبوونی Container
     if (chatPage && !chatPage.querySelector('.chat-container')) {
         chatPage.innerHTML = `
             <div class="chat-container">
@@ -131,20 +130,15 @@ function setupChatListeners() {
         };
     }
 
-    // [ چاککراوە ] : گوێگر بۆ دوگمەی گەڕانەوە (Event Delegation)
     document.addEventListener('click', (e) => {
         const backBtn = e.target.closest('#chatBackBtn');
         if (backBtn) {
-            // Show Bottom Nav again
             const bottomNav = document.querySelector('.bottom-nav');
             if (bottomNav) bottomNav.style.display = 'flex';
-            
-            // Go back
             history.back();
         }
     });
 
-    // Input handling - Wait for HTML injection
     setTimeout(() => {
         const textInput = document.getElementById('chatTextInput');
         const sendBtn = document.getElementById('chatSendBtn');
@@ -183,7 +177,7 @@ function setupChatListeners() {
                 }
             };
         }
-    }, 1000); // Increased timeout slightly to ensure DOM readiness
+    }, 1000);
 }
 
 // --- NAVIGATION Logic ---
@@ -191,17 +185,14 @@ function setupChatListeners() {
 function openChatPage(targetUserId = null) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     
-    // [ چاککراوە ] : شاردنەوەی لیستی خوارەوە کاتێک دەچیتە ناو چات
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) bottomNav.style.display = 'none';
 
     if (isAdmin && !targetUserId) {
-        // Admin clicked "Messages" on nav -> Go to conversation list
         openAdminChatList();
         return;
     }
 
-    // If User is not logged in
     if (!state.currentUser && !isAdmin) {
         history.pushState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', '#chat');
         
@@ -221,7 +212,6 @@ function openChatPage(targetUserId = null) {
         return;
     }
 
-    // Show Chat UI
     history.pushState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', '#chat');
     
     document.querySelectorAll('.page').forEach(page => {
@@ -238,15 +228,13 @@ function openChatPage(targetUserId = null) {
     if(inputArea) inputArea.style.display = 'flex';
     if(msgArea) {
         msgArea.style.display = 'flex';
-        msgArea.innerHTML = ''; // Clear previous
+        msgArea.innerHTML = ''; 
     }
 
-    // Setup context
     if (isAdmin) {
         activeChatUserId = targetUserId;
         const headerName = document.getElementById('chatHeaderName');
         if(headerName) headerName.textContent = "User"; 
-        // updateActiveNav('chatBtn'); // Not needed as we hide nav
     } else {
         activeChatUserId = state.currentUser.uid;
         const headerName = document.getElementById('chatHeaderName');
@@ -257,7 +245,6 @@ function openChatPage(targetUserId = null) {
 }
 
 function openAdminChatList() {
-    // Ensure bottom nav is visible for the list
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) bottomNav.style.display = 'flex';
 
@@ -285,10 +272,14 @@ function subscribeToMessages(chatUserId) {
     messagesUnsubscribe = onSnapshot(q, (snapshot) => {
         if(!msgArea) return;
 
+        // [ 💡 چاککراوە ] : سەرەتا ناوەڕۆکەکە دەشارینەوە بۆ ئەوەی جوڵەی سکڕۆڵ دەرنەکەوێت
+        msgArea.style.visibility = 'hidden';
+
         msgArea.innerHTML = ''; 
         
         if (snapshot.empty) {
             msgArea.innerHTML = `<div class="empty-chat-state"><i class="fas fa-comments"></i><p>${t('no_messages')}</p></div>`;
+            msgArea.style.visibility = 'visible'; // ئەگەر بەتاڵ بوو، پیشانی بدە
             return;
         }
 
@@ -297,10 +288,15 @@ function subscribeToMessages(chatUserId) {
             renderSingleMessage(msg, msgArea, chatUserId);
         });
 
-        // Scroll to bottom
+        // [ 💡 چاککراوە ] : سکڕۆڵ کردن بۆ خوارەوە دەستبەجێ
         msgArea.scrollTop = msgArea.scrollHeight;
 
-        // Mark as read if I am the receiver
+        // [ 💡 چاککراوە ] : دووبارە پیشاندانی ناوەڕۆکەکە بە بەکارهێنانی requestAnimationFrame
+        // ئەمە دڵنیایی دەدات کە سکڕۆڵەکە تەواو بووە پێش ئەوەی بەکارهێنەر بیبینێت
+        requestAnimationFrame(() => {
+            msgArea.style.visibility = 'visible';
+        });
+
         markMessagesAsRead(snapshot.docs, chatUserId);
     });
 }
@@ -347,11 +343,9 @@ function renderSingleMessage(msg, container, chatUserId) {
         }
     }
 
-    // Time Formatting
     const date = msg.timestamp ? new Date(msg.timestamp.toDate()) : new Date();
     const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
-    // Status Icon
     let statusIcon = '';
     if (isMe) {
         const statusClass = msg.isRead ? 'seen' : '';
@@ -369,11 +363,9 @@ function renderSingleMessage(msg, container, chatUserId) {
     container.appendChild(div);
 }
 
-// [ 💡 چاککراوە ] : چارەسەری کێشەی کۆنسۆڵ
 async function sendMessage(type, file = null, orderData = null) {
     if (!state.currentUser && sessionStorage.getItem('isAdmin') !== 'true') return;
 
-    // Check for input existence BEFORE accessing .value to prevent console error
     const textInput = document.getElementById('chatTextInput');
     let content = '';
     
@@ -392,7 +384,6 @@ async function sendMessage(type, file = null, orderData = null) {
         return;
     }
 
-    // Prepare Message Data
     const messageData = {
         senderId: senderId,
         receiverId: isAdmin ? activeChatUserId : 'admin',
@@ -403,7 +394,6 @@ async function sendMessage(type, file = null, orderData = null) {
     };
 
     try {
-        // Clear Input immediately only if it exists
         if (type === 'text' && textInput) {
             textInput.value = '';
             const sendBtn = document.getElementById('chatSendBtn');
@@ -412,7 +402,6 @@ async function sendMessage(type, file = null, orderData = null) {
             if(voiceBtn) voiceBtn.style.display = 'flex';
         }
 
-        // Handle File Uploads
         if (file) {
             showNotification('...Uploading', 'success');
             const storageRef = ref(storage, `chats/${docId}/${Date.now()}_${file.name || 'audio.webm'}`);
@@ -421,16 +410,13 @@ async function sendMessage(type, file = null, orderData = null) {
             messageData.fileUrl = downloadURL;
         }
 
-        // Handle Orders
         if (type === 'order') {
             messageData.orderDetails = orderData;
         }
 
-        // 1. Add Message to Subcollection
         const messagesRef = collection(db, "chats", docId, "messages");
         await addDoc(messagesRef, messageData);
 
-        // 2. Update Main Chat Document (For Conversation List)
         const chatDocRef = doc(db, "chats", docId);
         const chatUpdateData = {
             lastMessage: type === 'text' ? content : (type === 'image' ? '📷 Image' : (type === 'audio' ? '🎤 Audio' : '📦 Order')),
@@ -462,7 +448,6 @@ async function handleVoiceRecording() {
     if(!btn) return;
     
     if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-        // Start Recording
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(stream);
@@ -484,7 +469,6 @@ async function handleVoiceRecording() {
             showNotification('دەسەڵاتی مایکڕۆفۆن نەدراوە', 'error');
         }
     } else {
-        // Stop Recording
         mediaRecorder.stop();
     }
 }
@@ -506,9 +490,8 @@ async function handleDirectOrder() {
     const confirmOrder = confirm("دڵنیایت دەتەوێت داواکارییەکەت بنێریت؟");
     if (!confirmOrder) return;
 
-    closeCurrentPopup(); // Close Cart Sheet
+    closeCurrentPopup(); 
 
-    // Prepare Order Data
     const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const orderData = {
         userId: state.currentUser.uid,
@@ -522,20 +505,14 @@ async function handleDirectOrder() {
     };
 
     try {
-        // 1. Save to 'orders' collection
         await addDoc(ordersCollection, orderData);
-
-        // 2. Send 'order' message to chat
         await sendMessage('order', null, orderData);
 
-        // 3. Clear Cart
         state.cart = [];
         saveCart();
         
-        // Update UI
         document.querySelectorAll('.cart-count').forEach(el => el.textContent = '0');
 
-        // 4. Navigate to Chat
         openChatPage();
         showNotification(t('order_submitted'), 'success');
 
@@ -593,7 +570,6 @@ function subscribeToAllConversations() {
             container.appendChild(div);
         });
 
-        // Update Admin Badge in Settings
         const badge = document.getElementById('adminUnreadBadge');
         if(badge) {
             badge.textContent = unreadTotal;
@@ -628,7 +604,6 @@ async function markMessagesAsRead(msgDocs, chatUserId) {
     }
 }
 
-// --- HELPER: Check Unread for Main Nav Badge ---
 function checkUnreadMessages() {
     if (sessionStorage.getItem('isAdmin') === 'true') return; 
     
