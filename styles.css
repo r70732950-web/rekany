@@ -30,19 +30,19 @@ body {
     direction: rtl;
     overflow-x: hidden;
     font-family: 'Vazirmatn', sans-serif;
-    /* Prevention of pull-to-refresh on mobile to feel more native */
-    overscroll-behavior-y: none;
+    /* [ 💡 چاککراوە ] - ئەم دێڕە لابرا بۆ ئەوەی ریفڕێش کار بکاتەوە */
+    /* overscroll-behavior-y: none; */ 
 }
 body.overlay-active {
     overflow: hidden;
 }
 
-/* [ 💡 نوێ ] - شاردنەوەی هەدەر کاتێک چات چالاکە */
+/* شاردنەوەی هەدەر کاتێک چات چالاکە */
 body.chat-active .app-header {
     display: none !important;
 }
 
-/* [ 💡 نوێ ] - شاردنەوەی لیستی خوارەوە کاتێک چات چالاکە */
+/* شاردنەوەی لیستی خوارەوە کاتێک چات چالاکە */
 body.chat-active .bottom-nav {
     display: none !important;
 }
@@ -125,16 +125,16 @@ body.chat-active .bottom-nav {
     padding-bottom: 85px;
 }
 
-/* [ 💡 نوێکراوە ] - تایبەتمەندییەکانی لاپەڕەی چات بۆ فوول سکرین */
+/* تایبەتمەندییەکانی لاپەڕەی چات بۆ فوول سکرین */
 #chatPage {
-    padding-top: 0 !important; /* لابردنی بۆشایی سەرەوە */
+    padding-top: 0 !important;
     padding-bottom: 0 !important;
     display: flex;
     flex-direction: column;
     height: 100vh;
     overflow: hidden;
     background-color: var(--chat-bg);
-    z-index: 200; /* دڵنیابوونەوە لەوەی لە سەرووی هەموو شتێکەوەیە */
+    z-index: 200;
 }
 
 .section {
