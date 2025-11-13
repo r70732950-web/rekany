@@ -30,8 +30,7 @@ body {
     direction: rtl;
     overflow-x: hidden;
     font-family: 'Vazirmatn', sans-serif;
-    /* [ 💡 چاککراوە ] - ئەم دێڕە لابرا بۆ ئەوەی ریفڕێش کار بکاتەوە */
-    /* overscroll-behavior-y: none; */ 
+    /* overscroll-behavior-y: none; -> This was removed to allow pull-to-refresh */
 }
 body.overlay-active {
     overflow: hidden;
@@ -1626,9 +1625,16 @@ input:checked + .slider:before {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    scroll-behavior: smooth;
+    /* Removed scroll-behavior: smooth to prevent jumpy loading */
     background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); /* Subtle pattern */
     background-blend-mode: soft-light;
+    /* Add transition for opacity */
+    transition: opacity 0.2s ease-in-out;
+}
+
+/* [ 💡 نوێ ] - کلاسێک بۆ شاردنەوەی کاتیی نامەکان */
+.chat-messages.hidden {
+    opacity: 0;
 }
 
 /* Message Bubbles */

@@ -228,6 +228,7 @@ function openChatPage(targetUserId = null) {
     if(inputArea) inputArea.style.display = 'flex';
     if(msgArea) {
         msgArea.style.display = 'flex';
+        msgArea.classList.add('hidden'); // [ 💡 چاککراوە ] : سەرەتا دەیشارینەوە
         msgArea.innerHTML = ''; 
     }
 
@@ -272,14 +273,11 @@ function subscribeToMessages(chatUserId) {
     messagesUnsubscribe = onSnapshot(q, (snapshot) => {
         if(!msgArea) return;
 
-        // [ 💡 چاککراوە ] : سەرەتا ناوەڕۆکەکە دەشارینەوە بۆ ئەوەی جوڵەی سکڕۆڵ دەرنەکەوێت
-        msgArea.style.visibility = 'hidden';
-
         msgArea.innerHTML = ''; 
         
         if (snapshot.empty) {
             msgArea.innerHTML = `<div class="empty-chat-state"><i class="fas fa-comments"></i><p>${t('no_messages')}</p></div>`;
-            msgArea.style.visibility = 'visible'; // ئەگەر بەتاڵ بوو، پیشانی بدە
+            msgArea.classList.remove('hidden'); // [ 💡 چاککراوە ] : ئەگەر بەتاڵ بوو پیشانی بدە
             return;
         }
 
@@ -288,14 +286,14 @@ function subscribeToMessages(chatUserId) {
             renderSingleMessage(msg, msgArea, chatUserId);
         });
 
-        // [ 💡 چاککراوە ] : سکڕۆڵ کردن بۆ خوارەوە دەستبەجێ
+        // [ 💡 چاککراوە ] : سکڕۆڵ کردن بەبێ ئەنیمەیشن
+        // کاتێک کلاسەکە hiddenە، بەکارهێنەر نایبینێت، بۆیە سکڕۆڵەکە ڕوودەدات ئینجا دەردەکەوێت
         msgArea.scrollTop = msgArea.scrollHeight;
 
-        // [ 💡 چاککراوە ] : دووبارە پیشاندانی ناوەڕۆکەکە بە بەکارهێنانی requestAnimationFrame
-        // ئەمە دڵنیایی دەدات کە سکڕۆڵەکە تەواو بووە پێش ئەوەی بەکارهێنەر بیبینێت
-        requestAnimationFrame(() => {
-            msgArea.style.visibility = 'visible';
-        });
+        // [ 💡 چاککراوە ] : لابردنی شاردنەوەکە بە هێواشی
+        setTimeout(() => {
+            msgArea.classList.remove('hidden');
+        }, 50);
 
         markMessagesAsRead(snapshot.docs, chatUserId);
     });
