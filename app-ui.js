@@ -46,7 +46,8 @@ import {
     renderPageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
 } from './home.js'; 
 
-import { initChatSystem } from './chat.js';
+// [ 💡 ] openChatPage زیادکراوە بۆ چارەسەری کێشەی ڕیفرێشی چات
+import { initChatSystem, openChatPage } from './chat.js';
 
 export function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
@@ -394,7 +395,6 @@ export function setupScrollAnimations() {
     });
 }
 
-// [ 💡 گۆڕانکاری لە renderCartUI بۆ پیشاندانی گەیاندن بە ڕوونی ]
 function renderCartUI() {
     cartItemsContainer.innerHTML = '';
     if (state.cart.length === 0) {
@@ -411,7 +411,6 @@ function renderCartUI() {
 
     let total = 0;
     state.cart.forEach(item => {
-        // [ 💡 ] گەیاندن یەکجار هەژمار دەکرێت
         const itemTotal = (item.price * item.quantity) + (item.shippingCost || 0);
         total += itemTotal;
         
@@ -420,7 +419,6 @@ function renderCartUI() {
 
         const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
 
-        // [ 💡 ] دیزاینی نیشاندانی گەیاندن لەناو سەبەتە
         let shippingDisplay = '';
         if (item.shippingCost > 0) {
             shippingDisplay = `<span style="font-size:12px; color:#e53e3e;">(+ ${item.shippingCost.toLocaleString()} گەیاندن)</span>`;
@@ -1334,9 +1332,21 @@ function setupUIEventListeners() {
     }
 
     document.addEventListener('authChange', (e) => {
-        updateAdminUIAuth(e.detail.isAdmin);
-        if(e.detail.isAdmin && loginModal.style.display === 'block') {
+        const isAdmin = e.detail.isAdmin; // [ 💡 ] isAdmin وەربگرە
+        updateAdminUIAuth(isAdmin);
+        
+        if(isAdmin && loginModal.style.display === 'block') {
              closeCurrentPopup();
+        }
+
+        // [ 💡 چارەسەری کێشەی ڕیفرێشی چات 💡 ]
+        // ئەگەر بەکارهێنەر هاتە ژوورەوە و ئێستا لەناو لاپەڕەی چاتە، با ڕیفرێش بێتەوە
+        if (state.currentUser || isAdmin) {
+            const hash = window.location.hash;
+            if (hash === '#chat' || state.currentPageId === 'chatPage') {
+                console.log("Auth loaded, refreshing chat...");
+                openChatPage(); 
+            }
         }
     });
     

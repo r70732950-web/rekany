@@ -6,7 +6,7 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,6 +23,14 @@
 
 </head>
 <body>
+    <script>
+        (function() {
+            if (window.location.hash === '#chat' || window.location.hash === '#admin-chats') {
+                document.body.classList.add('chat-active');
+            }
+        })();
+    </script>
+
     <div class="app-container">
         <header class="app-header">
             <div class="main-header-content">
@@ -77,7 +85,6 @@
             </div>
         </div>
 
-        <!-- [ 💡 چاککراوە ] : بەکارهێنانی data-translate-key -->
         <div id="orderConfirmationModal" class="modal">
             <div class="modal-content" style="text-align: center; padding: 25px;">
                 <span class="close" aria-label="Close">&times;</span>
@@ -1151,5 +1158,3 @@
     <script src="admin.js" defer></script>
 </body>
 </html>
-
-

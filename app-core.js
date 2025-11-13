@@ -21,6 +21,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
+// --- Utility Functions ---
+
 export function debounce(func, delay = 500) {
     let timeout;
     return (...args) => {
@@ -50,13 +52,15 @@ export function formatDescription(text) {
     return textWithLinks.replace(/\n/g, '<br>');
 }
 
-// [ 💡 دۆزینەوەی ژمارەی گەیاندن ]
+// [ 💡 ] دۆزینەوەی نرخی گەیاندن لەناو نووسین
 function extractShippingCostFromText(text) {
     if (!text) return 0;
     const cleanText = text.toString().replace(/,/g, '');
     const match = cleanText.match(/(\d+)/);
     return match ? parseInt(match[0], 10) : 0;
 }
+
+// --- Storage Helpers ---
 
 export function saveCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
@@ -69,6 +73,8 @@ export function saveFavorites() {
 export function isFavorite(productId) {
     return state.favorites.includes(productId);
 }
+
+// --- Auth Functions ---
 
 async function handleLogin(email, password) {
     try {
@@ -143,6 +149,8 @@ async function handlePasswordReset(email) {
         return { success: false, message: t('error_generic') };
     }
 }
+
+// --- Fetching Data ---
 
 async function fetchCategories() {
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
@@ -470,7 +478,6 @@ export async function addToCartCore(productId) {
         }
     }
 
-    // دۆزینەوەی گەیاندن
     const shippingText = (product.shippingInfo && product.shippingInfo[state.currentLanguage]) ||
                          (product.shippingInfo && product.shippingInfo.ku_sorani) || '';
     const calculatedShippingCost = extractShippingCostFromText(shippingText);
@@ -518,7 +525,7 @@ export function removeFromCartCore(productId) {
     return false; 
 }
 
-// [ 💡 ] نامەی واتسئاپ بە شێوازی هاوکێشە
+// [ 💡 ] نامەی واتسئاپ
 export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
@@ -527,7 +534,7 @@ export function generateOrderMessageCore() {
     
     state.cart.forEach(item => {
         const shipping = item.shippingCost || 0;
-        // گەیاندن یەکجار حساب دەکرێت: (نرخ * ژمارە) + گەیاندن
+        // نرخ * ژمارە + گەیاندن (یەکجار)
         const lineTotal = (item.price * item.quantity) + shipping;
         
         total += lineTotal;
@@ -536,10 +543,9 @@ export function generateOrderMessageCore() {
         
         let priceDetails = "";
         if (shipping > 0) {
-             // (1000 x 2) + 3000 (گەیاندن) = 5000
+             // فۆرمات: (1000 x 2) + 3000 (گەیاندن) = 5000
              priceDetails = `(${item.price.toLocaleString()} x ${item.quantity}) + ${shipping.toLocaleString()} (${t('shipping_cost') || 'گەیاندن'}) = ${lineTotal.toLocaleString()}`;
         } else {
-             // (1000 x 2) + (گەیاندن بێ بەرامبەر) = 2000
              priceDetails = `(${item.price.toLocaleString()} x ${item.quantity}) + (${t('free_shipping') || 'گەیاندن بێ بەرامبەر'}) = ${lineTotal.toLocaleString()}`;
         }
 
@@ -594,34 +600,54 @@ export async function saveProfileCore(profileData) {
 }
 
 async function requestNotificationPermissionCore() {
+    // 1. پشکنین ئایا وێبگەڕەکە پشتگیری دەکات؟
+    if (!("Notification" in window)) {
+        return { granted: false, message: 'مۆبایلەکەت پشتگیری ئاگەداری (Notifications) ناکات.' };
+    }
+
+    // 2. پشکنین ئەگەر پێشتر بەکارهێنەر مۆڵەتی ڕەت کردبێتەوە (Block)
+    if (Notification.permission === 'denied') {
+        return { granted: false, message: 'مۆڵەتی ئاگەداری ڕەت کراوەتەوە (Blocked). تکایە لە ڕێکخستنەکانی وێبگەڕ (Settings) چالاکی بکە.' };
+    }
+
     try {
         const permission = await Notification.requestPermission();
+        
         if (permission === 'granted') {
-            const currentToken = await getToken(messaging, { serviceWorkerRegistration: await navigator.serviceWorker.ready });
+            const registration = await navigator.serviceWorker.ready;
+
+            // [ 💡 ] کلیلە نوێیەکەی تۆ لێرە دانراوە
+            const vapidKey = "BBu5yMLTteU8iIyneiAjmo6j5ERmlqCjOwKxZ8aPfLOHTETkehoqnML_7kM92yLwNyMr0xCC2AmeIyeumYgHBtM";
+
+            const currentToken = await getToken(messaging, { 
+                serviceWorkerRegistration: registration,
+                vapidKey: vapidKey 
+            });
+
             if (currentToken) {
                 await saveTokenToFirestore(currentToken);
-                return { granted: true, message: 'مۆڵەتی ناردنی ئاگەداری درا' };
+                return { granted: true, message: 'مۆڵەتی ناردنی ئاگەداری بە سەرکەوتوویی درا' };
             } else {
-                return { granted: false, message: 'تۆکن وەرنەگیرا' };
+                return { granted: false, message: 'تۆکن وەرنەگیرا (Token Error)' };
             }
         } else {
-            return { granted: false, message: 'مۆڵەت نەدرا' };
+            return { granted: false, message: 'مۆڵەت نەدرا (Denied)' };
         }
     } catch (error) {
-        return { granted: false, message: t('error_generic') };
+        console.error("Notification Error:", error);
+        return { granted: false, message: 'هەڵە: ' + error.message };
     }
 }
 
-// [ 💡 نوێ ] : زیادکردنی userId بۆ تۆکن
+// [ 💡 ] تۆمارکردنی تۆکن لەگەڵ UserID
 async function saveTokenToFirestore(token) {
     try {
         const tokensCollection = collection(db, 'device_tokens');
         const tokenData = {
-            createdAt: Date.now(),
+            lastUpdatedAt: Date.now(),
             language: state.currentLanguage
         };
         
-        // ئەگەر بەکارهێنەر هەبوو، IDـیەکەی زیاد بکە
         if (state.currentUser && state.currentUser.uid) {
             tokenData.userId = state.currentUser.uid;
         }
@@ -697,6 +723,11 @@ export function navigateToFilterCore(newState) {
 async function initializeCoreLogic() {
     if (!state.sliderIntervals) state.sliderIntervals = {};
     await fetchCategories();
+
+    // [ 💡 ] هەوڵدان بۆ نوێکردنەوەی تۆکن کاتێک بەرنامە دەکرێتەوە
+    if ('Notification' in window && Notification.permission === 'granted') {
+        requestNotificationPermissionCore(); 
+    }
 }
 
 async function updateTokenLanguageInFirestore(newLang) {
@@ -794,6 +825,11 @@ export async function initCore() {
                         if (wasAdmin && window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
                             window.AdminLogic.deinitialize();
                         }
+
+                        // [ 💡 ] ئەگەر لۆگین بوو، تۆکنەکە نوێ بکەرەوە بۆ ئەوەی بەستراوە بە IDـیەوە
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            requestNotificationPermissionCore();
+                        }
                     }
                 } 
                 else {
@@ -823,7 +859,8 @@ export async function initCore() {
             });
 
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js', { type: 'module' }).then(registration => {
+                // [ 💡 گرنگ: type: 'module' لابدراوە ]
+                navigator.serviceWorker.register('/sw.js').then(registration => {
                     registration.addEventListener('updatefound', () => {
                         const newWorker = registration.installing;
                         newWorker.addEventListener('statechange', () => {

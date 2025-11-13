@@ -174,7 +174,8 @@ function setupChatListeners() {
     }, 1000);
 }
 
-function openChatPage(targetUserId = null, targetUserName = null) {
+// [ 💡 ] ئەم فەنکشنە ئێستا Export کراوە بۆ ئەوەی لە app-ui.js بانگ بکرێت
+export function openChatPage(targetUserId = null, targetUserName = null) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     
     const bottomNav = document.querySelector('.bottom-nav');
@@ -204,7 +205,10 @@ function openChatPage(targetUserId = null, targetUserName = null) {
         return;
     }
 
-    history.pushState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', '#chat');
+    // ئەگەر پێشتر لە هیستۆری نەبووین، زیادی بکە
+    if (window.location.hash !== '#chat') {
+        history.pushState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', '#chat');
+    }
     
     document.querySelectorAll('.page').forEach(page => {
         const isActive = page.id === 'chatPage';
@@ -331,13 +335,10 @@ function renderSingleMessage(msg, container, chatUserId) {
                     <div class="order-bubble-content">
                         ${order.items.map(i => {
                             const shipping = i.shippingCost || 0;
-                            // [ 💡 ] حسابکردنی کۆی گشتی بۆ ئەم ئایتمە (نرخ * ژمارە) + گەیاندن
                             const singleTotal = (i.price * i.quantity) + shipping;
                             
-                            // [ 💡 ] دیزاین: پیشاندانی هاوکێشەکە
                             let priceDisplay = '';
                             if (shipping > 0) {
-                                // نموونە: (1000 x 2) + 3000 (گەیاندن) = 5000
                                 priceDisplay = `
                                     <div style="font-size:11px; color:#555;">
                                         (${i.price.toLocaleString()} x ${i.quantity}) + <span style="color:#e53e3e;">${shipping.toLocaleString()} (گەیاندن)</span>
@@ -347,7 +348,6 @@ function renderSingleMessage(msg, container, chatUserId) {
                                     </div>
                                 `;
                             } else {
-                                // نموونە: (1000 x 2) + بێ بەرامبەر
                                 priceDisplay = `
                                     <div style="font-size:11px; color:#555;">
                                         (${i.price.toLocaleString()} x ${i.quantity}) + <span style="color:#38a169;">(بێ بەرامبەر)</span>
