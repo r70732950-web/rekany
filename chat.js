@@ -70,7 +70,7 @@ function setupChatUI() {
 
                         <div class="conversation-avatar" id="chatHeaderAvatar"><i class="fas fa-user"></i></div>
                         <div style="flex: 1;">
-                            <div class="conversation-name" id="chatHeaderName">Admin</div>
+                            <div class="conversation-name" id="chatHeaderName">User</div>
                             <div class="conversation-time" id="chatHeaderStatus"><span class="chat-status-dot online"></span> ${t('online')}</div>
                         </div>
                     </div>
@@ -182,7 +182,8 @@ function setupChatListeners() {
 
 // --- NAVIGATION Logic ---
 
-function openChatPage(targetUserId = null) {
+// [ 💡 چاککراوە ] : زیادکردنی `targetUserName` بۆ ئەوەی ناوی بەکارهێنەر پیشان بدات
+function openChatPage(targetUserId = null, targetUserName = null) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     
     const bottomNav = document.querySelector('.bottom-nav');
@@ -228,14 +229,33 @@ function openChatPage(targetUserId = null) {
     if(inputArea) inputArea.style.display = 'flex';
     if(msgArea) {
         msgArea.style.display = 'flex';
-        msgArea.classList.add('hidden'); // [ 💡 چاککراوە ] : سەرەتا دەیشارینەوە
+        msgArea.classList.add('hidden'); 
         msgArea.innerHTML = ''; 
     }
 
+    // [ 💡 چاککراوە ] : لۆجیکی پیشاندانی ناو لە هەدەر
     if (isAdmin) {
         activeChatUserId = targetUserId;
         const headerName = document.getElementById('chatHeaderName');
-        if(headerName) headerName.textContent = "User"; 
+        if(headerName) {
+            if (targetUserName) {
+                // ئەگەر ناوەکە نێردرابوو، ڕاستەوخۆ دایبنێ
+                headerName.textContent = targetUserName;
+            } else {
+                // ئەگەر ناوەکە نەبوو، هەوڵ بدە لە دیتابەیس بیهێنیت
+                headerName.textContent = "...";
+                getDoc(doc(db, "chats", targetUserId)).then(docSnap => {
+                    if(docSnap.exists()) {
+                        const chatData = docSnap.data();
+                        headerName.textContent = chatData.userInfo?.displayName || "بەکارهێنەر";
+                    } else {
+                        headerName.textContent = "بەکارهێنەر";
+                    }
+                }).catch(() => {
+                    headerName.textContent = "بەکارهێنەر";
+                });
+            }
+        }
     } else {
         activeChatUserId = state.currentUser.uid;
         const headerName = document.getElementById('chatHeaderName');
@@ -277,7 +297,7 @@ function subscribeToMessages(chatUserId) {
         
         if (snapshot.empty) {
             msgArea.innerHTML = `<div class="empty-chat-state"><i class="fas fa-comments"></i><p>${t('no_messages')}</p></div>`;
-            msgArea.classList.remove('hidden'); // [ 💡 چاککراوە ] : ئەگەر بەتاڵ بوو پیشانی بدە
+            msgArea.classList.remove('hidden'); 
             return;
         }
 
@@ -286,11 +306,8 @@ function subscribeToMessages(chatUserId) {
             renderSingleMessage(msg, msgArea, chatUserId);
         });
 
-        // [ 💡 چاککراوە ] : سکڕۆڵ کردن بەبێ ئەنیمەیشن
-        // کاتێک کلاسەکە hiddenە، بەکارهێنەر نایبینێت، بۆیە سکڕۆڵەکە ڕوودەدات ئینجا دەردەکەوێت
         msgArea.scrollTop = msgArea.scrollHeight;
 
-        // [ 💡 چاککراوە ] : لابردنی شاردنەوەکە بە هێواشی
         setTimeout(() => {
             msgArea.classList.remove('hidden');
         }, 50);
@@ -547,13 +564,16 @@ function subscribeToAllConversations() {
             const date = data.lastMessageTime ? new Date(data.lastMessageTime.toDate()) : new Date();
             const timeStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+            // [ 💡 چاککراوە ] : ناوی بەکارهێنەر دەردەهێنین
+            const displayName = data.userInfo?.displayName || 'بەکارهێنەر';
+
             const div = document.createElement('div');
             div.className = `conversation-item ${isUnread ? 'unread' : ''}`;
             div.innerHTML = `
                 <div class="conversation-avatar"><i class="fas fa-user"></i></div>
                 <div class="conversation-info">
                     <div class="conversation-name">
-                        ${data.userInfo?.displayName || 'User'}
+                        ${displayName}
                         <span class="conversation-time">${timeStr}</span>
                     </div>
                     <div class="conversation-last-msg">
@@ -563,7 +583,8 @@ function subscribeToAllConversations() {
                 </div>
             `;
             div.onclick = () => {
-                openChatPage(doc.id);
+                // [ 💡 چاککراوە ] : ناوەکە دەنێرین بۆ فانکشنەکە
+                openChatPage(doc.id, displayName);
             };
             container.appendChild(div);
         });
