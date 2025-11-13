@@ -50,6 +50,17 @@ export function formatDescription(text) {
     return textWithLinks.replace(/\n/g, '<br>');
 }
 
+// [ 💡 تایبەتمەندی نوێ: دەرهێنانی نرخی گەیاندن لەناو نووسین ]
+function extractShippingCostFromText(text) {
+    if (!text) return 0;
+    // لابردنی کۆما (بۆ نموونە 5,000 دەبێتە 5000)
+    const cleanText = text.toString().replace(/,/g, '');
+    // گەڕان بەدوای یەکەم ژمارەدا
+    const match = cleanText.match(/(\d+)/);
+    // ئەگەر ژمارە هەبوو، دەیکاتە ژمارە، ئەگەر نا دەبێتە 0
+    return match ? parseInt(match[0], 10) : 0;
+}
+
 export function saveCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
 }
@@ -62,7 +73,6 @@ export function isFavorite(productId) {
     return state.favorites.includes(productId);
 }
 
-// فانکشنی چوونەژوورەوەی ئەدمین
 async function handleLogin(email, password) {
     try {
         await signInWithEmailAndPassword(auth, email, password);
@@ -71,8 +81,6 @@ async function handleLogin(email, password) {
     }
 }
 
-// [ 💡 چاککراوە: export لێرە لابرا ]
-// فانکشنی چوونەژوورەوەی بەکارهێنەر
 async function handleUserLogin(email, password) {
     try {
         await signInWithEmailAndPassword(auth, email, password);
@@ -83,18 +91,13 @@ async function handleUserLogin(email, password) {
     }
 }
 
-// [ 💡 چاککراوە: export لێرە لابرا ]
-// فانکشنی خۆتۆمارکردنی بەکارهێنەر
 async function handleUserSignUp(name, email, password) {
     try {
-        // 1. دروستکردنی بەکارهێنەر لە Auth
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // 2. نوێکردنەوەی پڕۆفایلی Auth (بۆ دانانی ناو)
         await updateProfile(user, { displayName: name });
 
-        // 3. دروستکردنی دۆکیومێنتی پڕۆفایل لە Firestore
         const userProfileRef = doc(usersCollection, user.uid);
         await setDoc(userProfileRef, {
             email: user.email,
@@ -118,8 +121,6 @@ async function handleUserSignUp(name, email, password) {
     }
 }
 
-// [ 💡 چاککراوە: export لێرە لابرا ]
-// فانکشنی چوونەدەرەوەی بەکارهێنەر
 async function handleUserLogout() {
     try {
         await signOut(auth);
@@ -130,8 +131,6 @@ async function handleUserLogout() {
     }
 }
 
-// [ 💡 چاککراوە: export لێرە لابرا ]
-// بیرچوونەوەی وشەی نهێنی
 async function handlePasswordReset(email) {
     if (!email) {
         return { success: false, message: t('password_reset_enter_email') };
@@ -147,7 +146,6 @@ async function handlePasswordReset(email) {
         return { success: false, message: t('error_generic') };
     }
 }
-
 
 async function fetchCategories() {
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
@@ -220,15 +218,10 @@ async function fetchRelatedProducts(currentProduct) {
     try {
         const snapshot = await getDocs(q);
         const allRelated = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        const filteredProducts = allRelated
-            .filter(product => product.id !== currentProduct.id) 
-            .slice(0, 6); 
-
+        const filteredProducts = allRelated.filter(product => product.id !== currentProduct.id).slice(0, 6); 
         return filteredProducts;
-        
     } catch (error) {
-        console.error("Error fetching related products (new method):", error);
+        console.error("Error fetching related products:", error);
         return [];
     }
 }
@@ -238,7 +231,6 @@ export async function fetchCategoryLayout(categoryId) {
     try {
         const layoutDocRef = doc(db, "category_layouts", categoryId);
         const docSnap = await getDoc(layoutDocRef);
-        
         if (docSnap.exists()) {
             const data = docSnap.data();
             if (data.enabled === true && Array.isArray(data.sections)) {
@@ -253,7 +245,6 @@ export async function fetchCategoryLayout(categoryId) {
 }
 
 async function fetchProducts(searchTerm = '', isNewSearch = false) {
-    
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
     if (shouldShowHomeSections) {
         return { isHome: true, layout: null, products: [], allLoaded: true };
@@ -262,7 +253,6 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
     const shouldShowCategoryLayout = !searchTerm && state.currentCategory !== 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
     if (shouldShowCategoryLayout) {
         const categoryLayoutData = await fetchCategoryLayout(state.currentCategory);
-        
         if (categoryLayoutData) { 
             return { isHome: true, layout: categoryLayoutData.sections, products: [], allLoaded: true };
         }
@@ -277,13 +267,11 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
     }
 
     if (state.isLoadingMoreProducts) return null; 
-
     if (isNewSearch) {
         state.allProductsLoaded = false;
         state.lastVisibleProductDoc = null;
         state.products = [];
     }
-
     if (state.allProductsLoaded && !isNewSearch) return null; 
 
     state.isLoadingMoreProducts = true;
@@ -419,12 +407,7 @@ async function fetchBrandGroupBrands(groupId) {
 async function fetchNewestProducts(limitCount = 10) {
     try {
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
-        const q = query(
-            productsCollection,
-            where('createdAt', '>=', fifteenDaysAgo),
-            orderBy('createdAt', 'desc'),
-            limit(limitCount)
-        );
+        const q = query(productsCollection, where('createdAt', '>=', fifteenDaysAgo), orderBy('createdAt', 'desc'), limit(limitCount));
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
@@ -450,25 +433,15 @@ async function fetchCategoryRowProducts(sectionData) {
     let queryField, queryValue;
 
     if (subSubcategoryId) {
-        queryField = 'subSubcategoryId';
-        queryValue = subSubcategoryId;
+        queryField = 'subSubcategoryId'; queryValue = subSubcategoryId;
     } else if (subcategoryId) {
-        queryField = 'subcategoryId';
-        queryValue = subcategoryId;
+        queryField = 'subcategoryId'; queryValue = subcategoryId;
     } else if (categoryId) {
-        queryField = 'categoryId';
-        queryValue = categoryId;
-    } else {
-        return []; 
-    }
+        queryField = 'categoryId'; queryValue = categoryId;
+    } else { return []; }
 
     try {
-        const q = query(
-            productsCollection,
-            where(queryField, '==', queryValue),
-            orderBy('createdAt', 'desc'),
-            limit(10)
-        );
+        const q = query(productsCollection, where(queryField, '==', queryValue), orderBy('createdAt', 'desc'), limit(10));
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
@@ -488,6 +461,7 @@ async function fetchInitialProductsForHome(limitCount = 10) {
     }
 }
 
+// [ 💡 گۆڕانکاری: زیادکردن بۆ سەبەتە لەگەڵ نرخی گەیاندن ]
 export async function addToCartCore(productId) {
     let product = state.products.find(p => p.id === productId);
 
@@ -495,21 +469,27 @@ export async function addToCartCore(productId) {
         console.warn("Product not found in local cache for cart. Fetching...");
         product = await fetchProductById(productId);
         if (!product) {
-            console.error(`Failed to add product ${productId} to cart: Not found.`);
             return { success: false, message: t('product_not_found_error') };
         }
     }
+
+    // 1. دەرهێنانی نرخی گەیاندن لەناو نووسین
+    const shippingText = (product.shippingInfo && product.shippingInfo[state.currentLanguage]) ||
+                         (product.shippingInfo && product.shippingInfo.ku_sorani) || '';
+    const calculatedShippingCost = extractShippingCostFromText(shippingText);
 
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
     const existingItem = state.cart.find(item => item.id === productId);
 
     if (existingItem) {
         existingItem.quantity++;
+        existingItem.shippingCost = calculatedShippingCost; // نوێکردنەوەی نرخی گەیاندن
     } else {
         state.cart.push({
             id: product.id,
             name: product.name, 
             price: product.price,
+            shippingCost: calculatedShippingCost, // پاشەکەوتکردنی نرخی گەیاندن
             image: mainImage,
             quantity: 1
         });
@@ -541,23 +521,41 @@ export function removeFromCartCore(productId) {
     return false; 
 }
 
+// [ 💡 گۆڕانکاری: ناردنی نامەی واتسئاپ بە شێوازی 1000+3000=4000 ]
 export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
     let total = 0;
     let message = t('order_greeting') + "\n\n";
+    
     state.cart.forEach(item => {
-        const itemTotal = item.price * item.quantity;
-        total += itemTotal;
-        const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
-        const itemDetails = t('order_item_details', { price: item.price.toLocaleString(), quantity: item.quantity });
-        message += `- ${itemNameInCurrentLang} | ${itemDetails}\n`;
-    });
-    message += `\n${t('order_total')}: ${total.toLocaleString()} د.ع.\n`;
+        const shipping = item.shippingCost || 0;
+        const itemOneTotal = item.price + shipping; 
+        const lineTotal = itemOneTotal * item.quantity; 
+        
+        total += lineTotal;
+        
+        const itemName = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
+        
+        let priceDetails = "";
+        if (shipping > 0) {
+             // فۆرمات: نرخ + گەیاندن = کۆ
+             priceDetails = `${item.price.toLocaleString()} + ${shipping.toLocaleString()} (${t('shipping_cost') || 'گەیاندن'}) = ${itemOneTotal.toLocaleString()}`;
+        } else {
+             priceDetails = `${item.price.toLocaleString()}`;
+        }
 
-    // [ 💡 گۆڕانکاری لێرە کرا 💡 ] - ئێستا زانیاری پڕۆفایل لە state.userProfile وەردەگرێت کە لە Firestoreـەوە هاتووە
+        message += `- ${itemName}\n`;
+        message += `   💰 ${priceDetails}\n`;
+        message += `   🔢 ژمارە: ${item.quantity}\n`;
+        message += `   کۆی ئەم کاڵایە: ${lineTotal.toLocaleString()} د.ع\n`;
+        message += `   ----------------\n`;
+    });
+    
+    message += `\n💵 ${t('order_total')}: ${total.toLocaleString()} د.ع.\n`;
+
     if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
-        message += `\n${t('order_user_info')}\n`;
+        message += `\n👤 ${t('order_user_info')}\n`;
         message += `${t('order_user_name')}: ${state.userProfile.name}\n`;
         message += `${t('order_user_address')}: ${state.userProfile.address}\n`;
         message += `${t('order_user_phone')}: ${state.userProfile.phone}\n`;
@@ -580,17 +578,12 @@ export function toggleFavoriteCore(productId) {
     }
 }
 
-// [ 💡 فانکشنی saveProfileCore بە تەواوی نوێکرایەوە 💡 ]
 export async function saveProfileCore(profileData) {
-    // 1. دڵنیابە کە بەکارهێنەر لۆگینە
     if (!state.currentUser) {
         return { success: false, message: "تکایە سەرەتا بچۆ ژوورەوە" }; 
     }
     try {
-        // 2. دۆکیومێنتی بەکارهێنەر لە 'users' بدۆزەرەوە
         const userProfileRef = doc(usersCollection, state.currentUser.uid);
-        
-        // 3. داتاکە نوێ بکەرەوە (merge: true مانای وایە داتاکانی تر nasrênewe)
         await setDoc(userProfileRef, {
             name: profileData.name || '',
             address: profileData.address || '',
@@ -605,28 +598,20 @@ export async function saveProfileCore(profileData) {
 }
 
 async function requestNotificationPermissionCore() {
-    console.log('Requesting notification permission...');
     try {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
-            console.log('Notification permission granted.');
-            const currentToken = await getToken(messaging, {
-                serviceWorkerRegistration: await navigator.serviceWorker.ready 
-            });
+            const currentToken = await getToken(messaging, { serviceWorkerRegistration: await navigator.serviceWorker.ready });
             if (currentToken) {
-                console.log('FCM Token:', currentToken);
                 await saveTokenToFirestore(currentToken);
                 return { granted: true, message: 'مۆڵەتی ناردنی ئاگەداری درا' };
             } else {
-                console.log('No registration token available.');
                 return { granted: false, message: 'تۆکن وەرنەگیرا' };
             }
         } else {
-            console.log('Unable to get permission to notify.');
             return { granted: false, message: 'مۆڵەت نەدرا' };
         }
     } catch (error) {
-        console.error('An error occurred while requesting permission: ', error);
         return { granted: false, message: t('error_generic') };
     }
 }
@@ -638,10 +623,7 @@ async function saveTokenToFirestore(token) {
             createdAt: Date.now(),
             language: state.currentLanguage 
         });
-        console.log(`Token saved to Firestore with language: ${state.currentLanguage}`);
-    } catch (error) {
-        console.error('Error saving token to Firestore: ', error);
-    }
+    } catch (error) { console.error('Error saving token: ', error); }
 }
 
 export function checkNewAnnouncementsCore(latestAnnouncementTimestamp) {
@@ -658,7 +640,6 @@ async function handleInstallPrompt(installBtn) {
         installBtn.style.display = 'none'; 
         state.deferredPrompt.prompt();
         const { outcome } = await state.deferredPrompt.userChoice;
-        console.log(`User response to the install prompt: ${outcome}`);
         state.deferredPrompt = null; 
     }
 }
@@ -668,21 +649,14 @@ async function forceUpdateCore() {
         try {
             if ('serviceWorker' in navigator) {
                 const registrations = await navigator.serviceWorker.getRegistrations();
-                for (const registration of registrations) {
-                    await registration.unregister();
-                }
-                console.log('Service Workers unregistered.');
+                for (const registration of registrations) { await registration.unregister(); }
             }
             if (window.caches) {
                 const keys = await window.caches.keys();
                 await Promise.all(keys.map(key => window.caches.delete(key)));
-                console.log('All caches cleared.');
             }
             return { success: true, message: t('update_success') };
-        } catch (error) {
-            console.error('Error during force update:', error);
-            return { success: false, message: t('error_generic') };
-        }
+        } catch (error) { return { success: false, message: t('error_generic') }; }
     }
     return { success: false, message: 'Update cancelled.' }; 
 }
@@ -690,7 +664,6 @@ async function forceUpdateCore() {
 export function saveCurrentScrollPositionCore() {
     const currentState = history.state;
     const activePage = document.getElementById(state.currentPageId); 
-
     if (activePage && state.currentPageId === 'mainPage' && currentState && !currentState.type) {
         history.replaceState({ ...currentState, scroll: activePage.scrollTop }, '');
     }
@@ -706,16 +679,13 @@ export function applyFilterStateCore(filterState) {
 export function navigateToFilterCore(newState) {
     saveCurrentScrollPositionCore(); 
     const finalState = { ...history.state, ...newState }; 
-
     const params = new URLSearchParams();
     if (finalState.category && finalState.category !== 'all') params.set('category', finalState.category);
     if (finalState.subcategory && finalState.subcategory !== 'all') params.set('subcategory', finalState.subcategory);
     if (finalState.subSubcategory && finalState.subSubcategory !== 'all') params.set('subSubcategory', finalState.subSubcategory);
     if (finalState.search) params.set('search', finalState.search);
     const newUrl = `${window.location.pathname}?${params.toString()}`;
-
     history.pushState(finalState, '', newUrl);
-
     applyFilterStateCore(finalState);
 }
 
@@ -726,22 +696,13 @@ async function initializeCoreLogic() {
 
 async function updateTokenLanguageInFirestore(newLang) {
     if ('Notification' in window && Notification.permission === 'granted') {
-        console.log(`Language changed to ${newLang}, updating token in Firestore...`);
         try {
-            const currentToken = await getToken(messaging, {
-                serviceWorkerRegistration: await navigator.serviceWorker.ready
-            });
-            
+            const currentToken = await getToken(messaging, { serviceWorkerRegistration: await navigator.serviceWorker.ready });
             if (currentToken) {
                 const tokensCollection = collection(db, 'device_tokens');
-                await setDoc(doc(tokensCollection, currentToken), {
-                    language: newLang 
-                }, { merge: true }); 
-                console.log(`Token ${currentToken} language updated to ${newLang}.`);
+                await setDoc(doc(tokensCollection, currentToken), { language: newLang }, { merge: true }); 
             }
-        } catch (error) {
-            console.error('Error updating token language:', error);
-        }
+        } catch (error) { console.error('Error updating token language:', error); }
     }
 }
 
@@ -756,7 +717,6 @@ export function setLanguageCore(lang) {
     updateTokenLanguageInFirestore(lang);
 }
 
-// [ 💡 فانکشنی نوێ زیادکرا 💡 ]
 let userProfileUnsubscribe = null; 
 
 async function loadUserProfile(uid) {
@@ -764,7 +724,6 @@ async function loadUserProfile(uid) {
         userProfileUnsubscribe();
         userProfileUnsubscribe = null;
     }
-
     const userProfileRef = doc(usersCollection, uid);
     
     userProfileUnsubscribe = onSnapshot(userProfileRef, (docSnap) => {
@@ -779,20 +738,16 @@ async function loadUserProfile(uid) {
                 state.currentUser.displayName = profileData.displayName;
                 state.currentUser.email = profileData.email;
             }
-            console.log("پڕۆفایلی بەکارهێنەر بارکرا:", state.userProfile);
         } else {
-            console.warn(`دۆکیومێنتی پڕۆفایل نەدۆزرایەوە بۆ: ${uid}. دروستکردنی یەکێکی نوێ...`);
             setDoc(userProfileRef, {
                 email: state.currentUser.email,
                 displayName: state.currentUser.displayName,
                 createdAt: Date.now(),
                 name: "", address: "", phone: ""
-            }).catch(e => console.error("هەڵە لە دروستکردنی پڕۆفایلی ونبوو:", e));
+            }).catch(e => console.error("Error creating profile:", e));
             state.userProfile = { name: "", address: "", phone: "" };
         }
         document.dispatchEvent(new CustomEvent('profileLoaded'));
-    }, (error) => {
-        console.error("هەڵە لە گوێگرتن لە پڕۆفایلی بەکارهێنەر:", error);
     });
 }
 
@@ -827,7 +782,6 @@ export async function initCore() {
                     else {
                         isAdmin = false;
                         state.currentUser = user; 
-                        
                         await loadUserProfile(user.uid);
                         
                         const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
@@ -854,23 +808,19 @@ export async function initCore() {
             });
 
             onMessage(messaging, (payload) => {
-                console.log('Foreground message received: ', payload);
                 document.dispatchEvent(new CustomEvent('fcmMessage', { detail: payload }));
             });
 
              window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
                 state.deferredPrompt = e;
-                console.log('`beforeinstallprompt` event fired.');
                 document.dispatchEvent(new Event('installPromptReady')); 
             });
 
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('/sw.js', { type: 'module' }).then(registration => {
-                    console.log('SW registered (as module).'); 
                     registration.addEventListener('updatefound', () => {
                         const newWorker = registration.installing;
-                        console.log('New SW found!', newWorker);
                         newWorker.addEventListener('statechange', () => {
                             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                                 document.dispatchEvent(new CustomEvent('swUpdateReady', { detail: { registration } }));
@@ -880,21 +830,16 @@ export async function initCore() {
                 }).catch(err => console.error('SW registration failed: ', err));
 
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
-                     console.log('New SW activated. Reloading...');
                      window.location.reload();
                 });
             }
         });
 }
 
-
 export {
     state, 
     handleLogin, 
-    
-    // [ 💡 ئەم export ـانە وەک خۆیان مانەوە ]
     handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
-    
     fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, 
     fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
     requestNotificationPermissionCore,

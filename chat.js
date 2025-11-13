@@ -22,10 +22,9 @@ import {
     ref, uploadBytes, getDownloadURL 
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
 
-// Variables to handle listeners
 let messagesUnsubscribe = null;
 let conversationsUnsubscribe = null;
-let activeChatUserId = null; // For Admin: keeping track of which user we are chatting with
+let activeChatUserId = null; 
 let mediaRecorder = null;
 let audioChunks = [];
 
@@ -36,7 +35,6 @@ export function initChatSystem() {
 }
 
 function setupChatUI() {
-    // 1. Add "Direct Order" button to Cart Sheet
     const cartActions = document.getElementById('cartActions');
     if (cartActions) {
         const existingBtn = cartActions.querySelector('.direct-order-btn');
@@ -56,7 +54,6 @@ function setupChatUI() {
         }
     }
 
-    // 2. Setup Chat Page HTML Structure
     const chatPage = document.getElementById('chatPage');
     
     if (chatPage && !chatPage.querySelector('.chat-container')) {
@@ -99,7 +96,6 @@ function setupChatUI() {
         `;
     }
 
-    // 3. Setup Admin Chat List Page
     const adminChatListPage = document.getElementById('adminChatListPage');
     if (adminChatListPage && !adminChatListPage.querySelector('.conversation-list')) {
         adminChatListPage.innerHTML = `
@@ -114,7 +110,6 @@ function setupChatUI() {
 }
 
 function setupChatListeners() {
-    // Nav Button
     const chatBtn = document.getElementById('chatBtn');
     if (chatBtn) {
         chatBtn.onclick = () => {
@@ -122,7 +117,6 @@ function setupChatListeners() {
         };
     }
 
-    // Admin Chat List Button (in Settings)
     const adminChatsBtn = document.getElementById('adminChatsBtn');
     if (adminChatsBtn) {
         adminChatsBtn.onclick = () => {
@@ -179,8 +173,6 @@ function setupChatListeners() {
         }
     }, 1000);
 }
-
-// --- NAVIGATION Logic ---
 
 function openChatPage(targetUserId = null, targetUserName = null) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
@@ -276,8 +268,6 @@ function openAdminChatList() {
     subscribeToAllConversations();
 }
 
-// --- MESSAGING LOGIC ---
-
 function subscribeToMessages(chatUserId) {
     if (messagesUnsubscribe) messagesUnsubscribe();
 
@@ -339,25 +329,49 @@ function renderSingleMessage(msg, container, chatUserId) {
                 <div class="order-bubble">
                     <div class="order-bubble-header"><i class="fas fa-receipt"></i> ${t('order_notification_title')}</div>
                     <div class="order-bubble-content">
-                        ${order.items.map(i => `
-                            <div class="order-bubble-item" style="display: flex; align-items: center; gap: 10px; padding: 8px 0;">
-                                <img src="${i.image || 'https://placehold.co/50'}" style="width: 45px; height: 45px; border-radius: 6px; object-fit: cover; border: 1px solid #eee;">
+                        ${order.items.map(i => {
+                            // [ 💡 ] دۆزینەوەی نرخی گەیاندن
+                            const shipping = i.shippingCost || 0;
+                            const singleTotal = i.price + shipping;
+                            
+                            let priceDisplay = '';
+                            if (shipping > 0) {
+                                // [ 💡 ] دیزاین: نرخ + گەیاندن = کۆ
+                                priceDisplay = `
+                                    <div style="font-size:11px; color:#555;">
+                                        ${i.price.toLocaleString()} + <span style="color:#e53e3e;">${shipping.toLocaleString()} (گەیاندن)</span>
+                                    </div>
+                                    <div style="font-weight:bold; color:var(--primary-color);">
+                                        = ${singleTotal.toLocaleString()} د.ع
+                                    </div>
+                                `;
+                            } else {
+                                priceDisplay = `<div style="font-weight:bold;">${i.price.toLocaleString()} د.ع</div>`;
+                            }
+
+                            return `
+                            <div class="order-bubble-item" style="display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #eee;">
+                                <img src="${i.image || 'https://placehold.co/50'}" style="width: 50px; height: 50px; border-radius: 6px; object-fit: cover; border: 1px solid #eee;">
                                 <div style="flex: 1; overflow: hidden;">
-                                    <div style="font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    <div style="font-weight: bold; font-size: 13px;">
                                         ${i.name && i.name[state.currentLanguage] ? i.name[state.currentLanguage] : (i.name.ku_sorani || i.name)}
                                     </div>
-                                    <div style="font-size: 12px; color: #666;">
-                                        ${i.price.toLocaleString()} د.ع <span style="margin-right:5px; color: var(--primary-color);">x${i.quantity}</span>
+                                    
+                                    ${priceDisplay}
+                                    
+                                    <div style="font-size: 12px; color: #666; margin-top:2px;">
+                                        ژمارە: <span style="color:black; font-weight:bold;">${i.quantity}</span>
                                     </div>
                                 </div>
                             </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                         
-                        <div class="order-bubble-total" style="border-top: 1px dashed #ccc; padding-top: 8px; margin-top: 5px;">
-                            ${t('total_price')} ${order.total.toLocaleString()} د.ع
+                        <div class="order-bubble-total" style="margin-top: 10px; font-size: 16px; text-align:center; background:#f1f1f1; padding:5px; border-radius:4px;">
+                            کۆی گشتی: ${order.total.toLocaleString()} د.ع
                         </div>
 
-                        <div style="background-color: #f9f9f9; padding: 8px; border-radius: 6px; margin-top: 10px; font-size: 12px; color: #444;">
+                        <div style="background-color: #fff; border:1px solid #eee; padding: 8px; border-radius: 6px; margin-top: 10px; font-size: 12px; color: #444;">
                             <div style="margin-bottom: 4px;"><i class="fas fa-user" style="width: 15px; text-align: center;"></i> ${order.userName || 'ناو نەنوسراوە'}</div>
                             <div style="margin-bottom: 4px;"><i class="fas fa-phone" style="width: 15px; text-align: center;"></i> <a href="tel:${order.userPhone}" style="color: inherit; text-decoration: none;">${order.userPhone || 'ژمارە نییە'}</a></div>
                             <div><i class="fas fa-map-marker-alt" style="width: 15px; text-align: center;"></i> ${order.userAddress || 'ناونیشان نییە'}</div>
@@ -532,9 +546,7 @@ async function handleDirectOrder() {
     };
 
     newConfirmBtn.onclick = async () => {
-        // [ 💡 چاککراوە ] - بەکارهێنانی history.go(-2) بۆ داخستنی Modal + Cart بە یەکجار
         history.go(-2);
-        // کەمێک چاوەڕێ دەکەین تا Popstate کار دەکات، ئینجا چات دەکەینەوە
         setTimeout(() => {
              processOrderSubmission();
         }, 150);
@@ -542,7 +554,11 @@ async function handleDirectOrder() {
 }
 
 async function processOrderSubmission() {
-    const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    // [ 💡 ] کۆکردنەوەی هەمووی: (نرخ + گەیاندن) * ژمارە
+    const total = state.cart.reduce((sum, item) => {
+        const itemCost = item.price + (item.shippingCost || 0);
+        return sum + (itemCost * item.quantity);
+    }, 0);
     
     const orderData = {
         userId: state.currentUser.uid,
@@ -628,8 +644,6 @@ function subscribeToAllConversations() {
         }
     });
 }
-
-// --- HELPER: Read Receipts ---
 
 async function markMessagesAsRead(msgDocs, chatUserId) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
