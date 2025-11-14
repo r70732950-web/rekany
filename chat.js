@@ -1,36 +1,40 @@
-// chat.js
-import { 
-    db, auth, storage, 
-    chatsCollection, ordersCollection, usersCollection, 
+import {
+    db, auth, storage,
+    chatsCollection, ordersCollection, usersCollection,
     serverTimestamp,
-    ref, uploadBytes, getDownloadURL 
+    ref, uploadBytes, getDownloadURL,
+    onAuthStateChanged, // [ 💡 زیادکرا ]
+    getDoc, doc // [ 💡 زیادکرا ]
 } from './app-setup.js';
 
-import { 
-    state, t, saveCart, authReady
+import {
+    state, t, saveCart,
+    authReadyPromise // [ 💡 زیادکرا ]
 } from './app-core.js';
 
-import { 
+import {
     showNotification, openPopup, closeCurrentPopup
 } from './app-ui.js';
 
-import { 
-    collection, addDoc, query, where, orderBy, onSnapshot, 
-    doc, setDoc, updateDoc, getDoc, limit, writeBatch 
+import {
+    collection, addDoc, query, where, orderBy, onSnapshot,
+    setDoc, updateDoc, limit, writeBatch
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
 let messagesUnsubscribe = null;
 let conversationsUnsubscribe = null;
-let activeChatUserId = null; 
+let activeChatUserId = null;
+
+// --- [ 💡 بەشی نوێ بۆ تۆمارکردنی دەنگ ] ---
 let mediaRecorder = null;
 let audioChunks = [];
-
-// [ 💡 زیادکرا ] - گۆڕاو بۆ لۆجیکی ڕاگرتن و ڕەکێشان
+let recordStartTime = 0;
+let recordTimerInterval = null;
 let isRecording = false;
 let isCancelled = false;
-let startTouchX = 0;
-let startTouchY = 0; // بۆ دڵنیابوونەوە لە سکڕۆڵ نەکردن
-const cancelThreshold = 50; // 50px
+let startX = 0; // شوێنی دەستپێکی پەنجە
+const CANCEL_THRESHOLD = -50; // چەندێک ڕایبکێشێت بۆ ڕەتکردنەوە (بۆ RTL)
+// --- [ کۆتایی بەشی نوێ ] ---
 
 export function initChatSystem() {
     setupChatUI();
@@ -42,15 +46,15 @@ function setupChatUI() {
     const cartActions = document.getElementById('cartActions');
     if (cartActions) {
         const existingBtn = cartActions.querySelector('.direct-order-btn');
-        if(existingBtn) existingBtn.remove();
+        if (existingBtn) existingBtn.remove();
 
         const directOrderBtn = document.createElement('button');
-        directOrderBtn.className = 'whatsapp-btn direct-order-btn'; 
+        directOrderBtn.className = 'whatsapp-btn direct-order-btn';
         directOrderBtn.style.backgroundColor = 'var(--primary-color)';
         directOrderBtn.style.marginTop = '10px';
         directOrderBtn.innerHTML = `<i class="fas fa-paper-plane"></i> <span>${t('submit_order_direct')}</span>`;
         directOrderBtn.onclick = handleDirectOrder;
-        
+
         if (cartActions.firstChild) {
             cartActions.insertBefore(directOrderBtn, cartActions.firstChild);
         } else {
@@ -59,7 +63,7 @@ function setupChatUI() {
     }
 
     const chatPage = document.getElementById('chatPage');
-    
+
     if (chatPage && !chatPage.querySelector('.chat-container')) {
         chatPage.innerHTML = `
             <div class="chat-container">
@@ -78,21 +82,21 @@ function setupChatUI() {
                 </div>
                 <div class="chat-messages" id="chatMessagesArea">
                     </div>
-                
-                <!-- [ 💡 زیادکرا ] - نیشاندەری ڕەکێشان بۆ ڕەتکردنەوە -->
-                <div class="record-indicator" id="recordIndicator" style="display: none;">
-                    <i class="fas fa-trash-alt"></i>
-                    <span><i class="fas fa-chevron-left"></i> ${t('slide_to_cancel')}</span>
-                </div>
-                
                 <div class="typing-indicator" id="typingIndicator">${t('typing')}</div>
-                
+
+                <!-- [ 💡 گۆڕدرا ] : زیادکردنی نیشاندەری تۆمارکردن -->
+                <div class="record-indicator" id="recordIndicator">
+                    <i class="fas fa-trash-alt" id="recordCancelIcon"></i>
+                    <span id="recordTimer">0:00</span>
+                    <span><i class="fas fa-arrow-left"></i> ${t('slide_to_cancel')}</span>
+                </div>
+
                 <div class="chat-input-area" id="chatInputArea">
                     <button class="chat-action-btn" id="chatImageBtn"><i class="fas fa-image"></i></button>
                     <input type="file" id="chatImageInput" accept="image/*" style="display:none;">
-                    
+
                     <input type="text" class="chat-input" id="chatTextInput" placeholder="${t('type_message')}">
-                    
+
                     <button class="chat-action-btn chat-record-btn" id="chatVoiceBtn"><i class="fas fa-microphone"></i></button>
                     <button class="chat-action-btn chat-send-btn" id="chatSendBtn" style="display:none;"><i class="fas fa-paper-plane"></i></button>
                 </div>
@@ -144,6 +148,7 @@ function setupChatListeners() {
         }
     });
 
+    // [ 💡 گۆڕدرا ] : بەکارهێنانی setTimeout بۆ دڵنیابوونەوە لە بوونی دوگمەکان
     setTimeout(() => {
         const textInput = document.getElementById('chatTextInput');
         const sendBtn = document.getElementById('chatSendBtn');
@@ -155,11 +160,11 @@ function setupChatListeners() {
             textInput.addEventListener('input', (e) => {
                 const val = e.target.value.trim();
                 if (val.length > 0) {
-                    if(sendBtn) sendBtn.style.display = 'flex';
-                    if(voiceBtn) voiceBtn.style.display = 'none';
+                    if (sendBtn) sendBtn.style.display = 'flex';
+                    if (voiceBtn) voiceBtn.style.display = 'none';
                 } else {
-                    if(sendBtn) sendBtn.style.display = 'none';
-                    if(voiceBtn) voiceBtn.style.display = 'flex';
+                    if (sendBtn) sendBtn.style.display = 'none';
+                    if (voiceBtn) voiceBtn.style.display = 'flex';
                 }
             });
 
@@ -169,16 +174,36 @@ function setupChatListeners() {
         }
 
         if (sendBtn) sendBtn.onclick = () => sendMessage('text');
-        
+
         if (voiceBtn) {
-            // [ 💡 گۆڕدرا ] - گوێگرەکان گۆڕدران بۆ ڕاگرتن و ڕەکێشان
-            voiceBtn.addEventListener('mousedown', handleRecordStart);
-            voiceBtn.addEventListener('mouseup', handleRecordStop);
-            voiceBtn.addEventListener('mouseleave', handleRecordCancel); // Каtێک ماوس دەچێتە دەرەوە
-            
-            voiceBtn.addEventListener('touchstart', handleRecordStart, { passive: false });
-            voiceBtn.addEventListener('touchend', handleRecordStop);
-            voiceBtn.addEventListener('touchmove', handleRecordMove);
+            // [ 💡 گۆڕدرا ] : بەکارهێنانی touch events بۆ تۆمارکردن
+            voiceBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // ڕێگری لە scroll
+                startX = e.touches[0].clientX;
+                isCancelled = false;
+                startRecording();
+            });
+            voiceBtn.addEventListener('touchmove', (e) => {
+                if (!isRecording) return;
+                const currentX = e.touches[0].clientX;
+                const deltaX = currentX - startX; // لە RTL دەبێت negative بێت بۆ cancel
+
+                const indicator = document.getElementById('recordIndicator');
+                if (deltaX < CANCEL_THRESHOLD) { // ئەگەر زیاتر لە 50px ڕاکێشرا
+                    isCancelled = true;
+                    indicator.classList.add('cancelled');
+                } else {
+                    isCancelled = false;
+                    indicator.classList.remove('cancelled');
+                }
+            });
+            voiceBtn.addEventListener('touchend', (e) => {
+                stopRecording();
+            });
+            voiceBtn.addEventListener('touchcancel', (e) => {
+                isCancelled = true; // ئەگەر شتێک ڕووبدات (وەک تەلەفۆن)
+                stopRecording();
+            });
         }
 
         if (imageBtn && imageInput) {
@@ -189,69 +214,143 @@ function setupChatListeners() {
                 }
             };
         }
-    }, 1000);
+    }, 1000); // دواخستن بۆ دڵنیابوونەوە
 }
+
+// [ 💡 فەنکشنی نوێ ] : دەستپێکردنی تۆمار
+async function startRecording() {
+    if (isRecording) return;
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        isRecording = true;
+        isCancelled = false;
+
+        const inputArea = document.getElementById('chatInputArea');
+        const indicator = document.getElementById('recordIndicator');
+        const timerSpan = document.getElementById('recordTimer');
+        const voiceBtn = document.getElementById('chatVoiceBtn');
+
+        inputArea.classList.add('recording');
+        indicator.classList.add('visible');
+        voiceBtn.classList.add('recording');
+
+        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+        
+        mediaRecorder.onstop = async () => {
+            isRecording = false;
+            inputArea.classList.remove('recording');
+            indicator.classList.remove('visible', 'cancelled');
+            voiceBtn.classList.remove('recording');
+            clearInterval(recordTimerInterval);
+            timerSpan.textContent = '0:00';
+
+            // کوژاندنەوەی stream
+            stream.getTracks().forEach(track => track.stop());
+
+            if (isCancelled) {
+                console.log("تۆمار ڕەتکرایەوە");
+                return;
+            }
+
+            if (audioChunks.length > 0) {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                await sendMessage('audio', audioBlob);
+            }
+        };
+
+        mediaRecorder.start();
+        recordStartTime = Date.now();
+        recordTimerInterval = setInterval(() => {
+            const seconds = Math.floor((Date.now() - recordStartTime) / 1000);
+            timerSpan.textContent = `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`;
+        }, 1000);
+
+    } catch (err) {
+        console.error("Mic Error:", err);
+        showNotification('دەسەڵاتی مایکڕۆفۆن نەدراوە', 'error');
+        isRecording = false;
+    }
+}
+
+// [ 💡 فەنکشنی نوێ ] : وەستاندنی تۆمار
+function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+    }
+}
+
 
 export async function openChatPage(targetUserId = null, targetUserName = null) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-    
+
+    // شاردنەوەی لیستی خوارەوە
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) bottomNav.style.display = 'none';
 
+    // گۆڕینی URL
     if (window.location.hash !== '#chat' && !targetUserId) {
         history.pushState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', '#chat');
     }
-    
+
+    // نیشاندانی لاپەڕەی چات
     document.querySelectorAll('.page').forEach(page => {
         const isActive = page.id === 'chatPage';
         page.classList.toggle('page-active', isActive);
         page.classList.toggle('page-hidden', !isActive);
     });
 
+    // نیشاندانی لۆدەری کاتیی
     const msgArea = document.getElementById('chatMessagesArea');
     if (msgArea) {
         msgArea.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%; color:var(--dark-gray);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
         msgArea.style.display = 'flex';
     }
-
-    await authReady; 
-
+    
+    // [ 💡 چاککراوە ] : چاوەڕێی ئامادەبوونی Auth دەکەین
+    await authReadyPromise;
+    
+    // 1. ئەگەر ئەدمینە و دیاری نەکراوە لەگەڵ کێ قسە دەکات
     if (isAdmin && !targetUserId) {
         openAdminChatList();
         return;
     }
 
+    // 2. ئەگەر بەکارهێنەر نییە (lمەبەست state.currentUser) و ئەدمینیش نییە
     if (!state.currentUser && !isAdmin) {
         const loginReq = document.getElementById('chatLoginRequired');
         const inputArea = document.getElementById('chatInputArea');
-        
-        if(loginReq) loginReq.style.display = 'flex';
-        if(inputArea) inputArea.style.display = 'none';
-        if(msgArea) msgArea.style.display = 'none';
+
+        if (loginReq) loginReq.style.display = 'flex';
+        if (inputArea) inputArea.style.display = 'none';
+        if (msgArea) msgArea.style.display = 'none';
         return;
     }
 
+    // 3. ئەگەر لۆگین بووە
     const loginReq = document.getElementById('chatLoginRequired');
     const inputArea = document.getElementById('chatInputArea');
 
-    if(loginReq) loginReq.style.display = 'none';
-    if(inputArea) inputArea.style.display = 'flex';
-    
-    if(msgArea) {
-        msgArea.innerHTML = ''; 
-        msgArea.classList.add('hidden'); 
+    if (loginReq) loginReq.style.display = 'none';
+    if (inputArea) inputArea.style.display = 'flex';
+
+    if (msgArea) {
+        msgArea.innerHTML = '';
+        msgArea.classList.add('hidden');
     }
 
     if (isAdmin) {
         activeChatUserId = targetUserId;
         const headerName = document.getElementById('chatHeaderName');
-        if(headerName) {
+        if (headerName) {
             if (targetUserName) {
                 headerName.textContent = targetUserName;
             } else {
                 headerName.textContent = "...";
                 getDoc(doc(db, "chats", targetUserId)).then(docSnap => {
-                    if(docSnap.exists()) {
+                    if (docSnap.exists()) {
                         const chatData = docSnap.data();
                         headerName.textContent = chatData.userInfo?.displayName || "بەکارهێنەر";
                     } else {
@@ -263,9 +362,9 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
             }
         }
     } else {
-        activeChatUserId = state.currentUser.uid; 
+        activeChatUserId = state.currentUser.uid;
         const headerName = document.getElementById('chatHeaderName');
-        if(headerName) headerName.textContent = t('admin_badge');
+        if (headerName) headerName.textContent = t('admin_badge');
     }
 
     subscribeToMessages(activeChatUserId);
@@ -276,7 +375,7 @@ function openAdminChatList() {
     if (bottomNav) bottomNav.style.display = 'flex';
 
     history.pushState({ type: 'page', id: 'adminChatListPage', title: t('conversations_title') }, '', '#admin-chats');
-    
+
     document.querySelectorAll('.page').forEach(page => {
         const isActive = page.id === 'adminChatListPage';
         page.classList.toggle('page-active', isActive);
@@ -293,15 +392,15 @@ function subscribeToMessages(chatUserId) {
     const q = query(messagesRef, orderBy("timestamp", "asc"));
 
     const msgArea = document.getElementById('chatMessagesArea');
-    
-    messagesUnsubscribe = onSnapshot(q, (snapshot) => {
-        if(!msgArea) return;
 
-        msgArea.innerHTML = ''; 
-        
+    messagesUnsubscribe = onSnapshot(q, (snapshot) => {
+        if (!msgArea) return;
+
+        msgArea.innerHTML = '';
+
         if (snapshot.empty) {
             msgArea.innerHTML = `<div class="empty-chat-state"><i class="fas fa-comments"></i><p>${t('no_messages')}</p></div>`;
-            msgArea.classList.remove('hidden'); 
+            msgArea.classList.remove('hidden');
             return;
         }
 
@@ -321,7 +420,17 @@ function subscribeToMessages(chatUserId) {
 }
 
 function renderSingleMessage(msg, container, chatUserId) {
-    const isMe = msg.senderId === (sessionStorage.getItem('isAdmin') === 'true' ? 'admin' : (state.currentUser ? state.currentUser.uid : ''));
+    // [ 💡 چاککراوە ] : دڵنیابوونەوە لەوەی senderId هەیە
+    const currentUserId = state.currentUser ? state.currentUser.uid : null;
+    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+    
+    let isMe;
+    if (isAdmin) {
+        isMe = msg.senderId === 'admin';
+    } else {
+        isMe = msg.senderId === currentUserId;
+    }
+    
     const alignClass = isMe ? 'message-sent' : 'message-received';
     
     const div = document.createElement('div');
@@ -505,131 +614,6 @@ async function sendMessage(type, file = null, orderData = null) {
     }
 }
 
-// [ 💡 زیادکرا ] - فەنکشنی یاریدەدەر بۆ شاردنەوە و نیشاندانی UI
-function showRecordingUI() {
-    const inputArea = document.getElementById('chatInputArea');
-    const recordIndicator = document.getElementById('recordIndicator');
-    if (inputArea) inputArea.classList.add('recording');
-    if (recordIndicator) {
-        recordIndicator.style.display = 'flex';
-        setTimeout(() => recordIndicator.classList.add('visible'), 10);
-    }
-}
-
-function hideRecordingUI() {
-    const inputArea = document.getElementById('chatInputArea');
-    const recordIndicator = document.getElementById('recordIndicator');
-    if (inputArea) inputArea.classList.remove('recording');
-    if (recordIndicator) {
-        recordIndicator.classList.remove('visible');
-        recordIndicator.classList.remove('cancelled');
-        // کەمێک دوای دەخەین تا ئەنیمەیشنەکە تەواو دەبێت
-        setTimeout(() => recordIndicator.style.display = 'none', 200);
-    }
-}
-
-// [ 💡 زیادکرا ] - فەنکشنە نوێیەکانی ڕیکۆرد
-async function handleRecordStart(e) {
-    e.preventDefault();
-    if (isRecording) return;
-    
-    isRecording = true;
-    isCancelled = false;
-    
-    if (e.type === 'touchstart') {
-        startTouchX = e.touches[0].clientX;
-        startTouchY = e.touches[0].clientY; // بۆ ڕێگری لە سکڕۆڵ
-    }
-    
-    showRecordingUI();
-    
-    const btn = document.getElementById('chatVoiceBtn');
-    if(btn) btn.classList.add('recording');
-
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
-
-        mediaRecorder.ondataavailable = (ev) => audioChunks.push(ev.data);
-        
-        mediaRecorder.onstop = async () => {
-            if (btn) btn.classList.remove('recording');
-            
-            // ستریمی مایکڕۆفۆنەکە بکوژێنەرەوە
-            stream.getTracks().forEach(track => track.stop());
-
-            if (isCancelled) {
-                console.log("Recording cancelled.");
-            } else {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                await sendMessage('audio', audioBlob);
-            }
-            
-            // دڵنیابوونەوە لە پاککردنەوە
-            isRecording = false;
-            isCancelled = false;
-            hideRecordingUI();
-        };
-
-        mediaRecorder.start();
-
-    } catch (err) {
-        console.error("Mic Error:", err);
-        showNotification('دەسەڵاتی مایکڕۆفۆن نەدراوە', 'error');
-        isRecording = false;
-        hideRecordingUI();
-        if(btn) btn.classList.remove('recording');
-    }
-}
-
-function handleRecordStop() {
-    if (!isRecording) return;
-    isRecording = false; // وەک ئاڵا دایدەنێین کە بەکارهێنەر دەستی بەرد
-    
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
-        mediaRecorder.stop(); // onstop handler کارەکانی تر تەواو دەکات
-    } else {
-        // ئەگەر ریکۆردەرەکە ئامادە نەبوو، تەنها UI ـەکە بشارەوە
-        hideRecordingUI();
-    }
-}
-
-function handleRecordMove(e) {
-    if (!isRecording) return;
-    
-    // ڕێگری لە سکڕۆڵی لاپەڕەکە لەکاتی ڕەکێشان
-    e.preventDefault(); 
-
-    const currentTouchX = e.touches[0].clientX;
-    const deltaX = startTouchX - currentTouchX; // چەپ = زیادبوون
-
-    const recordIndicator = document.getElementById('recordIndicator');
-    
-    if (deltaX > cancelThreshold) {
-        isCancelled = true;
-        if (recordIndicator) recordIndicator.classList.add('cancelled');
-    } else {
-        isCancelled = false;
-        if (recordIndicator) recordIndicator.classList.remove('cancelled');
-    }
-}
-
-function handleRecordCancel() {
-    if (!isRecording) return;
-    
-    isCancelled = true; // نیشانەی ڕەتکردنەوە دادەنێین
-    isRecording = false;
-    
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
-        mediaRecorder.stop(); // onstop handler دڵنیا دەبێتەوە کە نای نێرێت
-    } else {
-        hideRecordingUI();
-    }
-}
-
-// -----------------------------------------------------------------
-
 async function handleDirectOrder() {
     if (!state.currentUser) {
         showNotification('تکایە سەرەتا بچۆ ژوورەوە', 'error');
@@ -768,7 +752,7 @@ async function markMessagesAsRead(msgDocs, chatUserId) {
 
     msgDocs.forEach(docSnap => {
         const msg = docSnap.data();
-        const amIReceiver = (isAdmin && msg.receiverId === 'admin') || (!isAdmin && msg.receiverId === state.currentUser?.uid);
+        const amIReceiver = (isAdmin && msg.receiverId === 'admin') || (!isAdmin && state.currentUser && msg.receiverId === state.currentUser.uid);
         
         if (amIReceiver && !msg.isRead) {
             batch.update(docSnap.ref, { isRead: true });
@@ -788,7 +772,8 @@ async function markMessagesAsRead(msgDocs, chatUserId) {
 function checkUnreadMessages() {
     if (sessionStorage.getItem('isAdmin') === 'true') return; 
     
-    auth.onAuthStateChanged(user => {
+    // [ 💡 چاککراوە ] : گوێگرتن لە onAuthStateChanged
+    onAuthStateChanged(auth, (user) => {
         if (user) {
             onSnapshot(doc(db, "chats", user.uid), (docSnap) => {
                 const badge = document.getElementById('chatBadge');
@@ -800,6 +785,12 @@ function checkUnreadMessages() {
                     }
                 }
             });
+        } else {
+            // ئەگەر لۆگ ئاوت بوو
+            const badge = document.getElementById('chatBadge');
+            if (badge) {
+                badge.classList.remove('has-unread');
+            }
         }
     });
 }
@@ -828,13 +819,3 @@ window.playAudio = function(btn, url) {
         progressBar.style.width = '0%';
     };
 };
-
-function updateActiveNav(activeBtnId) {
-    document.querySelectorAll('.bottom-nav-item').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    const activeBtn = document.getElementById(activeBtnId);
-    if (activeBtn) {
-        activeBtn.classList.add('active');
-    }
-}
