@@ -164,12 +164,12 @@ export const translations = {
         password_reset_email_sent: "ئیمەیڵێکی ڕێستکردنەوەت بۆ نێردرا. تکایە سەیری ئیمەیڵەکەت بکە.",
         password_reset_error_not_found: "ئەم ئیمەیڵە تۆمار نەکراوە.",
         password_reset_enter_email: "تکایە سەرەتا ئیمەیڵەکەت لە خانەی ئیمەیڵ بنووسە.",
-        
-        // [ 💡 نوێ ] : وشە نوێیەکان
         order_confirm_title: "ناردنی داواکاری",
         order_confirm_msg: "دڵنیایت دەتەوێت ئەم داواکارییە بنێریت؟",
         yes_send: "بەڵێ، بینێرە",
-        cancel: "پاشگەزبوونەوە"
+        cancel: "پاشگەزبوونەوە",
+        // [ 💡 زیادکرا ]
+        slide_to_cancel: "ڕایبکێشە بۆ ڕەتکردنەوە",
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -235,7 +235,7 @@ export const translations = {
         order_user_phone: "ژمارا تەلەفونێ:",
         order_prompt_info: "هیڤی دکەین ناڤ و نیشان و پێزانینێن خۆ فرێکە بۆ گەهاندنێ.",
         login_error: "ئیمەیل یان پەیڤا نهێنى یا خەلەتە",
-        logout_success: "ب سەرکەفتیانە چوويه دەر",
+        logout_success: "ب سەرکەfتیانە چوويه دەر",
         profile_saved: "پێزانینێن پروفایلی هاتنە پاشەکەفتکرن",
         all_categories_label: "هەمی",
         install_app: "دامەزراندنا ئەپی",
@@ -263,7 +263,7 @@ export const translations = {
         has_discount_badge: "داشکان تێدایە",
         force_update: "ناچارکرن ب نویکرنەوە (ژێبرنا کاشی)",
         update_confirm: "تو پشتراستی دێ ئەپی نویکەیەڤە؟ دێ هەمی کاش د ناڤ وێبگەرا تە دا هێتە ژێبرن.",
-        update_success: "ئەپ ب سەرکەفتیانە هاتە نویکرن!",
+        update_success: "ئەپ ب سەرکەfتیانە هاتە نویکرن!",
         newest_products: "نوترین کاڵا",
         see_all: "هەمیا ببینە",
         all_products_section_title: "هەمی کاڵا",
@@ -279,20 +279,20 @@ export const translations = {
         user_login_error: "ئیمەیل یان پەیڤا نهێنى یا خەلەتە",
         user_signup_email_exists: "ئەڤ ئیمەیلە بەری نوکە هاتیە بکارئینان",
         user_signup_weak_password: "پەیڤا نهێنى یا لاوازە (پێدڤیە 6 پیت بن)",
-        user_signup_success: "هەژمارا تە ب سەرکەفتیانە هاتە دروستکرن",
-        user_logout_success: "ب سەرکەفتیانە چوويه دەر",
+        user_signup_success: "هەژمارا تە ب سەرکەfتیانە هاتە دروستکرن",
+        user_logout_success: "ب سەرکەfتیانە چوويه دەر",
         auth_tab_login: "چوونا ژوور",
         auth_tab_signup: "خۆتۆمارکرن",
         forgot_password: "تە پەیڤا نهێنى ژبیرکریە؟",
         password_reset_email_sent: "ئیمەیلەکا رێستکرنێ بۆ تە هاتە فرێکرن. هیڤی دکەین سحکە ئیمەیلا خۆ.",
         password_reset_error_not_found: "ئەڤ ئیمەیلە تۆمار نەکریە.",
         password_reset_enter_email: "هیڤی دکەین ئێکەم جار ئیمەیلا خۆ ل خانەیا ئیمەیلێ بنڤیسە.",
-        
-        // [ 💡 نوێ ] : وشە نوێیەکان
         order_confirm_title: "فرێکرنا داخازیێ",
         order_confirm_msg: "تۆ پشتڕاستی تە دڤێت ڤێ داخازیێ فرێکەی؟",
         yes_send: "بەڵێ، فرێکە",
-        cancel: "پەشێمانبوون"
+        cancel: "پەشێمانبوون",
+        // [ 💡 زیادکرا ]
+        slide_to_cancel: "بۆ ژێبرنێ ڕاکێشە",
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -410,12 +410,12 @@ export const translations = {
         password_reset_email_sent: "تم إرسال بريد إلكتروني لإعادة تعيين كلمة المرور. يرجى التحقق من بريدك.",
         password_reset_error_not_found: "هذا البريد الإلكتروني غير مسجل.",
         password_reset_enter_email: "يرجى إدخال بريدك الإلكتروني في حقل البريد أولاً.",
-        
-        // [ 💡 نوێ ] : وشە نوێیەکان
         order_confirm_title: "تأكيد الطلب",
         order_confirm_msg: "هل أنت متأكد من أنك تريد إرسال هذا الطلب؟",
         yes_send: "نعم، أرسل",
-        cancel: "إلغاء"
+        cancel: "إلغاء",
+        // [ 💡 زیادکرا ]
+        slide_to_cancel: "اسحب للإلغاء",
     }
 };
 

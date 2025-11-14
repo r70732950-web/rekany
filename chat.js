@@ -7,7 +7,7 @@ import {
 } from './app-setup.js';
 
 import { 
-    state, t, saveCart, authReady // [ 💡 زیادکرا ] - چاوەڕێکردنی ئامادەبوونی Auth
+    state, t, saveCart, authReady
 } from './app-core.js';
 
 import { 
@@ -24,6 +24,13 @@ let conversationsUnsubscribe = null;
 let activeChatUserId = null; 
 let mediaRecorder = null;
 let audioChunks = [];
+
+// [ 💡 زیادکرا ] - گۆڕاو بۆ لۆجیکی ڕاگرتن و ڕەکێشان
+let isRecording = false;
+let isCancelled = false;
+let startTouchX = 0;
+let startTouchY = 0; // بۆ دڵنیابوونەوە لە سکڕۆڵ نەکردن
+const cancelThreshold = 50; // 50px
 
 export function initChatSystem() {
     setupChatUI();
@@ -71,6 +78,13 @@ function setupChatUI() {
                 </div>
                 <div class="chat-messages" id="chatMessagesArea">
                     </div>
+                
+                <!-- [ 💡 زیادکرا ] - نیشاندەری ڕەکێشان بۆ ڕەتکردنەوە -->
+                <div class="record-indicator" id="recordIndicator" style="display: none;">
+                    <i class="fas fa-trash-alt"></i>
+                    <span><i class="fas fa-chevron-left"></i> ${t('slide_to_cancel')}</span>
+                </div>
+                
                 <div class="typing-indicator" id="typingIndicator">${t('typing')}</div>
                 
                 <div class="chat-input-area" id="chatInputArea">
@@ -157,7 +171,14 @@ function setupChatListeners() {
         if (sendBtn) sendBtn.onclick = () => sendMessage('text');
         
         if (voiceBtn) {
-            voiceBtn.onclick = handleVoiceRecording;
+            // [ 💡 گۆڕدرا ] - گوێگرەکان گۆڕدران بۆ ڕاگرتن و ڕەکێشان
+            voiceBtn.addEventListener('mousedown', handleRecordStart);
+            voiceBtn.addEventListener('mouseup', handleRecordStop);
+            voiceBtn.addEventListener('mouseleave', handleRecordCancel); // Каtێک ماوس دەچێتە دەرەوە
+            
+            voiceBtn.addEventListener('touchstart', handleRecordStart, { passive: false });
+            voiceBtn.addEventListener('touchend', handleRecordStop);
+            voiceBtn.addEventListener('touchmove', handleRecordMove);
         }
 
         if (imageBtn && imageInput) {
@@ -171,7 +192,6 @@ function setupChatListeners() {
     }, 1000);
 }
 
-// [ ✅ چاککراوە ] - ئەم فەنکشنە چاوەڕێی دڵنیابوونەوەی Auth دەکات
 export async function openChatPage(targetUserId = null, targetUserName = null) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     
@@ -188,24 +208,19 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
         page.classList.toggle('page-hidden', !isActive);
     });
 
-    // [ 💡 ] نیشاندانی لۆدەر
     const msgArea = document.getElementById('chatMessagesArea');
     if (msgArea) {
         msgArea.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%; color:var(--dark-gray);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
         msgArea.style.display = 'flex';
     }
 
-    // [ 💡 ] چاوەڕێی ئامادەبوونی Auth دەکەین
     await authReady; 
-    // ئێستا دڵنیاین کە state.currentUser یان پڕە یان nullـە
 
-    // 1. ئەگەر ئەدمینە و دیاری نەکراوە -> بچۆ بۆ لیستی چات
     if (isAdmin && !targetUserId) {
         openAdminChatList();
         return;
     }
 
-    // 2. ئەگەر بەکارهێنەر نییە (لۆگین نەکراوە) و ئەدمینیش نییە -> داوای لۆگین بکە
     if (!state.currentUser && !isAdmin) {
         const loginReq = document.getElementById('chatLoginRequired');
         const inputArea = document.getElementById('chatInputArea');
@@ -216,7 +231,6 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
         return;
     }
 
-    // 3. ئەگەر لۆگین بووە (یان ئەدمینە و targetUserId هەیە) -> چاتەکە بکەرەوە
     const loginReq = document.getElementById('chatLoginRequired');
     const inputArea = document.getElementById('chatInputArea');
 
@@ -224,7 +238,7 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
     if(inputArea) inputArea.style.display = 'flex';
     
     if(msgArea) {
-        msgArea.innerHTML = ''; // لۆدەرەکە لابدە
+        msgArea.innerHTML = ''; 
         msgArea.classList.add('hidden'); 
     }
 
@@ -249,7 +263,6 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
             }
         }
     } else {
-        // ئێستا دڵنیاین state.currentUser هەیە
         activeChatUserId = state.currentUser.uid; 
         const headerName = document.getElementById('chatHeaderName');
         if(headerName) headerName.textContent = t('admin_badge');
@@ -308,7 +321,6 @@ function subscribeToMessages(chatUserId) {
 }
 
 function renderSingleMessage(msg, container, chatUserId) {
-    // [ ✅ ] ئەمە ئێستا سەلامەتە چونکە چاوەڕێی authReady دەکەین
     const isMe = msg.senderId === (sessionStorage.getItem('isAdmin') === 'true' ? 'admin' : (state.currentUser ? state.currentUser.uid : ''));
     const alignClass = isMe ? 'message-sent' : 'message-received';
     
@@ -493,35 +505,130 @@ async function sendMessage(type, file = null, orderData = null) {
     }
 }
 
-async function handleVoiceRecording() {
-    const btn = document.getElementById('chatVoiceBtn');
-    if(!btn) return;
-    
-    if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            audioChunks = [];
-
-            mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
-            mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                await sendMessage('audio', audioBlob);
-                btn.classList.remove('recording');
-            };
-
-            mediaRecorder.start();
-            btn.classList.add('recording');
-            showNotification(t('recording'), 'success');
-
-        } catch (err) {
-            console.error("Mic Error:", err);
-            showNotification('دەسەڵاتی مایکڕۆفۆن نەدراوە', 'error');
-        }
-    } else {
-        mediaRecorder.stop();
+// [ 💡 زیادکرا ] - فەنکشنی یاریدەدەر بۆ شاردنەوە و نیشاندانی UI
+function showRecordingUI() {
+    const inputArea = document.getElementById('chatInputArea');
+    const recordIndicator = document.getElementById('recordIndicator');
+    if (inputArea) inputArea.classList.add('recording');
+    if (recordIndicator) {
+        recordIndicator.style.display = 'flex';
+        setTimeout(() => recordIndicator.classList.add('visible'), 10);
     }
 }
+
+function hideRecordingUI() {
+    const inputArea = document.getElementById('chatInputArea');
+    const recordIndicator = document.getElementById('recordIndicator');
+    if (inputArea) inputArea.classList.remove('recording');
+    if (recordIndicator) {
+        recordIndicator.classList.remove('visible');
+        recordIndicator.classList.remove('cancelled');
+        // کەمێک دوای دەخەین تا ئەنیمەیشنەکە تەواو دەبێت
+        setTimeout(() => recordIndicator.style.display = 'none', 200);
+    }
+}
+
+// [ 💡 زیادکرا ] - فەنکشنە نوێیەکانی ڕیکۆرد
+async function handleRecordStart(e) {
+    e.preventDefault();
+    if (isRecording) return;
+    
+    isRecording = true;
+    isCancelled = false;
+    
+    if (e.type === 'touchstart') {
+        startTouchX = e.touches[0].clientX;
+        startTouchY = e.touches[0].clientY; // بۆ ڕێگری لە سکڕۆڵ
+    }
+    
+    showRecordingUI();
+    
+    const btn = document.getElementById('chatVoiceBtn');
+    if(btn) btn.classList.add('recording');
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (ev) => audioChunks.push(ev.data);
+        
+        mediaRecorder.onstop = async () => {
+            if (btn) btn.classList.remove('recording');
+            
+            // ستریمی مایکڕۆفۆنەکە بکوژێنەرەوە
+            stream.getTracks().forEach(track => track.stop());
+
+            if (isCancelled) {
+                console.log("Recording cancelled.");
+            } else {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                await sendMessage('audio', audioBlob);
+            }
+            
+            // دڵنیابوونەوە لە پاککردنەوە
+            isRecording = false;
+            isCancelled = false;
+            hideRecordingUI();
+        };
+
+        mediaRecorder.start();
+
+    } catch (err) {
+        console.error("Mic Error:", err);
+        showNotification('دەسەڵاتی مایکڕۆفۆن نەدراوە', 'error');
+        isRecording = false;
+        hideRecordingUI();
+        if(btn) btn.classList.remove('recording');
+    }
+}
+
+function handleRecordStop() {
+    if (!isRecording) return;
+    isRecording = false; // وەک ئاڵا دایدەنێین کە بەکارهێنەر دەستی بەرد
+    
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop(); // onstop handler کارەکانی تر تەواو دەکات
+    } else {
+        // ئەگەر ریکۆردەرەکە ئامادە نەبوو، تەنها UI ـەکە بشارەوە
+        hideRecordingUI();
+    }
+}
+
+function handleRecordMove(e) {
+    if (!isRecording) return;
+    
+    // ڕێگری لە سکڕۆڵی لاپەڕەکە لەکاتی ڕەکێشان
+    e.preventDefault(); 
+
+    const currentTouchX = e.touches[0].clientX;
+    const deltaX = startTouchX - currentTouchX; // چەپ = زیادبوون
+
+    const recordIndicator = document.getElementById('recordIndicator');
+    
+    if (deltaX > cancelThreshold) {
+        isCancelled = true;
+        if (recordIndicator) recordIndicator.classList.add('cancelled');
+    } else {
+        isCancelled = false;
+        if (recordIndicator) recordIndicator.classList.remove('cancelled');
+    }
+}
+
+function handleRecordCancel() {
+    if (!isRecording) return;
+    
+    isCancelled = true; // نیشانەی ڕەتکردنەوە دادەنێین
+    isRecording = false;
+    
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop(); // onstop handler دڵنیا دەبێتەوە کە نای نێرێت
+    } else {
+        hideRecordingUI();
+    }
+}
+
+// -----------------------------------------------------------------
 
 async function handleDirectOrder() {
     if (!state.currentUser) {
