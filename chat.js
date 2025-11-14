@@ -2,7 +2,9 @@
 import { 
     db, auth, storage, 
     chatsCollection, ordersCollection, usersCollection, 
-    serverTimestamp 
+    serverTimestamp,
+    // [ 💡 ] لێرەوە import دەکرێن بۆ ئەوەی کێشەی Storage نەمێنێت
+    ref, uploadBytes, getDownloadURL 
 } from './app-setup.js';
 
 import { 
@@ -18,9 +20,8 @@ import {
     doc, setDoc, updateDoc, getDoc, limit, writeBatch 
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-import { 
-    ref, uploadBytes, getDownloadURL 
-} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
+// [ 💡 ] ئەم دێڕە سڕایەوە چونکە ئێستا لە app-setup دێن
+// import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
 
 let messagesUnsubscribe = null;
 let conversationsUnsubscribe = null;
@@ -174,7 +175,6 @@ function setupChatListeners() {
     }, 1000);
 }
 
-// [ 💡 ] ئەم فەنکشنە ئێستا Export کراوە بۆ ئەوەی لە app-ui.js بانگ بکرێت
 export function openChatPage(targetUserId = null, targetUserName = null) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     
@@ -205,7 +205,6 @@ export function openChatPage(targetUserId = null, targetUserName = null) {
         return;
     }
 
-    // ئەگەر پێشتر لە هیستۆری نەبووین، زیادی بکە
     if (window.location.hash !== '#chat') {
         history.pushState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', '#chat');
     }
@@ -454,6 +453,7 @@ async function sendMessage(type, file = null, orderData = null) {
 
         if (file) {
             showNotification('...Uploading', 'success');
+            // [ 💡 ] ئێستا `ref` و `storage` لە یەک سەرچاوەوە دێن (app-setup.js)
             const storageRef = ref(storage, `chats/${docId}/${Date.now()}_${file.name || 'audio.webm'}`);
             const snapshot = await uploadBytes(storageRef, file);
             const downloadURL = await getDownloadURL(snapshot.ref);

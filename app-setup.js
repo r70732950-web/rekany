@@ -4,6 +4,7 @@ import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
+// [ 💡 ] لێرە هەموو فەنکشنەکانی Storage import دەکەین
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
 
 
@@ -24,10 +25,12 @@ export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 export const storage = getStorage(app);
 
+// [ 💡 ] لێرە دەیکەینە Export بۆ ئەوەی Chat.js بەکاری بهێنێت
 export {
     signInWithEmailAndPassword, onAuthStateChanged, signOut,
     createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail,
-    serverTimestamp
+    serverTimestamp,
+    ref, uploadBytes, getDownloadURL // <--- ئەمە زیادکرا
 };
 
 // Collections
@@ -544,6 +547,7 @@ export const addCategorySectionBtn = document.getElementById('addCategorySection
 
 window.globalAdminTools = {
     db, auth,
+    // [ 💡 ] storage, ref, ... لە app-setup دێن بۆیە لێرە ڕێکخراون
     storage, ref, uploadBytes, getDownloadURL,
     doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection,
     query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,

@@ -46,7 +46,7 @@ import {
     renderPageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
 } from './home.js'; 
 
-import { initChatSystem, openChatPage } from './chat.js';
+import { initChatSystem } from './chat.js';
 
 export function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
@@ -394,6 +394,7 @@ export function setupScrollAnimations() {
     });
 }
 
+// [ 💡 گۆڕانکاری لە renderCartUI بۆ پیشاندانی گەیاندن بە ڕوونی ]
 function renderCartUI() {
     cartItemsContainer.innerHTML = '';
     if (state.cart.length === 0) {
@@ -410,6 +411,7 @@ function renderCartUI() {
 
     let total = 0;
     state.cart.forEach(item => {
+        // [ 💡 ] گەیاندن یەکجار هەژمار دەکرێت
         const itemTotal = (item.price * item.quantity) + (item.shippingCost || 0);
         total += itemTotal;
         
@@ -418,6 +420,7 @@ function renderCartUI() {
 
         const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
 
+        // [ 💡 ] دیزاینی نیشاندانی گەیاندن لەناو سەبەتە
         let shippingDisplay = '';
         if (item.shippingCost > 0) {
             shippingDisplay = `<span style="font-size:12px; color:#e53e3e;">(+ ${item.shippingCost.toLocaleString()} گەیاندن)</span>`;
@@ -1331,20 +1334,9 @@ function setupUIEventListeners() {
     }
 
     document.addEventListener('authChange', (e) => {
-        const isAdmin = e.detail.isAdmin; 
-        updateAdminUIAuth(isAdmin);
-        
-        if(isAdmin && loginModal.style.display === 'block') {
+        updateAdminUIAuth(e.detail.isAdmin);
+        if(e.detail.isAdmin && loginModal.style.display === 'block') {
              closeCurrentPopup();
-        }
-
-        // [ 💡 ] ڕیفرێشی چات کاتێک Auth ئامادە دەبێت
-        if (state.currentUser || isAdmin) {
-            const hash = window.location.hash;
-            if (hash === '#chat' || state.currentPageId === 'chatPage') {
-                console.log("Auth loaded, refreshing chat...");
-                openChatPage(); 
-            }
         }
     });
     
@@ -1456,7 +1448,7 @@ window.addEventListener('popstate', async (event) => {
                 await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
             }
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
-            openPopup(popState.id, popState.type, false); 
+            openPopup(popState.id, popState.type, false); // [ 💡 چاککراوە ] - لێرە false دەنێرین بۆ ئەوەی دیسان زیادی نەکات بۆ History
         } else {
             showPage('mainPage'); 
             applyFilterStateCore(popState); 
@@ -1510,6 +1502,45 @@ window.addEventListener('popstate', async (event) => {
     }
 });
 
+async function initializeUI() {
+    await initCore(); 
+
+    setLanguageCore(state.currentLanguage); 
+     document.querySelectorAll('[data-translate-key]').forEach(element => { 
+         const key = element.dataset.translateKey;
+         const translation = t(key);
+         if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') { if(element.placeholder) element.placeholder = translation; }
+         else { element.textContent = translation; }
+    });
+     document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === state.currentLanguage)); 
+    
+    const authTabLogin = document.getElementById('authTabLogin');
+    const authTabSignUp = document.getElementById('authTabSignUp');
+    if (authTabLogin) authTabLogin.textContent = t('auth_tab_login');
+    if (authTabSignUp) authTabSignUp.textContent = t('auth_tab_signup');
+
+
+    renderCategoriesSheetUI();
+
+    setupUIEventListeners();
+
+    handleInitialPageLoadUI(); 
+
+    renderContactLinksUI();
+
+    initChatSystem();
+
+    const announcements = await fetchAnnouncements();
+     if(announcements.length > 0 && checkNewAnnouncementsCore(announcements[0].createdAt)) {
+         notificationBadge.style.display = 'block';
+     }
+
+    if (!localStorage.getItem('hasVisited')) {
+        openPopup('welcomeModal', 'modal');
+        localStorage.setItem('hasVisited', 'true');
+    }
+}
+
 async function handleInitialPageLoadUI() {
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(window.location.search);
@@ -1525,8 +1556,6 @@ async function handleInitialPageLoadUI() {
     } else if (isChat) { 
          history.replaceState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', `#chat`);
          showPage('chatPage', t('chat_title'));
-         // [ 💡 ] ئەگەر ڕیفرێش کرا، چاتەکە بکەرەوە
-         setTimeout(() => openChatPage(), 100); 
     } else if (isAdminChat) { 
          history.replaceState({ type: 'page', id: 'adminChatListPage', title: t('conversations_title') }, '', `#admin-chats`);
          showPage('adminChatListPage', t('conversations_title'));
