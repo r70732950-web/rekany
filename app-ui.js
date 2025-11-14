@@ -1,4 +1,3 @@
-// app-ui.js
 import {
     loginModal, addProductBtn, productFormModal, skeletonLoader, searchInput,
     clearSearchBtn, loginForm, productForm, formTitle, imageInputsContainer, loader,
@@ -46,7 +45,8 @@ import {
     renderPageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
 } from './home.js'; 
 
-import { initChatSystem } from './chat.js';
+// [ ✅ چاککراو ] : هێنانی openChatPage بۆ ئەوەی لە کاتی ڕیفرێش بانگ بکرێت
+import { initChatSystem, openChatPage } from './chat.js';
 
 export function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
@@ -394,7 +394,6 @@ export function setupScrollAnimations() {
     });
 }
 
-// [ 💡 گۆڕانکاری لە renderCartUI بۆ پیشاندانی گەیاندن بە ڕوونی ]
 function renderCartUI() {
     cartItemsContainer.innerHTML = '';
     if (state.cart.length === 0) {
@@ -411,7 +410,6 @@ function renderCartUI() {
 
     let total = 0;
     state.cart.forEach(item => {
-        // [ 💡 ] گەیاندن یەکجار هەژمار دەکرێت
         const itemTotal = (item.price * item.quantity) + (item.shippingCost || 0);
         total += itemTotal;
         
@@ -420,7 +418,6 @@ function renderCartUI() {
 
         const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
 
-        // [ 💡 ] دیزاینی نیشاندانی گەیاندن لەناو سەبەتە
         let shippingDisplay = '';
         if (item.shippingCost > 0) {
             shippingDisplay = `<span style="font-size:12px; color:#e53e3e;">(+ ${item.shippingCost.toLocaleString()} گەیاندن)</span>`;
@@ -1447,8 +1444,12 @@ window.addEventListener('popstate', async (event) => {
             if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
                 await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
             }
+            // [ ✅ چاککراو ] : ئەگەر لە History گەڕایتەوە بۆ چات، بانگی بکە
+            if (popState.id === 'chatPage') {
+                openChatPage();
+            }
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
-            openPopup(popState.id, popState.type, false); // [ 💡 چاککراوە ] - لێرە false دەنێرین بۆ ئەوەی دیسان زیادی نەکات بۆ History
+            openPopup(popState.id, popState.type, false);
         } else {
             showPage('mainPage'); 
             applyFilterStateCore(popState); 
@@ -1541,6 +1542,7 @@ async function initializeUI() {
     }
 }
 
+// [ ✅ چاککراو ] : لێرە بانگی openChatPage دەکەین
 async function handleInitialPageLoadUI() {
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(window.location.search);
@@ -1556,9 +1558,14 @@ async function handleInitialPageLoadUI() {
     } else if (isChat) { 
          history.replaceState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', `#chat`);
          showPage('chatPage', t('chat_title'));
+         openChatPage(); // [ 💡 ] کێشەکە لێرە چارەسەر بوو
     } else if (isAdminChat) { 
          history.replaceState({ type: 'page', id: 'adminChatListPage', title: t('conversations_title') }, '', `#admin-chats`);
          showPage('adminChatListPage', t('conversations_title'));
+         // [ 💡 ] دڵنیابوونەوە لەوەی ئەدمینیش چاتی بۆ باردەبێت
+         if(window.AdminLogic) {
+            openChatPage(); // ئەگەر ئەدمین بوو، بانگی دەکات بۆ ئەوەی بڕیار بدات
+         }
     } else if (isSubcategoryDetail) {
          const ids = hash.split('_');
          const mainCatId = ids[1];
