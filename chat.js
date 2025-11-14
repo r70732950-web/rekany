@@ -20,9 +20,6 @@ import {
     doc, setDoc, updateDoc, getDoc, limit, writeBatch 
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
-// [ 💡 ] ئەم دێڕە سڕایەوە چونکە ئێستا لە app-setup دێن
-// import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
-
 let messagesUnsubscribe = null;
 let conversationsUnsubscribe = null;
 let activeChatUserId = null; 
@@ -175,85 +172,95 @@ function setupChatListeners() {
     }, 1000);
 }
 
+// [ ✅ چاککراوە ] - ئەم فەنکشنە چاوەڕێی دڵنیابوونەوەی Auth دەکات
 export function openChatPage(targetUserId = null, targetUserName = null) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     
+    // شاردنەوەی لیستی خوارەوە
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) bottomNav.style.display = 'none';
 
-    if (isAdmin && !targetUserId) {
-        openAdminChatList();
-        return;
-    }
-
-    if (!state.currentUser && !isAdmin) {
-        history.pushState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', '#chat');
-        
-        document.querySelectorAll('.page').forEach(page => {
-            const isActive = page.id === 'chatPage';
-            page.classList.toggle('page-active', isActive);
-            page.classList.toggle('page-hidden', !isActive);
-        });
-
-        const loginReq = document.getElementById('chatLoginRequired');
-        const inputArea = document.getElementById('chatInputArea');
-        const msgArea = document.getElementById('chatMessagesArea');
-        
-        if(loginReq) loginReq.style.display = 'flex';
-        if(inputArea) inputArea.style.display = 'none';
-        if(msgArea) msgArea.style.display = 'none';
-        return;
-    }
-
-    if (window.location.hash !== '#chat') {
+    // گۆڕینی URL بۆ #chat
+    if (window.location.hash !== '#chat' && !targetUserId) { // ئەگەر ئەدمین نەبێت و لە لیست نەهاتبێت
         history.pushState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', '#chat');
     }
     
+    // نیشاندانی لاپەڕەی چات
     document.querySelectorAll('.page').forEach(page => {
         const isActive = page.id === 'chatPage';
         page.classList.toggle('page-active', isActive);
         page.classList.toggle('page-hidden', !isActive);
     });
-    
-    const loginReq = document.getElementById('chatLoginRequired');
-    const inputArea = document.getElementById('chatInputArea');
+
+    // [ 💡 چارەسەر ]: نیشاندانی لۆدەری کاتیی تا فایەربەیس وەڵام دەداتەوە
     const msgArea = document.getElementById('chatMessagesArea');
-
-    if(loginReq) loginReq.style.display = 'none';
-    if(inputArea) inputArea.style.display = 'flex';
-    if(msgArea) {
+    if (msgArea) {
+        msgArea.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%; color:var(--dark-gray);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
         msgArea.style.display = 'flex';
-        msgArea.classList.add('hidden'); 
-        msgArea.innerHTML = ''; 
     }
 
-    if (isAdmin) {
-        activeChatUserId = targetUserId;
-        const headerName = document.getElementById('chatHeaderName');
-        if(headerName) {
-            if (targetUserName) {
-                headerName.textContent = targetUserName;
-            } else {
-                headerName.textContent = "...";
-                getDoc(doc(db, "chats", targetUserId)).then(docSnap => {
-                    if(docSnap.exists()) {
-                        const chatData = docSnap.data();
-                        headerName.textContent = chatData.userInfo?.displayName || "بەکارهێنەر";
-                    } else {
-                        headerName.textContent = "بەکارهێنەر";
-                    }
-                }).catch(() => {
-                    headerName.textContent = "بەکارهێنەر";
-                });
-            }
+    // [ 💡 گرنگ ]: بەکارهێنانی onAuthStateChanged بۆ دڵنیابوونەوە لە دۆخی بەکارهێنەر
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+        unsubscribe(); // تەنها یەکجار پێویستمانە، بۆیە دەیکوژێنینەوە
+
+        // 1. ئەگەر ئەدمینە و دیاری نەکراوە لەگەڵ کێ قسە دەکات -> بچۆ بۆ لیستی چاتەکان
+        if (isAdmin && !targetUserId) {
+            openAdminChatList();
+            return;
         }
-    } else {
-        activeChatUserId = state.currentUser.uid;
-        const headerName = document.getElementById('chatHeaderName');
-        if(headerName) headerName.textContent = t('admin_badge');
-    }
 
-    subscribeToMessages(activeChatUserId);
+        // 2. ئەگەر بەکارهێنەر نییە و ئەدمینیش نییە -> داوای چوونەژوورەوە بکە
+        if (!user && !isAdmin) {
+            const loginReq = document.getElementById('chatLoginRequired');
+            const inputArea = document.getElementById('chatInputArea');
+            
+            if(loginReq) loginReq.style.display = 'flex';
+            if(inputArea) inputArea.style.display = 'none';
+            if(msgArea) msgArea.style.display = 'none';
+            return;
+        }
+
+        // 3. ئەگەر لۆگین بووە -> چاتەکە بکەرەوە
+        const loginReq = document.getElementById('chatLoginRequired');
+        const inputArea = document.getElementById('chatInputArea');
+
+        if(loginReq) loginReq.style.display = 'none';
+        if(inputArea) inputArea.style.display = 'flex';
+        
+        if(msgArea) {
+            msgArea.innerHTML = ''; // لۆدەرەکە لابدە
+            msgArea.classList.add('hidden'); 
+        }
+
+        if (isAdmin) {
+            activeChatUserId = targetUserId;
+            const headerName = document.getElementById('chatHeaderName');
+            if(headerName) {
+                if (targetUserName) {
+                    headerName.textContent = targetUserName;
+                } else {
+                    headerName.textContent = "...";
+                    // هەوڵدان بۆ هێنانی ناوی بەکارهێنەر
+                    getDoc(doc(db, "chats", targetUserId)).then(docSnap => {
+                        if(docSnap.exists()) {
+                            const chatData = docSnap.data();
+                            headerName.textContent = chatData.userInfo?.displayName || "بەکارهێنەر";
+                        } else {
+                            headerName.textContent = "بەکارهێنەر";
+                        }
+                    }).catch(() => {
+                        headerName.textContent = "بەکارهێنەر";
+                    });
+                }
+            }
+        } else {
+            activeChatUserId = user.uid; // لێرە دڵنیاین user هەیە
+            const headerName = document.getElementById('chatHeaderName');
+            if(headerName) headerName.textContent = t('admin_badge');
+        }
+
+        subscribeToMessages(activeChatUserId);
+    });
 }
 
 function openAdminChatList() {
@@ -534,7 +541,7 @@ async function handleDirectOrder() {
     }
 
     if (!state.userProfile.phone || !state.userProfile.address) {
-        showNotification('تکایە سەرەتا زانیارییەکانت (ناونیشان و تەلەفۆن) لە پڕۆفایل پڕبکەرەوە', 'error');
+        showNotification('تکایە سەرەتا زانیارییەکانت (ناونیشان و تەلەfۆن) لە پڕۆfایل پڕبکەرەوە', 'error');
         openPopup('profileSheet');
         return;
     }
