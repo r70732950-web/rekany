@@ -12,7 +12,7 @@ const firebaseConfig = {
     apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", 
     authDomain: "maten-store.firebaseapp.com",
     projectId: "maten-store",
-    storageBucket: "maten-store.appspot.com",
+    storageBucket: "maten-store.firebasestorage.app",
     messagingSenderId: "137714858202",
     appId: "1:137714858202:web:e2443a0b26aac6bb56cde3",
     measurementId: "G-1PV3DRY2V2"
