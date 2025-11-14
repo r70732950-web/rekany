@@ -1,4 +1,3 @@
-// app-core.js
 import {
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
@@ -20,6 +19,13 @@ import {
     startAfter, addDoc, runTransaction
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
+
+// [ 💡 زیادکرا ] - پرۆمیس بۆ دڵنیابوونەوە لە ئامادەبوونی Auth
+let authReadyResolver;
+export const authReady = new Promise(resolve => {
+    authReadyResolver = resolve;
+});
+
 
 // --- Utility Functions ---
 
@@ -52,7 +58,6 @@ export function formatDescription(text) {
     return textWithLinks.replace(/\n/g, '<br>');
 }
 
-// [ 💡 ] دۆزینەوەی نرخی گەیاندن لەناو نووسین
 function extractShippingCostFromText(text) {
     if (!text) return 0;
     const cleanText = text.toString().replace(/,/g, '');
@@ -466,7 +471,6 @@ async function fetchInitialProductsForHome(limitCount = 10) {
     }
 }
 
-// [ 💡 ] زیادکردن بۆ سەبەتە
 export async function addToCartCore(productId) {
     let product = state.products.find(p => p.id === productId);
 
@@ -525,7 +529,6 @@ export function removeFromCartCore(productId) {
     return false; 
 }
 
-// [ 💡 ] نامەی واتسئاپ
 export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
@@ -534,7 +537,6 @@ export function generateOrderMessageCore() {
     
     state.cart.forEach(item => {
         const shipping = item.shippingCost || 0;
-        // نرخ * ژمارە + گەیاندن (یەکجار)
         const lineTotal = (item.price * item.quantity) + shipping;
         
         total += lineTotal;
@@ -543,7 +545,6 @@ export function generateOrderMessageCore() {
         
         let priceDetails = "";
         if (shipping > 0) {
-             // فۆرمات: (1000 x 2) + 3000 (گەیاندن) = 5000
              priceDetails = `(${item.price.toLocaleString()} x ${item.quantity}) + ${shipping.toLocaleString()} (${t('shipping_cost') || 'گەیاندن'}) = ${lineTotal.toLocaleString()}`;
         } else {
              priceDetails = `(${item.price.toLocaleString()} x ${item.quantity}) + (${t('free_shipping') || 'گەیاندن بێ بەرامبەر'}) = ${lineTotal.toLocaleString()}`;
@@ -600,12 +601,9 @@ export async function saveProfileCore(profileData) {
 }
 
 async function requestNotificationPermissionCore() {
-    // 1. پشکنین ئایا وێبگەڕەکە پشتگیری دەکات؟
     if (!("Notification" in window)) {
         return { granted: false, message: 'مۆبایلەکەت پشتگیری ئاگەداری (Notifications) ناکات.' };
     }
-
-    // 2. پشکنین ئەگەر پێشتر بەکارهێنەر مۆڵەتی ڕەت کردبێتەوە (Block)
     if (Notification.permission === 'denied') {
         return { granted: false, message: 'مۆڵەتی ئاگەداری ڕەت کراوەتەوە (Blocked). تکایە لە ڕێکخستنەکانی وێبگەڕ (Settings) چالاکی بکە.' };
     }
@@ -615,10 +613,7 @@ async function requestNotificationPermissionCore() {
         
         if (permission === 'granted') {
             const registration = await navigator.serviceWorker.ready;
-
-            // [ 💡 ] کلیلە نوێیەکەی تۆ لێرە دانراوە
             const vapidKey = "BBu5yMLTteU8iIyneiAjmo6j5ERmlqCjOwKxZ8aPfLOHTETkehoqnML_7kM92yLwNyMr0xCC2AmeIyeumYgHBtM";
-
             const currentToken = await getToken(messaging, { 
                 serviceWorkerRegistration: registration,
                 vapidKey: vapidKey 
@@ -639,7 +634,6 @@ async function requestNotificationPermissionCore() {
     }
 }
 
-// [ 💡 ] تۆمارکردنی تۆکن لەگەڵ UserID
 async function saveTokenToFirestore(token) {
     try {
         const tokensCollection = collection(db, 'device_tokens');
@@ -723,8 +717,6 @@ export function navigateToFilterCore(newState) {
 async function initializeCoreLogic() {
     if (!state.sliderIntervals) state.sliderIntervals = {};
     await fetchCategories();
-
-    // [ 💡 ] هەوڵدان بۆ نوێکردنەوەی تۆکن کاتێک بەرنامە دەکرێتەوە
     if ('Notification' in window && Notification.permission === 'granted') {
         requestNotificationPermissionCore(); 
     }
@@ -825,8 +817,6 @@ export async function initCore() {
                         if (wasAdmin && window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
                             window.AdminLogic.deinitialize();
                         }
-
-                        // [ 💡 ] ئەگەر لۆگین بوو، تۆکنەکە نوێ بکەرەوە بۆ ئەوەی بەستراوە بە IDـیەوە
                         if ('Notification' in window && Notification.permission === 'granted') {
                             requestNotificationPermissionCore();
                         }
@@ -846,6 +836,12 @@ export async function initCore() {
                 
                 document.dispatchEvent(new CustomEvent('authChange', { detail: { isAdmin } }));
                 document.dispatchEvent(new CustomEvent('userChange', { detail: { user: state.currentUser } }));
+
+                // [ 💡 زیادکرا ] - دڵنیابوونەوەی پرۆمیسەکە دوای تەواوبوونی هەموو شتێک
+                if (authReadyResolver) {
+                    authReadyResolver(user); // 'user'ـەکە دەنێرێت (کە یان user object یان null)
+                    authReadyResolver = null; // دڵنیابوونەوە لەوەی تەنها یەکجار کار بکات
+                }
             });
 
             onMessage(messaging, (payload) => {
@@ -859,7 +855,6 @@ export async function initCore() {
             });
 
             if ('serviceWorker' in navigator) {
-                // [ 💡 گرنگ: type: 'module' لابدراوە ]
                 navigator.serviceWorker.register('/sw.js').then(registration => {
                     registration.addEventListener('updatefound', () => {
                         const newWorker = registration.installing;

@@ -3,12 +3,11 @@ import {
     db, auth, storage, 
     chatsCollection, ordersCollection, usersCollection, 
     serverTimestamp,
-    // [ 💡 ] لێرەوە import دەکرێن بۆ ئەوەی کێشەی Storage نەمێنێت
     ref, uploadBytes, getDownloadURL 
 } from './app-setup.js';
 
 import { 
-    state, t, saveCart
+    state, t, saveCart, authReady // [ 💡 زیادکرا ] - چاوەڕێکردنی ئامادەبوونی Auth
 } from './app-core.js';
 
 import { 
@@ -173,94 +172,90 @@ function setupChatListeners() {
 }
 
 // [ ✅ چاککراوە ] - ئەم فەنکشنە چاوەڕێی دڵنیابوونەوەی Auth دەکات
-export function openChatPage(targetUserId = null, targetUserName = null) {
+export async function openChatPage(targetUserId = null, targetUserName = null) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     
-    // شاردنەوەی لیستی خوارەوە
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) bottomNav.style.display = 'none';
 
-    // گۆڕینی URL بۆ #chat
-    if (window.location.hash !== '#chat' && !targetUserId) { // ئەگەر ئەدمین نەبێت و لە لیست نەهاتبێت
+    if (window.location.hash !== '#chat' && !targetUserId) {
         history.pushState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', '#chat');
     }
     
-    // نیشاندانی لاپەڕەی چات
     document.querySelectorAll('.page').forEach(page => {
         const isActive = page.id === 'chatPage';
         page.classList.toggle('page-active', isActive);
         page.classList.toggle('page-hidden', !isActive);
     });
 
-    // [ 💡 چارەسەر ]: نیشاندانی لۆدەری کاتیی تا فایەربەیس وەڵام دەداتەوە
+    // [ 💡 ] نیشاندانی لۆدەر
     const msgArea = document.getElementById('chatMessagesArea');
     if (msgArea) {
         msgArea.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%; color:var(--dark-gray);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
         msgArea.style.display = 'flex';
     }
 
-    // [ 💡 گرنگ ]: بەکارهێنانی onAuthStateChanged بۆ دڵنیابوونەوە لە دۆخی بەکارهێنەر
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-        unsubscribe(); // تەنها یەکجار پێویستمانە، بۆیە دەیکوژێنینەوە
+    // [ 💡 ] چاوەڕێی ئامادەبوونی Auth دەکەین
+    await authReady; 
+    // ئێستا دڵنیاین کە state.currentUser یان پڕە یان nullـە
 
-        // 1. ئەگەر ئەدمینە و دیاری نەکراوە لەگەڵ کێ قسە دەکات -> بچۆ بۆ لیستی چاتەکان
-        if (isAdmin && !targetUserId) {
-            openAdminChatList();
-            return;
-        }
+    // 1. ئەگەر ئەدمینە و دیاری نەکراوە -> بچۆ بۆ لیستی چات
+    if (isAdmin && !targetUserId) {
+        openAdminChatList();
+        return;
+    }
 
-        // 2. ئەگەر بەکارهێنەر نییە و ئەدمینیش نییە -> داوای چوونەژوورەوە بکە
-        if (!user && !isAdmin) {
-            const loginReq = document.getElementById('chatLoginRequired');
-            const inputArea = document.getElementById('chatInputArea');
-            
-            if(loginReq) loginReq.style.display = 'flex';
-            if(inputArea) inputArea.style.display = 'none';
-            if(msgArea) msgArea.style.display = 'none';
-            return;
-        }
-
-        // 3. ئەگەر لۆگین بووە -> چاتەکە بکەرەوە
+    // 2. ئەگەر بەکارهێنەر نییە (لۆگین نەکراوە) و ئەدمینیش نییە -> داوای لۆگین بکە
+    if (!state.currentUser && !isAdmin) {
         const loginReq = document.getElementById('chatLoginRequired');
         const inputArea = document.getElementById('chatInputArea');
-
-        if(loginReq) loginReq.style.display = 'none';
-        if(inputArea) inputArea.style.display = 'flex';
         
-        if(msgArea) {
-            msgArea.innerHTML = ''; // لۆدەرەکە لابدە
-            msgArea.classList.add('hidden'); 
-        }
+        if(loginReq) loginReq.style.display = 'flex';
+        if(inputArea) inputArea.style.display = 'none';
+        if(msgArea) msgArea.style.display = 'none';
+        return;
+    }
 
-        if (isAdmin) {
-            activeChatUserId = targetUserId;
-            const headerName = document.getElementById('chatHeaderName');
-            if(headerName) {
-                if (targetUserName) {
-                    headerName.textContent = targetUserName;
-                } else {
-                    headerName.textContent = "...";
-                    // هەوڵدان بۆ هێنانی ناوی بەکارهێنەر
-                    getDoc(doc(db, "chats", targetUserId)).then(docSnap => {
-                        if(docSnap.exists()) {
-                            const chatData = docSnap.data();
-                            headerName.textContent = chatData.userInfo?.displayName || "بەکارهێنەر";
-                        } else {
-                            headerName.textContent = "بەکارهێنەر";
-                        }
-                    }).catch(() => {
+    // 3. ئەگەر لۆگین بووە (یان ئەدمینە و targetUserId هەیە) -> چاتەکە بکەرەوە
+    const loginReq = document.getElementById('chatLoginRequired');
+    const inputArea = document.getElementById('chatInputArea');
+
+    if(loginReq) loginReq.style.display = 'none';
+    if(inputArea) inputArea.style.display = 'flex';
+    
+    if(msgArea) {
+        msgArea.innerHTML = ''; // لۆدەرەکە لابدە
+        msgArea.classList.add('hidden'); 
+    }
+
+    if (isAdmin) {
+        activeChatUserId = targetUserId;
+        const headerName = document.getElementById('chatHeaderName');
+        if(headerName) {
+            if (targetUserName) {
+                headerName.textContent = targetUserName;
+            } else {
+                headerName.textContent = "...";
+                getDoc(doc(db, "chats", targetUserId)).then(docSnap => {
+                    if(docSnap.exists()) {
+                        const chatData = docSnap.data();
+                        headerName.textContent = chatData.userInfo?.displayName || "بەکارهێنەر";
+                    } else {
                         headerName.textContent = "بەکارهێنەر";
-                    });
-                }
+                    }
+                }).catch(() => {
+                    headerName.textContent = "بەکارهێنەر";
+                });
             }
-        } else {
-            activeChatUserId = user.uid; // لێرە دڵنیاین user هەیە
-            const headerName = document.getElementById('chatHeaderName');
-            if(headerName) headerName.textContent = t('admin_badge');
         }
+    } else {
+        // ئێستا دڵنیاین state.currentUser هەیە
+        activeChatUserId = state.currentUser.uid; 
+        const headerName = document.getElementById('chatHeaderName');
+        if(headerName) headerName.textContent = t('admin_badge');
+    }
 
-        subscribeToMessages(activeChatUserId);
-    });
+    subscribeToMessages(activeChatUserId);
 }
 
 function openAdminChatList() {
@@ -313,7 +308,8 @@ function subscribeToMessages(chatUserId) {
 }
 
 function renderSingleMessage(msg, container, chatUserId) {
-    const isMe = msg.senderId === (sessionStorage.getItem('isAdmin') === 'true' ? 'admin' : state.currentUser.uid);
+    // [ ✅ ] ئەمە ئێستا سەلامەتە چونکە چاوەڕێی authReady دەکەین
+    const isMe = msg.senderId === (sessionStorage.getItem('isAdmin') === 'true' ? 'admin' : (state.currentUser ? state.currentUser.uid : ''));
     const alignClass = isMe ? 'message-sent' : 'message-received';
     
     const div = document.createElement('div');
@@ -460,7 +456,6 @@ async function sendMessage(type, file = null, orderData = null) {
 
         if (file) {
             showNotification('...Uploading', 'success');
-            // [ 💡 ] ئێستا `ref` و `storage` لە یەک سەرچاوەوە دێن (app-setup.js)
             const storageRef = ref(storage, `chats/${docId}/${Date.now()}_${file.name || 'audio.webm'}`);
             const snapshot = await uploadBytes(storageRef, file);
             const downloadURL = await getDownloadURL(snapshot.ref);
@@ -570,7 +565,6 @@ async function handleDirectOrder() {
 }
 
 async function processOrderSubmission() {
-    // [ 💡 ] کۆکردنەوەی هەمووی: (نرخ * ژمارە) + گەیاندن
     const total = state.cart.reduce((sum, item) => {
         return sum + (item.price * item.quantity) + (item.shippingCost || 0);
     }, 0);
