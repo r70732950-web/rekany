@@ -1,172 +1,158 @@
-// sw.js - Final Corrected Version
+// sw.js
+// وەشانی: v12 (Fixed Clone Error)
 
-// هەنگاوی ١: ناوی کاشەکە نوێ بکەرەوە بۆ ئەوەی گۆڕانکارییەکان جێبەجێ ببن
-const CACHE_NAME = 'maten-store-cache-v7'; // *** گۆڕدرا بۆ v7 ***
+// 1. هێنانی کتێبخانەکانی فایەربەیس (Classic Mode)
+importScripts('https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging-compat.js');
 
-// فایلە بنەڕەتییەکانی ئەپەکە کە پێویستن بۆ کارکردنی سەرەتایی
-const APP_SHELL_URLS = [
-    '/',
-    '/index.html',
-    '/styles.css',         // *** زیادکرا ***
-    '/app-setup.js',       // *** زیادکرا ***
-    '/app-logic.js',       // *** زیادکرا ***
-    //'/admin.js', // (ئارەزوومەندانە) ئەگەر پێویست بوو بۆ کارکردنی سەرەتایی زیادبکرێت
-    '/manifest.json',
-    '/offline.html',       // پەڕەیەک بۆ پیشاندان کاتێک بەکارهێنەر بە تەواوی ئۆفلاینە
-    '/images/icons/icon-512x512.png' // یان ئایکۆنی سەرەکی
-];
+// 2. ڕێکخستنی فایەربەیس
+const firebaseConfig = {
+    apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE",
+    authDomain: "maten-store.firebaseapp.com",
+    projectId: "maten-store",
+    storageBucket: "maten-store.appspot.com",
+    messagingSenderId: "137714858202",
+    appId: "1:137714858202:web:e2443a0b26aac6bb56cde3",
+    measurementId: "G-1PV3DRY2V2"
+};
 
-// Event 1: Install - کاشکردنی فایلە سەرەکییەکان
-self.addEventListener('install', event => {
-    console.log('[Service Worker] Install');
+firebase.initializeApp(firebaseConfig);
+const messaging = firebase.messaging();
+
+// 3. گوێگرتن بۆ ئیشعار (Data-Only)
+messaging.onBackgroundMessage((payload) => {
+    console.log('[Service Worker] ئیشعار گەیشت: ', payload);
+
+    const data = payload.data;
+
+    if (!data || !data.is_notification) {
+        console.log("Not a notification payload.");
+        return;
+    }
+
+    const notificationTitle = data.title || 'Maten Store';
+    const notificationOptions = {
+        body: data.body || '',
+        icon: data.image || '/images/icons/icon-192x192.png',
+        badge: '/images/icons/badge-72x72.png',
+        tag: 'maten-notification',
+        data: { 
+            url: data.url || '/'
+        }
+    };
+
+    return self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+// 4. کاتێک کلیک لە ئیشعارەکە دەکرێت
+self.addEventListener('notificationclick', function(event) {
+    console.log('[Service Worker] کلیک لە ئیشعار کرا');
+    event.notification.close();
+
+    let targetUrl = '/';
+    if (event.notification.data && event.notification.data.url) {
+        targetUrl = event.notification.data.url;
+    }
+    
+    const fullUrl = new URL(targetUrl, self.location.origin).href;
+
     event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then(cache => {
-                console.log('[Service Worker] Caching app shell');
-                // گرنگە دڵنیابین هەموو فایلەکان بە سەرکەوتوویی کاش دەبن
-                return cache.addAll(APP_SHELL_URLS).catch(error => {
-                    console.error('[Service Worker] Failed to cache app shell:', error);
-                    // ڕێگە نادات Service Worker دامەزرێت ئەگەر هەڵەیەک هەبێت
-                    throw error;
-                });
-            })
-            .then(() => self.skipWaiting()) // ڕاستەوخۆ Service Workerـە نوێیەکە چالاک دەکات
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+            for (let client of windowClients) {
+                if (client.url === fullUrl && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            if (clients.openWindow) {
+                return clients.openWindow(fullUrl);
+            }
+        })
     );
 });
 
-// Event 2: Activate - پاککردنەوەی کاشی کۆن
+// -----------------------------------------------------------------
+// بەشی کاشکردن (Offline Mode)
+// -----------------------------------------------------------------
+
+// [ 💡 ] وەشانم کرد بە v12 بۆ ئەوەی دڵنیابین گۆڕانکارییەکان وەردەگرێت
+const CACHE_NAME = 'maten-store-v12-classic';
+
+const APP_SHELL_URLS = [
+    '/',
+    '/index.html',
+    '/styles.css',
+    '/app-setup.js',
+    '/app-core.js',   
+    '/app-ui.js',     
+    '/home.js',       
+    '/chat.js',       
+    '/admin.js',      
+    '/manifest.json',
+    '/offline.html',  
+    '/images/icons/icon-512x512.png' 
+];
+
+// Install
+self.addEventListener('install', event => {
+    self.skipWaiting();
+    event.waitUntil(
+        caches.open(CACHE_NAME).then(cache => {
+            return cache.addAll(APP_SHELL_URLS);
+        })
+    );
+});
+
+// Activate
 self.addEventListener('activate', event => {
-    console.log('[Service Worker] Activate');
     event.waitUntil(
         caches.keys().then(cacheNames => {
             return Promise.all(
                 cacheNames.map(cacheName => {
-                    // ئەگەر ناوی کاشەکە جیاواز بوو لە ناوی نوێ، بیسڕەوە
                     if (cacheName !== CACHE_NAME) {
-                        console.log('[Service Worker] Clearing old cache:', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
             );
-        }).then(() => self.clients.claim()) // کۆنترۆڵی هەموو پەڕە کراوەکان دەکات
+        }).then(() => self.clients.claim())
     );
 });
 
-// Event 3: Fetch - ستراتیجی زیرەک بۆ وەڵامدانەوەی داواکارییەکان
+// Fetch
 self.addEventListener('fetch', event => {
-    // تەنها داواکاری GET مامەڵەی لەگەڵ دەکەین
-    if (event.request.method !== 'GET') {
+    if (event.request.method !== 'GET') return;
+    
+    const url = new URL(event.request.url);
+
+    // Network First (API & Firestore)
+    if (url.origin.includes('googleapis.com') || url.origin.includes('firestore')) {
+        event.respondWith(
+            fetch(event.request)
+                .then(response => {
+                    const resClone = response.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
+                    return response;
+                })
+                .catch(() => caches.match(event.request))
+        );
         return;
     }
 
-    const url = new URL(event.request.url);
-
-    // ستراتیجی یەکەم: بۆ داتای فایەربەیس (Stale-While-Revalidate)
-    if (url.origin.includes('googleapis.com') || url.origin.includes('firestore.googleapis.com')) {
-        event.respondWith(
-            caches.open(CACHE_NAME).then(cache => {
-                return cache.match(event.request).then(cachedResponse => {
-                    const fetchPromise = fetch(event.request).then(networkResponse => {
-                        if (networkResponse && networkResponse.ok) {
-                             cache.put(event.request, networkResponse.clone());
-                        }
-                        return networkResponse;
-                    }).catch(error => {
-                        console.warn('[Service Worker] Network request failed for API, serving stale cache if available:', event.request.url, error);
-                        // ئەگەر cachedResponse هەبێت، لێرەدا دەگەڕێتەوە
-                    });
-                    // یەکسەر وەڵامی کاشکراو بگەڕێنەرەوە ئەگەر هەبێت، ئەگەر نا چاوەڕێی نێتوۆرک بکە
-                    return cachedResponse || fetchPromise;
-                });
-            })
-        );
-    }
-    // ستراتیجی دووەم: بۆ کردنەوەی پەڕەکانی ئەپەکە (Network First, fallback to Cache/Offline page)
-    else if (event.request.mode === 'navigate') {
-         event.respondWith(
-             fetch(event.request)
-                 .then(response => {
-                     // ئەگەر سەرکەوتوو بوو، بیگەرێنەرەوە
-                     return response;
-                 })
-                 .catch(() => {
-                     // ئەگەر سەرنەکەوت (ئۆفلاین بوو)، هەوڵبدە لە کاشەوە پەڕەی سەرەکی بهێنیت
-                     return caches.match('/').then(cachedResponse => {
-                         // ئەگەر پەڕەی سەرەکیش لە کاشدا نەبوو، پەڕەی ئۆفلاین پیشان بدە
-                         return cachedResponse || caches.match('/offline.html');
-                     });
-                 })
-         );
-    }
-    // ستراتیجی سێیەم: بۆ فایلەکانی تر وەک وێنە و فۆنت و فایلە بنچینەییەکان (Cache First)
-    else {
-        event.respondWith(
-            caches.match(event.request).then(response => {
-                // ئەگەر لە کاشدا هەبوو، بیگەڕێنەرەوە
-                if (response) {
-                    return response;
-                }
-                // ئەگەر نا، لە نێتوۆرکەوە بیهێنە و لە کاشدا هەڵیبگرە
-                return fetch(event.request).then(networkResponse => {
-                    // دڵنیابە وەڵامەکە دروستە پێش کاشکردنی
-                    if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-                         return networkResponse; // وەڵامی هەڵە یان نادیار کاش مەکە
-                    }
-                    // وەڵامەکە کۆپی بکە چونکە تەنها یەکجار دەخوێنرێتەوە
+    // Cache First (Files) - بەشی چاککراو
+    event.respondWith(
+        caches.match(event.request).then(cachedResponse => {
+            const fetchPromise = fetch(event.request).then(networkResponse => {
+                if(networkResponse && networkResponse.status === 200) {
+                    // [ ✅ چاککراوە ] : کۆپیکردن پێش ئەوەی کاش بکرێتەوە
                     const responseToCache = networkResponse.clone();
+                    
                     caches.open(CACHE_NAME).then(cache => {
                         cache.put(event.request, responseToCache);
                     });
-                    return networkResponse;
-                }).catch(error => {
-                     console.warn('[Service Worker] Fetch failed for asset, possibly offline:', event.request.url, error);
-                     // لێرەدا دەتوانیت وێنەیەکی Placeholder یان شتێکی تر بگەڕێنیتەوە ئەگەر پێویست بوو
-                });
-            })
-        );
-    }
-});
+                }
+                return networkResponse;
+            }).catch(() => {});
 
-
-// Event 4: Push - بۆ وەرگرتنی ئاگەدارکردنەوە (Push Notifications)
-self.addEventListener('push', event => {
-    console.log('[Service Worker] Push Received.');
-    let data = { title: 'ئاگاداری نوێ', body: 'ئاگادارییەک لە فرۆشگای MATEN.', icon: '/images/icons/icon-192x192.png' };
-    try {
-        data = event.data.json();
-    } catch (e) { console.log('Push data is not JSON.'); }
-
-    const options = {
-        body: data.body,
-        icon: data.icon || '/images/icons/icon-192x192.png',
-        badge: '/images/icons/badge-72x72.png', // دڵنیابە ئەم فایلە هەیە
-        data: { url: self.location.origin }, // URLی بنچینەیی ئەپەکە
-    };
-    event.waitUntil(self.registration.showNotification(data.title, options));
-});
-
-// Event 5: Notification Click - کاتێک بەکارهێنەر کلیک لە ئاگەدارییەکە دەکات
-self.addEventListener('notificationclick', event => {
-    console.log('[Service Worker] Notification click Received.');
-    event.notification.close();
-    // کردنەوەی پەنجەرەی ئەپەکە یان فۆکەس کردنی ئەگەر کراوە بێت
-    event.waitUntil(clients.matchAll({
-        type: "window"
-    }).then(clientList => {
-        for (const client of clientList) {
-            // ئەگەر پەنجەرەیەک کراوە بوو، فۆکەسی بکە
-            if (client.url === '/' && 'focus' in client)
-                return client.focus();
-        }
-        // ئەگەر هیچ پەنجەرەیەک کراوە نەبوو، یەکێکی نوێ بکەرەوە
-        if (clients.openWindow)
-            return clients.openWindow(event.notification.data.url || '/');
-    }));
-});
-
-// Event 6: Message - بۆ نوێکردنەوەی Service Worker کاتێک ڤێرژنی نوێ دێت
-self.addEventListener('message', event => {
-    if (event.data && event.data.action === 'skipWaiting') {
-        self.skipWaiting();
-    }
+            return cachedResponse || fetchPromise;
+        })
+    );
 });
