@@ -109,7 +109,7 @@ export const translations = {
         order_user_info: "--- زانیاری داواکار ---",
         order_user_name: "ناو",
         order_user_address: "ناونیشان",
-        order_user_phone: "ژمارەی تەلەfۆن",
+        order_user_phone: "ژمارەی تەلەفۆن",
         order_prompt_info: "تکایە ناونیشان و زانیارییەکانت بنێرە بۆ گەیاندن.",
         login_error: "ئیمەیڵ یان وشەی نهێنی هەڵەیە",
         logout_success: "بە سەرکەوتوویی چوویتەدەرەوە",
@@ -149,7 +149,7 @@ export const translations = {
         share_text: "سەیری ئەم کاڵایە بکە",
         share_error: "هاوبەشیپێکردن سەرکەوتوو نەبوو",
         admin_category_layout_title: "دیزاینی لاپەڕەی جۆرەکان",
-        admin_category_layout_select: "-- جۆری سەرەki هەڵbژێرە --",
+        admin_category_layout_select: "-- جۆری سەرەki هەڵبژێرە --",
         admin_category_layout_enable: "چالاککردنی دیزاینی تایبەت بۆ ئەم جۆرە",
         admin_category_layout_info: "ئەگەر چالاک بێت، ئەم دیزاینە لە جیاتی لیستی ئاسایی کاڵاکان پیشان دەدرێت.",
         admin_category_layout_add_section: "زیادکردنی بەش بۆ جۆر",
@@ -164,17 +164,16 @@ export const translations = {
         password_reset_email_sent: "ئیمەیڵێکی ڕێستکردنەوەت بۆ نێردرا. تکایە سەیری ئیمەیڵەکەت بکە.",
         password_reset_error_not_found: "ئەم ئیمەیڵە تۆمار نەکراوە.",
         password_reset_enter_email: "تکایە سەرەتا ئیمەیڵەکەت لە خانەی ئیمەیڵ بنووسە.",
+        
+        // [ 💡 نوێ ] : وشە نوێیەکان
         order_confirm_title: "ناردنی داواکاری",
         order_confirm_msg: "دڵنیایت دەتەوێت ئەم داواکارییە بنێریت؟",
         yes_send: "بەڵێ، بینێرە",
-        cancel: "پاشگەزبوونەوە",
-        // [ 💡 نوێ ]
-        slide_to_cancel: "بکشێ بۆ ڕەتکردنەوە",
-        recording_cancelled: "تۆمارکردن ڕەتکرایەوە"
+        cancel: "پاشگەزبوونەوە"
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
-        admin_login_title: "چوونا ژوور يا بەرپرسى",
+        admin_login_title: "چوونا ژوور یا بەرپرسى",
         email_label: "ئیمەیل:",
         password_label: "پەیڤا نهێنى:",
         login_button: "چوونا ژوور",
@@ -192,7 +191,7 @@ export const translations = {
         settings_title: "ڕێکخستن",
         language_label: "زمان",
         profile_title: "پروفایلێ من",
-        admin_login_nav: "چوونا ژوور يا بەرپرسى",
+        admin_login_nav: "چوونا ژوور یا بەرپرسى",
         logout_nav: "چوونا دەر",
         profile_name: "ناڤ:",
         profile_address: "ناڤ و نیشان:",
@@ -288,13 +287,12 @@ export const translations = {
         password_reset_email_sent: "ئیمەیلەکا رێستکرنێ بۆ تە هاتە فرێکرن. هیڤی دکەین سحکە ئیمەیلا خۆ.",
         password_reset_error_not_found: "ئەڤ ئیمەیلە تۆمار نەکریە.",
         password_reset_enter_email: "هیڤی دکەین ئێکەم جار ئیمەیلا خۆ ل خانەیا ئیمەیلێ بنڤیسە.",
+        
+        // [ 💡 نوێ ] : وشە نوێیەکان
         order_confirm_title: "فرێکرنا داخازیێ",
         order_confirm_msg: "تۆ پشتڕاستی تە دڤێت ڤێ داخازیێ فرێکەی؟",
         yes_send: "بەڵێ، فرێکە",
-        cancel: "پەشێمانبوون",
-        // [ 💡 نوێ ]
-        slide_to_cancel: "بکێشە بۆ رەفسکرنێ",
-        recording_cancelled: "تۆمارکرن هاتە رەفسکرن"
+        cancel: "پەشێمانبوون"
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -412,13 +410,12 @@ export const translations = {
         password_reset_email_sent: "تم إرسال بريد إلكتروني لإعادة تعيين كلمة المرور. يرجى التحقق من بريدك.",
         password_reset_error_not_found: "هذا البريد الإلكتروني غير مسجل.",
         password_reset_enter_email: "يرجى إدخال بريدك الإلكتروني في حقل البريد أولاً.",
+        
+        // [ 💡 نوێ ] : وشە نوێیەکان
         order_confirm_title: "تأكيد الطلب",
         order_confirm_msg: "هل أنت متأكد من أنك تريد إرسال هذا الطلب؟",
         yes_send: "نعم، أرسل",
-        cancel: "إلغاء",
-        // [ 💡 نوێ ]
-        slide_to_cancel: "اسحب للإلغاء",
-        recording_cancelled: "تم إلغاء التسجيل"
+        cancel: "إلغاء"
     }
 };
 
@@ -550,6 +547,7 @@ export const addCategorySectionBtn = document.getElementById('addCategorySection
 
 window.globalAdminTools = {
     db, auth,
+    // [ 💡 ] storage, ref, ... لە app-setup دێن بۆیە لێرە ڕێکخراون
     storage, ref, uploadBytes, getDownloadURL,
     doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection,
     query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,

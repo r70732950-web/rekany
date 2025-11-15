@@ -26,8 +26,10 @@
     <script>
       (function() {
         try {
+            // هاشەکە وەردەگرین و پاکی دەکەینەوە
             var hash = window.location.hash.trim();
             if (hash === '#chat') {
+              // کلاسەکە دەدەین بە <html> نەک <body>
               document.documentElement.classList.add('chat-active');
             }
         } catch(e) { 
@@ -204,7 +206,7 @@
                             </button>
                         </div>
                         <div class="form-group">
-                            <label for="profilePhone" data-translate-key="profile_phone">ژمارەی تەلەفۆن:</label>
+                            <label for="profilePhone" data-translate-key="profile_phone">ژمارەی تەلەfۆن:</label>
                             <input type="tel" id="profilePhone" placeholder="07XX XXX XXXX" required>
                         </div>
                         <button type="submit" data-translate-key="save_button">پاشەکەوتکردنی زانیاری گەیاندن</button>
@@ -300,61 +302,9 @@
         </div>
 
         <div class="page page-hidden" id="chatPage">
-             <div class="chat-container">
-                <div class="chat-header" id="chatPageHeader">
-                    <div style="display:flex; align-items:center; gap:10px; width: 100%;">
-                        <button id="chatBackBtn" style="background:none; border:none; font-size:20px; cursor:pointer; color:var(--primary-color); padding: 5px;">
-                            <i class="fas fa-arrow-right"></i>
-                        </button>
-
-                        <div class="conversation-avatar" id="chatHeaderAvatar"><i class="fas fa-user"></i></div>
-                        <div style="flex: 1;">
-                            <div class="conversation-name" id="chatHeaderName">User</div>
-                            <div class="conversation-time" id="chatHeaderStatus"><span class="chat-status-dot online"></span> <span data-translate-key="online">${t('online')}</span></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="chat-messages" id="chatMessagesArea">
-                    </div>
-                <div class="typing-indicator" id="typingIndicator" data-translate-key="typing">${t('typing')}</div>
-                
-                <div class="chat-input-area" id="chatInputArea">
-                    <button class="chat-action-btn" id="chatImageBtn"><i class="fas fa-image"></i></button>
-                    <input type="file" id="chatImageInput" accept="image/*" style="display:none;">
-                    
-                    <input type="text" class="chat-input" id="chatTextInput" placeholder="${t('type_message')}" data-translate-key="type_message">
-                    
-                    <div id="chatRecordingUI" style="display: none;">
-                        <div id="recordingCancelArea">
-                            <i class="fas fa-trash-alt"></i>
-                            <span data-translate-key="slide_to_cancel">${t('slide_to_cancel')}</span> 
-                        </div>
-                        <div id="recordingStatus">
-                            <span id="recordingTimer">00:00</span>
-                            <i class="fas fa-microphone recording-mic-icon"></i>
-                        </div>
-                    </div>
-                    
-                    <button class="chat-action-btn chat-record-btn" id="chatVoiceBtn"><i class="fas fa-microphone"></i></button>
-                    <button class="chat-action-btn chat-send-btn" id="chatSendBtn" style="display:none;"><i class="fas fa-paper-plane"></i></button>
-                </div>
-
-                <div id="chatLoginRequired" class="chat-login-required" style="display:none;">
-                    <i class="fas fa-lock"></i>
-                    <h3>پێویستە بچیتە ژوورەوە</h3>
-                    <p>بۆ بەکارهێنانی چات و ناردنی داواکاری، تکایە سەرەتا بچۆ ژوورەوە.</p>
-                    <button class="chat-login-btn" onclick="window.globalAdminTools.openPopup('profileSheet')">چوونەژوورەوە / خۆتۆمارکردن</button>
-                </div>
-            </div>
         </div>
 
         <div class="page page-hidden" id="adminChatListPage">
-             <div class="settings-page" style="padding-top: 60px;">
-                <h3 class="section-title"><i class="fas fa-inbox"></i> <span data-translate-key="conversations_title">${t('conversations_title')}</span></h3>
-                <div class="conversation-list" id="adminConversationList">
-                    <div class="text-center p-4">...Loading</div>
-                </div>
-            </div>
         </div>
 
         <div class="settings-page page page-hidden" id="settingsPage">
@@ -620,7 +570,7 @@
                          <div class="form-group">
                              <label>گرووپ هەڵبژێرە:</label>
                              <select id="promoCardGroupSelect" required>
-                                 <option value="" disabled selected>-- گرووپێک هەڵbژێرە --</option>
+                                 <option value="" disabled selected>-- گرووپێک هەڵبژێرە --</option>
                              </select>
                          </div>
                          <div class="form-group">
@@ -638,7 +588,7 @@
                          <div class="form-group">
                              <label>جۆری کاڵا کە لینک بکرێت بۆی:</label>
                              <select id="promoCardTargetCategory" required>
-                                 <option value="" disabled selected>-- جۆرێک هەڵbژێرە --</option>
+                                 <option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>
                              </select>
                          </div>
                          <div class="form-group">
@@ -831,7 +781,7 @@
                     <div class="form-group">
                         <label for="categoryLayoutSelect" data-translate-key="admin_category_layout_select">جۆری سەرەki هەڵبژێرە:</label>
                         <select id="categoryLayoutSelect">
-                            <option value="" disabled selected data-translate-key="admin_category_layout_select">-- جۆری سەرەki هەڵbژێرە --</option>
+                            <option value="" disabled selected data-translate-key="admin_category_layout_select">-- جۆری سەرەki هەڵبژێرە --</option>
                         </select>
                     </div>
 
