@@ -75,7 +75,7 @@ self.addEventListener('notificationclick', function(event) {
 // -----------------------------------------------------------------
 
 // [ 💡 ] وەشانم کرد بە v12 بۆ ئەوەی دڵنیابین گۆڕانکارییەکان وەردەگرێت
-const CACHE_NAME = 'maten-store-v13-classic';
+const CACHE_NAME = 'maten-store-v14-classic';
 
 const APP_SHELL_URLS = [
     '/',
