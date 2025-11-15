@@ -1923,30 +1923,4 @@ input:checked + .slider:before {
 .empty-chat-state i {
     font-size: 40px;
     margin-bottom: 15px;
-}.chat-input-area.is-recording #chatTextInput,
-.chat-input-area.is-recording #chatImageBtn {
-    display: none !important;
 }
-
-.chat-input-area:not(.is-recording) #chatTrashBtn,
-.chat-input-area:not(.is-recording) #chatTimer {
-    display: none !important;
-}
-
-#chatTimer {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--danger-color);
-    font-weight: bold;
-    min-width: 45px;
-    font-size: 14px;
-}
-
-#chatTrashBtn {
-    display: flex;
-    color: var(--danger-color);
-}
-
-
-
