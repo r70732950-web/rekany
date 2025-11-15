@@ -101,7 +101,6 @@ function setupChatUI() {
         `;
     }
     
-    // [ 💡 چاکسازی Admin Chat UI ] : دروستکردنی پێکهاتەی Admin Chat List بەبێ دووبارەکردنەوەی Header
     const adminChatListPage = document.getElementById('adminChatListPage');
     if (adminChatListPage && !adminChatListPage.querySelector('.conversation-list-container')) {
         adminChatListPage.innerHTML = `
@@ -187,7 +186,6 @@ function setupChatListeners() {
 export async function openChatPage(targetUserId = null, targetUserName = null) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     
-    // [ 💡 چاکسازی Admin Logic ] : ئەگەر Admin بوو و targetUserId نەبوو، ڕاستەوخۆ بڕۆ بۆ لیست.
     if (isAdmin && !targetUserId) {
         openAdminChatList();
         return;
@@ -196,7 +194,6 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) bottomNav.style.display = 'none';
 
-    // گۆڕینی هاش تەنها کاتێک دۆخی چاتی تاکەکەسیە (Single Chat)
     if (window.location.hash !== '#chat' && !targetUserId && !isAdmin) { 
         history.pushState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', '#chat');
     }
@@ -266,7 +263,8 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
         if(headerName) headerName.textContent = t('admin_badge');
         
         const backBtn = document.getElementById('chatBackBtn');
-        if(backBtn) backBtn.style.display = 'none'; 
+        // [ 💡 چاککراوە ] - گۆڕینی none بۆ flex
+        if(backBtn) backBtn.style.display = 'flex'; 
     }
 
     subscribeToMessages(activeChatUserId);
@@ -274,7 +272,6 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
 
 function openAdminChatList() {
     const bottomNav = document.querySelector('.bottom-nav');
-    // لێرە bottomNav دەهێڵینەوە چونکە لاپەڕەی Admin Chat List وەک Settings و Cart کار دەکات.
     if (bottomNav) bottomNav.style.display = 'flex';
 
     history.pushState({ type: 'page', id: 'adminChatListPage', title: t('conversations_title') }, '', '#admin-chats');
@@ -285,8 +282,6 @@ function openAdminChatList() {
         page.classList.toggle('page-hidden', !isActive);
     });
     
-    // [ 💡 چاکسازی Admin UI ] : گۆڕینی هەدەری سەرەکی بۆ هەدەری لاوەکی لە app-ui.js
-    // پێویستە ئەم کارە لە app-ui.js ئەنجام بدرێت، بەڵام لێرە دڵنیایی زیاتر دەدەین:
     const headerTitle = document.getElementById('headerTitle');
     if (headerTitle) headerTitle.textContent = t('conversations_title');
 
