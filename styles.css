@@ -36,13 +36,14 @@ body.overlay-active {
     overflow: hidden;
 }
 
+/* [ 💡 چاککراوە ] - گۆڕینی body بۆ html بۆ چارەسەری Flash */
 /* شاردنەوەی هەدەر کاتێک چات چالاکە */
-body.chat-active .app-header {
+html.chat-active .app-header {
     display: none !important;
 }
 
 /* شاردنەوەی لیستی خوارەوە کاتێک چات چالاکە */
-body.chat-active .bottom-nav {
+html.chat-active .bottom-nav {
     display: none !important;
 }
 

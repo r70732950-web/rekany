@@ -6,7 +6,7 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,6 +23,20 @@
 
 </head>
 <body>
+    <script>
+      (function() {
+        try {
+            // هاشەکە وەردەگرین و پاکی دەکەینەوە
+            var hash = window.location.hash.trim();
+            if (hash === '#chat') {
+              // کلاسەکە دەدەین بە <html> نەک <body>
+              document.documentElement.classList.add('chat-active');
+            }
+        } catch(e) { 
+            /* لە کاتی هەڵەدا هیچ ناکەین */ 
+        }
+      })();
+    </script>
     <div class="app-container">
         <header class="app-header">
             <div class="main-header-content">
@@ -77,7 +91,6 @@
             </div>
         </div>
 
-        <!-- [ 💡 چاککراوە ] : بەکارهێنانی data-translate-key -->
         <div id="orderConfirmationModal" class="modal">
             <div class="modal-content" style="text-align: center; padding: 25px;">
                 <span class="close" aria-label="Close">&times;</span>
@@ -193,7 +206,7 @@
                             </button>
                         </div>
                         <div class="form-group">
-                            <label for="profilePhone" data-translate-key="profile_phone">ژمارەی تەلەفۆن:</label>
+                            <label for="profilePhone" data-translate-key="profile_phone">ژمارەی تەلەfۆن:</label>
                             <input type="tel" id="profilePhone" placeholder="07XX XXX XXXX" required>
                         </div>
                         <button type="submit" data-translate-key="save_button">پاشەکەوتکردنی زانیاری گەیاندن</button>
@@ -432,7 +445,7 @@
 
                  <div style="padding: 15px; border-bottom: 1px solid var(--section-border);">
                      <form id="addCategoryForm">
-                         <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی جۆری سەرەکی</h4>
+                         <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی جۆری سەرەki</h4>
                          <div class="form-group">
                              <label>ناوی جۆر (سۆرانی):</label>
                              <input type="text" id="mainCategoryNameKuSorani" required>
@@ -461,7 +474,7 @@
                      <form id="addSubcategoryForm">
                          <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی جۆری لاوەکی</h4>
                          <div class="form-group">
-                             <label>جۆری سەرەکی هەڵبژێرە:</label>
+                             <label>جۆری سەرەki هەڵبژێرە:</label>
                              <select id="parentCategorySelect" required>
                                  <option value="" disabled selected>-- سەرەتا جۆرێک هەڵبژێرە --</option>
                              </select>
@@ -493,15 +506,15 @@
                      <form id="addSubSubcategoryForm">
                          <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">زیادکردنی جۆری لاوەکیی لاوەکی</h4>
                          <div class="form-group">
-                             <label>جۆری سەرەکی هەڵبژێرە:</label>
+                             <label>جۆری سەرەki هەڵبژێرە:</label>
                              <select id="parentMainCategorySelectForSubSub" required>
-                                 <option value="" disabled selected>-- سەرەتا جۆری سەرەکی هەڵبژێرە --</option>
+                                 <option value="" disabled selected>-- سەرەتا جۆری سەرەki هەڵبژێرە --</option>
                              </select>
                          </div>
                          <div class="form-group">
                              <label>جۆری لاوەکی هەڵبژێرە:</label>
                              <select id="parentSubcategorySelectForSubSub" required>
-                                 <option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەki بە --</option>
+                                 <option value="" disabled selected>-- چاوەڕێی هەڵbژاردنی جۆری سەرەki بە --</option>
                              </select>
                          </div>
                          <div class="form-group">
@@ -612,7 +625,7 @@
                          <div class="form-group">
                              <label>گرووپ هەڵبژێرە:</label>
                              <select id="brandGroupSelect" required>
-                                 <option value="" disabled selected>-- گرووپێک هەڵبژێرە --</option>
+                                 <option value="" disabled selected>-- گرووپێک هەڵbژێرە --</option>
                              </select>
                          </div>
                          <div class="form-group">
@@ -693,7 +706,7 @@
                          <div class="form-group">
                              <label>ڕیزێک هەڵبژێرە:</label>
                              <select id="selectRowForCard" required>
-                                 <option value="" disabled selected>-- سەرەتا ڕیزێک هەڵبژێرە --</option>
+                                 <option value="" disabled selected>-- سەرەتا ڕیزێک هەڵbژێرە --</option>
                              </select>
                          </div>
                          <hr>
@@ -957,7 +970,7 @@
                     <div class="form-group">
                         <label for="newSectionType">جۆری بەش:</label>
                         <select id="newSectionType" required>
-                            <option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>
+                            <option value="" disabled selected>-- جۆرێک هەڵbژێرە --</option>
                             <option value="promo_slider">سلایدەری ڕێکلام</option>
                             <option value="brands">بەشی براندەکان</option>
                             <option value="newest_products">نوێترین کاڵاکان</option>
@@ -967,7 +980,7 @@
                         </select>
                     </div>
                     <div id="specificItemGroupSelectContainer" class="form-group" style="display: none;">
-                        <label for="specificItemGroupId" id="specificItemGroupLabel">گرووپ هەڵبژێرە:</label>
+                        <label for="specificItemGroupId" id="specificItemGroupLabel">گرووپ هەڵbژێرە:</label>
                         <select id="specificItemGroupId"></select>
                     </div>
                     <div id="specificCategorySelectContainer" class="form-group" style="display: none;">
@@ -1054,14 +1067,14 @@
 
                     <div class="form-group"><label for="productCategoryId">جۆری سەرەki:</label>
                         <select id="productCategoryId" required>
-                            <option value="" disabled selected>-- جۆرێ سەرەki هەڵبژێرە --</option>
+                            <option value="" disabled selected>-- جۆرێ سەرەki هەڵbژێرە --</option>
                         </select>
                     </div>
 
                     <div class="form-group" id="subcategorySelectContainer" style="display: none;">
                         <label for="productSubcategoryId">جۆری لاوەکی:</label>
                         <select id="productSubcategoryId">
-                            <option value="" disabled selected>-- سەرەتا جۆری سەرەki هەڵبژێرە --</option>
+                            <option value="" disabled selected>-- سەرەتا جۆری سەرەki هەڵbژێرە --</option>
                         </select>
                     </div>
                     <div class="form-group" id="subSubcategorySelectContainer" style="display: none;">
@@ -1151,5 +1164,3 @@
     <script src="admin.js" defer></script>
 </body>
 </html>
-
-
