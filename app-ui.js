@@ -1,3 +1,4 @@
+// app-ui.js
 import {
     loginModal, addProductBtn, productFormModal, skeletonLoader, searchInput,
     clearSearchBtn, loginForm, productForm, formTitle, imageInputsContainer, loader,
@@ -45,7 +46,6 @@ import {
     renderPageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
 } from './home.js'; 
 
-// [ ✅ چاککراو ] : هێنانی openChatPage بۆ ئەوەی لە کاتی ڕیفرێش بانگ بکرێت
 import { initChatSystem, openChatPage } from './chat.js';
 
 export function showNotification(message, type = 'success') {
@@ -67,12 +67,13 @@ function updateHeaderView(pageId, title = '') {
     const headerTitle = document.getElementById('headerTitle');
     const subpageSearch = document.querySelector('.subpage-search'); 
 
+    // [ 💡 چاککراوە ] - گۆڕینی body بۆ html بۆ چارەسەری Flash
     if (pageId === 'chatPage') {
         if (appHeader) appHeader.style.display = 'none';
-        document.body.classList.add('chat-active'); 
+        document.documentElement.classList.add('chat-active'); 
     } else {
         if (appHeader) appHeader.style.display = 'flex';
-        document.body.classList.remove('chat-active');
+        document.documentElement.classList.remove('chat-active');
 
         if (pageId === 'mainPage') {
             mainHeader.style.display = 'flex';
@@ -1444,33 +1445,44 @@ window.addEventListener('popstate', async (event) => {
             if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
                 await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
             }
-            // [ ✅ چاککراو ] : ئەگەر لە History گەڕایتەوە بۆ چات، بانگی بکە
             if (popState.id === 'chatPage') {
                 openChatPage();
             }
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             openPopup(popState.id, popState.type, false);
-        } else {
+        
+        // [ 💡 لێرە چاکسازی کرا 💡 ]
+        } else { 
             showPage('mainPage'); 
-            applyFilterStateCore(popState); 
+            
+            const stateToApply = popState || { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
+            applyFilterStateCore(stateToApply); 
 
             const cameFromPopup = wasPopupOpen;
-            const cameFromPage = previousPageId !== 'mainPage';
+            const cameFromPage = previousPageId !== 'mainPage'; // (بۆ نموونە: 'settingsPage' یان 'chatPage')
 
-            if (!cameFromPopup && !cameFromPage) {
-                console.log("Popstate: Navigating between filter states, triggering refresh WITHOUT scroll.");
-                await updateProductViewUI(true, false); 
-            } else {
-                console.log(`Popstate: Returned from ${cameFromPopup ? 'popup' : (cameFromPage ? 'page' : 'unknown')}, restoring UI without full refresh.`);
+            if (cameFromPage) {
+                // ئەگەر لە پەیجێکی ترەوە گەڕایەوە، *پێویستە* داتا باربکەیتەوە
+                console.log("Popstate: Returned from page, triggering full UI refresh.");
+                await updateProductViewUI(true, true); // (true, true) بۆ ئەوەی بیسکرۆڵ بکاتە سەرەوە
+            
+            } else if (cameFromPopup) {
+                // ئەگەر تەنها پۆپئەپێک داخرابوو، پێویست بە بارکردنەوە ناکات
+                console.log("Popstate: Returned from popup, restoring UI without refresh.");
                 renderMainCategoriesUI();
                 const subcats = await fetchSubcategories(state.currentCategory);
                 await renderSubcategoriesUI(subcats);
+            
+            } else {
+                // ئەگەر لە نێوان فلتەرەکاندا گەڕایەوە، باربکەرەوە بەڵام سکرۆڵ مەکە
+                console.log("Popstate: Navigating between filter states, triggering refresh WITHOUT scroll.");
+                await updateProductViewUI(true, false); 
             }
 
             if (!state.pendingFilterNav) { 
-                if (typeof popState.scroll === 'number') {
+                if (typeof stateToApply.scroll === 'number') {
                     requestAnimationFrame(() => {
-                        activePage.scrollTo({ top: popState.scroll, behavior: 'instant' });
+                        activePage.scrollTo({ top: stateToApply.scroll, behavior: 'instant' });
                     });
                 } else {
                     requestAnimationFrame(() => {
@@ -1478,6 +1490,7 @@ window.addEventListener('popstate', async (event) => {
                     });
                 }
             }
+            // [ 💡 کۆتایی چاکسازی 💡 ]
             
             if (state.pendingFilterNav) {
                 console.log("Found pending filter navigation. Applying now.");
@@ -1542,7 +1555,6 @@ async function initializeUI() {
     }
 }
 
-// [ ✅ چاککراو ] : لێرە بانگی openChatPage دەکەین
 async function handleInitialPageLoadUI() {
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(window.location.search);
@@ -1558,13 +1570,12 @@ async function handleInitialPageLoadUI() {
     } else if (isChat) { 
          history.replaceState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', `#chat`);
          showPage('chatPage', t('chat_title'));
-         openChatPage(); // [ 💡 ] کێشەکە لێرە چارەسەر بوو
+         openChatPage(); 
     } else if (isAdminChat) { 
          history.replaceState({ type: 'page', id: 'adminChatListPage', title: t('conversations_title') }, '', `#admin-chats`);
          showPage('adminChatListPage', t('conversations_title'));
-         // [ 💡 ] دڵنیابوونەوە لەوەی ئەدمینیش چاتی بۆ باردەبێت
-         if(window.AdminLogic) {
-            openChatPage(); // ئەگەر ئەدمین بوو، بانگی دەکات بۆ ئەوەی بڕیار بدات
+         if(sessionStorage.getItem('isAdmin') === 'true') {
+            openChatPage(); 
          }
     } else if (isSubcategoryDetail) {
          const ids = hash.split('_');
