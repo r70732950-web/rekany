@@ -7,7 +7,7 @@ import {
 } from './app-setup.js';
 
 import { 
-    state, t, saveCart, authReady // [ 💡 زیادکرا ] - چاوەڕێکردنی ئامادەبوونی Auth
+    state, t, saveCart, authReady
 } from './app-core.js';
 
 import { 
@@ -22,8 +22,15 @@ import {
 let messagesUnsubscribe = null;
 let conversationsUnsubscribe = null;
 let activeChatUserId = null; 
+
+// --- [ 💡 گۆڕانکاری لێرە کرا 💡 ] ---
+// گۆڕاوە نوێیەکان بۆ پرۆسەی تۆمارکردن
 let mediaRecorder = null;
 let audioChunks = [];
+let isRecordingCancelled = false; // ئاڵایەک بۆ زانینی ئەوەی ئایا سڕینەوە داگیراوە
+let recordingTimerInterval = null; // بۆ کاتژمێرەکە
+let recordingStartTime = null; // بۆ کاتژمێرەکە
+// --- کۆتایی گۆڕانکاری ---
 
 export function initChatSystem() {
     setupChatUI();
@@ -53,6 +60,8 @@ function setupChatUI() {
 
     const chatPage = document.getElementById('chatPage');
     
+    // --- [ 💡 گۆڕانکاری لێرە کرا 💡 ] ---
+    // زیادکردنی دوگمەی سڕینەوە و کاتژمێر
     if (chatPage && !chatPage.querySelector('.chat-container')) {
         chatPage.innerHTML = `
             <div class="chat-container">
@@ -77,7 +86,11 @@ function setupChatUI() {
                     <button class="chat-action-btn" id="chatImageBtn"><i class="fas fa-image"></i></button>
                     <input type="file" id="chatImageInput" accept="image/*" style="display:none;">
                     
+                    <button class="chat-action-btn" id="chatTrashBtn"><i class="fas fa-trash"></i></button>
+                    
                     <input type="text" class="chat-input" id="chatTextInput" placeholder="${t('type_message')}">
+                    
+                    <div id="chatTimer">00:00</div>
                     
                     <button class="chat-action-btn chat-record-btn" id="chatVoiceBtn"><i class="fas fa-microphone"></i></button>
                     <button class="chat-action-btn chat-send-btn" id="chatSendBtn" style="display:none;"><i class="fas fa-paper-plane"></i></button>
@@ -92,18 +105,7 @@ function setupChatUI() {
             </div>
         `;
     }
-
-    const adminChatListPage = document.getElementById('adminChatListPage');
-    if (adminChatListPage && !adminChatListPage.querySelector('.conversation-list')) {
-        adminChatListPage.innerHTML = `
-            <div class="settings-page" style="padding-top: 60px;">
-                <h3 class="section-title"><i class="fas fa-inbox"></i> ${t('conversations_title')}</h3>
-                <div class="conversation-list" id="adminConversationList">
-                    <div class="text-center p-4">...Loading</div>
-                </div>
-            </div>
-        `;
-    }
+    // --- کۆتایی گۆڕانکاری ---
 }
 
 function setupChatListeners() {
@@ -136,6 +138,10 @@ function setupChatListeners() {
         const voiceBtn = document.getElementById('chatVoiceBtn');
         const imageBtn = document.getElementById('chatImageBtn');
         const imageInput = document.getElementById('chatImageInput');
+        
+        // --- [ 💡 گۆڕانکاری لێرە کرا 💡 ] ---
+        // زیادکردنی گوێگر بۆ دوگمەی سڕینەوە
+        const trashBtn = document.getElementById('chatTrashBtn');
 
         if (textInput) {
             textInput.addEventListener('input', (e) => {
@@ -157,7 +163,12 @@ function setupChatListeners() {
         if (sendBtn) sendBtn.onclick = () => sendMessage('text');
         
         if (voiceBtn) {
-            voiceBtn.onclick = handleVoiceRecording;
+            voiceBtn.onclick = handleVoiceRecording; // ئەمە ئێستا هەم دەستپێکردن و هەم ناردنە
+        }
+        
+        // [ 💡 نوێ ] زیادکردنی گوێگر بۆ سڕینەوە
+        if (trashBtn) {
+            trashBtn.onclick = cancelRecording;
         }
 
         if (imageBtn && imageInput) {
@@ -168,10 +179,10 @@ function setupChatListeners() {
                 }
             };
         }
+        // --- کۆتایی گۆڕانکاری ---
     }, 1000);
 }
 
-// [ ✅ چاککراوە ] - ئەم فەنکشنە چاوەڕێی دڵنیابوونەوەی Auth دەکات
 export async function openChatPage(targetUserId = null, targetUserName = null) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     
@@ -188,24 +199,19 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
         page.classList.toggle('page-hidden', !isActive);
     });
 
-    // [ 💡 ] نیشاندانی لۆدەر
     const msgArea = document.getElementById('chatMessagesArea');
     if (msgArea) {
         msgArea.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%; color:var(--dark-gray);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>';
         msgArea.style.display = 'flex';
     }
 
-    // [ 💡 ] چاوەڕێی ئامادەبوونی Auth دەکەین
     await authReady; 
-    // ئێستا دڵنیاین کە state.currentUser یان پڕە یان nullـە
 
-    // 1. ئەگەر ئەدمینە و دیاری نەکراوە -> بچۆ بۆ لیستی چات
     if (isAdmin && !targetUserId) {
         openAdminChatList();
         return;
     }
 
-    // 2. ئەگەر بەکارهێنەر نییە (لۆگین نەکراوە) و ئەدمینیش نییە -> داوای لۆگین بکە
     if (!state.currentUser && !isAdmin) {
         const loginReq = document.getElementById('chatLoginRequired');
         const inputArea = document.getElementById('chatInputArea');
@@ -216,7 +222,6 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
         return;
     }
 
-    // 3. ئەگەر لۆگین بووە (یان ئەدمینە و targetUserId هەیە) -> چاتەکە بکەرەوە
     const loginReq = document.getElementById('chatLoginRequired');
     const inputArea = document.getElementById('chatInputArea');
 
@@ -224,7 +229,7 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
     if(inputArea) inputArea.style.display = 'flex';
     
     if(msgArea) {
-        msgArea.innerHTML = ''; // لۆدەرەکە لابدە
+        msgArea.innerHTML = ''; 
         msgArea.classList.add('hidden'); 
     }
 
@@ -249,7 +254,6 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
             }
         }
     } else {
-        // ئێستا دڵنیاین state.currentUser هەیە
         activeChatUserId = state.currentUser.uid; 
         const headerName = document.getElementById('chatHeaderName');
         if(headerName) headerName.textContent = t('admin_badge');
@@ -308,7 +312,6 @@ function subscribeToMessages(chatUserId) {
 }
 
 function renderSingleMessage(msg, container, chatUserId) {
-    // [ ✅ ] ئەمە ئێستا سەلامەتە چونکە چاوەڕێی authReady دەکەین
     const isMe = msg.senderId === (sessionStorage.getItem('isAdmin') === 'true' ? 'admin' : (state.currentUser ? state.currentUser.uid : ''));
     const alignClass = isMe ? 'message-sent' : 'message-received';
     
@@ -493,35 +496,112 @@ async function sendMessage(type, file = null, orderData = null) {
     }
 }
 
+// [ 💡 فەنکشنی نوێ ] : بۆ دەستپێکردنی کاتژمێر
+function startTimer() {
+    const timerEl = document.getElementById('chatTimer');
+    if (!timerEl) return;
+    
+    recordingStartTime = Date.now();
+    timerEl.textContent = '00:00';
+    
+    if (recordingTimerInterval) clearInterval(recordingTimerInterval);
+    
+    recordingTimerInterval = setInterval(() => {
+        const elapsed = Date.now() - recordingStartTime;
+        const totalSeconds = Math.floor(elapsed / 1000);
+        const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+        const seconds = String(totalSeconds % 60).padStart(2, '0');
+        timerEl.textContent = `${minutes}:${seconds}`;
+    }, 1000);
+}
+
+// [ 💡 فەنکشنی نوێ ] : بۆ گێڕانەوەی UI بۆ باری ئاسایی
+function resetRecordingUI() {
+    if (recordingTimerInterval) clearInterval(recordingTimerInterval);
+    recordingTimerInterval = null;
+    recordingStartTime = null;
+    audioChunks = [];
+    isRecordingCancelled = false;
+    mediaRecorder = null; 
+
+    const inputArea = document.getElementById('chatInputArea');
+    if (inputArea) inputArea.classList.remove('is-recording');
+
+    const voiceBtn = document.getElementById('chatVoiceBtn');
+    const voiceBtnIcon = voiceBtn ? voiceBtn.querySelector('i') : null;
+
+    // گەڕاندنەوەی دوگمەی مایکرۆفۆن بۆ باری ئاسایی
+    if (voiceBtn) {
+        voiceBtn.classList.remove('chat-send-btn'); // لابردنی ڕەنگی ناردن
+    }
+    if (voiceBtnIcon) voiceBtnIcon.className = 'fas fa-microphone';
+}
+
+// [ 💡 فەنکشنی نوێ ] : بۆ سڕینەوەی تۆمارکردن
+function cancelRecording() {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        isRecordingCancelled = true; // ئاڵاکە دادەنێین کە سڕاوەتەوە
+        mediaRecorder.stop(); // ئەمە 'onstop' چالاک دەکات
+    }
+}
+
+// --- [ 💡 گۆڕانکاری گەورە لێرە کرا 💡 ] ---
+// فەنکشنی handleVoiceRecording بە تەواوی نوێکرایەوە
 async function handleVoiceRecording() {
     const btn = document.getElementById('chatVoiceBtn');
     if(!btn) return;
     
+    const btnIcon = btn.querySelector('i');
+    const inputArea = document.getElementById('chatInputArea');
+    
+    // حاڵەتی یەکەم: دەستپێکردنی تۆمارکردن
     if (!mediaRecorder || mediaRecorder.state === 'inactive') {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(stream);
             audioChunks = [];
+            isRecordingCancelled = false; // دڵنیابوونەوە لە ڕێسێت بوون
 
             mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+            
             mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                await sendMessage('audio', audioBlob);
-                btn.classList.remove('recording');
+                // لێرە پشکنین دەکەین ئایا سڕینەوە داگیراوە
+                if (!isRecordingCancelled) {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    // دڵنیادەبینەوە کە فایلە دەنگییەکە بەتاڵ نییە
+                    if (audioBlob.size > 1000) { 
+                        await sendMessage('audio', audioBlob);
+                    }
+                }
+                // لە هەردوو حاڵەتدا (ناردن یان سڕینەوە)، UI ڕێسێت دەکەینەوە
+                resetRecordingUI();
             };
 
             mediaRecorder.start();
-            btn.classList.add('recording');
-            showNotification(t('recording'), 'success');
+            
+            // --- نوێکردنەوەی UI بۆ باری تۆمارکردن ---
+            if (inputArea) inputArea.classList.add('is-recording'); // کلاس زیاد دەکەین بۆ شاردنەوەی ئینپوت
+
+            // گۆڕینی دوگمەی مایکرۆفۆن بۆ دوگمەی ناردن
+            btn.classList.add('chat-send-btn'); // ڕەنگی سەوز یان شینی پێدەدات
+            if (btnIcon) btnIcon.className = 'fas fa-paper-plane';
+
+            startTimer(); // دەستپێکردنی کاتژمێرەکە
 
         } catch (err) {
             console.error("Mic Error:", err);
-            showNotification('دەسەڵاتی مایکڕۆفۆن نەدراوە', 'error');
+            showNotification('دەسەڵاتی مایکڕۆfۆn نەدراوە', 'error');
+            resetRecordingUI(); // ئەگەر هەڵەیەک ڕوویدا، UI ڕێسێت بکەوە
         }
-    } else {
-        mediaRecorder.stop();
+    } 
+    // حاڵەتی دووەم: وەستاندن و ناردنی تۆمار (کلیک لە دوگمەی ناردن)
+    else if (mediaRecorder.state === 'recording') {
+        isRecordingCancelled = false; // دڵنیادەبینەوە کە نایدەینە پاڵ سڕینەوە
+        mediaRecorder.stop(); // ئەمە 'onstop' چالاک دەکات -> پاشان دەینێرێت -> پاشان UI ڕێسێت دەکات
     }
 }
+// --- کۆتایی گۆڕانکاری ---
+
 
 async function handleDirectOrder() {
     if (!state.currentUser) {
@@ -536,7 +616,7 @@ async function handleDirectOrder() {
     }
 
     if (!state.userProfile.phone || !state.userProfile.address) {
-        showNotification('تکایە سەرەتا زانیارییەکانت (ناونیشان و تەلەfۆن) لە پڕۆfایل پڕبکەرەوە', 'error');
+        showNotification('تکایە سەرەتا زانیارییەکانت (ناونیشان و تەلەfۆn) لە پڕۆfایل پڕبکەرەوە', 'error');
         openPopup('profileSheet');
         return;
     }
