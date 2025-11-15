@@ -101,14 +101,11 @@ function setupChatUI() {
         `;
     }
     
-    // [ 💡 چاکسازی Admin Chat UI ] : زیادکردنی پێکهاتەی HTML بۆ لاپەڕەی لیستی گفتوگۆکانی Admin
+    // [ 💡 چاکسازی Admin Chat UI ] : دروستکردنی پێکهاتەی Admin Chat List بەبێ دووبارەکردنەوەی Header
     const adminChatListPage = document.getElementById('adminChatListPage');
     if (adminChatListPage && !adminChatListPage.querySelector('.conversation-list-container')) {
         adminChatListPage.innerHTML = `
-            <div class="conversation-list-container">
-                <header class="app-header" style="position: sticky; top: 0; display: flex; justify-content: flex-start; z-index: 100;">
-                   <h2 style="font-size: 18px; font-weight: bold; color: var(--primary-color); padding: 5px;" data-translate-key="conversations_title">${t('conversations_title')}</h2>
-                </header>
+            <div class="conversation-list-container" style="padding-top: 80px;">
                 <div class="conversation-list" id="adminConversationList">
                     <p style="text-align: center; padding: 20px; color: var(--dark-gray);">...بارکردنی گفتوگۆکان</p>
                 </div>
@@ -242,9 +239,7 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
     if (isAdmin) {
         activeChatUserId = targetUserId;
         const headerName = document.getElementById('chatHeaderName');
-        const chatHeader = document.getElementById('chatPageHeader');
         
-        // پیشاندانی دوگمەی گەڕانەوە تەنها لە دۆخی Admin Single Chat
         const backBtn = document.getElementById('chatBackBtn');
         if(backBtn) backBtn.style.display = 'flex'; 
 
@@ -270,7 +265,6 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
         const headerName = document.getElementById('chatHeaderName');
         if(headerName) headerName.textContent = t('admin_badge');
         
-        // شاردنەوەی دوگمەی گەڕانەوە لە دۆخی User Single Chat (چونکە User Chat بەشی سەرەکییە)
         const backBtn = document.getElementById('chatBackBtn');
         if(backBtn) backBtn.style.display = 'none'; 
     }
@@ -290,10 +284,11 @@ function openAdminChatList() {
         page.classList.toggle('page-active', isActive);
         page.classList.toggle('page-hidden', !isActive);
     });
-
-    // دڵنیابوونەوە لە پیشاندانی هەدەر لە لاپەڕەی Admin Chat List
-    const adminChatPageHeader = document.querySelector('#adminChatListPage .app-header');
-    if(adminChatPageHeader) adminChatPageHeader.style.display = 'flex';
+    
+    // [ 💡 چاکسازی Admin UI ] : گۆڕینی هەدەری سەرەکی بۆ هەدەری لاوەکی لە app-ui.js
+    // پێویستە ئەم کارە لە app-ui.js ئەنجام بدرێت، بەڵام لێرە دڵنیایی زیاتر دەدەین:
+    const headerTitle = document.getElementById('headerTitle');
+    if (headerTitle) headerTitle.textContent = t('conversations_title');
 
     subscribeToAllConversations();
 }
@@ -633,7 +628,6 @@ async function handleDirectOrder() {
     const confirmBtn = document.getElementById('confirmOrderBtn');
     const cancelBtn = document.getElementById('cancelOrderBtn');
 
-    // لۆژیکی لابردن و گێڕانەوەی دوگمەکان بۆ ڕێگریکردن لە دووبارە گوێگرتن (Duplicate Listeners)
     const newConfirmBtn = confirmBtn.cloneNode(true);
     confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
 
@@ -645,7 +639,6 @@ async function handleDirectOrder() {
     };
 
     newConfirmBtn.onclick = async () => {
-        // گەڕانەوە بۆ لاپەڕەی سەرەکی دوای ناردنی داواکاری و کردنەوەی چات
         history.go(-2); 
         setTimeout(() => {
              processOrderSubmission();
