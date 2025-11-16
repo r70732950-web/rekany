@@ -1,3 +1,6 @@
+// app-core.js
+
+// [ 💡 گۆڕانکاری ] - زیادکردنی 'translations' بۆ لیستی import
 import {
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
@@ -6,7 +9,8 @@ import {
     usersCollection, 
     createUserWithEmailAndPassword, updateProfile, 
     sendPasswordResetEmail,
-    translations, state,
+    translations, // دڵنیابوونەوە لەوەی translations لێرەیە
+    state,
     CART_KEY, FAVORITES_KEY, PRODUCTS_PER_PAGE,
 } from './app-setup.js';
 
@@ -471,7 +475,8 @@ async function fetchInitialProductsForHome(limitCount = 10) {
     }
 }
 
-export async function addToCartCore(productId) {
+// [ 💡 گۆڕانکاری ] - زیادکردنی 'variation = null'
+export async function addToCartCore(productId, variation = null) {
     let product = state.products.find(p => p.id === productId);
 
     if (!product) {
@@ -482,32 +487,63 @@ export async function addToCartCore(productId) {
         }
     }
 
+    // زانیاری گەیاندنی کاڵا سەرەکییەکە
     const shippingText = (product.shippingInfo && product.shippingInfo[state.currentLanguage]) ||
                          (product.shippingInfo && product.shippingInfo.ku_sorani) || '';
     const calculatedShippingCost = extractShippingCostFromText(shippingText);
-
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
-    const existingItem = state.cart.find(item => item.id === productId);
+
+    // [ 💡 نوێ ] - دیاریکردنی زانیارییەکانی کاڵا لەسەر بنەمای جۆرەکە (variation)
+    let price, image, variationId, variationName;
+
+    if (variation) {
+        price = variation.price || product.price; // نرخی جۆرەکە، ئەگەر نەبوو نرخی سەرەki
+        image = (variation.imageUrls && variation.imageUrls.length > 0) 
+                ? variation.imageUrls[0] 
+                : mainImage; // وێنەی جۆرەکە، ئەگەر نەبوو وێنەی سەرەki
+        variationId = variation.id;
+        variationName = variation.name;
+    } else {
+        // ئەگەر کاڵاکە جۆری نەبوو یان لە کارتی سەرەکییەوە زیادکرا
+        price = product.price;
+        image = mainImage;
+        variationId = null;
+        variationName = null;
+    }
+
+    // [ 💡 گۆڕانکاری ] - پشکنین بۆ IDـی کاڵا و IDـی جۆرەکە
+    const existingItem = state.cart.find(item => 
+        item.id === productId && item.variationId === variationId
+    );
 
     if (existingItem) {
         existingItem.quantity++;
-        existingItem.shippingCost = calculatedShippingCost; 
+        existingItem.shippingCost = calculatedShippingCost; // نوێکردنەوەی نرخی گەیاندن
     } else {
         state.cart.push({
             id: product.id,
-            name: product.name, 
-            price: product.price,
+            name: product.name, // ناوی سەرەkiی کاڵا
+            price: price, // نرخی جۆرەکە (یان سەرەki)
             shippingCost: calculatedShippingCost,
-            image: mainImage,
-            quantity: 1
+            image: image, // وێنەی جۆرەکە (یان سەرەki)
+            quantity: 1,
+            variationId: variationId, // IDـی جۆرەکە
+            variationName: variationName // ناوی جۆرەکە
         });
     }
     saveCart();
     return { success: true, message: t('product_added_to_cart') };
 }
 
-export function updateCartQuantityCore(productId, change) {
-    const cartItemIndex = state.cart.findIndex(item => item.id === productId);
+// [ 💡 گۆڕانکاری ] - زیادکردنی 'variationId = null'
+export function updateCartQuantityCore(productId, change, variationId = null) {
+    const varId = (variationId === 'undefined' || !variationId) ? null : variationId;
+    
+    // [ 💡 گۆڕانکاری ] - گەڕان بەدوای هەردوو IDـەکە
+    const cartItemIndex = state.cart.findIndex(item => 
+        item.id === productId && item.variationId === varId
+    );
+    
     if (cartItemIndex > -1) {
         state.cart[cartItemIndex].quantity += change;
         if (state.cart[cartItemIndex].quantity <= 0) {
@@ -519,9 +555,16 @@ export function updateCartQuantityCore(productId, change) {
     return false; 
 }
 
-export function removeFromCartCore(productId) {
+// [ 💡 گۆڕانکاری ] - زیادکردنی 'variationId = null'
+export function removeFromCartCore(productId, variationId = null) {
+    const varId = (variationId === 'undefined' || !variationId) ? null : variationId;
     const initialLength = state.cart.length;
-    state.cart = state.cart.filter(item => item.id !== productId);
+
+    // [ 💡 گۆڕانکاری ] - سڕینەوە بەپێی هەردوو IDـەکە
+    state.cart = state.cart.filter(item => 
+        !(item.id === productId && item.variationId === varId)
+    );
+    
     if (state.cart.length < initialLength) {
         saveCart();
         return true; 
@@ -529,6 +572,8 @@ export function removeFromCartCore(productId) {
     return false; 
 }
 
+
+// [ 💡 گۆڕانکاری ] - نوێکردنەوە بۆ پیشاندانی ناوی جۆرەکە
 export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
@@ -541,16 +586,19 @@ export function generateOrderMessageCore() {
         
         total += lineTotal;
         
+        // [ 💡 گۆڕانکاری ] - پیشاندانی ناوی سەرەki + ناوی جۆرەکە
         const itemName = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
+        const variationName = item.variationName ? ` (${item.variationName})` : ''; // زیادکردنی ناوی جۆرەکە
         
         let priceDetails = "";
         if (shipping > 0) {
+             // دڵنیابوونەوە لە وەرگێڕان
              priceDetails = `(${item.price.toLocaleString()} x ${item.quantity}) + ${shipping.toLocaleString()} (${t('shipping_cost') || 'گەیاندن'}) = ${lineTotal.toLocaleString()}`;
         } else {
              priceDetails = `(${item.price.toLocaleString()} x ${item.quantity}) + (${t('free_shipping') || 'گەیاندن بێ بەرامبەر'}) = ${lineTotal.toLocaleString()}`;
         }
 
-        message += `- ${itemName}\n`;
+        message += `- ${itemName}${variationName}\n`; // لێرەدا ناوی جۆرەکە زیادکرا
         message += `   💰 ${priceDetails}\n`;
         message += `   ----------------\n`;
     });
@@ -567,6 +615,7 @@ export function generateOrderMessageCore() {
     }
     return message;
 }
+
 
 export function toggleFavoriteCore(productId) {
     const isCurrentlyFavorite = isFavorite(productId);

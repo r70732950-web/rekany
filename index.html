@@ -246,7 +246,14 @@
                     <button class="slider-btn prev" id="sheetPrevBtn" style="display: none;">&#10094;</button>
                     <button class="slider-btn next" id="sheetNextBtn" style="display: none;">&#10095;</button>
                 </div>
+                
                 <div id="sheetThumbnailContainer"></div>
+
+                <div id="sheetVariationsContainer" class="form-group" style="padding: 0 10px; margin-top: 20px; display: none;">
+                    <label style="font-weight: bold; margin-bottom: 8px; display: block;" id="sheetVariationTitle">جۆرەکان:</label>
+                    <div id="sheetVariationButtons" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        </div>
+                </div>
                 <div id="sheetProductPrice" style="font-size: 22px; font-weight: bold; color: var(--accent-color); margin: 15px 0; text-align:center;"></div>
                 <p id="sheetProductDescription" style="color: #4a5568; margin-bottom: 20px; text-align:right; line-height: 1.7;"></p>
 
@@ -570,7 +577,7 @@
                          <div class="form-group">
                              <label>گرووپ هەڵبژێرە:</label>
                              <select id="promoCardGroupSelect" required>
-                                 <option value="" disabled selected>-- گرووپێک هەڵبژێرە --</option>
+                                 <option value="" disabled selected>-- گرووپێک هەڵbژێرە --</option>
                              </select>
                          </div>
                          <div class="form-group">
@@ -588,7 +595,7 @@
                          <div class="form-group">
                              <label>جۆری کاڵا کە لینک بکرێت بۆی:</label>
                              <select id="promoCardTargetCategory" required>
-                                 <option value="" disabled selected>-- جۆرێک هەڵبژێرە --</option>
+                                 <option value="" disabled selected>-- جۆرێک هەڵbژێرە --</option>
                              </select>
                          </div>
                          <div class="form-group">
@@ -1119,7 +1126,21 @@
                         <label for="shippingInfoAr">معلومات التوصيل (عربي):</label>
                         <input type="text" id="shippingInfoAr" placeholder="مثال: التوصيل مجاني">
                     </div>
-
+                    
+                    <hr style="margin: 20px 0; border-top: 1px solid var(--section-border);">
+                    <div class="form-group">
+                        <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">
+                            <i class="fas fa-tags"></i> جۆرەکانی کاڵا (Variations)
+                        </h4>
+                        <p style="font-size: 12px; color: var(--dark-gray); margin-top: -4px; margin-bottom: 8px;">
+                            ئەگەر کاڵاکەت جۆری جیاوازی (وەک ڕەنگ یان قەبارە) هەیە، لێرە زیادی بکە. ئەگەر هیچ جۆرێک زیاد نەکەیت، کاڵاکە وەک یەک کاڵای ئاسایی پاشەکەوت دەبێت.
+                        </p>
+                        <div id="productVariationsContainer" style="display: flex; flex-direction: column; gap: 15px;">
+                            </div>
+                        <button type="button" id="adminAddVariationBtn" class="add-section-btn" style="margin-top: 15px; background-color: var(--primary-light);">
+                            <i class="fas fa-plus"></i> زیادکردنی جۆرێکی نوێ
+                        </button>
+                    </div>
                     <button type="submit">پاشەکەوتکردن</button>
                 </form>
             </div>
