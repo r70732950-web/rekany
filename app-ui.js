@@ -500,7 +500,7 @@ async function renderCartActionButtonsUI() {
 
     if (!methods || methods.length === 0) {
         if (container.children.length === 0) {
-             container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
+             container.innerHTML = '<p>هیچ ڕێگایەکی nardn دیاری نەکراوە.</p>';
         }
         return;
     }
@@ -912,7 +912,7 @@ function updateDetailSheetContent(variation, baseProduct) {
     // 2. دیاریکردنی نرخ
     const priceContainer = document.getElementById('sheetProductPrice');
     const displayPrice = variation?.price || baseProduct.price;
-    // داشکان تەنها کاتێک پیشان بدە کە نرخی جۆرەکە (variation) دانەنرابێت و نرخی سەرەکی بەکاربێت
+    // داشکان تەنها کاتێک پیشان بدە کە نرخی جۆرەکە (variation) دانەنرابێت و نرخی سەرەki بەکاربێت
     const displayOriginalPrice = (!variation?.price && baseProduct.originalPrice) ? baseProduct.originalPrice : null; 
 
     if (displayOriginalPrice && displayOriginalPrice > displayPrice) {
@@ -1829,7 +1829,8 @@ if (!window.globalAdminTools) {
 }
 
 window.globalAdminTools.openPopup = openPopup;
-window.globalDlobalAdminTools.closeCurrentPopup = closeCurrentPopup;
+// [ 💡 چارەسەری خەلەتی ] - لێرەدا 'D'ـی زیادە لابرا
+window.globalAdminTools.closeCurrentPopup = closeCurrentPopup;
 window.globalAdminTools.showNotification = showNotification; 
 window.globalAdminTools.updateCartCountUI = updateCartCountUI; 
 
