@@ -6,14 +6,90 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="styles.css">
-
+    
+    <!-- [ 💡 زیادکرا ] - ستایلی زیادە بۆ فۆڕمی Variations -->
+    <style>
+        .variation-options-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 0 5px;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        .variation-btn {
+            padding: 8px 15px;
+            border: 2px solid var(--medium-gray);
+            background-color: white;
+            color: var(--text-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .variation-btn:hover {
+            background-color: var(--light-gray);
+        }
+        .variation-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        /* ستایلی فۆڕمی ئەدمین */
+        .variation-l1-box {
+            background: #f7fafc;
+            border: 1px solid var(--section-border);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .variation-l1-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--medium-gray);
+            padding-bottom: 10px;
+        }
+        .variation-l1-header h5 {
+            margin: 0;
+            font-size: 16px;
+            color: var(--primary-color);
+        }
+        .variation-l2-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border: 1px solid var(--medium-gray);
+        }
+        .variation-l2-row .form-group {
+            margin-bottom: 0;
+            flex: 1;
+            min-width: 120px;
+        }
+        .variation-l2-row .delete-btn {
+            flex-shrink: 0;
+            height: 40px;
+            margin-top: 10px;
+        }
+    </style>
+    
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a365d">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -247,11 +323,17 @@
                     <button class="slider-btn next" id="sheetNextBtn" style="display: none;">&#10095;</button>
                 </div>
                 <div id="sheetThumbnailContainer"></div>
-                
-                <div id="sheetVariationL1Container" class="variation-container"></div>
-                <div id="sheetVariationL2Container" class="variation-container"></div>
+
+                <!-- [ 💡 زیادکرا ] - کۆنتەینەری دوگمەی جۆرەکان -->
+                <div id="variationL1Container" class="variation-options-container" style="margin-top: 20px;">
+                    <!-- دوگمەکانی ئاستی یەک (ڕەنگ) لێرە -->
+                </div>
+                <div id="variationL2Container" class="variation-options-container" style="margin-top: 10px;">
+                    <!-- دوگمەکانی ئاستی دوو (قەبارە) لێرە -->
+                </div>
                 
                 <div id="sheetProductPrice" style="font-size: 22px; font-weight: bold; color: var(--accent-color); margin: 15px 0; text-align:center;"></div>
+                
                 <p id="sheetProductDescription" style="color: #4a5568; margin-bottom: 20px; text-align:right; line-height: 1.7;"></p>
 
                 <button id="sheetAddToCartBtn" class="add-to-cart-btn" style="padding: 12px; font-size: 16px;"></button>
@@ -1066,7 +1148,7 @@
                         <label for="productNameAr">اسم المنتج (عربي):</label>
                         <input type="text" id="productNameAr" required>
                     </div>
-                    <div class="form-group"><label for="productPrice">نرخی بنەڕەتی (د.ع.):</label><input type="number" id="productPrice" required min="0" step="1" placeholder="نرخی سەرەکی کاڵا"></div>
+                    <div class="form-group"><label for="productPrice">نرخی بنەڕەتی (د.ع.):</label><input type="number" id="productPrice" required min="0" step="1"></div>
                     <div class="form-group"><label for="productOriginalPrice">نرخی ڕەسەن (د.ع.):</label><input type="number" id="productOriginalPrice" min="0" step="1" placeholder="ئەگەر داشکانی نییە، بەتاڵ بێت"></div>
 
                     <div class="form-group"><label for="productCategoryId">جۆری سەرەki:</label>
@@ -1101,43 +1183,44 @@
                     </div>
                     
                     <div class="form-group">
-                        <label>وێنە گشتییەکان (تا 4 وێنە):</label>
+                        <label>وێنە گشتییەکانی کاڵا (تا 4 وێنە):</label>
                         <p style="font-size: 12px; color: var(--dark-gray); margin-top: -4px; margin-bottom: 8px;">
-                            (ئەم وێنانە بە شێوەی بنەڕەتی پیشان دەدرێن)
+                            (وێنەی یەکەم وەک وێنەی سەرەki بەکاردێت. تکایە چاوەڕێ بکە تا وێنەکان باربن.)
                         </p>
-                        <div class="image-upload-container" id="imageUploadContainer">
+                        <!-- [ 💡 گۆڕانکاری ] - گۆڕینی ئایدی بۆ ئەوەی لەگەڵ وێنەی جۆرەکان تێکەڵ نەبێت -->
+                        <div class="image-upload-container" id="mainImageUploadContainer">
                             </div>
                     </div>
-                    <div class="form-group"><label for="productExternalLink">لینکی دەرەki (ڤیدیۆی گشتی):</label><input type="text" id="productExternalLink" placeholder="بۆ نموونە، لینکی ڤیدیۆ..."></div>
+                    <div class="form-group"><label for="productExternalLink">لینکی ڤیدیۆی گشتی:</label><input type="text" id="productExternalLink" placeholder="بۆ نموونە، لینکی ڤیدیۆ..."></div>
 
                     <hr style="margin: 20px 0; border-top: 1px solid var(--section-border);">
                     <div class="form-group">
-                        <label for="shippingInfoKuSorani">زانیاری گەیاندن (سۆرانی):</label>
+                        <label for="shippingInfoKuSorani">زانیاری گشتی گەیاندن (سۆرانی):</label>
                         <input type="text" id="shippingInfoKuSorani" placeholder="بۆ نموونە: گەیاندن خۆڕاییە">
                     </div>
                     <div class="form-group">
-                        <label for="shippingInfoKuBadini">زانیاریێن گەهاندنێ (بادینی):</label>
+                        <label for="shippingInfoKuBadini">زانیاری گشتی گەیاندن (بادینی):</label>
                         <input type="text" id="shippingInfoKuBadini" placeholder="بۆ نموونە: گەهاندن بێ بەرامبەرە">
                     </div>
                     <div class="form-group">
-                        <label for="shippingInfoAr">معلومات التوصيل (عربي):</label>
+                        <label for="shippingInfoAr">زانیاری گشتی گەیاندن (عربي):</label>
                         <input type="text" id="shippingInfoAr" placeholder="مثال: التوصيل مجاني">
                     </div>
-                    
-                    <hr style="margin: 30px 0; border: 1px solid var(--primary-light);">
-                    <h3 style="text-align: center; color: var(--primary-color); margin-bottom: 15px;">
-                        <i class="fas fa-sitemap"></i> جۆرە جیاوازەکانی کاڵا (Variations)
-                    </h3>
-                    <p style="text-align: center; font-size: 13px; color: var(--text-light); margin-top: -10px; margin-bottom: 20px;">
-                        (ئارەزوومەندانە) ئەگەر کاڵاکەت ڕەنگ و قەبارەی جیاوازی هەبوو، لێرە زیادی بکە.
-                    </p>
-                    
-                    <div id="variationsContainer">
-                        </div>
-                    
-                    <button type="button" id="addVariationBtn" class="add-section-btn" style="background-color: var(--primary-light); width: 100%; margin-bottom: 25px;">
-                        <i class="fas fa-plus"></i> زیادکردنی جۆری ئاستی یەک (بۆ نموونە: ڕەنگ)
+
+                    <!-- [ 💡 زیادکرا ] - بەشی زیادکردنی جۆرەکان (Variations) -->
+                    <hr style="margin: 20px 0; border-top: 1px solid var(--section-border);">
+                    <h4 style="margin-bottom: 10px; font-weight: bold; color: var(--primary-color);">
+                        <i class="fas fa-sitemap"></i> جۆرەکانی کاڵا (Variations)
+                    </h4>
+                    <div id="productVariationsContainer" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 15px;">
+                        <!-- جۆرە زیادکراوەکان لێرە دادەنرێن لەلایەن admin.js -->
+                    </div>
+                    <button type="button" id="addVariationL1Btn" class="add-section-btn" style="background-color: var(--primary-light); width: auto; padding: 8px 12px;">
+                        <i class="fas fa-plus"></i> زیادکردنی جۆری ئاستی یەک (بۆ نم. ڕەنگ)
                     </button>
+                    <hr style="margin: 20px 0; border-top: 1px solid var(--section-border);">
+                    <!-- کۆتایی بەشی زیادکراو -->
+
                     <button type="submit">پاشەکەوتکردن</button>
                 </form>
             </div>
@@ -1182,3 +1265,4 @@
     <script src="admin.js" defer></script>
 </body>
 </html>
+
