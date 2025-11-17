@@ -1723,8 +1723,9 @@ if (!window.globalAdminTools) {
     window.globalAdminTools = {};
 }
 
+// [ ✅ چاککراوە ] - لابردنی globalDlobalAdminTools
 window.globalAdminTools.openPopup = openPopup;
-window.globalDlobalAdminTools.closeCurrentPopup = closeCurrentPopup;
+window.globalAdminTools.closeCurrentPopup = closeCurrentPopup;
 window.globalAdminTools.showNotification = showNotification; 
 window.globalAdminTools.updateCartCountUI = updateCartCountUI; 
 
