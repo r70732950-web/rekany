@@ -181,6 +181,7 @@ function parseYouTubeId(url) {
     return videoId;
 }
 
+// [ 💡 چارەسەری کێشە 💡 ] - ئەم فەنکشنە نوێکرایەوە بۆ چارەسەری کێشەی کۆنسۆڵ و ڤیدیۆ
 function closeAllPopupsUI() {
     document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
     document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('show'));
@@ -188,7 +189,22 @@ function closeAllPopupsUI() {
     document.body.classList.remove('overlay-active');
     
     stopAllVideos(); 
+    
+    // پاککردنەوەی ناوەڕۆک و لیسنەرەکانی سلایدەری کاڵا
+    // ئەمە چارەسەری ئەو کێشەیە دەکات کە کاتێک لە ئەدمین کلیک لە ئینپوتێک دەکەیت، سلایدەری کاڵا دەکرێتەوە
+    const prevBtn = document.getElementById('sheetPrevBtn');
+    const nextBtn = document.getElementById('sheetNextBtn');
+    const thumbnailContainer = document.getElementById('sheetThumbnailContainer');
+    const imageContainer = document.getElementById('sheetImageContainer');
+    const variationsContainer = document.getElementById('sheetVariationsContainer');
+
+    if (prevBtn) prevBtn.onclick = null;
+    if (nextBtn) nextBtn.onclick = null;
+    if (thumbnailContainer) thumbnailContainer.innerHTML = '';
+    if (imageContainer) imageContainer.innerHTML = '';
+    if (variationsContainer) variationsContainer.innerHTML = '';
 }
+
 
 export function openPopup(id, type = 'sheet', addToHistory = true) {
     saveCurrentScrollPositionCore(); 
@@ -738,7 +754,7 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     loader.style.display = 'none'; 
 }
 
-// [ 💡 نوێ ] - فەنکشنێکی یاریدەدەر بۆ نوێکردنەوەی سلایدەر
+// [ 💡 نوێ ] - فەنکشنی یاریدەدەر بۆ نوێکردنەوەی سلایدەر
 function updateProductDetailSlider(imageUrls = [], videoId = null) {
     const imageContainer = document.getElementById('sheetImageContainer');
     const thumbnailContainer = document.getElementById('sheetThumbnailContainer');
@@ -753,6 +769,7 @@ function updateProductDetailSlider(imageUrls = [], videoId = null) {
         imageUrls.forEach((url, index) => {
             const img = document.createElement('img');
             img.src = url;
+            img.alt = "Product Image"; // Alt text will be set by main function
             img.classList.add('slider-element');
             if (index === 0) img.classList.add('active');
             img.style.cssText = "width: 100%; flex-shrink: 0; display: none; object-fit: contain; max-height: 350px; transition: opacity 0.3s ease-in-out;";
@@ -790,7 +807,7 @@ function updateProductDetailSlider(imageUrls = [], videoId = null) {
         thumb.className = 'thumbnail';
         thumb.dataset.index = videoIndex;
 
-        const thumbWrapper = document.createElement('div');
+        const thumbWrapper = document.createElement('div'); 
         thumbWrapper.style = "position: relative; display: inline-block; cursor: pointer;";
         
         const playIcon = document.createElement('i');
@@ -801,6 +818,17 @@ function updateProductDetailSlider(imageUrls = [], videoId = null) {
         thumbWrapper.appendChild(playIcon);
         thumbnailContainer.appendChild(thumbWrapper);
         thumbnailElements.push(thumbWrapper);
+    }
+
+    // ئەگەر هیچ وێنە و ڤیدیۆیەک نەبوو، وێنەیەکی placehold پیشان بدە
+    if (sliderElements.length === 0) {
+        const img = document.createElement('img');
+        img.src = 'https://placehold.co/300x300/e2e8f0/2d3748?text=No+Image';
+        img.alt = "No Image";
+        img.classList.add('slider-element', 'active');
+        img.style.cssText = "width: 100%; flex-shrink: 0; display: block; object-fit: contain; max-height: 350px;";
+        imageContainer.appendChild(img);
+        sliderElements.push(img);
     }
 
     let currentIndex = 0;
@@ -834,8 +862,11 @@ function updateProductDetailSlider(imageUrls = [], videoId = null) {
         }
         activeElement.classList.add('active');
 
-        const activeThumb = thumbnailElements[index].querySelector('.thumbnail') || thumbnailElements[index];
-        activeThumb.classList.add('active');
+        // دڵنیابوونەوە لەوەی کە thumbnailـی چالاک بوونی هەیە
+        if(thumbnailElements[index]) {
+            const activeThumb = thumbnailElements[index].querySelector('.thumbnail') || thumbnailElements[index];
+            activeThumb.classList.add('active');
+        }
         
         currentIndex = index;
     }
@@ -960,6 +991,7 @@ async function showProductDetailsUI(productData) {
     renderRelatedProductsUI(baseProduct);
     openPopup('productDetailSheet');
 }
+
 
 
 async function renderRelatedProductsUI(currentProduct) {
