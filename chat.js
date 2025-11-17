@@ -263,7 +263,6 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
         if(headerName) headerName.textContent = t('admin_badge');
         
         const backBtn = document.getElementById('chatBackBtn');
-        // [ 💡 چاککراوە ] - گۆڕینی none بۆ flex
         if(backBtn) backBtn.style.display = 'flex'; 
     }
 
@@ -307,9 +306,14 @@ function subscribeToMessages(chatUserId) {
             return;
         }
 
+        // [ 🛠️ چاککراوە ] - بەکارهێنانی try-catch بۆ ڕێگری لە وەستانی چات
         snapshot.docs.forEach(doc => {
-            const msg = doc.data();
-            renderSingleMessage(msg, msgArea, chatUserId);
+            try {
+                const msg = doc.data();
+                renderSingleMessage(msg, msgArea, chatUserId);
+            } catch (err) {
+                console.error("Error rendering a message (skipping):", err);
+            }
         });
 
         msgArea.scrollTop = msgArea.scrollHeight;
@@ -350,14 +354,18 @@ function renderSingleMessage(msg, container, chatUserId) {
                     <div class="order-bubble-header"><i class="fas fa-receipt"></i> ${t('order_notification_title')}</div>
                     <div class="order-bubble-content">
                         ${order.items.map(i => {
-                            const shipping = i.shippingCost || 0;
-                            const singleTotal = (i.price * i.quantity) + shipping;
+                            // [ 🛠️ چاککراوە ] - دڵنیابوونەوە لەوەی نرخ و ژمارە هەن تا هەڵە نەکات
+                            const price = Number(i.price) || 0;
+                            const quantity = Number(i.quantity) || 1;
+                            const shipping = Number(i.shippingCost) || 0;
+                            
+                            const singleTotal = (price * quantity) + shipping;
                             
                             let priceDisplay = '';
                             if (shipping > 0) {
                                 priceDisplay = `
                                     <div style="font-size:11px; color:#555;">
-                                        (${i.price.toLocaleString()} x ${i.quantity}) + <span style="color:#e53e3e;">${shipping.toLocaleString()} (گەیاندن)</span>
+                                        (${price.toLocaleString()} x ${quantity}) + <span style="color:#e53e3e;">${shipping.toLocaleString()} (گەیاندن)</span>
                                     </div>
                                     <div style="font-weight:bold; color:var(--primary-color);">
                                         = ${singleTotal.toLocaleString()} د.ع
@@ -366,7 +374,7 @@ function renderSingleMessage(msg, container, chatUserId) {
                             } else {
                                 priceDisplay = `
                                     <div style="font-size:11px; color:#555;">
-                                        (${i.price.toLocaleString()} x ${i.quantity}) + <span style="color:#38a169;">(بێ بەرامبەر)</span>
+                                        (${price.toLocaleString()} x ${quantity}) + <span style="color:#38a169;">(بێ بەرامبەر)</span>
                                     </div>
                                     <div style="font-weight:bold; color:var(--primary-color);">
                                         = ${singleTotal.toLocaleString()} د.ع
@@ -374,18 +382,22 @@ function renderSingleMessage(msg, container, chatUserId) {
                                 `;
                             }
 
+                            const itemName = i.name && i.name[state.currentLanguage] 
+                                ? i.name[state.currentLanguage] 
+                                : (i.name && i.name.ku_sorani ? i.name.ku_sorani : (typeof i.name === 'string' ? i.name : 'کاڵا'));
+
                             return `
                             <div class="order-bubble-item" style="display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #eee;">
                                 <img src="${i.image || 'https://placehold.co/50'}" style="width: 50px; height: 50px; border-radius: 6px; object-fit: cover; border: 1px solid #eee;">
                                 <div style="flex: 1; overflow: hidden;">
                                     <div style="font-weight: bold; font-size: 13px;">
-                                        ${i.name && i.name[state.currentLanguage] ? i.name[state.currentLanguage] : (i.name.ku_sorani || i.name)}
+                                        ${itemName}
                                     </div>
                                     
                                     ${priceDisplay}
                                     
                                     <div style="font-size: 12px; color: #666; margin-top:2px;">
-                                        ژمارە: <span style="color:black; font-weight:bold;">${i.quantity}</span>
+                                        ژمارە: <span style="color:black; font-weight:bold;">${quantity}</span>
                                     </div>
                                 </div>
                             </div>
@@ -393,7 +405,7 @@ function renderSingleMessage(msg, container, chatUserId) {
                         }).join('')}
                         
                         <div class="order-bubble-total" style="margin-top: 10px; font-size: 16px; text-align:center; background:#f1f1f1; padding:5px; border-radius:4px;">
-                            کۆی گشتی: ${order.total.toLocaleString()} د.ع
+                            کۆی گشتی: ${(order.total || 0).toLocaleString()} د.ع
                         </div>
 
                         <div style="background-color: #fff; border:1px solid #eee; padding: 8px; border-radius: 6px; margin-top: 10px; font-size: 12px; color: #444;">
