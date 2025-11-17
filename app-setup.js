@@ -4,7 +4,6 @@ import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
-// [ 💡 ] لێرە هەموو فەنکشنەکانی Storage import دەکەین
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
 
 
@@ -25,7 +24,20 @@ export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 export const storage = getStorage(app);
 
-// [ 💡 چاکسازی ] - هەموو فەنکشنەکانی فایەربەیس لێرە Export دەکەین
+// Collections
+export const productsCollection = collection(db, "products");
+export const categoriesCollection = collection(db, "categories");
+export const announcementsCollection = collection(db, "announcements");
+export const promoGroupsCollection = collection(db, "promo_groups");
+export const brandGroupsCollection = collection(db, "brand_groups");
+export const shortcutRowsCollection = collection(db, "shortcut_rows");
+export const categoryLayoutsCollection = collection(db, "category_layouts");
+export const usersCollection = collection(db, "users");
+
+export const chatsCollection = collection(db, "chats");
+export const ordersCollection = collection(db, "orders");
+
+// [ 💡 چاکسازی ] - بلۆکی Export گواسترایەوە بۆ کۆتایی فایل بۆ چارەسەری کێشەی Initialization
 export {
     // Auth
     signInWithEmailAndPassword, onAuthStateChanged, signOut,
@@ -42,19 +54,6 @@ export {
     // Messaging
     getToken, onMessage
 };
-
-// Collections
-export const productsCollection = collection(db, "products");
-export const categoriesCollection = collection(db, "categories");
-export const announcementsCollection = collection(db, "announcements");
-export const promoGroupsCollection = collection(db, "promo_groups");
-export const brandGroupsCollection = collection(db, "brand_groups");
-export const shortcutRowsCollection = collection(db, "shortcut_rows");
-export const categoryLayoutsCollection = collection(db, "category_layouts");
-export const usersCollection = collection(db, "users");
-
-export const chatsCollection = collection(db, "chats");
-export const ordersCollection = collection(db, "orders");
 
 
 export const translations = {
@@ -94,7 +93,7 @@ export const translations = {
         type_message: "نامەیەک بنووسە...",
         recording: "...تۆمارکردن",
         send: "ناردن",
-        sent: "نێردرا",
+        sent: "nێردرا",
         delivered: "گەیشت",
         seen: "بینرا",
         admin_badge: "بەڕێوەبەر",
@@ -253,7 +252,7 @@ export const translations = {
         product_added_to_favorites: "هاتە زێدەکرن بۆ لیستا حەزژێکریان",
         product_removed_from_favorites: "ژ لیستا حەزژێکریان هاتە ژێبرن",
         manage_categories_title: "ڕێکخستنا جوران",
-        manage_contact_methods_title: "ڕێکخستنا رێکێن فرێکرنا داخaziێ",
+        manage_contact_methods_title: "ڕێکخستنا رێکێن فرێکرنا داخازیێ",
         notifications_title: "ئاگەهداری",
         no_notifications_found: "چ ئاگەهداری نینن",
         manage_announcements_title: "ڕێکخستنا ئاگەهداریان",
