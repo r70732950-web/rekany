@@ -282,6 +282,13 @@ html.chat-active .bottom-nav {
     line-height: 1.6;
     color: var(--text-light);
 }
+/* [💡 نوێ] - وێنەی ئاگەدارییەکان */
+.notification-item img {
+    width: 100%;
+    border-radius: 6px;
+    margin-top: 10px;
+    object-fit: cover;
+}
 .admin-notification-item {
     display: flex;
     align-items: center;
@@ -1953,4 +1960,71 @@ input:checked + .slider:before {
 }
 
 
+/* [💡💡💡 ستایلە نوێیەکان بۆ جۆرەکان (Variations) 💡💡💡] */
 
+/* ستایلی بەکارهێنەر - لەناو productDetailSheet */
+.variation-group {
+    margin-bottom: 15px;
+}
+.variation-title {
+    font-size: 15px;
+    font-weight: bold;
+    color: var(--text-color);
+    margin-bottom: 8px;
+}
+.variation-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.variation-btn {
+    padding: 8px 15px;
+    border: 2px solid var(--medium-gray);
+    background-color: #ffffff;
+    color: var(--text-light);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+.variation-btn:hover {
+    background-color: var(--light-gray);
+}
+.variation-btn.active {
+    border-color: var(--primary-color);
+    background-color: var(--primary-light);
+    color: #ffffff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* ستایلی ئەدمین - لەناو productFormModal */
+#productFormModal .admin-list-group {
+    border-color: var(--primary-color);
+    margin-top: 20px;
+}
+#productFormModal .admin-list-group-header {
+    background-color: var(--primary-light);
+    color: white;
+}
+#productFormModal .admin-list-group-header strong {
+    color: white;
+}
+#productFormModal .admin-list-group-header .delete-btn {
+    background-color: var(--danger-light);
+}
+
+/* ستایلی ئاستی دوو (قەبارەکان) */
+#productFormModal .sub-variations-list {
+    padding: 10px;
+}
+#productFormModal .sub-variations-list .admin-list-item {
+    background-color: #fdfdfd;
+    padding-top: 15px;
+    padding-bottom: 15px;
+}
+#productFormModal .sub-variations-list .admin-list-item:hover {
+    background-color: #f7fafc;
+}
+
+/* [💡💡💡 کۆتایی ستایلە نوێیەکان 💡💡💡] */
