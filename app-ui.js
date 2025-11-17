@@ -89,8 +89,10 @@ function updateHeaderView(pageId, title = '') {
     if (pageId === 'mainPage') {
         mainHeader.style.display = 'flex';
         subpageHeader.style.display = 'none';
-        // دڵنیابوونەوە لەوەی searchـی سەرەکی دەردەکەوێت
-        const mainSearchContainer = document.querySelector('.main-header-content .search-container');
+        
+        // [ 💡 چاکسازی 💡 ] 
+        // هەڵەکە لێرە بوو. پێویستە لەناو 'mainHeader' بگەڕێین
+        const mainSearchContainer = mainHeader.querySelector('.search-container');
         if (mainSearchContainer) mainSearchContainer.style.display = 'block';
     } 
     // دۆخی لاپەڕەی لاوەکی (Subpages: Settings, Detail, Admin Chat List)
@@ -437,8 +439,9 @@ function renderCartUI() {
 
     let total = 0;
     state.cart.forEach(item => {
-        // [ 💡 نوێ 💡 ] نرخی کۆتایی لە ئۆبجێکتی ئایتێمەکە خۆی وەردەگرین
-        const itemTotal = (item.finalPrice * item.quantity);
+        // [ 💡 چاکسازی 💡 ] نرخی گەیاندن زیادکرا بۆ نرخی کۆتایی
+        const shipping = item.shippingCost || 0;
+        const itemTotal = (item.finalPrice * item.quantity) + shipping;
         total += itemTotal;
         
         const cartItem = document.createElement('div');
@@ -484,6 +487,7 @@ function renderCartUI() {
         cartItemsContainer.appendChild(cartItem);
     });
 
+    // [ 💡 چاکسازی 💡 ] نرخی کۆتایی ڕاست پیشان دەدات
     totalAmount.textContent = total.toLocaleString();
 
     // [ 💡 گۆڕانکاری 💡 ] ئێستا 'data-id'ـی 'cartItemId' بەکاردەهێنێت نەک 'productId'
