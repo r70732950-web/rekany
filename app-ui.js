@@ -60,7 +60,6 @@ export function showNotification(message, type = 'success') {
     }, 3000);
 }
 
-// [ 💡 چاکسازی UI Header ] : ئەم فەنکشنە بەرپرسیارە لە ڕێکخستنی Header لە هەموو لاپەڕەکاندا
 function updateHeaderView(pageId, title = '') {
     const appHeader = document.querySelector('.app-header');
     const mainHeader = document.querySelector('.main-header-content');
@@ -68,44 +67,31 @@ function updateHeaderView(pageId, title = '') {
     const headerTitle = document.getElementById('headerTitle');
     const subpageSearch = document.querySelector('.subpage-search'); 
 
-    // دۆخی چاتی تاکەکەسی (Chat Page)
     if (pageId === 'chatPage') {
         if (appHeader) appHeader.style.display = 'none';
         document.documentElement.classList.add('chat-active'); 
-        return;
-    } 
-    
-    // دۆخی لاپەڕەی ئاسایی (Normal Pages)
-    if (appHeader) appHeader.style.display = 'flex';
-    document.documentElement.classList.remove('chat-active');
-    
-    // دۆخی لاپەڕەی سەرەکی (Main Page)
-    if (pageId === 'mainPage') {
-        mainHeader.style.display = 'flex';
-        subpageHeader.style.display = 'none';
-        // دڵنیابوونەوە لەوەی searchـی سەرەکی دەردەکەوێت
-        const mainSearchContainer = document.querySelector('.main-header-content .search-container');
-        if (mainSearchContainer) mainSearchContainer.style.display = 'block';
-    } 
-    // دۆخی لاپەڕەی لاوەکی (Subpages: Settings, Detail, Admin Chat List)
-    else {
-        mainHeader.style.display = 'none';
-        subpageHeader.style.display = 'flex';
-        headerTitle.textContent = title;
+    } else {
+        if (appHeader) appHeader.style.display = 'flex';
+        document.documentElement.classList.remove('chat-active');
 
-        // ڕێکخستنی Header Search
-        if (subpageSearch) {
-            if (pageId === 'subcategoryDetailPage') {
-                // تەنها بۆ Detail Page گەڕان چالاکە
-                subpageSearch.style.display = 'block'; 
-            } else {
-                // بۆ Settings, Admin Chat List گەڕان نیشان نادرێت
-                subpageSearch.style.display = 'none'; 
+        if (pageId === 'mainPage') {
+            mainHeader.style.display = 'flex';
+            subpageHeader.style.display = 'none';
+        } else {
+            mainHeader.style.display = 'none';
+            subpageHeader.style.display = 'flex';
+            headerTitle.textContent = title;
+    
+            if (subpageSearch) {
+                if (pageId === 'settingsPage' || pageId === 'adminChatListPage') {
+                    subpageSearch.style.display = 'none'; 
+                } else {
+                    subpageSearch.style.display = 'block'; 
+                }
             }
         }
     }
 }
-
 
 function showPage(pageId, pageTitle = '') {
     state.currentPageId = pageId; 
@@ -135,11 +121,8 @@ function showPage(pageId, pageTitle = '') {
          updateHeaderView('settingsPage', t('settings_title'));
     } else if (pageId === 'subcategoryDetailPage') {
          updateHeaderView('subcategoryDetailPage', pageTitle);
-    } else if (pageId === 'chatPage') { 
-         updateHeaderView('chatPage', pageTitle);
-    } else if (pageId === 'adminChatListPage') { 
-         // [ 💡 چاکسازی Admin Chat ] : بەکارهێنانی Headerـی لاوەکی بۆ لیستی چات
-         updateHeaderView('adminChatListPage', t('conversations_title'));
+    } else if (pageId === 'chatPage' || pageId === 'adminChatListPage') {
+         updateHeaderView(pageId, pageTitle);
     } else { 
          updateHeaderView('mainPage');
     }
@@ -147,7 +130,7 @@ function showPage(pageId, pageTitle = '') {
     let activeBtnId = null;
     if (pageId === 'mainPage') activeBtnId = 'homeBtn';
     else if (pageId === 'settingsPage') activeBtnId = 'settingsBtn';
-    else if (pageId === 'chatPage' || pageId === 'adminChatListPage') activeBtnId = 'chatBtn';
+    else if (pageId === 'chatPage') activeBtnId = 'chatBtn';
 
     if (activeBtnId) {
        updateActiveNav(activeBtnId);
@@ -713,6 +696,7 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     } catch (e) { console.error("Could not fetch subcategory name:", e); }
 
     if (!fromHistory) {
+         // [ 💡 چاکسازی ١ ] - پاشەکەوتکردنی سکرۆڵ پێش چوونە لاپەڕەی تر
          saveCurrentScrollPositionCore(); 
          history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
     }
@@ -1097,22 +1081,30 @@ function handleToggleFavoriteUI(productId) {
 
 function setupUIEventListeners() {
     
+    // [ 💡 چاکسازی ٢ ] - لۆژیکی دوگمەی Home گۆڕدرا
     homeBtn.onclick = async () => {
         const mainPage = document.getElementById('mainPage');
         if (mainPage.classList.contains('page-active')) {
+            // 1. ئەگەر لەسەر لاپەڕەی سەرەکی بوویت
             if (state.currentCategory !== 'all' || state.currentSubcategory !== 'all' || state.currentSearch) {
+                // 1a. ئەگەر فلتەر هەبوو، بگەڕێوە بۆ 'هەموو' و سکرۆڵ بکە سەرەوە
                 await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
                 await updateProductViewUI(true, true); 
             } else {
+                // 1b. ئەگەر لەسەر 'هەموو' بوویت، تەنها سکرۆڵ بکە سەرەوە
                 mainPage.scrollTo({ top: 0, behavior: 'smooth' });
             }
         } else {
+            // 2. ئەگەر لە لاپەڕەیەکی تر بوویت (وەک Settings یان Chat)
+            // تەنها 'history.back()' بکە.
+            // لۆژیکی popstate ئیشی خۆی دەکات و سکرۆڵ دەگەڕێنێتەوە.
             history.back();
         }
     };
 
+    // [ 💡 چاکسازی ٣ ] - زیادکردنی پاشەکەوتکردنی سکرۆڵ
     settingsBtn.onclick = () => {
-        saveCurrentScrollPositionCore(); 
+        saveCurrentScrollPositionCore(); // <-- ئەمە زیادکرا
         history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
         showPage('settingsPage', t('settings_title'));
     };
@@ -1475,19 +1467,25 @@ window.addEventListener('popstate', async (event) => {
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             openPopup(popState.id, popState.type, false);
         
+        // [ 💡 چاکسازی ٤ - لۆژیکی گەڕانەوە (Back) 💡 ]
         } else { 
             showPage('mainPage'); 
             
             const stateToApply = popState || { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
             applyFilterStateCore(stateToApply); 
 
-            const cameFromPage = previousPageId !== 'mainPage'; 
+            const cameFromPopup = wasPopupOpen;
+            const cameFromPage = previousPageId !== 'mainPage'; // (بۆ نموونە: 'settingsPage' یان 'chatPage')
+
+            // ئەگەر لە لاپەڕەیەکی ترەوە گەڕایتەوە (بۆ چارەسەری کێشەی لاپەڕەی سپی)، داتا باربکەرەوە
             const shouldReloadData = cameFromPage; 
+            // بەڵام *هەرگیز* بە شێوەی ئۆتۆماتیکی سکرۆڵ مەکە بۆ سەرەوە
             const shouldScrollToTop = false; 
             
             await updateProductViewUI(shouldReloadData, shouldScrollToTop);
 
             if (!state.pendingFilterNav) { 
+                // ئێستا کە داتاکان بارکراون، سکرۆڵەکە بگەڕێنەرەوە شوێنی خۆی
                 if (typeof stateToApply.scroll === 'number') {
                     requestAnimationFrame(() => {
                         activePage.scrollTo({ top: stateToApply.scroll, behavior: 'instant' });
@@ -1498,6 +1496,7 @@ window.addEventListener('popstate', async (event) => {
                     });
                 }
             }
+            // [ 💡 کۆتایی چاکسازی ٤ 💡 ]
             
             if (state.pendingFilterNav) {
                 console.log("Found pending filter navigation. Applying now.");
@@ -1514,7 +1513,7 @@ window.addEventListener('popstate', async (event) => {
         console.log("Popstate: No state found, loading default main page.");
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
         showPage('mainPage'); 
-        applyFilterStateCore(defaultState); 
+        applyFilterStateCore(defaultState);
         await updateProductViewUI(true, true); 
         requestAnimationFrame(() => {
              const homePage = document.getElementById('mainPage');
@@ -1675,7 +1674,7 @@ function setupGpsButtonUI() {
 
      getLocationBtn.addEventListener('click', () => {
          if (!('geolocation' in navigator)) {
-             showNotification('وێبگەڕەکەت پشتگیری GPS ناکات', 'error');
+             showNotification('وێbگەڕەکەت پشتگیری GPS ناکات', 'error');
              return;
          }
 
