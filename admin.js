@@ -349,8 +349,10 @@ window.AdminLogic = {
         for (let i = 0; i < 4; i++) {
             const imageUrl = imageUrls[i];
             const hasImage = !!imageUrl;
+            
+            // [ 💡 چارەسەری هەڵە 💡 ] - 'classclass' چاککرا بۆ 'class'
             imageSlotsHTML += `
-                <div classclass="image-upload-slot" data-index="${i}">
+                <div class="image-upload-slot" data-index="${i}">
                     <img src="${hasImage ? imageUrl : ''}" class="image-upload-preview" style="display: ${hasImage ? 'block' : 'none'};">
                     <label for="var-${variationId}-file-${i}" class="image-upload-label" style="display: ${hasImage ? 'none' : 'flex'};">
                         <i class="fas fa-upload"></i>
