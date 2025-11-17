@@ -29,8 +29,6 @@ import {
     handleLogin, 
     handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
     fetchCategories, fetchProductById, fetchProducts, fetchSubcategories, 
-    // [ 💡 نوێ ] - فەنکشنی هێنانی جۆرەکان زیادکرا
-    fetchProductVariations,
     fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, fetchSubSubcategories,
     addToCartCore, updateCartQuantityCore, removeFromCartCore, generateOrderMessageCore,
     toggleFavoriteCore, isFavorite, saveFavorites,
@@ -181,7 +179,6 @@ function parseYouTubeId(url) {
     return videoId;
 }
 
-// [ 💡 چارەسەری کێشە 💡 ] - ئەم فەنکشنە نوێکرایەوە بۆ چارەسەری کێشەی کۆنسۆڵ و ڤیدیۆ
 function closeAllPopupsUI() {
     document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
     document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('show'));
@@ -189,22 +186,7 @@ function closeAllPopupsUI() {
     document.body.classList.remove('overlay-active');
     
     stopAllVideos(); 
-    
-    // پاککردنەوەی ناوەڕۆک و لیسنەرەکانی سلایدەری کاڵا
-    // ئەمە چارەسەری ئەو کێشەیە دەکات کە کاتێک لە ئەدمین کلیک لە ئینپوتێک دەکەیت، سلایدەری کاڵا دەکرێتەوە
-    const prevBtn = document.getElementById('sheetPrevBtn');
-    const nextBtn = document.getElementById('sheetNextBtn');
-    const thumbnailContainer = document.getElementById('sheetThumbnailContainer');
-    const imageContainer = document.getElementById('sheetImageContainer');
-    const variationsContainer = document.getElementById('sheetVariationsContainer');
-
-    if (prevBtn) prevBtn.onclick = null;
-    if (nextBtn) nextBtn.onclick = null;
-    if (thumbnailContainer) thumbnailContainer.innerHTML = '';
-    if (imageContainer) imageContainer.innerHTML = '';
-    if (variationsContainer) variationsContainer.innerHTML = '';
 }
-
 
 export function openPopup(id, type = 'sheet', addToHistory = true) {
     saveCurrentScrollPositionCore(); 
@@ -385,8 +367,7 @@ export function createProductCardElementUI(product) {
 
     productCard.querySelector('.add-to-cart-btn-card').addEventListener('click', (event) => {
         event.stopPropagation();
-        // [ 💡 گۆڕانکاری ] - لێرە هەمیشە 'null' بۆ جۆر دەنێرین، چونکە ئەمە کارتی سەرەکییە
-        handleAddToCartUI(product.id, event.currentTarget, null); 
+        handleAddToCartUI(product.id, event.currentTarget); 
     });
 
     if (isAdmin) {
@@ -452,7 +433,6 @@ function renderCartUI() {
         const cartItem = document.createElement('div');
         cartItem.className = 'cart-item';
 
-        // [ 💡 چاکسازی ] - ئێستا ناوی سێ زمانی لە سەبەتە هەیە
         const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
 
         let shippingDisplay = '';
@@ -754,35 +734,63 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     loader.style.display = 'none'; 
 }
 
-// [ 💡 نوێ ] - فەنکشنی یاریدەدەر بۆ نوێکردنەوەی سلایدەر
-function updateProductDetailSlider(imageUrls = [], videoId = null) {
+async function showProductDetailsUI(productData) {
+    const product = productData || await fetchProductById(state.currentProductId); 
+    if (!product) { showNotification(t('product_not_found_error'), 'error'); return; }
+
+    state.currentProductId = product.id; 
+
+     const sheetContent = document.querySelector('#productDetailSheet .sheet-content');
+    if (sheetContent) sheetContent.scrollTop = 0; 
+
+    const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
+    const descriptionText = (product.description && product.description[state.currentLanguage]) || (product.description && product.description['ku_sorani']) || '';
+    const imageUrls = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []);
+
     const imageContainer = document.getElementById('sheetImageContainer');
     const thumbnailContainer = document.getElementById('sheetThumbnailContainer');
-    imageContainer.innerHTML = '';
-    thumbnailContainer.innerHTML = '';
-    
-    let sliderElements = [];
-    let thumbnailElements = [];
+    imageContainer.innerHTML = ''; 
+    thumbnailContainer.innerHTML = ''; 
 
-    // زیادکردنی وێنەکان
+    let sliderElements = []; 
+    let thumbnailElements = []; 
+    
+    const videoWrapper = document.createElement('div');
+    videoWrapper.id = 'videoPlayerWrapper'; 
+    videoWrapper.className = 'slider-element'; 
+    videoWrapper.style.position = 'relative';
+    videoWrapper.style.width = '100%';
+    videoWrapper.style.backgroundColor = '#000';
+    videoWrapper.style.display = 'none'; 
+    videoWrapper.style.justifyContent = 'center';
+    videoWrapper.style.alignItems = 'center';
+    videoWrapper.style.overflow = 'hidden';
+    videoWrapper.style.flexShrink = '0';
+    videoWrapper.style.maxHeight = '350px';
+
     if (imageUrls.length > 0) {
         imageUrls.forEach((url, index) => {
             const img = document.createElement('img');
-            img.src = url;
-            img.alt = "Product Image"; // Alt text will be set by main function
-            img.classList.add('slider-element');
+            img.src = url; 
+            img.alt = nameInCurrentLang; 
+            img.classList.add('slider-element'); 
             if (index === 0) img.classList.add('active');
-            img.style.cssText = "width: 100%; flex-shrink: 0; display: none; object-fit: contain; max-height: 350px; transition: opacity 0.3s ease-in-out;";
-            if (index === 0) img.style.display = 'block';
+            
+            img.style.width = '100%';
+            img.style.flexShrink = '0';
+            img.style.display = (index === 0) ? 'block' : 'none'; 
+            img.style.objectFit = 'contain';
+            img.style.maxHeight = '350px';
+            img.style.transition = 'opacity 0.3s ease-in-out';
             
             imageContainer.appendChild(img);
-            sliderElements.push(img);
+            sliderElements.push(img); 
 
             const thumb = document.createElement('img');
-            thumb.src = url;
-            thumb.alt = `Thumbnail ${index + 1}`;
+            thumb.src = url; 
+            thumb.alt = `Thumbnail ${index + 1}`; 
             thumb.className = 'thumbnail';
-            if (index === 0) thumb.classList.add('active');
+            if (index === 0) thumb.classList.add('active'); 
             thumb.dataset.index = index;
             
             thumbnailContainer.appendChild(thumb);
@@ -790,20 +798,17 @@ function updateProductDetailSlider(imageUrls = [], videoId = null) {
         });
     }
 
-    // زیادکردنی ڤیدیۆ (ئەگەر هەبوو)
-    const videoWrapper = document.createElement('div');
-    videoWrapper.id = 'videoPlayerWrapper';
-    videoWrapper.className = 'slider-element';
-    videoWrapper.style.cssText = "position: relative; width: 100%; background-color: #000; display: none; justify-content: center; align-items: center; overflow: hidden; flex-shrink: 0; max-height: 350px;";
-    
+    const videoId = parseYouTubeId(product.externalLink); 
+
     if (videoId) {
-        const videoIndex = sliderElements.length;
+        const videoIndex = sliderElements.length; 
+        
         imageContainer.appendChild(videoWrapper);
-        sliderElements.push(videoWrapper);
+        sliderElements.push(videoWrapper); 
 
         const thumb = document.createElement('img');
-        thumb.src = `https://img.youtube.com/vi/${videoId}/0.jpg`;
-        thumb.alt = `Video Thumbnail`;
+        thumb.src = `https://img.youtube.com/vi/${videoId}/0.jpg`; 
+        thumb.alt = `Video Thumbnail`; 
         thumb.className = 'thumbnail';
         thumb.dataset.index = videoIndex;
 
@@ -820,17 +825,6 @@ function updateProductDetailSlider(imageUrls = [], videoId = null) {
         thumbnailElements.push(thumbWrapper);
     }
 
-    // ئەگەر هیچ وێنە و ڤیدیۆیەک نەبوو، وێنەیەکی placehold پیشان بدە
-    if (sliderElements.length === 0) {
-        const img = document.createElement('img');
-        img.src = 'https://placehold.co/300x300/e2e8f0/2d3748?text=No+Image';
-        img.alt = "No Image";
-        img.classList.add('slider-element', 'active');
-        img.style.cssText = "width: 100%; flex-shrink: 0; display: block; object-fit: contain; max-height: 350px;";
-        imageContainer.appendChild(img);
-        sliderElements.push(img);
-    }
-
     let currentIndex = 0;
     const prevBtn = document.getElementById('sheetPrevBtn');
     const nextBtn = document.getElementById('sheetNextBtn');
@@ -839,8 +833,8 @@ function updateProductDetailSlider(imageUrls = [], videoId = null) {
         if (!sliderElements[index]) return;
 
         const oldElement = sliderElements[currentIndex];
-        if (oldElement && oldElement.id === 'videoPlayerWrapper') {
-            oldElement.innerHTML = '';
+        if (oldElement.id === 'videoPlayerWrapper') {
+            oldElement.innerHTML = ''; 
         }
 
         sliderElements.forEach(el => {
@@ -853,22 +847,29 @@ function updateProductDetailSlider(imageUrls = [], videoId = null) {
         });
 
         const activeElement = sliderElements[index];
-        if (activeElement.id === 'videoPlayerWrapper') {
+        if (activeElement.id === 'videoPlayerWrapper') { 
             activeElement.style.display = 'flex';
+            
             const videoSrc = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&autoplay=1&mute=1&controls=1`;
-            activeElement.innerHTML = `<iframe src="${videoSrc}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width: 100%; aspect-ratio: 16 / 9;"></iframe>`;
-        } else {
+            
+            activeElement.innerHTML = `
+                <iframe 
+                    src="${videoSrc}" 
+                    title="YouTube video player" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen 
+                    style="width: 100%; aspect-ratio: 16 / 9;"
+                ></iframe>`;
+        } else { 
             activeElement.style.display = 'block';
         }
         activeElement.classList.add('active');
 
-        // دڵنیابوونەوە لەوەی کە thumbnailـی چالاک بوونی هەیە
-        if(thumbnailElements[index]) {
-            const activeThumb = thumbnailElements[index].querySelector('.thumbnail') || thumbnailElements[index];
-            activeThumb.classList.add('active');
-        }
+        const activeThumb = thumbnailElements[index].querySelector('.thumbnail') || thumbnailElements[index];
+        activeThumb.classList.add('active');
         
-        currentIndex = index;
+        currentIndex = index; 
     }
 
     const showSliderBtns = sliderElements.length > 1;
@@ -885,114 +886,32 @@ function updateProductDetailSlider(imageUrls = [], videoId = null) {
     thumbnailElements.forEach((el, index) => {
         el.onclick = () => updateSlider(index);
     });
-    
-    // یەکسەر سلایدەری یەکەم پیشان بدە
-    updateSlider(0);
-}
 
-// [ 💡 گۆڕانکاری ] - ئەم فەنکشنە بە تەواوی نوێکرایەوە بۆ سیستەمی Variations
-async function showProductDetailsUI(productData) {
-    const baseProduct = productData || await fetchProductById(state.currentProductId); 
-    if (!baseProduct) { showNotification(t('product_not_found_error'), 'error'); return; }
-
-    state.currentProductId = baseProduct.id; 
-
-    const sheetContent = document.querySelector('#productDetailSheet .sheet-content');
-    if (sheetContent) sheetContent.scrollTop = 0; 
-
-    // هێنانی جۆرەکان (Variations)
-    const variations = await fetchProductVariations(baseProduct.id);
-    
-    // ستەیتی ناوخۆیی بۆ ئەم پۆپئەپە
-    let currentSelectedVariation = null; 
-
-    // وەرگرتنی زانیارییە بنەڕەتییەکان
-    const baseName = (baseProduct.name && baseProduct.name[state.currentLanguage]) || (baseProduct.name && baseProduct.name.ku_sorani) || 'کاڵای بێ ناو';
-    const baseDescription = (baseProduct.description && baseProduct.description[state.currentLanguage]) || (baseProduct.description && baseProduct.description['ku_sorani']) || '';
-    const baseImageUrls = (baseProduct.imageUrls && baseProduct.imageUrls.length > 0) ? baseProduct.imageUrls : (baseProduct.image ? [baseProduct.image] : []);
-    const baseVideoId = parseYouTubeId(baseProduct.externalLink);
-
-    // پیشاندانی زانیارییە نەگۆڕەکان (وەسف و ناوی سەرەکی)
-    document.getElementById('sheetProductName').textContent = baseName;
-    document.getElementById('sheetProductDescription').innerHTML = formatDescription(baseDescription); 
+    document.getElementById('sheetProductName').textContent = nameInCurrentLang;
+    document.getElementById('sheetProductDescription').innerHTML = formatDescription(descriptionText); 
 
     const priceContainer = document.getElementById('sheetProductPrice');
-    const variationsContainer = document.getElementById('sheetVariationsContainer');
-    variationsContainer.innerHTML = ''; // پاککردنەوە
-
-    // فەنکشنی یاریدەدەر بۆ نوێکردنەوەی بەشە گۆڕاوەکان (نرخ و سلایدەر)
-    function updateDetailViewForVariation(variation) {
-        let priceToShow, originalPriceToShow, imageUrlsToShow, videoIdToShow;
-
-        if (variation) { // ئەگەر جۆرێک هەڵبژێردرا
-            priceToShow = variation.price || baseProduct.price; // نرخی جۆرەکە، ئەگەر نەبوو نرخی بنەڕەتی
-            originalPriceToShow = null; // جۆرەکان نرخی داشکاندنیان نییە
-            imageUrlsToShow = variation.imageUrls || [];
-            videoIdToShow = null; // جۆرەکان ڤیدیۆیان نییە
-            currentSelectedVariation = variation;
-        } else { // ئەگەر کاڵای بنەڕەتی هەڵبژێردرا
-            priceToShow = baseProduct.price;
-            originalPriceToShow = baseProduct.originalPrice || null;
-            imageUrlsToShow = baseImageUrls;
-            videoIdToShow = baseVideoId;
-            currentSelectedVariation = null;
-        }
-
-        // نوێکردنەوەی نرخ
-        if (originalPriceToShow && originalPriceToShow > priceToShow) {
-            priceContainer.innerHTML = `<span style="color: var(--accent-color);">${priceToShow.toLocaleString()} د.ع</span> <del style="color: var(--dark-gray); font-size: 16px; margin-right: 10px;">${originalPriceToShow.toLocaleString()} د.ع</del>`;
-        } else {
-            priceContainer.innerHTML = `<span>${priceToShow.toLocaleString()} د.ع</span>`;
-        }
-
-        // نوێکردنەوەی سلایدەر
-        updateProductDetailSlider(imageUrlsToShow, videoIdToShow);
+    if (product.originalPrice && product.originalPrice > product.price) {
+        priceContainer.innerHTML = `<span style="color: var(--accent-color);">${product.price.toLocaleString()} د.ع</span> <del style="color: var(--dark-gray); font-size: 16px; margin-right: 10px;">${product.originalPrice.toLocaleString()} د.ع</del>`;
+    } else {
+        priceContainer.innerHTML = `<span>${product.price.toLocaleString()} د.ع</span>`;
     }
 
-    // دروستکردنی دوگمەی جۆرەکان (ئەگەر هەبوون)
-    if (variations.length > 0) {
-        // 1. دروستکردنی دوگمەی "بنەڕەتی"
-        const defaultBtn = document.createElement('button');
-        defaultBtn.className = 'variation-btn active'; // بنەڕەتی لە سەرەتاوە چالاکە
-        defaultBtn.textContent = 'بنەڕەتی'; // یان 'Default'
-        defaultBtn.onclick = () => {
-            updateDetailViewForVariation(null);
-            document.querySelectorAll('#sheetVariationsContainer .variation-btn').forEach(b => b.classList.remove('active'));
-            defaultBtn.classList.add('active');
-        };
-        variationsContainer.appendChild(defaultBtn);
-
-        // 2. دروستکردنی دوگمەی جۆرەکانی تر
-        variations.forEach(variation => {
-            const varName = (variation.name && variation.name[state.currentLanguage]) || (variation.name && variation.name.ku_sorani) || variation.id;
-            const variationBtn = document.createElement('button');
-            variationBtn.className = 'variation-btn';
-            variationBtn.textContent = varName;
-            variationBtn.onclick = () => {
-                updateDetailViewForVariation(variation);
-                document.querySelectorAll('#sheetVariationsContainer .variation-btn').forEach(b => b.classList.remove('active'));
-                variationBtn.classList.add('active');
-            };
-            variationsContainer.appendChild(variationBtn);
-        });
+    const oldLinkContainer = document.getElementById('sheetExternalLinkContainer');
+    if (oldLinkContainer) {
+        oldLinkContainer.remove();
     }
 
-    // پیشاندانی دۆخی بنەڕەتی (Default) بۆ یەکەمجار
-    updateDetailViewForVariation(null);
-
-    // زیادکردن بۆ سەبەتە
     const addToCartButton = document.getElementById('sheetAddToCartBtn');
     addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
     addToCartButton.onclick = () => {
-        // [ 💡 گۆڕانکاری ] - ناردنی 'currentSelectedVariation' کە یان 'null'ـە یان 'variation object'
-        handleAddToCartUI(baseProduct.id, addToCartButton, currentSelectedVariation); 
+        handleAddToCartUI(product.id, addToCartButton); 
     };
 
-    renderRelatedProductsUI(baseProduct);
+    renderRelatedProductsUI(product);
+
     openPopup('productDetailSheet');
 }
-
-
 
 async function renderRelatedProductsUI(currentProduct) {
     const section = document.getElementById('relatedProductsSection');
@@ -1123,11 +1042,8 @@ function updateProfileSheetUI() {
     }
 }
 
-// [ 💡 گۆڕانکاری ] - سیگناتشەری فەنکشنەکە گۆڕدرا بۆ وەرگرتنی 'variation'
-async function handleAddToCartUI(productId, buttonElement, variation = null) {
-    // [ 💡 گۆڕانکاری ] - 'variation' تێپەڕێندرا بۆ فەنکشنی ناوک
-    const result = await addToCartCore(productId, variation); 
-    
+async function handleAddToCartUI(productId, buttonElement) {
+    const result = await addToCartCore(productId); 
     showNotification(result.message, result.success ? 'success' : 'error');
     if (result.success) {
         updateCartCountUI(); 
@@ -1145,7 +1061,6 @@ async function handleAddToCartUI(productId, buttonElement, variation = null) {
         }
     }
 }
-
 
 function handleUpdateQuantityUI(productId, change) {
     if (updateCartQuantityCore(productId, change)) { 
