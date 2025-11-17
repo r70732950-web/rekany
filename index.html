@@ -247,6 +247,10 @@
                     <button class="slider-btn next" id="sheetNextBtn" style="display: none;">&#10095;</button>
                 </div>
                 <div id="sheetThumbnailContainer"></div>
+                
+                <div id="sheetVariationL1Container" class="variation-container"></div>
+                <div id="sheetVariationL2Container" class="variation-container"></div>
+                
                 <div id="sheetProductPrice" style="font-size: 22px; font-weight: bold; color: var(--accent-color); margin: 15px 0; text-align:center;"></div>
                 <p id="sheetProductDescription" style="color: #4a5568; margin-bottom: 20px; text-align:right; line-height: 1.7;"></p>
 
@@ -1062,7 +1066,7 @@
                         <label for="productNameAr">اسم المنتج (عربي):</label>
                         <input type="text" id="productNameAr" required>
                     </div>
-                    <div class="form-group"><label for="productPrice">نرخی فرۆشتن (د.ع.):</label><input type="number" id="productPrice" required min="0" step="1"></div>
+                    <div class="form-group"><label for="productPrice">نرخی بنەڕەتی (د.ع.):</label><input type="number" id="productPrice" required min="0" step="1" placeholder="نرخی سەرەکی کاڵا"></div>
                     <div class="form-group"><label for="productOriginalPrice">نرخی ڕەسەن (د.ع.):</label><input type="number" id="productOriginalPrice" min="0" step="1" placeholder="ئەگەر داشکانی نییە، بەتاڵ بێت"></div>
 
                     <div class="form-group"><label for="productCategoryId">جۆری سەرەki:</label>
@@ -1084,27 +1088,27 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="productDescriptionKuSorani">وەسف (سۆرانی):</label>
+                        <label for="productDescriptionKuSorani">وەسفی گشتی (سۆرانی):</label>
                         <textarea id="productDescriptionKuSorani" rows="3" required></textarea>
                     </div>
                     <div class="form-group">
-                        <label for="productDescriptionKuBadini">وەسف (بادینی):</label>
+                        <label for="productDescriptionKuBadini">وەسفی گشتی (بادینی):</label>
                         <textarea id="productDescriptionKuBadini" rows="3" required></textarea>
                     </div>
                     <div class="form-group">
-                        <label for="productDescriptionAr">وەسف (عربي):</label>
+                        <label for="productDescriptionAr">وەسفی گشتی (عربي):</label>
                         <textarea id="productDescriptionAr" rows="3" required></textarea>
                     </div>
                     
                     <div class="form-group">
-                        <label>وێنەکانی کاڵا (تا 4 وێنە):</label>
+                        <label>وێنە گشتییەکان (تا 4 وێنە):</label>
                         <p style="font-size: 12px; color: var(--dark-gray); margin-top: -4px; margin-bottom: 8px;">
-                            (وێنەی یەکەم وەک وێنەی سەرەki بەکاردێت. تکایە چاوەڕێ بکە تا وێنەکان باربن.)
+                            (ئەم وێنانە بە شێوەی بنەڕەتی پیشان دەدرێن)
                         </p>
                         <div class="image-upload-container" id="imageUploadContainer">
                             </div>
                     </div>
-                    <div class="form-group"><label for="productExternalLink">لینکی دەرەki:</label><input type="text" id="productExternalLink" placeholder="بۆ نموونە، لینکی ڤیدیۆ..."></div>
+                    <div class="form-group"><label for="productExternalLink">لینکی دەرەki (ڤیدیۆی گشتی):</label><input type="text" id="productExternalLink" placeholder="بۆ نموونە، لینکی ڤیدیۆ..."></div>
 
                     <hr style="margin: 20px 0; border-top: 1px solid var(--section-border);">
                     <div class="form-group">
@@ -1119,7 +1123,21 @@
                         <label for="shippingInfoAr">معلومات التوصيل (عربي):</label>
                         <input type="text" id="shippingInfoAr" placeholder="مثال: التوصيل مجاني">
                     </div>
-
+                    
+                    <hr style="margin: 30px 0; border: 1px solid var(--primary-light);">
+                    <h3 style="text-align: center; color: var(--primary-color); margin-bottom: 15px;">
+                        <i class="fas fa-sitemap"></i> جۆرە جیاوازەکانی کاڵا (Variations)
+                    </h3>
+                    <p style="text-align: center; font-size: 13px; color: var(--text-light); margin-top: -10px; margin-bottom: 20px;">
+                        (ئارەزوومەندانە) ئەگەر کاڵاکەت ڕەنگ و قەبارەی جیاوازی هەبوو، لێرە زیادی بکە.
+                    </p>
+                    
+                    <div id="variationsContainer">
+                        </div>
+                    
+                    <button type="button" id="addVariationBtn" class="add-section-btn" style="background-color: var(--primary-light); width: 100%; margin-bottom: 25px;">
+                        <i class="fas fa-plus"></i> زیادکردنی جۆری ئاستی یەک (بۆ نموونە: ڕەنگ)
+                    </button>
                     <button type="submit">پاشەکەوتکردن</button>
                 </form>
             </div>

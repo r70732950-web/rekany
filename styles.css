@@ -1305,6 +1305,7 @@ body, .bottom-nav-item, .product-card {
     cursor: pointer;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     transition: background-color 0.2s;
 }
@@ -1953,4 +1954,145 @@ input:checked + .slider:before {
 }
 
 
+/* [ 💡 گۆڕانکاری لێرە کرا 💡 ] ستایلە نوێیەکانی سیستەمی جۆرەکان */
 
+/* ستایلی بەکارهێنەر - دوگمەکانی هەڵبژاردن */
+.variation-container {
+    margin-bottom: 10px;
+}
+.variation-container h4 {
+    font-size: 14px;
+    color: var(--text-light);
+    margin-bottom: 8px;
+}
+.variation-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.variation-btn {
+    padding: 8px 15px;
+    border: 2px solid var(--medium-gray);
+    background-color: var(--light-gray);
+    color: var(--text-color);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+.variation-btn:hover {
+    background-color: var(--medium-gray);
+}
+.variation-btn.active {
+    background-color: var(--primary-light);
+    border-color: var(--primary-color);
+    color: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.variation-btn:disabled {
+    background-color: #f9f9f9;
+    color: #ccc;
+    border-color: #eee;
+    cursor: not-allowed;
+}
+
+
+/* ستایلی ئەدمین - فۆڕمی جۆرەکان */
+#variationsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.variation-l1-box {
+    border: 2px solid var(--primary-light);
+    border-radius: 8px;
+    padding: 15px;
+    background-color: #f7fafc;
+    position: relative;
+}
+
+.variation-l1-box .delete-variation-btn {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background-color: var(--danger-light);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.variation-l1-box h4 {
+    color: var(--primary-color);
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--medium-gray);
+    padding-bottom: 8px;
+}
+
+/* ستایلی تایبەت بە وێنەی جۆرەکان */
+.variation-image-upload-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+    margin-bottom: 15px;
+}
+
+/* بچووککردنەوەی ستایلی وێنەکان لەناو جۆرەکان */
+.variation-l1-box .image-upload-slot {
+    border-width: 1px;
+    gap: 4px;
+}
+.variation-l1-box .image-upload-label i {
+    font-size: 18px;
+    margin-bottom: 4px;
+}
+.variation-l1-box .image-upload-label span {
+    font-size: 11px;
+}
+.variation-l1-box .image-upload-remove-btn {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+}
+
+/* ستایلی ئاستی دووەم (قەبارە) */
+#variationL2Container {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px dashed var(--medium-gray);
+}
+
+.variation-l2-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--light-gray);
+}
+.variation-l2-row .form-group {
+    margin-bottom: 0;
+    flex: 1;
+}
+.variation-l2-row .form-group label {
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+.variation-l2-row .delete-l2-btn {
+    flex-shrink: 0;
+    margin-bottom: 0;
+    height: 40px; /* To align with form input height */
+}
+
+.add-l2-btn {
+    background-color: var(--accent-color) !important;
+    font-size: 13px !important;
+    padding: 8px 12px !important;
+    width: 100%;
+}
