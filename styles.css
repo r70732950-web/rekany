@@ -1948,9 +1948,5 @@ input:checked + .slider:before {
     color: var(--danger-color);
 }
 
-#settingsAdminLoginBtn {
-    display: none !important;
-}
-
 
 

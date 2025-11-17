@@ -2,8 +2,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
+// [ 💡 ] لێرە هەموو فەنکشنەکانی Storage import دەکەین
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
 
 
@@ -24,6 +25,14 @@ export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 export const storage = getStorage(app);
 
+// [ 💡 ] لێرە دەیکەینە Export بۆ ئەوەی Chat.js بەکاری بهێنێت
+export {
+    signInWithEmailAndPassword, onAuthStateChanged, signOut,
+    createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail,
+    serverTimestamp,
+    ref, uploadBytes, getDownloadURL // <--- ئەمە زیادکرا
+};
+
 // Collections
 export const productsCollection = collection(db, "products");
 export const categoriesCollection = collection(db, "categories");
@@ -36,24 +45,6 @@ export const usersCollection = collection(db, "users");
 
 export const chatsCollection = collection(db, "chats");
 export const ordersCollection = collection(db, "orders");
-
-// [ 💡 چاکسازی ] - بلۆکی Export گواسترایەوە بۆ کۆتایی فایل بۆ چارەسەری کێشەی Initialization
-export {
-    // Auth
-    signInWithEmailAndPassword, onAuthStateChanged, signOut,
-    createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail,
-    
-    // Firestore
-    enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, 
-    onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, 
-    startAfter, runTransaction, serverTimestamp, writeBatch,
-    
-    // Storage
-    ref, uploadBytes, getDownloadURL,
-    
-    // Messaging
-    getToken, onMessage
-};
 
 
 export const translations = {
@@ -83,7 +74,7 @@ export const translations = {
         profile_address: "ناونیشان:",
         profile_phone: "ژمارەی تەلەفۆن:",
         save_button: "پاشەکەوتکردن",
-        nav_home: "سەرەki",
+        nav_home: "سەرەکی",
         nav_categories: "جۆرەکان",
         nav_cart: "سەبەتە",
         nav_profile: "پڕۆفایل",
@@ -93,7 +84,7 @@ export const translations = {
         type_message: "نامەیەک بنووسە...",
         recording: "...تۆمارکردن",
         send: "ناردن",
-        sent: "nێردرا",
+        sent: "نێردرا",
         delivered: "گەیشت",
         seen: "بینرا",
         admin_badge: "بەڕێوەبەر",

@@ -1,13 +1,9 @@
-// [ 💡 چاکسازی ] - هەموو فەنکشنەکانی فایەربەیس لێرە ایمپۆرت کراون
+// chat.js
 import { 
     db, auth, storage, 
     chatsCollection, ordersCollection, usersCollection, 
     serverTimestamp,
-    ref, uploadBytes, getDownloadURL,
-    
-    // فەنکشنە زیادکراوەکانی Firestore
-    collection, addDoc, query, where, orderBy, onSnapshot, 
-    doc, setDoc, updateDoc, getDoc, limit, writeBatch 
+    ref, uploadBytes, getDownloadURL 
 } from './app-setup.js';
 
 import { 
@@ -18,8 +14,10 @@ import {
     showNotification, openPopup, closeCurrentPopup
 } from './app-ui.js';
 
-// [ 💡 چاکسازی ] - ایمپۆرتی CDN سڕایەوە چونکە هەمووی لە app-setup.js ـەوە دێت
-// import { ... } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { 
+    collection, addDoc, query, where, orderBy, onSnapshot, 
+    doc, setDoc, updateDoc, getDoc, limit, writeBatch 
+} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
 let messagesUnsubscribe = null;
 let conversationsUnsubscribe = null;
@@ -265,6 +263,7 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
         if(headerName) headerName.textContent = t('admin_badge');
         
         const backBtn = document.getElementById('chatBackBtn');
+        // [ 💡 چاککراوە ] - گۆڕینی none بۆ flex
         if(backBtn) backBtn.style.display = 'flex'; 
     }
 
@@ -374,16 +373,6 @@ function renderSingleMessage(msg, container, chatUserId) {
                                     </div>
                                 `;
                             }
-                            
-                            // [ 💡 چاکسازی ] - پیشاندانی ناوی جۆر
-                            let variationText = '';
-                            if (i.variationInfo) {
-                                const l1Name = i.variationInfo.l1_name[state.currentLanguage] || i.variationInfo.l1_name.ku_sorani;
-                                const l2Name = i.variationInfo.l2_name;
-                                variationText = l1Name;
-                                if (l2Name) variationText += ` / ${l2Name}`;
-                                variationText = `<div style="font-size: 12px; color: #000; font-weight: bold;">(${variationText})</div>`;
-                            }
 
                             return `
                             <div class="order-bubble-item" style="display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #eee;">
@@ -392,7 +381,7 @@ function renderSingleMessage(msg, container, chatUserId) {
                                     <div style="font-weight: bold; font-size: 13px;">
                                         ${i.name && i.name[state.currentLanguage] ? i.name[state.currentLanguage] : (i.name.ku_sorani || i.name)}
                                     </div>
-                                    ${variationText}
+                                    
                                     ${priceDisplay}
                                     
                                     <div style="font-size: 12px; color: #666; margin-top:2px;">
@@ -662,7 +651,7 @@ async function processOrderSubmission() {
         userName: state.userProfile.name || state.currentUser.displayName, 
         userPhone: state.userProfile.phone || '', 
         userAddress: state.userProfile.address || '', 
-        items: state.cart, // [ 💡 ] سەبەتە بە هەموو زانیاری جۆرەکانەوە دەنێردرێت
+        items: state.cart,
         total: total,
         status: 'pending', 
         createdAt: Date.now() 

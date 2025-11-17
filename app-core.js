@@ -1,22 +1,24 @@
-// [ 💡 چاکسازی ] - هەموو ایمپۆرتەکان تەنها لە app-setup.js ـەوە دێن
-import { 
+import {
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
     categoryLayoutsCollection, 
     usersCollection, 
+    createUserWithEmailAndPassword, updateProfile, 
+    sendPasswordResetEmail,
     translations, state,
     CART_KEY, FAVORITES_KEY, PRODUCTS_PER_PAGE,
-    
-    // فەنکشنەکانی فایەربەیس
-    signInWithEmailAndPassword, onAuthStateChanged, signOut,
-    createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail,
-    enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, 
-    onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, 
-    startAfter, runTransaction, serverTimestamp, writeBatch,
-    getToken, onMessage
 } from './app-setup.js';
 
+import { 
+    signInWithEmailAndPassword, onAuthStateChanged, signOut 
+} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+import {
+    enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc,
+    onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where,
+    startAfter, addDoc, runTransaction
+} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
 // [ 💡 زیادکرا ] - پرۆمیس بۆ دڵنیابوونەوە لە ئامادەبوونی Auth
 let authReadyResolver;
@@ -27,8 +29,7 @@ export const authReady = new Promise(resolve => {
 
 // --- Utility Functions ---
 
-// [ 💡 چاکسازی ] - لابردنی 'export'ی تاک (inline)
-function debounce(func, delay = 500) {
+export function debounce(func, delay = 500) {
     let timeout;
     return (...args) => {
         clearTimeout(timeout);
@@ -38,7 +39,7 @@ function debounce(func, delay = 500) {
     };
 }
 
-function t(key, replacements = {}) {
+export function t(key, replacements = {}) {
     let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
     for (const placeholder in replacements) {
         translation = translation.replace(`{${placeholder}}`, replacements[placeholder]);
@@ -46,7 +47,7 @@ function t(key, replacements = {}) {
     return translation;
 }
 
-function formatDescription(text) {
+export function formatDescription(text) {
     if (!text) return '';
     let escapedText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
@@ -66,15 +67,15 @@ function extractShippingCostFromText(text) {
 
 // --- Storage Helpers ---
 
-function saveCart() {
+export function saveCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
 }
 
-function saveFavorites() {
+export function saveFavorites() {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(state.favorites));
 }
 
-function isFavorite(productId) {
+export function isFavorite(productId) {
     return state.favorites.includes(productId);
 }
 
@@ -235,7 +236,7 @@ async function fetchRelatedProducts(currentProduct) {
     }
 }
 
-async function fetchCategoryLayout(categoryId) { 
+export async function fetchCategoryLayout(categoryId) { 
     if (!categoryId) return null;
     try {
         const layoutDocRef = doc(db, "category_layouts", categoryId);
@@ -470,7 +471,7 @@ async function fetchInitialProductsForHome(limitCount = 10) {
     }
 }
 
-async function addToCartCore(productId, extras = null) {
+export async function addToCartCore(productId) {
     let product = state.products.find(p => p.id === productId);
 
     if (!product) {
@@ -486,37 +487,27 @@ async function addToCartCore(productId, extras = null) {
     const calculatedShippingCost = extractShippingCostFromText(shippingText);
 
     const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
-    
-    let variationId = 'default';
-    if (extras && extras.variationInfo) {
-        variationId = `${extras.variationInfo.l1_id}_${extras.variationInfo.l2_id || 'none'}`;
-        extras.variationInfo.cartItemId = variationId;
-    }
-
-    const existingItem = state.cart.find(item => item.id === productId && item.variationInfo?.cartItemId === variationId);
+    const existingItem = state.cart.find(item => item.id === productId);
 
     if (existingItem) {
         existingItem.quantity++;
-        existingItem.price = extras?.finalPrice || product.price;
         existingItem.shippingCost = calculatedShippingCost; 
     } else {
         state.cart.push({
             id: product.id,
             name: product.name, 
-            price: extras?.finalPrice || product.price, 
+            price: product.price,
             shippingCost: calculatedShippingCost,
-            image: extras?.finalImage || mainImage, 
-            quantity: 1,
-            variationInfo: extras?.variationInfo || null 
+            image: mainImage,
+            quantity: 1
         });
     }
     saveCart();
     return { success: true, message: t('product_added_to_cart') };
 }
 
-function updateCartQuantityCore(productId, change, variationId = 'default') {
-    const cartItemIndex = state.cart.findIndex(item => item.id === productId && (item.variationInfo?.cartItemId || 'default') === variationId);
-    
+export function updateCartQuantityCore(productId, change) {
+    const cartItemIndex = state.cart.findIndex(item => item.id === productId);
     if (cartItemIndex > -1) {
         state.cart[cartItemIndex].quantity += change;
         if (state.cart[cartItemIndex].quantity <= 0) {
@@ -528,10 +519,9 @@ function updateCartQuantityCore(productId, change, variationId = 'default') {
     return false; 
 }
 
-function removeFromCartCore(productId, variationId = 'default') {
+export function removeFromCartCore(productId) {
     const initialLength = state.cart.length;
-    state.cart = state.cart.filter(item => !(item.id === productId && (item.variationInfo?.cartItemId || 'default') === variationId));
-    
+    state.cart = state.cart.filter(item => item.id !== productId);
     if (state.cart.length < initialLength) {
         saveCart();
         return true; 
@@ -539,7 +529,7 @@ function removeFromCartCore(productId, variationId = 'default') {
     return false; 
 }
 
-function generateOrderMessageCore() {
+export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
     let total = 0;
@@ -553,16 +543,6 @@ function generateOrderMessageCore() {
         
         const itemName = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
         
-        let itemDisplayName = itemName;
-        if (item.variationInfo) {
-            const l1Name = item.variationInfo.l1_name[state.currentLanguage] || item.variationInfo.l1_name.ku_sorani;
-            const l2Name = item.variationInfo.l2_name;
-            
-            itemDisplayName += ` (${l1Name}`;
-            if (l2Name) itemDisplayName += ` - ${l2Name}`;
-            itemDisplayName += `)`;
-        }
-
         let priceDetails = "";
         if (shipping > 0) {
              priceDetails = `(${item.price.toLocaleString()} x ${item.quantity}) + ${shipping.toLocaleString()} (${t('shipping_cost') || 'گەیاندن'}) = ${lineTotal.toLocaleString()}`;
@@ -570,7 +550,7 @@ function generateOrderMessageCore() {
              priceDetails = `(${item.price.toLocaleString()} x ${item.quantity}) + (${t('free_shipping') || 'گەیاندن بێ بەرامبەر'}) = ${lineTotal.toLocaleString()}`;
         }
 
-        message += `- ${itemDisplayName}\n`;
+        message += `- ${itemName}\n`;
         message += `   💰 ${priceDetails}\n`;
         message += `   ----------------\n`;
     });
@@ -588,7 +568,7 @@ function generateOrderMessageCore() {
     return message;
 }
 
-function toggleFavoriteCore(productId) {
+export function toggleFavoriteCore(productId) {
     const isCurrentlyFavorite = isFavorite(productId);
     if (isCurrentlyFavorite) {
         state.favorites = state.favorites.filter(id => id !== productId);
@@ -601,7 +581,7 @@ function toggleFavoriteCore(productId) {
     }
 }
 
-async function saveProfileCore(profileData) {
+export async function saveProfileCore(profileData) {
     if (!state.currentUser) {
         return { success: false, message: "تکایە سەرەتا بچۆ ژوورەوە" }; 
     }
@@ -671,12 +651,12 @@ async function saveTokenToFirestore(token) {
     } catch (error) { console.error('Error saving token: ', error); }
 }
 
-function checkNewAnnouncementsCore(latestAnnouncementTimestamp) {
+export function checkNewAnnouncementsCore(latestAnnouncementTimestamp) {
     const lastSeenTimestamp = localStorage.getItem('lastSeenAnnouncementTimestamp') || 0;
     return latestAnnouncementTimestamp > lastSeenTimestamp;
 }
 
-function updateLastSeenAnnouncementTimestamp(timestamp) {
+export function updateLastSeenAnnouncementTimestamp(timestamp) {
      localStorage.setItem('lastSeenAnnouncementTimestamp', timestamp);
 }
 
@@ -706,7 +686,7 @@ async function forceUpdateCore() {
     return { success: false, message: 'Update cancelled.' }; 
 }
 
-function saveCurrentScrollPositionCore() {
+export function saveCurrentScrollPositionCore() {
     const currentState = history.state;
     const activePage = document.getElementById(state.currentPageId); 
     if (activePage && state.currentPageId === 'mainPage' && currentState && !currentState.type) {
@@ -714,14 +694,14 @@ function saveCurrentScrollPositionCore() {
     }
 }
 
-function applyFilterStateCore(filterState) {
+export function applyFilterStateCore(filterState) {
     state.currentCategory = filterState.category || 'all';
     state.currentSubcategory = filterState.subcategory || 'all';
     state.currentSubSubcategory = filterState.subSubcategory || 'all';
     state.currentSearch = filterState.search || '';
 }
 
-function navigateToFilterCore(newState) {
+export function navigateToFilterCore(newState) {
     saveCurrentScrollPositionCore(); 
     const finalState = { ...history.state, ...newState }; 
     const params = new URLSearchParams();
@@ -754,7 +734,7 @@ async function updateTokenLanguageInFirestore(newLang) {
     }
 }
 
-function setLanguageCore(lang) {
+export function setLanguageCore(lang) {
     state.currentLanguage = lang;
     localStorage.setItem('language', lang);
     document.documentElement.lang = lang.startsWith('ar') ? 'ar' : 'ku';
@@ -799,7 +779,7 @@ async function loadUserProfile(uid) {
     });
 }
 
-async function initCore() {
+export async function initCore() {
     return enableIndexedDbPersistence(db)
         .then(() => console.log("Firestore offline persistence enabled."))
         .catch((err) => console.warn("Firestore Persistence failed:", err.code))
@@ -893,79 +873,18 @@ async function initCore() {
         });
 }
 
-// [ 💡 چاکسازی ] - زیادکردنی یەک بلۆکی Exportـی گشتگیر
 export {
-    state,
-    db,
-    productsCollection,
-    
-    // Utility Functions
-    debounce,
-    t,
-    formatDescription,
-    saveCart,
-    saveFavorites,
-    isFavorite,
-    
-    // Auth Functions
-    handleLogin,
-    handleUserLogin,
-    handleUserSignUp,
-    handleUserLogout,
-    handlePasswordReset,
-    
-    // Fetching Data
-    fetchCategories,
-    fetchSubcategories,
-    fetchSubSubcategories,
-    fetchProductById,
-    fetchRelatedProducts,
-    fetchCategoryLayout,
-    fetchProducts,
-    fetchPolicies,
-    fetchAnnouncements,
-    fetchContactMethods,
-    fetchHomeLayout,
-    fetchPromoGroupCards,
-    fetchBrandGroupBrands,
-    fetchNewestProducts,
-    fetchShortcutRowCards,
-    fetchCategoryRowProducts,
-    fetchInitialProductsForHome,
-    
-    // Core Logic Functions
-    addToCartCore,
-    updateCartQuantityCore,
-    removeFromCartCore,
-    generateOrderMessageCore,
-    toggleFavoriteCore,
-    saveProfileCore,
+    state, 
+    handleLogin, 
+    handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
+    fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, 
+    fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
     requestNotificationPermissionCore,
-    checkNewAnnouncementsCore,
-    updateLastSeenAnnouncementTimestamp,
-    handleInstallPrompt,
-    forceUpdateCore,
-    saveCurrentScrollPositionCore,
-    applyFilterStateCore,
-    navigateToFilterCore,
-    setLanguageCore,
-    loadUserProfile,
-    initCore,
-    
-    // Firebase functions (re-exported for admin.js)
-    collection,
-    doc,
-    getDoc,
-    updateDoc,
-    deleteDoc,
-    addDoc,
-    setDoc,
-    query,
-    orderBy,
-    onSnapshot,
-    getDocs,
-    where,
-    limit,
-    startAfter,
-    runTransaction
+    handleInstallPrompt, 
+    forceUpdateCore, 
+
+    db, 
+    productsCollection,
+    collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
+    query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction
 };
