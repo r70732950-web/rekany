@@ -246,6 +246,10 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
     const isCategoryLayoutLoaded = isTargetCategoryLayout &&
                                    document.getElementById(targetCategoryLayoutId); 
     
+    // [ ✅ چاککراوە ] - پشکنینی Cache پێش شاردنەوەی شاشەکە
+    const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${state.currentSearch.trim().toLowerCase()}`;
+    const hasCache = state.productCache && state.productCache[cacheKey];
+
     if (isNewSearch) {
         scrollTrigger.style.display = 'none'; 
         const isReturningWithContent = isHomeLoaded || isCategoryLayoutLoaded;
@@ -272,13 +276,16 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
             }
 
         } else {
-            homeSectionsContainer.style.display = 'none';
-            categoryLayoutContainer.style.display = 'none'; 
-            productsContainer.style.display = 'none';
-            subcategoriesContainer.style.display = 'none';
-            subSubcategoriesContainer.style.display = 'none';
-            renderSkeletonLoader(skeletonLoader); 
-            skeletonLoader.style.display = 'grid';
+            // [ ✅ گۆڕانکاری ] - ئەگەر Cache هەبوو، شتەکان مەشارەوە (با Skeleton دەرنەکەوێت)
+            if (!hasCache) {
+                homeSectionsContainer.style.display = 'none';
+                categoryLayoutContainer.style.display = 'none'; 
+                productsContainer.style.display = 'none';
+                subcategoriesContainer.style.display = 'none';
+                subSubcategoriesContainer.style.display = 'none';
+                renderSkeletonLoader(skeletonLoader); 
+                skeletonLoader.style.display = 'grid';
+            }
         }
     }
 
@@ -318,11 +325,13 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
                     child.style.display = 'none';
                 });
 
-                let targetLayoutDiv = document.createElement('div');
-                targetLayoutDiv.id = targetCategoryLayoutId;
-                categoryLayoutContainer.appendChild(targetLayoutDiv);
-                
-                await renderPageContentUI(result.layout, targetLayoutDiv);
+                let targetLayoutDiv = document.getElementById(targetCategoryLayoutId);
+                if (!targetLayoutDiv) {
+                    targetLayoutDiv = document.createElement('div');
+                    targetLayoutDiv.id = targetCategoryLayoutId;
+                    categoryLayoutContainer.appendChild(targetLayoutDiv);
+                    await renderPageContentUI(result.layout, targetLayoutDiv);
+                }
                 
                 targetLayoutDiv.style.display = 'block';
                 
@@ -342,6 +351,7 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
             categoryLayoutContainer.style.display = 'none'; 
             productsContainer.style.display = 'grid'; 
             
+            // دڵنیابوونەوە لەوەی Subcategories دیارن
             const subcats = await fetchSubcategories(state.currentCategory);
             await renderSubcategoriesUI(subcats);
             
