@@ -14,11 +14,12 @@ const {
 window.AdminLogic = {
     listenersAttached: false,
     
-    // [💡 گۆڕانکاری] - ئەمە ئێستا تەنها بۆ وێنە گشتییەکانە
+    // [ 💡 گۆڕانکاری ] - ئەمە تەنها بۆ ٤ وێنە سەرەکییەکە بەکاردێت
     currentImageUrls: ["", "", "", ""], 
     
-    // [💡 نوێ] - داتای جۆرەکان لێرە هەڵدەگیرێت
-    variationsData: [], 
+    // [ 💡 زیادکرا ] - ئەمە داتای وێنەی جۆرەکان (variations) هەڵدەگرێت
+    // { "temp_var_123": ["url1", "url2", "", ""] }
+    variationImageData: {},
 
     currentLayoutEditorContext: { type: 'home', id: null }, 
     currentCategoryLayoutId: null, 
@@ -72,7 +73,7 @@ window.AdminLogic = {
             await Promise.all(deletePromises);
             console.log("Old layout deleted.");
     
-            await this.createDefaultHomeLayout(layoutCollectionRef);
+            await this.createDefaultHomeLayout(collectionRef);
             console.log("New default layout created after migration.");
         } else {
             console.log("`home_layout` structure is up to date.");
@@ -103,6 +104,7 @@ window.AdminLogic = {
             'adminContactMethodsManagement', 'adminShortcutRowsManagement',
             'adminHomeLayoutManagement',
             'adminCategoryLayoutManagement',
+            // [ 💡 نوێ ] بەشی چات بۆ ئەدمین
             'adminChatsManagement'
         ];
         
@@ -140,9 +142,12 @@ window.AdminLogic = {
         document.getElementById('formTitle').textContent = 'دەستکاری کردنی کاڵا';
         document.getElementById('productForm').reset();
         
+        // [ 💡 زیادکرا ] - پاککردنەوەی داتای وێنەی جۆرەکان
+        this.variationImageData = {};
+        document.getElementById('variationsContainer').innerHTML = '';
+        
         this.updateAdminCategoryDropdowns(); 
 
-        // ... (کۆدی پڕکردنەوەی فۆڕمی سەرەکی وەک خۆی) ...
         if (product.name && typeof product.name === 'object') {
             document.getElementById('productNameKuSorani').value = product.name.ku_sorani || '';
             document.getElementById('productNameKuBadini').value = product.name.ku_badini || '';
@@ -165,10 +170,9 @@ window.AdminLogic = {
             document.getElementById('productDescriptionAr').value = product.description.ar || '';
         }
         
-        // [💡 گۆڕانکاری] - پڕکردنەوەی وێنە گشتییەکان
         const imageUrls = product.imageUrls || (product.image ? [product.image] : []);
         this.currentImageUrls = ["", "", "", ""].map((_, i) => imageUrls[i] || "");
-        this.createBaseProductImageInputs(); // وێنە گشتییەکان
+        this.createProductImageInputs(false); // false واتە هی جۆرەکان نییە
         
         document.getElementById('productExternalLink').value = product.externalLink || '';
 
@@ -182,12 +186,18 @@ window.AdminLogic = {
             document.getElementById('shippingInfoAr').value = '';
         }
 
+        // [ 💡 زیادکرا ] - بارکردنی جۆرە پاشەکەوتکراوەکان (Variations)
+        if (product.variations && Array.isArray(product.variations)) {
+            product.variations.forEach(lvl1Var => {
+                // داتای وێنەکان هەڵدەگرین
+                this.variationImageData[lvl1Var.id] = ["", "", "", ""].map((_, i) => (lvl1Var.imageUrls && lvl1Var.imageUrls[i]) || "");
+                // بۆکسەکان دروست دەکەینەوە
+                this.createLvl1VariationBoxUI(lvl1Var.id, lvl1Var);
+            });
+        }
+
         await this.populateSubcategoriesDropdown(categoryId, product.subcategoryId);
         await this.populateSubSubcategoriesDropdown(categoryId, product.subcategoryId, product.subSubcategoryId);
-
-        // [💡 نوێ] - پڕکردنەوەی جۆرەکان (Variations)
-        this.variationsData = product.variations ? JSON.parse(JSON.stringify(product.variations)) : [];
-        this.renderAdminVariationsUI();
 
         document.getElementById('productForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوە';
         openPopup('productFormModal', 'modal');
@@ -204,29 +214,42 @@ window.AdminLogic = {
         }
     },
 
-    // [💡 گۆڕانکاری] - ناو گۆڕدرا بۆ ئەوەی تێکەڵ نەبێت
-    createBaseProductImageInputs: function() {
-        const container = document.getElementById('imageUploadContainer');
+    // [ 💡 گۆڕانکاری ] - ئەم فەنکشنە گشتگیر کراوە
+    createProductImageInputs: function(isVariation, variationId = null, existingImageUrls = []) {
+        let container;
+        if (isVariation) {
+            container = document.getElementById(`variation-images-${variationId}`);
+        } else {
+            container = document.getElementById('imageUploadContainer');
+        }
+
         if (!container) return;
         container.innerHTML = ''; 
+        
+        const imageUrls = isVariation ? existingImageUrls : this.currentImageUrls;
 
         for (let i = 0; i < 4; i++) {
             const slot = document.createElement('div');
             slot.className = 'image-upload-slot';
             slot.dataset.index = i;
+            
+            // [ 💡 زیادکرا ] - IDـی جۆرەکە هەڵدەگرێت ئەگەر هی جۆر بێت
+            if (isVariation) {
+                slot.dataset.variationId = variationId;
+            }
 
-            const imageUrl = this.currentImageUrls[i];
+            const imageUrl = imageUrls[i] || "";
             const hasImage = !!imageUrl;
 
             slot.innerHTML = `
                 <img src="${hasImage ? imageUrl : ''}" class="image-upload-preview" style="display: ${hasImage ? 'block' : 'none'};">
-                <label for="file-upload-${i}" class="image-upload-label" style="display: ${hasImage ? 'none' : 'flex'};">
+                <label for="file-upload-${variationId || 'main'}-${i}" class="image-upload-label" style="display: ${hasImage ? 'none' : 'flex'};">
                     <i class="fas fa-upload"></i>
-                    <span>وێنەی گشتی ${i + 1}</span>
+                    <span>وێنەی ${i + 1}</span>
                 </label>
-                <input type="file" id="file-upload-${i}" class="image-upload-input" accept="image/*">
+                <input type="file" id="file-upload-${variationId || 'main'}-${i}" class="image-upload-input" accept="image/*">
                 <i class="fas fa-spinner fa-spin image-upload-spinner"></i>
-                <button type="button" class="image-upload-remove-btn base-image-remove-btn" style="display: ${hasImage ? 'flex' : 'none'};">
+                <button type="button" class="image-upload-remove-btn" style="display: ${hasImage ? 'flex' : 'none'};">
                     <i class="fas fa-times"></i>
                 </button>
             `;
@@ -234,12 +257,14 @@ window.AdminLogic = {
         }
     },
     
-    // [💡 گۆڕانکاری] - ئەم فەنکشنە ئێستا تەنها وێنە گشتییەکان بەڕێوە دەبات
+    // [ 💡 گۆڕانکاری ] - ئەم فەنکشنە ئێستا دەزانێت کام وێنە نوێ بکاتەوە
     handleFileSelect: async function(input, slot) {
         const file = input.files[0];
         if (!file) return;
 
         const index = slot.dataset.index;
+        const variationId = slot.dataset.variationId; // IDی جۆرەکە وەردەگرێت
+        
         const spinner = slot.querySelector('.image-upload-spinner');
         const label = slot.querySelector('.image-upload-label');
         const preview = slot.querySelector('.image-upload-preview');
@@ -251,12 +276,18 @@ window.AdminLogic = {
         try {
             const fileName = `products/${Date.now()}-${file.name}`;
             const storageRef = ref(storage, fileName);
-
             await uploadBytes(storageRef, file);
-
             const downloadURL = await getDownloadURL(storageRef);
 
-            this.currentImageUrls[index] = downloadURL; // وێنە گشتییەکان
+            // [ 💡 گۆڕانکاری ] - داتای دروست نوێ دەکاتەوە
+            if (variationId) {
+                if (!this.variationImageData[variationId]) {
+                    this.variationImageData[variationId] = ["", "", "", ""];
+                }
+                this.variationImageData[variationId][index] = downloadURL;
+            } else {
+                this.currentImageUrls[index] = downloadURL;
+            }
 
             preview.src = downloadURL;
             preview.style.display = 'block';
@@ -271,236 +302,28 @@ window.AdminLogic = {
         }
     },
 
-    // [💡 گۆڕانکاری] - ئەم فەنکشنە ئێستا تەنها وێنە گشتییەکان دەسڕێتەوە
+    // [ 💡 گۆڕانکاری ] - ئەم فەنکشنە ئێستا دەزانێت کام وێنە بسڕێتەوە
     handleImageRemove: function(slot) {
         const index = slot.dataset.index;
-        this.currentImageUrls[index] = ""; // وێنە گشتییەکان
+        const variationId = slot.dataset.variationId;
+
+        // [ 💡 گۆڕانکاری ] - داتای دروست پاک دەکاتەوە
+        if (variationId) {
+            if (this.variationImageData[variationId]) {
+                this.variationImageData[variationId][index] = "";
+            }
+        } else {
+            this.currentImageUrls[index] = ""; 
+        }
 
         slot.querySelector('.image-upload-preview').src = '';
         slot.querySelector('.image-upload-preview').style.display = 'none';
         slot.querySelector('.image-upload-label').style.display = 'flex';
         slot.querySelector('.image-upload-remove-btn').style.display = 'none';
-        
         slot.querySelector('.image-upload-input').value = null; 
     },
-
-    // --- [💡💡💡 فەنکشنە نوێیەکان بۆ جۆرەکان (Variations) 💡💡💡] ---
-
-    /**
-     * UIـی هەموو جۆرەکانی ئاستی یەک (ڕەنگەکان) دروست دەکات
-     */
-    renderAdminVariationsUI: function() {
-        const container = document.getElementById('variationsContainer');
-        if (!container) return;
-        container.innerHTML = ''; 
-
-        this.variationsData.forEach((level1Var, level1Index) => {
-            const variationId = level1Var.id || `temp_${level1Index}`;
-            
-            const box = document.createElement('div');
-            box.className = 'admin-list-group'; // 
-            box.style.cssText = "margin-top: 20px; border: 2px solid var(--primary-color);";
-            box.dataset.level1Index = level1Index;
-            
-            box.innerHTML = `
-                <div classd="admin-list-group-header" style="background-color: #f0f2f5; padding: 10px; display: flex; justify-content: space-between; align-items: center;">
-                    <strong>جۆری ${level1Index + 1} (بۆ نموونە: ڕەنگ)</strong>
-                    <button type="button" class="delete-btn small-btn delete-variation-btn" data-level1-index="${level1Index}">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-                <div style="padding: 15px;">
-                    <div class="form-group">
-                        <label>ناوی جۆر (سۆرانی):</label>
-                        <input type="text" class="variation-name-input" data-lang="ku_sorani" data-level1-index="${level1Index}" value="${level1Var.name.ku_sorani || ''}" placeholder="بۆ نموونە: ڕەنگی ڕەش">
-                    </div>
-                    <div class="form-group">
-                        <label>ناوی جۆر (بادینی):</label>
-                        <input type="text" class="variation-name-input" data-lang="ku_badini" data-level1-index="${level1Index}" value="${level1Var.name.ku_badini || ''}">
-                    </div>
-                    <div class="form-group">
-                        <label>ناوی جۆر (عربی):</label>
-                        <input type="text" class="variation-name-input" data-lang="ar" data-level1-index="${level1Index}" value="${level1Var.name.ar || ''}">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>وێنە تایبەتەکانی ئەم جۆرە (٤ وێنە):</label>
-                        <div class="image-upload-container variation-image-uploader" id="variation-images-${level1Index}">
-                            </div>
-                    </div>
-                    
-                    <hr style="margin: 20px 0;">
-                    
-                    <div class="admin-list-group" style="background: #fdfdfd;">
-                        <div class="admin-list-group-header" style="background-color: #f9f9f9;">
-                            <strong>جۆرەکانی ئاستی دوو (بۆ نموونە: قەبارە)</strong>
-                            <button type="button" class="add-section-btn add-sub-variation-btn" data-level1-index="${level1Index}">
-                                + زیادکردنی قەبارە
-                            </button>
-                        </div>
-                        <div class="sub-variations-list" id="sub-variations-list-${level1Index}">
-                            </div>
-                    </div>
-                </div>
-            `;
-            
-            container.appendChild(box);
-            
-            // دروستکردنی وێنە تایبەتەکان
-            this.createVariationImageInputs(level1Index);
-            // دروستکردنی قەبارەکان
-            this.renderAdminSubVariationsUI(level1Index);
-        });
-    },
-
-    /**
-     * UIـی جۆرەکانی ئاستی دوو (قەبارەکان) بۆ ڕەنگێکی دیاریکراو دروست دەکات
-     */
-    renderAdminSubVariationsUI: function(level1Index) {
-        const level1Var = this.variationsData[level1Index];
-        const container = document.getElementById(`sub-variations-list-${level1Index}`);
-        if (!container) return;
-        
-        container.innerHTML = '';
-        
-        if (!level1Var.subVariations || level1Var.subVariations.length === 0) {
-            container.innerHTML = '<p class="empty-list-text">هیچ قەبارەیەک زیاد نەکراوە.</p>';
-            return;
-        }
-
-        level1Var.subVariations.forEach((level2Var, level2Index) => {
-            const row = document.createElement('div');
-            row.className = 'admin-list-item';
-            row.style.borderTop = '1px solid #f0f0f0';
-            row.dataset.level2Index = level2Index;
-            
-            row.innerHTML = `
-                <div style="display: flex; flex-wrap: wrap; gap: 10px; flex-grow: 1;">
-                    <div class="form-group" style="flex: 1 1 150px; margin-bottom: 0;">
-                        <label style="font-size: 12px;">ناوی قەبارە (سۆرانی):</label>
-                        <input type="text" class="sub-variation-name-input" data-lang="ku_sorani" data-level1-index="${level1Index}" data-level2-index="${level2Index}" value="${level2Var.name.ku_sorani || ''}" placeholder="256GB">
-                    </div>
-                    <div class="form-group" style="flex: 1 1 150px; margin-bottom: 0;">
-                        <label style="font-size: 12px;">ناوی قەبارە (بادینی):</label>
-                        <input type="text" class="sub-variation-name-input" data-lang="ku_badini" data-level1-index="${level1Index}" data-level2-index="${level2Index}" value="${level2Var.name.ku_badini || ''}">
-                    </div>
-                    <div class="form-group" style="flex: 1 1 150px; margin-bottom: 0;">
-                        <label style="font-size: 12px;">ناوی قەبارە (عربی):</label>
-                        <input type="text" class="sub-variation-name-input" data-lang="ar" data-level1-index="${level1Index}" data-level2-index="${level2Index}" value="${level2Var.name.ar || ''}">
-                    </div>
-                    <div class="form-group" style="flex: 1 1 120px; margin-bottom: 0;">
-                        <label style="font-size: 12px;">نرخی تایبەت (د.ع.):</label>
-                        <input type="number" class="sub-variation-price-input" data-level1-index="${level1Index}" data-level2-index="${level2Index}" value="${level2Var.price || ''}" placeholder="999">
-                    </div>
-                </div>
-                <button type="button" class="delete-btn small-btn delete-sub-variation-btn" data-level1-index="${level1Index}" data-level2-index="${level2Index}">
-                    <i class="fas fa-trash"></i>
-                </button>
-            `;
-            container.appendChild(row);
-        });
-    },
-
-    /**
-     * UIـی ٤ وێنەکە بۆ جۆرێکی دیاریکراو (ڕەنگ) دروست دەکات
-     */
-    createVariationImageInputs: function(level1Index) {
-        const container = document.getElementById(`variation-images-${level1Index}`);
-        if (!container) return;
-        
-        container.innerHTML = '';
-        const level1Var = this.variationsData[level1Index];
-        if (!level1Var.imageUrls) level1Var.imageUrls = ["", "", "", ""];
-        
-        for (let i = 0; i < 4; i++) {
-            const slot = document.createElement('div');
-            slot.className = 'image-upload-slot';
-            slot.dataset.index = i;
-            slot.dataset.level1Index = level1Index; 
-
-            const imageUrl = level1Var.imageUrls[i] || "";
-            const hasImage = !!imageUrl;
-
-            slot.innerHTML = `
-                <img src="${hasImage ? imageUrl : ''}" class="image-upload-preview" style="display: ${hasImage ? 'block' : 'none'};">
-                <label for="variation-${level1Index}-file-upload-${i}" class="image-upload-label" style="display: ${hasImage ? 'none' : 'flex'};">
-                    <i class="fas fa-upload"></i>
-                    <span>وێنەی ${i + 1}</span>
-                </label>
-                <input type="file" id="variation-${level1Index}-file-upload-${i}" class="image-upload-input variation-image-input" accept="image/*">
-                <i class="fas fa-spinner fa-spin image-upload-spinner"></i>
-                <button type="button" class="image-upload-remove-btn variation-image-remove-btn" style="display: ${hasImage ? 'flex' : 'none'};">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-            container.appendChild(slot);
-        }
-    },
-
-    /**
-     * وێنەیەکی تایبەت بە جۆرێک (ڕەنگ) بلند دەکات
-     */
-    handleVariationFileSelect: async function(input, slot) {
-        const file = input.files[0];
-        if (!file) return;
-
-        const level1Index = slot.dataset.level1Index;
-        const index = slot.dataset.index;
-        
-        const spinner = slot.querySelector('.image-upload-spinner');
-        const label = slot.querySelector('.image-upload-label');
-        const preview = slot.querySelector('.image-upload-preview');
-        const removeBtn = slot.querySelector('.image-upload-remove-btn');
-
-        spinner.style.display = 'block';
-        label.style.display = 'none';
-        
-        try {
-            const fileName = `products/${Date.now()}-var-${level1Index}-${file.name}`;
-            const storageRef = ref(storage, fileName);
-
-            await uploadBytes(storageRef, file);
-            const downloadURL = await getDownloadURL(storageRef);
-
-            // [💡 گرنگ] - داتاکە لەناو ستەیتە کاتییەکە نوێ دەکاتەوە
-            this.variationsData[level1Index].imageUrls[index] = downloadURL;
-
-            preview.src = downloadURL;
-            preview.style.display = 'block';
-            removeBtn.style.display = 'flex';
-
-        } catch (error) {
-            console.error("Error uploading variation image:", error);
-            showNotification('هەڵەیەک لە کاتی بلندکردنی وێنەکە ڕوویدا!', 'error');
-            label.style.display = 'flex'; 
-        } finally {
-            spinner.style.display = 'none'; 
-        }
-    },
-
-    /**
-     * وێنەیەکی تایبەت بە جۆرێک (ڕەنگ) دەسڕێتەوە
-     */
-    handleVariationImageRemove: function(slot) {
-        const level1Index = slot.dataset.level1Index;
-        const index = slot.dataset.index;
-
-        // [💡 گرنگ] - داتاکە لەناو ستەیتە کاتییەکە نوێ دەکاتەوە
-        this.variationsData[level1Index].imageUrls[index] = ""; 
-
-        slot.querySelector('.image-upload-preview').src = '';
-        slot.querySelector('.image-upload-preview').style.display = 'none';
-        slot.querySelector('.image-upload-label').style.display = 'flex';
-        slot.querySelector('.image-upload-remove-btn').style.display = 'none';
-        
-        slot.querySelector('.image-upload-input').value = null; 
-    },
-    
-    // --- [💡💡💡 کۆتایی فەنکشنە نوێیەکانی جۆرەکان 💡💡💡] ---
-
 
     populateSubcategoriesDropdown: async function(categoryId, selectedSubcategoryId = null) {
-        // ... (کۆدی ئەم فەنکشنە وەک خۆی دەمێنێتەوە) ...
         const subcategorySelectContainer = document.getElementById('subcategorySelectContainer');
         const productSubcategorySelect = document.getElementById('productSubcategoryId');
 
@@ -545,7 +368,6 @@ window.AdminLogic = {
     },
 
     populateSubSubcategoriesDropdown: async function(mainCategoryId, subcategoryId, selectedSubSubcategoryId = null) {
-        // ... (کۆدی ئەم فەنکشنە وەک خۆی دەمێنێتەوە) ...
         const container = document.getElementById('subSubcategorySelectContainer');
         const select = document.getElementById('productSubSubcategoryId');
 
@@ -586,7 +408,6 @@ window.AdminLogic = {
     },
 
     loadPoliciesForAdmin: async function() {
-        // ... (کۆدی ئەم فەنکشنە وەک خۆی دەمێنێتەوە) ...
         try {
             const docRef = doc(db, "settings", "policies");
             const docSnap = await getDoc(docRef);
@@ -602,8 +423,6 @@ window.AdminLogic = {
         }
     },
 
-    // ... (هەموو فەنکشنەکانی تری وەک deleteAnnouncement, renderAdminAnnouncementsList, ... هتد وەک خۆیان دەمێننەوە) ...
-    
     deleteAnnouncement: async function(id) {
         if (confirm(t('announcement_delete_confirm'))) {
             try {
@@ -737,7 +556,6 @@ window.AdminLogic = {
     },
 
     renderCategoryManagementUI: async function() {
-        // ... (کۆدی ئەم فەنکشنە وەک خۆی دەمێنێتەوە) ...
         const container = document.getElementById('categoryListContainer');
         if (!container) return;
         container.innerHTML = '<p>...خەریکی بارکردنی جۆرەکانە</p>';
@@ -806,7 +624,6 @@ window.AdminLogic = {
     },
 
     openEditCategoryModal: async function(docPath, level) {
-        // ... (کۆدی ئەم فەنکشنە وەک خۆی دەمێنێتەوە) ...
         const docRef = doc(db, docPath);
         const docSnap = await getDoc(docRef);
 
@@ -841,7 +658,6 @@ window.AdminLogic = {
     },
 
     handleDeleteCategory: async function(docPath, categoryName) {
-        // ... (کۆدی ئەم فەنکشنە وەک خۆی دەمێنێتەوە) ...
         const confirmation = confirm(`دڵنیایت دەتەوێت جۆری "${categoryName}" بسڕیتەوە؟\nئاگاداربە: ئەم کارە هەموو جۆرە لاوەکییەکانیشی دەسڕێتەوە.`);
         if (confirmation) {
             try {
@@ -859,7 +675,6 @@ window.AdminLogic = {
     },
     
     updateAdminCategoryDropdowns: function() {
-        // ... (کۆدی ئەم فەنکشنە وەک خۆی دەمێنێتەوە) ...
         const categories = getCategories();
         if (categories.length === 0) return; 
         
@@ -867,10 +682,10 @@ window.AdminLogic = {
         if (categoriesWithoutAll.length === 0) return; 
 
         const dropdowns = [
-            { id: 'productCategoryId', defaultText: '-- جۆرێ سەرەki هەڵbژێرە --', required: true },
-            { id: 'parentCategorySelect', defaultText: '-- جۆرێک هەڵbژێرە --', required: true },
-            { id: 'parentMainCategorySelectForSubSub', defaultText: '-- جۆرێک هەڵbژێرە --', required: true },
-            { id: 'promoCardTargetCategory', defaultText: '-- جۆرێک هەڵbژێرە --', required: true },
+            { id: 'productCategoryId', defaultText: '-- جۆرێ سەرەکی هەڵبژێرە --', required: true },
+            { id: 'parentCategorySelect', defaultText: '-- جۆرێک هەڵبژێرە --', required: true },
+            { id: 'parentMainCategorySelectForSubSub', defaultText: '-- جۆرێک هەڵبژێرە --', required: true },
+            { id: 'promoCardTargetCategory', defaultText: '-- جۆرێک هەڵبژێرە --', required: true },
             { id: 'brandTargetMainCategory', defaultText: '-- هەموو جۆرەکان --', required: false } 
         ];
 
@@ -891,7 +706,6 @@ window.AdminLogic = {
         });
     },
 
-    // ... (هەموو فەنکشنەکانی تری وەک renderPromoGroupsAdminList, editPromoGroup, ... هتد وەک خۆیان دەمێننەوە) ...
     renderPromoGroupsAdminList: function() {
         const container = document.getElementById('promoGroupsListContainer');
         const groupSelect = document.getElementById('promoCardGroupSelect');
@@ -899,7 +713,7 @@ window.AdminLogic = {
 
         onSnapshot(q, (snapshot) => {
             container.innerHTML = '';
-            groupSelect.innerHTML = '<option value="" disabled selected>-- گرووپێک هەڵbژێرە --</option>';
+            groupSelect.innerHTML = '<option value="" disabled selected>-- گرووپێک هەڵبژێرە --</option>';
 
             if (snapshot.empty) {
                 container.innerHTML = '<p>هیچ گرووپێکی سلایدەر زیاد نەکراوە.</p>';
@@ -995,7 +809,7 @@ window.AdminLogic = {
     },
 
     deletePromoCard: async function(groupId, cardId) {
-        if (confirm('دڵنیایت دەتەwێت ئەم کارتە بسڕیتەوە؟')) {
+        if (confirm('دڵنیایت دەتەوێت ئەم کارتە بسڕیتەوە؟')) {
             try {
                 await deleteDoc(doc(db, "promo_groups", groupId, "cards", cardId));
                 showNotification('کارتەکە سڕدرایەوە', 'success');
@@ -1011,7 +825,7 @@ window.AdminLogic = {
 
         onSnapshot(q, (snapshot) => {
             container.innerHTML = '';
-            groupSelect.innerHTML = '<option value="" disabled selected>-- گرووپێک هەڵbژێرە --</option>';
+            groupSelect.innerHTML = '<option value="" disabled selected>-- گرووپێک هەڵبژێرە --</option>';
 
             if (snapshot.empty) {
                 container.innerHTML = '<p>هیچ گرووپێکی براند زیاد نەکراوە.</p>';
@@ -1129,7 +943,7 @@ window.AdminLogic = {
 
         onSnapshot(q, (snapshot) => {
             container.innerHTML = '';
-            rowSelect.innerHTML = '<option value="" disabled selected>-- سەرەتا ڕیزێک هەڵbژێرە --</option>';
+            rowSelect.innerHTML = '<option value="" disabled selected>-- سەرەتا ڕیزێک هەڵبژێرە --</option>';
             
             if (snapshot.empty) {
                 container.innerHTML = '<p>هیچ ڕیزێک زیاد نەکراوە.</p>';
@@ -1481,7 +1295,7 @@ window.AdminLogic = {
     saveCategoryLayout: async function() {
         const categoryId = this.currentCategoryLayoutId;
         if (!categoryId) {
-            showNotification('هیچ جۆرێک هەڵnəbژێردراوە', 'error');
+            showNotification('هیچ جۆرێک هەڵنەbژێردراوە', 'error');
             return;
         }
         
@@ -1529,7 +1343,7 @@ window.AdminLogic = {
 
     openAddSectionModal: function(contextType) {
         if (contextType === 'category' && !this.currentCategoryLayoutId) {
-            showNotification('تکایە سەرەتا جۆرێک هەڵbژێرە', 'error');
+            showNotification('تکایە سەرەتا جۆرێک هەڵبژێرە', 'error');
             return;
         }
         
@@ -1566,7 +1380,7 @@ window.AdminLogic = {
         
         if (type === 'promo_slider' || type === 'brands') {
             const groupId = document.getElementById('specificItemGroupId').value;
-            if (!groupId) { showNotification('تکایە گرووپێک هەڵbژێرە', 'error'); submitButton.disabled = false; return; }
+            if (!groupId) { showNotification('تکایە گرووپێک هەڵبژێرە', 'error'); submitButton.disabled = false; return; }
             specificIdData = { groupId };
         } else if (type === 'single_shortcut_row') {
             const rowId = document.getElementById('specificItemGroupId').value;
@@ -1629,6 +1443,125 @@ window.AdminLogic = {
         } finally {
             submitButton.disabled = false;
         }
+    },
+    
+    // [ 💡 زیادکرا ] - فەنکشنی نوێ بۆ دروستکردنی بۆکسی ئاستی یەک
+    createLvl1VariationBoxUI: function(variationId, data = null) {
+        const container = document.getElementById('variationsContainer');
+        
+        const box = document.createElement('div');
+        box.className = 'variation-lvl1-box';
+        box.dataset.variationId = variationId; // IDی کاتی هەڵدەگرێت
+        
+        box.innerHTML = `
+            <div class="variation-lvl1-header">
+                <h4>جۆری ئاستی یەک (ڕەنگ)</h4>
+                <button type="button" class="delete-btn delete-variation-lvl1-btn"><i class="fas fa-trash"></i></button>
+            </div>
+            <div class="form-group">
+                <label>ناوی جۆر (سۆرانی)</label>
+                <input type="text" class="variation-lvl1-name-ku_sorani" value="${data?.name?.ku_sorani || ''}" required>
+            </div>
+            <div class="form-group">
+                <label>ناوی جۆر (بادینی)</label>
+                <input type="text" class="variation-lvl1-name-ku_badini" value="${data?.name?.ku_badini || ''}" required>
+            </div>
+            <div class="form-group">
+                <label>ناوی جۆر (عربی)</label>
+                <input type="text" class="variation-lvl1-name-ar" value="${data?.name?.ar || ''}" required>
+            </div>
+            
+            <div class="form-group">
+                <label>وێنەکانی تایبەت بەم جۆرە (٤ وێنە)</label>
+                <div class="image-upload-container variation-image-upload-container" id="variation-images-${variationId}">
+                    </div>
+            </div>
+            
+            <hr style="margin: 20px 0;">
+            
+            <h5><i class="fas fa-sitemap"></i> جۆرەکانی ئاستی دوو (قەبارە)</h5>
+            <div class="variation-lvl2-container" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+                </div>
+            <button type="button" class="add-section-btn add-variation-lvl2-btn" style="font-size: 13px; padding: 6px 10px; margin-top: 15px;">
+                <i class="fas fa-plus"></i> زیادکردنی قەبارە و نرخ
+            </button>
+        `;
+        
+        container.appendChild(box);
+        
+        // وێنەکان دروست دەکەین
+        const existingImages = data?.imageUrls || [];
+        this.createProductImageInputs(true, variationId, existingImages);
+
+        // ئەگەر داتای کۆن هەبێت، ڕیزەکانی ئاستی دوو دروست دەکەینەوە
+        if (data && data.options) {
+            data.options.forEach(lvl2Opt => {
+                this.createLvl2OptionRowUI(box.querySelector('.variation-lvl2-container'), lvl2Opt.id, lvl2Opt);
+            });
+        }
+    },
+    
+    // [ 💡 زیادکرا ] - فەنکشنی نوێ بۆ دروستکردنی ڕیزی ئاستی دوو
+    createLvl2OptionRowUI: function(container, optionId, data = null) {
+        const row = document.createElement('div');
+        row.className = 'variation-lvl2-item';
+        row.dataset.optionId = optionId;
+        
+        row.innerHTML = `
+            <div class="form-group">
+                <label>ناوی قەبارە</label>
+                <input type="text" class="variation-lvl2-name" value="${data?.name || ''}" placeholder="بۆ نموونە: 256GB" required>
+            </div>
+            <div class="form-group">
+                <label>نرخی تایبەت</label>
+                <input type="number" class="variation-lvl2-price" value="${data?.price || ''}" placeholder="999" required>
+            </div>
+            <button type="button" class="delete-btn delete-variation-lvl2-btn"><i class="fas fa-times"></i></button>
+        `;
+        
+        container.appendChild(row);
+    },
+
+    // [ 💡 زیادکرا ] - فەنکشن بۆ کۆکردنەوەی داتای جۆرەکان
+    collectVariationsData: function() {
+        const variations = [];
+        const container = document.getElementById('variationsContainer');
+        
+        container.querySelectorAll('.variation-lvl1-box').forEach(lvl1Box => {
+            const variationId = lvl1Box.dataset.variationId;
+            
+            const lvl1Data = {
+                id: variationId,
+                name: {
+                    ku_sorani: lvl1Box.querySelector('.variation-lvl1-name-ku_sorani').value,
+                    ku_badini: lvl1Box.querySelector('.variation-lvl1-name-ku_badini').value,
+                    ar: lvl1Box.querySelector('.variation-lvl1-name-ar').value,
+                },
+                imageUrls: (this.variationImageData[variationId] || ["", "", "", ""]).filter(url => url),
+                options: []
+            };
+            
+            lvl1Box.querySelectorAll('.variation-lvl2-item').forEach(lvl2Row => {
+                const optionId = lvl2Row.dataset.optionId;
+                const lvl2Data = {
+                    id: optionId,
+                    name: lvl2Row.querySelector('.variation-lvl2-name').value,
+                    price: parseInt(lvl2Row.querySelector('.variation-lvl2-price').value, 10) || 0
+                };
+                
+                // دڵنیابوونەوە لەوەی داتای بەتاڵ ناچێت
+                if (lvl2Data.name && lvl2Data.price > 0) {
+                    lvl1Data.options.push(lvl2Data);
+                }
+            });
+
+            // دڵنیابوونەوە لەوەی داتای بەتاڵ ناچێت
+            if (lvl1Data.name.ku_sorani && lvl1Data.imageUrls.length > 0 && lvl1Data.options.length > 0) {
+                variations.push(lvl1Data);
+            }
+        });
+        
+        return variations;
     },
     
     setupAdminEventListeners: function() {
@@ -1755,12 +1688,12 @@ window.AdminLogic = {
             setEditingProductId(null);
             document.getElementById('productForm').reset();
             
-            // [💡 نوێ] - پاککردنەوەی داتای جۆرەکان
-            self.variationsData = []; 
-            self.currentImageUrls = ["", "", "", ""];
+            // [ 💡 گۆڕانکاری ] - پاککردنەوەی داتای وێنەی جۆرەکان
+            self.variationImageData = {};
+            document.getElementById('variationsContainer').innerHTML = '';
             
-            self.createBaseProductImageInputs(); // دروستکردنی وێنە گشتییەکان
-            self.renderAdminVariationsUI(); // دروستکردنی سندوقی جۆرەکان (کە بەتاڵە)
+            self.currentImageUrls = ["", "", "", ""];
+            self.createProductImageInputs(false); // false واتە هی جۆرەکان نییە
             
             document.getElementById('subcategorySelectContainer').style.display = 'none';
             document.getElementById('subSubcategorySelectContainer').style.display = 'none';
@@ -1783,37 +1716,54 @@ window.AdminLogic = {
             const mainCatId = document.getElementById('productCategoryId').value;
             self.populateSubSubcategoriesDropdown(mainCatId, e.target.value);
         });
-
-        // [💡 گۆڕانکاری] - گوێگرتنی گشتی بۆ وێنەکان
+        
+        // [ 💡 گۆڕانکاری ] - ئەم گوێگرە ئێستا گشتگیر کراوە
         document.getElementById('productFormModal').addEventListener('change', (e) => {
-            // گوێگرتن بۆ وێنە گشتییەکان
-            if (e.target.classList.contains('image-upload-input') && !e.target.classList.contains('variation-image-input')) {
+            if (e.target.classList.contains('image-upload-input')) {
                 const slot = e.target.closest('.image-upload-slot');
                 self.handleFileSelect(e.target, slot);
             }
-            // گوێگرتن بۆ وێنەی جۆرەکان
-            if (e.target.classList.contains('variation-image-input')) {
-                const slot = e.target.closest('.image-upload-slot');
-                self.handleVariationFileSelect(e.target, slot);
-            }
         });
 
-        // [💡 گۆڕانکاری] - گوێگرتنی گشتی بۆ سڕینەوەی وێنەکان
+        // [ 💡 گۆڕانکاری ] - ئەم گوێگرە ئێستا گشتگیر کراوە
         document.getElementById('productFormModal').addEventListener('click', (e) => {
-            // سڕینەوەی وێنە گشتییەکان
-            const removeBtn = e.target.closest('.base-image-remove-btn');
+            const removeBtn = e.target.closest('.image-upload-remove-btn');
             if (removeBtn) {
                 const slot = removeBtn.closest('.image-upload-slot');
                 self.handleImageRemove(slot);
             }
-            // سڕینەوەی وێنەی جۆرەکان
-            const variationRemoveBtn = e.target.closest('.variation-image-remove-btn');
-            if (variationRemoveBtn) {
-                const slot = variationRemoveBtn.closest('.image-upload-slot');
-                self.handleVariationImageRemove(slot);
+            
+            // [ 💡 زیادکرا ] - گوێگر بۆ زیادکردنی جۆری ئاستی یەک
+            if (e.target.id === 'addVariationLvl1Btn') {
+                const variationId = `var_${Date.now()}`;
+                self.variationImageData[variationId] = ["", "", "", ""];
+                self.createLvl1VariationBoxUI(variationId);
+            }
+            
+            // [ 💡 زیادکرا ] - گوێگر بۆ سڕینەوەی جۆری ئاستی یەک
+            const deleteLvl1Btn = e.target.closest('.delete-variation-lvl1-btn');
+            if (deleteLvl1Btn) {
+                const box = deleteLvl1Btn.closest('.variation-lvl1-box');
+                if (confirm('دڵنیایت دەتەوێت ئەم جۆرە (ڕەنگ) و هەموو قەبارەکانی بسڕیتەوە؟')) {
+                    delete self.variationImageData[box.dataset.variationId];
+                    box.remove();
+                }
+            }
+            
+            // [ 💡 زیادکرا ] - گوێگر بۆ زیادکردنی جۆری ئاستی دوو
+            const addLvl2Btn = e.target.closest('.add-variation-lvl2-btn');
+            if (addLvl2Btn) {
+                const lvl2Container = addLvl2Btn.previousElementSibling;
+                const optionId = `opt_${Date.now()}`;
+                self.createLvl2OptionRowUI(lvl2Container, optionId);
+            }
+            
+            // [ 💡 زیادکرا ] - گوێگر بۆ سڕینەوەی جۆری ئاستی دوو
+            const deleteLvl2Btn = e.target.closest('.delete-variation-lvl2-btn');
+            if (deleteLvl2Btn) {
+                deleteLvl2Btn.closest('.variation-lvl2-item').remove();
             }
         });
-
 
         document.getElementById('productForm').onsubmit = async (e) => {
             e.preventDefault();
@@ -1824,7 +1774,7 @@ window.AdminLogic = {
             const imageUrls = self.currentImageUrls.filter(url => url !== ""); 
 
             if (imageUrls.length === 0) {
-                showNotification('پێویستە بەلایەنی کەمەوە یەک وێنەی گشتی بلند بکەیت', 'error');
+                showNotification('پێویستە بەلایەنی کەمەوە یەک وێنەی سەرەki بلند بکەیت', 'error');
                 submitButton.disabled = false;
                 submitButton.textContent = getEditingProductId() ? 'نوێکردنەوە' : 'پاشەکەوتکردن';
                 return;
@@ -1842,6 +1792,9 @@ window.AdminLogic = {
                 ku_badini: document.getElementById('productNameKuBadini').value,
                 ar: document.getElementById('productNameAr').value
             };
+            
+            // [ 💡 زیادکرا ] - کۆکردنەوەی داتای جۆرەکان
+            const variationsData = self.collectVariationsData();
 
             try {
                 const productData = {
@@ -1853,7 +1806,7 @@ window.AdminLogic = {
                     subcategoryId: document.getElementById('productSubcategoryId').value || null,
                     subSubcategoryId: document.getElementById('productSubSubcategoryId').value || null,
                     description: productDescriptionObject,
-                    imageUrls: imageUrls, // وێنە گشتییەکان
+                    imageUrls: imageUrls, 
                     createdAt: Date.now(),
                     externalLink: document.getElementById('productExternalLink').value || null,
                     shippingInfo: {
@@ -1861,10 +1814,9 @@ window.AdminLogic = {
                         ku_badini: document.getElementById('shippingInfoKuBadini').value.trim(),
                         ar: document.getElementById('shippingInfoAr').value.trim()
                     },
-                    // [💡 نوێ] - زیادکردنی داتای جۆرەکان
-                    variations: self.variationsData 
+                    // [ 💡 زیادکرا ] - پاشەکەوتکردنی داتای جۆرەکان
+                    variations: variationsData 
                 };
-                
                 const editingId = getEditingProductId();
                 if (editingId) {
                     const { createdAt, ...updateData } = productData;
@@ -1885,99 +1837,6 @@ window.AdminLogic = {
                 setEditingProductId(null);
             }
         };
-        
-        // --- [💡💡💡 گوێگرە نوێیەکان بۆ جۆرەکان (Variations) 💡💡💡] ---
-        
-        // گوێگرتن بۆ دوگمەی "+ زیادکردنی جۆر" (پێویستە ئەم دوگمەیە لە index.html زیاد بکەیت)
-        const addVariationBtn = document.getElementById('addVariationBtn');
-        if (addVariationBtn) {
-            addVariationBtn.addEventListener('click', () => {
-                self.variationsData.push({
-                    id: `temp_${Date.now()}`,
-                    name: { ku_sorani: '', ku_badini: '', ar: '' },
-                    imageUrls: ["", "", "", ""],
-                    subVariations: []
-                });
-                self.renderAdminVariationsUI();
-            });
-        }
-        
-        // گوێگرتنی گشتی بۆ ناو فۆڕمی جۆرەکان
-        const variationsContainer = document.getElementById('variationsContainer');
-        if (variationsContainer) {
-            
-            // گوێگرتن بۆ نووسینی ناوی جۆر (ڕەنگ)
-            variationsContainer.addEventListener('input', (e) => {
-                if (e.target.classList.contains('variation-name-input')) {
-                    const l1Index = e.target.dataset.level1Index;
-                    const lang = e.target.dataset.lang;
-                    self.variationsData[l1Index].name[lang] = e.target.value;
-                }
-                else if (e.target.classList.contains('sub-variation-name-input')) {
-                    const l1Index = e.target.dataset.level1Index;
-                    const l2Index = e.target.dataset.level2Index;
-                    const lang = e.target.dataset.lang;
-                    self.variationsData[l1Index].subVariations[l2Index].name[lang] = e.target.value;
-                }
-                else if (e.target.classList.contains('sub-variation-price-input')) {
-                    const l1Index = e.target.dataset.level1Index;
-                    const l2Index = e.target.dataset.level2Index;
-                    self.variationsData[l1Index].subVariations[l2Index].price = parseFloat(e.target.value) || 0;
-                }
-            });
-
-            // گوێگرتن بۆ کلیکەکان (سڕینەوە، زیادکردنی قەبارە)
-            variationsContainer.addEventListener('click', (e) => {
-                // سڕینەوەی جۆری ئاستی یەک (ڕەنگ)
-                if (e.target.closest('.delete-variation-btn')) {
-                    const l1Index = e.target.closest('.delete-variation-btn').dataset.level1Index;
-                    if (confirm(`دڵنیایت دەتەوێت ئەم جۆرە (ڕەنگ) بسڕیتەوە؟`)) {
-                        self.variationsData.splice(l1Index, 1);
-                        self.renderAdminVariationsUI(); // دووبارە هەمووی دروست بکەرەوە
-                    }
-                }
-                // زیادکردنی جۆری ئاستی دوو (قەبارە)
-                else if (e.target.closest('.add-sub-variation-btn')) {
-                    const l1Index = e.target.closest('.add-sub-variation-btn').dataset.level1Index;
-                    if (!self.variationsData[l1Index].subVariations) {
-                        self.variationsData[l1Index].subVariations = [];
-                    }
-                    self.variationsData[l1Index].subVariations.push({
-                        id: `temp_sub_${Date.now()}`,
-                        name: { ku_sorani: '', ku_badini: '', ar: '' },
-                        price: 0
-                    });
-                    self.renderAdminSubVariationsUI(l1Index); // تەنها قەبارەکانی ئەو ڕەنگە نوێ بکەرەوە
-                }
-                // سڕینەوەی جۆری ئاستی دوو (قەبارە)
-                else if (e.target.closest('.delete-sub-variation-btn')) {
-                    const l1Index = e.target.closest('.delete-sub-variation-btn').dataset.level1Index;
-                    const l2Index = e.target.closest('.delete-sub-variation-btn').dataset.level2Index;
-                    if (confirm(`دڵنیایت دەتەوێت ئەم قەبارەیە بسڕیتەوە؟`)) {
-                        self.variationsData[l1Index].subVariations.splice(l2Index, 1);
-                        self.renderAdminSubVariationsUI(l1Index); // تەنها قەبارەکانی ئەو ڕەنگە نوێ بکەرەوە
-                    }
-                }
-            });
-
-            // گوێگرتن بۆ وێنەکانی جۆرەکان
-            variationsContainer.addEventListener('change', (e) => {
-                if (e.target.classList.contains('variation-image-input')) {
-                    const slot = e.target.closest('.image-upload-slot');
-                    self.handleVariationFileSelect(e.target, slot);
-                }
-            });
-            variationsContainer.addEventListener('click', (e) => {
-                const removeBtn = e.target.closest('.variation-image-remove-btn');
-                if (removeBtn) {
-                    const slot = removeBtn.closest('.image-upload-slot');
-                    self.handleVariationImageRemove(slot);
-                }
-            });
-        }
-        // --- [💡💡💡 کۆتایی گوێگرە نوێیەکان 💡💡💡] ---
-
-
         
         const addCategoryForm = document.getElementById('addCategoryForm');
         if (addCategoryForm) {
@@ -2049,6 +1908,7 @@ window.AdminLogic = {
             });
         }
         
+        // [ زیادکرا بۆ چاککردن ] - زیادکردنی گوێگر بۆ لیستی جۆری سەرەکی لە فۆڕمی زیادکردنی "لاوەکی لاوەکی"
         document.getElementById('parentMainCategorySelectForSubSub').addEventListener('change', async (e) => {
             const mainCatId = e.target.value;
             const subCatSelect = document.getElementById('parentSubcategorySelectForSubSub');
@@ -2182,6 +2042,7 @@ window.AdminLogic = {
                         ar: document.getElementById('announcementContentAr').value,
                     },
                     createdAt: Date.now(),
+                    // [ 💡 گۆڕانکاری لێرە کرا 💡 ]
                     imageUrl: document.getElementById('announcementImageUrl').value.trim() || null
                 };
 
@@ -2435,6 +2296,7 @@ window.AdminLogic = {
             }
         });
         
+        // [ زیادکرا بۆ چاککردن ] - زیادکردنی گوێگر بۆ لیستی جۆری سەرەکی لە فۆڕمی "کارت"
         document.getElementById('shortcutCardMainCategory').addEventListener('change', async (e) => {
             const mainCatId = e.target.value;
             const subCatContainer = document.getElementById('shortcutCardSubContainer');
@@ -2451,4 +2313,115 @@ window.AdminLogic = {
                 const snapshot = await getDocs(q);
                 subCatSelect.innerHTML = '<option value="">-- هەموو لاوەکی (یان هەڵbژێرە) --</option>';
                 snapshot.forEach(doc => {
-                    subCatSelect.innerHTML += `<option value="${doc.id}">${
+                    subCatSelect.innerHTML += `<option value="${doc.id}">${doc.data().name_ku_sorani}</option>`;
+                });
+            } else {
+                subCatContainer.style.display = 'none';
+            }
+        });
+        
+        // [ زیادکرا بۆ چاککردن ] - زیادکردنی گوێگر بۆ لیستی جۆری لاوەکی لە فۆڕمی "کارت"
+        document.getElementById('shortcutCardSubcategory').addEventListener('change', async (e) => {
+            const mainCatId = document.getElementById('shortcutCardMainCategory').value;
+            const subCatId = e.target.value;
+            const subSubCatContainer = document.getElementById('shortcutCardSubSubContainer');
+            const subSubCatSelect = document.getElementById('shortcutCardSubSubcategory');
+            
+            subSubCatSelect.innerHTML = '';
+
+            if (mainCatId && subCatId) {
+                subSubCatContainer.style.display = 'block';
+                subSubCatSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
+                const q = query(collection(db, `categories/${mainCatId}/subcategories/${subCatId}/subSubcategories`), orderBy('order'));
+                const snapshot = await getDocs(q);
+                subSubCatSelect.innerHTML = '<option value="">-- هەموو لاوەکی لاوەکی (یان هەڵbژێرە) --</option>';
+                snapshot.forEach(doc => {
+                    subSubCatSelect.innerHTML += `<option value="${doc.id}">${doc.data().name_ku_sorani}</option>`;
+                });
+            } else {
+                subSubCatContainer.style.display = 'none';
+            }
+        });
+        
+        document.getElementById('shortcutRowsListContainer').addEventListener('click', (e) => {
+            const editRowBtn = e.target.closest('.edit-row-btn');
+            if (editRowBtn) {
+                self.editShortcutRow(editRowBtn.dataset.id);
+            }
+        
+            const deleteRowBtn = e.target.closest('.delete-row-btn');
+            if (deleteRowBtn) {
+                self.deleteShortcutRow(deleteRowBtn.dataset.id);
+            }
+        
+            const editCardBtn = e.target.closest('.edit-card-btn');
+            if (editCardBtn) {
+                self.editShortcutCard(editCardBtn.dataset.rowId, editCardBtn.dataset.cardId);
+            }
+        
+            const deleteCardBtn = e.target.closest('.delete-card-btn');
+            if (deleteCardBtn) {
+                self.deleteShortcutCard(deleteCardBtn.dataset.rowId, deleteCardBtn.dataset.cardId);
+            }
+        });
+
+        this.setupCategoryLayoutListeners();
+
+        this.listenersAttached = true;
+    },
+    
+    setupCategoryLayoutListeners: function() {
+        const self = this;
+        
+        const categoryLayoutSelect = document.getElementById('categoryLayoutSelect');
+        if (categoryLayoutSelect) {
+            categoryLayoutSelect.addEventListener('change', (e) => {
+                self.loadCategoryLayoutEditor(e.target.value);
+            });
+        }
+
+        const addCategorySectionBtn = document.getElementById('addCategorySectionBtn');
+        if (addCategorySectionBtn) {
+            addCategorySectionBtn.addEventListener('click', () => {
+                self.openAddSectionModal('category');
+            });
+        }
+        
+        const saveCategoryLayoutBtn = document.getElementById('saveCategoryLayoutBtn');
+        if (saveCategoryLayoutBtn) {
+            saveCategoryLayoutBtn.addEventListener('click', () => {
+                self.saveCategoryLayout();
+            });
+        }
+
+        const categoryLayoutListContainer = document.getElementById('categoryLayoutListContainer');
+        if (categoryLayoutListContainer) {
+            categoryLayoutListContainer.addEventListener('click', (e) => {
+                self.deleteCategoryLayoutItem(e);
+            });
+
+            categoryLayoutListContainer.addEventListener('dragstart', (e) => {
+                if(e.target.classList.contains('layout-item')) {
+                    setTimeout(() => e.target.classList.add('dragging'), 0);
+                }
+            });
+            
+            categoryLayoutListContainer.addEventListener('dragend', (e) => {
+                if(e.target.classList.contains('layout-item')) {
+                    e.target.classList.remove('dragging');
+                }
+            });
+
+            categoryLayoutListContainer.addEventListener('dragover', e => {
+                e.preventDefault();
+                const afterElement = self.getDragAfterElement(categoryLayoutListContainer, e.clientY);
+                const dragging = categoryLayoutListContainer.querySelector('.dragging');
+                if (afterElement == null) {
+                    if (dragging) categoryLayoutListContainer.appendChild(dragging);
+                } else {
+                    if (dragging) categoryLayoutListContainer.insertBefore(dragging, afterElement);
+                }
+            });
+        }
+    }
+};

@@ -13,7 +13,7 @@
     --section-bg: #ffffff;
     --section-border: #e2e8f0;
     --chat-bg: #e5ddd5; /* ڕەنگی باکگراوندی چاتی واتسئاپ */
-    --chat-sent: #dcf8c6; /* ڕەنگی نامەی نێردراو */
+    --chat-sent: #dcf8c6; /* ڕەنگی نامەی nێردراو */
     --chat-received: #ffffff; /* ڕەنگی نامەی گەیشتوو */
 }
 
@@ -281,13 +281,6 @@ html.chat-active .bottom-nav {
     font-size: 14px;
     line-height: 1.6;
     color: var(--text-light);
-}
-/* [💡 نوێ] - وێنەی ئاگەدارییەکان */
-.notification-item img {
-    width: 100%;
-    border-radius: 6px;
-    margin-top: 10px;
-    object-fit: cover;
 }
 .admin-notification-item {
     display: flex;
@@ -1960,71 +1953,105 @@ input:checked + .slider:before {
 }
 
 
-/* [💡💡💡 ستایلە نوێیەکان بۆ جۆرەکان (Variations) 💡💡💡] */
+/* [ 💡 زیادکرا ] - ستایلە نوێیەکان بۆ جۆرەکانی کاڵا (Variations) */
 
-/* ستایلی بەکارهێنەر - لەناو productDetailSheet */
-.variation-group {
-    margin-bottom: 15px;
-}
-.variation-title {
-    font-size: 15px;
-    font-weight: bold;
-    color: var(--text-color);
-    margin-bottom: 8px;
-}
-.variation-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
+/* ستایلی دوگمەکانی هەڵبژاردن لەلای بەکارهێنەر (productDetailSheet) */
 .variation-btn {
-    padding: 8px 15px;
+    background-color: var(--light-gray);
     border: 2px solid var(--medium-gray);
-    background-color: #ffffff;
-    color: var(--text-light);
+    color: var(--text-color);
+    padding: 8px 15px;
     border-radius: 8px;
     cursor: pointer;
     font-weight: bold;
     font-size: 14px;
-    transition: all 0.2s ease;
+    transition: all 0.2s ease-in-out;
 }
+
 .variation-btn:hover {
-    background-color: var(--light-gray);
+    background-color: var(--medium-gray);
 }
+
 .variation-btn.active {
-    border-color: var(--primary-color);
     background-color: var(--primary-light);
-    color: #ffffff;
+    border-color: var(--primary-color);
+    color: white;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-/* ستایلی ئەدمین - لەناو productFormModal */
-#productFormModal .admin-list-group {
-    border-color: var(--primary-color);
-    margin-top: 20px;
-}
-#productFormModal .admin-list-group-header {
-    background-color: var(--primary-light);
-    color: white;
-}
-#productFormModal .admin-list-group-header strong {
-    color: white;
-}
-#productFormModal .admin-list-group-header .delete-btn {
-    background-color: var(--danger-light);
+.variation-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: var(--medium-gray);
+    border-color: var(--medium-gray);
 }
 
-/* ستایلی ئاستی دوو (قەبارەکان) */
-#productFormModal .sub-variations-list {
-    padding: 10px;
-}
-#productFormModal .sub-variations-list .admin-list-item {
-    background-color: #fdfdfd;
-    padding-top: 15px;
-    padding-bottom: 15px;
-}
-#productFormModal .sub-variations-list .admin-list-item:hover {
+
+/* ستایلی فۆڕمەکانی ئەدمین (productFormModal) */
+.variation-lvl1-box {
+    border: 2px solid var(--primary-light);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
     background-color: #f7fafc;
 }
 
-/* [💡💡💡 کۆتایی ستایلە نوێیەکان 💡💡💡] */
+.variation-lvl1-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--medium-gray);
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.variation-lvl1-header h4 {
+    margin: 0;
+    color: var(--primary-color);
+}
+
+/* ستایلی وێنە بچووکەکانی ناو فۆڕمی ئەدمین */
+.variation-image-upload-container .image-upload-slot {
+    border-width: 1px;
+    border-style: dashed;
+}
+.variation-image-upload-container .image-upload-label {
+    font-size: 11px;
+}
+.variation-image-upload-container .image-upload-label i {
+    font-size: 18px;
+    margin-bottom: 4px;
+}
+.variation-image-upload-container .image-upload-remove-btn {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+}
+
+/* ستایلی ڕیزەکانی ئاستی دووەم (قەبارە و نرخ) */
+.variation-lvl2-item {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: #eef2f7;
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+.variation-lvl2-item .form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+.variation-lvl2-item .form-group label {
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+.variation-lvl2-item .form-group input {
+    padding: 8px;
+    background-color: #fff;
+}
+.variation-lvl2-item .delete-btn {
+    flex-shrink: 0;
+    height: 38px;
+    margin-top: 20px; /* Bixe xwarê bo hevsengiya label */
+}
