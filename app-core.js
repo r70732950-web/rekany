@@ -1,24 +1,26 @@
-import {
+// [ 💡 چاکسازی ] - هەموو ایمپۆرتەکان تەنها لە app-setup.js ـەوە دێن
+import { 
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
     promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
     categoryLayoutsCollection, 
     usersCollection, 
-    createUserWithEmailAndPassword, updateProfile, 
-    sendPasswordResetEmail,
     translations, state,
     CART_KEY, FAVORITES_KEY, PRODUCTS_PER_PAGE,
+    
+    // فەنکشنەکانی فایەربەیس
+    signInWithEmailAndPassword, onAuthStateChanged, signOut,
+    createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail,
+    enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, 
+    onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, 
+    startAfter, runTransaction, serverTimestamp, writeBatch,
+    getToken, onMessage
 } from './app-setup.js';
 
-import { 
-    signInWithEmailAndPassword, onAuthStateChanged, signOut 
-} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import {
-    enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc,
-    onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where,
-    startAfter, addDoc, runTransaction
-} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
+// [ 💡 چاکسازی ] - لادانی ایمپۆرتی دوبارە لە CDN
+// import { ... } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+// import { ... } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+// import { ... } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
 // [ 💡 زیادکرا ] - پرۆمیس بۆ دڵنیابوونەوە لە ئامادەبوونی Auth
 let authReadyResolver;
@@ -81,7 +83,7 @@ export function isFavorite(productId) {
 
 // --- Auth Functions ---
 
-async function handleLogin(email, password) {
+export async function handleLogin(email, password) {
     try {
         await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
@@ -89,7 +91,7 @@ async function handleLogin(email, password) {
     }
 }
 
-async function handleUserLogin(email, password) {
+export async function handleUserLogin(email, password) {
     try {
         await signInWithEmailAndPassword(auth, email, password);
         return { success: true };
@@ -99,7 +101,7 @@ async function handleUserLogin(email, password) {
     }
 }
 
-async function handleUserSignUp(name, email, password) {
+export async function handleUserSignUp(name, email, password) {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
@@ -129,7 +131,7 @@ async function handleUserSignUp(name, email, password) {
     }
 }
 
-async function handleUserLogout() {
+export async function handleUserLogout() {
     try {
         await signOut(auth);
         return { success: true, message: t('user_logout_success') };
@@ -139,7 +141,7 @@ async function handleUserLogout() {
     }
 }
 
-async function handlePasswordReset(email) {
+export async function handlePasswordReset(email) {
     if (!email) {
         return { success: false, message: t('password_reset_enter_email') };
     }
@@ -157,14 +159,14 @@ async function handlePasswordReset(email) {
 
 // --- Fetching Data ---
 
-async function fetchCategories() {
+export async function fetchCategories() {
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     const snapshot = await getDocs(categoriesQuery);
     const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     state.categories = fetchedCategories;
 }
 
-async function fetchSubcategories(categoryId) {
+export async function fetchSubcategories(categoryId) {
     if (categoryId === 'all') return []; 
     try {
         const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
@@ -177,7 +179,7 @@ async function fetchSubcategories(categoryId) {
     }
 }
 
-async function fetchSubSubcategories(mainCatId, subCatId) {
+export async function fetchSubSubcategories(mainCatId, subCatId) {
     if (!mainCatId || !subCatId) return [];
     try {
         const ref = collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
@@ -190,7 +192,7 @@ async function fetchSubSubcategories(mainCatId, subCatId) {
     }
 }
 
-async function fetchProductById(productId) {
+export async function fetchProductById(productId) {
     try {
         const docRef = doc(db, "products", productId);
         const docSnap = await getDoc(docRef);
@@ -206,7 +208,7 @@ async function fetchProductById(productId) {
     }
 }
 
-async function fetchRelatedProducts(currentProduct) {
+export async function fetchRelatedProducts(currentProduct) {
     if (!currentProduct.subcategoryId && !currentProduct.categoryId) return [];
 
     const baseQuery = collection(db, "products");
@@ -254,7 +256,7 @@ export async function fetchCategoryLayout(categoryId) {
     }
 }
 
-async function fetchProducts(searchTerm = '', isNewSearch = false) {
+export async function fetchProducts(searchTerm = '', isNewSearch = false) {
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
     if (shouldShowHomeSections) {
         return { isHome: true, layout: null, products: [], allLoaded: true };
@@ -344,7 +346,7 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
     }
 }
 
-async function fetchPolicies() {
+export async function fetchPolicies() {
     try {
         const docRef = doc(db, "settings", "policies");
         const docSnap = await getDoc(docRef);
@@ -358,7 +360,7 @@ async function fetchPolicies() {
     }
 }
 
-async function fetchAnnouncements() {
+export async function fetchAnnouncements() {
     try {
         const q = query(announcementsCollection, orderBy("createdAt", "desc"));
         const snapshot = await getDocs(q);
@@ -369,7 +371,7 @@ async function fetchAnnouncements() {
     }
 }
 
-async function fetchContactMethods() {
+export async function fetchContactMethods() {
     try {
         const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
         const q = query(methodsCollection, orderBy("createdAt"));
@@ -381,7 +383,7 @@ async function fetchContactMethods() {
     }
 }
 
-async function fetchHomeLayout() {
+export async function fetchHomeLayout() {
     try {
         const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
         const layoutSnapshot = await getDocs(layoutQuery);
@@ -392,7 +394,7 @@ async function fetchHomeLayout() {
     }
 }
 
-async function fetchPromoGroupCards(groupId) {
+export async function fetchPromoGroupCards(groupId) {
     try {
         const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
@@ -403,7 +405,7 @@ async function fetchPromoGroupCards(groupId) {
     }
 }
 
-async function fetchBrandGroupBrands(groupId) {
+export async function fetchBrandGroupBrands(groupId) {
     try {
         const q = query(collection(db, "brand_groups", groupId, "brands"), orderBy("order", "asc"), limit(30));
         const snapshot = await getDocs(q);
@@ -414,7 +416,7 @@ async function fetchBrandGroupBrands(groupId) {
     }
 }
 
-async function fetchNewestProducts(limitCount = 10) {
+export async function fetchNewestProducts(limitCount = 10) {
     try {
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
         const q = query(productsCollection, where('createdAt', '>=', fifteenDaysAgo), orderBy('createdAt', 'desc'), limit(limitCount));
@@ -426,7 +428,7 @@ async function fetchNewestProducts(limitCount = 10) {
     }
 }
 
-async function fetchShortcutRowCards(rowId) {
+export async function fetchShortcutRowCards(rowId) {
     try {
         const cardsCollectionRef = collection(db, "shortcut_rows", rowId, "cards");
         const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
@@ -438,7 +440,7 @@ async function fetchShortcutRowCards(rowId) {
     }
 }
 
-async function fetchCategoryRowProducts(sectionData) {
+export async function fetchCategoryRowProducts(sectionData) {
     const { categoryId, subcategoryId, subSubcategoryId } = sectionData;
     let queryField, queryValue;
 
@@ -460,7 +462,7 @@ async function fetchCategoryRowProducts(sectionData) {
     }
 }
 
-async function fetchInitialProductsForHome(limitCount = 10) {
+export async function fetchInitialProductsForHome(limitCount = 10) {
      try {
         const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(limitCount));
         const snapshot = await getDocs(q);
@@ -633,7 +635,7 @@ export async function saveProfileCore(profileData) {
     }
 }
 
-async function requestNotificationPermissionCore() {
+export async function requestNotificationPermissionCore() {
     if (!("Notification" in window)) {
         return { granted: false, message: 'مۆبایلەکەت پشتگیری ئاگەداری (Notifications) ناکات.' };
     }
@@ -693,7 +695,7 @@ export function updateLastSeenAnnouncementTimestamp(timestamp) {
      localStorage.setItem('lastSeenAnnouncementTimestamp', timestamp);
 }
 
-async function handleInstallPrompt(installBtn) {
+export async function handleInstallPrompt(installBtn) {
     if (state.deferredPrompt) {
         installBtn.style.display = 'none'; 
         state.deferredPrompt.prompt();
@@ -702,7 +704,7 @@ async function handleInstallPrompt(installBtn) {
     }
 }
 
-async function forceUpdateCore() {
+export async function forceUpdateCore() {
     if (confirm(t('update_confirm'))) {
         try {
             if ('serviceWorker' in navigator) {
@@ -755,7 +757,7 @@ async function initializeCoreLogic() {
     }
 }
 
-async function updateTokenLanguageInFirestore(newLang) {
+export async function updateTokenLanguageInFirestore(newLang) {
     if ('Notification' in window && Notification.permission === 'granted') {
         try {
             const currentToken = await getToken(messaging, { serviceWorkerRegistration: await navigator.serviceWorker.ready });
@@ -780,7 +782,7 @@ export function setLanguageCore(lang) {
 
 let userProfileUnsubscribe = null; 
 
-async function loadUserProfile(uid) {
+export async function loadUserProfile(uid) {
     if (userProfileUnsubscribe) {
         userProfileUnsubscribe();
         userProfileUnsubscribe = null;
@@ -906,32 +908,10 @@ export async function initCore() {
         });
 }
 
+// [ 💡 چاکسازی ] - لادانی بلۆکی 'export'ی دوبارە
+/*
 export {
     state, 
-    handleLogin, 
-    handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
-    fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, 
-    fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
-    requestNotificationPermissionCore,
-    handleInstallPrompt, 
-    forceUpdateCore, 
-    
-    // [ 💡 نوێ ]
-    addToCartCore,
-    updateCartQuantityCore,
-    removeFromCartCore,
-    generateOrderMessageCore,
-    toggleFavoriteCore,
-    saveProfileCore,
-    checkNewAnnouncementsCore,
-    updateLastSeenAnnouncementTimestamp,
-    saveCurrentScrollPositionCore,
-    applyFilterStateCore,
-    navigateToFilterCore,
-    setLanguageCore,
-
-    db, 
-    productsCollection,
-    collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
-    query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction
+    ...
 };
+*/

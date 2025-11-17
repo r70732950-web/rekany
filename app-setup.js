@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 // [ 💡 ] لێرە هەموو فەنکشنەکانی Storage import دەکەین
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
@@ -25,12 +25,22 @@ export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 export const storage = getStorage(app);
 
-// [ 💡 ] لێرە دەیکەینە Export بۆ ئەوەی Chat.js بەکاری بهێنێت
+// [ 💡 چاکسازی ] - هەموو فەنکشنەکانی فایەربەیس لێرە Export دەکەین
 export {
+    // Auth
     signInWithEmailAndPassword, onAuthStateChanged, signOut,
     createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail,
-    serverTimestamp,
-    ref, uploadBytes, getDownloadURL // <--- ئەمە زیادکرا
+    
+    // Firestore
+    enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, 
+    onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, 
+    startAfter, runTransaction, serverTimestamp, writeBatch,
+    
+    // Storage
+    ref, uploadBytes, getDownloadURL,
+    
+    // Messaging
+    getToken, onMessage
 };
 
 // Collections
@@ -74,7 +84,7 @@ export const translations = {
         profile_address: "ناونیشان:",
         profile_phone: "ژمارەی تەلەفۆن:",
         save_button: "پاشەکەوتکردن",
-        nav_home: "سەرەکی",
+        nav_home: "سەرەki",
         nav_categories: "جۆرەکان",
         nav_cart: "سەبەتە",
         nav_profile: "پڕۆفایل",
@@ -243,7 +253,7 @@ export const translations = {
         product_added_to_favorites: "هاتە زێدەکرن بۆ لیستا حەزژێکریان",
         product_removed_from_favorites: "ژ لیستا حەزژێکریان هاتە ژێبرن",
         manage_categories_title: "ڕێکخستنا جوران",
-        manage_contact_methods_title: "ڕێکخستنا رێکێن فرێکرنا داخازیێ",
+        manage_contact_methods_title: "ڕێکخستنا رێکێن فرێکرنا داخaziێ",
         notifications_title: "ئاگەهداری",
         no_notifications_found: "چ ئاگەهداری نینن",
         manage_announcements_title: "ڕێکخستنا ئاگەهداریان",
