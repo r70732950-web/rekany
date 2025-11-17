@@ -186,6 +186,8 @@ function setupChatListeners() {
 export async function openChatPage(targetUserId = null, targetUserName = null) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     
+    // [ 🛠️ چاککراوە ] - سەرەتا پشکنین دەکەین ئەگەر ئەدمین بوو، ڕاستەوخۆ دەچینە لیستی چاتەکان
+    // بەم شێوەیە چیتر شاشەی چاتی بەکارهێنەر ناکاتەوە و دیزاین تێک نادات.
     if (isAdmin && !targetUserId) {
         openAdminChatList();
         return;
@@ -271,6 +273,7 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
 
 function openAdminChatList() {
     const bottomNav = document.querySelector('.bottom-nav');
+    // دڵنیابوونەوە لەوەی بۆ لیستی ئەدمین، دوگمەکانی خوارەوە دەردەکەون
     if (bottomNav) bottomNav.style.display = 'flex';
 
     history.pushState({ type: 'page', id: 'adminChatListPage', title: t('conversations_title') }, '', '#admin-chats');
@@ -306,7 +309,6 @@ function subscribeToMessages(chatUserId) {
             return;
         }
 
-        // [ 🛠️ چاککراوە ] - بەکارهێنانی try-catch بۆ ڕێگری لە وەستانی چات
         snapshot.docs.forEach(doc => {
             try {
                 const msg = doc.data();
@@ -354,7 +356,6 @@ function renderSingleMessage(msg, container, chatUserId) {
                     <div class="order-bubble-header"><i class="fas fa-receipt"></i> ${t('order_notification_title')}</div>
                     <div class="order-bubble-content">
                         ${order.items.map(i => {
-                            // [ 🛠️ چاککراوە ] - دڵنیابوونەوە لەوەی نرخ و ژمارە هەن تا هەڵە نەکات
                             const price = Number(i.price) || 0;
                             const quantity = Number(i.quantity) || 1;
                             const shipping = Number(i.shippingCost) || 0;
