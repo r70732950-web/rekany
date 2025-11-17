@@ -1,4 +1,3 @@
-// app-core.js
 import {
     db, auth, messaging,
     productsCollection, categoriesCollection, announcementsCollection,
@@ -7,7 +6,7 @@ import {
     usersCollection, 
     createUserWithEmailAndPassword, updateProfile, 
     sendPasswordResetEmail,
-    translations, 
+    translations, state,
     CART_KEY, FAVORITES_KEY, PRODUCTS_PER_PAGE,
 } from './app-setup.js';
 
@@ -21,42 +20,12 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
-// [ 💡 ] - پرۆمیس بۆ دڵنیابوونەوە لە ئامادەبوونی Auth
+// [ 💡 زیادکرا ] - پرۆمیس بۆ دڵنیابوونەوە لە ئامادەبوونی Auth
 let authReadyResolver;
 export const authReady = new Promise(resolve => {
     authReadyResolver = resolve;
 });
 
-// State Definition
-export let state = {
-    currentLanguage: localStorage.getItem('language') || 'ku_sorani',
-    deferredPrompt: null,
-    cart: JSON.parse(localStorage.getItem("maten_store_cart")) || [],
-    favorites: JSON.parse(localStorage.getItem("maten_store_favorites")) || [],
-    userProfile: {}, 
-    currentUser: null, 
-    editingProductId: null, 
-    products: [],
-    categories: [], 
-    subcategories: [], 
-    lastVisibleProductDoc: null,
-    isLoadingMoreProducts: false,
-    allProductsLoaded: false,
-    isRenderingHomePage: false,
-    productCache: {},
-    currentCategory: 'all',
-    currentSubcategory: 'all',
-    currentSubSubcategory: 'all',
-    currentSearch: '',
-    currentProductId: null, 
-    currentPageId: 'mainPage', 
-    currentPopupState: null, 
-    pendingFilterNav: null, 
-    sliderIntervals: {}, 
-    contactInfo: {}, 
-    activeChatUserId: null,
-    unreadMessagesCount: 0,
-};
 
 // --- Utility Functions ---
 
@@ -112,7 +81,7 @@ export function isFavorite(productId) {
 
 // --- Auth Functions ---
 
-export async function handleLogin(email, password) {
+async function handleLogin(email, password) {
     try {
         await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
@@ -120,7 +89,7 @@ export async function handleLogin(email, password) {
     }
 }
 
-export async function handleUserLogin(email, password) {
+async function handleUserLogin(email, password) {
     try {
         await signInWithEmailAndPassword(auth, email, password);
         return { success: true };
@@ -130,7 +99,7 @@ export async function handleUserLogin(email, password) {
     }
 }
 
-export async function handleUserSignUp(name, email, password) {
+async function handleUserSignUp(name, email, password) {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
@@ -160,7 +129,7 @@ export async function handleUserSignUp(name, email, password) {
     }
 }
 
-export async function handleUserLogout() {
+async function handleUserLogout() {
     try {
         await signOut(auth);
         return { success: true, message: t('user_logout_success') };
@@ -170,7 +139,7 @@ export async function handleUserLogout() {
     }
 }
 
-export async function handlePasswordReset(email) {
+async function handlePasswordReset(email) {
     if (!email) {
         return { success: false, message: t('password_reset_enter_email') };
     }
@@ -188,14 +157,14 @@ export async function handlePasswordReset(email) {
 
 // --- Fetching Data ---
 
-export async function fetchCategories() {
+async function fetchCategories() {
     const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
     const snapshot = await getDocs(categoriesQuery);
     const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     state.categories = fetchedCategories;
 }
 
-export async function fetchSubcategories(categoryId) {
+async function fetchSubcategories(categoryId) {
     if (categoryId === 'all') return []; 
     try {
         const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
@@ -208,7 +177,7 @@ export async function fetchSubcategories(categoryId) {
     }
 }
 
-export async function fetchSubSubcategories(mainCatId, subCatId) {
+async function fetchSubSubcategories(mainCatId, subCatId) {
     if (!mainCatId || !subCatId) return [];
     try {
         const ref = collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
@@ -221,7 +190,7 @@ export async function fetchSubSubcategories(mainCatId, subCatId) {
     }
 }
 
-export async function fetchProductById(productId) {
+async function fetchProductById(productId) {
     try {
         const docRef = doc(db, "products", productId);
         const docSnap = await getDoc(docRef);
@@ -237,7 +206,7 @@ export async function fetchProductById(productId) {
     }
 }
 
-export async function fetchRelatedProducts(currentProduct) {
+async function fetchRelatedProducts(currentProduct) {
     if (!currentProduct.subcategoryId && !currentProduct.categoryId) return [];
 
     const baseQuery = collection(db, "products");
@@ -285,7 +254,7 @@ export async function fetchCategoryLayout(categoryId) {
     }
 }
 
-export async function fetchProducts(searchTerm = '', isNewSearch = false) {
+async function fetchProducts(searchTerm = '', isNewSearch = false) {
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
     if (shouldShowHomeSections) {
         return { isHome: true, layout: null, products: [], allLoaded: true };
@@ -375,7 +344,7 @@ export async function fetchProducts(searchTerm = '', isNewSearch = false) {
     }
 }
 
-export async function fetchPolicies() {
+async function fetchPolicies() {
     try {
         const docRef = doc(db, "settings", "policies");
         const docSnap = await getDoc(docRef);
@@ -389,7 +358,7 @@ export async function fetchPolicies() {
     }
 }
 
-export async function fetchAnnouncements() {
+async function fetchAnnouncements() {
     try {
         const q = query(announcementsCollection, orderBy("createdAt", "desc"));
         const snapshot = await getDocs(q);
@@ -400,7 +369,7 @@ export async function fetchAnnouncements() {
     }
 }
 
-export async function fetchContactMethods() {
+async function fetchContactMethods() {
     try {
         const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
         const q = query(methodsCollection, orderBy("createdAt"));
@@ -412,7 +381,7 @@ export async function fetchContactMethods() {
     }
 }
 
-export async function fetchHomeLayout() {
+async function fetchHomeLayout() {
     try {
         const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
         const layoutSnapshot = await getDocs(layoutQuery);
@@ -423,7 +392,7 @@ export async function fetchHomeLayout() {
     }
 }
 
-export async function fetchPromoGroupCards(groupId) {
+async function fetchPromoGroupCards(groupId) {
     try {
         const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
         const cardsSnapshot = await getDocs(cardsQuery);
@@ -434,7 +403,7 @@ export async function fetchPromoGroupCards(groupId) {
     }
 }
 
-export async function fetchBrandGroupBrands(groupId) {
+async function fetchBrandGroupBrands(groupId) {
     try {
         const q = query(collection(db, "brand_groups", groupId, "brands"), orderBy("order", "asc"), limit(30));
         const snapshot = await getDocs(q);
@@ -445,7 +414,7 @@ export async function fetchBrandGroupBrands(groupId) {
     }
 }
 
-export async function fetchNewestProducts(limitCount = 10) {
+async function fetchNewestProducts(limitCount = 10) {
     try {
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
         const q = query(productsCollection, where('createdAt', '>=', fifteenDaysAgo), orderBy('createdAt', 'desc'), limit(limitCount));
@@ -457,7 +426,7 @@ export async function fetchNewestProducts(limitCount = 10) {
     }
 }
 
-export async function fetchShortcutRowCards(rowId) {
+async function fetchShortcutRowCards(rowId) {
     try {
         const cardsCollectionRef = collection(db, "shortcut_rows", rowId, "cards");
         const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
@@ -469,7 +438,7 @@ export async function fetchShortcutRowCards(rowId) {
     }
 }
 
-export async function fetchCategoryRowProducts(sectionData) {
+async function fetchCategoryRowProducts(sectionData) {
     const { categoryId, subcategoryId, subSubcategoryId } = sectionData;
     let queryField, queryValue;
 
@@ -491,7 +460,7 @@ export async function fetchCategoryRowProducts(sectionData) {
     }
 }
 
-export async function fetchInitialProductsForHome(limitCount = 10) {
+async function fetchInitialProductsForHome(limitCount = 10) {
      try {
         const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(limitCount));
         const snapshot = await getDocs(q);
@@ -631,7 +600,7 @@ export async function saveProfileCore(profileData) {
     }
 }
 
-export async function requestNotificationPermissionCore() {
+async function requestNotificationPermissionCore() {
     if (!("Notification" in window)) {
         return { granted: false, message: 'مۆبایلەکەت پشتگیری ئاگەداری (Notifications) ناکات.' };
     }
@@ -644,7 +613,6 @@ export async function requestNotificationPermissionCore() {
         
         if (permission === 'granted') {
             const registration = await navigator.serviceWorker.ready;
-            // VAPID Key
             const vapidKey = "BBu5yMLTteU8iIyneiAjmo6j5ERmlqCjOwKxZ8aPfLOHTETkehoqnML_7kM92yLwNyMr0xCC2AmeIyeumYgHBtM";
             const currentToken = await getToken(messaging, { 
                 serviceWorkerRegistration: registration,
@@ -692,7 +660,7 @@ export function updateLastSeenAnnouncementTimestamp(timestamp) {
      localStorage.setItem('lastSeenAnnouncementTimestamp', timestamp);
 }
 
-export async function handleInstallPrompt(installBtn) {
+async function handleInstallPrompt(installBtn) {
     if (state.deferredPrompt) {
         installBtn.style.display = 'none'; 
         state.deferredPrompt.prompt();
@@ -701,7 +669,7 @@ export async function handleInstallPrompt(installBtn) {
     }
 }
 
-export async function forceUpdateCore() {
+async function forceUpdateCore() {
     if (confirm(t('update_confirm'))) {
         try {
             if ('serviceWorker' in navigator) {
@@ -906,6 +874,15 @@ export async function initCore() {
 }
 
 export {
+    state, 
+    handleLogin, 
+    handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
+    fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, 
+    fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
+    requestNotificationPermissionCore,
+    handleInstallPrompt, 
+    forceUpdateCore, 
+
     db, 
     productsCollection,
     collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,

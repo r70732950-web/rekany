@@ -1,5 +1,5 @@
 // sw.js
-// وەشانی: v14 (Çareserkirina Arişeya Cache.put)
+// وەشانی: v12 (Fixed Clone Error)
 
 // 1. هێنانی کتێبخانەکانی فایەربەیس (Classic Mode)
 importScripts('https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js');
@@ -71,15 +71,15 @@ self.addEventListener('notificationclick', function(event) {
 });
 
 // -----------------------------------------------------------------
-// [ 💡 بەشی کاشکردن - نوێکراوە 💡 ]
+// بەشی کاشکردن (Offline Mode)
 // -----------------------------------------------------------------
 
-// [ 💡 گۆڕانکاری ] : ناڤێ کاشێ هاتە گوهارتن بۆ وەشانا نوو
-const CACHE_NAME = 'maten-store-v14-swr-fix';
+// [ 💡 ] وەشانم کرد بە v12 بۆ ئەوەی دڵنیابین گۆڕانکارییەکان وەردەگرێت
+const CACHE_NAME = 'maten-store-v12-classic';
 
-// [ 💡 گۆڕانکاری ] : '/' هاتە لادان ژ لیستێ
 const APP_SHELL_URLS = [
-    '/index.html', // '/' لادان
+    '/',
+    '/index.html',
     '/styles.css',
     '/app-setup.js',
     '/app-core.js',   
@@ -88,13 +88,12 @@ const APP_SHELL_URLS = [
     '/chat.js',       
     '/admin.js',      
     '/manifest.json',
-    '/offline.html',  // لاپەڕا ئۆفلاین
+    '/offline.html',  
     '/images/icons/icon-512x512.png' 
 ];
 
-// Install: کاشکرنا فایلێن سەرەکی
+// Install
 self.addEventListener('install', event => {
-    console.log('[SW] Install - Caching App Shell');
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache => {
@@ -103,76 +102,57 @@ self.addEventListener('install', event => {
     );
 });
 
-// Activate: پاقژکرنا کاشێن کەڤن
+// Activate
 self.addEventListener('activate', event => {
-    console.log('[SW] Activate - Cleaning old caches');
     event.waitUntil(
         caches.keys().then(cacheNames => {
             return Promise.all(
                 cacheNames.map(cacheName => {
-                    // ئەگەر ناڤێ کاشێ نە مینا یێ نوو بیت، دێ هێتە ژێبرن
                     if (cacheName !== CACHE_NAME) {
-                        console.log('[SW] Deleting old cache:', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
             );
-        }).then(() => self.clients.claim()) // کۆنترۆلکرنا لاپەڕان
+        }).then(() => self.clients.claim())
     );
 });
 
-
-// Fetch: بکارئینانا ستراتیژییا Stale-While-Revalidate
+// Fetch
 self.addEventListener('fetch', event => {
-    // بتنێ داخازیێن GET کاش دکەین
     if (event.request.method !== 'GET') return;
     
     const url = new URL(event.request.url);
 
-    // --- ستراتیژیا ١: Network First (بۆ API و Firestore) ---
+    // Network First (API & Firestore)
     if (url.origin.includes('googleapis.com') || url.origin.includes('firestore')) {
         event.respondWith(
             fetch(event.request)
                 .then(response => {
-                    // ئەگەر سەرکەفتی، کاشێ نوو بکە
-                    if (response && response.status === 200) {
-                        const resClone = response.clone();
-                        caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
-                    }
+                    const resClone = response.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
                     return response;
                 })
-                .catch(() => {
-                    // ئەگەر ئینتەرنێت نەبوو، ژ کاشێ بینە
-                    return caches.match(event.request);
-                })
+                .catch(() => caches.match(event.request))
         );
         return;
     }
 
-    // --- ستراتیژیا ٢: Stale-While-Revalidate (بۆ هەمی فایلێن دی) ---
+    // Cache First (Files) - بەشی چاککراو
     event.respondWith(
-        caches.open(CACHE_NAME).then(cache => {
-            return cache.match(event.request).then(cachedResponse => {
-                
-                // (Revalidate) : داخازیێ بۆ ئینتەرنێتێ فرێکە
-                const fetchPromise = fetch(event.request).then(networkResponse => {
-                    // ئەگەر ب سەرکەفتی هات، کاشێ نوو بکە
-                    if (networkResponse && networkResponse.status === 200) {
-                        cache.put(event.request, networkResponse.clone());
-                    }
-                    return networkResponse;
-                }).catch(err => {
-                    // ئەگەر داخازییا ئینتەرنێتێ سەرنەکەفت (بۆ نموونە ئۆفلاین)
-                    console.log('[SW] Fetch failed:', err);
-                    // ئەگەر چ تشت د کاشێ دا نەبوو، لاپەڕا ئۆفلاین نیشان بدە
-                    if (!cachedResponse) {
-                        return caches.match('/offline.html');
-                    }
-                });
+        caches.match(event.request).then(cachedResponse => {
+            const fetchPromise = fetch(event.request).then(networkResponse => {
+                if(networkResponse && networkResponse.status === 200) {
+                    // [ ✅ چاککراوە ] : کۆپیکردن پێش ئەوەی کاش بکرێتەوە
+                    const responseToCache = networkResponse.clone();
+                    
+                    caches.open(CACHE_NAME).then(cache => {
+                        cache.put(event.request, responseToCache);
+                    });
+                }
+                return networkResponse;
+            }).catch(() => {});
 
-                // (Stale) : ئەگەر د کاشێ دا هەبوو، ئێک سەر بزڤرینە
-                return cachedResponse || fetchPromise;
-            });
+            return cachedResponse || fetchPromise;
         })
     );
 });
