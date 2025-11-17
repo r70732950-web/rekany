@@ -1097,18 +1097,24 @@ function handleToggleFavoriteUI(productId) {
 
 function setupUIEventListeners() {
     
+    // [ 🛠️ چاککراوە ] - کاتێک دەست دەنێیت بە سەرەکی، هەموو شتێک ڕیست دەکاتەوە و بە زۆر دەیباتە سەرەکی
     homeBtn.onclick = async () => {
-        const mainPage = document.getElementById('mainPage');
-        if (mainPage.classList.contains('page-active')) {
-            if (state.currentCategory !== 'all' || state.currentSubcategory !== 'all' || state.currentSearch) {
-                await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-                await updateProductViewUI(true, true); 
-            } else {
-                mainPage.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        } else {
-            history.back();
-        }
+        saveCurrentScrollPositionCore();
+        
+        // URL پاک بکەرەوە
+        history.pushState(null, '', window.location.pathname);
+        
+        // ستەیت پاک بکەرەوە
+        state.currentCategory = 'all';
+        state.currentSubcategory = 'all';
+        state.currentSubSubcategory = 'all';
+        state.currentSearch = '';
+        
+        // لاپەڕەی سەرەکی پیشان بدە
+        showPage('mainPage');
+        
+        // داتاکان نوێ بکەرەوە
+        await updateProductViewUI(true, true);
     };
 
     settingsBtn.onclick = () => {
@@ -1723,7 +1729,6 @@ if (!window.globalAdminTools) {
     window.globalAdminTools = {};
 }
 
-// [ ✅ چاککراوە ] - لابردنی globalDlobalAdminTools
 window.globalAdminTools.openPopup = openPopup;
 window.globalAdminTools.closeCurrentPopup = closeCurrentPopup;
 window.globalAdminTools.showNotification = showNotification; 
