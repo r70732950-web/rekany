@@ -186,13 +186,11 @@ function setupChatListeners() {
 export async function openChatPage(targetUserId = null, targetUserName = null) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     
-    // ئەگەر ئەدمین بێت و User دیاری نەکرابێت، لیستی چاتەکان دەکاتەوە
     if (isAdmin && !targetUserId) {
         openAdminChatList();
         return;
     }
     
-    // دڵنیابوونەوە لەوەی UIـی چات بوونی هەیە
     setupChatUI();
 
     const bottomNav = document.querySelector('.bottom-nav');
@@ -234,7 +232,6 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
     
     if(msgArea) {
         msgArea.innerHTML = ''; 
-        // لێرەدا hidden لادەبەین بۆ ئەوەی هەر لە سەرەتاوە شوێنەکە ئامادە بێت
         msgArea.classList.remove('hidden'); 
     }
 
@@ -271,7 +268,6 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
         if(backBtn) backBtn.style.display = 'flex'; 
     }
 
-    // بانگکردنی subscribe دوای ئەوەی هەموو شتێک ئامادەیە
     subscribeToMessages(activeChatUserId);
 }
 
@@ -299,7 +295,6 @@ function subscribeToMessages(chatUserId) {
     const messagesRef = collection(db, "chats", chatUserId, "messages");
     const q = query(messagesRef, orderBy("timestamp", "asc"));
 
-    // [ 💡 چاککرا ] - ئێستا ڕاستەوخۆ Elementـەکە دەهێنێت، نەک لە دەرەوەی Scope
     messagesUnsubscribe = onSnapshot(q, (snapshot) => {
         const msgArea = document.getElementById('chatMessagesArea');
         if(!msgArea) return; 
@@ -316,28 +311,23 @@ function subscribeToMessages(chatUserId) {
             renderSingleMessage(msg, msgArea, chatUserId);
         });
 
-        // [ 💡 چارەسەری کێشەی Scroll ]
-        // فەنکشنێک بۆ بردنی شاشە بۆ خوارەوە
-        const scrollToBottom = () => {
-            if(msgArea) {
-                msgArea.scrollTop = msgArea.scrollHeight;
+        // [ 💡 چاکسازی جەزمی بۆ Scroll ]
+        // بەکارهێنانی requestAnimationFrame بۆ دڵنیابوونەوە لەوەی DOM ئامادەیە
+        requestAnimationFrame(() => {
+            const lastMessage = msgArea.lastElementChild;
+            if (lastMessage) {
+                // ئەم فەرمانە بە زۆر شاشەکە دەباتە سەر کۆتا ئێلیمێنت
+                lastMessage.scrollIntoView({ block: "end", behavior: "auto" });
             }
-        };
-
-        // هەوڵی یەکەم: ڕاستەوخۆ
-        scrollToBottom();
-
-        // هەوڵی دووەم: دوای کەمێک (بۆ مۆبایلە خاوەکان)
-        setTimeout(scrollToBottom, 150);
-
-        // هەوڵی سێیەم: بۆ دڵنیایی تەواو (ئەگەر وێنە هەبێت و درەنگ بار بێت)
-        setTimeout(scrollToBottom, 500);
-
-        // ئەگەر وێنە لە ناو چات هەبوو، کاتێک بار بوو بچۆ خوارەوە
-        const images = msgArea.querySelectorAll('img');
-        images.forEach(img => {
-            img.onload = scrollToBottom;
         });
+
+        // هەروەها دووبارەکردنەوەی دوای کەمێک بۆ دڵنیایی (ئەگەر وێنە هەبێت)
+        setTimeout(() => {
+             const lastMessage = msgArea.lastElementChild;
+             if (lastMessage) {
+                 lastMessage.scrollIntoView({ block: "end", behavior: "auto" });
+             }
+        }, 300);
         
         markMessagesAsRead(snapshot.docs, chatUserId);
     });
@@ -521,6 +511,15 @@ async function sendMessage(type, file = null, orderData = null) {
         }
 
         await setDoc(chatDocRef, chatUpdateData, { merge: true });
+        
+        // [ 💡 زیادکرا ] - دوای ناردنیش، ڕاستەوخۆ بچۆ خوارەوە
+        const msgArea = document.getElementById('chatMessagesArea');
+        if(msgArea) {
+            setTimeout(() => {
+                const lastMessage = msgArea.lastElementChild;
+                if (lastMessage) lastMessage.scrollIntoView({ block: "end", behavior: "smooth" });
+            }, 100);
+        }
 
     } catch (error) {
         console.error("Send Message Error:", error);
