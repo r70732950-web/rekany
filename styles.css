@@ -640,11 +640,28 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     display: none; /* JS دەیکاتە block */
 }
 
+/* [ 💡 چاککرا ] - زیادکردنی Width و Height بۆ iframe */
+.detail-image-container iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
 .detail-image-container img.active,
-.detail-image-container iframe.active,
-.detail-image-container #videoPlayerWrapper.active {
+.detail-image-container iframe.active {
     display: block;
 }
+
+/* [ 💡 چاککرا ] - ڕێکخستنی دەرکەوتنی ڤیدیۆ */
+.detail-image-container #videoPlayerWrapper {
+    display: none;
+    width: 100%;
+    height: 350px;
+    justify-content: center;
+    align-items: center;
+    background: #000;
+}
+
 .detail-image-container #videoPlayerWrapper.active {
     display: flex;
 }

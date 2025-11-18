@@ -186,11 +186,15 @@ function setupChatListeners() {
 export async function openChatPage(targetUserId = null, targetUserName = null) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     
+    // ئەگەر ئەدمین بێت و User دیاری نەکرابێت، لیستی چاتەکان دەکاتەوە
     if (isAdmin && !targetUserId) {
         openAdminChatList();
         return;
     }
     
+    // دڵنیابوونەوە لەوەی UIـی چات بوونی هەیە
+    setupChatUI();
+
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) bottomNav.style.display = 'none';
 
@@ -230,7 +234,8 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
     
     if(msgArea) {
         msgArea.innerHTML = ''; 
-        msgArea.classList.add('hidden'); 
+        // لێرەدا hidden لادەبەین بۆ ئەوەی هەر لە سەرەتاوە شوێنەکە ئامادە بێت
+        msgArea.classList.remove('hidden'); 
     }
 
     if (isAdmin) {
@@ -263,10 +268,10 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
         if(headerName) headerName.textContent = t('admin_badge');
         
         const backBtn = document.getElementById('chatBackBtn');
-        // [ 💡 چاککراوە ] - گۆڕینی none بۆ flex
         if(backBtn) backBtn.style.display = 'flex'; 
     }
 
+    // بانگکردنی subscribe دوای ئەوەی هەموو شتێک ئامادەیە
     subscribeToMessages(activeChatUserId);
 }
 
@@ -294,16 +299,15 @@ function subscribeToMessages(chatUserId) {
     const messagesRef = collection(db, "chats", chatUserId, "messages");
     const q = query(messagesRef, orderBy("timestamp", "asc"));
 
-    const msgArea = document.getElementById('chatMessagesArea');
-    
+    // [ 💡 چاککرا ] - ئێستا ڕاستەوخۆ Elementـەکە دەهێنێت، نەک لە دەرەوەی Scope
     messagesUnsubscribe = onSnapshot(q, (snapshot) => {
-        if(!msgArea) return;
+        const msgArea = document.getElementById('chatMessagesArea');
+        if(!msgArea) return; // ئەگەر Elementـەکە نەبوو، هیچ مەکە
 
         msgArea.innerHTML = ''; 
         
         if (snapshot.empty) {
             msgArea.innerHTML = `<div class="empty-chat-state"><i class="fas fa-comments"></i><p>${t('no_messages')}</p></div>`;
-            msgArea.classList.remove('hidden'); 
             return;
         }
 
@@ -313,11 +317,6 @@ function subscribeToMessages(chatUserId) {
         });
 
         msgArea.scrollTop = msgArea.scrollHeight;
-
-        setTimeout(() => {
-            msgArea.classList.remove('hidden');
-        }, 50);
-
         markMessagesAsRead(snapshot.docs, chatUserId);
     });
 }
