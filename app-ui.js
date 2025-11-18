@@ -267,7 +267,7 @@ export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
         skeletonCard.innerHTML = `
             <div class="skeleton-image shimmer"></div>
             <div class.skeleton-text shimmer"></div>
-            <div class.skeleton-price shimmer"></div>
+            <div class="skeleton-price shimmer"></div>
             <div class="skeleton-button shimmer"></div>
         `;
         container.appendChild(skeletonCard);
@@ -432,8 +432,11 @@ function renderCartUI() {
         
         const cartItem = document.createElement('div');
         cartItem.className = 'cart-item';
-
-        const itemNameInCurrentLang = (item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || (typeof item.name === 'string' ? item.name : 'کاڵای بێ ناو');
+        
+        // [ 💡 چاکسازی ] - دڵنیابوونەوە لەوەی ناوی ناو سەبەتە بە دروستی پیشان دەدرێت
+        const itemNameInCurrentLang = (typeof item.name === 'string') 
+            ? item.name 
+            : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
 
         let shippingDisplay = '';
         if (item.shippingCost > 0) {
@@ -839,24 +842,52 @@ async function showProductDetailsUI(productData) {
         });
     }
 
+    // [ 💡 چاکسازی لۆجیکی سەبەتە 💡 ]
     const addToCartButton = document.getElementById('sheetAddToCartBtn');
     addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
     addToCartButton.onclick = () => {
-        // [ 💡 گۆڕانکاری ] - دڵنیابوونەوە لەوەی جۆرەکان هەڵبژێردراون ئەگەر پێویست بکات
+        
+        let selectedVariationInfo = null;
+
         if (variations.length > 0) {
             if (!selectedLvl1Id) {
                 showNotification('تکایە سەرەتا جۆرێک (ڕەنگ) هەڵبژێرە', 'error');
                 return;
             }
-            if (lvl2Buttons.children.length > 0 && !selectedLvl2Id) {
-                showNotification('تکایە قەبارەیەک هەڵبژێرە', 'error');
-                return;
+
+            const lvl1Var = variations.find(v => v.id === selectedLvl1Id);
+            if (!lvl1Var) {
+                 showNotification('هەڵە لە دۆزینەوەی جۆری هەڵبژێردراو', 'error');
+                 return;
+            }
+
+            selectedVariationInfo = {
+                lvl1Id: lvl1Var.id,
+                lvl1Name: (lvl1Var.name && lvl1Var.name[state.currentLanguage]) || lvl1Var.name.ku_sorani,
+                price: baseProduct.basePrice // نرخی بنەڕەتی دادەنێین ئەگەر ئاستی دوو نەبوو
+            };
+
+            const lvl2Options = lvl1Var.options || [];
+            if (lvl2Options.length > 0) { // پشکنینی ئەوەی کە ئایا ئاستی دوو هەیە
+                if (!selectedLvl2Id) {
+                    showNotification('تکایە قەبارەیەک هەڵبژێرە', 'error');
+                    return;
+                }
+                
+                const lvl2Opt = lvl2Options.find(o => o.id === selectedLvl2Id);
+                if (!lvl2Opt) {
+                    showNotification('هەڵە لە دۆزینەوەی قەبارەی هەڵبژێردراو', 'error');
+                    return;
+                }
+                
+                selectedVariationInfo.lvl2Id = lvl2Opt.id;
+                selectedVariationInfo.lvl2Name = lvl2Opt.name;
+                selectedVariationInfo.price = lvl2Opt.price; // نرخی تایبەتی ئاستی دوو دادەنێین
             }
         }
         
-        // TODO: پێویستە `addToCartCore` نوێ بکرێتەوە تا نرخی هەڵبژێردراو و ناوی جۆرەکان وەربگرێت
-        // بۆ ئێستا، تەنها کاڵا سەرەکییەکە زیاد دەکەین
-        handleAddToCartUI(product.id, addToCartButton); 
+        // زانیارییەکان دەنێرین بۆ فەنکشنی زیادکردن
+        handleAddToCartUI(product.id, addToCartButton, selectedVariationInfo); 
     };
 
     renderRelatedProductsUI(product);
@@ -963,7 +994,7 @@ function renderSliderImages(imageUrls, videoLink, productName) {
         if (activeElement.id === 'videoPlayerWrapper') { 
             activeElement.style.display = 'flex';
             const videoSrc = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&autoplay=1&mute=1&controls=1`;
-            activeElement.innerHTML = `<iframe src="${videoSrc}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width: 100%; aspect-ratio: 16 / 9;"></iframe>`;
+            activeElement.innerHTML = `<iframe src="${videoSrc}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width: 100%; aspect-ratio: 16 / 9; max-height: 350px;"></iframe>`;
         } else { 
             activeElement.style.display = 'block';
         }
@@ -1131,8 +1162,11 @@ function updateProfileSheetUI() {
     }
 }
 
-async function handleAddToCartUI(productId, buttonElement) {
-    const result = await addToCartCore(productId); 
+// [ 💡 چاکسازی لۆجیکی سەبەتە 💡 ] - فەنکشنەکە نوێکرایەوە تا زانیاری جۆرەکان وەربگرێت
+async function handleAddToCartUI(productId, buttonElement, selectedVariationInfo = null) {
+    // زانیاری جۆرەکان دەنێرین بۆ کۆر
+    const result = await addToCartCore(productId, selectedVariationInfo); 
+    
     showNotification(result.message, result.success ? 'success' : 'error');
     if (result.success) {
         updateCartCountUI(); 

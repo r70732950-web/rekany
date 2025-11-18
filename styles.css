@@ -2055,3 +2055,34 @@ input:checked + .slider:before {
     height: 38px;
     margin-top: 20px; /* Bixe xwarê bo hevsengiya label */
 }
+/* [ 💡 زیادکرا ] - چارەسەری کێشەی قەبارەی وێنە و ڤیدیۆ لە شاشەی وردبینی */
+#sheetImageSlider,
+#sheetImageContainer {
+    max-height: 350px; /* دڵنیابوونەوە لەوەی سلایدەرەکە خۆی بەرز نابێتەوە */
+    background-color: #f0f2f5; /* پاشبنەمایەک بۆ کاتی بارکردن */
+    border-radius: 8px;
+    display: flex; /* گرنگە بۆ ڕێکخستنی ناوەڕۆک */
+    align-items: center; /* گرنگە بۆ ڕێکخستنی ناوەڕۆک */
+    justify-content: center; /* گرنگە بۆ ڕێکخستنی ناوەڕۆک */
+}
+
+#sheetImageContainer img {
+    max-height: 350px; /* دووپاتکردنەوەی ئەمە بۆ دڵنیایی */
+    object-fit: contain;
+}
+
+#videoPlayerWrapper {
+    max-height: 350px; /* دڵنیابوونەوە لە قەبارەی کۆنتەینەری ڤیدیۆ */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+#videoPlayerWrapper iframe {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    max-height: 350px; /* گرنگترین بەش: ڕێگریکردن لە درێژبوونی ڤیدیۆکە */
+}
+
