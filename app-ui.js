@@ -645,8 +645,134 @@ async function renderRelatedProductsUI(currentProduct) {
     }
 }
 
+// ... (Other existing functions: renderCartUI, renderFavoritesPageUI, renderCategoriesSheetUI, etc.) ...
 
-/* ... (Existing functions like renderCartUI, renderFavoritesPageUI, etc. remain unchanged) ... */
+async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
+     const container = document.getElementById('subSubCategoryContainerOnDetailPage');
+     container.innerHTML = ''; 
+
+     const subSubcategoriesData = await fetchSubSubcategories(mainCatId, subCatId); 
+
+     if (!subSubcategoriesData || subSubcategoriesData.length === 0) {
+           container.style.display = 'none';
+           return;
+     }
+
+     container.style.display = 'flex';
+
+     const allBtn = document.createElement('button');
+     allBtn.className = `subcategory-btn active`; 
+     allBtn.dataset.id = 'all';
+     const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
+     allBtn.innerHTML = `<div class="subcategory-image">${allIconSvg}</div><span>${t('all_categories_label')}</span>`;
+     allBtn.onclick = () => {
+         container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
+         allBtn.classList.add('active');
+         const currentSearch = document.getElementById('subpageSearchInput').value;
+         renderProductsOnDetailPageUI(subCatId, 'all', currentSearch); 
+     };
+     container.appendChild(allBtn);
+
+     subSubcategoriesData.forEach(subSubcat => {
+          const btn = document.createElement('button');
+          btn.className = `subcategory-btn`;
+          btn.dataset.id = subSubcat.id;
+          const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
+          const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+          const imageUrl = subSubcat.imageUrl || placeholderImg;
+          btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
+
+          btn.onclick = () => {
+               container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
+               btn.classList.add('active');
+               const currentSearch = document.getElementById('subpageSearchInput').value;
+               renderProductsOnDetailPageUI(subCatId, subSubcat.id, currentSearch); 
+          };
+          container.appendChild(btn);
+     });
+}
+
+ async function renderProductsOnDetailPageUI(subCatId, subSubCatId = 'all', searchTerm = '') {
+    const productsContainer = document.getElementById('productsContainerOnDetailPage');
+    const loader = document.getElementById('detailPageLoader');
+    loader.style.display = 'block';
+    productsContainer.innerHTML = '';
+    renderSkeletonLoader(productsContainer, 4); 
+
+     try {
+         let conditions = [];
+         let orderByClauses = [];
+
+         if (subSubCatId === 'all') {
+             conditions.push(where("subcategoryId", "==", subCatId));
+         } else {
+             conditions.push(where("subSubcategoryId", "==", subSubCatId));
+         }
+
+         const finalSearchTerm = searchTerm.trim().toLowerCase();
+         if (finalSearchTerm) {
+             conditions.push(where('searchableName', '>=', finalSearchTerm));
+             conditions.push(where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
+             orderByClauses.push(orderBy("searchableName", "asc"));
+         }
+         orderByClauses.push(orderBy("createdAt", "desc")); 
+
+         let detailQuery = query(productsCollection, ...conditions, ...orderByClauses); 
+
+         const productSnapshot = await getDocs(detailQuery);
+         const products = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+         productsContainer.innerHTML = ''; 
+
+         if (products.length === 0) {
+             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+         } else {
+             products.forEach(product => {
+                 const card = createProductCardElementUI(product); 
+                 productsContainer.appendChild(card);
+             });
+         }
+     } catch (error) {
+         console.error(`Error rendering products on detail page:`, error);
+         productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هەڵەیەک ڕوویدا.</p>';
+     } finally {
+         loader.style.display = 'none';
+     }
+}
+
+export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHistory = false) { 
+    let subCatName = 'Details'; 
+    try {
+        const subCatRef = doc(db, "categories", mainCatId, "subcategories", subCatId);
+        const subCatSnap = await getDoc(subCatRef);
+        if (subCatSnap.exists()) {
+            const subCat = subCatSnap.data();
+            subCatName = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
+        }
+    } catch (e) { console.error("Could not fetch subcategory name:", e); }
+
+    if (!fromHistory) {
+         saveCurrentScrollPositionCore(); 
+         history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
+    }
+    showPage('subcategoryDetailPage', subCatName); 
+
+    const loader = document.getElementById('detailPageLoader');
+    const productsContainer = document.getElementById('productsContainerOnDetailPage');
+    const subSubContainer = document.getElementById('subSubCategoryContainerOnDetailPage');
+
+    loader.style.display = 'block';
+    productsContainer.innerHTML = '';
+    subSubContainer.innerHTML = '';
+    document.getElementById('subpageSearchInput').value = '';
+    document.getElementById('subpageClearSearchBtn').style.display = 'none';
+
+    await renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId); 
+    await renderProductsOnDetailPageUI(subCatId, 'all', ''); 
+
+    loader.style.display = 'none'; 
+}
+
 function renderCartUI() {
     cartItemsContainer.innerHTML = '';
     if (state.cart.length === 0) {
@@ -828,7 +954,6 @@ function handleToggleFavoriteUI(productId) {
         if (icon) { icon.classList.toggle('fas', result.favorited); icon.classList.toggle('far', !result.favorited); }
     });
     if (document.getElementById('favoritesSheet')?.classList.contains('show')) { renderFavoritesPageUI(); }
-    // هەروەها بۆ پەڕەی کاڵا
     const detailFavBtn = document.getElementById('detailFavoriteBtn');
     if (detailFavBtn && state.currentProductId === productId) {
         detailFavBtn.innerHTML = `<i class="${result.favorited ? 'fas' : 'far'} fa-heart" style="color: ${result.favorited ? 'var(--danger-color)' : 'var(--dark-gray)'}"></i>`;
