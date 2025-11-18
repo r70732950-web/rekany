@@ -60,7 +60,6 @@ export function showNotification(message, type = 'success') {
     }, 3000);
 }
 
-// [ 💡 نوێکراوە ] - زیادکردنی پشتگیری بۆ productDetailPage
 function updateHeaderView(pageId, title = '') {
     const appHeader = document.querySelector('.app-header');
     const mainHeader = document.querySelector('.main-header-content');
@@ -92,7 +91,6 @@ function updateHeaderView(pageId, title = '') {
             if (pageId === 'subcategoryDetailPage') {
                 subpageSearch.style.display = 'block'; 
             } else {
-                // لە لاپەڕەی کاڵا و ڕێکخستن، گەڕان نیشان نادرێت
                 subpageSearch.style.display = 'none'; 
             }
         }
@@ -128,7 +126,6 @@ function showPage(pageId, pageTitle = '') {
     } else if (pageId === 'subcategoryDetailPage') {
          updateHeaderView('subcategoryDetailPage', pageTitle);
     } else if (pageId === 'productDetailPage') {
-         // [ 💡 نوێ ] - بۆ لاپەڕەی کاڵا
          updateHeaderView('productDetailPage', pageTitle);
     } else if (pageId === 'chatPage') { 
          updateHeaderView('chatPage', pageTitle);
@@ -155,21 +152,41 @@ function stopAllVideos() {
     }
 }
 
+// [ 💡 چاککرا ] - فەنکشنێکی بەهێزتر بۆ ناسینەوەی لینکەکانی یوتوب
 function parseYouTubeId(url) {
     if (!url) return null;
-    let videoId = null;
+    
+    // زیادکردنی https ئەگەر نەبێت
+    if (!/^https?:\/\//i.test(url)) {
+        url = 'https://' + url;
+    }
+
     try {
         const urlObj = new URL(url);
+        
+        // Case 1: youtube.com/watch?v=ID
         if (urlObj.hostname.includes('youtube.com')) {
-            videoId = urlObj.searchParams.get('v');
+            if (urlObj.searchParams.has('v')) {
+                return urlObj.searchParams.get('v');
+            }
+            // Case 2: youtube.com/shorts/ID
+            if (urlObj.pathname.startsWith('/shorts/')) {
+                return urlObj.pathname.split('/')[2];
+            }
+             // Case 3: youtube.com/embed/ID
+            if (urlObj.pathname.startsWith('/embed/')) {
+                return urlObj.pathname.split('/')[2];
+            }
         } 
+        // Case 4: youtu.be/ID
         else if (urlObj.hostname.includes('youtu.be')) {
-            videoId = urlObj.pathname.slice(1);
+            return urlObj.pathname.slice(1);
         }
     } catch (e) {
+        console.warn("Unable to parse YouTube URL:", url);
         return null;
     }
-    return videoId;
+    return null;
 }
 
 function closeAllPopupsUI() {
@@ -378,8 +395,11 @@ export function createProductCardElementUI(product) {
         });
     }
 
+    // [ 💡 چاککرا ] - چارەسەری کێشەی Scroll پێش کردنەوەی لاپەڕەی کاڵا
     productCard.addEventListener('click', (event) => {
         if (!event.target.closest('button')) {
+            // لێرەدا Scrollـی لاپەڕەی ئێستا پاشەکەوت دەکەین پێش ئەوەی بچینە لاپەڕەی نوێ
+            saveCurrentScrollPositionCore(); 
             showProductDetailsUI(product);
         }
     });
@@ -729,7 +749,6 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     loader.style.display = 'none'; 
 }
 
-// [ 💡 گۆڕانکاری سەرەکی ] - گۆڕینی بۆ Full Page
 async function showProductDetailsUI(productData, fromHistory = false) {
     const product = productData || await fetchProductById(state.currentProductId); 
     if (!product) { showNotification(t('product_not_found_error'), 'error'); return; }
@@ -737,15 +756,12 @@ async function showProductDetailsUI(productData, fromHistory = false) {
     state.currentProductId = product.id; 
     const productName = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
 
-    // Navigation handling
     if (!fromHistory) {
         saveCurrentScrollPositionCore();
-        // URL update: /product/ID
         const newUrl = `?product=${product.id}`;
         history.pushState({ type: 'page', id: 'productDetailPage', title: productName, productId: product.id }, '', newUrl);
     }
     
-    // Render Page
     showPage('productDetailPage', productName);
 
     const baseProduct = {
@@ -765,7 +781,6 @@ async function showProductDetailsUI(productData, fromHistory = false) {
     const lvl2Container = document.getElementById('variationLvl2Container');
     const lvl2Buttons = document.getElementById('variationLvl2Buttons');
     
-    // Clear previous selections
     lvl1Buttons.innerHTML = '';
     lvl2Buttons.innerHTML = '';
     lvl1Container.style.display = 'none';
@@ -775,11 +790,9 @@ async function showProductDetailsUI(productData, fromHistory = false) {
     let selectedLvl1Id = null;
     let selectedLvl2Id = null;
 
-    // Render Images (Using new logic) & Price
     renderSliderImages(baseProduct.baseImages, baseProduct.videoLink, baseProduct.name);
     renderProductPrice(baseProduct.basePrice, baseProduct.originalPrice);
 
-    // --- Variations Logic ---
     const variations = product.variations || [];
     if (variations.length > 0) {
         variationSelectorContainer.style.display = 'flex';
@@ -829,7 +842,6 @@ async function showProductDetailsUI(productData, fromHistory = false) {
         });
     }
 
-    // Add to Cart Button
     const addToCartButton = document.getElementById('detailAddToCartBtn');
     addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
     addToCartButton.onclick = () => {
@@ -862,7 +874,6 @@ async function showProductDetailsUI(productData, fromHistory = false) {
     renderRelatedProductsUI(product);
 }
 
-// [ 💡 نوێکراوە ] - نوێکردنەوەی سلایدەر بۆ بەکارهێنانی Indicators
 function renderSliderImages(imageUrls, videoLink, productName) {
     const imageContainer = document.getElementById('detailImageContainer');
     const indicatorsContainer = document.getElementById('detailImageIndicators');
@@ -873,7 +884,6 @@ function renderSliderImages(imageUrls, videoLink, productName) {
     let sliderElements = []; 
     let indicatorElements = []; 
     
-    // 1. Create Image Elements
     if (imageUrls.length > 0) {
         imageUrls.forEach((url, index) => {
             const img = document.createElement('img');
@@ -884,7 +894,6 @@ function renderSliderImages(imageUrls, videoLink, productName) {
             imageContainer.appendChild(img);
             sliderElements.push(img); 
             
-            // Create Indicator Line
             const line = document.createElement('div');
             line.className = `indicator-line ${index === 0 ? 'active' : ''}`;
             line.dataset.index = index;
@@ -893,7 +902,6 @@ function renderSliderImages(imageUrls, videoLink, productName) {
         });
     }
 
-    // 2. Handle Video
     const videoId = parseYouTubeId(videoLink); 
     if (videoId) {
         const videoWrapper = document.createElement('div');
@@ -904,16 +912,14 @@ function renderSliderImages(imageUrls, videoLink, productName) {
         imageContainer.appendChild(videoWrapper);
         sliderElements.push(videoWrapper); 
 
-        // Video Indicator (Can use a play icon or just a line)
         const line = document.createElement('div');
         line.className = `indicator-line`;
-        line.innerHTML = ''; // Can put small icon if needed
+        line.innerHTML = ''; 
         line.dataset.index = videoIndex;
         indicatorsContainer.appendChild(line);
         indicatorElements.push(line);
     }
 
-    // 3. Slider Logic
     let currentIndex = 0;
     const prevBtn = document.getElementById('detailPrevBtn');
     const nextBtn = document.getElementById('detailNextBtn');
@@ -921,19 +927,15 @@ function renderSliderImages(imageUrls, videoLink, productName) {
     function updateSlider(index) {
         if (!sliderElements[index]) return;
 
-        // Pause previous video if any
         const oldElement = sliderElements[currentIndex];
         if (oldElement && oldElement.id === 'videoPlayerWrapper') {
             oldElement.innerHTML = ''; 
         }
 
-        // Hide all images/videos
         sliderElements.forEach(el => el.classList.remove('active'));
         
-        // Update indicators
         indicatorElements.forEach(el => el.classList.remove('active'));
 
-        // Show new active element
         const activeElement = sliderElements[index];
         if (activeElement.id === 'videoPlayerWrapper') { 
             const videoSrc = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&autoplay=1&mute=1&controls=1`;
@@ -960,7 +962,6 @@ function renderSliderImages(imageUrls, videoLink, productName) {
     }
 }
 
-// [ 💡 نوێکراوە ] - بۆ نوێکردنەوەی نرخی ناو لاپەڕەی نوێ
 function renderProductPrice(price, originalPrice = null) {
     const priceContainer = document.getElementById('detailProductPrice');
     if (originalPrice && originalPrice > price) {
@@ -1059,7 +1060,6 @@ function updateAdminUIAuth(isAdmin) {
     if (favoritesSheet?.classList.contains('show')) {
         renderFavoritesPageUI();
     }
-    // Note: productDetailSheet is gone, so we check if productDetailPage is active if needed
 }
 
 function updateProfileSheetUI() {
@@ -1094,9 +1094,7 @@ function updateProfileSheetUI() {
     }
 }
 
-// [ 💡 چاکسازی لۆجیکی سەبەتە 💡 ] - فەنکشنەکە نوێکرایەوە تا زانیاری جۆرەکان وەربگرێت
 async function handleAddToCartUI(productId, buttonElement, selectedVariationInfo = null) {
-    // زانیاری جۆرەکان دەنێرین بۆ کۆر
     const result = await addToCartCore(productId, selectedVariationInfo); 
     
     showNotification(result.message, result.success ? 'success' : 'error');
@@ -1511,7 +1509,6 @@ window.addEventListener('popstate', async (event) => {
     const activePage = document.getElementById(state.currentPageId); 
     
     if (!activePage) {
-        console.error("Popstate error: Could not find active page element.");
         return;
     }
 
@@ -1546,10 +1543,12 @@ window.addEventListener('popstate', async (event) => {
             await updateProductViewUI(shouldReloadData, shouldScrollToTop);
 
             if (!state.pendingFilterNav) { 
+                // [ 💡 چاککرا ] - دڵنیابوونەوە لە گەڕاندنەوەی Scroll
                 if (typeof stateToApply.scroll === 'number') {
-                    requestAnimationFrame(() => {
-                        activePage.scrollTo({ top: stateToApply.scroll, behavior: 'instant' });
-                    });
+                    setTimeout(() => {
+                         const homePage = document.getElementById('mainPage');
+                         if(homePage) homePage.scrollTo({ top: stateToApply.scroll, behavior: 'instant' });
+                    }, 50);
                 } else {
                     requestAnimationFrame(() => {
                         activePage.scrollTo({ top: 0, behavior: 'instant' });
@@ -1558,10 +1557,8 @@ window.addEventListener('popstate', async (event) => {
             }
             
             if (state.pendingFilterNav) {
-                console.log("Found pending filter navigation. Applying now.");
                 const filterToApply = state.pendingFilterNav;
                 state.pendingFilterNav = null; 
-                
                 setTimeout(async () => {
                     await navigateToFilterCore(filterToApply);
                     await updateProductViewUI(true, true); 
@@ -1569,7 +1566,6 @@ window.addEventListener('popstate', async (event) => {
             }
         }
     } else {
-        console.log("Popstate: No state found, loading default main page.");
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
         showPage('mainPage'); 
         applyFilterStateCore(defaultState); 
@@ -1583,6 +1579,10 @@ window.addEventListener('popstate', async (event) => {
 
 async function initializeUI() {
     await initCore(); 
+    // [ 💡 چاککرا ] - ناچالاککردنی خۆکارانەی وێبگەڕ بۆ ئەوەی ئێمە کۆنترۆڵی بکەین
+    if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+    }
 
     setLanguageCore(state.currentLanguage); 
      document.querySelectorAll('[data-translate-key]').forEach(element => { 
@@ -1650,15 +1650,13 @@ async function handleInitialPageLoadUI() {
          if (state.categories.length > 0) { 
               await showSubcategoryDetailPageUI(mainCatId, subCatId, true); 
          } else {
-             console.warn("Categories not ready on initial load, showing main page instead of detail.");
              showPage('mainPage');
              await updateProductViewUI(true, true); 
          }
     } else if (isProductDetail) {
-        // [ 💡 نوێ ] - Initial Load for Product Detail Page
         const productId = isProductDetail;
         if (productId) {
-            showPage('productDetailPage'); // Show empty page first to reduce flicker
+            showPage('productDetailPage'); 
             const product = await fetchProductById(productId);
             if (product) {
                 showProductDetailsUI(product, false);
