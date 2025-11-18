@@ -267,7 +267,7 @@ export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
         skeletonCard.innerHTML = `
             <div class="skeleton-image shimmer"></div>
             <div class.skeleton-text shimmer"></div>
-            <div class="skeleton-price shimmer"></div>
+            <div class.skeleton-price shimmer"></div>
             <div class="skeleton-button shimmer"></div>
         `;
         container.appendChild(skeletonCard);
@@ -293,14 +293,13 @@ export function createProductCardElementUI(product) {
         discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
     }
 
+    // [ 💡 چاکسازی 💡 ] - `div`-ە زیادەکە لادەبەین
     let extraInfoHTML = '';
     const shippingText = product.shippingInfo && product.shippingInfo[state.currentLanguage] && product.shippingInfo[state.currentLanguage].trim();
     if (shippingText) {
         extraInfoHTML = `
-            <div class="product-extra-info">
-                <div class="info-badge shipping-badge">
-                    <i class="fas fa-truck"></i>${shippingText}
-                </div>
+            <div class="info-badge shipping-badge">
+                <i class="fas fa-truck"></i>${shippingText}
             </div>
         `;
     }
@@ -327,8 +326,7 @@ export function createProductCardElementUI(product) {
                 <i class="fas fa-cart-plus"></i>
                 <span>${t('add_to_cart')}</span>
             </button>
-            ${extraInfoHTML}
-        </div>
+            ${extraInfoHTML} </div>
         <div class="product-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
             <button class="edit-btn" aria-label="Edit product"><i class="fas fa-edit"></i></button>
             <button class="delete-btn" aria-label="Delete product"><i class="fas fa-trash"></i></button>
@@ -367,7 +365,7 @@ export function createProductCardElementUI(product) {
 
     productCard.querySelector('.add-to-cart-btn-card').addEventListener('click', (event) => {
         event.stopPropagation();
-        handleAddToCartUI(product.id, event.currentTarget); 
+        handleAddToCartUI(product.id, event.currentTarget, null); // [ 💡 چاکسازی 💡 ] لێرە null دەنێرین چونکە ئەمە کارتی سەرەکییە
     });
 
     if (isAdmin) {
@@ -894,6 +892,7 @@ async function showProductDetailsUI(productData) {
 
     openPopup('productDetailSheet');
 }
+
 
 // [ 💡 زیادکرا ] - فەنکشنی نوێ بۆ نوێکردنەوەی سلایدەری وێنەکان
 function renderSliderImages(imageUrls, videoLink, productName) {
@@ -1853,8 +1852,4 @@ if (!window.globalAdminTools) {
 }
 
 window.globalAdminTools.openPopup = openPopup;
-window.globalAdminTools.closeCurrentPopup = closeCurrentPopup;
-window.globalAdminTools.showNotification = showNotification; 
-window.globalAdminTools.updateCartCountUI = updateCartCountUI; 
-
-console.log('openPopup, closeCurrentPopup, & showNotification ji bo admin.js hatin zêdekirin.');
+window.globalA
