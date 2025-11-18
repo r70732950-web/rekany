@@ -359,9 +359,12 @@ html.chat-active .bottom-nav {
     background-color: #f8f9fa;
 }
 
+/* [ 💡 چاکسازی کێشەی قەبارەی کارت 💡 ] */
 .product-info {
     background-color: white;
     height: 80px;
+    min-height: 80px; /* زیادکرا بۆ ڕێگری لە گەورەبوون */
+    max-height: 80px; /* زیادکرا بۆ ڕێگری لە گەورەبوون */
     position: relative;
     padding: 0;
     text-align: right;
@@ -604,16 +607,25 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 .sheet-category-btn.active { background-color: var(--primary-color); color: white; font-weight: bold; border-color: var(--primary-color); }
 .sheet-category-btn.active i { color: white !important; }
 
-#sheetImageSlider { position: relative; max-width: 100%; margin-bottom: 15px; }
-#sheetImageContainer { display: flex; overflow: hidden; border-radius: 8px; }
+/* [ 💡 چاکسازی کێشەی قەبارەی وێنە/ڤیدیۆ 💡 ] */
+#sheetImageSlider,
+#sheetImageContainer {
+    max-height: 350px; /* دڵنیابوونەوە لەوەی سلایدەرەکە خۆی بەرز نابێتەوە */
+    background-color: #f0f2f5; /* پاشبنەمایەک بۆ کاتی بارکردن */
+    border-radius: 8px;
+    display: flex; /* گرنگە بۆ ڕێکخستنی ناوەڕۆک */
+    align-items: center; /* گرنگە بۆ ڕێکخستنی ناوەڕۆک */
+    justify-content: center; /* گرنگە بۆ ڕێکخستنی ناوەڕۆک */
+}
+
 #sheetImageContainer img,
 #videoPlayerWrapper {
     width: 100%;
     flex-shrink: 0;
     display: none;
     object-fit: contain;
-    max-height: 350px;
     transition: opacity 0.3s ease-in-out;
+    max-height: 350px; /* زیادکرا */
 }
 #videoPlayerWrapper {
     position: relative;
@@ -621,10 +633,14 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     justify-content: center;
     align-items: center;
     overflow: hidden;
+    max-height: 350px; /* زیادکرا */
+    display: flex; /* گۆڕدرا */
 }
 #videoPlayerWrapper iframe {
     width: 100%;
     aspect-ratio: 16 / 9;
+    max-height: 350px; /* زیادکرا */
+    height: auto; /* زیادکرا */
 }
 #sheetImageContainer img.active,
 #videoPlayerWrapper.active {
@@ -633,6 +649,7 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 #videoPlayerWrapper.active {
     display: flex;
 }
+
 .slider-btn { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0,0,0,0.4); color: white; border: none; font-size: 20px; cursor: pointer; z-index: 10; border-radius: 50%; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; }
 .slider-btn.prev { left: 10px; }
 .slider-btn.next { right: 10px; }
@@ -2055,34 +2072,3 @@ input:checked + .slider:before {
     height: 38px;
     margin-top: 20px; /* Bixe xwarê bo hevsengiya label */
 }
-/* [ 💡 زیادکرا ] - چارەسەری کێشەی قەبارەی وێنە و ڤیدیۆ لە شاشەی وردبینی */
-#sheetImageSlider,
-#sheetImageContainer {
-    max-height: 350px; /* دڵنیابوونەوە لەوەی سلایدەرەکە خۆی بەرز نابێتەوە */
-    background-color: #f0f2f5; /* پاشبنەمایەک بۆ کاتی بارکردن */
-    border-radius: 8px;
-    display: flex; /* گرنگە بۆ ڕێکخستنی ناوەڕۆک */
-    align-items: center; /* گرنگە بۆ ڕێکخستنی ناوەڕۆک */
-    justify-content: center; /* گرنگە بۆ ڕێکخستنی ناوەڕۆک */
-}
-
-#sheetImageContainer img {
-    max-height: 350px; /* دووپاتکردنەوەی ئەمە بۆ دڵنیایی */
-    object-fit: contain;
-}
-
-#videoPlayerWrapper {
-    max-height: 350px; /* دڵنیابوونەوە لە قەبارەی کۆنتەینەری ڤیدیۆ */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-}
-
-#videoPlayerWrapper iframe {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 16 / 9;
-    max-height: 350px; /* گرنگترین بەش: ڕێگریکردن لە درێژبوونی ڤیدیۆکە */
-}
-
