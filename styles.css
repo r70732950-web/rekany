@@ -22,6 +22,7 @@
     padding: 0;
     box-sizing: border-box;
     font-family: 'Vazirmatn', sans-serif;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -30,13 +31,18 @@ body {
     direction: rtl;
     overflow-x: hidden;
     font-family: 'Vazirmatn', sans-serif;
-    /* overscroll-behavior-y: none; -> This was removed to allow pull-to-refresh */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    user-select: none;
+    -webkit-user-select: none;
 }
+
 body.overlay-active {
     overflow: hidden;
 }
 
-/* [ 💡 چاککراوە ] - گۆڕینی body بۆ html بۆ چارەسەری Flash */
 /* شاردنەوەی هەدەر کاتێک چات چالاکە */
 html.chat-active .app-header {
     display: none !important;
@@ -53,6 +59,7 @@ html.chat-active .bottom-nav {
     background-color: white;
     color: var(--primary-color);
     padding: 12px 15px;
+    padding-top: calc(12px + env(safe-area-inset-top));
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -110,6 +117,9 @@ html.chat-active .bottom-nav {
     background-color: var(--light-gray);
     overflow-x: hidden;
     overflow-y: auto;
+    z-index: 1;
+    /* Padding for bottom nav */
+    padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
 .page-active {
     transform: translateX(0);
@@ -122,7 +132,6 @@ html.chat-active .bottom-nav {
 
 .main-content, #subcategoryDetailPage, .settings-page {
     padding-top: 80px;
-    padding-bottom: 85px;
 }
 
 /* تایبەتمەندییەکانی لاپەڕەی چات بۆ فوول سکرین */
@@ -604,43 +613,6 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 .sheet-category-btn.active { background-color: var(--primary-color); color: white; font-weight: bold; border-color: var(--primary-color); }
 .sheet-category-btn.active i { color: white !important; }
 
-#sheetImageSlider { position: relative; max-width: 100%; margin-bottom: 15px; }
-#sheetImageContainer { display: flex; overflow: hidden; border-radius: 8px; }
-#sheetImageContainer img,
-#videoPlayerWrapper {
-    width: 100%;
-    flex-shrink: 0;
-    display: none;
-    object-fit: contain;
-    max-height: 350px;
-    transition: opacity 0.3s ease-in-out;
-}
-#videoPlayerWrapper {
-    position: relative;
-    background-color: #000;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-}
-#videoPlayerWrapper iframe {
-    width: 100%;
-    aspect-ratio: 16 / 9;
-}
-#sheetImageContainer img.active,
-#videoPlayerWrapper.active {
-    display: block;
-}
-#videoPlayerWrapper.active {
-    display: flex;
-}
-.slider-btn { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0,0,0,0.4); color: white; border: none; font-size: 20px; cursor: pointer; z-index: 10; border-radius: 50%; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; }
-.slider-btn.prev { left: 10px; }
-.slider-btn.next { right: 10px; }
-#sheetThumbnailContainer { display: flex; justify-content: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-.thumbnail { width: 60px; height: 60px; object-fit: contain; border: 2px solid var(--medium-gray); border-radius: 4px; cursor: pointer; opacity: 0.6; transition: all 0.2s; }
-.thumbnail.active { border-color: var(--primary-color); opacity: 1; }
-#sheetProductDescription a { color: var(--primary-color); text-decoration: underline; font-weight: bold; }
-
 .image-upload-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -950,12 +922,6 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     flex-shrink: 0;
 }
 
-body {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-}
 .app-header {
     padding-top: calc(12px + env(safe-area-inset-top));
 }
@@ -2054,4 +2020,257 @@ input:checked + .slider:before {
     flex-shrink: 0;
     height: 38px;
     margin-top: 20px; /* Bixe xwarê bo hevsengiya label */
+}
+
+/* =========================================
+   [NEW] Product Detail Page (Full Screen)
+   ========================================= */
+#productDetailPage {
+    background-color: white;
+    padding: 0 !important; /* Reset standard page padding */
+    z-index: 1050; /* Ensure it sits above nav bar */
+    display: flex;
+    flex-direction: column;
+    /* Ensure it scrolls nicely */
+    overflow-y: auto;
+    height: 100%;
+}
+
+.detail-page-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    /* Consider Safe Area for notched phones */
+    padding: 10px 15px;
+    padding-top: calc(10px + env(safe-area-inset-top));
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 20;
+    pointer-events: none; /* Allow clicks to pass through to the image */
+}
+
+.detail-page-header .header-icon-btn {
+    background: rgba(255, 255, 255, 0.9);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    pointer-events: auto; /* Re-enable clicks on buttons */
+    border: 1px solid rgba(0,0,0,0.05);
+    color: var(--text-color);
+    transition: background 0.2s;
+}
+.detail-page-header .header-icon-btn:active {
+    transform: scale(0.95);
+}
+
+.detail-content-scrollable {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Add padding at bottom so content isn't hidden behind the fixed bar */
+    padding-bottom: 100px;
+    background-color: white;
+}
+
+/* --- Slider Section --- */
+.detail-slider-area {
+    position: relative;
+    width: 100%;
+    /* Height calculation to make it look good on mobile */
+    height: 45vh;
+    min-height: 300px;
+    background-color: #f8f9fa;
+    overflow: hidden;
+}
+
+.detail-slider-wrapper {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    transition: transform 0.3s ease-out; /* Smooth slide effect */
+}
+
+.detail-slider-wrapper img, 
+.detail-slider-wrapper .video-wrapper {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Ensure whole image is visible */
+    flex-shrink: 0;
+}
+
+/* Video styling in slider */
+.video-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: black;
+    position: relative;
+}
+.video-wrapper iframe {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: none;
+}
+
+.slider-indicators {
+    position: absolute;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 6px 12px;
+    border-radius: 20px;
+    backdrop-filter: blur(2px);
+}
+
+.slider-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    transition: all 0.3s ease;
+}
+
+.slider-dot.active {
+    background: white;
+    transform: scale(1.3);
+    box-shadow: 0 0 4px rgba(0,0,0,0.3);
+}
+
+/* --- Info Section (Rounded Sheet Look) --- */
+.detail-info-area {
+    background-color: white;
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    margin-top: -20px; /* Overlap the image slightly */
+    position: relative;
+    padding: 25px 20px;
+    z-index: 5;
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+}
+
+.detail-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.detail-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--text-color);
+    line-height: 1.4;
+    margin: 0;
+}
+
+.detail-fav-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--dark-gray);
+    cursor: pointer;
+    padding: 5px;
+    transition: transform 0.2s;
+}
+.detail-fav-btn:active { transform: scale(0.9); }
+.detail-fav-btn.favorited { color: var(--danger-color); }
+.detail-fav-btn.favorited i { font-weight: 900; } /* Solid heart */
+
+.detail-price-section {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.detail-current-price {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--accent-color);
+    margin-left: 10px;
+}
+
+.detail-old-price {
+    font-size: 16px;
+    color: var(--dark-gray);
+    text-decoration: line-through;
+    margin-left: 10px;
+}
+
+.detail-discount-tag {
+    background-color: var(--danger-light);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.detail-description {
+    margin-top: 25px;
+    border-top: 1px solid var(--light-gray);
+    padding-top: 20px;
+}
+
+.detail-description h3 {
+    font-size: 16px;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.detail-description p {
+    color: var(--text-light);
+    line-height: 1.8;
+    font-size: 14px;
+}
+
+/* --- Fixed Bottom Bar --- */
+.detail-bottom-action-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    /* Handle safe area for iPhone X+ */
+    padding: 15px 20px calc(15px + env(safe-area-inset-bottom));
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+    z-index: 100;
+    display: flex;
+    gap: 10px;
+}
+
+.detail-add-to-cart-btn {
+    flex: 1;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(26, 54, 93, 0.3);
+    transition: background 0.2s;
+}
+
+.detail-add-to-cart-btn:active {
+    background-color: var(--primary-light);
+    transform: scale(0.98);
 }

@@ -26,15 +26,11 @@
     <script>
       (function() {
         try {
-            // هاشەکە وەردەگرین و پاکی دەکەینەوە
             var hash = window.location.hash.trim();
             if (hash === '#chat') {
-              // کلاسەکە دەدەین بە <html> نەک <body>
               document.documentElement.classList.add('chat-active');
             }
-        } catch(e) { 
-            /* لە کاتی هەڵەدا هیچ ناکەین */ 
-        }
+        } catch(e) { }
       })();
     </script>
     <div class="app-container">
@@ -234,44 +230,6 @@
             </div>
         </div>
 
-        <div id="productDetailSheet" class="bottom-sheet">
-            <div class="sheet-header">
-                <span class="sheet-handle"></span>
-                <h2 id="sheetProductName" class="sheet-title"></h2>
-                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
-            </div>
-            <div class="sheet-content">
-                <div id="sheetImageSlider">
-                    <div id="sheetImageContainer"></div>
-                    <button class="slider-btn prev" id="sheetPrevBtn" style="display: none;">&#10094;</button>
-                    <button class="slider-btn next" id="sheetNextBtn" style="display: none;">&#10095;</button>
-                </div>
-                <div id="sheetThumbnailContainer"></div>
-                <div id="sheetProductPrice" style="font-size: 22px; font-weight: bold; color: var(--accent-color); margin: 15px 0; text-align:center;"></div>
-
-                <div id="variationSelectorContainer" style="display: none; margin-bottom: 20px; display: flex; flex-direction: column; gap: 15px;">
-                    <div id="variationLvl1Container" class="variation-group">
-                        <label class="variation-label" style="font-weight: bold; margin-bottom: 8px; display: block;" id="variationLvl1Label">ڕەنگ:</label>
-                        <div id="variationLvl1Buttons" class="variation-buttons" style="display: flex; flex-wrap: wrap; gap: 10px;">
-                            </div>
-                    </div>
-                    <div id="variationLvl2Container" class="variation-group" style="display: none;">
-                        <label class="variation-label" style="font-weight: bold; margin-bottom: 8px; display: block;" id="variationLvl2Label">قەبارە:</label>
-                        <div id="variationLvl2Buttons" class="variation-buttons" style="display: flex; flex-wrap: wrap; gap: 10px;">
-                            </div>
-                    </div>
-                </div>
-                <p id="sheetProductDescription" style="color: #4a5568; margin-bottom: 20px; text-align:right; line-height: 1.7;"></p>
-
-                <button id="sheetAddToCartBtn" class="add-to-cart-btn" style="padding: 12px; font-size: 16px;"></button>
-
-                <div id="relatedProductsSection" class="related-products-section" style="display: none;">
-                    <h4 class="related-products-title" data-translate-key="related_products_title">کاڵای هاوشێوە</h4>
-                    <div id="relatedProductsContainer" class="horizontal-products-container"></div>
-                </div>
-            </div>
-        </div>
-
       <div id="termsSheet" class="bottom-sheet">
          <div class="sheet-header">
             <span class="sheet-handle"></span>
@@ -313,6 +271,62 @@
                  <div id="detailPageLoader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
              </div>
         </div>
+
+        <div class="page page-hidden" id="productDetailPage">
+            <div class="detail-page-header">
+                <button id="detailBackBtn" class="header-icon-btn back-btn"><i class="fas fa-arrow-right"></i></button>
+                <div class="header-actions">
+                     <button id="detailShareBtn" class="header-icon-btn"><i class="fas fa-share-alt"></i></button>
+                </div>
+            </div>
+
+            <div class="detail-content-scrollable">
+                <div class="detail-slider-area">
+                    <div id="detailImageWrapper" class="detail-slider-wrapper"></div>
+                    <div id="detailSliderIndicators" class="slider-indicators"></div>
+                </div>
+
+                <div class="detail-info-area">
+                    <div class="detail-header-row">
+                        <h1 id="detailName" class="detail-title"></h1>
+                        <button id="detailFavBtn" class="detail-fav-btn"><i class="far fa-heart"></i></button>
+                    </div>
+                    
+                    <div id="detailPriceSection" class="detail-price-section"></div>
+
+                     <div id="detailVariationSelectorContainer" style="display: none; margin-top: 20px; flex-direction: column; gap: 15px;">
+                        <div id="detailVariationLvl1Container" class="variation-group">
+                            <label class="variation-label" id="detailVariationLvl1Label">ڕەنگ:</label>
+                            <div id="detailVariationLvl1Buttons" class="variation-buttons"></div>
+                        </div>
+                        <div id="detailVariationLvl2Container" class="variation-group" style="display: none;">
+                            <label class="variation-label" id="detailVariationLvl2Label">قەبارە:</label>
+                            <div id="detailVariationLvl2Buttons" class="variation-buttons"></div>
+                        </div>
+                    </div>
+
+                    <div class="detail-description">
+                        <h3><i class="fas fa-info-circle"></i> وەسف و زانیاری</h3>
+                        <p id="detailDescription"></p>
+                    </div>
+
+                    <div id="detailRelatedProductsSection" class="related-products-section" style="display: none;">
+                        <h4 class="related-products-title" data-translate-key="related_products_title">کاڵای هاوشێوە</h4>
+                        <div id="detailRelatedProductsContainer" class="horizontal-products-container"></div>
+                    </div>
+                </div>
+                
+                <div style="height: 80px;"></div>
+            </div>
+
+            <div class="detail-bottom-action-bar">
+                <button id="detailAddToCartBtn" class="detail-add-to-cart-btn">
+                    <i class="fas fa-cart-plus"></i>
+                    <span data-translate-key="add_to_cart">زیادکردن بۆ سەبەتە</span>
+                </button>
+            </div>
+        </div>
+
 
         <div class="page page-hidden" id="chatPage">
         </div>
