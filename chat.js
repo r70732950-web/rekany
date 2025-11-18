@@ -316,7 +316,11 @@ function subscribeToMessages(chatUserId) {
             renderSingleMessage(msg, msgArea, chatUserId);
         });
 
-        msgArea.scrollTop = msgArea.scrollHeight;
+        // [ 💡 چاککرا ] - بەکارهێنانی setTimeout بۆ دڵنیابوونەوە لە Scroll
+        setTimeout(() => {
+            msgArea.scrollTop = msgArea.scrollHeight;
+        }, 100);
+        
         markMessagesAsRead(snapshot.docs, chatUserId);
     });
 }
