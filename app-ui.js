@@ -115,6 +115,7 @@ function showPage(pageId, pageTitle = '') {
     }
 
     if (pageId !== 'mainPage') {
+         // Scroll restoration is handled differently for subcategory page now
          if (pageId !== 'subcategoryDetailPage') {
              requestAnimationFrame(() => { 
                  const activePage = document.getElementById(pageId);
@@ -257,6 +258,7 @@ function updateActiveNav(activeBtnId) {
 
 function updateCartCountUI() {
     const totalItems = state.cart.reduce((total, item) => {
+        // Check if item.quantity is a number, default to 0 if not
         const qty = parseInt(item.quantity) || 0;
         return total + qty;
     }, 0);
@@ -661,6 +663,55 @@ function renderCategoriesSheetUI() {
      });
 }
 
+ async function renderProductsOnDetailPageUI(subCatId, subSubCatId = 'all', searchTerm = '') {
+    const productsContainer = document.getElementById('productsContainerOnDetailPage');
+    const loader = document.getElementById('detailPageLoader');
+    loader.style.display = 'block';
+    productsContainer.innerHTML = '';
+    renderSkeletonLoader(productsContainer, 4); 
+
+     try {
+         let conditions = [];
+         let orderByClauses = [];
+
+         if (subSubCatId === 'all') {
+             conditions.push(where("subcategoryId", "==", subCatId));
+         } else {
+             conditions.push(where("subSubcategoryId", "==", subSubCatId));
+         }
+
+         const finalSearchTerm = searchTerm.trim().toLowerCase();
+         if (finalSearchTerm) {
+             conditions.push(where('searchableName', '>=', finalSearchTerm));
+             conditions.push(where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
+             orderByClauses.push(orderBy("searchableName", "asc"));
+         }
+         orderByClauses.push(orderBy("createdAt", "desc")); 
+
+         let detailQuery = query(productsCollection, ...conditions, ...orderByClauses); 
+
+         const productSnapshot = await getDocs(detailQuery);
+         const products = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+         productsContainer.innerHTML = ''; 
+
+         if (products.length === 0) {
+             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+         } else {
+             products.forEach(product => {
+                 const card = createProductCardElementUI(product); 
+                 productsContainer.appendChild(card);
+             });
+         }
+     } catch (error) {
+         console.error(`Error rendering products on detail page:`, error);
+         productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هەڵەیەک ڕوویدا.</p>';
+     } finally {
+         loader.style.display = 'none';
+     }
+}
+
+// [ 💡 Fix Applied Here ] 
 export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHistory = false) { 
     let subCatName = 'Details'; 
     try {
@@ -678,7 +729,7 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const subSubContainer = document.getElementById('subSubCategoryContainerOnDetailPage');
 
-    // [ 💡 Fix ] - If coming from history (Back button) and data is already there, do nothing.
+    // [ 💡 FIX ] - If coming from history (Back button) and data is already there, do nothing.
     if (fromHistory && productsContainer.dataset.activeSubcatId === subCatId && productsContainer.children.length > 0) {
         return; 
     }
@@ -1462,7 +1513,6 @@ async function handleSetLanguage(lang) {
     if (authTabSignUp) authTabSignUp.textContent = t('auth_tab_signup');
 }
 
-// [ 💡 Fix ] - Main page restore logic
 window.addEventListener('popstate', async (event) => {
     const wasPopupOpen = state.currentPopupState !== null; 
     const previousPageId = state.currentPageId; 
@@ -1495,37 +1545,23 @@ window.addEventListener('popstate', async (event) => {
             openPopup(popState.id, popState.type, false);
         
         } else { 
-            // Main Page Logic Fix
             showPage('mainPage'); 
             
             const stateToApply = popState || { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
-            
-            // [ 💡 Fix Start ] - Check if main page content exists and filters match
-            const isSameFilter = 
-                state.currentCategory === (stateToApply.category || 'all') &&
-                state.currentSubcategory === (stateToApply.subcategory || 'all') &&
-                state.currentSubSubcategory === (stateToApply.subSubcategory || 'all') &&
-                state.currentSearch === (stateToApply.search || '');
-
-            const hasContent = 
-                (document.getElementById('homePageSectionsContainer').innerHTML.trim() !== '') || 
-                (document.getElementById('productsContainer').innerHTML.trim() !== '') ||
-                (document.getElementById('categoryLayoutContainer').innerHTML.trim() !== '');
-
             applyFilterStateCore(stateToApply); 
 
-            // Only reload if filters changed OR page is empty
-            if (!isSameFilter || !hasContent) {
-                await updateProductViewUI(true, false);
-            }
-            // [ 💡 Fix End ]
+            const cameFromPage = previousPageId !== 'mainPage'; 
+            const shouldReloadData = cameFromPage; 
+            const shouldScrollToTop = false; 
+            
+            await updateProductViewUI(shouldReloadData, shouldScrollToTop);
 
             if (!state.pendingFilterNav) { 
                 if (typeof stateToApply.scroll === 'number') {
                     setTimeout(() => {
                          const homePage = document.getElementById('mainPage');
                          if(homePage) homePage.scrollTo({ top: stateToApply.scroll, behavior: 'instant' });
-                    }, 10);
+                    }, 50);
                 } else {
                     requestAnimationFrame(() => {
                         activePage.scrollTo({ top: 0, behavior: 'instant' });
