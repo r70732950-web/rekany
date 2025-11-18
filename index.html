@@ -33,7 +33,6 @@
         } catch(e) { }
       })();
     </script>
-    
     <div class="app-container">
         <header class="app-header">
             <div class="main-header-content">
@@ -216,6 +215,7 @@
                 
             </div>
         </div>
+        
         <div id="favoritesSheet" class="bottom-sheet">
             <div class="sheet-header">
                 <span class="sheet-handle"></span>
@@ -230,83 +230,22 @@
                 </div>
             </div>
         </div>
-
-        <div class="page page-hidden" id="productDetailPage">
-            <div class="product-detail-container">
-                
-                <div class="product-detail-header">
-                    <button class="detail-icon-btn" id="detailBackBtn">
-                        <i class="fas fa-arrow-right"></i>
-                    </button>
-                    <div class="detail-header-actions">
-                        <button class="detail-icon-btn" id="detailShareBtn">
-                            <i class="fas fa-share-alt"></i>
-                        </button>
-                        <button class="detail-icon-btn" id="detailFavoriteBtn">
-                            <i class="far fa-heart"></i>
-                        </button>
-                    </div>
+        
+        <div id="termsSheet" class="bottom-sheet">
+             <div class="sheet-header">
+                <span class="sheet-handle"></span>
+                <h2 class="sheet-title">
+                   <i class="fas fa-file-contract"></i>
+                   <span data-translate-key="terms_policies_title">مەرج و ڕێساکان</span>
+                </h2>
+                <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
+             </div>
+             <div class="sheet-content">
+                <div id="termsContentContainer" style="line-height: 1.8; color: var(--text-light);">
+                   <p data-translate-key="loading_policies">...خەریکی بارکردنی ڕێساکانە</p>
                 </div>
-
-                <div class="detail-slider-wrapper">
-                    <div class="detail-slider-track" id="detailImageContainer">
-                        </div>
-                    <div class="slider-indicators" id="detailSliderIndicators">
-                        </div>
-                </div>
-
-                <div class="product-detail-info-section">
-                    <h2 id="detailProductName" class="detail-title"></h2>
-                    
-                    <div id="detailProductPrice" class="detail-price"></div>
-
-                    <div id="variationSelectorContainer" style="display: none; margin-top: 20px;">
-                        <div id="variationLvl1Container" class="variation-group">
-                            <label class="variation-label" id="variationLvl1Label">ڕەنگ:</label>
-                            <div id="variationLvl1Buttons" class="variation-buttons"></div>
-                        </div>
-                        <div id="variationLvl2Container" class="variation-group" style="display: none;">
-                            <label class="variation-label" id="variationLvl2Label">قەبارە:</label>
-                            <div id="variationLvl2Buttons" class="variation-buttons"></div>
-                        </div>
-                    </div>
-
-                    <div class="detail-description">
-                        <h3>وەسفی کاڵا</h3>
-                        <p id="detailProductDescription"></p>
-                    </div>
-                </div>
-
-                <div id="relatedProductsSection" class="related-products-section" style="display: none; padding: 0 15px 80px 15px;">
-                    <h4 class="related-products-title" data-translate-key="related_products_title">کاڵای هاوشێوە</h4>
-                    <div id="relatedProductsContainer" class="horizontal-products-container"></div>
-                </div>
-
-            </div>
-
-            <div class="detail-bottom-bar">
-                <button id="detailAddToCartBtn" class="add-to-cart-btn">
-                    <i class="fas fa-cart-plus"></i> <span data-translate-key="add_to_cart">زیادکردن بۆ سەبەتە</span>
-                </button>
-            </div>
+             </div>
         </div>
-
-
-      <div id="termsSheet" class="bottom-sheet">
-         <div class="sheet-header">
-            <span class="sheet-handle"></span>
-            <h2 class="sheet-title">
-               <i class="fas fa-file-contract"></i>
-               <span data-translate-key="terms_policies_title">مەرج و ڕێساکان</span>
-            </h2>
-            <span class="close" style="top: 20px;" aria-label="Close">&times;</span>
-         </div>
-         <div class="sheet-content">
-            <div id="termsContentContainer" style="line-height: 1.8; color: var(--text-light);">
-               <p data-translate-key="loading_policies">...خەریکی بارکردنی ڕێساکانە</p>
-            </div>
-         </div>
-      </div>
 
         <main class="main-content page page-active" id="mainPage">
             <div class="section">
@@ -332,6 +271,45 @@
                  <div id="productsContainerOnDetailPage" class="products-container"></div>
                  <div id="detailPageLoader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
              </div>
+        </div>
+        
+        <div class="page page-hidden" id="productDetailPage">
+            <div class="product-detail-content">
+                
+                <div class="product-slider-wrapper">
+                    <div id="detailImageContainer" class="detail-image-container">
+                        </div>
+                    
+                    <button class="slider-btn prev" id="detailPrevBtn" style="display: none;">&#10094;</button>
+                    <button class="slider-btn next" id="detailNextBtn" style="display: none;">&#10095;</button>
+                    
+                    <div id="detailImageIndicators" class="slider-indicators"></div>
+                </div>
+
+                <div id="detailProductPrice"></div>
+
+                <div id="variationSelectorContainer" style="display: none; margin-bottom: 20px; display: flex; flex-direction: column; gap: 15px;">
+                    <div id="variationLvl1Container" class="variation-group">
+                        <label class="variation-label" style="font-weight: bold; margin-bottom: 8px; display: block;" id="variationLvl1Label">ڕەنگ:</label>
+                        <div id="variationLvl1Buttons" class="variation-buttons" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                            </div>
+                    </div>
+                    <div id="variationLvl2Container" class="variation-group" style="display: none;">
+                        <label class="variation-label" style="font-weight: bold; margin-bottom: 8px; display: block;" id="variationLvl2Label">قەبارە:</label>
+                        <div id="variationLvl2Buttons" class="variation-buttons" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                            </div>
+                    </div>
+                </div>
+
+                <p id="detailProductDescription"></p>
+
+                <button id="detailAddToCartBtn" class="add-to-cart-btn" style="padding: 12px; font-size: 16px; margin-top: 20px;"></button>
+
+                <div id="relatedProductsSection" class="related-products-section" style="display: none;">
+                    <h4 class="related-products-title" data-translate-key="related_products_title">کاڵای هاوشێوە</h4>
+                    <div id="relatedProductsContainer" class="horizontal-products-container"></div>
+                </div>
+            </div>
         </div>
 
         <div class="page page-hidden" id="chatPage">

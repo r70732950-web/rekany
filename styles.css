@@ -12,8 +12,8 @@
     --dark-gray: #718096;
     --section-bg: #ffffff;
     --section-border: #e2e8f0;
-    --chat-bg: #e5ddd5;
-    --chat-sent: #dcf8c6;
+    --chat-bg: #e5ddd5; 
+    --chat-sent: #dcf8c6; 
     --chat-received: #ffffff;
 }
 
@@ -35,7 +35,10 @@ body.overlay-active {
     overflow: hidden;
 }
 
-html.chat-active .app-header,
+html.chat-active .app-header {
+    display: none !important;
+}
+
 html.chat-active .bottom-nav {
     display: none !important;
 }
@@ -103,7 +106,6 @@ html.chat-active .bottom-nav {
     background-color: var(--light-gray);
     overflow-x: hidden;
     overflow-y: auto;
-    z-index: 1; /* Default z-index */
 }
 .page-active {
     transform: translateX(0);
@@ -114,31 +116,12 @@ html.chat-active .bottom-nav {
     z-index: 1;
 }
 
-/* [ 💡 نوێ ] - ستایل بۆ لاپەڕەی وردەکاری کاڵا (Full Page) */
-#productDetailPage {
-    background-color: #fff;
-    z-index: 200; /* Higher than bottom nav */
-    padding: 0 !important; /* Reset standard padding */
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-}
-
-.product-detail-container {
-    flex: 1;
-    overflow-y: auto;
-    padding-bottom: 80px; /* Space for bottom bar */
-    scrollbar-width: none; /* Hide scrollbar */
-}
-.product-detail-container::-webkit-scrollbar {
-    display: none;
-}
-
-.main-content, #subcategoryDetailPage, .settings-page {
+.main-content, #subcategoryDetailPage, .settings-page, #productDetailPage {
     padding-top: 80px;
     padding-bottom: 85px;
 }
 
+/* تایبەتمەندییەکانی لاپەڕەی چات بۆ فوول سکرین */
 #chatPage {
     padding-top: 0 !important;
     padding-bottom: 0 !important;
@@ -487,6 +470,13 @@ html.chat-active .bottom-nav {
 .favorite-btn:hover { transform: scale(1.1); }
 .favorite-btn.favorited { color: var(--danger-color); }
 
+.add-to-cart-btn {
+    width: 100%; height: auto; padding: 8px; margin-top: auto;
+    background-color: var(--accent-color); color: white; border: none; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    cursor: pointer; font-weight: bold; font-size: 14px;
+}
+.add-to-cart-btn:hover { background-color: var(--accent-light); }
 
 .product-extra-info {}
 
@@ -591,6 +581,7 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 }
 .bottom-nav-item .cart-count { position: absolute; top: 5px; left: calc(50% + 5px); background-color: var(--danger-light); color: white; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 11px; border: 1px solid white; }
 
+/* Chat Badge on Bottom Nav */
 .chat-badge { position: absolute; top: 5px; left: calc(50% + 5px); background-color: var(--danger-color); color: white; border-radius: 50%; width: 10px; height: 10px; border: 2px solid white; display: none; }
 .chat-badge.has-unread { display: block; }
 
@@ -609,160 +600,105 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 .sheet-category-btn.active { background-color: var(--primary-color); color: white; font-weight: bold; border-color: var(--primary-color); }
 .sheet-category-btn.active i { color: white !important; }
 
-
-/* [ 💡 نوێ ] - ستایلەکانی تایبەت بە پەڕەی نوێی کاڵا (Product Detail Page) */
-
-/* 1. هێدەر (Header) - سەرئاوکەوتوو */
-.product-detail-header {
-    position: absolute; /* Floating over image */
-    top: 0; left: 0; right: 0;
-    padding: 15px;
+/* [ 💡 نوێ ] - ستایلەکانی لاپەڕەی تەواوی کاڵا (Product Detail Page) */
+#productDetailPage {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    z-index: 10;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.4), transparent); /* Gradient for visibility */
-    pointer-events: none; /* Allow clicks to pass through gradient area generally */
+    flex-direction: column;
+    background-color: var(--section-bg);
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
-.detail-header-actions {
-    display: flex;
-    gap: 10px;
+.product-detail-content {
+    padding: 0 15px 20px 15px;
 }
 
-.detail-icon-btn {
-    pointer-events: auto; /* Enable clicks on buttons */
-    background: rgba(255,255,255,0.9);
-    backdrop-filter: blur(5px);
-    border: none;
-    width: 40px; height: 40px;
-    border-radius: 50%;
-    display: flex; justify-content: center; align-items: center;
-    font-size: 18px;
-    color: var(--dark-gray);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    cursor: pointer;
-    transition: transform 0.2s;
-}
-.detail-icon-btn:hover {
-    transform: scale(1.05);
-    background: white;
-}
-.detail-icon-btn i.fa-heart.fas {
-    color: var(--danger-color); /* Active heart color */
-}
-
-/* 2. سلایدەر (Slider) */
-.detail-slider-wrapper {
+/* ستایلی سلایدەری وێنەکان */
+.product-slider-wrapper {
     position: relative;
+    margin-bottom: 15px;
     width: 100%;
-    aspect-ratio: 1 / 1; /* Square canvas */
     background-color: #fff;
+}
+
+.detail-image-container {
+    display: flex;
     overflow: hidden;
+    justify-content: center;
+    align-items: center;
+    min-height: 250px;
+    max-height: 350px;
+    width: 100%;
 }
 
-.detail-slider-track {
-    display: flex;
-    width: 100%;
-    height: 100%;
-    transition: transform 0.3s ease-out;
-    /* RTL support handles logical direction via JS transform usually, 
-       but standard flex-row in RTL puts first item on right. */
-}
-
-.detail-slider-element {
-    width: 100%;
-    height: 100%;
-    flex-shrink: 0;
+.detail-image-container img,
+.detail-image-container iframe {
+    max-width: 100%;
+    max-height: 350px;
     object-fit: contain;
-    padding: 20px 20px 40px 20px; /* Extra padding bottom for indicators */
+    display: none; /* JS دەیکاتە block */
 }
 
-.slider-indicators {
-    position: absolute;
-    bottom: 15px;
-    left: 50%;
-    transform: translateX(-50%);
+.detail-image-container img.active,
+.detail-image-container iframe.active,
+.detail-image-container #videoPlayerWrapper.active {
+    display: block;
+}
+.detail-image-container #videoPlayerWrapper.active {
     display: flex;
-    gap: 8px;
-    z-index: 5;
 }
 
-.indicator-dot {
-    width: 8px; height: 8px;
-    background: rgba(0,0,0,0.2);
-    border-radius: 50%;
-    transition: all 0.3s ease;
-}
-
-.indicator-dot.active {
-    background: var(--primary-color);
-    width: 20px;
-    border-radius: 4px;
-}
-
-/* 3. بەشی زانیاری (Info Section) */
-.product-detail-info-section {
-    flex: 1;
-    background: white;
-    position: relative;
-    padding: 20px 20px 100px 20px; /* Bottom padding for fixed button */
-    border-top-left-radius: 24px;
-    border-top-right-radius: 24px;
-    margin-top: -20px; /* Slight overlap with image */
-    box-shadow: 0 -5px 15px rgba(0,0,0,0.03);
-}
-
-.detail-title {
-    font-size: 20px;
-    font-weight: bold;
-    color: var(--text-color);
+/* ستایلی هێڵەکانی ژێر وێنە (Indicators) */
+.slider-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 10px;
     margin-bottom: 10px;
-    line-height: 1.4;
 }
 
-.detail-price {
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--accent-color);
-    margin-bottom: 20px;
+.indicator-line {
+    width: 20px;
+    height: 4px;
+    background-color: var(--medium-gray);
+    border-radius: 2px;
+    transition: all 0.3s ease;
+    cursor: pointer;
 }
 
-.detail-description h3 {
-    font-size: 16px;
-    color: var(--primary-color);
-    margin-bottom: 8px;
+.indicator-line.active {
+    width: 35px;
+    background-color: var(--primary-color);
+}
+
+.slider-btn { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0,0,0,0.4); color: white; border: none; font-size: 20px; cursor: pointer; z-index: 10; border-radius: 50%; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; }
+.slider-btn.prev { left: 10px; }
+.slider-btn.next { right: 10px; }
+
+/* ستایلەکانی تری لاپەڕەی کاڵا */
+#detailProductPrice {
+    font-size: 22px; 
+    font-weight: bold; 
+    color: var(--accent-color); 
+    margin: 10px 0 20px 0; 
+    text-align: center;
     border-bottom: 1px solid var(--light-gray);
-    padding-bottom: 5px;
+    padding-bottom: 15px;
 }
 
-.detail-description p {
-    font-size: 14px;
-    color: var(--text-light);
-    line-height: 1.8;
+#detailProductDescription {
+    color: #4a5568; 
+    margin-bottom: 20px; 
+    text-align: right; 
+    line-height: 1.7;
 }
 
-/* 4. بەشی خوارەوە (Bottom Bar) - Sticky */
-.detail-bottom-bar {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    background: white;
-    padding: 15px;
-    box-shadow: 0 -4px 15px rgba(0,0,0,0.05);
-    z-index: 100;
-    /* iOS Safe Area */
-    padding-bottom: calc(15px + env(safe-area-inset-bottom));
+#detailProductDescription a { 
+    color: var(--primary-color); 
+    text-decoration: underline; 
+    font-weight: bold; 
 }
-
-.detail-bottom-bar .add-to-cart-btn {
-    width: 100%;
-    padding: 14px;
-    font-size: 16px;
-    border-radius: 12px;
-}
-
-/* --- End of Product Detail Page Styles --- */
-
 
 .image-upload-container {
     display: grid;
@@ -1409,7 +1345,7 @@ body, .bottom-nav-item, .product-card {
     flex-shrink: 0;
 }
 .product-image,
-#sheetImageContainer img,
+.detail-image-container img,
 .subcategory-image,
 .brand-image-wrapper img,
 .shortcut-card-image {

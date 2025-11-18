@@ -1,3 +1,4 @@
+// app-ui.js
 import {
     loginModal, addProductBtn, productFormModal, skeletonLoader, searchInput,
     clearSearchBtn, loginForm, productForm, formTitle, imageInputsContainer, loader,
@@ -59,6 +60,7 @@ export function showNotification(message, type = 'success') {
     }, 3000);
 }
 
+// [ 💡 نوێکراوە ] - زیادکردنی پشتگیری بۆ productDetailPage
 function updateHeaderView(pageId, title = '') {
     const appHeader = document.querySelector('.app-header');
     const mainHeader = document.querySelector('.main-header-content');
@@ -66,19 +68,12 @@ function updateHeaderView(pageId, title = '') {
     const headerTitle = document.getElementById('headerTitle');
     const subpageSearch = document.querySelector('.subpage-search'); 
 
-    // شاردنەوەی هێدەر لە چات
     if (pageId === 'chatPage') {
         if (appHeader) appHeader.style.display = 'none';
         document.documentElement.classList.add('chat-active'); 
         return;
     } 
     
-    // [ 💡 گۆڕانکاری ] - شاردنەوەی هێدەر لە لاپەڕەی وردەکاری کاڵا (چونکە خۆی هێدەری هەیە)
-    if (pageId === 'productDetailPage') {
-        if (appHeader) appHeader.style.display = 'none';
-        return;
-    }
-
     if (appHeader) appHeader.style.display = 'flex';
     document.documentElement.classList.remove('chat-active');
     
@@ -97,6 +92,7 @@ function updateHeaderView(pageId, title = '') {
             if (pageId === 'subcategoryDetailPage') {
                 subpageSearch.style.display = 'block'; 
             } else {
+                // لە لاپەڕەی کاڵا و ڕێکخستن، گەڕان نیشان نادرێت
                 subpageSearch.style.display = 'none'; 
             }
         }
@@ -113,8 +109,7 @@ function showPage(pageId, pageTitle = '') {
 
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) {
-        // [ 💡 گۆڕانکاری ] - شاردنەوەی لیستی خوارەوە لە لاپەڕەی کاڵا
-        if (pageId === 'chatPage' || pageId === 'productDetailPage') {
+        if (pageId === 'chatPage') {
             bottomNav.style.display = 'none';
         } else {
             bottomNav.style.display = 'flex';
@@ -132,11 +127,11 @@ function showPage(pageId, pageTitle = '') {
          updateHeaderView('settingsPage', t('settings_title'));
     } else if (pageId === 'subcategoryDetailPage') {
          updateHeaderView('subcategoryDetailPage', pageTitle);
+    } else if (pageId === 'productDetailPage') {
+         // [ 💡 نوێ ] - بۆ لاپەڕەی کاڵا
+         updateHeaderView('productDetailPage', pageTitle);
     } else if (pageId === 'chatPage') { 
          updateHeaderView('chatPage', pageTitle);
-    } else if (pageId === 'productDetailPage') {
-         // [ 💡 گۆڕانکاری ] - بانگکردنی دۆخی تایبەت
-         updateHeaderView('productDetailPage');
     } else if (pageId === 'adminChatListPage') { 
          updateHeaderView('adminChatListPage', t('conversations_title'));
     } else { 
@@ -153,11 +148,37 @@ function showPage(pageId, pageTitle = '') {
     }
 }
 
+function stopAllVideos() {
+    const videoWrapper = document.getElementById('videoPlayerWrapper');
+    if (videoWrapper) {
+        videoWrapper.innerHTML = ''; 
+    }
+}
+
+function parseYouTubeId(url) {
+    if (!url) return null;
+    let videoId = null;
+    try {
+        const urlObj = new URL(url);
+        if (urlObj.hostname.includes('youtube.com')) {
+            videoId = urlObj.searchParams.get('v');
+        } 
+        else if (urlObj.hostname.includes('youtu.be')) {
+            videoId = urlObj.pathname.slice(1);
+        }
+    } catch (e) {
+        return null;
+    }
+    return videoId;
+}
+
 function closeAllPopupsUI() {
     document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
     document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('show'));
     sheetOverlay.classList.remove('show');
     document.body.classList.remove('overlay-active');
+    
+    stopAllVideos(); 
 }
 
 export function openPopup(id, type = 'sheet', addToHistory = true) {
@@ -182,6 +203,7 @@ export function openPopup(id, type = 'sheet', addToHistory = true) {
         if (sheetContent) {
             sheetContent.scrollTop = 0;
         }
+
         sheetOverlay.classList.add('show');
         element.classList.add('show');
         
@@ -190,7 +212,9 @@ export function openPopup(id, type = 'sheet', addToHistory = true) {
         if (id === 'categoriesSheet') renderCategoriesSheetUI();
         if (id === 'notificationsSheet') renderUserNotificationsUI();
         if (id === 'termsSheet') renderPoliciesUI();
-        if (id === 'profileSheet') updateProfileSheetUI();
+        if (id === 'profileSheet') {
+            updateProfileSheetUI();
+        }
     } else { 
         element.style.display = 'block';
     }
@@ -235,7 +259,7 @@ export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
         skeletonCard.className = 'skeleton-card';
         skeletonCard.innerHTML = `
             <div class="skeleton-image shimmer"></div>
-            <div class="skeleton-text shimmer"></div>
+            <div class.skeleton-text shimmer"></div>
             <div class="skeleton-price shimmer"></div>
             <div class="skeleton-button shimmer"></div>
         `;
@@ -265,7 +289,13 @@ export function createProductCardElementUI(product) {
     let extraInfoHTML = '';
     const shippingText = product.shippingInfo && product.shippingInfo[state.currentLanguage] && product.shippingInfo[state.currentLanguage].trim();
     if (shippingText) {
-        extraInfoHTML = `<div class="product-extra-info"><div class="info-badge shipping-badge"><i class="fas fa-truck"></i>${shippingText}</div></div>`;
+        extraInfoHTML = `
+            <div class="product-extra-info">
+                <div class="info-badge shipping-badge">
+                    <i class="fas fa-truck"></i>${shippingText}
+                </div>
+            </div>
+        `;
     }
 
     const isProdFavorite = isFavorite(product.id); 
@@ -276,13 +306,20 @@ export function createProductCardElementUI(product) {
         <div class="product-image-container">
             <img src="${mainImage}" alt="${nameInCurrentLang}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
             ${discountBadgeHTML}
-            <button class="${favoriteBtnClass}" aria-label="Add to favorites"><i class="${heartIconClass} fa-heart"></i></button>
-             <button class="share-btn-card" aria-label="Share product"><i class="fas fa-share-alt"></i></button>
+            <button class="${favoriteBtnClass}" aria-label="Add to favorites">
+                <i class="${heartIconClass} fa-heart"></i>
+            </button>
+             <button class="share-btn-card" aria-label="Share product">
+                 <i class="fas fa-share-alt"></i>
+            </button>
         </div>
         <div class="product-info">
             <div class="product-name">${nameInCurrentLang}</div>
             ${priceHTML}
-            <button class="add-to-cart-btn-card"><i class="fas fa-cart-plus"></i><span>${t('add_to_cart')}</span></button>
+            <button class="add-to-cart-btn-card">
+                <i class="fas fa-cart-plus"></i>
+                <span>${t('add_to_cart')}</span>
+            </button>
             ${extraInfoHTML}
         </div>
         <div class="product-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
@@ -294,15 +331,26 @@ export function createProductCardElementUI(product) {
      productCard.querySelector('.share-btn-card').addEventListener('click', async (event) => {
          event.stopPropagation();
          const productUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
-         const shareData = { title: nameInCurrentLang, text: `${t('share_text')}: ${nameInCurrentLang}`, url: productUrl };
+         const shareData = {
+             title: nameInCurrentLang,
+             text: `${t('share_text')}: ${nameInCurrentLang}`,
+             url: productUrl,
+         };
          try {
-             if (navigator.share) { await navigator.share(shareData); } 
-             else {
-                 const textArea = document.createElement('textarea'); textArea.value = productUrl; document.body.appendChild(textArea); textArea.select();
-                  try { document.execCommand('copy'); showNotification('لينكى کاڵا کۆپى کرا!', 'success'); } catch (err) { showNotification('کۆپیکردن سەرکەوتوو نەبوو!', 'error'); }
+             if (navigator.share) {
+                  await navigator.share(shareData);
+             } else {
+                 const textArea = document.createElement('textarea');
+                  textArea.value = productUrl;
+                  document.body.appendChild(textArea);
+                  textArea.select();
+                  try { document.execCommand('copy'); showNotification('لينكى کاڵا کۆپى کرا!', 'success'); }
+                  catch (err) { showNotification('کۆپیکردن سەرکەوتوو نەبوو!', 'error'); }
                   document.body.removeChild(textArea);
              }
-         } catch (err) { if (err.name !== 'AbortError') showNotification(t('share_error'), 'error'); }
+         } catch (err) {
+              if (err.name !== 'AbortError') showNotification(t('share_error'), 'error');
+         }
     });
 
     productCard.querySelector('.favorite-btn').addEventListener('click', (event) => {
@@ -318,11 +366,15 @@ export function createProductCardElementUI(product) {
     if (isAdmin) {
         productCard.querySelector('.edit-btn')?.addEventListener('click', (event) => {
             event.stopPropagation();
-             if (window.AdminLogic && window.AdminLogic.editProduct) window.AdminLogic.editProduct(product.id);
+             if (window.AdminLogic && window.AdminLogic.editProduct) {
+                 window.AdminLogic.editProduct(product.id);
+             }
         });
         productCard.querySelector('.delete-btn')?.addEventListener('click', (event) => {
             event.stopPropagation();
-             if (window.AdminLogic && window.AdminLogic.deleteProduct) window.AdminLogic.deleteProduct(product.id);
+             if (window.AdminLogic && window.AdminLogic.deleteProduct) {
+                 window.AdminLogic.deleteProduct(product.id);
+             }
         });
     }
 
@@ -343,292 +395,215 @@ export function setupScrollAnimations() {
                 observer.unobserve(entry.target); 
             }
         });
-    }, { threshold: 0.1 });
+    }, {
+        threshold: 0.1 
+    });
 
-    document.querySelectorAll('.product-card-reveal').forEach(card => { observer.observe(card); });
+    document.querySelectorAll('.product-card-reveal').forEach(card => {
+        observer.observe(card);
+    });
 }
 
-// [ 💡 گۆڕانکاری سەرەکی ] - کردنەوەی لاپەڕەی وردەکاری وەک Full Page
-async function showProductDetailsUI(productData) {
-    const product = productData || await fetchProductById(state.currentProductId); 
-    if (!product) { showNotification(t('product_not_found_error'), 'error'); return; }
-
-    state.currentProductId = product.id; 
-
-    // داتای بنەڕەتی
-    const baseProduct = {
-        name: (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو',
-        description: (product.description && product.description[state.currentLanguage]) || (product.description && product.description['ku_sorani']) || '',
-        basePrice: product.price,
-        originalPrice: product.originalPrice || null,
-        baseImages: (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []),
-        videoLink: product.externalLink || null
-    };
-
-    // ١. گۆڕینی مێژوو و پیشاندانی لاپەڕەکە (بەبێ ئەوەی bottom sheet بێت)
-    saveCurrentScrollPositionCore();
-    history.pushState({ type: 'page', id: 'productDetailPage', productId: product.id }, '', `#product_${product.id}`);
-    showPage('productDetailPage');
-
-    // ٢. پڕکردنەوەی زانیارییەکان
-    document.getElementById('detailProductName').textContent = baseProduct.name;
-    document.getElementById('detailProductDescription').innerHTML = formatDescription(baseProduct.description); 
-    renderProductPrice(baseProduct.basePrice, baseProduct.originalPrice);
-
-    // ٣. ڕێکخستنی سلایدەر
-    renderDetailSlider(baseProduct.baseImages, baseProduct.videoLink, baseProduct.name);
-
-    // ٤. لۆجیکی جۆرەکان (Variations)
-    const variationSelectorContainer = document.getElementById('variationSelectorContainer');
-    const lvl1Container = document.getElementById('variationLvl1Container');
-    const lvl1Buttons = document.getElementById('variationLvl1Buttons');
-    const lvl2Container = document.getElementById('variationLvl2Container');
-    const lvl2Buttons = document.getElementById('variationLvl2Buttons');
-    
-    lvl1Buttons.innerHTML = '';
-    lvl2Buttons.innerHTML = '';
-    lvl1Container.style.display = 'none';
-    lvl2Container.style.display = 'none';
-    variationSelectorContainer.style.display = 'none';
-
-    let selectedLvl1Id = null;
-    let selectedLvl2Id = null;
-
-    const variations = product.variations || [];
-    
-    if (variations.length > 0) {
-        variationSelectorContainer.style.display = 'flex';
-        lvl1Container.style.display = 'block';
-
-        variations.forEach(lvl1Var => {
-            const btn = document.createElement('button');
-            btn.className = 'variation-btn';
-            btn.dataset.lvl1Id = lvl1Var.id;
-            btn.textContent = (lvl1Var.name && lvl1Var.name[state.currentLanguage]) || lvl1Var.name.ku_sorani;
-            
-            btn.onclick = () => {
-                lvl1Buttons.querySelectorAll('.variation-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                selectedLvl1Id = lvl1Var.id;
-                selectedLvl2Id = null;
-
-                // گۆڕینی وێنەکان لە سلایدەر
-                const newImages = (lvl1Var.imageUrls && lvl1Var.imageUrls.length > 0) ? lvl1Var.imageUrls : baseProduct.baseImages;
-                renderDetailSlider(newImages, baseProduct.videoLink, baseProduct.name);
-
-                lvl2Buttons.innerHTML = '';
-                const options = lvl1Var.options || [];
-                
-                if (options.length > 0) {
-                    options.forEach(lvl2Opt => {
-                        const optBtn = document.createElement('button');
-                        optBtn.className = 'variation-btn';
-                        optBtn.dataset.lvl2Id = lvl2Opt.id;
-                        optBtn.textContent = lvl2Opt.name;
-                        optBtn.onclick = () => {
-                            lvl2Buttons.querySelectorAll('.variation-btn').forEach(b => b.classList.remove('active'));
-                            optBtn.classList.add('active');
-                            selectedLvl2Id = lvl2Opt.id;
-                            renderProductPrice(lvl2Opt.price, null);
-                        };
-                        lvl2Buttons.appendChild(optBtn);
-                    });
-                    lvl2Container.style.display = 'block';
-                } else {
-                    lvl2Container.style.display = 'none';
-                    renderProductPrice(baseProduct.basePrice, baseProduct.originalPrice);
-                }
-            };
-            lvl1Buttons.appendChild(btn);
-        });
+function renderCartUI() {
+    cartItemsContainer.innerHTML = '';
+    if (state.cart.length === 0) {
+        emptyCartMessage.style.display = 'block';
+        cartTotal.style.display = 'none';
+        cartActions.style.display = 'none';
+        return;
     }
 
-    // ٥. ڕێکخستنی دوگمەی زیادکردن بۆ سەبەتە (Sticky Button)
-    const addToCartButton = document.getElementById('detailAddToCartBtn');
-    const newBtn = addToCartButton.cloneNode(true); 
-    addToCartButton.parentNode.replaceChild(newBtn, addToCartButton);
-    
-    newBtn.innerHTML = `<i class="fas fa-cart-plus"></i> <span data-translate-key="add_to_cart">${t('add_to_cart')}</span>`;
-    newBtn.onclick = () => {
-        let selectedVariationInfo = null;
-        if (variations.length > 0) {
-            if (!selectedLvl1Id) { showNotification('تکایە سەرەتا جۆرێک (ڕەنگ) هەڵبژێرە', 'error'); return; }
-            const lvl1Var = variations.find(v => v.id === selectedLvl1Id);
-            if (!lvl1Var) { showNotification('هەڵە لە دۆزینەوەی جۆری هەڵبژێردراو', 'error'); return; }
-            selectedVariationInfo = { lvl1Id: lvl1Var.id, lvl1Name: (lvl1Var.name && lvl1Var.name[state.currentLanguage]) || lvl1Var.name.ku_sorani, price: baseProduct.basePrice };
-            const lvl2Options = lvl1Var.options || [];
-            if (lvl2Options.length > 0) {
-                if (!selectedLvl2Id) { showNotification('تکایە قەبارەیەک هەڵبژێرە', 'error'); return; }
-                const lvl2Opt = lvl2Options.find(o => o.id === selectedLvl2Id);
-                if (!lvl2Opt) { showNotification('هەڵە لە دۆزینەوەی قەبارەی هەڵبژێردراو', 'error'); return; }
-                selectedVariationInfo.lvl2Id = lvl2Opt.id; selectedVariationInfo.lvl2Name = lvl2Opt.name; selectedVariationInfo.price = lvl2Opt.price;
+    emptyCartMessage.style.display = 'none';
+    cartTotal.style.display = 'block';
+    cartActions.style.display = 'block';
+    renderCartActionButtonsUI(); 
+
+    let total = 0;
+    state.cart.forEach(item => {
+        const itemTotal = (item.price * item.quantity) + (item.shippingCost || 0);
+        total += itemTotal;
+        
+        const cartItem = document.createElement('div');
+        cartItem.className = 'cart-item';
+        
+        const itemNameInCurrentLang = (typeof item.name === 'string') 
+            ? item.name 
+            : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
+
+        let shippingDisplay = '';
+        if (item.shippingCost > 0) {
+            shippingDisplay = `<span style="font-size:12px; color:#e53e3e;">(+ ${item.shippingCost.toLocaleString()} گەیاندن)</span>`;
+        } else {
+            shippingDisplay = `<span style="font-size:12px; color:#38a169;">(گەیاندن بێ بەرامبەر)</span>`;
+        }
+
+        cartItem.innerHTML = `
+            <img src="${item.image}" alt="${itemNameInCurrentLang}" class="cart-item-image">
+            <div class="cart-item-details">
+                <div class="cart-item-title">${itemNameInCurrentLang}</div>
+                <div class="cart-item-price">
+                    ${item.price.toLocaleString()} د.ع <span style="font-size:11px; color:#666;">x ${item.quantity}</span>
+                    <br>
+                    ${shippingDisplay}
+                </div>
+                <div class="cart-item-quantity">
+                    <button class="quantity-btn increase-btn" data-id="${item.id}">+</button>
+                    <span class="quantity-text">${item.quantity}</span>
+                    <button class="quantity-btn decrease-btn" data-id="${item.id}">-</button>
+                </div>
+            </div>
+            <div class="cart-item-subtotal">
+                <div>کۆی گشتی</div>
+                <span style="color:var(--primary-color); font-size:16px;">${itemTotal.toLocaleString()} د.ع.</span>
+                <button class="cart-item-remove" data-id="${item.id}"><i class="fas fa-trash"></i></button>
+            </div>
+        `;
+        cartItemsContainer.appendChild(cartItem);
+    });
+
+    totalAmount.textContent = total.toLocaleString();
+
+    cartItemsContainer.querySelectorAll('.increase-btn').forEach(btn => btn.onclick = (e) => handleUpdateQuantityUI(e.currentTarget.dataset.id, 1));
+    cartItemsContainer.querySelectorAll('.decrease-btn').forEach(btn => btn.onclick = (e) => handleUpdateQuantityUI(e.currentTarget.dataset.id, -1));
+    cartItemsContainer.querySelectorAll('.cart-item-remove').forEach(btn => btn.onclick = (e) => handleRemoveFromCartUI(e.currentTarget.dataset.id));
+}
+
+async function renderCartActionButtonsUI() {
+    const container = document.getElementById('cartActions');
+    const oldButtons = container.querySelectorAll('.contact-method-btn');
+    oldButtons.forEach(btn => btn.remove());
+
+    const methods = await fetchContactMethods(); 
+
+    if (!methods || methods.length === 0) {
+        if (container.children.length === 0) {
+             container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
+        }
+        return;
+    }
+
+    methods.forEach(method => {
+        const btn = document.createElement('button');
+        btn.className = 'whatsapp-btn contact-method-btn'; 
+        btn.style.backgroundColor = method.color;
+
+        const name = method['name_' + state.currentLanguage] || method.name_ku_sorani;
+        btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
+
+        btn.onclick = () => {
+            const message = generateOrderMessageCore(); 
+            if (!message) return;
+
+            let link = '';
+            const encodedMessage = encodeURIComponent(message);
+            const value = method.value;
+
+            switch (method.type) {
+                case 'whatsapp': link = `https://wa.me/${value}?text=${encodedMessage}`; break;
+                case 'viber': link = `viber://chat?number=%2B${value}&text=${encodedMessage}`; break; 
+                case 'telegram': link = `https://t.me/${value}?text=${encodedMessage}`; break;
+                case 'phone': link = `tel:${value}`; break;
+                case 'url': link = value; break; 
             }
-        }
-        handleAddToCartUI(product.id, newBtn, selectedVariationInfo); 
-    };
-    
-    // ٦. ڕێکخستنی دوگمەی دڵخواز
-    const favBtn = document.getElementById('detailFavoriteBtn');
-    const isFav = isFavorite(product.id);
-    favBtn.innerHTML = `<i class="${isFav ? 'fas' : 'far'} fa-heart" style="color: ${isFav ? 'var(--danger-color)' : 'var(--dark-gray)'}"></i>`;
-    favBtn.onclick = () => {
-        const result = toggleFavoriteCore(product.id);
-        showNotification(result.message, result.favorited ? 'success' : 'error');
-        const newFav = isFavorite(product.id);
-        favBtn.innerHTML = `<i class="${newFav ? 'fas' : 'far'} fa-heart" style="color: ${newFav ? 'var(--danger-color)' : 'var(--dark-gray)'}"></i>`;
-    };
 
-    // ٧. ڕێکخستنی دوگمەی هاوبەشی
-    document.getElementById('detailShareBtn').onclick = async () => {
-         const productUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
-         try {
-             if (navigator.share) { await navigator.share({ title: baseProduct.name, text: `${t('share_text')}: ${baseProduct.name}`, url: productUrl }); } 
-             else {
-                  const textArea = document.createElement('textarea'); textArea.value = productUrl; document.body.appendChild(textArea); textArea.select();
-                  document.execCommand('copy'); showNotification('لينكى کاڵا کۆپى کرا!', 'success'); document.body.removeChild(textArea);
-             }
-         } catch (err) { /* Ignore abort */ }
-    };
-
-    renderRelatedProductsUI(product);
-}
-
-
-// [ 💡 نوێ ] - فەنکشنی سلایدەری نوێ (Swipe + Indicators)
-function renderDetailSlider(imageUrls, videoLink, productName) {
-    const track = document.getElementById('detailImageContainer');
-    const indicatorsContainer = document.getElementById('detailSliderIndicators');
-    
-    track.innerHTML = ''; 
-    indicatorsContainer.innerHTML = ''; 
-    
-    const items = [];
-    
-    // 1. وێنەکان
-    if (imageUrls.length > 0) {
-        imageUrls.forEach(url => {
-            const img = document.createElement('img');
-            img.src = url;
-            img.alt = productName;
-            img.className = 'detail-slider-element';
-            items.push(img);
-        });
-    } else {
-        const img = document.createElement('img');
-        img.src = 'https://placehold.co/600x600/e2e8f0/2d3748?text=No+Image';
-        img.className = 'detail-slider-element';
-        items.push(img);
-    }
-
-    items.forEach((item, index) => {
-        track.appendChild(item);
-        
-        // دروستکردنی خاڵەکان
-        const dot = document.createElement('div');
-        dot.className = `indicator-dot ${index === 0 ? 'active' : ''}`;
-        indicatorsContainer.appendChild(dot);
-    });
-
-    // 3. لۆجیکی Swipe
-    let currentIndex = 0;
-    let startX = 0;
-    let currentTranslate = 0;
-    let prevTranslate = 0;
-    let isDragging = false;
-
-    track.addEventListener('touchstart', touchStart);
-    track.addEventListener('touchend', touchEnd);
-    track.addEventListener('touchmove', touchMove);
-    
-    track.addEventListener('mousedown', touchStart);
-    track.addEventListener('mouseup', touchEnd);
-    track.addEventListener('mouseleave', touchEnd);
-    track.addEventListener('mousemove', touchMove);
-
-    function touchStart(event) {
-        isDragging = true;
-        startX = getPositionX(event);
-        track.style.transition = 'none'; 
-    }
-
-    function touchMove(event) {
-        if (!isDragging) return;
-        const currentPosition = getPositionX(event);
-        const diff = currentPosition - startX;
-        
-        currentTranslate = prevTranslate + diff;
-        track.style.transform = `translateX(${currentTranslate}px)`;
-    }
-
-    function touchEnd() {
-        isDragging = false;
-        const movedBy = currentTranslate - prevTranslate;
-        const containerWidth = track.parentElement.offsetWidth;
-
-        if (movedBy < -50 && currentIndex < items.length - 1) {
-            currentIndex += 1;
-        } else if (movedBy > 50 && currentIndex > 0) {
-            currentIndex -= 1;
-        }
-
-        setPositionByIndex();
-    }
-
-    function getPositionX(event) {
-        return event.type.includes('mouse') ? event.pageX : event.touches[0].clientX;
-    }
-
-    function setPositionByIndex() {
-        const containerWidth = track.parentElement.offsetWidth;
-        currentTranslate = currentIndex * -containerWidth; 
-        prevTranslate = currentTranslate;
-        
-        track.style.transition = 'transform 0.3s ease-out';
-        track.style.transform = `translateX(${currentTranslate}px)`;
-        
-        Array.from(indicatorsContainer.children).forEach((dot, idx) => {
-            dot.classList.toggle('active', idx === currentIndex);
-        });
-    }
-    
-    requestAnimationFrame(() => {
-         setPositionByIndex();
+            if (link) {
+                window.open(link, '_blank');
+            }
+        };
+        container.appendChild(btn);
     });
     
-    window.addEventListener('resize', setPositionByIndex);
+    initChatSystem();
 }
 
+async function renderFavoritesPageUI() {
+    favoritesContainer.innerHTML = '';
 
-// [ 💡 نوێ ] - فەنکشنی نرخ بۆ لاپەڕەی نوێ
-function renderProductPrice(price, originalPrice = null) {
-    const priceContainer = document.getElementById('detailProductPrice');
-    if (originalPrice && originalPrice > price) {
-        priceContainer.innerHTML = `<span style="color: var(--accent-color);">${price.toLocaleString()} د.ع</span> <del style="color: var(--dark-gray); font-size: 16px; margin-right: 10px;">${originalPrice.toLocaleString()} د.ع</del>`;
-    } else {
-        priceContainer.innerHTML = `<span>${price.toLocaleString()} د.ع</span>`;
+    if (state.favorites.length === 0) {
+        emptyFavoritesMessage.style.display = 'block';
+        favoritesContainer.style.display = 'none';
+        return;
+    }
+
+    emptyFavoritesMessage.style.display = 'none';
+    favoritesContainer.style.display = 'grid';
+    renderSkeletonLoader(favoritesContainer, 4); 
+
+    try {
+        const fetchPromises = state.favorites.map(id => fetchProductById(id));
+        const favoritedProducts = (await Promise.all(fetchPromises)).filter(p => p !== null);
+
+        favoritesContainer.innerHTML = ''; 
+
+        if (favoritedProducts.length === 0) {
+            emptyFavoritesMessage.style.display = 'block';
+            favoritesContainer.style.display = 'none';
+            state.favorites = [];
+            saveFavorites(); 
+        } else {
+            if(favoritedProducts.length !== state.favorites.length) {
+                 state.favorites = favoritedProducts.map(p => p.id);
+                 saveFavorites(); 
+            }
+            favoritedProducts.forEach(product => {
+                const productCard = createProductCardElementUI(product); 
+                favoritesContainer.appendChild(productCard);
+            });
+        }
+    } catch (error) {
+        favoritesContainer.innerHTML = `<p style="text-align:center; padding: 20px;">${t('error_generic')}</p>`;
     }
 }
 
-async function renderRelatedProductsUI(currentProduct) {
-    const section = document.getElementById('relatedProductsSection');
-    const container = document.getElementById('relatedProductsContainer');
-    container.innerHTML = '';
-    section.style.display = 'none'; 
+function renderCategoriesSheetUI() {
+    sheetCategoriesContainer.innerHTML = '';
 
-    const relatedProducts = await fetchRelatedProducts(currentProduct); 
-
-    if (relatedProducts && relatedProducts.length > 0) {
-        relatedProducts.forEach(product => {
-            const card = createProductCardElementUI(product); 
-            container.appendChild(card);
-        });
-        section.style.display = 'block'; 
+    const homeBtn = document.createElement('button');
+    homeBtn.className = 'sheet-category-btn';
+    homeBtn.dataset.category = 'all'; 
+    homeBtn.innerHTML = `<i class="fas fa-home"></i> ${t('nav_home')}`;
+    
+    if (state.currentCategory === 'all') {
+        homeBtn.classList.add('active');
     }
+    
+    homeBtn.onclick = async () => {
+         state.pendingFilterNav = {
+             category: 'all',
+             subcategory: 'all',
+             subSubcategory: 'all',
+             search: ''
+         };
+         closeCurrentPopup();
+    };
+    sheetCategoriesContainer.appendChild(homeBtn);
+
+    state.categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'sheet-category-btn';
+        btn.dataset.category = cat.id;
+        if (state.currentCategory === cat.id) { btn.classList.add('active'); }
+
+        const categoryName = (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
+        const categoryIcon = cat.icon;
+
+        btn.innerHTML = `<i class="${categoryIcon}"></i> ${categoryName}`;
+
+        btn.onclick = async () => {
+             state.pendingFilterNav = {
+                 category: cat.id,
+                 subcategory: 'all',
+                 subSubcategory: 'all',
+                 search: ''
+             };
+             closeCurrentPopup();
+        };
+
+        sheetCategoriesContainer.appendChild(btn);
+    });
 }
 
-// ... باقی فەنکشنەکان وەک خۆیانن ...
-
-async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
+ async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
      const container = document.getElementById('subSubCategoryContainerOnDetailPage');
      container.innerHTML = ''; 
 
@@ -754,112 +729,262 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     loader.style.display = 'none'; 
 }
 
-function renderCartUI() {
-    cartItemsContainer.innerHTML = '';
-    if (state.cart.length === 0) {
-        emptyCartMessage.style.display = 'block';
-        cartTotal.style.display = 'none';
-        cartActions.style.display = 'none';
-        return;
+// [ 💡 گۆڕانکاری سەرەکی ] - گۆڕینی بۆ Full Page
+async function showProductDetailsUI(productData, fromHistory = false) {
+    const product = productData || await fetchProductById(state.currentProductId); 
+    if (!product) { showNotification(t('product_not_found_error'), 'error'); return; }
+
+    state.currentProductId = product.id; 
+    const productName = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
+
+    // Navigation handling
+    if (!fromHistory) {
+        saveCurrentScrollPositionCore();
+        // URL update: /product/ID
+        const newUrl = `?product=${product.id}`;
+        history.pushState({ type: 'page', id: 'productDetailPage', title: productName, productId: product.id }, '', newUrl);
     }
-    emptyCartMessage.style.display = 'none';
-    cartTotal.style.display = 'block';
-    cartActions.style.display = 'block';
-    renderCartActionButtonsUI(); 
+    
+    // Render Page
+    showPage('productDetailPage', productName);
 
-    let total = 0;
-    state.cart.forEach(item => {
-        const itemTotal = (item.price * item.quantity) + (item.shippingCost || 0);
-        total += itemTotal;
-        const cartItem = document.createElement('div');
-        cartItem.className = 'cart-item';
-        const itemNameInCurrentLang = (typeof item.name === 'string') ? item.name : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
-        let shippingDisplay = item.shippingCost > 0 ? `<span style="font-size:12px; color:#e53e3e;">(+ ${item.shippingCost.toLocaleString()} گەیاندن)</span>` : `<span style="font-size:12px; color:#38a169;">(گەیاندن بێ بەرامبەر)</span>`;
+    const baseProduct = {
+        name: productName,
+        description: (product.description && product.description[state.currentLanguage]) || (product.description && product.description['ku_sorani']) || '',
+        basePrice: product.price,
+        originalPrice: product.originalPrice || null,
+        baseImages: (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []),
+        videoLink: product.externalLink || null
+    };
+    
+    document.getElementById('detailProductDescription').innerHTML = formatDescription(baseProduct.description); 
+    
+    const variationSelectorContainer = document.getElementById('variationSelectorContainer');
+    const lvl1Container = document.getElementById('variationLvl1Container');
+    const lvl1Buttons = document.getElementById('variationLvl1Buttons');
+    const lvl2Container = document.getElementById('variationLvl2Container');
+    const lvl2Buttons = document.getElementById('variationLvl2Buttons');
+    
+    // Clear previous selections
+    lvl1Buttons.innerHTML = '';
+    lvl2Buttons.innerHTML = '';
+    lvl1Container.style.display = 'none';
+    lvl2Container.style.display = 'none';
+    variationSelectorContainer.style.display = 'none';
 
-        cartItem.innerHTML = `
-            <img src="${item.image}" alt="${itemNameInCurrentLang}" class="cart-item-image">
-            <div class="cart-item-details">
-                <div class="cart-item-title">${itemNameInCurrentLang}</div>
-                <div class="cart-item-price">${item.price.toLocaleString()} د.ع <span style="font-size:11px; color:#666;">x ${item.quantity}</span><br>${shippingDisplay}</div>
-                <div class="cart-item-quantity">
-                    <button class="quantity-btn increase-btn" data-id="${item.id}">+</button>
-                    <span class="quantity-text">${item.quantity}</span>
-                    <button class="quantity-btn decrease-btn" data-id="${item.id}">-</button>
-                </div>
-            </div>
-            <div class="cart-item-subtotal"><div>کۆی گشتی</div><span style="color:var(--primary-color); font-size:16px;">${itemTotal.toLocaleString()} د.ع.</span><button class="cart-item-remove" data-id="${item.id}"><i class="fas fa-trash"></i></button></div>
-        `;
-        cartItemsContainer.appendChild(cartItem);
-    });
-    totalAmount.textContent = total.toLocaleString();
-    cartItemsContainer.querySelectorAll('.increase-btn').forEach(btn => btn.onclick = (e) => handleUpdateQuantityUI(e.currentTarget.dataset.id, 1));
-    cartItemsContainer.querySelectorAll('.decrease-btn').forEach(btn => btn.onclick = (e) => handleUpdateQuantityUI(e.currentTarget.dataset.id, -1));
-    cartItemsContainer.querySelectorAll('.cart-item-remove').forEach(btn => btn.onclick = (e) => handleRemoveFromCartUI(e.currentTarget.dataset.id));
-}
+    let selectedLvl1Id = null;
+    let selectedLvl2Id = null;
 
-async function renderCartActionButtonsUI() {
-    const container = document.getElementById('cartActions');
-    const oldButtons = container.querySelectorAll('.contact-method-btn');
-    oldButtons.forEach(btn => btn.remove());
-    const methods = await fetchContactMethods(); 
-    if (!methods || methods.length === 0) { if (container.children.length === 0) { container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>'; } return; }
+    // Render Images (Using new logic) & Price
+    renderSliderImages(baseProduct.baseImages, baseProduct.videoLink, baseProduct.name);
+    renderProductPrice(baseProduct.basePrice, baseProduct.originalPrice);
 
-    methods.forEach(method => {
-        const btn = document.createElement('button');
-        btn.className = 'whatsapp-btn contact-method-btn'; 
-        btn.style.backgroundColor = method.color;
-        const name = method['name_' + state.currentLanguage] || method.name_ku_sorani;
-        btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
-        btn.onclick = () => {
-            const message = generateOrderMessageCore(); if (!message) return;
-            let link = '';
-            const encodedMessage = encodeURIComponent(message);
-            switch (method.type) {
-                case 'whatsapp': link = `https://wa.me/${method.value}?text=${encodedMessage}`; break;
-                case 'viber': link = `viber://chat?number=%2B${method.value}&text=${encodedMessage}`; break; 
-                case 'telegram': link = `https://t.me/${method.value}?text=${encodedMessage}`; break;
-                case 'phone': link = `tel:${method.value}`; break;
-                case 'url': link = method.value; break; 
+    // --- Variations Logic ---
+    const variations = product.variations || [];
+    if (variations.length > 0) {
+        variationSelectorContainer.style.display = 'flex';
+        lvl1Container.style.display = 'block';
+
+        variations.forEach(lvl1Var => {
+            const btn = document.createElement('button');
+            btn.className = 'variation-btn';
+            btn.dataset.lvl1Id = lvl1Var.id;
+            btn.textContent = (lvl1Var.name && lvl1Var.name[state.currentLanguage]) || lvl1Var.name.ku_sorani;
+            
+            btn.onclick = () => {
+                lvl1Buttons.querySelectorAll('.variation-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                selectedLvl1Id = lvl1Var.id;
+                selectedLvl2Id = null; 
+
+                const newImages = (lvl1Var.imageUrls && lvl1Var.imageUrls.length > 0) ? lvl1Var.imageUrls : baseProduct.baseImages;
+                renderSliderImages(newImages, baseProduct.videoLink, baseProduct.name);
+
+                lvl2Buttons.innerHTML = '';
+                const options = lvl1Var.options || [];
+                
+                if (options.length > 0) {
+                    options.forEach(lvl2Opt => {
+                        const optBtn = document.createElement('button');
+                        optBtn.className = 'variation-btn';
+                        optBtn.dataset.lvl2Id = lvl2Opt.id;
+                        optBtn.textContent = lvl2Opt.name;
+                        
+                        optBtn.onclick = () => {
+                            lvl2Buttons.querySelectorAll('.variation-btn').forEach(b => b.classList.remove('active'));
+                            optBtn.classList.add('active');
+                            selectedLvl2Id = lvl2Opt.id;
+                            renderProductPrice(lvl2Opt.price, null); 
+                        };
+                        lvl2Buttons.appendChild(optBtn);
+                    });
+                    lvl2Container.style.display = 'block';
+                } else {
+                    lvl2Container.style.display = 'none';
+                    renderProductPrice(baseProduct.basePrice, baseProduct.originalPrice);
+                }
+            };
+            lvl1Buttons.appendChild(btn);
+        });
+    }
+
+    // Add to Cart Button
+    const addToCartButton = document.getElementById('detailAddToCartBtn');
+    addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
+    addToCartButton.onclick = () => {
+        let selectedVariationInfo = null;
+        if (variations.length > 0) {
+            if (!selectedLvl1Id) { showNotification('تکایە سەرەتا جۆرێک (ڕەنگ) هەڵبژێرە', 'error'); return; }
+            const lvl1Var = variations.find(v => v.id === selectedLvl1Id);
+            if (!lvl1Var) return;
+
+            selectedVariationInfo = {
+                lvl1Id: lvl1Var.id,
+                lvl1Name: (lvl1Var.name && lvl1Var.name[state.currentLanguage]) || lvl1Var.name.ku_sorani,
+                price: baseProduct.basePrice 
+            };
+
+            const lvl2Options = lvl1Var.options || [];
+            if (lvl2Options.length > 0) {
+                if (!selectedLvl2Id) { showNotification('تکایە قەبارەیەک هەڵبژێرە', 'error'); return; }
+                const lvl2Opt = lvl2Options.find(o => o.id === selectedLvl2Id);
+                if (!lvl2Opt) return;
+                
+                selectedVariationInfo.lvl2Id = lvl2Opt.id;
+                selectedVariationInfo.lvl2Name = lvl2Opt.name;
+                selectedVariationInfo.price = lvl2Opt.price; 
             }
-            if (link) { window.open(link, '_blank'); }
-        };
-        container.appendChild(btn);
-    });
-    initChatSystem();
-}
-
-async function renderFavoritesPageUI() {
-    favoritesContainer.innerHTML = '';
-    if (state.favorites.length === 0) { emptyFavoritesMessage.style.display = 'block'; favoritesContainer.style.display = 'none'; return; }
-    emptyFavoritesMessage.style.display = 'none'; favoritesContainer.style.display = 'grid'; renderSkeletonLoader(favoritesContainer, 4); 
-    try {
-        const fetchPromises = state.favorites.map(id => fetchProductById(id));
-        const favoritedProducts = (await Promise.all(fetchPromises)).filter(p => p !== null);
-        favoritesContainer.innerHTML = ''; 
-        if (favoritedProducts.length === 0) { emptyFavoritesMessage.style.display = 'block'; favoritesContainer.style.display = 'none'; state.favorites = []; saveFavorites(); } 
-        else {
-            if(favoritedProducts.length !== state.favorites.length) { state.favorites = favoritedProducts.map(p => p.id); saveFavorites(); }
-            favoritedProducts.forEach(product => { const productCard = createProductCardElementUI(product); favoritesContainer.appendChild(productCard); });
         }
-    } catch (error) { favoritesContainer.innerHTML = `<p style="text-align:center; padding: 20px;">${t('error_generic')}</p>`; }
+        handleAddToCartUI(product.id, addToCartButton, selectedVariationInfo); 
+    };
+
+    renderRelatedProductsUI(product);
 }
 
-function renderCategoriesSheetUI() {
-    sheetCategoriesContainer.innerHTML = '';
-    const homeBtn = document.createElement('button'); homeBtn.className = 'sheet-category-btn'; homeBtn.dataset.category = 'all'; 
-    homeBtn.innerHTML = `<i class="fas fa-home"></i> ${t('nav_home')}`;
-    if (state.currentCategory === 'all') { homeBtn.classList.add('active'); }
-    homeBtn.onclick = async () => { state.pendingFilterNav = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' }; closeCurrentPopup(); };
-    sheetCategoriesContainer.appendChild(homeBtn);
+// [ 💡 نوێکراوە ] - نوێکردنەوەی سلایدەر بۆ بەکارهێنانی Indicators
+function renderSliderImages(imageUrls, videoLink, productName) {
+    const imageContainer = document.getElementById('detailImageContainer');
+    const indicatorsContainer = document.getElementById('detailImageIndicators');
+    
+    imageContainer.innerHTML = ''; 
+    indicatorsContainer.innerHTML = ''; 
 
-    state.categories.forEach(cat => {
-        const btn = document.createElement('button'); btn.className = 'sheet-category-btn'; btn.dataset.category = cat.id;
-        if (state.currentCategory === cat.id) { btn.classList.add('active'); }
-        const categoryName = (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
-        btn.innerHTML = `<i class="${cat.icon}"></i> ${categoryName}`;
-        btn.onclick = async () => { state.pendingFilterNav = { category: cat.id, subcategory: 'all', subSubcategory: 'all', search: '' }; closeCurrentPopup(); };
-        sheetCategoriesContainer.appendChild(btn);
-    });
+    let sliderElements = []; 
+    let indicatorElements = []; 
+    
+    // 1. Create Image Elements
+    if (imageUrls.length > 0) {
+        imageUrls.forEach((url, index) => {
+            const img = document.createElement('img');
+            img.src = url; 
+            img.alt = productName; 
+            img.className = index === 0 ? 'active' : ''; 
+            
+            imageContainer.appendChild(img);
+            sliderElements.push(img); 
+            
+            // Create Indicator Line
+            const line = document.createElement('div');
+            line.className = `indicator-line ${index === 0 ? 'active' : ''}`;
+            line.dataset.index = index;
+            indicatorsContainer.appendChild(line);
+            indicatorElements.push(line);
+        });
+    }
+
+    // 2. Handle Video
+    const videoId = parseYouTubeId(videoLink); 
+    if (videoId) {
+        const videoWrapper = document.createElement('div');
+        videoWrapper.id = 'videoPlayerWrapper'; 
+        videoWrapper.style.cssText = "position: relative; width: 100%; background-color: #000; display: none; justify-content: center; align-items: center; overflow: hidden; flex-shrink: 0; max-height: 350px;";
+        
+        const videoIndex = sliderElements.length; 
+        imageContainer.appendChild(videoWrapper);
+        sliderElements.push(videoWrapper); 
+
+        // Video Indicator (Can use a play icon or just a line)
+        const line = document.createElement('div');
+        line.className = `indicator-line`;
+        line.innerHTML = ''; // Can put small icon if needed
+        line.dataset.index = videoIndex;
+        indicatorsContainer.appendChild(line);
+        indicatorElements.push(line);
+    }
+
+    // 3. Slider Logic
+    let currentIndex = 0;
+    const prevBtn = document.getElementById('detailPrevBtn');
+    const nextBtn = document.getElementById('detailNextBtn');
+
+    function updateSlider(index) {
+        if (!sliderElements[index]) return;
+
+        // Pause previous video if any
+        const oldElement = sliderElements[currentIndex];
+        if (oldElement && oldElement.id === 'videoPlayerWrapper') {
+            oldElement.innerHTML = ''; 
+        }
+
+        // Hide all images/videos
+        sliderElements.forEach(el => el.classList.remove('active'));
+        
+        // Update indicators
+        indicatorElements.forEach(el => el.classList.remove('active'));
+
+        // Show new active element
+        const activeElement = sliderElements[index];
+        if (activeElement.id === 'videoPlayerWrapper') { 
+            const videoSrc = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&autoplay=1&mute=1&controls=1`;
+            activeElement.innerHTML = `<iframe src="${videoSrc}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width: 100%; aspect-ratio: 16 / 9; max-height: 350px;"></iframe>`;
+        }
+        activeElement.classList.add('active');
+        indicatorElements[index].classList.add('active');
+        
+        currentIndex = index; 
+    }
+
+    const showSliderBtns = sliderElements.length > 1;
+    prevBtn.style.display = showSliderBtns ? 'flex' : 'none';
+    nextBtn.style.display = showSliderBtns ? 'flex' : 'none';
+    indicatorsContainer.style.display = showSliderBtns ? 'flex' : 'none';
+
+    if(showSliderBtns) {
+        prevBtn.onclick = () => updateSlider((currentIndex - 1 + sliderElements.length) % sliderElements.length);
+        nextBtn.onclick = () => updateSlider((currentIndex + 1) % sliderElements.length);
+        
+        indicatorElements.forEach((indicator, idx) => {
+            indicator.onclick = () => updateSlider(idx);
+        });
+    }
+}
+
+// [ 💡 نوێکراوە ] - بۆ نوێکردنەوەی نرخی ناو لاپەڕەی نوێ
+function renderProductPrice(price, originalPrice = null) {
+    const priceContainer = document.getElementById('detailProductPrice');
+    if (originalPrice && originalPrice > price) {
+        priceContainer.innerHTML = `<span style="color: var(--accent-color);">${price.toLocaleString()} د.ع</span> <del style="color: var(--dark-gray); font-size: 16px; margin-right: 10px;">${originalPrice.toLocaleString()} د.ع</del>`;
+    } else {
+        priceContainer.innerHTML = `<span>${price.toLocaleString()} د.ع</span>`;
+    }
+}
+
+async function renderRelatedProductsUI(currentProduct) {
+    const section = document.getElementById('relatedProductsSection');
+    const container = document.getElementById('relatedProductsContainer');
+    container.innerHTML = '';
+    section.style.display = 'none'; 
+
+    const relatedProducts = await fetchRelatedProducts(currentProduct); 
+
+    if (relatedProducts && relatedProducts.length > 0) {
+        relatedProducts.forEach(product => {
+            const card = createProductCardElementUI(product); 
+            container.appendChild(card);
+        });
+        section.style.display = 'block'; 
+    }
 }
 
 async function renderPoliciesUI() {
@@ -868,99 +993,188 @@ async function renderPoliciesUI() {
     if (policies) {
         const content = policies[state.currentLanguage] || policies.ku_sorani || '';
         termsContentContainer.innerHTML = content ? content.replace(/\n/g, '<br>') : `<p>${t('no_policies_found')}</p>`;
-    } else { termsContentContainer.innerHTML = `<p>${t('no_policies_found')}</p>`; }
+    } else {
+        termsContentContainer.innerHTML = `<p>${t('no_policies_found')}</p>`;
+    }
 }
 
 async function renderUserNotificationsUI() {
-    const announcements = await fetchAnnouncements(); notificationsListContainer.innerHTML = '';
-    if (!announcements || announcements.length === 0) { notificationsListContainer.innerHTML = `<div class="cart-empty"><i class="fas fa-bell-slash"></i><p>${t('no_notifications_found')}</p></div>`; return; }
+    const announcements = await fetchAnnouncements(); 
+    notificationsListContainer.innerHTML = '';
+
+    if (!announcements || announcements.length === 0) {
+        notificationsListContainer.innerHTML = `<div class="cart-empty"><i class="fas fa-bell-slash"></i><p>${t('no_notifications_found')}</p></div>`;
+        return;
+    }
+
     let latestTimestamp = 0;
     announcements.forEach(announcement => {
-        if (announcement.createdAt > latestTimestamp) { latestTimestamp = announcement.createdAt; }
+        if (announcement.createdAt > latestTimestamp) {
+            latestTimestamp = announcement.createdAt;
+        }
+
         const date = new Date(announcement.createdAt);
         const formattedDate = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
         const title = (announcement.title && announcement.title[state.currentLanguage]) || (announcement.title && announcement.title.ku_sorani) || '';
         const content = (announcement.content && announcement.content[state.currentLanguage]) || (announcement.content && announcement.content.ku_sorani) || '';
-        const item = document.createElement('div'); item.className = 'notification-item';
-        item.innerHTML = `<div class="notification-header"><span class="notification-title">${title}</span><span class="notification-date">${formattedDate}</span></div><p class="notification-content">${content}</p>`;
+
+        const item = document.createElement('div');
+        item.className = 'notification-item';
+        item.innerHTML = `
+            <div class="notification-header">
+                <span class="notification-title">${title}</span>
+                <span class="notification-date">${formattedDate}</span>
+            </div>
+            <p class="notification-content">${content}</p>
+        `;
         notificationsListContainer.appendChild(item);
     });
-    updateLastSeenAnnouncementTimestamp(latestTimestamp); notificationBadge.style.display = 'none'; 
+
+    updateLastSeenAnnouncementTimestamp(latestTimestamp); 
+    notificationBadge.style.display = 'none'; 
 }
 
 function updateAdminUIAuth(isAdmin) {
     document.querySelectorAll('.product-actions').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
-    const adminSections = [ 'adminPoliciesManagement', 'adminSocialMediaManagement', 'adminAnnouncementManagement', 'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement', 'adminContactMethodsManagement', 'adminShortcutRowsManagement', 'adminHomeLayoutManagement', 'adminCategoryLayoutManagement', 'adminChatsManagement' ];
-    adminSections.forEach(id => { const section = document.getElementById(id); if (section) section.style.display = isAdmin ? 'block' : 'none'; });
-    settingsLogoutBtn.style.display = isAdmin ? 'flex' : 'none'; settingsAdminLoginBtn.style.display = isAdmin ? 'none' : 'flex'; addProductBtn.style.display = isAdmin ? 'flex' : 'none';
-    if (document.getElementById('favoritesSheet')?.classList.contains('show')) { renderFavoritesPageUI(); }
-    // [ 💡 گۆڕانکاری ] - نوێکردنەوەی لاپەڕەی کاڵا ئەگەر کرابێتەوە
-    if (state.currentPageId === 'productDetailPage' && state.currentProductId) { fetchProductById(state.currentProductId).then(product => { if (product) showProductDetailsUI(product); }); }
+
+    const adminSections = [
+         'adminPoliciesManagement', 'adminSocialMediaManagement', 'adminAnnouncementManagement',
+         'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
+         'adminContactMethodsManagement', 'adminShortcutRowsManagement',
+         'adminHomeLayoutManagement',
+         'adminCategoryLayoutManagement',
+         'adminChatsManagement'
+    ];
+    
+    adminSections.forEach(id => {
+        const section = document.getElementById(id);
+        if (section) section.style.display = isAdmin ? 'block' : 'none';
+    });
+
+    settingsLogoutBtn.style.display = isAdmin ? 'flex' : 'none';
+    settingsAdminLoginBtn.style.display = isAdmin ? 'none' : 'flex';
+    addProductBtn.style.display = isAdmin ? 'flex' : 'none';
+
+    const favoritesSheet = document.getElementById('favoritesSheet');
+    if (favoritesSheet?.classList.contains('show')) {
+        renderFavoritesPageUI();
+    }
+    // Note: productDetailSheet is gone, so we check if productDetailPage is active if needed
 }
 
 function updateProfileSheetUI() {
-    const authView = document.getElementById('authView'); const profileView = document.getElementById('profileView');
+    const authView = document.getElementById('authView');
+    const profileView = document.getElementById('profileView');
+    
     if (!state.currentUser) {
-        authView.style.display = 'block'; profileView.style.display = 'none';
-        document.getElementById('authTabLogin').classList.add('active'); document.getElementById('authTabLogin').style.color = 'var(--primary-color)'; document.getElementById('authTabLogin').style.borderBottomColor = 'var(--primary-color)';
-        document.getElementById('authTabSignUp').classList.remove('active'); document.getElementById('authTabSignUp').style.color = 'var(--dark-gray)'; document.getElementById('authTabSignUp').style.borderBottomColor = 'transparent';
-        document.getElementById('userLoginForm').style.display = 'block'; document.getElementById('userSignUpForm').style.display = 'none';
+        authView.style.display = 'block';
+        profileView.style.display = 'none';
+
+        document.getElementById('authTabLogin').classList.add('active');
+        document.getElementById('authTabLogin').style.color = 'var(--primary-color)';
+        document.getElementById('authTabLogin').style.borderBottomColor = 'var(--primary-color)';
+        
+        document.getElementById('authTabSignUp').classList.remove('active');
+        document.getElementById('authTabSignUp').style.color = 'var(--dark-gray)';
+        document.getElementById('authTabSignUp').style.borderBottomColor = 'transparent';
+        
+        document.getElementById('userLoginForm').style.display = 'block';
+        document.getElementById('userSignUpForm').style.display = 'none';
+
     } else {
-        authView.style.display = 'none'; profileView.style.display = 'block';
-        document.getElementById('profileDisplayName').textContent = state.currentUser.displayName || "بەکارهێنەر"; document.getElementById('profileDisplayEmail').textContent = state.currentUser.email;
-        document.getElementById('profileName').value = state.userProfile.name || ''; document.getElementById('profileAddress').value = state.userProfile.address || ''; document.getElementById('profilePhone').value = state.userProfile.phone || '';
+        authView.style.display = 'none';
+        profileView.style.display = 'block';
+
+        document.getElementById('profileDisplayName').textContent = state.currentUser.displayName || "بەکارهێنەر";
+        document.getElementById('profileDisplayEmail').textContent = state.currentUser.email;
+
+        document.getElementById('profileName').value = state.userProfile.name || '';
+        document.getElementById('profileAddress').value = state.userProfile.address || '';
+        document.getElementById('profilePhone').value = state.userProfile.phone || '';
     }
 }
 
+// [ 💡 چاکسازی لۆجیکی سەبەتە 💡 ] - فەنکشنەکە نوێکرایەوە تا زانیاری جۆرەکان وەربگرێت
 async function handleAddToCartUI(productId, buttonElement, selectedVariationInfo = null) {
+    // زانیاری جۆرەکان دەنێرین بۆ کۆر
     const result = await addToCartCore(productId, selectedVariationInfo); 
+    
     showNotification(result.message, result.success ? 'success' : 'error');
     if (result.success) {
         updateCartCountUI(); 
         if (buttonElement && !buttonElement.disabled) {
             const originalContent = buttonElement.innerHTML;
-            buttonElement.disabled = true; buttonElement.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`; 
-            setTimeout(() => { buttonElement.innerHTML = `<i class="fas fa-check"></i> <span>${t('added_to_cart')}</span>`; setTimeout(() => { buttonElement.innerHTML = originalContent; buttonElement.disabled = false; }, 1500); }, 500);
+            buttonElement.disabled = true;
+            buttonElement.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`; 
+            setTimeout(() => {
+                buttonElement.innerHTML = `<i class="fas fa-check"></i> <span>${t('added_to_cart')}</span>`; 
+                setTimeout(() => {
+                    buttonElement.innerHTML = originalContent; 
+                    buttonElement.disabled = false;
+                }, 1500);
+            }, 500);
         }
     }
 }
 
-function handleUpdateQuantityUI(productId, change) { if (updateCartQuantityCore(productId, change)) { renderCartUI(); updateCartCountUI(); } }
-function handleRemoveFromCartUI(productId) { if (removeFromCartCore(productId)) { renderCartUI(); updateCartCountUI(); } }
-
-function handleToggleFavoriteUI(productId) {
-    const result = toggleFavoriteCore(productId); showNotification(result.message, result.favorited ? 'success' : 'error');
-    document.querySelectorAll(`[data-product-id="${productId}"] .favorite-btn`).forEach(btn => {
-        btn.classList.toggle('favorited', result.favorited);
-        const icon = btn.querySelector('.fa-heart');
-        if (icon) { icon.classList.toggle('fas', result.favorited); icon.classList.toggle('far', !result.favorited); }
-    });
-    if (document.getElementById('favoritesSheet')?.classList.contains('show')) { renderFavoritesPageUI(); }
-    // [ 💡 گۆڕانکاری ] - نوێکردنەوەی دوگمەی دڵخواز لە لاپەڕەی کاڵا
-    const detailFavBtn = document.getElementById('detailFavoriteBtn');
-    if (detailFavBtn && state.currentProductId === productId) {
-        detailFavBtn.innerHTML = `<i class="${result.favorited ? 'fas' : 'far'} fa-heart" style="color: ${result.favorited ? 'var(--danger-color)' : 'var(--dark-gray)'}"></i>`;
+function handleUpdateQuantityUI(productId, change) {
+    if (updateCartQuantityCore(productId, change)) { 
+        renderCartUI(); 
+        updateCartCountUI(); 
     }
 }
 
+function handleRemoveFromCartUI(productId) {
+    if (removeFromCartCore(productId)) { 
+        renderCartUI(); 
+        updateCartCountUI(); 
+    }
+}
+
+function handleToggleFavoriteUI(productId) {
+    const result = toggleFavoriteCore(productId); 
+    showNotification(result.message, result.favorited ? 'success' : 'error');
+
+    document.querySelectorAll(`[data-product-id="${productId}"] .favorite-btn`).forEach(btn => {
+        btn.classList.toggle('favorited', result.favorited);
+        const icon = btn.querySelector('.fa-heart');
+        if (icon) {
+            icon.classList.toggle('fas', result.favorited);
+            icon.classList.toggle('far', !result.favorited);
+        }
+    });
+
+    if (document.getElementById('favoritesSheet')?.classList.contains('show')) {
+        renderFavoritesPageUI();
+    }
+}
+
+
 function setupUIEventListeners() {
+    
     homeBtn.onclick = async () => {
         saveCurrentScrollPositionCore();
         history.pushState(null, '', window.location.pathname);
-        state.currentCategory = 'all'; state.currentSubcategory = 'all'; state.currentSubSubcategory = 'all'; state.currentSearch = '';
+        state.currentCategory = 'all';
+        state.currentSubcategory = 'all';
+        state.currentSubSubcategory = 'all';
+        state.currentSearch = '';
         showPage('mainPage');
         await updateProductViewUI(true, true);
     };
 
-    settingsBtn.onclick = () => { saveCurrentScrollPositionCore(); history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage'); showPage('settingsPage', t('settings_title')); };
-    
-    document.getElementById('headerBackBtn').onclick = () => { history.back(); };
-    
-    // [ 💡 نوێ ] - گوێگر بۆ دوگمەی گەڕانەوە لە لاپەڕەی کاڵا
-    const detailBackBtn = document.getElementById('detailBackBtn');
-    if (detailBackBtn) detailBackBtn.onclick = () => { history.back(); };
+    settingsBtn.onclick = () => {
+        saveCurrentScrollPositionCore(); 
+        history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
+        showPage('settingsPage', t('settings_title'));
+    };
 
-    const settingsProfileBtn = document.getElementById('settingsProfileBtn'); if (settingsProfileBtn) { settingsProfileBtn.onclick = () => { openPopup('profileSheet'); }; }
+    document.getElementById('headerBackBtn').onclick = () => { history.back(); };
+
+    const settingsProfileBtn = document.getElementById('settingsProfileBtn');
+    if (settingsProfileBtn) {
+        settingsProfileBtn.onclick = () => { openPopup('profileSheet'); };
+    }
 
     cartBtn.onclick = () => { openPopup('cartSheet'); updateActiveNav('cartBtn'); };
     categoriesBtn.onclick = () => { openPopup('categoriesSheet'); updateActiveNav('categoriesBtn'); };
@@ -973,133 +1187,507 @@ function setupUIEventListeners() {
     document.querySelectorAll('.close').forEach(btn => btn.onclick = closeCurrentPopup);
     window.onclick = (e) => { if (e.target.classList.contains('modal')) closeCurrentPopup(); };
 
-    loginForm.onsubmit = async (e) => { e.preventDefault(); try { await handleLogin(document.getElementById('email').value, document.getElementById('password').value); closeCurrentPopup(); } catch (error) { showNotification(error.message, 'error'); } };
+    loginForm.onsubmit = async (e) => {
+        e.preventDefault();
+        try {
+            await handleLogin(document.getElementById('email').value, document.getElementById('password').value);
+            closeCurrentPopup(); 
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    };
     
-    const authTabLogin = document.getElementById('authTabLogin'); const authTabSignUp = document.getElementById('authTabSignUp');
-    const userLoginForm = document.getElementById('userLoginForm'); const userSignUpForm = document.getElementById('userSignUpForm');
+    const authTabLogin = document.getElementById('authTabLogin');
+    const authTabSignUp = document.getElementById('authTabSignUp');
+    const userLoginForm = document.getElementById('userLoginForm');
+    const userSignUpForm = document.getElementById('userSignUpForm');
 
-    authTabLogin.onclick = () => { authTabLogin.classList.add('active'); authTabLogin.style.color = 'var(--primary-color)'; authTabLogin.style.borderBottomColor = 'var(--primary-color)'; authTabSignUp.classList.remove('active'); authTabSignUp.style.color = 'var(--dark-gray)'; authTabSignUp.style.borderBottomColor = 'transparent'; userLoginForm.style.display = 'block'; userSignUpForm.style.display = 'none'; };
-    authTabSignUp.onclick = () => { authTabSignUp.classList.add('active'); authTabSignUp.style.color = 'var(--primary-color)'; authTabSignUp.style.borderBottomColor = 'var(--primary-color)'; authTabLogin.classList.remove('active'); authTabLogin.style.color = 'var(--dark-gray)'; authTabLogin.style.borderBottomColor = 'transparent'; userLoginForm.style.display = 'none'; userSignUpForm.style.display = 'block'; };
+    authTabLogin.onclick = () => {
+        authTabLogin.classList.add('active');
+        authTabLogin.style.color = 'var(--primary-color)';
+        authTabLogin.style.borderBottomColor = 'var(--primary-color)';
+        authTabSignUp.classList.remove('active');
+        authTabSignUp.style.color = 'var(--dark-gray)';
+        authTabSignUp.style.borderBottomColor = 'transparent';
+        userLoginForm.style.display = 'block';
+        userSignUpForm.style.display = 'none';
+    };
 
-    userLoginForm.onsubmit = async (e) => { e.preventDefault(); const email = document.getElementById('userLoginEmail').value; const password = document.getElementById('userLoginPassword').value; const errorP = document.getElementById('userLoginError'); const submitBtn = userLoginForm.querySelector('button[type="submit"]'); submitBtn.disabled = true; errorP.style.display = 'none'; const result = await handleUserLogin(email, password); if (result.success) { closeCurrentPopup(); } else { errorP.textContent = result.message; errorP.style.display = 'block'; submitBtn.disabled = false; } };
-    const forgotPasswordLink = document.getElementById('forgotPasswordLink'); if (forgotPasswordLink) { forgotPasswordLink.onclick = async () => { const email = document.getElementById('userLoginEmail').value; const errorP = document.getElementById('userLoginError'); errorP.style.display = 'none'; if (!email) { showNotification(t('password_reset_enter_email'), 'error'); errorP.textContent = t('password_reset_enter_email'); errorP.style.display = 'block'; return; } const result = await handlePasswordReset(email); showNotification(result.message, result.success ? 'success' : 'error'); if (!result.success) { errorP.textContent = result.message; errorP.style.display = 'block'; } }; }
+    authTabSignUp.onclick = () => {
+        authTabSignUp.classList.add('active');
+        authTabSignUp.style.color = 'var(--primary-color)';
+        authTabSignUp.style.borderBottomColor = 'var(--primary-color)';
+        authTabLogin.classList.remove('active');
+        authTabLogin.style.color = 'var(--dark-gray)';
+        authTabLogin.style.borderBottomColor = 'transparent';
+        userLoginForm.style.display = 'none';
+        userSignUpForm.style.display = 'block';
+    };
 
-    userSignUpForm.onsubmit = async (e) => { e.preventDefault(); const name = document.getElementById('userSignUpName').value; const email = document.getElementById('userSignUpEmail').value; const password = document.getElementById('userSignUpPassword').value; const errorP = document.getElementById('userSignUpError'); const submitBtn = userSignUpForm.querySelector('button[type="submit"]'); submitBtn.disabled = true; errorP.style.display = 'none'; const result = await handleUserSignUp(name, email, password); if (result.success) { showNotification(result.message, 'success'); closeCurrentPopup(); } else { errorP.textContent = result.message; errorP.style.display = 'block'; submitBtn.disabled = false; } };
-    document.getElementById('userLogoutBtn').onclick = async () => { const result = await handleUserLogout(); showNotification(result.message, result.success ? 'success' : 'error'); };
+    userLoginForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('userLoginEmail').value;
+        const password = document.getElementById('userLoginPassword').value;
+        const errorP = document.getElementById('userLoginError');
+        const submitBtn = userLoginForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        errorP.style.display = 'none';
+        
+        const result = await handleUserLogin(email, password);
+        
+        if (result.success) {
+            closeCurrentPopup(); 
+        } else {
+            errorP.textContent = result.message;
+            errorP.style.display = 'block';
+            submitBtn.disabled = false;
+        }
+    };
 
-    const debouncedSearch = debounce(async (term) => { await navigateToFilterCore({ search: term }); await updateProductViewUI(true, true); }, 500);
-    searchInput.oninput = () => { const searchTerm = searchInput.value; clearSearchBtn.style.display = searchTerm ? 'block' : 'none'; debouncedSearch(searchTerm); };
-    clearSearchBtn.onclick = () => { searchInput.value = ''; clearSearchBtn.style.display = 'none'; debouncedSearch(''); };
+    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+    if (forgotPasswordLink) {
+        forgotPasswordLink.onclick = async () => {
+            const email = document.getElementById('userLoginEmail').value;
+            const errorP = document.getElementById('userLoginError');
+            errorP.style.display = 'none';
 
-    const subpageSearchInput = document.getElementById('subpageSearchInput'); const subpageClearSearchBtn = document.getElementById('subpageClearSearchBtn');
-    const debouncedSubpageSearch = debounce(async (term) => { const hash = window.location.hash.substring(1); if (hash.startsWith('subcategory_')) { const ids = hash.split('_'); const subCatId = ids[2]; const activeSubSubBtn = document.querySelector('#subSubCategoryContainerOnDetailPage .subcategory-btn.active'); const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.id || 'all') : 'all'; await renderProductsOnDetailPageUI(subCatId, subSubCatId, term); } }, 500);
-    subpageSearchInput.oninput = () => { const searchTerm = subpageSearchInput.value; subpageClearSearchBtn.style.display = searchTerm ? 'block' : 'none'; debouncedSubpageSearch(searchTerm); };
-    subpageClearSearchBtn.onclick = () => { subpageSearchInput.value = ''; subpageClearSearchBtn.style.display = 'none'; debouncedSubpageSearch(''); };
+            if (!email) {
+                showNotification(t('password_reset_enter_email'), 'error');
+                errorP.textContent = t('password_reset_enter_email');
+                errorP.style.display = 'block';
+                return;
+            }
+            
+            const result = await handlePasswordReset(email);
+            
+            showNotification(result.message, result.success ? 'success' : 'error');
+            
+            if (!result.success) {
+                errorP.textContent = result.message;
+                errorP.style.display = 'block';
+            }
+        };
+    }
 
-    profileForm.onsubmit = async (e) => { e.preventDefault(); const profileData = { name: document.getElementById('profileName').value, address: document.getElementById('profileAddress').value, phone: document.getElementById('profilePhone').value, }; const submitBtn = profileForm.querySelector('button[type="submit"]'); submitBtn.disabled = true; const result = await saveProfileCore(profileData); showNotification(result.message, result.success ? 'success' : 'error'); if(result.success) { closeCurrentPopup(); } submitBtn.disabled = false; };
+    userSignUpForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('userSignUpName').value;
+        const email = document.getElementById('userSignUpEmail').value;
+        const password = document.getElementById('userSignUpPassword').value;
+        const errorP = document.getElementById('userSignUpError');
+        const submitBtn = userSignUpForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        errorP.style.display = 'none';
 
-    document.querySelectorAll('.lang-btn').forEach(btn => { btn.onclick = () => { handleSetLanguage(btn.dataset.lang); }; });
+        const result = await handleUserSignUp(name, email, password);
+        
+        if (result.success) {
+            showNotification(result.message, 'success');
+            closeCurrentPopup(); 
+        } else {
+            errorP.textContent = result.message;
+            errorP.style.display = 'block';
+            submitBtn.disabled = false;
+        }
+    };
 
-    contactToggle.onclick = () => { const container = document.getElementById('dynamicContactLinksContainer'); const chevron = contactToggle.querySelector('.contact-chevron'); container.classList.toggle('open'); chevron.classList.toggle('open'); };
+    document.getElementById('userLogoutBtn').onclick = async () => {
+        const result = await handleUserLogout();
+        showNotification(result.message, result.success ? 'success' : 'error');
+    };
 
-    const installBtn = document.getElementById('installAppBtn'); if (installBtn) { installBtn.addEventListener('click', () => handleInstallPrompt(installBtn)); }
-    document.getElementById('enableNotificationsBtn')?.addEventListener('click', async () => { const result = await requestNotificationPermissionCore(); showNotification(result.message, result.granted ? 'success' : 'error'); });
-    document.getElementById('forceUpdateBtn')?.addEventListener('click', async () => { const result = await forceUpdateCore(); if (result.success) { showNotification(result.message, 'success'); setTimeout(() => window.location.reload(true), 1500); } else if (result.message !== 'Update cancelled.') { showNotification(result.message, 'error'); } });
+
+    const debouncedSearch = debounce(async (term) => {
+        await navigateToFilterCore({ search: term }); 
+        await updateProductViewUI(true, true); 
+    }, 500);
+    searchInput.oninput = () => {
+        const searchTerm = searchInput.value;
+        clearSearchBtn.style.display = searchTerm ? 'block' : 'none';
+        debouncedSearch(searchTerm);
+    };
+    clearSearchBtn.onclick = () => {
+        searchInput.value = '';
+        clearSearchBtn.style.display = 'none';
+        debouncedSearch(''); 
+    };
+
+    const subpageSearchInput = document.getElementById('subpageSearchInput');
+    const subpageClearSearchBtn = document.getElementById('subpageClearSearchBtn');
+    const debouncedSubpageSearch = debounce(async (term) => {
+        const hash = window.location.hash.substring(1);
+        if (hash.startsWith('subcategory_')) {
+            const ids = hash.split('_');
+            const subCatId = ids[2];
+            const activeSubSubBtn = document.querySelector('#subSubCategoryContainerOnDetailPage .subcategory-btn.active');
+            const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.id || 'all') : 'all';
+            await renderProductsOnDetailPageUI(subCatId, subSubCatId, term); 
+        }
+    }, 500);
+    subpageSearchInput.oninput = () => {
+        const searchTerm = subpageSearchInput.value;
+        subpageClearSearchBtn.style.display = searchTerm ? 'block' : 'none';
+        debouncedSubpageSearch(searchTerm);
+    };
+    subpageClearSearchBtn.onclick = () => {
+        subpageSearchInput.value = '';
+        subpageClearSearchBtn.style.display = 'none';
+        debouncedSubpageSearch('');
+    };
+
+    profileForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const profileData = {
+            name: document.getElementById('profileName').value,
+            address: document.getElementById('profileAddress').value,
+            phone: document.getElementById('profilePhone').value,
+        };
+        
+        const submitBtn = profileForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+
+        const result = await saveProfileCore(profileData); 
+        
+        showNotification(result.message, result.success ? 'success' : 'error');
+        if(result.success) {
+            closeCurrentPopup();
+        }
+        submitBtn.disabled = false;
+    };
+
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.onclick = () => {
+            handleSetLanguage(btn.dataset.lang);
+        };
+    });
+
+    contactToggle.onclick = () => {
+        const container = document.getElementById('dynamicContactLinksContainer');
+        const chevron = contactToggle.querySelector('.contact-chevron');
+        container.classList.toggle('open');
+        chevron.classList.toggle('open');
+    };
+
+    const installBtn = document.getElementById('installAppBtn');
+    if (installBtn) {
+        installBtn.addEventListener('click', () => handleInstallPrompt(installBtn));
+    }
+
+    document.getElementById('enableNotificationsBtn')?.addEventListener('click', async () => {
+        const result = await requestNotificationPermissionCore();
+        showNotification(result.message, result.granted ? 'success' : 'error');
+    });
+
+    document.getElementById('forceUpdateBtn')?.addEventListener('click', async () => {
+        const result = await forceUpdateCore();
+        if (result.success) {
+            showNotification(result.message, 'success');
+            setTimeout(() => window.location.reload(true), 1500);
+        } else if (result.message !== 'Update cancelled.') {
+            showNotification(result.message, 'error');
+        }
+    });
 
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
     if (scrollTrigger) {
         const observer = new IntersectionObserver(async (entries) => {
             const isMainPageActive = document.getElementById('mainPage')?.classList.contains('page-active');
             const isProductGridVisible = document.getElementById('productsContainer')?.style.display === 'grid';
+
             if (entries[0].isIntersecting && isMainPageActive && isProductGridVisible && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
-                 loader.style.display = 'block'; const result = await fetchProducts(state.currentSearch, false); loader.style.display = 'none'; 
-                 if(result && result.products.length > 0) { await updateProductViewUI(false); } scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
+                 loader.style.display = 'block'; 
+                 const result = await fetchProducts(state.currentSearch, false); 
+                 loader.style.display = 'none'; 
+                 if(result && result.products.length > 0) {
+                     await updateProductViewUI(false); 
+                 }
+                 scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
             }
         }, { threshold: 0.1 });
         observer.observe(scrollTrigger);
     }
 
-    document.addEventListener('authChange', (e) => { updateAdminUIAuth(e.detail.isAdmin); if(e.detail.isAdmin && loginModal.style.display === 'block') { closeCurrentPopup(); } });
-    document.addEventListener('userChange', () => { if (document.getElementById('profileSheet')?.classList.contains('show')) { updateProfileSheetUI(); } });
-    document.addEventListener('profileLoaded', () => { if (document.getElementById('profileSheet')?.classList.contains('show')) { updateProfileSheetUI(); } });
-    document.addEventListener('fcmMessage', (e) => { const payload = e.detail; const title = payload.notification?.title || 'Notification'; const body = payload.notification?.body || ''; showNotification(`${title}: ${body}`, 'success'); notificationBadge.style.display = 'block'; });
-    document.addEventListener('installPromptReady', () => { const installBtn = document.getElementById('installAppBtn'); if (installBtn) installBtn.style.display = 'flex'; });
-    document.addEventListener('swUpdateReady', (e) => { const updateNotification = document.getElementById('update-notification'); const updateNowBtn = document.getElementById('update-now-btn'); updateNotification.classList.add('show'); updateNowBtn.onclick = () => { e.detail.registration?.waiting?.postMessage({ action: 'skipWaiting' }); }; });
-    document.addEventListener('clearCacheTriggerRender', async () => { if(state.currentCategory === 'all' && !state.currentSearch) { await updateProductViewUI(true, true); } });
+    document.addEventListener('authChange', (e) => {
+        updateAdminUIAuth(e.detail.isAdmin);
+        if(e.detail.isAdmin && loginModal.style.display === 'block') {
+             closeCurrentPopup();
+        }
+    });
+    
+    document.addEventListener('userChange', () => {
+        if (document.getElementById('profileSheet')?.classList.contains('show')) {
+            updateProfileSheetUI();
+        }
+    });
+    
+    document.addEventListener('profileLoaded', () => {
+        if (document.getElementById('profileSheet')?.classList.contains('show')) {
+            updateProfileSheetUI();
+        }
+    });
+
+
+    document.addEventListener('fcmMessage', (e) => {
+        const payload = e.detail;
+        const title = payload.notification?.title || 'Notification';
+        const body = payload.notification?.body || '';
+        showNotification(`${title}: ${body}`, 'success');
+        notificationBadge.style.display = 'block'; 
+    });
+
+    document.addEventListener('installPromptReady', () => {
+        const installBtn = document.getElementById('installAppBtn');
+        if (installBtn) installBtn.style.display = 'flex';
+    });
+
+    document.addEventListener('swUpdateReady', (e) => {
+        const updateNotification = document.getElementById('update-notification');
+        const updateNowBtn = document.getElementById('update-now-btn');
+        updateNotification.classList.add('show');
+        updateNowBtn.onclick = () => {
+             e.detail.registration?.waiting?.postMessage({ action: 'skipWaiting' });
+        };
+    });
+
+    document.addEventListener('clearCacheTriggerRender', async () => {
+        console.log("UI received clearCacheTriggerRender event.");
+        if(state.currentCategory === 'all' && !state.currentSearch) {
+             await updateProductViewUI(true, true); 
+        }
+    });
 
     setupGpsButtonUI();
 }
 
 async function handleSetLanguage(lang) {
     setLanguageCore(lang); 
-    document.querySelectorAll('[data-translate-key]').forEach(element => { const key = element.dataset.translateKey; const translation = t(key); if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') { if(element.placeholder) element.placeholder = translation; } else { element.textContent = translation; } });
-    document.querySelectorAll('.lang-btn').forEach(btn => { btn.classList.toggle('active', btn.dataset.lang === lang); });
-    renderCategoriesSheetUI(); if (document.getElementById('cartSheet').classList.contains('show')) renderCartUI(); if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPageUI(); await updateProductViewUI(true, true); await renderContactLinksUI();
-    if (sessionStorage.getItem('isAdmin') === 'true' && window.AdminLogic) { window.AdminLogic.renderAdminAnnouncementsList?.(); window.AdminLogic.renderSocialMediaLinks?.(); window.AdminLogic.renderContactMethodsAdmin?.(); window.AdminLogic.renderCategoryManagementUI?.(); window.AdminLogic.renderPromoGroupsAdminList?.(); window.AdminLogic.renderBrandGroupsAdminList?.(); window.AdminLogic.renderShortcutRowsAdminList?.(); window.AdminLogic.renderHomeLayoutAdmin?.(); window.AdminLogic.renderCategoryLayoutAdmin?.(); }
-    const authTabLogin = document.getElementById('authTabLogin'); const authTabSignUp = document.getElementById('authTabSignUp'); if (authTabLogin) authTabLogin.textContent = t('auth_tab_login'); if (authTabSignUp) authTabSignUp.textContent = t('auth_tab_signup');
+
+    document.querySelectorAll('[data-translate-key]').forEach(element => {
+        const key = element.dataset.translateKey;
+        const translation = t(key);
+        if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+            if(element.placeholder) element.placeholder = translation;
+        } else {
+            element.textContent = translation;
+        }
+    });
+
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === lang);
+    });
+
+    renderCategoriesSheetUI(); 
+    if (document.getElementById('cartSheet').classList.contains('show')) renderCartUI();
+    if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPageUI();
+    await updateProductViewUI(true, true); 
+    await renderContactLinksUI();
+
+    if (sessionStorage.getItem('isAdmin') === 'true' && window.AdminLogic) {
+         window.AdminLogic.renderAdminAnnouncementsList?.();
+         window.AdminLogic.renderSocialMediaLinks?.();
+         window.AdminLogic.renderContactMethodsAdmin?.();
+         window.AdminLogic.renderCategoryManagementUI?.();
+         window.AdminLogic.renderPromoGroupsAdminList?.();
+         window.AdminLogic.renderBrandGroupsAdminList?.();
+         window.AdminLogic.renderShortcutRowsAdminList?.();
+         window.AdminLogic.renderHomeLayoutAdmin?.();
+         window.AdminLogic.renderCategoryLayoutAdmin?.();
+    }
+    
+    const authTabLogin = document.getElementById('authTabLogin');
+    const authTabSignUp = document.getElementById('authTabSignUp');
+    if (authTabLogin) authTabLogin.textContent = t('auth_tab_login');
+    if (authTabSignUp) authTabSignUp.textContent = t('auth_tab_signup');
 }
 
 window.addEventListener('popstate', async (event) => {
-    const wasPopupOpen = state.currentPopupState !== null; const previousPageId = state.currentPageId; 
-    state.currentPopupState = null; closeAllPopupsUI(); 
-    const popState = event.state; const activePage = document.getElementById(state.currentPageId); 
-    if (!activePage) return;
+    const wasPopupOpen = state.currentPopupState !== null; 
+    const previousPageId = state.currentPageId; 
+
+    state.currentPopupState = null; 
+    closeAllPopupsUI(); 
+
+    const popState = event.state;
+    const activePage = document.getElementById(state.currentPageId); 
+    
+    if (!activePage) {
+        console.error("Popstate error: Could not find active page element.");
+        return;
+    }
 
     if (popState) {
         if (popState.type === 'page') {
             showPage(popState.id, popState.title); 
-            if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) { await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true); }
-            if (popState.id === 'chatPage') { openChatPage(); }
-            // [ 💡 نوێ ] - مامەڵە کردن لەگەڵ Back Button بۆ لاپەڕەی کاڵا
-            if (popState.id === 'productDetailPage' && popState.productId) { 
-                 const product = await fetchProductById(popState.productId);
-                 if(product) showProductDetailsUI(product);
+            if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
+                await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
             }
-        } else if (popState.type === 'sheet' || popState.type === 'modal') { openPopup(popState.id, popState.type, false); } 
-        else { 
-            showPage('mainPage'); const stateToApply = popState || { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 }; applyFilterStateCore(stateToApply); 
-            const cameFromPage = previousPageId !== 'mainPage'; const shouldReloadData = cameFromPage; 
-            await updateProductViewUI(shouldReloadData, false);
-            if (!state.pendingFilterNav) { if (typeof stateToApply.scroll === 'number') { requestAnimationFrame(() => { activePage.scrollTo({ top: stateToApply.scroll, behavior: 'instant' }); }); } else { requestAnimationFrame(() => { activePage.scrollTo({ top: 0, behavior: 'instant' }); }); } }
-            if (state.pendingFilterNav) { const filterToApply = state.pendingFilterNav; state.pendingFilterNav = null; setTimeout(async () => { await navigateToFilterCore(filterToApply); await updateProductViewUI(true, true); }, 50); }
+            // [ 💡 نوێ ] - Handled Product Detail Page
+            if (popState.id === 'productDetailPage' && popState.productId) {
+                 setTimeout(() => {
+                    showProductDetailsUI({id: popState.productId}, true);
+                 }, 50);
+            }
+            if (popState.id === 'chatPage') {
+                openChatPage();
+            }
+        } else if (popState.type === 'sheet' || popState.type === 'modal') {
+            openPopup(popState.id, popState.type, false);
+        
+        } else { 
+            showPage('mainPage'); 
+            
+            const stateToApply = popState || { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
+            applyFilterStateCore(stateToApply); 
+
+            const cameFromPage = previousPageId !== 'mainPage'; 
+            const shouldReloadData = cameFromPage; 
+            const shouldScrollToTop = false; 
+            
+            await updateProductViewUI(shouldReloadData, shouldScrollToTop);
+
+            if (!state.pendingFilterNav) { 
+                if (typeof stateToApply.scroll === 'number') {
+                    requestAnimationFrame(() => {
+                        activePage.scrollTo({ top: stateToApply.scroll, behavior: 'instant' });
+                    });
+                } else {
+                    requestAnimationFrame(() => {
+                        activePage.scrollTo({ top: 0, behavior: 'instant' });
+                    });
+                }
+            }
+            
+            if (state.pendingFilterNav) {
+                console.log("Found pending filter navigation. Applying now.");
+                const filterToApply = state.pendingFilterNav;
+                state.pendingFilterNav = null; 
+                
+                setTimeout(async () => {
+                    await navigateToFilterCore(filterToApply);
+                    await updateProductViewUI(true, true); 
+                }, 50); 
+            }
         }
     } else {
-        showPage('mainPage'); applyFilterStateCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 }); await updateProductViewUI(true, true); requestAnimationFrame(() => { const homePage = document.getElementById('mainPage'); if(homePage) homePage.scrollTo({ top: 0, behavior: 'instant' }); });
+        console.log("Popstate: No state found, loading default main page.");
+        const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
+        showPage('mainPage'); 
+        applyFilterStateCore(defaultState); 
+        await updateProductViewUI(true, true); 
+        requestAnimationFrame(() => {
+             const homePage = document.getElementById('mainPage');
+             if(homePage) homePage.scrollTo({ top: 0, behavior: 'instant' });
+        });
     }
 });
 
 async function initializeUI() {
-    await initCore(); setLanguageCore(state.currentLanguage); 
-    document.querySelectorAll('[data-translate-key]').forEach(element => { const key = element.dataset.translateKey; const translation = t(key); if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') { if(element.placeholder) element.placeholder = translation; } else { element.textContent = translation; } });
-    document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === state.currentLanguage)); 
-    const authTabLogin = document.getElementById('authTabLogin'); const authTabSignUp = document.getElementById('authTabSignUp'); if (authTabLogin) authTabLogin.textContent = t('auth_tab_login'); if (authTabSignUp) authTabSignUp.textContent = t('auth_tab_signup');
-    renderCategoriesSheetUI(); setupUIEventListeners(); handleInitialPageLoadUI(); renderContactLinksUI(); initChatSystem();
-    const announcements = await fetchAnnouncements(); if(announcements.length > 0 && checkNewAnnouncementsCore(announcements[0].createdAt)) { notificationBadge.style.display = 'block'; }
-    if (!localStorage.getItem('hasVisited')) { openPopup('welcomeModal', 'modal'); localStorage.setItem('hasVisited', 'true'); }
+    await initCore(); 
+
+    setLanguageCore(state.currentLanguage); 
+     document.querySelectorAll('[data-translate-key]').forEach(element => { 
+         const key = element.dataset.translateKey;
+         const translation = t(key);
+         if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') { if(element.placeholder) element.placeholder = translation; }
+         else { element.textContent = translation; }
+    });
+     document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === state.currentLanguage)); 
+    
+    const authTabLogin = document.getElementById('authTabLogin');
+    const authTabSignUp = document.getElementById('authTabSignUp');
+    if (authTabLogin) authTabLogin.textContent = t('auth_tab_login');
+    if (authTabSignUp) authTabSignUp.textContent = t('auth_tab_signup');
+
+
+    renderCategoriesSheetUI();
+
+    setupUIEventListeners();
+
+    handleInitialPageLoadUI(); 
+
+    renderContactLinksUI();
+
+    initChatSystem();
+
+    const announcements = await fetchAnnouncements();
+     if(announcements.length > 0 && checkNewAnnouncementsCore(announcements[0].createdAt)) {
+         notificationBadge.style.display = 'block';
+     }
+
+    if (!localStorage.getItem('hasVisited')) {
+        openPopup('welcomeModal', 'modal');
+        localStorage.setItem('hasVisited', 'true');
+    }
 }
 
 async function handleInitialPageLoadUI() {
-    const hash = window.location.hash.substring(1); const params = new URLSearchParams(window.location.search);
-    const isSettings = hash === 'settingsPage'; const isSubcategoryDetail = hash.startsWith('subcategory_'); const isChat = hash === 'chat'; const isAdminChat = hash === 'admin-chats'; 
-    const isProductDetail = hash.startsWith('product_');
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(window.location.search);
 
-    if (isSettings) { history.replaceState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', `#${hash}`); showPage('settingsPage', t('settings_title')); } 
-    else if (isChat) { history.replaceState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', `#chat`); showPage('chatPage', t('chat_title')); openChatPage(); } 
-    else if (isAdminChat) { history.replaceState({ type: 'page', id: 'adminChatListPage', title: t('conversations_title') }, '', `#admin-chats`); showPage('adminChatListPage', t('conversations_title')); if(sessionStorage.getItem('isAdmin') === 'true') { openChatPage(); } } 
-    else if (isSubcategoryDetail) { const ids = hash.split('_'); const mainCatId = ids[1]; const subCatId = ids[2]; if (state.categories.length > 0) { await showSubcategoryDetailPageUI(mainCatId, subCatId, true); } else { showPage('mainPage'); await updateProductViewUI(true, true); } } 
-    // [ 💡 نوێ ] - کردنەوەی کاڵا لە ڕیفرێش
-    else if (isProductDetail) {
-         const productId = hash.split('_')[1];
-         if (productId) {
-             const product = await fetchProductById(productId);
-             if(product) showProductDetailsUI(product);
-             else { showPage('mainPage'); await updateProductViewUI(true, true); }
+    const isSettings = hash === 'settingsPage';
+    const isSubcategoryDetail = hash.startsWith('subcategory_');
+    const isChat = hash === 'chat'; 
+    const isAdminChat = hash === 'admin-chats'; 
+    const isProductDetail = params.get('product');
+
+    if (isSettings) {
+         history.replaceState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', `#${hash}`);
+         showPage('settingsPage', t('settings_title'));
+    } else if (isChat) { 
+         history.replaceState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', `#chat`);
+         showPage('chatPage', t('chat_title'));
+         openChatPage(); 
+    } else if (isAdminChat) { 
+         history.replaceState({ type: 'page', id: 'adminChatListPage', title: t('conversations_title') }, '', `#admin-chats`);
+         showPage('adminChatListPage', t('conversations_title'));
+         if(sessionStorage.getItem('isAdmin') === 'true') {
+            openChatPage(); 
          }
-    }
-    else { 
-         showPage('mainPage'); const initialState = { category: params.get('category') || 'all', subcategory: params.get('subcategory') || 'all', subSubcategory: params.get('subSubcategory') || 'all', search: params.get('search') || '', scroll: 0 }; history.replaceState(initialState, ''); applyFilterStateCore(initialState); await updateProductViewUI(true, true); 
-         const element = document.getElementById(hash); if (element) { const isSheet = element.classList.contains('bottom-sheet'); const isModal = element.classList.contains('modal'); if (isSheet || isModal) { openPopup(hash, isSheet ? 'sheet' : 'modal'); } }
-         const productId = params.get('product'); if (productId) { const product = await fetchProductById(productId); if (product) { setTimeout(() => showProductDetailsUI(product), 300); } }
+    } else if (isSubcategoryDetail) {
+         const ids = hash.split('_');
+         const mainCatId = ids[1];
+         const subCatId = ids[2];
+         if (state.categories.length > 0) { 
+              await showSubcategoryDetailPageUI(mainCatId, subCatId, true); 
+         } else {
+             console.warn("Categories not ready on initial load, showing main page instead of detail.");
+             showPage('mainPage');
+             await updateProductViewUI(true, true); 
+         }
+    } else if (isProductDetail) {
+        // [ 💡 نوێ ] - Initial Load for Product Detail Page
+        const productId = isProductDetail;
+        if (productId) {
+            showPage('productDetailPage'); // Show empty page first to reduce flicker
+            const product = await fetchProductById(productId);
+            if (product) {
+                showProductDetailsUI(product, false);
+            } else {
+                 showPage('mainPage');
+                 await updateProductViewUI(true, true);
+            }
+        }
+    } else { 
+         showPage('mainPage');
+         const initialState = {
+             category: params.get('category') || 'all',
+             subcategory: params.get('subcategory') || 'all',
+             subSubcategory: params.get('subSubcategory') || 'all',
+             search: params.get('search') || '',
+             scroll: 0
+         };
+         history.replaceState(initialState, ''); 
+         applyFilterStateCore(initialState); 
+         await updateProductViewUI(true, true); 
+
+         const element = document.getElementById(hash);
+         if (element) {
+              const isSheet = element.classList.contains('bottom-sheet');
+              const isModal = element.classList.contains('modal');
+              if (isSheet || isModal) {
+                   openPopup(hash, isSheet ? 'sheet' : 'modal');
+              }
+         }
     }
 }
 
@@ -1109,32 +1697,99 @@ async function renderContactLinksUI() {
          const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
          const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
          const snapshot = await getDocs(q); 
+
          contactLinksContainer.innerHTML = ''; 
-         if (snapshot.empty) { contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هیچ لینکی پەیوەندی نییە.</p>'; return; }
+
+         if (snapshot.empty) {
+             contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هیچ لینکی پەیوەندی نییە.</p>';
+             return;
+         }
+
          snapshot.forEach(doc => {
-             const link = doc.data(); const name = link['name_' + state.currentLanguage] || link.name_ku_sorani;
-             const linkElement = document.createElement('a'); linkElement.href = link.url; linkElement.target = '_blank'; linkElement.className = 'settings-item';
-             linkElement.innerHTML = `<div><i class="${link.icon}" style="margin-left: 10px;"></i><span>${name}</span></div><i class="fas fa-external-link-alt"></i>`;
+             const link = doc.data();
+             const name = link['name_' + state.currentLanguage] || link.name_ku_sorani;
+
+             const linkElement = document.createElement('a');
+             linkElement.href = link.url;
+             linkElement.target = '_blank';
+             linkElement.className = 'settings-item';
+             linkElement.innerHTML = `
+                 <div>
+                     <i class="${link.icon}" style="margin-left: 10px;"></i>
+                     <span>${name}</span>
+                 </div>
+                 <i class="fas fa-external-link-alt"></i>
+             `;
              contactLinksContainer.appendChild(linkElement);
          });
-     } catch (error) { contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هەڵە لە بارکردنی لینکەکان.</p>'; }
+     } catch (error) {
+         console.error("Error fetching/rendering social links:", error);
+         contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هەڵە لە بارکردنی لینکەکان.</p>';
+     }
 }
 
 function setupGpsButtonUI() {
-     const getLocationBtn = document.getElementById('getLocationBtn'); const profileAddressInput = document.getElementById('profileAddress');
+     const getLocationBtn = document.getElementById('getLocationBtn');
+     const profileAddressInput = document.getElementById('profileAddress');
+
      if (!getLocationBtn || !profileAddressInput) return;
-     const btnSpan = getLocationBtn.querySelector('span'); const originalBtnText = btnSpan ? btnSpan.textContent : 'وەرگرتنی ناونیشانم بە GPS';
+
+     const btnSpan = getLocationBtn.querySelector('span');
+     const originalBtnText = btnSpan ? btnSpan.textContent : 'وەرگرتنی ناونیشانم بە GPS';
+
      getLocationBtn.addEventListener('click', () => {
-         if (!('geolocation' in navigator)) { showNotification('وێبگەڕەکەت پشتگیری GPS ناکات', 'error'); return; }
-         if(btnSpan) btnSpan.textContent = '...چاوەڕوان بە'; getLocationBtn.disabled = true;
-         navigator.geolocation.getCurrentPosition( async (position) => { const { latitude, longitude } = position.coords; try { const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`); const data = await response.json(); if (data && data.display_name) { profileAddressInput.value = data.display_name; showNotification('ناونیشان وەرگیرا', 'success'); } else { showNotification('نەتوانرا ناونیشان بدۆزرێتەوە', 'error'); } } catch (error) { showNotification('هەڵەیەک لە وەرگرتنی ناونیشان ڕوویدا', 'error'); } finally { if(btnSpan) btnSpan.textContent = originalBtnText; getLocationBtn.disabled = false; } }, (error) => { let message = t('error_generic'); switch (error.code) { case 1: message = 'ڕێگەت نەدا GPS بەکاربهێنرێت'; break; case 2: message = 'شوێنەکەت نەدۆزرایەوە'; break; case 3: message = 'کاتی داواکارییەکە تەواو بوو'; break; } showNotification(message, 'error'); if(btnSpan) btnSpan.textContent = originalBtnText; getLocationBtn.disabled = false; } );
+         if (!('geolocation' in navigator)) {
+             showNotification('وێبگەڕەکەت پشتگیری GPS ناکات', 'error');
+             return;
+         }
+
+         if(btnSpan) btnSpan.textContent = '...چاوەڕوان بە';
+         getLocationBtn.disabled = true;
+
+         navigator.geolocation.getCurrentPosition(
+              async (position) => { 
+                   const { latitude, longitude } = position.coords;
+                   try {
+                        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`);
+                        const data = await response.json();
+                        if (data && data.display_name) {
+                             profileAddressInput.value = data.display_name;
+                             showNotification('ناونیشان وەرگیرا', 'success');
+                        } else {
+                             showNotification('نەتوانرا ناونیشان بدۆزرێتەوە', 'error');
+                        }
+                   } catch (error) {
+                        console.error('Reverse Geocoding Error:', error);
+                        showNotification('هەڵەیەک لە وەرگرتنی ناونیشان ڕوویدا', 'error');
+                   } finally {
+                        if(btnSpan) btnSpan.textContent = originalBtnText;
+                       getLocationBtn.disabled = false;
+                   }
+               },
+               (error) => { 
+                   let message = t('error_generic'); 
+                   switch (error.code) {
+                        case 1: message = 'ڕێگەت نەدا GPS بەکاربهێنرێت'; break;
+                        case 2: message = 'شوێنەکەت نەدۆزرایەوە'; break;
+                        case 3: message = 'کاتی داواکارییەکە تەواو بوو'; break;
+                   }
+                   showNotification(message, 'error');
+                    if(btnSpan) btnSpan.textContent = originalBtnText;
+                   getLocationBtn.disabled = false;
+               }
+         );
      });
 }
 
 document.addEventListener('DOMContentLoaded', initializeUI);
 
-if (!window.globalAdminTools) { window.globalAdminTools = {}; }
+if (!window.globalAdminTools) {
+    window.globalAdminTools = {};
+}
+
 window.globalAdminTools.openPopup = openPopup;
 window.globalAdminTools.closeCurrentPopup = closeCurrentPopup;
 window.globalAdminTools.showNotification = showNotification; 
 window.globalAdminTools.updateCartCountUI = updateCartCountUI; 
+
+console.log('openPopup, closeCurrentPopup, & showNotification ji bo admin.js hatin zêdekirin.');

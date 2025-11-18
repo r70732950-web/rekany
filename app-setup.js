@@ -4,6 +4,7 @@ import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
+// [ 💡 ] لێرە هەموو فەنکشنەکانی Storage import دەکەین
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
 
 
@@ -24,11 +25,12 @@ export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 export const storage = getStorage(app);
 
+// [ 💡 ] لێرە دەیکەینە Export بۆ ئەوەی Chat.js بەکاری بهێنێت
 export {
     signInWithEmailAndPassword, onAuthStateChanged, signOut,
     createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail,
     serverTimestamp,
-    ref, uploadBytes, getDownloadURL
+    ref, uploadBytes, getDownloadURL // <--- ئەمە زیادکرا
 };
 
 // Collections
@@ -462,7 +464,7 @@ export const clearSearchBtn = document.getElementById('clearSearchBtn');
 export const loginForm = document.getElementById('loginForm');
 export const productForm = document.getElementById('productForm');
 export const formTitle = document.getElementById('formTitle');
-export const imageInputsContainer = document.getElementById('imageUploadContainer'); // Notice: IDs might differ in your HTML, ensuring consistency
+export const imageInputsContainer = document.getElementById('imageInputsContainer');
 export const loader = document.getElementById('loader');
 export const cartBtn = document.getElementById('cartBtn');
 export const cartItemsContainer = document.getElementById('cartItemsContainer');
@@ -488,7 +490,7 @@ export const settingsBtn = document.getElementById('settingsBtn');
 export const settingsFavoritesBtn = document.getElementById('settingsFavoritesBtn');
 export const settingsAdminLoginBtn = document.getElementById('settingsAdminLoginBtn');
 export const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
-export const profileBtn = document.getElementById('profileBtn'); // May not exist in HTML, keep safe
+export const profileBtn = document.getElementById('profileBtn'); 
 export const contactToggle = document.getElementById('contactToggle');
 export const notificationBtn = document.getElementById('notificationBtn');
 export const notificationBadge = document.getElementById('notificationBadge');
@@ -507,7 +509,7 @@ export const policiesForm = document.getElementById('policiesForm');
 export const adminSocialMediaManagement = document.getElementById('adminSocialMediaManagement');
 export const addSocialMediaForm = document.getElementById('addSocialMediaForm');
 export const socialLinksListContainer = document.getElementById('socialLinksListContainer');
-export const socialMediaToggle = document.getElementById('socialMediaToggle'); // Might be contactToggle in HTML
+export const socialMediaToggle = document.getElementById('socialMediaToggle');
 export const adminAnnouncementManagement = document.getElementById('adminAnnouncementManagement');
 export const announcementForm = document.getElementById('announcementForm');
 export const announcementsListContainer = document.getElementById('announcementsListContainer'); 
@@ -524,7 +526,7 @@ export const categoryListContainer = document.getElementById('categoryListContai
 export const addCategoryForm = document.getElementById('addCategoryForm');
 export const addSubcategoryForm = document.getElementById('addSubcategoryForm');
 export const addSubSubcategoryForm = document.getElementById('addSubSubcategoryForm');
-export const editCategoryForm = document.getElementById('editCategoryForm'); // Corrected ID to match Form ID not Modal
+export const editCategoryForm = document.getElementById('editCategoryModal');
 export const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
 export const contactMethodsListContainer = document.getElementById('contactMethodsListContainer');
 export const adminShortcutRowsManagement = document.getElementById('adminShortcutRowsManagement');
@@ -542,43 +544,6 @@ export const categoryLayoutEditorContainer = document.getElementById('categoryLa
 export const categoryLayoutEnableToggle = document.getElementById('categoryLayoutEnableToggle');
 export const categoryLayoutListContainer = document.getElementById('categoryLayoutListContainer');
 export const addCategorySectionBtn = document.getElementById('addCategorySectionBtn');
-
-// [NEW] Product Detail Page Elements (Full Screen)
-export const productDetailPage = document.getElementById('productDetailPage');
-export const detailBackBtn = document.getElementById('detailBackBtn');
-export const detailShareBtn = document.getElementById('detailShareBtn');
-export const detailImageWrapper = document.getElementById('detailImageWrapper');
-export const detailSliderIndicators = document.getElementById('detailSliderIndicators');
-export const detailName = document.getElementById('detailName');
-export const detailFavBtn = document.getElementById('detailFavBtn');
-export const detailPriceSection = document.getElementById('detailPriceSection');
-export const detailVariationSelectorContainer = document.getElementById('detailVariationSelectorContainer');
-export const detailVariationLvl1Container = document.getElementById('detailVariationLvl1Container');
-export const detailVariationLvl1Buttons = document.getElementById('detailVariationLvl1Buttons');
-export const detailVariationLvl2Container = document.getElementById('detailVariationLvl2Container');
-export const detailVariationLvl2Buttons = document.getElementById('detailVariationLvl2Buttons');
-export const detailDescription = document.getElementById('detailDescription');
-export const detailRelatedProductsSection = document.getElementById('detailRelatedProductsSection');
-export const detailRelatedProductsContainer = document.getElementById('detailRelatedProductsContainer');
-export const detailAddToCartBtn = document.getElementById('detailAddToCartBtn');
-
-// App Container
-export const appContainer = document.querySelector('.app-container');
-export const headerBackBtn = document.getElementById('headerBackBtn');
-export const subpageSearchInput = document.getElementById('subpageSearchInput');
-export const subpageClearSearchBtn = document.getElementById('subpageClearSearchBtn');
-export const cartCount = document.getElementById('cartCount');
-export const chatBadge = document.getElementById('chatBadge');
-export const subcategoryDetailPage = document.getElementById('subcategoryDetailPage');
-export const chatPage = document.getElementById('chatPage');
-export const adminChatListPage = document.getElementById('adminChatListPage');
-export const welcomeModal = document.getElementById('welcomeModal');
-export const orderConfirmationModal = document.getElementById('orderConfirmationModal');
-export const editCategoryModal = document.getElementById('editCategoryModal');
-export const profileSheet = document.getElementById('profileSheet');
-export const settingsProfileBtn = document.getElementById('settingsProfileBtn');
-export const addContactMethodForm = document.getElementById('addContactMethodForm');
-
 
 window.globalAdminTools = {
     db, auth,
