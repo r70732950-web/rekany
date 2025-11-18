@@ -1,4 +1,3 @@
-// app-ui.js
 import {
     loginModal, addProductBtn, productFormModal, skeletonLoader, searchInput,
     clearSearchBtn, loginForm, productForm, formTitle, imageInputsContainer, loader,
@@ -67,13 +66,14 @@ function updateHeaderView(pageId, title = '') {
     const headerTitle = document.getElementById('headerTitle');
     const subpageSearch = document.querySelector('.subpage-search'); 
 
+    // شاردنەوەی هێدەر لە چات
     if (pageId === 'chatPage') {
         if (appHeader) appHeader.style.display = 'none';
         document.documentElement.classList.add('chat-active'); 
         return;
     } 
     
-    // [ 💡 نوێ ] - شاردنەوەی هێدەر بۆ لاپەڕەی کاڵا چونکە خۆی هێدەری هەیە
+    // [ 💡 گۆڕانکاری ] - شاردنەوەی هێدەر لە لاپەڕەی وردەکاری کاڵا (چونکە خۆی هێدەری هەیە)
     if (pageId === 'productDetailPage') {
         if (appHeader) appHeader.style.display = 'none';
         return;
@@ -103,7 +103,6 @@ function updateHeaderView(pageId, title = '') {
     }
 }
 
-
 function showPage(pageId, pageTitle = '') {
     state.currentPageId = pageId; 
     document.querySelectorAll('.page').forEach(page => {
@@ -114,7 +113,7 @@ function showPage(pageId, pageTitle = '') {
 
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) {
-        // [ 💡 نوێ ] - شاردنەوەی لیست بۆ لاپەڕەی کاڵاش
+        // [ 💡 گۆڕانکاری ] - شاردنەوەی لیستی خوارەوە لە لاپەڕەی کاڵا
         if (pageId === 'chatPage' || pageId === 'productDetailPage') {
             bottomNav.style.display = 'none';
         } else {
@@ -135,8 +134,8 @@ function showPage(pageId, pageTitle = '') {
          updateHeaderView('subcategoryDetailPage', pageTitle);
     } else if (pageId === 'chatPage') { 
          updateHeaderView('chatPage', pageTitle);
-    } else if (pageId === 'productDetailPage') { 
-         // [ 💡 نوێ ] - بانگکردنی هێدەری تایبەت
+    } else if (pageId === 'productDetailPage') {
+         // [ 💡 گۆڕانکاری ] - بانگکردنی دۆخی تایبەت
          updateHeaderView('productDetailPage');
     } else if (pageId === 'adminChatListPage') { 
          updateHeaderView('adminChatListPage', t('conversations_title'));
@@ -236,7 +235,7 @@ export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
         skeletonCard.className = 'skeleton-card';
         skeletonCard.innerHTML = `
             <div class="skeleton-image shimmer"></div>
-            <div class.skeleton-text shimmer"></div>
+            <div class="skeleton-text shimmer"></div>
             <div class="skeleton-price shimmer"></div>
             <div class="skeleton-button shimmer"></div>
         `;
@@ -366,7 +365,7 @@ async function showProductDetailsUI(productData) {
         videoLink: product.externalLink || null
     };
 
-    // ١. گۆڕینی مێژوو و پیشاندانی لاپەڕەکە
+    // ١. گۆڕینی مێژوو و پیشاندانی لاپەڕەکە (بەبێ ئەوەی bottom sheet بێت)
     saveCurrentScrollPositionCore();
     history.pushState({ type: 'page', id: 'productDetailPage', productId: product.id }, '', `#product_${product.id}`);
     showPage('productDetailPage');
@@ -446,7 +445,7 @@ async function showProductDetailsUI(productData) {
 
     // ٥. ڕێکخستنی دوگمەی زیادکردن بۆ سەبەتە (Sticky Button)
     const addToCartButton = document.getElementById('detailAddToCartBtn');
-    const newBtn = addToCartButton.cloneNode(true); // لابردنی Event Listener کۆنەکان
+    const newBtn = addToCartButton.cloneNode(true); 
     addToCartButton.parentNode.replaceChild(newBtn, addToCartButton);
     
     newBtn.innerHTML = `<i class="fas fa-cart-plus"></i> <span data-translate-key="add_to_cart">${t('add_to_cart')}</span>`;
@@ -515,15 +514,11 @@ function renderDetailSlider(imageUrls, videoLink, productName) {
             items.push(img);
         });
     } else {
-        // وێنەی Placeholder
         const img = document.createElement('img');
         img.src = 'https://placehold.co/600x600/e2e8f0/2d3748?text=No+Image';
         img.className = 'detail-slider-element';
         items.push(img);
     }
-
-    // 2. ڤیدیۆ (ئەگەر هەبێت)
-    // ... (کۆدی ڤیدیۆ وەک خۆی دەمێنێتەوە ئەگەر پێویست بێت، بەڵام لێرە بۆ سادەیی تەنها وێنە دادەنێین)
 
     items.forEach((item, index) => {
         track.appendChild(item);
@@ -541,12 +536,10 @@ function renderDetailSlider(imageUrls, videoLink, productName) {
     let prevTranslate = 0;
     let isDragging = false;
 
-    // Touch Events
     track.addEventListener('touchstart', touchStart);
     track.addEventListener('touchend', touchEnd);
     track.addEventListener('touchmove', touchMove);
     
-    // Mouse Events (بۆ تێستکردن لە کۆمپیوتەر)
     track.addEventListener('mousedown', touchStart);
     track.addEventListener('mouseup', touchEnd);
     track.addEventListener('mouseleave', touchEnd);
@@ -555,17 +548,13 @@ function renderDetailSlider(imageUrls, videoLink, productName) {
     function touchStart(event) {
         isDragging = true;
         startX = getPositionX(event);
-        track.style.transition = 'none'; // لابردنی ئەنیمەیشن کاتی جووڵە
+        track.style.transition = 'none'; 
     }
 
     function touchMove(event) {
         if (!isDragging) return;
         const currentPosition = getPositionX(event);
         const diff = currentPosition - startX;
-        
-        // RTL Support Logic:
-        // لە RTL، جووڵە پێچەوانەیە؟ با تەنها پشت بە Transform ببەستین
-        // translateX(-100%) دەیباتە وێنەی دووەم (لای چەپ)
         
         currentTranslate = prevTranslate + diff;
         track.style.transform = `translateX(${currentTranslate}px)`;
@@ -576,7 +565,6 @@ function renderDetailSlider(imageUrls, videoLink, productName) {
         const movedBy = currentTranslate - prevTranslate;
         const containerWidth = track.parentElement.offsetWidth;
 
-        // ئەگەر جووڵەکە بەس بێت بۆ گۆڕین
         if (movedBy < -50 && currentIndex < items.length - 1) {
             currentIndex += 1;
         } else if (movedBy > 50 && currentIndex > 0) {
@@ -592,28 +580,21 @@ function renderDetailSlider(imageUrls, videoLink, productName) {
 
     function setPositionByIndex() {
         const containerWidth = track.parentElement.offsetWidth;
-        
-        // لە RTL رەنگە پێویست بە + بێت، بەڵام زۆربەی جار translateX بە ئاراستەی LTR کاردەکات
-        // با گریمانە بکەین ستانداردە:
         currentTranslate = currentIndex * -containerWidth; 
         prevTranslate = currentTranslate;
         
         track.style.transition = 'transform 0.3s ease-out';
         track.style.transform = `translateX(${currentTranslate}px)`;
         
-        // نوێکردنەوەی خاڵەکان
         Array.from(indicatorsContainer.children).forEach((dot, idx) => {
             dot.classList.toggle('active', idx === currentIndex);
         });
     }
     
-    // ڕێکخستنی سەرەتایی
-    // چاوەڕێ بکە تا DOM render دەبێت
     requestAnimationFrame(() => {
          setPositionByIndex();
     });
     
-    // نوێکردنەوە کاتێک پەنجەرە گەورە و بچووک دەبێت
     window.addEventListener('resize', setPositionByIndex);
 }
 
@@ -645,7 +626,7 @@ async function renderRelatedProductsUI(currentProduct) {
     }
 }
 
-// ... (Other existing functions: renderCartUI, renderFavoritesPageUI, renderCategoriesSheetUI, etc.) ...
+// ... باقی فەنکشنەکان وەک خۆیانن ...
 
 async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
      const container = document.getElementById('subSubCategoryContainerOnDetailPage');
@@ -913,6 +894,7 @@ function updateAdminUIAuth(isAdmin) {
     adminSections.forEach(id => { const section = document.getElementById(id); if (section) section.style.display = isAdmin ? 'block' : 'none'; });
     settingsLogoutBtn.style.display = isAdmin ? 'flex' : 'none'; settingsAdminLoginBtn.style.display = isAdmin ? 'none' : 'flex'; addProductBtn.style.display = isAdmin ? 'flex' : 'none';
     if (document.getElementById('favoritesSheet')?.classList.contains('show')) { renderFavoritesPageUI(); }
+    // [ 💡 گۆڕانکاری ] - نوێکردنەوەی لاپەڕەی کاڵا ئەگەر کرابێتەوە
     if (state.currentPageId === 'productDetailPage' && state.currentProductId) { fetchProductById(state.currentProductId).then(product => { if (product) showProductDetailsUI(product); }); }
 }
 
@@ -954,6 +936,7 @@ function handleToggleFavoriteUI(productId) {
         if (icon) { icon.classList.toggle('fas', result.favorited); icon.classList.toggle('far', !result.favorited); }
     });
     if (document.getElementById('favoritesSheet')?.classList.contains('show')) { renderFavoritesPageUI(); }
+    // [ 💡 گۆڕانکاری ] - نوێکردنەوەی دوگمەی دڵخواز لە لاپەڕەی کاڵا
     const detailFavBtn = document.getElementById('detailFavoriteBtn');
     if (detailFavBtn && state.currentProductId === productId) {
         detailFavBtn.innerHTML = `<i class="${result.favorited ? 'fas' : 'far'} fa-heart" style="color: ${result.favorited ? 'var(--danger-color)' : 'var(--dark-gray)'}"></i>`;
@@ -1120,7 +1103,6 @@ async function handleInitialPageLoadUI() {
     }
 }
 
-// ... (renderContactLinksUI and setupGpsButtonUI remain unchanged) ...
 async function renderContactLinksUI() {
     const contactLinksContainer = document.getElementById('dynamicContactLinksContainer');
      try {
