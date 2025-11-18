@@ -302,7 +302,7 @@ function subscribeToMessages(chatUserId) {
     // [ 💡 چاککرا ] - ئێستا ڕاستەوخۆ Elementـەکە دەهێنێت، نەک لە دەرەوەی Scope
     messagesUnsubscribe = onSnapshot(q, (snapshot) => {
         const msgArea = document.getElementById('chatMessagesArea');
-        if(!msgArea) return; // ئەگەر Elementـەکە نەبوو، هیچ مەکە
+        if(!msgArea) return; 
 
         msgArea.innerHTML = ''; 
         
@@ -316,10 +316,28 @@ function subscribeToMessages(chatUserId) {
             renderSingleMessage(msg, msgArea, chatUserId);
         });
 
-        // [ 💡 چاککرا ] - بەکارهێنانی setTimeout بۆ دڵنیابوونەوە لە Scroll
-        setTimeout(() => {
-            msgArea.scrollTop = msgArea.scrollHeight;
-        }, 100);
+        // [ 💡 چارەسەری کێشەی Scroll ]
+        // فەنکشنێک بۆ بردنی شاشە بۆ خوارەوە
+        const scrollToBottom = () => {
+            if(msgArea) {
+                msgArea.scrollTop = msgArea.scrollHeight;
+            }
+        };
+
+        // هەوڵی یەکەم: ڕاستەوخۆ
+        scrollToBottom();
+
+        // هەوڵی دووەم: دوای کەمێک (بۆ مۆبایلە خاوەکان)
+        setTimeout(scrollToBottom, 150);
+
+        // هەوڵی سێیەم: بۆ دڵنیایی تەواو (ئەگەر وێنە هەبێت و درەنگ بار بێت)
+        setTimeout(scrollToBottom, 500);
+
+        // ئەگەر وێنە لە ناو چات هەبوو، کاتێک بار بوو بچۆ خوارەوە
+        const images = msgArea.querySelectorAll('img');
+        images.forEach(img => {
+            img.onload = scrollToBottom;
+        });
         
         markMessagesAsRead(snapshot.docs, chatUserId);
     });
