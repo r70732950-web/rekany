@@ -21,12 +21,10 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
-// [ 💡 زیادکرا ] - پرۆمیس بۆ دڵنیابوونەوە لە ئامادەبوونی Auth
 let authReadyResolver;
 export const authReady = new Promise(resolve => {
     authReadyResolver = resolve;
 });
-
 
 // --- Utility Functions ---
 
@@ -255,6 +253,7 @@ export async function fetchCategoryLayout(categoryId) {
     }
 }
 
+// [ 💡 نوێکراوە ] - پشتیوانی لە Load More دەکات بەپێی PRODUCTS_PER_PAGE
 async function fetchProducts(searchTerm = '', isNewSearch = false) {
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
     if (shouldShowHomeSections) {
@@ -316,6 +315,7 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
             finalQuery = query(finalQuery, startAfter(state.lastVisibleProductDoc));
         }
 
+        // [ 💡 ] بەکارهێنانی PRODUCTS_PER_PAGE (30)
         finalQuery = query(finalQuery, limit(PRODUCTS_PER_PAGE));
 
         const productSnapshot = await getDocs(finalQuery);
@@ -452,7 +452,8 @@ async function fetchCategoryRowProducts(sectionData) {
     } else { return []; }
 
     try {
-        const q = query(productsCollection, where(queryField, '==', queryValue), orderBy('createdAt', 'desc'), limit(10));
+        // [ 💡 ] سنووری 30 دانە بۆ ئەمەش
+        const q = query(productsCollection, where(queryField, '==', queryValue), orderBy('createdAt', 'desc'), limit(30));
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
@@ -461,7 +462,8 @@ async function fetchCategoryRowProducts(sectionData) {
     }
 }
 
-async function fetchInitialProductsForHome(limitCount = 10) {
+// [ 💡 نوێکراوە ] - بۆ بەشی هەموو کاڵاکان لە پەڕەی سەرەکی
+async function fetchInitialProductsForHome(limitCount = PRODUCTS_PER_PAGE) {
      try {
         const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(limitCount));
         const snapshot = await getDocs(q);
@@ -472,7 +474,6 @@ async function fetchInitialProductsForHome(limitCount = 10) {
     }
 }
 
-// [ 💡 گۆڕانکاری سەرەکی 💡 ] - فەنکشنی زیادکردن بۆ سەبەتە نوێکرایەوە
 export async function addToCartCore(productId, selectedVariationInfo = null) {
     let product = state.products.find(p => p.id === productId);
 
@@ -489,49 +490,44 @@ export async function addToCartCore(productId, selectedVariationInfo = null) {
     const calculatedShippingCost = extractShippingCostFromText(shippingText);
     const baseImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
 
-    // --- لۆجیکی نوێ بۆ جۆرەکان (Variations) ---
     let cartId = product.id;
     let cartItemName = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || (typeof product.name === 'string' ? product.name : 'کاڵای بێ ناو');
     let cartItemPrice = product.price;
     let cartItemImage = baseImage;
     
-    // ئەگەر جۆرێک هەڵبژێردرابوو
     if (selectedVariationInfo && selectedVariationInfo.lvl1Id) {
         cartId = `${product.id}_${selectedVariationInfo.lvl1Id}`;
         cartItemName += ` (${selectedVariationInfo.lvl1Name}`;
         
-        // وێنەی جۆری ئاستی یەک (ڕەنگ) وەردەگرین
         const lvl1Var = (product.variations || []).find(v => v.id === selectedVariationInfo.lvl1Id);
         if (lvl1Var && lvl1Var.imageUrls && lvl1Var.imageUrls.length > 0) {
             cartItemImage = lvl1Var.imageUrls[0];
         }
 
-        // ئەگەر جۆری ئاستی دوو هەڵبژێردرابوو
         if (selectedVariationInfo.lvl2Id) {
             cartId += `_${selectedVariationInfo.lvl2Id}`;
             cartItemName += ` - ${selectedVariationInfo.lvl2Name}`;
-            cartItemPrice = selectedVariationInfo.price; // نرخی تایبەت دادەنێین
+            cartItemPrice = selectedVariationInfo.price; 
         }
         
         cartItemName += `)`;
     }
-    // --- کۆتایی لۆجیکی نوێ ---
 
     const existingItem = state.cart.find(item => item.id === cartId);
 
     if (existingItem) {
         existingItem.quantity++;
-        existingItem.shippingCost = calculatedShippingCost; // دڵنیابوونەوە لە نرخی گەیاندن
+        existingItem.shippingCost = calculatedShippingCost; 
     } else {
         state.cart.push({
-            id: cartId, // IDی نوێی سەبەتە (e.g., product1_colorRed_sizeLG)
-            productId: product.id, // IDی بنەڕەتی کاڵا
-            name: cartItemName, // ناوی نوێ (e.g., "iPhone (ڕەش - 256GB)")
-            price: cartItemPrice, // نرخی نوێ
+            id: cartId, 
+            productId: product.id, 
+            name: cartItemName, 
+            price: cartItemPrice, 
             shippingCost: calculatedShippingCost,
-            image: cartItemImage, // وێنەی نوێ
+            image: cartItemImage, 
             quantity: 1,
-            variationInfo: selectedVariationInfo // هەڵگرتنی زانیاری جۆرەکان
+            variationInfo: selectedVariationInfo 
         });
     }
     saveCart();
@@ -539,7 +535,6 @@ export async function addToCartCore(productId, selectedVariationInfo = null) {
 }
 
 export function updateCartQuantityCore(cartId, change) {
-    // ئەم فەنکشنە وەک خۆی کاردەکات چونکە `cartId` بەکاردەهێنێت
     const cartItemIndex = state.cart.findIndex(item => item.id === cartId);
     if (cartItemIndex > -1) {
         state.cart[cartItemIndex].quantity += change;
@@ -553,7 +548,6 @@ export function updateCartQuantityCore(cartId, change) {
 }
 
 export function removeFromCartCore(cartId) {
-    // ئەم فەنکشنە وەک خۆی کاردەکات چونکە `cartId` بەکاردەهێنێت
     const initialLength = state.cart.length;
     state.cart = state.cart.filter(item => item.id !== cartId);
     if (state.cart.length < initialLength) {
@@ -575,7 +569,6 @@ export function generateOrderMessageCore() {
         
         total += lineTotal;
         
-        // [ 💡 گۆڕانکاری ] - دڵنیابوونەوە لەوەی ناوەکە وەک String مامەڵەی لەگەڵ دەکرێت
         const itemName = (typeof item.name === 'string') 
             ? item.name 
             : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
@@ -874,10 +867,9 @@ export async function initCore() {
                 document.dispatchEvent(new CustomEvent('authChange', { detail: { isAdmin } }));
                 document.dispatchEvent(new CustomEvent('userChange', { detail: { user: state.currentUser } }));
 
-                // [ 💡 زیادکرا ] - دڵنیابوونەوەی پرۆمیسەکە دوای تەواوبوونی هەموو شتێک
                 if (authReadyResolver) {
-                    authReadyResolver(user); // 'user'ـەکە دەنێرێت (کە یان user object یان null)
-                    authReadyResolver = null; // دڵنیابوونەوە لەوەی تەنها یەکجار کار بکات
+                    authReadyResolver(user); 
+                    authReadyResolver = null; 
                 }
             });
 

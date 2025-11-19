@@ -23,32 +23,57 @@ function resetScrollPosition(containerElement) {
     }
 }
 
-
-function renderProductsGridUI(newProductsOnly = false) {
+// [ 💡 گۆڕانکاری ] - فەنکشنەکە نوێکرایەوە بۆ پشتیوانی دوگمەی Load More
+function renderProductsGridUI(newProducts, isAppend = false) {
     const container = document.getElementById('productsContainer'); 
     if (!container) return;
 
-    if (Array.isArray(newProductsOnly)) { 
-        newProductsOnly.forEach(item => {
-            let element = createProductCardElementUI(item); 
-            element.classList.add('product-card-reveal'); 
-            container.appendChild(element);
-        });
-    } else {
+    // سڕینەوەی دوگمەی کۆن ئەگەر هەبێت
+    const existingBtn = document.getElementById('loadMoreProductsBtn');
+    if (existingBtn) existingBtn.remove();
+
+    if (!isAppend) {
         container.innerHTML = '';
-        if (!state.products || state.products.length === 0) {
-            container.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
-        } else {
-            state.products.forEach(item => {
-                let element = createProductCardElementUI(item); 
-                element.classList.add('product-card-reveal'); 
-                container.appendChild(element);
-            });
-        }
+        // ئەگەر گەڕانی نوێ بوو، با بچێتە سەرەوە
+        const mainPage = document.getElementById('mainPage');
+        if (mainPage) mainPage.scrollTo({ top: 0, behavior: 'instant' });
     }
+
+    if (!newProducts || newProducts.length === 0) {
+        if (!isAppend) {
+            container.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1; width: 100%;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+        }
+        return;
+    }
+
+    newProducts.forEach(item => {
+        let element = createProductCardElementUI(item); 
+        element.classList.add('product-card-reveal'); 
+        container.appendChild(element);
+    });
+    
     setupScrollAnimations(); 
+
+    // [ 💡 ] زیادکردنی دوگمەی "زیاتر ببینە" ئەگەر کاڵای تر مابێت
+    if (!state.allProductsLoaded) {
+        const loadMoreBtn = document.createElement('button');
+        loadMoreBtn.id = 'loadMoreProductsBtn';
+        loadMoreBtn.className = 'sheet-action-btn'; // بەکارهێنانی ستایلی ئامادە
+        loadMoreBtn.style.cssText = "margin: 20px auto; display: flex; background-color: var(--primary-color); color: white; width: fit-content; padding: 10px 30px; grid-column: 1 / -1;";
+        loadMoreBtn.innerHTML = `<span>${t('load_more') || 'زیاتر ببینە'}</span> <i class="fas fa-chevron-down"></i>`;
+        
+        loadMoreBtn.onclick = async () => {
+            loadMoreBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span>...</span>`;
+            loadMoreBtn.disabled = true;
+            // بانگکردنی updateProductViewUI بەبێ Scroll to top
+            await updateProductViewUI(false, false);
+        };
+        
+        container.appendChild(loadMoreBtn);
+    }
 }
 
+// Expose to window if needed by other scripts
 window.renderProductsGridUI = renderProductsGridUI;
 
 export function renderMainCategoriesUI() {
@@ -221,9 +246,11 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
     });
 }
 
-
+// [ 💡 گۆڕانکاری ] - بەڕێوەبردنی دوگمەی Load More لەم فەنکشنە
 export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop = true) {
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
+    if (scrollTrigger) scrollTrigger.style.display = 'none'; // Disable old infinite scroll trigger
+
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const categoryLayoutContainer = document.getElementById('categoryLayoutContainer'); 
     const productsContainer = document.getElementById('productsContainer'); 
@@ -247,7 +274,6 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
                                    document.getElementById(targetCategoryLayoutId); 
     
     if (isNewSearch) {
-        scrollTrigger.style.display = 'none'; 
         const isReturningWithContent = isHomeLoaded || isCategoryLayoutLoaded;
 
         if (isReturningWithContent) {
@@ -283,21 +309,24 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
     }
 
     let result;
+    // [ 💡 ] ئەگەر Load More بێت (واتە isNewSearch = false)، ئەوا isHomeLoaded فەرامۆش دەکەین
     if (isNewSearch && (isHomeLoaded || isCategoryLayoutLoaded)) {
         result = null; 
     } else if (!isNewSearch && isTargetProductGrid) {
-         loader.style.display = 'block'; 
+         // Load More Logic for Search/Grid
          result = await fetchProducts(state.currentSearch, false); 
-         loader.style.display = 'none';
          if(result && result.products.length > 0) {
-            renderProductsGridUI(result.products); 
+            renderProductsGridUI(result.products, true); // Append
+         } else {
+             // Update button state if no more products
+             renderProductsGridUI([], true); 
          }
-         scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
          
          renderMainCategoriesUI();
          return; 
     } else {
-        result = await fetchProducts(state.currentSearch, true); 
+        // Normal Fetch (New Search or Load More for non-layout pages)
+        result = await fetchProducts(state.currentSearch, isNewSearch); 
     }
 
     skeletonLoader.style.display = 'none'; 
@@ -305,7 +334,6 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
     if (result) {
         if (result.isHome) {
             productsContainer.style.display = 'none'; 
-            scrollTrigger.style.display = 'none'; 
             
             if (result.layout) {
                 homeSectionsContainer.style.display = 'none'; 
@@ -348,9 +376,9 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
             if (result.error) {
                 productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
             } else {
-                renderProductsGridUI(null); 
+                // [ 💡 ] لێرە دەڵێین isAppend = !isNewSearch
+                renderProductsGridUI(result.products, !isNewSearch); 
             }
-            scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block'; 
         }
     }
 
@@ -694,8 +722,10 @@ async function createSingleCategoryRowElement(sectionData) {
     return container;
 }
 
+// [ 💡 ] نوێکراوە بۆ بەکارهێنانی لۆجیکی Load More
 async function createAllProductsSectionElement() {
-    const products = await fetchInitialProductsForHome(10); 
+    // ئێمە لێرە تەنها یەکەم ٣٠ کاڵا دەهێنین و دوگمەی Load More دادەنێین
+    const products = await fetchInitialProductsForHome(); 
     if (!products || products.length === 0) return null;
 
     const container = document.createElement('div');
@@ -704,13 +734,39 @@ async function createAllProductsSectionElement() {
     container.innerHTML = `
         <div class="section-title-header">
             <h3 class="section-title-main">${t('all_products_section_title')}</h3>
-             </div>
-        <div class="products-container"></div>
+        </div>
+        <div class="products-container" id="allProductsHomeContainer"></div>
     `;
-    const productsGrid = container.querySelector('.products-container');
+    
+    const productsGrid = container.querySelector('#allProductsHomeContainer');
+    
     products.forEach(product => {
         const card = createProductCardElementUI(product); 
+        card.classList.add('product-card-reveal');
         productsGrid.appendChild(card);
     });
+
+    // زیادکردنی دوگمەی Load More بۆ بەشی Home
+    if (!state.allProductsLoaded) {
+        const loadMoreBtn = document.createElement('button');
+        loadMoreBtn.className = 'sheet-action-btn';
+        loadMoreBtn.style.cssText = "margin: 20px auto; display: flex; background-color: var(--primary-color); color: white; width: fit-content; padding: 10px 30px; grid-column: 1 / -1;";
+        loadMoreBtn.innerHTML = `<span>${t('load_more') || 'زیاتر ببینە'}</span> <i class="fas fa-chevron-down"></i>`;
+        
+        loadMoreBtn.onclick = async () => {
+            // کاتێک لێرە کلیک دەکات، دەمانەوێت بگەڕێینەوە بۆ دۆخی فیلتەرکردن (Grid View)
+            // بۆیە navigate دەکەین بۆ 'all' و Load More دەکەین
+            await navigateToFilterCore({
+                 category: 'all',
+                 subcategory: 'all',
+                 subSubcategory: 'all',
+                 search: ''
+             });
+             // ئەمە وا دەکات بچێتە پەڕەی Products Grid و کاڵای زیاتر بار بکات
+             await updateProductViewUI(true, true);
+        };
+        productsGrid.parentNode.appendChild(loadMoreBtn);
+    }
+
     return container;
 }
