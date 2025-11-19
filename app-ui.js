@@ -711,7 +711,6 @@ function renderCategoriesSheetUI() {
      }
 }
 
-// [ 💡 Fix Applied Here ] 
 export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHistory = false) { 
     let subCatName = 'Details'; 
     try {
@@ -729,7 +728,6 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const subSubContainer = document.getElementById('subSubCategoryContainerOnDetailPage');
 
-    // [ 💡 FIX ] - If coming from history (Back button) and data is already there, do nothing.
     if (fromHistory && productsContainer.dataset.activeSubcatId === subCatId && productsContainer.children.length > 0) {
         return; 
     }
@@ -739,7 +737,6 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
          history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
     }
     
-    // Tag the container with the current subcategory ID
     productsContainer.dataset.activeSubcatId = subCatId;
 
     loader.style.display = 'block';
@@ -1548,10 +1545,33 @@ window.addEventListener('popstate', async (event) => {
             showPage('mainPage'); 
             
             const stateToApply = popState || { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
+            
+            // [ 💡 چارەسەر ] - پشکنین دەکەین بزانین ئایا لە چات یان وردەکاری هاتوینەتەوە؟
+            // ئەگەر بەڵێ، ئەوا پێویست ناکات داتا نوێ بکەینەوە، تەنها سکڕۆڵ چاک دەکەین
+            const isComingBack = previousPageId === 'chatPage' || previousPageId === 'subcategoryDetailPage' || previousPageId === 'productDetailPage' || previousPageId === 'settingsPage';
+            const homeHasContent = document.getElementById('homePageSectionsContainer').innerHTML.trim() !== '' || 
+                                   document.getElementById('productsContainer').children.length > 0;
+
+            if (isComingBack && homeHasContent) {
+                // تەنها دۆخەکە (State) نوێ دەکەینەوە بەبێ ئەوەی ڕیفرێش بکەین
+                applyFilterStateCore(stateToApply);
+                
+                // ڕاستەوخۆ سکڕۆڵەکە دەگەڕێنینەوە شوێنی خۆی
+                if (typeof stateToApply.scroll === 'number') {
+                    setTimeout(() => {
+                         const homePage = document.getElementById('mainPage');
+                         if(homePage) homePage.scrollTo({ top: stateToApply.scroll, behavior: 'instant' });
+                    }, 10);
+                }
+                return; // لێرە دەوەستین و ناهێڵین updateProductViewUI کار بکات (واتە ڕیفرێش نابێت)
+            }
+
+            // ئەگەر حاڵەتێکی ئاسایی بوو، وەک خۆی کار دەکات
             applyFilterStateCore(stateToApply); 
 
             const cameFromPage = previousPageId !== 'mainPage'; 
-            const shouldReloadData = cameFromPage; 
+            // تەنها ئەگەر لاپەڕەی سەرەکی بەتاڵ بوو، نوێی بکەوە
+            const shouldReloadData = cameFromPage && !homeHasContent; 
             const shouldScrollToTop = false; 
             
             await updateProductViewUI(shouldReloadData, shouldScrollToTop);
