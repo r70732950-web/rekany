@@ -387,7 +387,6 @@ export function createProductCardElementUI(product) {
 
     productCard.addEventListener('click', (event) => {
         if (!event.target.closest('button')) {
-            // [ 💡 گرنگ ] - دڵنیابوونەوە لەوەی شوێنی ئێستا پاشەکەوت دەکرێت
             saveCurrentScrollPositionCore(); 
             showProductDetailsUI(product);
         }
@@ -1142,9 +1141,6 @@ function setupUIEventListeners() {
     homeBtn.onclick = async () => {
         saveCurrentScrollPositionCore();
 
-        // [ 💡 چارەسەری کێشەی Scroll ]
-        // لێرەدا لە جیاتی ناردنی null، ستەیتێکی نوێی تەواو دەنێرین
-        // ئەمە وا دەکات کاتێک بەکارهێنەر دواتر Scroll دەکات، بتوانرێت پاشەکەوت بکرێت
         const resetState = { 
             category: 'all', 
             subcategory: 'all', 
@@ -1542,7 +1538,8 @@ window.addEventListener('popstate', async (event) => {
             const shouldReloadData = cameFromPage; 
             const shouldScrollToTop = false; 
             
-            await updateProductViewUI(shouldReloadData, shouldScrollToTop);
+            // [ 🛠️ چاککرا ] - ڕێگری لە نوێبوونەوەی بێزارکەر (Refresh)
+            await updateProductViewUI(false, false);
 
             if (!state.pendingFilterNav) { 
                 // [ 💡 چاککرا ] - دڵنیابوونەوە لە گەڕاندنەوەی Scroll
