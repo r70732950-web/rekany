@@ -97,7 +97,8 @@ function updateHeaderView(pageId, title = '') {
     }
 }
 
-function showPage(pageId, pageTitle = '') {
+// [ 🛠️ Updated ] - Added scrollToTop parameter to control auto-scrolling
+function showPage(pageId, pageTitle = '', scrollToTop = true) {
     state.currentPageId = pageId; 
     document.querySelectorAll('.page').forEach(page => {
         const isActive = page.id === pageId;
@@ -114,7 +115,8 @@ function showPage(pageId, pageTitle = '') {
         }
     }
 
-    if (pageId !== 'mainPage') {
+    // [ 🛠️ Updated ] - Only scroll to top if scrollToTop is true
+    if (pageId !== 'mainPage' && scrollToTop) {
          requestAnimationFrame(() => { 
              const activePage = document.getElementById(pageId);
              if(activePage) activePage.scrollTo({ top: 0, behavior: 'instant' });
@@ -704,6 +706,7 @@ function renderCategoriesSheetUI() {
      }
 }
 
+// [ 🛠️ Updated ] - Prevent reloading data if we are coming back from history
 export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHistory = false) { 
     let subCatName = 'Details'; 
     try {
@@ -719,7 +722,23 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
          saveCurrentScrollPositionCore(); 
          history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
     }
-    showPage('subcategoryDetailPage', subCatName); 
+
+    // Check if the page is already loaded with the same data
+    const page = document.getElementById('subcategoryDetailPage');
+    const isSameCategory = page.dataset.loadedMain === mainCatId && page.dataset.loadedSub === subCatId;
+
+    if (fromHistory && isSameCategory) {
+        // [ 🛠️ Fix ] - Do NOT reload content, just show the page and maintain scroll
+        showPage('subcategoryDetailPage', subCatName, false); 
+        return;
+    }
+
+    // Update loaded state
+    page.dataset.loadedMain = mainCatId;
+    page.dataset.loadedSub = subCatId;
+
+    // Load fresh content (scrollToTop = true)
+    showPage('subcategoryDetailPage', subCatName, true); 
 
     const loader = document.getElementById('detailPageLoader');
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
@@ -1512,7 +1531,9 @@ window.addEventListener('popstate', async (event) => {
 
     if (popState) {
         if (popState.type === 'page') {
-            showPage(popState.id, popState.title); 
+            // [ 🛠️ Updated ] - Don't force scroll to top when going back in history
+            showPage(popState.id, popState.title, false); 
+
             if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
                 await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
             }
@@ -1529,7 +1550,7 @@ window.addEventListener('popstate', async (event) => {
             openPopup(popState.id, popState.type, false);
         
         } else { 
-            showPage('mainPage'); 
+            showPage('mainPage', '', false); // Don't scroll top on back to home
             
             const stateToApply = popState || { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
             applyFilterStateCore(stateToApply); 
