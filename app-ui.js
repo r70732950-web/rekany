@@ -115,13 +115,10 @@ function showPage(pageId, pageTitle = '') {
     }
 
     if (pageId !== 'mainPage') {
-         // Scroll restoration is handled differently for subcategory page now
-         if (pageId !== 'subcategoryDetailPage') {
-             requestAnimationFrame(() => { 
-                 const activePage = document.getElementById(pageId);
-                 if(activePage) activePage.scrollTo({ top: 0, behavior: 'instant' });
-             });
-         }
+         requestAnimationFrame(() => { 
+             const activePage = document.getElementById(pageId);
+             if(activePage) activePage.scrollTo({ top: 0, behavior: 'instant' });
+         });
     }
 
      if (pageId === 'settingsPage') {
@@ -257,11 +254,7 @@ function updateActiveNav(activeBtnId) {
 }
 
 function updateCartCountUI() {
-    const totalItems = state.cart.reduce((total, item) => {
-        // Check if item.quantity is a number, default to 0 if not
-        const qty = parseInt(item.quantity) || 0;
-        return total + qty;
-    }, 0);
+    const totalItems = state.cart.reduce((total, item) => total + item.quantity, 0);
     document.querySelectorAll('.cart-count').forEach(el => { el.textContent = totalItems; });
 }
 
@@ -394,6 +387,7 @@ export function createProductCardElementUI(product) {
 
     productCard.addEventListener('click', (event) => {
         if (!event.target.closest('button')) {
+            // [ 💡 گرنگ ] - دڵنیابوونەوە لەوەی شوێنی ئێستا پاشەکەوت دەکرێت
             saveCurrentScrollPositionCore(); 
             showProductDetailsUI(product);
         }
@@ -722,22 +716,15 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
         }
     } catch (e) { console.error("Could not fetch subcategory name:", e); }
 
+    if (!fromHistory) {
+         saveCurrentScrollPositionCore(); 
+         history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
+    }
     showPage('subcategoryDetailPage', subCatName); 
 
     const loader = document.getElementById('detailPageLoader');
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const subSubContainer = document.getElementById('subSubCategoryContainerOnDetailPage');
-
-    if (fromHistory && productsContainer.dataset.activeSubcatId === subCatId && productsContainer.children.length > 0) {
-        return; 
-    }
-
-    if (!fromHistory) {
-         saveCurrentScrollPositionCore(); 
-         history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
-    }
-    
-    productsContainer.dataset.activeSubcatId = subCatId;
 
     loader.style.display = 'block';
     productsContainer.innerHTML = '';
@@ -1155,6 +1142,9 @@ function setupUIEventListeners() {
     homeBtn.onclick = async () => {
         saveCurrentScrollPositionCore();
 
+        // [ 💡 چارەسەری کێشەی Scroll ]
+        // لێرەدا لە جیاتی ناردنی null، ستەیتێکی نوێی تەواو دەنێرین
+        // ئەمە وا دەکات کاتێک بەکارهێنەر دواتر Scroll دەکات، بتوانرێت پاشەکەوت بکرێت
         const resetState = { 
             category: 'all', 
             subcategory: 'all', 
@@ -1530,6 +1520,7 @@ window.addEventListener('popstate', async (event) => {
             if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
                 await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
             }
+            // [ 💡 نوێ ] - Handled Product Detail Page
             if (popState.id === 'productDetailPage' && popState.productId) {
                  setTimeout(() => {
                     showProductDetailsUI({id: popState.productId}, true);
@@ -1545,38 +1536,16 @@ window.addEventListener('popstate', async (event) => {
             showPage('mainPage'); 
             
             const stateToApply = popState || { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
-            
-            // [ 💡 چارەسەر ] - پشکنین دەکەین بزانین ئایا لە چات یان وردەکاری هاتوینەتەوە؟
-            // ئەگەر بەڵێ، ئەوا پێویست ناکات داتا نوێ بکەینەوە، تەنها سکڕۆڵ چاک دەکەین
-            const isComingBack = previousPageId === 'chatPage' || previousPageId === 'subcategoryDetailPage' || previousPageId === 'productDetailPage' || previousPageId === 'settingsPage';
-            const homeHasContent = document.getElementById('homePageSectionsContainer').innerHTML.trim() !== '' || 
-                                   document.getElementById('productsContainer').children.length > 0;
-
-            if (isComingBack && homeHasContent) {
-                // تەنها دۆخەکە (State) نوێ دەکەینەوە بەبێ ئەوەی ڕیفرێش بکەین
-                applyFilterStateCore(stateToApply);
-                
-                // ڕاستەوخۆ سکڕۆڵەکە دەگەڕێنینەوە شوێنی خۆی
-                if (typeof stateToApply.scroll === 'number') {
-                    setTimeout(() => {
-                         const homePage = document.getElementById('mainPage');
-                         if(homePage) homePage.scrollTo({ top: stateToApply.scroll, behavior: 'instant' });
-                    }, 10);
-                }
-                return; // لێرە دەوەستین و ناهێڵین updateProductViewUI کار بکات (واتە ڕیفرێش نابێت)
-            }
-
-            // ئەگەر حاڵەتێکی ئاسایی بوو، وەک خۆی کار دەکات
             applyFilterStateCore(stateToApply); 
 
             const cameFromPage = previousPageId !== 'mainPage'; 
-            // تەنها ئەگەر لاپەڕەی سەرەکی بەتاڵ بوو، نوێی بکەوە
-            const shouldReloadData = cameFromPage && !homeHasContent; 
+            const shouldReloadData = cameFromPage; 
             const shouldScrollToTop = false; 
             
             await updateProductViewUI(shouldReloadData, shouldScrollToTop);
 
             if (!state.pendingFilterNav) { 
+                // [ 💡 چاککرا ] - دڵنیابوونەوە لە گەڕاندنەوەی Scroll
                 if (typeof stateToApply.scroll === 'number') {
                     setTimeout(() => {
                          const homePage = document.getElementById('mainPage');
@@ -1612,6 +1581,7 @@ window.addEventListener('popstate', async (event) => {
 
 async function initializeUI() {
     await initCore(); 
+    // [ 💡 چاککرا ] - ناچالاککردنی خۆکارانەی وێبگەڕ بۆ ئەوەی ئێمە کۆنترۆڵی بکەین
     if ('scrollRestoration' in history) {
         history.scrollRestoration = 'manual';
     }
@@ -1687,9 +1657,10 @@ async function handleInitialPageLoadUI() {
              await updateProductViewUI(true, true); 
          }
     } else if (isProductDetail) {
+        // [ 💡 نوێ ] - Initial Load for Product Detail Page
         const productId = isProductDetail;
         if (productId) {
-            showPage('productDetailPage'); 
+            showPage('productDetailPage'); // Show empty page first to reduce flicker
             const product = await fetchProductById(productId);
             if (product) {
                 showProductDetailsUI(product, false);
