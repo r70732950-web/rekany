@@ -30,7 +30,7 @@ export {
     signInWithEmailAndPassword, onAuthStateChanged, signOut,
     createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail,
     serverTimestamp,
-    ref, uploadBytes, getDownloadURL // <--- ئەمە زیادکرا
+    ref, uploadBytes, getDownloadURL 
 };
 
 // Collections
@@ -165,7 +165,6 @@ export const translations = {
         password_reset_error_not_found: "ئەم ئیمەیڵە تۆمار نەکراوە.",
         password_reset_enter_email: "تکایە سەرەتا ئیمەیڵەکەت لە خانەی ئیمەیڵ بنووسە.",
         
-        // [ 💡 نوێ ] : وشە نوێیەکان
         order_confirm_title: "ناردنی داواکاری",
         order_confirm_msg: "دڵنیایت دەتەوێت ئەم داواکارییە بنێریت؟",
         yes_send: "بەڵێ، بینێرە",
@@ -288,7 +287,6 @@ export const translations = {
         password_reset_error_not_found: "ئەڤ ئیمەیلە تۆمار نەکریە.",
         password_reset_enter_email: "هیڤی دکەین ئێکەم جار ئیمەیلا خۆ ل خانەیا ئیمەیلێ بنڤیسە.",
         
-        // [ 💡 نوێ ] : وشە نوێیەکان
         order_confirm_title: "فرێکرنا داخازیێ",
         order_confirm_msg: "تۆ پشتڕاستی تە دڤێت ڤێ داخازیێ فرێکەی؟",
         yes_send: "بەڵێ، فرێکە",
@@ -411,7 +409,6 @@ export const translations = {
         password_reset_error_not_found: "هذا البريد الإلكتروني غير مسجل.",
         password_reset_enter_email: "يرجى إدخال بريدك الإلكتروني في حقل البريد أولاً.",
         
-        // [ 💡 نوێ ] : وشە نوێیەکان
         order_confirm_title: "تأكيد الطلب",
         order_confirm_msg: "هل أنت متأكد من أنك تريد إرسال هذا الطلب؟",
         yes_send: "نعم، أرسل",
@@ -451,7 +448,6 @@ export let state = {
 
 export const CART_KEY = "maten_store_cart";
 export const FAVORITES_KEY = "maten_store_favorites";
-export const PRODUCTS_PER_PAGE = 25;
 
 // Elements Exports
 export const loginModal = document.getElementById('loginModal');

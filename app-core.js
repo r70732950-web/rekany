@@ -8,7 +8,7 @@ import {
     createUserWithEmailAndPassword, updateProfile, 
     sendPasswordResetEmail,
     translations, state,
-    CART_KEY, FAVORITES_KEY, PRODUCTS_PER_PAGE,
+    CART_KEY, FAVORITES_KEY,
 } from './app-setup.js';
 
 import { 
@@ -27,6 +27,8 @@ export const authReady = new Promise(resolve => {
     authReadyResolver = resolve;
 });
 
+// [ 💡 گۆڕانکاری ] - ژمارەی کاڵاکان کرا بە 30
+export const PRODUCTS_PER_PAGE = 30;
 
 // --- Utility Functions ---
 
@@ -270,6 +272,8 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
     }
     
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
+    
+    // [ 💡 ] لێرە پشکنین دەکەین ئەگەر پێشتر داتایەکی زۆر هاتبێت، بەکاری دەهێنینەوە
     if (isNewSearch && state.productCache[cacheKey]) {
         state.products = state.productCache[cacheKey].products;
         state.lastVisibleProductDoc = state.productCache[cacheKey].lastVisible;
@@ -278,11 +282,13 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
     }
 
     if (state.isLoadingMoreProducts) return null; 
+    
     if (isNewSearch) {
         state.allProductsLoaded = false;
         state.lastVisibleProductDoc = null;
         state.products = [];
     }
+    
     if (state.allProductsLoaded && !isNewSearch) return null; 
 
     state.isLoadingMoreProducts = true;
@@ -333,6 +339,12 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
             };
         } else {
             state.products = [...state.products, ...newProducts];
+            // ئەگەر cache هەبوو، با نوێی بکەینەوە
+             if (state.productCache[cacheKey]) {
+                state.productCache[cacheKey].products = state.products;
+                state.productCache[cacheKey].lastVisible = state.lastVisibleProductDoc;
+                state.productCache[cacheKey].allLoaded = state.allProductsLoaded;
+             }
         }
         
         return { isHome: false, products: newProducts, allLoaded: state.allProductsLoaded };
@@ -539,7 +551,6 @@ export async function addToCartCore(productId, selectedVariationInfo = null) {
 }
 
 export function updateCartQuantityCore(cartId, change) {
-    // ئەم فەنکشنە وەک خۆی کاردەکات چونکە `cartId` بەکاردەهێنێت
     const cartItemIndex = state.cart.findIndex(item => item.id === cartId);
     if (cartItemIndex > -1) {
         state.cart[cartItemIndex].quantity += change;
@@ -553,7 +564,6 @@ export function updateCartQuantityCore(cartId, change) {
 }
 
 export function removeFromCartCore(cartId) {
-    // ئەم فەنکشنە وەک خۆی کاردەکات چونکە `cartId` بەکاردەهێنێت
     const initialLength = state.cart.length;
     state.cart = state.cart.filter(item => item.id !== cartId);
     if (state.cart.length < initialLength) {
@@ -575,7 +585,6 @@ export function generateOrderMessageCore() {
         
         total += lineTotal;
         
-        // [ 💡 گۆڕانکاری ] - دڵنیابوونەوە لەوەی ناوەکە وەک String مامەڵەی لەگەڵ دەکرێت
         const itemName = (typeof item.name === 'string') 
             ? item.name 
             : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
@@ -874,10 +883,9 @@ export async function initCore() {
                 document.dispatchEvent(new CustomEvent('authChange', { detail: { isAdmin } }));
                 document.dispatchEvent(new CustomEvent('userChange', { detail: { user: state.currentUser } }));
 
-                // [ 💡 زیادکرا ] - دڵنیابوونەوەی پرۆمیسەکە دوای تەواوبوونی هەموو شتێک
                 if (authReadyResolver) {
-                    authReadyResolver(user); // 'user'ـەکە دەنێرێت (کە یان user object یان null)
-                    authReadyResolver = null; // دڵنیابوونەوە لەوەی تەنها یەکجار کار بکات
+                    authReadyResolver(user); 
+                    authReadyResolver = null; 
                 }
             });
 

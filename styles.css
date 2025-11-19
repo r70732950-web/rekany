@@ -2133,3 +2133,38 @@ input:checked + .slider:before {
     height: 38px;
     margin-top: 20px; /* Bixe xwarê bo hevsengiya label */
 }
+
+/* [ 💡 زیادکرا ] - ستایلی دوگمەی Load More */
+.load-more-container {
+    grid-column: 1 / -1; /* Make it span the full width of the grid */
+    display: flex;
+    justify-content: center;
+    padding: 20px 0;
+    width: 100%;
+}
+
+.load-more-btn {
+    background-color: white;
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.load-more-btn:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.load-more-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}

@@ -14,11 +14,8 @@ const {
 window.AdminLogic = {
     listenersAttached: false,
     
-    // [ 💡 گۆڕانکاری ] - ئەمە تەنها بۆ ٤ وێنە سەرەکییەکە بەکاردێت
     currentImageUrls: ["", "", "", ""], 
     
-    // [ 💡 زیادکرا ] - ئەمە داتای وێنەی جۆرەکان (variations) هەڵدەگرێت
-    // { "temp_var_123": ["url1", "url2", "", ""] }
     variationImageData: {},
 
     currentLayoutEditorContext: { type: 'home', id: null }, 
@@ -104,7 +101,6 @@ window.AdminLogic = {
             'adminContactMethodsManagement', 'adminShortcutRowsManagement',
             'adminHomeLayoutManagement',
             'adminCategoryLayoutManagement',
-            // [ 💡 نوێ ] بەشی چات بۆ ئەدمین
             'adminChatsManagement'
         ];
         
@@ -142,7 +138,6 @@ window.AdminLogic = {
         document.getElementById('formTitle').textContent = 'دەستکاری کردنی کاڵا';
         document.getElementById('productForm').reset();
         
-        // [ 💡 زیادکرا ] - پاککردنەوەی داتای وێنەی جۆرەکان
         this.variationImageData = {};
         document.getElementById('variationsContainer').innerHTML = '';
         
@@ -172,7 +167,7 @@ window.AdminLogic = {
         
         const imageUrls = product.imageUrls || (product.image ? [product.image] : []);
         this.currentImageUrls = ["", "", "", ""].map((_, i) => imageUrls[i] || "");
-        this.createProductImageInputs(false); // false واتە هی جۆرەکان نییە
+        this.createProductImageInputs(false); 
         
         document.getElementById('productExternalLink').value = product.externalLink || '';
 
@@ -186,12 +181,9 @@ window.AdminLogic = {
             document.getElementById('shippingInfoAr').value = '';
         }
 
-        // [ 💡 زیادکرا ] - بارکردنی جۆرە پاشەکەوتکراوەکان (Variations)
         if (product.variations && Array.isArray(product.variations)) {
             product.variations.forEach(lvl1Var => {
-                // داتای وێنەکان هەڵدەگرین
                 this.variationImageData[lvl1Var.id] = ["", "", "", ""].map((_, i) => (lvl1Var.imageUrls && lvl1Var.imageUrls[i]) || "");
-                // بۆکسەکان دروست دەکەینەوە
                 this.createLvl1VariationBoxUI(lvl1Var.id, lvl1Var);
             });
         }
@@ -214,7 +206,6 @@ window.AdminLogic = {
         }
     },
 
-    // [ 💡 گۆڕانکاری ] - ئەم فەنکشنە گشتگیر کراوە
     createProductImageInputs: function(isVariation, variationId = null, existingImageUrls = []) {
         let container;
         if (isVariation) {
@@ -233,7 +224,6 @@ window.AdminLogic = {
             slot.className = 'image-upload-slot';
             slot.dataset.index = i;
             
-            // [ 💡 زیادکرا ] - IDـی جۆرەکە هەڵدەگرێت ئەگەر هی جۆر بێت
             if (isVariation) {
                 slot.dataset.variationId = variationId;
             }
@@ -257,13 +247,12 @@ window.AdminLogic = {
         }
     },
     
-    // [ 💡 گۆڕانکاری ] - ئەم فەنکشنە ئێستا دەزانێت کام وێنە نوێ بکاتەوە
     handleFileSelect: async function(input, slot) {
         const file = input.files[0];
         if (!file) return;
 
         const index = slot.dataset.index;
-        const variationId = slot.dataset.variationId; // IDی جۆرەکە وەردەگرێت
+        const variationId = slot.dataset.variationId; 
         
         const spinner = slot.querySelector('.image-upload-spinner');
         const label = slot.querySelector('.image-upload-label');
@@ -279,7 +268,6 @@ window.AdminLogic = {
             await uploadBytes(storageRef, file);
             const downloadURL = await getDownloadURL(storageRef);
 
-            // [ 💡 گۆڕانکاری ] - داتای دروست نوێ دەکاتەوە
             if (variationId) {
                 if (!this.variationImageData[variationId]) {
                     this.variationImageData[variationId] = ["", "", "", ""];
@@ -302,12 +290,10 @@ window.AdminLogic = {
         }
     },
 
-    // [ 💡 گۆڕانکاری ] - ئەم فەنکشنە ئێستا دەزانێت کام وێنە بسڕێتەوە
     handleImageRemove: function(slot) {
         const index = slot.dataset.index;
         const variationId = slot.dataset.variationId;
 
-        // [ 💡 گۆڕانکاری ] - داتای دروست پاک دەکاتەوە
         if (variationId) {
             if (this.variationImageData[variationId]) {
                 this.variationImageData[variationId][index] = "";
@@ -1445,7 +1431,6 @@ window.AdminLogic = {
         }
     },
     
-    // [ 💡 زیادکرا ] - فەنکشنی نوێ بۆ دروستکردنی بۆکسی ئاستی یەک
     createLvl1VariationBoxUI: function(variationId, data = null) {
         const container = document.getElementById('variationsContainer');
         
@@ -1489,11 +1474,9 @@ window.AdminLogic = {
         
         container.appendChild(box);
         
-        // وێنەکان دروست دەکەین
         const existingImages = data?.imageUrls || [];
         this.createProductImageInputs(true, variationId, existingImages);
 
-        // ئەگەر داتای کۆن هەبێت، ڕیزەکانی ئاستی دوو دروست دەکەینەوە
         if (data && data.options) {
             data.options.forEach(lvl2Opt => {
                 this.createLvl2OptionRowUI(box.querySelector('.variation-lvl2-container'), lvl2Opt.id, lvl2Opt);
@@ -1501,7 +1484,6 @@ window.AdminLogic = {
         }
     },
     
-    // [ 💡 زیادکرا ] - فەنکشنی نوێ بۆ دروستکردنی ڕیزی ئاستی دوو
     createLvl2OptionRowUI: function(container, optionId, data = null) {
         const row = document.createElement('div');
         row.className = 'variation-lvl2-item';
@@ -1522,7 +1504,6 @@ window.AdminLogic = {
         container.appendChild(row);
     },
 
-    // [ 💡 زیادکرا ] - فەنکشن بۆ کۆکردنەوەی داتای جۆرەکان
     collectVariationsData: function() {
         const variations = [];
         const container = document.getElementById('variationsContainer');
@@ -1549,13 +1530,11 @@ window.AdminLogic = {
                     price: parseInt(lvl2Row.querySelector('.variation-lvl2-price').value, 10) || 0
                 };
                 
-                // دڵنیابوونەوە لەوەی داتای بەتاڵ ناچێت
                 if (lvl2Data.name && lvl2Data.price > 0) {
                     lvl1Data.options.push(lvl2Data);
                 }
             });
 
-            // دڵنیابوونەوە لەوەی داتای بەتاڵ ناچێت
             if (lvl1Data.name.ku_sorani && lvl1Data.imageUrls.length > 0 && lvl1Data.options.length > 0) {
                 variations.push(lvl1Data);
             }
@@ -1688,12 +1667,11 @@ window.AdminLogic = {
             setEditingProductId(null);
             document.getElementById('productForm').reset();
             
-            // [ 💡 گۆڕانکاری ] - پاککردنەوەی داتای وێنەی جۆرەکان
             self.variationImageData = {};
             document.getElementById('variationsContainer').innerHTML = '';
             
             self.currentImageUrls = ["", "", "", ""];
-            self.createProductImageInputs(false); // false واتە هی جۆرەکان نییە
+            self.createProductImageInputs(false); 
             
             document.getElementById('subcategorySelectContainer').style.display = 'none';
             document.getElementById('subSubcategorySelectContainer').style.display = 'none';
@@ -1717,7 +1695,6 @@ window.AdminLogic = {
             self.populateSubSubcategoriesDropdown(mainCatId, e.target.value);
         });
         
-        // [ 💡 گۆڕانکاری ] - ئەم گوێگرە ئێستا گشتگیر کراوە
         document.getElementById('productFormModal').addEventListener('change', (e) => {
             if (e.target.classList.contains('image-upload-input')) {
                 const slot = e.target.closest('.image-upload-slot');
@@ -1725,7 +1702,6 @@ window.AdminLogic = {
             }
         });
 
-        // [ 💡 گۆڕانکاری ] - ئەم گوێگرە ئێستا گشتگیر کراوە
         document.getElementById('productFormModal').addEventListener('click', (e) => {
             const removeBtn = e.target.closest('.image-upload-remove-btn');
             if (removeBtn) {
@@ -1733,14 +1709,12 @@ window.AdminLogic = {
                 self.handleImageRemove(slot);
             }
             
-            // [ 💡 زیادکرا ] - گوێگر بۆ زیادکردنی جۆری ئاستی یەک
             if (e.target.id === 'addVariationLvl1Btn') {
                 const variationId = `var_${Date.now()}`;
                 self.variationImageData[variationId] = ["", "", "", ""];
                 self.createLvl1VariationBoxUI(variationId);
             }
             
-            // [ 💡 زیادکرا ] - گوێگر بۆ سڕینەوەی جۆری ئاستی یەک
             const deleteLvl1Btn = e.target.closest('.delete-variation-lvl1-btn');
             if (deleteLvl1Btn) {
                 const box = deleteLvl1Btn.closest('.variation-lvl1-box');
@@ -1750,7 +1724,6 @@ window.AdminLogic = {
                 }
             }
             
-            // [ 💡 زیادکرا ] - گوێگر بۆ زیادکردنی جۆری ئاستی دوو
             const addLvl2Btn = e.target.closest('.add-variation-lvl2-btn');
             if (addLvl2Btn) {
                 const lvl2Container = addLvl2Btn.previousElementSibling;
@@ -1758,7 +1731,6 @@ window.AdminLogic = {
                 self.createLvl2OptionRowUI(lvl2Container, optionId);
             }
             
-            // [ 💡 زیادکرا ] - گوێگر بۆ سڕینەوەی جۆری ئاستی دوو
             const deleteLvl2Btn = e.target.closest('.delete-variation-lvl2-btn');
             if (deleteLvl2Btn) {
                 deleteLvl2Btn.closest('.variation-lvl2-item').remove();
@@ -1793,7 +1765,6 @@ window.AdminLogic = {
                 ar: document.getElementById('productNameAr').value
             };
             
-            // [ 💡 زیادکرا ] - کۆکردنەوەی داتای جۆرەکان
             const variationsData = self.collectVariationsData();
 
             try {
@@ -1814,7 +1785,6 @@ window.AdminLogic = {
                         ku_badini: document.getElementById('shippingInfoKuBadini').value.trim(),
                         ar: document.getElementById('shippingInfoAr').value.trim()
                     },
-                    // [ 💡 زیادکرا ] - پاشەکەوتکردنی داتای جۆرەکان
                     variations: variationsData 
                 };
                 const editingId = getEditingProductId();
@@ -1908,7 +1878,6 @@ window.AdminLogic = {
             });
         }
         
-        // [ زیادکرا بۆ چاککردن ] - زیادکردنی گوێگر بۆ لیستی جۆری سەرەکی لە فۆڕمی زیادکردنی "لاوەکی لاوەکی"
         document.getElementById('parentMainCategorySelectForSubSub').addEventListener('change', async (e) => {
             const mainCatId = e.target.value;
             const subCatSelect = document.getElementById('parentSubcategorySelectForSubSub');
@@ -2042,7 +2011,6 @@ window.AdminLogic = {
                         ar: document.getElementById('announcementContentAr').value,
                     },
                     createdAt: Date.now(),
-                    // [ 💡 گۆڕانکاری لێرە کرا 💡 ]
                     imageUrl: document.getElementById('announcementImageUrl').value.trim() || null
                 };
 
@@ -2296,7 +2264,6 @@ window.AdminLogic = {
             }
         });
         
-        // [ زیادکرا بۆ چاککردن ] - زیادکردنی گوێگر بۆ لیستی جۆری سەرەکی لە فۆڕمی "کارت"
         document.getElementById('shortcutCardMainCategory').addEventListener('change', async (e) => {
             const mainCatId = e.target.value;
             const subCatContainer = document.getElementById('shortcutCardSubContainer');
@@ -2320,7 +2287,6 @@ window.AdminLogic = {
             }
         });
         
-        // [ زیادکرا بۆ چاککردن ] - زیادکردنی گوێگر بۆ لیستی جۆری لاوەکی لە فۆڕمی "کارت"
         document.getElementById('shortcutCardSubcategory').addEventListener('change', async (e) => {
             const mainCatId = document.getElementById('shortcutCardMainCategory').value;
             const subCatId = e.target.value;
