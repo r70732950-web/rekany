@@ -718,6 +718,11 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     if (!fromHistory) {
          saveCurrentScrollPositionCore(); 
          history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
+    } else {
+        // [ 💡 چاککرا ] - ئەگەر لاپەڕە ڕیفرێش بێت، دڵنیابە لە بوونی ستەیت (History State)
+        if (!history.state || history.state.id !== 'subcategoryDetailPage') {
+             history.replaceState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
+        }
     }
 
     const page = document.getElementById('subcategoryDetailPage');
@@ -760,6 +765,12 @@ async function showProductDetailsUI(productData, fromHistory = false) {
         saveCurrentScrollPositionCore();
         const newUrl = `?product=${product.id}`;
         history.pushState({ type: 'page', id: 'productDetailPage', title: productName, productId: product.id }, '', newUrl);
+    } else {
+        // [ 💡 چاککرا ] - ئەگەر لاپەڕە ڕیفرێش بێت، دڵنیابە لە بوونی ستەیت (History State)
+        if (!history.state || history.state.id !== 'productDetailPage') {
+            const newUrl = `?product=${product.id}`;
+            history.replaceState({ type: 'page', id: 'productDetailPage', title: productName, productId: product.id }, '', newUrl);
+        }
     }
     
     showPage('productDetailPage', productName);
@@ -1549,9 +1560,6 @@ window.addEventListener('popstate', async (event) => {
             applyFilterStateCore(stateToApply); 
 
             // [ 🛠️ چاکسازی سەرەکی ]
-            // لێرە پشکنین دەکەین بزانین ئایا پێشتر ناوەڕۆکەکە بارکراوە؟
-            // ئەگەر بارکرابوو، پێویست ناکات updateProductViewUI بانگ بکەین کە دەبێتە هۆی Refresh
-            
             const prodContainer = document.getElementById('productsContainer');
             const homeContainer = document.getElementById('homePageSectionsContainer');
             const catContainer = document.getElementById('categoryLayoutContainer');
@@ -1563,11 +1571,9 @@ window.addEventListener('popstate', async (event) => {
             const isContentAvailable = hasProducts || hasHome || hasCatLayout;
 
             if (isContentAvailable) {
-                // تەنها دڵنیا دەبینەوە کە بەشی دروست پیشان دەدرێت (Home vs Category vs Grid)
                 const isHomeState = state.currentCategory === 'all' && !state.currentSearch;
                 const isCatLayoutState = state.currentCategory !== 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all' && !state.currentSearch;
                 
-                // هەموویان دەشارینەوە سەرەتا
                 if(prodContainer) prodContainer.style.display = 'none';
                 if(homeContainer) homeContainer.style.display = 'none';
                 if(catContainer) catContainer.style.display = 'none';
@@ -1580,17 +1586,14 @@ window.addEventListener('popstate', async (event) => {
                 } else if (isCatLayoutState) {
                     if(catContainer) {
                         catContainer.style.display = 'block';
-                        // دڵنیابوونەوە لەوەی Layoutـی دروست پیشان دەدرێت
                         Array.from(catContainer.children).forEach(child => {
                              child.style.display = (child.id === `layout-cache-${state.currentCategory}`) ? 'block' : 'none';
                         });
                     }
-                    // دڵنیابوونەوە لەوەی لیستی جۆرەکان (Subcategories) دەردەکەوێت
                     const subcats = await fetchSubcategories(state.currentCategory);
                     renderSubcategoriesUI(subcats);
                 } else {
                     if(prodContainer) prodContainer.style.display = 'grid';
-                     // دڵنیابوونەوە لەوەی لیستی جۆرەکان (Subcategories) دەردەکەوێت
                     const subcats = await fetchSubcategories(state.currentCategory);
                     renderSubcategoriesUI(subcats);
                 }
@@ -1598,7 +1601,6 @@ window.addEventListener('popstate', async (event) => {
                 renderMainCategoriesUI();
                 
             } else {
-                // ئەگەر هیچ ناوەڕۆکێک نەبوو (Refresh کرابێت)، ئەوا بارکردنی نوێ دەکەین
                 await updateProductViewUI(true, false);
             }
 
@@ -1708,6 +1710,7 @@ async function handleInitialPageLoadUI() {
          const mainCatId = ids[1];
          const subCatId = ids[2];
          if (state.categories.length > 0) { 
+             // [ 💡 Fix ] Pass true for fromHistory to avoid pushing, but rely on internal repair logic
               await showSubcategoryDetailPageUI(mainCatId, subCatId, true); 
          } else {
              console.warn("Categories not ready on initial load, showing main page instead of detail.");
@@ -1721,7 +1724,8 @@ async function handleInitialPageLoadUI() {
             showPage('productDetailPage'); // Show empty page first to reduce flicker
             const product = await fetchProductById(productId);
             if (product) {
-                showProductDetailsUI(product, false);
+                // [ 💡 Fix ] Pass true for fromHistory to handle state repair internally
+                showProductDetailsUI(product, true);
             } else {
                  showPage('mainPage');
                  await updateProductViewUI(true, true);
