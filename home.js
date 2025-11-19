@@ -7,8 +7,7 @@ import {
     fetchSubcategories, navigateToFilterCore,
     fetchProducts,
     fetchSubSubcategories, 
-    db, doc, getDoc,
-    PRODUCTS_PER_PAGE // [ 💡 ] ئەمەمان لە app-core هێنا
+    db, doc, getDoc 
 } from './app-core.js';
 
 import {
@@ -24,72 +23,29 @@ function resetScrollPosition(containerElement) {
     }
 }
 
-// [ 💡 گۆڕانکاری ] - فەنکشن بۆ دروستکردنی دوگمەی "زیاتر ببینە"
-function createLoadMoreButton() {
-    const container = document.createElement('div');
-    container.className = 'load-more-container';
-    
-    const btn = document.createElement('button');
-    btn.className = 'load-more-btn';
-    btn.innerHTML = `<span>زیاتر ببینە (+${PRODUCTS_PER_PAGE})</span> <i class="fas fa-chevron-down"></i>`;
-    
-    btn.onclick = async () => {
-        btn.disabled = true;
-        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ...چاوەڕێ بە`;
-        
-        // بارکردنی کاڵای زیاتر
-        const result = await fetchProducts(state.currentSearch, false);
-        
-        // لابردنی دوگمەی کۆن
-        container.remove();
-        
-        if (result && result.products.length > 0) {
-            renderProductsGridUI(result.products, false); // false واتە پاکی مەکەرەوە، تەنها زیاد بکە
-        }
-        
-        // ئەگەر هێشتا کاڵا مابوو، دوگمەکە دابنێوە
-        if (!state.allProductsLoaded) {
-            const productsContainer = document.getElementById('productsContainer');
-            productsContainer.appendChild(createLoadMoreButton());
-        }
-    };
-    
-    container.appendChild(btn);
-    return container;
-}
 
-// [ 💡 گۆڕانکاری ] - نوێکردنەوەی ڕێندەرکردنی گرید
-function renderProductsGridUI(productsData, isNewList = true) {
+function renderProductsGridUI(newProductsOnly = false) {
     const container = document.getElementById('productsContainer'); 
     if (!container) return;
 
-    // ئەگەر لیستێکی نوێ بوو، هەمووی پاک بکەرەوە
-    if (isNewList) {
-        container.innerHTML = '';
-        if (!productsData || productsData.length === 0) {
-            container.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
-            return;
-        }
-    }
-
-    // زیادکردنی کاڵاکان
-    if (Array.isArray(productsData)) { 
-        productsData.forEach(item => {
+    if (Array.isArray(newProductsOnly)) { 
+        newProductsOnly.forEach(item => {
             let element = createProductCardElementUI(item); 
             element.classList.add('product-card-reveal'); 
             container.appendChild(element);
         });
+    } else {
+        container.innerHTML = '';
+        if (!state.products || state.products.length === 0) {
+            container.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+        } else {
+            state.products.forEach(item => {
+                let element = createProductCardElementUI(item); 
+                element.classList.add('product-card-reveal'); 
+                container.appendChild(element);
+            });
+        }
     }
-
-    // [ 💡 ] ئەگەر کاڵای تر مابوو، دوگمەی Load More زیاد بکە
-    // سەرەتا هەر دوگمەیەک هەبێت لای دەبەین تا دووبارە نەبێتەوە
-    const existingBtn = container.querySelector('.load-more-container');
-    if (existingBtn) existingBtn.remove();
-
-    if (!state.allProductsLoaded) {
-        container.appendChild(createLoadMoreButton());
-    }
-
     setupScrollAnimations(); 
 }
 
@@ -267,10 +223,7 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
 
 
 export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop = true) {
-    // [ 💡 گۆڕانکاری ] - Scroll Trigger چیتر بەکارنایەت، بەڵام با وەک گۆڕاوێک لێرە بێت نەوەک هەڵە بدات
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
-    if(scrollTrigger) scrollTrigger.style.display = 'none'; 
-
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
     const categoryLayoutContainer = document.getElementById('categoryLayoutContainer'); 
     const productsContainer = document.getElementById('productsContainer'); 
@@ -294,6 +247,7 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
                                    document.getElementById(targetCategoryLayoutId); 
     
     if (isNewSearch) {
+        scrollTrigger.style.display = 'none'; 
         const isReturningWithContent = isHomeLoaded || isCategoryLayoutLoaded;
 
         if (isReturningWithContent) {
@@ -329,15 +283,17 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
     }
 
     let result;
-    // ئەگەر گەڕان نییە و دیزاینی تایبەتی ماڵەوە یان جۆر نییە، واتە بینینی کاڵاکانە
     if (isNewSearch && (isHomeLoaded || isCategoryLayoutLoaded)) {
         result = null; 
     } else if (!isNewSearch && isTargetProductGrid) {
-         // ئەم بەشە تەنها کاتێک کاردەکات ئەگەر لە دەرەوە بانگ بکرێت، بەڵام لۆجیکی Load More جیاوازە
+         loader.style.display = 'block'; 
          result = await fetchProducts(state.currentSearch, false); 
+         loader.style.display = 'none';
          if(result && result.products.length > 0) {
-            renderProductsGridUI(result.products, false); 
+            renderProductsGridUI(result.products); 
          }
+         scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
+         
          renderMainCategoriesUI();
          return; 
     } else {
@@ -349,6 +305,7 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
     if (result) {
         if (result.isHome) {
             productsContainer.style.display = 'none'; 
+            scrollTrigger.style.display = 'none'; 
             
             if (result.layout) {
                 homeSectionsContainer.style.display = 'none'; 
@@ -361,13 +318,12 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
                     child.style.display = 'none';
                 });
 
-                let targetLayoutDiv = document.getElementById(targetCategoryLayoutId);
-                if (!targetLayoutDiv) {
-                     targetLayoutDiv = document.createElement('div');
-                     targetLayoutDiv.id = targetCategoryLayoutId;
-                     categoryLayoutContainer.appendChild(targetLayoutDiv);
-                     await renderPageContentUI(result.layout, targetLayoutDiv);
-                }
+                let targetLayoutDiv = document.createElement('div');
+                targetLayoutDiv.id = targetCategoryLayoutId;
+                categoryLayoutContainer.appendChild(targetLayoutDiv);
+                
+                await renderPageContentUI(result.layout, targetLayoutDiv);
+                
                 targetLayoutDiv.style.display = 'block';
                 
             } else {
@@ -382,7 +338,6 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
                 }
             }
         } else {
-            // [ 💡 ] لێرە بەشی نیشاندانی کاڵاکانە بۆ جۆرەکان یان گەڕان
             homeSectionsContainer.style.display = 'none'; 
             categoryLayoutContainer.style.display = 'none'; 
             productsContainer.style.display = 'grid'; 
@@ -393,9 +348,9 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
             if (result.error) {
                 productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
             } else {
-                // [ 💡 گۆڕانکاری ] - بانگکردنی رێندەرکردن بە داتای نوێوە
-                renderProductsGridUI(result.products, true); 
+                renderProductsGridUI(null); 
             }
+            scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block'; 
         }
     }
 
@@ -757,18 +712,5 @@ async function createAllProductsSectionElement() {
         const card = createProductCardElementUI(product); 
         productsGrid.appendChild(card);
     });
-    
-    // [ 💡 ] دوگمەی هەموویان ببینە بۆ بەشی سەرەکی
-    const seeAllBtn = document.createElement('div');
-    seeAllBtn.style.gridColumn = '1 / -1';
-    seeAllBtn.style.textAlign = 'center';
-    seeAllBtn.style.padding = '15px';
-    seeAllBtn.innerHTML = `<button class="see-all-link" style="font-size:15px; padding:10px 20px;">${t('see_all')}</button>`;
-    seeAllBtn.onclick = async () => {
-         await navigateToFilterCore({ category: 'all', subcategory: 'all', subSubcategory: 'all', search: '' });
-         await updateProductViewUI(true, true);
-    };
-    productsGrid.appendChild(seeAllBtn);
-
     return container;
 }
