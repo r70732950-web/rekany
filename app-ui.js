@@ -97,7 +97,6 @@ function updateHeaderView(pageId, title = '') {
     }
 }
 
-// [ 🛠️ Updated ] - Added scrollToTop parameter to control auto-scrolling
 function showPage(pageId, pageTitle = '', scrollToTop = true) {
     state.currentPageId = pageId; 
     document.querySelectorAll('.page').forEach(page => {
@@ -115,7 +114,6 @@ function showPage(pageId, pageTitle = '', scrollToTop = true) {
         }
     }
 
-    // [ 🛠️ Updated ] - Only scroll to top if scrollToTop is true
     if (pageId !== 'mainPage' && scrollToTop) {
          requestAnimationFrame(() => { 
              const activePage = document.getElementById(pageId);
@@ -706,7 +704,6 @@ function renderCategoriesSheetUI() {
      }
 }
 
-// [ 🛠️ Updated ] - Prevent reloading data if we are coming back from history
 export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHistory = false) { 
     let subCatName = 'Details'; 
     try {
@@ -723,21 +720,17 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
          history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
     }
 
-    // Check if the page is already loaded with the same data
     const page = document.getElementById('subcategoryDetailPage');
     const isSameCategory = page.dataset.loadedMain === mainCatId && page.dataset.loadedSub === subCatId;
 
     if (fromHistory && isSameCategory) {
-        // [ 🛠️ Fix ] - Do NOT reload content, just show the page and maintain scroll
         showPage('subcategoryDetailPage', subCatName, false); 
         return;
     }
 
-    // Update loaded state
     page.dataset.loadedMain = mainCatId;
     page.dataset.loadedSub = subCatId;
 
-    // Load fresh content (scrollToTop = true)
     showPage('subcategoryDetailPage', subCatName, true); 
 
     const loader = document.getElementById('detailPageLoader');
@@ -1555,15 +1548,62 @@ window.addEventListener('popstate', async (event) => {
             const stateToApply = popState || { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
             applyFilterStateCore(stateToApply); 
 
-            const cameFromPage = previousPageId !== 'mainPage'; 
-            const shouldReloadData = cameFromPage; 
-            const shouldScrollToTop = false; 
+            // [ 🛠️ چاکسازی سەرەکی ]
+            // لێرە پشکنین دەکەین بزانین ئایا پێشتر ناوەڕۆکەکە بارکراوە؟
+            // ئەگەر بارکرابوو، پێویست ناکات updateProductViewUI بانگ بکەین کە دەبێتە هۆی Refresh
             
-            // [ 🛠️ چاککرا ] - ڕێگری لە نوێبوونەوەی بێزارکەر (Refresh)
-            await updateProductViewUI(false, false);
+            const prodContainer = document.getElementById('productsContainer');
+            const homeContainer = document.getElementById('homePageSectionsContainer');
+            const catContainer = document.getElementById('categoryLayoutContainer');
+            
+            const hasProducts = prodContainer && prodContainer.children.length > 0;
+            const hasHome = homeContainer && homeContainer.children.length > 0;
+            const hasCatLayout = catContainer && catContainer.children.length > 0;
+            
+            const isContentAvailable = hasProducts || hasHome || hasCatLayout;
+
+            if (isContentAvailable) {
+                // تەنها دڵنیا دەبینەوە کە بەشی دروست پیشان دەدرێت (Home vs Category vs Grid)
+                const isHomeState = state.currentCategory === 'all' && !state.currentSearch;
+                const isCatLayoutState = state.currentCategory !== 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all' && !state.currentSearch;
+                
+                // هەموویان دەشارینەوە سەرەتا
+                if(prodContainer) prodContainer.style.display = 'none';
+                if(homeContainer) homeContainer.style.display = 'none';
+                if(catContainer) catContainer.style.display = 'none';
+                if(document.getElementById('skeletonLoader')) document.getElementById('skeletonLoader').style.display = 'none';
+
+                if (isHomeState) {
+                    if(homeContainer) homeContainer.style.display = 'block';
+                    document.getElementById('subcategoriesContainer').style.display = 'none';
+                    document.getElementById('subSubcategoriesContainer').style.display = 'none';
+                } else if (isCatLayoutState) {
+                    if(catContainer) {
+                        catContainer.style.display = 'block';
+                        // دڵنیابوونەوە لەوەی Layoutـی دروست پیشان دەدرێت
+                        Array.from(catContainer.children).forEach(child => {
+                             child.style.display = (child.id === `layout-cache-${state.currentCategory}`) ? 'block' : 'none';
+                        });
+                    }
+                    // دڵنیابوونەوە لەوەی لیستی جۆرەکان (Subcategories) دەردەکەوێت
+                    const subcats = await fetchSubcategories(state.currentCategory);
+                    renderSubcategoriesUI(subcats);
+                } else {
+                    if(prodContainer) prodContainer.style.display = 'grid';
+                     // دڵنیابوونەوە لەوەی لیستی جۆرەکان (Subcategories) دەردەکەوێت
+                    const subcats = await fetchSubcategories(state.currentCategory);
+                    renderSubcategoriesUI(subcats);
+                }
+                
+                renderMainCategoriesUI();
+                
+            } else {
+                // ئەگەر هیچ ناوەڕۆکێک نەبوو (Refresh کرابێت)، ئەوا بارکردنی نوێ دەکەین
+                await updateProductViewUI(true, false);
+            }
 
             if (!state.pendingFilterNav) { 
-                // [ 💡 چاککرا ] - دڵنیابوونەوە لە گەڕاندنەوەی Scroll
+                // [ 💡 چاککرا ] - گەڕاندنەوەی شوێنی Scroll
                 if (typeof stateToApply.scroll === 'number') {
                     setTimeout(() => {
                          const homePage = document.getElementById('mainPage');
