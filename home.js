@@ -386,13 +386,17 @@ export async function renderPageContentUI(layoutSections, targetContainerElement
     
     if (!layoutToRender || layoutToRender.length === 0) {
         console.warn("Page layout is empty or failed to load.");
-         const allProductsSection = await createAllProductsSectionElement();
+         // Pass current category context
+         const allProductsSection = await createAllProductsSectionElement(state.currentCategory);
          if(allProductsSection) targetContainerElement.appendChild(allProductsSection);
         return;
     }
 
     Object.values(state.sliderIntervals || {}).forEach(clearInterval);
     state.sliderIntervals = {};
+
+    // [ 💡 چاککرا ] - وەرگرتنی جۆری ئێستا بۆ ئەوەی بزانین تێکەڵ بکەین یان نا
+    const currentCategoryId = state.currentCategory; 
 
     for (const section of layoutToRender) {
         let sectionElement = null;
@@ -410,7 +414,8 @@ export async function renderPageContentUI(layoutSections, targetContainerElement
                      } else console.warn("Brands section missing groupId:", section);
                      break;
                  case 'newest_products':
-                     sectionElement = await createNewestProductsSectionElement();
+                     // [ 💡 چاککرا ] - ناردنی currentCategoryId
+                     sectionElement = await createNewestProductsSectionElement(currentCategoryId);
                      break;
                  case 'single_shortcut_row':
                      if (section.rowId) {
@@ -423,7 +428,8 @@ export async function renderPageContentUI(layoutSections, targetContainerElement
                      } else console.warn("Category row missing categoryId:", section);
                      break;
                   case 'all_products':
-                       sectionElement = await createAllProductsSectionElement();
+                       // [ 💡 چاککرا ] - ناردنی currentCategoryId
+                       sectionElement = await createAllProductsSectionElement(currentCategoryId);
                       break;
                  default:
                      console.warn(`Unknown home layout section type: ${section.type}`);
@@ -571,8 +577,9 @@ async function createBrandsSectionElement(groupId) {
     return sectionContainer;
 }
 
-async function createNewestProductsSectionElement() {
-    const products = await fetchNewestProducts();
+// [ 💡 چاککرا ] - ئێستا categoryId وەردەگرێت
+async function createNewestProductsSectionElement(categoryId = null) {
+    const products = await fetchNewestProducts(20, categoryId); // 20 items limit
     if (!products || products.length === 0) return null;
 
     const container = document.createElement('div');
@@ -694,16 +701,21 @@ async function createSingleCategoryRowElement(sectionData) {
     return container;
 }
 
-async function createAllProductsSectionElement() {
-    const products = await fetchInitialProductsForHome(10); 
+// [ 💡 چاککرا ] - ئێستا categoryId وەردەگرێت
+async function createAllProductsSectionElement(categoryId = null) {
+    const products = await fetchInitialProductsForHome(30, categoryId); // 30 items limit
     if (!products || products.length === 0) return null;
 
     const container = document.createElement('div');
     container.className = 'dynamic-section';
     container.style.marginTop = '20px'; 
+    
+    // گۆڕینی ناونیشان بەپێی جۆر (ئەگەر لەناو جۆرێک بووین، دەنووسین "هەموو کاڵاکان" بەبێ "سەرەکی")
+    const titleKey = (categoryId && categoryId !== 'all') ? 'all_products' : 'all_products_section_title';
+    
     container.innerHTML = `
         <div class="section-title-header">
-            <h3 class="section-title-main">${t('all_products_section_title')}</h3>
+            <h3 class="section-title-main">${t(titleKey)}</h3>
              </div>
         <div class="products-container"></div>
     `;

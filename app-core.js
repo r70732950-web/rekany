@@ -21,7 +21,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
-// [ 💡 زیادکرا ] - پرۆمیس بۆ دڵنیابوونەوە لە ئامادەبوونی Auth
+// Promise to ensure Auth is ready
 let authReadyResolver;
 export const authReady = new Promise(resolve => {
     authReadyResolver = resolve;
@@ -415,10 +415,31 @@ async function fetchBrandGroupBrands(groupId) {
     }
 }
 
-async function fetchNewestProducts(limitCount = 10) {
+// [ 💡 چاککرا ] - زیادکردنی categoryId بۆ پاڵاوتن
+async function fetchNewestProducts(limitCount = 20, categoryId = null) {
     try {
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
-        const q = query(productsCollection, where('createdAt', '>=', fifteenDaysAgo), orderBy('createdAt', 'desc'), limit(limitCount));
+        let q;
+
+        // ئەگەر ئایدی جۆر هەبوو (واتە لەناو پەڕەی جۆرەکانین)
+        if (categoryId && categoryId !== 'all') {
+             q = query(
+                 productsCollection, 
+                 where('categoryId', '==', categoryId), // تەنها هی ئەم جۆرە
+                 where('createdAt', '>=', fifteenDaysAgo), 
+                 orderBy('createdAt', 'desc'), 
+                 limit(limitCount)
+             );
+        } else {
+            // ئەگەر لە پەڕەی سەرەکی بووین (هەمووی بێنە)
+             q = query(
+                 productsCollection, 
+                 where('createdAt', '>=', fifteenDaysAgo), 
+                 orderBy('createdAt', 'desc'), 
+                 limit(limitCount)
+             );
+        }
+
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
@@ -452,7 +473,8 @@ async function fetchCategoryRowProducts(sectionData) {
     } else { return []; }
 
     try {
-        const q = query(productsCollection, where(queryField, '==', queryValue), orderBy('createdAt', 'desc'), limit(10));
+        // [ 💡 چاککرا ] - زیادکردنی Limit بۆ 20
+        const q = query(productsCollection, where(queryField, '==', queryValue), orderBy('createdAt', 'desc'), limit(20));
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
@@ -461,9 +483,28 @@ async function fetchCategoryRowProducts(sectionData) {
     }
 }
 
-async function fetchInitialProductsForHome(limitCount = 10) {
+// [ 💡 چاککرا ] - زیادکردنی categoryId بۆ پاڵاوتن و زیادکردنی Limit بۆ 30
+async function fetchInitialProductsForHome(limitCount = 30, categoryId = null) {
      try {
-        const q = query(productsCollection, orderBy('createdAt', 'desc'), limit(limitCount));
+        let q;
+        
+        // ئەگەر ئایدی جۆر هەبوو
+        if (categoryId && categoryId !== 'all') {
+            q = query(
+                productsCollection, 
+                where('categoryId', '==', categoryId), // تەنها هی ئەم جۆرە
+                orderBy('createdAt', 'desc'), 
+                limit(limitCount)
+            );
+        } else {
+            // ئەگەر لە پەڕەی سەرەکی بووین
+            q = query(
+                productsCollection, 
+                orderBy('createdAt', 'desc'), 
+                limit(limitCount)
+            );
+        }
+
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
