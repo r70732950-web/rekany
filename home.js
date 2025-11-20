@@ -717,7 +717,7 @@ async function createAllProductsSectionElement(categoryId = null) {
         <div class="section-title-header">
             <h3 class="section-title-main">${t(titleKey)}</h3>
              </div>
-        <div class="products-container"></div>
+        <div class="products-container all-products-grid"></div>
     `;
     const productsGrid = container.querySelector('.products-container');
     products.forEach(product => {

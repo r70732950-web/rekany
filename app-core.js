@@ -473,7 +473,7 @@ async function fetchCategoryRowProducts(sectionData) {
     } else { return []; }
 
     try {
-        // [ 💡 چاککرا ] - زیادکردنی Limit بۆ 20
+        // [ 💡 چاککرا ] - Limit کراوە بە 20
         const q = query(productsCollection, where(queryField, '==', queryValue), orderBy('createdAt', 'desc'), limit(20));
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -483,30 +483,40 @@ async function fetchCategoryRowProducts(sectionData) {
     }
 }
 
-// [ 💡 چاککرا ] - زیادکردنی categoryId بۆ پاڵاوتن و زیادکردنی Limit بۆ 30
+// [ 💡 چاککرا ] - ئەم فەنکشنە نوێ کرایەوە بۆ ئەوەی Pagination کار بکات
 async function fetchInitialProductsForHome(limitCount = 30, categoryId = null) {
      try {
         let q;
         
-        // ئەگەر ئایدی جۆر هەبوو
-        if (categoryId && categoryId !== 'all') {
-            q = query(
-                productsCollection, 
-                where('categoryId', '==', categoryId), // تەنها هی ئەم جۆرە
-                orderBy('createdAt', 'desc'), 
-                limit(limitCount)
-            );
-        } else {
-            // ئەگەر لە پەڕەی سەرەکی بووین
-            q = query(
-                productsCollection, 
-                orderBy('createdAt', 'desc'), 
-                limit(limitCount)
-            );
+        // پاککردنەوەی داتای کۆن ئەگەر سەرەتا بێت (تەنها ئەگەر یەکەمجار بێت)
+        if (!state.lastVisibleProductDoc || state.currentCategory !== (categoryId || 'all')) {
+             state.allProductsLoaded = false;
+             state.lastVisibleProductDoc = null;
+             state.products = []; // Reset if logic requires
         }
+        
+        let conditions = [];
+        
+        if (categoryId && categoryId !== 'all') {
+             conditions.push(where('categoryId', '==', categoryId));
+        }
+        conditions.push(orderBy('createdAt', 'desc'));
+
+        q = query(productsCollection, ...conditions, limit(limitCount));
 
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // [ 💡 گرنگ ] - پاشەکەوتکردنی شوێنی کۆتایی بۆ ئەوەی Scroll کار بکات
+        state.lastVisibleProductDoc = snapshot.docs[snapshot.docs.length - 1];
+        state.allProductsLoaded = snapshot.docs.length < limitCount;
+        
+        // کاڵاکان دەخەینە ناو state.productsـەوە بۆ ئەوەی زیادکردنی دواتر (Append) ئاسان بێت
+        const fetchedProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Note: We don't overwrite state.products here directly if we want append behavior in UI, 
+        // but for initial fetch usually we just return data. The UI handles appending.
+        // However, keeping state consistent is good.
+        
+        return fetchedProducts;
     } catch (error) {
         console.error("Error fetching initial products for home page:", error);
         return [];

@@ -719,7 +719,6 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
          saveCurrentScrollPositionCore(); 
          history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
     } else {
-        // [ 💡 چاککرا ] - ئەگەر لاپەڕە ڕیفرێش بێت، دڵنیابە لە بوونی ستەیت (History State)
         if (!history.state || history.state.id !== 'subcategoryDetailPage') {
              history.replaceState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
         }
@@ -766,7 +765,6 @@ async function showProductDetailsUI(productData, fromHistory = false) {
         const newUrl = `?product=${product.id}`;
         history.pushState({ type: 'page', id: 'productDetailPage', title: productName, productId: product.id }, '', newUrl);
     } else {
-        // [ 💡 چاککرا ] - ئەگەر لاپەڕە ڕیفرێش بێت، دڵنیابە لە بوونی ستەیت (History State)
         if (!history.state || history.state.id !== 'productDetailPage') {
             const newUrl = `?product=${product.id}`;
             history.replaceState({ type: 'page', id: 'productDetailPage', title: productName, productId: product.id }, '', newUrl);
@@ -1411,15 +1409,38 @@ function setupUIEventListeners() {
     if (scrollTrigger) {
         const observer = new IntersectionObserver(async (entries) => {
             const isMainPageActive = document.getElementById('mainPage')?.classList.contains('page-active');
+            
+            // پشکنین: ئایا لیستی کاڵاکان لە پەڕەی گەڕان دیارە؟
             const isProductGridVisible = document.getElementById('productsContainer')?.style.display === 'grid';
+            
+            // [ 💡 نوێ ] - پشکنین: ئایا بەشی "هەموو کاڵاکان" لە پەڕەی سەرەکی هەیە؟
+            const isHomeAllProductsVisible = document.querySelector('.all-products-grid');
 
-            if (entries[0].isIntersecting && isMainPageActive && isProductGridVisible && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
+            // مەرج: دەبێت لە پەڕەی سەرەکی بین، و یەکێک لە لیستەکان دیار بێت، و هێشتا هەمووی بار نەبووبێت
+            if (entries[0].isIntersecting && isMainPageActive && (isProductGridVisible || isHomeAllProductsVisible) && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
+                 
                  loader.style.display = 'block'; 
+                 // ئەمە خۆی دەچێت 30ی تر دەهێنێت بەپێی lastVisibleProductDoc
                  const result = await fetchProducts(state.currentSearch, false); 
+                 
                  loader.style.display = 'none'; 
+                 
                  if(result && result.products.length > 0) {
-                     await updateProductViewUI(false); 
+                     // [ 💡 گرنگ ] - ئەگەر لە پەڕەی سەرەکی بووین، ئەوا append دەکەین بۆ ناو بەشی تایبەت
+                     if (isHomeAllProductsVisible) {
+                         result.products.forEach(product => {
+                             const card = createProductCardElementUI(product); 
+                             card.classList.add('product-card-reveal');
+                             isHomeAllProductsVisible.appendChild(card);
+                         });
+                         setupScrollAnimations();
+                     } else {
+                         // ئەگەر لە پەڕەی گەڕان بووین
+                         await updateProductViewUI(false); 
+                     }
                  }
+                 
+                 // ئەگەر هەمووی تەواو بوو، ئیتر داواکاری مەنێرە
                  scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
             }
         }, { threshold: 0.1 });

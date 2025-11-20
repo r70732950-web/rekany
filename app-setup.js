@@ -4,7 +4,6 @@ import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
-// [ 💡 ] لێرە هەموو فەنکشنەکانی Storage import دەکەین
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
 
 
@@ -25,12 +24,12 @@ export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 export const storage = getStorage(app);
 
-// [ 💡 ] لێرە دەیکەینە Export بۆ ئەوەی Chat.js بەکاری بهێنێت
+// هەناردەکردنی فەنکشنەکان بۆ ئەوەی لە فایلەکانی تر بەکاربێن
 export {
     signInWithEmailAndPassword, onAuthStateChanged, signOut,
     createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail,
     serverTimestamp,
-    ref, uploadBytes, getDownloadURL // <--- ئەمە زیادکرا
+    ref, uploadBytes, getDownloadURL
 };
 
 // Collections
@@ -42,7 +41,6 @@ export const brandGroupsCollection = collection(db, "brand_groups");
 export const shortcutRowsCollection = collection(db, "shortcut_rows");
 export const categoryLayoutsCollection = collection(db, "category_layouts");
 export const usersCollection = collection(db, "users");
-
 export const chatsCollection = collection(db, "chats");
 export const ordersCollection = collection(db, "orders");
 
@@ -164,8 +162,6 @@ export const translations = {
         password_reset_email_sent: "ئیمەیڵێکی ڕێستکردنەوەت بۆ نێردرا. تکایە سەیری ئیمەیڵەکەت بکە.",
         password_reset_error_not_found: "ئەم ئیمەیڵە تۆمار نەکراوە.",
         password_reset_enter_email: "تکایە سەرەتا ئیمەیڵەکەت لە خانەی ئیمەیڵ بنووسە.",
-        
-        // [ 💡 نوێ ] : وشە نوێیەکان
         order_confirm_title: "ناردنی داواکاری",
         order_confirm_msg: "دڵنیایت دەتەوێت ئەم داواکارییە بنێریت؟",
         yes_send: "بەڵێ، بینێرە",
@@ -287,8 +283,6 @@ export const translations = {
         password_reset_email_sent: "ئیمەیلەکا رێستکرنێ بۆ تە هاتە فرێکرن. هیڤی دکەین سحکە ئیمەیلا خۆ.",
         password_reset_error_not_found: "ئەڤ ئیمەیلە تۆمار نەکریە.",
         password_reset_enter_email: "هیڤی دکەین ئێکەم جار ئیمەیلا خۆ ل خانەیا ئیمەیلێ بنڤیسە.",
-        
-        // [ 💡 نوێ ] : وشە نوێیەکان
         order_confirm_title: "فرێکرنا داخازیێ",
         order_confirm_msg: "تۆ پشتڕاستی تە دڤێت ڤێ داخازیێ فرێکەی؟",
         yes_send: "بەڵێ، فرێکە",
@@ -410,8 +404,6 @@ export const translations = {
         password_reset_email_sent: "تم إرسال بريد إلكتروني لإعادة تعيين كلمة المرور. يرجى التحقق من بريدك.",
         password_reset_error_not_found: "هذا البريد الإلكتروني غير مسجل.",
         password_reset_enter_email: "يرجى إدخال بريدك الإلكتروني في حقل البريد أولاً.",
-        
-        // [ 💡 نوێ ] : وشە نوێیەکان
         order_confirm_title: "تأكيد الطلب",
         order_confirm_msg: "هل أنت متأكد من أنك تريد إرسال هذا الطلب؟",
         yes_send: "نعم، أرسل",
@@ -451,7 +443,8 @@ export let state = {
 
 export const CART_KEY = "maten_store_cart";
 export const FAVORITES_KEY = "maten_store_favorites";
-export const PRODUCTS_PER_PAGE = 25;
+// [ 💡 گۆڕانکاری ] - کراوە بە 30
+export const PRODUCTS_PER_PAGE = 30;
 
 // Elements Exports
 export const loginModal = document.getElementById('loginModal');
@@ -547,7 +540,6 @@ export const addCategorySectionBtn = document.getElementById('addCategorySection
 
 window.globalAdminTools = {
     db, auth,
-    // [ 💡 ] storage, ref, ... لە app-setup دێن بۆیە لێرە ڕێکخراون
     storage, ref, uploadBytes, getDownloadURL,
     doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection,
     query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
