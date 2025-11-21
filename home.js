@@ -418,6 +418,11 @@ export async function renderPageContentUI(layoutSections, targetContainerElement
                           sectionElement = await createSingleShortcutRowElement(section.rowId, section.name); 
                          } else console.warn("Shortcut row missing rowId:", section);
                      break;
+                 case 'promo_grid':
+                     if (section.rowId) {
+                         sectionElement = await createPromoGridSectionElement(section.rowId);
+                     } else console.warn("Promo grid missing rowId:", section);
+                     break;
                  case 'single_category_row':
                      if (section.categoryId) {
                          sectionElement = await createSingleCategoryRowElement(section); 
@@ -523,12 +528,10 @@ async function createPromoSliderElement(groupId, layoutId) {
         startInterval(); 
     }
 
-    // [ 💡 نوێ ] - کلیک کردن لەسەر سلایدەر
     promoCardElement.addEventListener('click', async (e) => {
         if (!e.target.closest('button')) { 
             const currentCard = cardData.cards[sliderState.currentIndex];
             
-            // پشکنین بۆ لاوەکیی لاوەکی
             if (currentCard.subSubcategoryId && currentCard.subcategoryId && currentCard.categoryId) {
                 showSubcategoryDetailPageUI(currentCard.categoryId, currentCard.subcategoryId);
                 setTimeout(() => {
@@ -570,7 +573,6 @@ async function createBrandsSectionElement(groupId) {
             <span>${brandName}</span>
         `;
         
-        // [ 💡 نوێ ] - کلیک کردن لەسەر براند
         item.onclick = async () => {
              if (brand.subSubcategoryId && brand.subcategoryId && brand.categoryId) {
                  showSubcategoryDetailPageUI(brand.categoryId, brand.subcategoryId);
@@ -635,7 +637,6 @@ async function createSingleShortcutRowElement(rowId, sectionNameObj) {
              <div class="shortcut-card-name">${cardName}</div>
          `;
          
-         // [ 💡 نوێ ] - کلیک کردن لەسەر کارتی شۆرتکەت
          item.onclick = async () => {
             if (cardData.subSubcategoryId && cardData.subcategoryId && cardData.categoryId) {
                 showSubcategoryDetailPageUI(cardData.categoryId, cardData.subcategoryId);
@@ -661,6 +662,52 @@ async function createSingleShortcutRowElement(rowId, sectionNameObj) {
          cardsContainer.appendChild(item);
      });
      return sectionContainer;
+}
+
+async function createPromoGridSectionElement(rowId) {
+    const cards = await fetchShortcutRowCards(rowId);
+    if (!cards || cards.length === 0) return null;
+
+    const displayCards = cards.slice(0, 4);
+
+    const sectionDiv = document.createElement('div');
+    sectionDiv.className = 'promo-grid-section';
+    
+    const gridDiv = document.createElement('div');
+    gridDiv.className = 'promo-grid-container';
+    
+    displayCards.forEach(cardData => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'promo-grid-card';
+        const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
+        
+        cardEl.innerHTML = `<img src="${cardData.imageUrl}" alt="${cardName}" loading="lazy">`;
+        
+        cardEl.onclick = async () => {
+            if (cardData.subSubcategoryId && cardData.subcategoryId && cardData.categoryId) {
+                showSubcategoryDetailPageUI(cardData.categoryId, cardData.subcategoryId);
+                setTimeout(() => {
+                    const subSubBtn = document.querySelector(`#subSubCategoryContainerOnDetailPage button[data-id="${cardData.subSubcategoryId}"]`);
+                    if(subSubBtn) subSubBtn.click();
+                }, 800);
+            } else if (cardData.subcategoryId && cardData.categoryId) {
+                showSubcategoryDetailPageUI(cardData.categoryId, cardData.subcategoryId);
+            } else {
+                await navigateToFilterCore({
+                    category: cardData.categoryId || 'all',
+                    subcategory: 'all',
+                    subSubcategory: 'all',
+                    search: ''
+                });
+                await updateProductViewUI(true, true);
+            }
+        };
+        
+        gridDiv.appendChild(cardEl);
+    });
+    
+    sectionDiv.appendChild(gridDiv);
+    return sectionDiv;
 }
 
 async function createSingleCategoryRowElement(sectionData) {

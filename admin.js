@@ -1381,7 +1381,7 @@ window.AdminLogic = {
             const groupId = document.getElementById('specificItemGroupId').value;
             if (!groupId) { showNotification('تکایە گرووپێک هەڵبژێرە', 'error'); submitButton.disabled = false; return; }
             specificIdData = { groupId };
-        } else if (type === 'single_shortcut_row') {
+        } else if (type === 'single_shortcut_row' || type === 'promo_grid') {
             const rowId = document.getElementById('specificItemGroupId').value;
             if (!rowId) { showNotification('تکایە ڕیزێک هەڵbژێرە', 'error'); submitButton.disabled = false; return; }
             specificIdData = { rowId };
@@ -1591,7 +1591,7 @@ window.AdminLogic = {
             groupContainer.style.display = 'none';
             categoryContainer.style.display = 'none';
 
-            if (type === 'promo_slider' || type === 'brands' || type === 'single_shortcut_row') {
+            if (type === 'promo_slider' || type === 'brands' || type === 'single_shortcut_row' || type === 'promo_grid') {
                 groupContainer.style.display = 'block';
                 groupSelect.required = true;
                 groupSelect.innerHTML = '<option value="">...بارکردن</option>';
