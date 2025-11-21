@@ -7,15 +7,20 @@ const {
     promoGroupsCollection, brandGroupsCollection, 
     shortcutRowsCollection, 
     categoryLayoutsCollection, 
-    chatsCollection, ordersCollection,
     setEditingProductId, getEditingProductId, getCategories, getCurrentLanguage,
     clearProductCache
 } = window.globalAdminTools;
 
 window.AdminLogic = {
     listenersAttached: false,
-    currentImageUrls: Array(10).fill(""), 
+    
+    // [ 💡 گۆڕانکاری ] - ئەمە تەنها بۆ ٤ وێنە سەرەکییەکە بەکاردێت
+    currentImageUrls: ["", "", "", ""], 
+    
+    // [ 💡 زیادکرا ] - ئەمە داتای وێنەی جۆرەکان (variations) هەڵدەگرێت
+    // { "temp_var_123": ["url1", "url2", "", ""] }
     variationImageData: {},
+
     currentLayoutEditorContext: { type: 'home', id: null }, 
     currentCategoryLayoutId: null, 
 
@@ -33,8 +38,10 @@ window.AdminLogic = {
         this.updateAdminCategoryDropdowns(); 
         this.updateShortcutCardCategoryDropdowns();
         this.renderHomeLayoutAdmin();
+        
         this.renderPromoGroupsAdminList();
         this.renderBrandGroupsAdminList();
+        
         this.updateCategoryLayoutDropdowns(); 
         this.setupCategoryLayoutListeners(); 
     },
@@ -49,6 +56,7 @@ window.AdminLogic = {
         const snapshot = await getDocs(query(layoutCollectionRef, limit(1)));
     
         if (snapshot.empty) {
+            console.log("`home_layout` collection is empty. Creating default layout.");
             await this.createDefaultHomeLayout(layoutCollectionRef);
             return;
         }
@@ -57,10 +65,18 @@ window.AdminLogic = {
         const isOldStructure = typeof firstDocData.name === 'string' || !firstDocData.hasOwnProperty('name');
     
         if (isOldStructure) {
+            console.warn("Old home_layout structure detected. Migrating to new structure...");
+            showNotification('خەریکی نوێکردنەوەی سیستەمی ڕیزبەندییە...', 'success');
+            
             const allDocsSnapshot = await getDocs(layoutCollectionRef);
             const deletePromises = allDocsSnapshot.docs.map(doc => deleteDoc(doc.ref));
             await Promise.all(deletePromises);
-            await this.createDefaultHomeLayout(layoutCollectionRef);
+            console.log("Old layout deleted.");
+    
+            await this.createDefaultHomeLayout(collectionRef);
+            console.log("New default layout created after migration.");
+        } else {
+            console.log("`home_layout` structure is up to date.");
         }
     },
 
@@ -73,8 +89,8 @@ window.AdminLogic = {
         ];
         const addPromises = defaultLayout.map(item => addDoc(collectionRef, item));
         
-        await setDoc(doc(promoGroupsCollection, 'default'), { name: 'گرووپی سەرەکی', createdAt: Date.now() });
-        await setDoc(doc(brandGroupsCollection, 'default'), { name: 'گرووپی سەرەکی', createdAt: Date.now() });
+        await setDoc(doc(promoGroupsCollection, 'default'), { name: 'گرووپی سەرەki', createdAt: Date.now() });
+        await setDoc(doc(brandGroupsCollection, 'default'), { name: 'گرووپی سەرەki', createdAt: Date.now() });
 
         await Promise.all(addPromises);
     },
@@ -88,6 +104,7 @@ window.AdminLogic = {
             'adminContactMethodsManagement', 'adminShortcutRowsManagement',
             'adminHomeLayoutManagement',
             'adminCategoryLayoutManagement',
+            // [ 💡 نوێ ] بەشی چات بۆ ئەدمین
             'adminChatsManagement'
         ];
         
@@ -125,6 +142,7 @@ window.AdminLogic = {
         document.getElementById('formTitle').textContent = 'دەستکاری کردنی کاڵا';
         document.getElementById('productForm').reset();
         
+        // [ 💡 زیادکرا ] - پاککردنەوەی داتای وێنەی جۆرەکان
         this.variationImageData = {};
         document.getElementById('variationsContainer').innerHTML = '';
         
@@ -153,8 +171,8 @@ window.AdminLogic = {
         }
         
         const imageUrls = product.imageUrls || (product.image ? [product.image] : []);
-        this.currentImageUrls = Array(10).fill("").map((_, i) => imageUrls[i] || "");
-        this.createProductImageInputs(false);
+        this.currentImageUrls = ["", "", "", ""].map((_, i) => imageUrls[i] || "");
+        this.createProductImageInputs(false); // false واتە هی جۆرەکان نییە
         
         document.getElementById('productExternalLink').value = product.externalLink || '';
 
@@ -168,9 +186,12 @@ window.AdminLogic = {
             document.getElementById('shippingInfoAr').value = '';
         }
 
+        // [ 💡 زیادکرا ] - بارکردنی جۆرە پاشەکەوتکراوەکان (Variations)
         if (product.variations && Array.isArray(product.variations)) {
             product.variations.forEach(lvl1Var => {
-                this.variationImageData[lvl1Var.id] = Array(10).fill("").map((_, i) => (lvl1Var.imageUrls && lvl1Var.imageUrls[i]) || "");
+                // داتای وێنەکان هەڵدەگرین
+                this.variationImageData[lvl1Var.id] = ["", "", "", ""].map((_, i) => (lvl1Var.imageUrls && lvl1Var.imageUrls[i]) || "");
+                // بۆکسەکان دروست دەکەینەوە
                 this.createLvl1VariationBoxUI(lvl1Var.id, lvl1Var);
             });
         }
@@ -193,6 +214,7 @@ window.AdminLogic = {
         }
     },
 
+    // [ 💡 گۆڕانکاری ] - ئەم فەنکشنە گشتگیر کراوە
     createProductImageInputs: function(isVariation, variationId = null, existingImageUrls = []) {
         let container;
         if (isVariation) {
@@ -206,11 +228,12 @@ window.AdminLogic = {
         
         const imageUrls = isVariation ? existingImageUrls : this.currentImageUrls;
 
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 4; i++) {
             const slot = document.createElement('div');
             slot.className = 'image-upload-slot';
             slot.dataset.index = i;
             
+            // [ 💡 زیادکرا ] - IDـی جۆرەکە هەڵدەگرێت ئەگەر هی جۆر بێت
             if (isVariation) {
                 slot.dataset.variationId = variationId;
             }
@@ -234,12 +257,13 @@ window.AdminLogic = {
         }
     },
     
+    // [ 💡 گۆڕانکاری ] - ئەم فەنکشنە ئێستا دەزانێت کام وێنە نوێ بکاتەوە
     handleFileSelect: async function(input, slot) {
         const file = input.files[0];
         if (!file) return;
 
         const index = slot.dataset.index;
-        const variationId = slot.dataset.variationId;
+        const variationId = slot.dataset.variationId; // IDی جۆرەکە وەردەگرێت
         
         const spinner = slot.querySelector('.image-upload-spinner');
         const label = slot.querySelector('.image-upload-label');
@@ -255,9 +279,10 @@ window.AdminLogic = {
             await uploadBytes(storageRef, file);
             const downloadURL = await getDownloadURL(storageRef);
 
+            // [ 💡 گۆڕانکاری ] - داتای دروست نوێ دەکاتەوە
             if (variationId) {
                 if (!this.variationImageData[variationId]) {
-                    this.variationImageData[variationId] = Array(10).fill("");
+                    this.variationImageData[variationId] = ["", "", "", ""];
                 }
                 this.variationImageData[variationId][index] = downloadURL;
             } else {
@@ -277,10 +302,12 @@ window.AdminLogic = {
         }
     },
 
+    // [ 💡 گۆڕانکاری ] - ئەم فەنکشنە ئێستا دەزانێت کام وێنە بسڕێتەوە
     handleImageRemove: function(slot) {
         const index = slot.dataset.index;
         const variationId = slot.dataset.variationId;
 
+        // [ 💡 گۆڕانکاری ] - داتای دروست پاک دەکاتەوە
         if (variationId) {
             if (this.variationImageData[variationId]) {
                 this.variationImageData[variationId][index] = "";
@@ -774,23 +801,8 @@ window.AdminLogic = {
             document.getElementById('promoCardImageKuSorani').value = card.imageUrls.ku_sorani;
             document.getElementById('promoCardImageKuBadini').value = card.imageUrls.ku_badini;
             document.getElementById('promoCardImageAr').value = card.imageUrls.ar;
-            
-            const catSelect = document.getElementById('promoCardTargetCategory');
-            catSelect.value = card.categoryId;
-            catSelect.dispatchEvent(new Event('change'));
-
+            document.getElementById('promoCardTargetCategory').value = card.categoryId;
             document.getElementById('promoCardOrder').value = card.order;
-
-            setTimeout(() => {
-                const subSelect = document.getElementById('promoCardTargetSubcategory');
-                subSelect.value = card.subcategoryId || '';
-                subSelect.dispatchEvent(new Event('change'));
-                
-                setTimeout(() => {
-                    document.getElementById('promoCardTargetSubSubcategory').value = card.subSubcategoryId || '';
-                }, 500);
-            }, 500);
-
             document.getElementById('addPromoCardForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوە';
             document.getElementById('addPromoCardForm').scrollIntoView({ behavior: 'smooth' });
         }
@@ -903,21 +915,12 @@ window.AdminLogic = {
             document.getElementById('brandNameAr').value = brand.name.ar || '';
             document.getElementById('brandImageUrl').value = brand.imageUrl || '';
             document.getElementById('brandOrder').value = brand.order || 10;
-            
             const mainCatSelect = document.getElementById('brandTargetMainCategory');
             mainCatSelect.value = brand.categoryId || '';
             mainCatSelect.dispatchEvent(new Event('change'));
-
             setTimeout(() => {
-                const subSelect = document.getElementById('brandTargetSubcategory');
-                subSelect.value = brand.subcategoryId || '';
-                subSelect.dispatchEvent(new Event('change')); 
-
-                setTimeout(() => {
-                    document.getElementById('brandTargetSubSubcategory').value = brand.subSubcategoryId || '';
-                }, 500);
+                document.getElementById('brandTargetSubcategory').value = brand.subcategoryId || '';
             }, 500);
-
             document.getElementById('addBrandForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوە';
             document.getElementById('addBrandForm').scrollIntoView({ behavior: 'smooth' });
         }
@@ -1106,9 +1109,7 @@ window.AdminLogic = {
             }
 
             snapshot.forEach(doc => {
-                // [ 💡 چاککرا ] - دانانی id: doc.id لە کۆتاییدا بۆ ئەوەی ئایدی ڕاستەقینە وەرگرێت
-                const item = { ...doc.data(), id: doc.id }; 
-                
+                const item = { id: doc.id, ...doc.data() };
                 const itemElement = document.createElement('div');
                 itemElement.className = 'layout-item';
                 itemElement.dataset.id = item.id;
@@ -1394,15 +1395,12 @@ window.AdminLogic = {
         }
         
         const newSectionData = {
+            id: `section_${Date.now()}`, 
             name: nameObj,
             type,
             enabled: true, 
             ...specificIdData
         };
-
-        if (this.currentLayoutEditorContext.type === 'category') {
-            newSectionData.id = `section_${Date.now()}`;
-        }
 
         try {
             const context = this.currentLayoutEditorContext;
@@ -1447,12 +1445,13 @@ window.AdminLogic = {
         }
     },
     
+    // [ 💡 زیادکرا ] - فەنکشنی نوێ بۆ دروستکردنی بۆکسی ئاستی یەک
     createLvl1VariationBoxUI: function(variationId, data = null) {
         const container = document.getElementById('variationsContainer');
         
         const box = document.createElement('div');
         box.className = 'variation-lvl1-box';
-        box.dataset.variationId = variationId; 
+        box.dataset.variationId = variationId; // IDی کاتی هەڵدەگرێت
         
         box.innerHTML = `
             <div class="variation-lvl1-header">
@@ -1473,7 +1472,7 @@ window.AdminLogic = {
             </div>
             
             <div class="form-group">
-                <label>وێنەکانی تایبەت بەم جۆرە (١٠ وێنە)</label>
+                <label>وێنەکانی تایبەت بەم جۆرە (٤ وێنە)</label>
                 <div class="image-upload-container variation-image-upload-container" id="variation-images-${variationId}">
                     </div>
             </div>
@@ -1490,9 +1489,11 @@ window.AdminLogic = {
         
         container.appendChild(box);
         
+        // وێنەکان دروست دەکەین
         const existingImages = data?.imageUrls || [];
         this.createProductImageInputs(true, variationId, existingImages);
 
+        // ئەگەر داتای کۆن هەبێت، ڕیزەکانی ئاستی دوو دروست دەکەینەوە
         if (data && data.options) {
             data.options.forEach(lvl2Opt => {
                 this.createLvl2OptionRowUI(box.querySelector('.variation-lvl2-container'), lvl2Opt.id, lvl2Opt);
@@ -1500,6 +1501,7 @@ window.AdminLogic = {
         }
     },
     
+    // [ 💡 زیادکرا ] - فەنکشنی نوێ بۆ دروستکردنی ڕیزی ئاستی دوو
     createLvl2OptionRowUI: function(container, optionId, data = null) {
         const row = document.createElement('div');
         row.className = 'variation-lvl2-item';
@@ -1520,6 +1522,7 @@ window.AdminLogic = {
         container.appendChild(row);
     },
 
+    // [ 💡 زیادکرا ] - فەنکشن بۆ کۆکردنەوەی داتای جۆرەکان
     collectVariationsData: function() {
         const variations = [];
         const container = document.getElementById('variationsContainer');
@@ -1534,7 +1537,7 @@ window.AdminLogic = {
                     ku_badini: lvl1Box.querySelector('.variation-lvl1-name-ku_badini').value,
                     ar: lvl1Box.querySelector('.variation-lvl1-name-ar').value,
                 },
-                imageUrls: (this.variationImageData[variationId] || Array(10).fill("")).filter(url => url),
+                imageUrls: (this.variationImageData[variationId] || ["", "", "", ""]).filter(url => url),
                 options: []
             };
             
@@ -1546,11 +1549,13 @@ window.AdminLogic = {
                     price: parseInt(lvl2Row.querySelector('.variation-lvl2-price').value, 10) || 0
                 };
                 
+                // دڵنیابوونەوە لەوەی داتای بەتاڵ ناچێت
                 if (lvl2Data.name && lvl2Data.price > 0) {
                     lvl1Data.options.push(lvl2Data);
                 }
             });
 
+            // دڵنیابوونەوە لەوەی داتای بەتاڵ ناچێت
             if (lvl1Data.name.ku_sorani && lvl1Data.imageUrls.length > 0 && lvl1Data.options.length > 0) {
                 variations.push(lvl1Data);
             }
@@ -1683,11 +1688,12 @@ window.AdminLogic = {
             setEditingProductId(null);
             document.getElementById('productForm').reset();
             
+            // [ 💡 گۆڕانکاری ] - پاککردنەوەی داتای وێنەی جۆرەکان
             self.variationImageData = {};
             document.getElementById('variationsContainer').innerHTML = '';
             
-            self.currentImageUrls = Array(10).fill("");
-            self.createProductImageInputs(false);
+            self.currentImageUrls = ["", "", "", ""];
+            self.createProductImageInputs(false); // false واتە هی جۆرەکان نییە
             
             document.getElementById('subcategorySelectContainer').style.display = 'none';
             document.getElementById('subSubcategorySelectContainer').style.display = 'none';
@@ -1711,6 +1717,7 @@ window.AdminLogic = {
             self.populateSubSubcategoriesDropdown(mainCatId, e.target.value);
         });
         
+        // [ 💡 گۆڕانکاری ] - ئەم گوێگرە ئێستا گشتگیر کراوە
         document.getElementById('productFormModal').addEventListener('change', (e) => {
             if (e.target.classList.contains('image-upload-input')) {
                 const slot = e.target.closest('.image-upload-slot');
@@ -1718,6 +1725,7 @@ window.AdminLogic = {
             }
         });
 
+        // [ 💡 گۆڕانکاری ] - ئەم گوێگرە ئێستا گشتگیر کراوە
         document.getElementById('productFormModal').addEventListener('click', (e) => {
             const removeBtn = e.target.closest('.image-upload-remove-btn');
             if (removeBtn) {
@@ -1725,12 +1733,14 @@ window.AdminLogic = {
                 self.handleImageRemove(slot);
             }
             
+            // [ 💡 زیادکرا ] - گوێگر بۆ زیادکردنی جۆری ئاستی یەک
             if (e.target.id === 'addVariationLvl1Btn') {
                 const variationId = `var_${Date.now()}`;
-                self.variationImageData[variationId] = Array(10).fill("");
+                self.variationImageData[variationId] = ["", "", "", ""];
                 self.createLvl1VariationBoxUI(variationId);
             }
             
+            // [ 💡 زیادکرا ] - گوێگر بۆ سڕینەوەی جۆری ئاستی یەک
             const deleteLvl1Btn = e.target.closest('.delete-variation-lvl1-btn');
             if (deleteLvl1Btn) {
                 const box = deleteLvl1Btn.closest('.variation-lvl1-box');
@@ -1740,6 +1750,7 @@ window.AdminLogic = {
                 }
             }
             
+            // [ 💡 زیادکرا ] - گوێگر بۆ زیادکردنی جۆری ئاستی دوو
             const addLvl2Btn = e.target.closest('.add-variation-lvl2-btn');
             if (addLvl2Btn) {
                 const lvl2Container = addLvl2Btn.previousElementSibling;
@@ -1747,6 +1758,7 @@ window.AdminLogic = {
                 self.createLvl2OptionRowUI(lvl2Container, optionId);
             }
             
+            // [ 💡 زیادکرا ] - گوێگر بۆ سڕینەوەی جۆری ئاستی دوو
             const deleteLvl2Btn = e.target.closest('.delete-variation-lvl2-btn');
             if (deleteLvl2Btn) {
                 deleteLvl2Btn.closest('.variation-lvl2-item').remove();
@@ -1781,6 +1793,7 @@ window.AdminLogic = {
                 ar: document.getElementById('productNameAr').value
             };
             
+            // [ 💡 زیادکرا ] - کۆکردنەوەی داتای جۆرەکان
             const variationsData = self.collectVariationsData();
 
             try {
@@ -1801,6 +1814,7 @@ window.AdminLogic = {
                         ku_badini: document.getElementById('shippingInfoKuBadini').value.trim(),
                         ar: document.getElementById('shippingInfoAr').value.trim()
                     },
+                    // [ 💡 زیادکرا ] - پاشەکەوتکردنی داتای جۆرەکان
                     variations: variationsData 
                 };
                 const editingId = getEditingProductId();
@@ -1894,6 +1908,7 @@ window.AdminLogic = {
             });
         }
         
+        // [ زیادکرا بۆ چاککردن ] - زیادکردنی گوێگر بۆ لیستی جۆری سەرەکی لە فۆڕمی زیادکردنی "لاوەکی لاوەکی"
         document.getElementById('parentMainCategorySelectForSubSub').addEventListener('change', async (e) => {
             const mainCatId = e.target.value;
             const subCatSelect = document.getElementById('parentSubcategorySelectForSubSub');
@@ -2027,6 +2042,7 @@ window.AdminLogic = {
                         ar: document.getElementById('announcementContentAr').value,
                     },
                     createdAt: Date.now(),
+                    // [ 💡 گۆڕانکاری لێرە کرا 💡 ]
                     imageUrl: document.getElementById('announcementImageUrl').value.trim() || null
                 };
 
@@ -2143,49 +2159,6 @@ window.AdminLogic = {
             }
         });
 
-        document.getElementById('promoCardTargetCategory').addEventListener('change', async (e) => {
-            const mainCatId = e.target.value;
-            const subContainer = document.getElementById('promoCardSubContainer');
-            const subSelect = document.getElementById('promoCardTargetSubcategory');
-            const subSubContainer = document.getElementById('promoCardSubSubContainer');
-            
-            subSubContainer.style.display = 'none';
-            document.getElementById('promoCardTargetSubSubcategory').innerHTML = '';
-
-            if (mainCatId) {
-                subContainer.style.display = 'block';
-                subSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
-                const q = query(collection(db, `categories/${mainCatId}/subcategories`), orderBy('order'));
-                const snapshot = await getDocs(q);
-                subSelect.innerHTML = '<option value="">-- هەموو (یان هەڵبژێرە) --</option>';
-                snapshot.forEach(doc => {
-                    subSelect.innerHTML += `<option value="${doc.id}">${doc.data().name_ku_sorani}</option>`;
-                });
-            } else {
-                subContainer.style.display = 'none';
-            }
-        });
-
-        document.getElementById('promoCardTargetSubcategory').addEventListener('change', async (e) => {
-            const mainCatId = document.getElementById('promoCardTargetCategory').value;
-            const subCatId = e.target.value;
-            const subSubContainer = document.getElementById('promoCardSubSubContainer');
-            const subSubSelect = document.getElementById('promoCardTargetSubSubcategory');
-
-            if (mainCatId && subCatId) {
-                subSubContainer.style.display = 'block';
-                subSubSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
-                const q = query(collection(db, `categories/${mainCatId}/subcategories/${subCatId}/subSubcategories`), orderBy('order'));
-                const snapshot = await getDocs(q);
-                subSubSelect.innerHTML = '<option value="">-- هەموو (یان هەڵبژێرە) --</option>';
-                snapshot.forEach(doc => {
-                    subSubSelect.innerHTML += `<option value="${doc.id}">${doc.data().name_ku_sorani}</option>`;
-                });
-            } else {
-                subSubContainer.style.display = 'none';
-            }
-        });
-
         document.getElementById('addPromoCardForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const groupId = document.getElementById('promoCardGroupSelect').value;
@@ -2195,7 +2168,6 @@ window.AdminLogic = {
             submitButton.disabled = true;
 
             const editingId = document.getElementById('editingPromoCardId').value;
-            
             const cardData = {
                 imageUrls: {
                     ku_sorani: document.getElementById('promoCardImageKuSorani').value,
@@ -2203,8 +2175,6 @@ window.AdminLogic = {
                     ar: document.getElementById('promoCardImageAr').value,
                 },
                 categoryId: document.getElementById('promoCardTargetCategory').value,
-                subcategoryId: document.getElementById('promoCardTargetSubcategory').value || null,
-                subSubcategoryId: document.getElementById('promoCardTargetSubSubcategory').value || null,
                 order: parseInt(document.getElementById('promoCardOrder').value),
             };
 
@@ -2220,9 +2190,6 @@ window.AdminLogic = {
                 }
                 e.target.reset();
                 document.getElementById('editingPromoCardId').value = '';
-                document.getElementById('promoCardSubContainer').style.display = 'none';
-                document.getElementById('promoCardSubSubContainer').style.display = 'none';
-                
                 submitButton.textContent = 'پاشەکەوتکردنی کارت';
                 clearProductCache();
             } catch (error) { showNotification('هەڵەیەک ڕوویدا', 'error'); } 
@@ -2252,27 +2219,6 @@ window.AdminLogic = {
             }
         });
 
-        document.getElementById('brandTargetSubcategory').addEventListener('change', async (e) => {
-            const mainCatId = document.getElementById('brandTargetMainCategory').value;
-            const subCatId = e.target.value;
-            const subSubContainer = document.getElementById('brandSubSubcategoryContainer');
-            const subSubSelect = document.getElementById('brandTargetSubSubcategory');
-
-            if (mainCatId && subCatId) {
-                subSubContainer.style.display = 'block';
-                subSubSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
-                const q = query(collection(db, `categories/${mainCatId}/subcategories/${subCatId}/subSubcategories`), orderBy('order'));
-                const snapshot = await getDocs(q);
-                subSubSelect.innerHTML = '<option value="">-- هەموو --</option>';
-                snapshot.forEach(doc => {
-                    subSubSelect.innerHTML += `<option value="${doc.id}">${doc.data().name_ku_sorani}</option>`;
-                });
-            } else {
-                subSubContainer.style.display = 'none';
-                subSubSelect.innerHTML = '';
-            }
-        });
-
         document.getElementById('addBrandForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const groupId = document.getElementById('brandGroupSelect').value;
@@ -2291,7 +2237,6 @@ window.AdminLogic = {
                 imageUrl: document.getElementById('brandImageUrl').value,
                 categoryId: document.getElementById('brandTargetMainCategory').value || null,
                 subcategoryId: document.getElementById('brandTargetSubcategory').value || null,
-                subSubcategoryId: document.getElementById('brandTargetSubSubcategory').value || null,
                 order: parseInt(document.getElementById('brandOrder').value) || 0,
             };
 
@@ -2308,7 +2253,6 @@ window.AdminLogic = {
                 e.target.reset();
                 document.getElementById('editingBrandId').value = '';
                 document.getElementById('brandSubcategoryContainer').style.display = 'none';
-                document.getElementById('brandSubSubcategoryContainer').style.display = 'none';
                 submitButton.textContent = 'پاشەکەوتکردنی براند';
                 clearProductCache();
             } catch (error) { console.error("Error saving brand:", error); showNotification('هەڵەیەک ڕوویدا', 'error'); } 
@@ -2333,10 +2277,6 @@ window.AdminLogic = {
             const mainCatId = e.target.value;
             const brandSubCatContainer = document.getElementById('brandSubcategoryContainer');
             const brandSubCatSelect = document.getElementById('brandTargetSubcategory');
-            
-            document.getElementById('brandSubSubcategoryContainer').style.display = 'none';
-            document.getElementById('brandTargetSubSubcategory').innerHTML = '';
-
             if (mainCatId) {
                 brandSubCatContainer.style.display = 'block';
                 brandSubCatSelect.innerHTML = '<option value="">...چاوەڕێ بە</option>';
@@ -2356,6 +2296,7 @@ window.AdminLogic = {
             }
         });
         
+        // [ زیادکرا بۆ چاککردن ] - زیادکردنی گوێگر بۆ لیستی جۆری سەرەکی لە فۆڕمی "کارت"
         document.getElementById('shortcutCardMainCategory').addEventListener('change', async (e) => {
             const mainCatId = e.target.value;
             const subCatContainer = document.getElementById('shortcutCardSubContainer');
@@ -2379,6 +2320,7 @@ window.AdminLogic = {
             }
         });
         
+        // [ زیادکرا بۆ چاککردن ] - زیادکردنی گوێگر بۆ لیستی جۆری لاوەکی لە فۆڕمی "کارت"
         document.getElementById('shortcutCardSubcategory').addEventListener('change', async (e) => {
             const mainCatId = document.getElementById('shortcutCardMainCategory').value;
             const subCatId = e.target.value;
