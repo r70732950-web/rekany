@@ -23,7 +23,6 @@ function resetScrollPosition(containerElement) {
     }
 }
 
-
 function renderProductsGridUI(newProductsOnly = false) {
     const container = document.getElementById('productsContainer'); 
     if (!container) return;
@@ -386,7 +385,6 @@ export async function renderPageContentUI(layoutSections, targetContainerElement
     
     if (!layoutToRender || layoutToRender.length === 0) {
         console.warn("Page layout is empty or failed to load.");
-         // Pass current category context
          const allProductsSection = await createAllProductsSectionElement(state.currentCategory);
          if(allProductsSection) targetContainerElement.appendChild(allProductsSection);
         return;
@@ -395,7 +393,6 @@ export async function renderPageContentUI(layoutSections, targetContainerElement
     Object.values(state.sliderIntervals || {}).forEach(clearInterval);
     state.sliderIntervals = {};
 
-    // [ 💡 چاککرا ] - وەرگرتنی جۆری ئێستا بۆ ئەوەی بزانین تێکەڵ بکەین یان نا
     const currentCategoryId = state.currentCategory; 
 
     for (const section of layoutToRender) {
@@ -414,7 +411,6 @@ export async function renderPageContentUI(layoutSections, targetContainerElement
                      } else console.warn("Brands section missing groupId:", section);
                      break;
                  case 'newest_products':
-                     // [ 💡 چاککرا ] - ناردنی currentCategoryId
                      sectionElement = await createNewestProductsSectionElement(currentCategoryId);
                      break;
                  case 'single_shortcut_row':
@@ -428,7 +424,6 @@ export async function renderPageContentUI(layoutSections, targetContainerElement
                      } else console.warn("Category row missing categoryId:", section);
                      break;
                   case 'all_products':
-                       // [ 💡 چاککرا ] - ناردنی currentCategoryId
                        sectionElement = await createAllProductsSectionElement(currentCategoryId);
                       break;
                  default:
@@ -528,13 +523,23 @@ async function createPromoSliderElement(groupId, layoutId) {
         startInterval(); 
     }
 
+    // [ 💡 نوێ ] - کلیک کردن لەسەر سلایدەر
     promoCardElement.addEventListener('click', async (e) => {
         if (!e.target.closest('button')) { 
             const currentCard = cardData.cards[sliderState.currentIndex];
-            const targetCategoryId = currentCard.categoryId;
-            const categoryExists = state.categories.some(cat => cat.id === targetCategoryId);
-            if (categoryExists) {
-                 await navigateToFilterCore({ category: targetCategoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
+            
+            // پشکنین بۆ لاوەکیی لاوەکی
+            if (currentCard.subSubcategoryId && currentCard.subcategoryId && currentCard.categoryId) {
+                showSubcategoryDetailPageUI(currentCard.categoryId, currentCard.subcategoryId);
+                setTimeout(() => {
+                    const subSubBtn = document.querySelector(`#subSubCategoryContainerOnDetailPage button[data-id="${currentCard.subSubcategoryId}"]`);
+                    if(subSubBtn) subSubBtn.click();
+                }, 800);
+
+            } else if (currentCard.subcategoryId && currentCard.categoryId) {
+                 showSubcategoryDetailPageUI(currentCard.categoryId, currentCard.subcategoryId);
+            } else if (currentCard.categoryId) {
+                 await navigateToFilterCore({ category: currentCard.categoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
                  await updateProductViewUI(true, true); 
             }
         }
@@ -564,8 +569,17 @@ async function createBrandsSectionElement(groupId) {
             </div>
             <span>${brandName}</span>
         `;
+        
+        // [ 💡 نوێ ] - کلیک کردن لەسەر براند
         item.onclick = async () => {
-             if (brand.subcategoryId && brand.categoryId) {
+             if (brand.subSubcategoryId && brand.subcategoryId && brand.categoryId) {
+                 showSubcategoryDetailPageUI(brand.categoryId, brand.subcategoryId);
+                 setTimeout(() => {
+                     const subSubBtn = document.querySelector(`#subSubCategoryContainerOnDetailPage button[data-id="${brand.subSubcategoryId}"]`);
+                     if(subSubBtn) subSubBtn.click();
+                 }, 800);
+
+             } else if (brand.subcategoryId && brand.categoryId) {
                  showSubcategoryDetailPageUI(brand.categoryId, brand.subcategoryId); 
              } else if(brand.categoryId) {
                   await navigateToFilterCore({ category: brand.categoryId, subcategory: 'all', subSubcategory: 'all', search: '' });
@@ -577,9 +591,8 @@ async function createBrandsSectionElement(groupId) {
     return sectionContainer;
 }
 
-// [ 💡 چاککرا ] - ئێستا categoryId وەردەگرێت
 async function createNewestProductsSectionElement(categoryId = null) {
-    const products = await fetchNewestProducts(20, categoryId); // 20 items limit
+    const products = await fetchNewestProducts(20, categoryId); 
     if (!products || products.length === 0) return null;
 
     const container = document.createElement('div');
@@ -622,18 +635,23 @@ async function createSingleShortcutRowElement(rowId, sectionNameObj) {
              <div class="shortcut-card-name">${cardName}</div>
          `;
          
+         // [ 💡 نوێ ] - کلیک کردن لەسەر کارتی شۆرتکەت
          item.onclick = async () => {
+            if (cardData.subSubcategoryId && cardData.subcategoryId && cardData.categoryId) {
+                showSubcategoryDetailPageUI(cardData.categoryId, cardData.subcategoryId);
+                setTimeout(() => {
+                    const subSubBtn = document.querySelector(`#subSubCategoryContainerOnDetailPage button[data-id="${cardData.subSubcategoryId}"]`);
+                    if(subSubBtn) subSubBtn.click();
+                }, 800);
             
-            if (cardData.subcategoryId && cardData.categoryId) {
-                
+            } else if (cardData.subcategoryId && cardData.categoryId) {
                 showSubcategoryDetailPageUI(cardData.categoryId, cardData.subcategoryId);
             
             } else {
-                
                 await navigateToFilterCore({
                     category: cardData.categoryId || 'all',
-                    subcategory: cardData.subcategoryId || 'all', 
-                    subSubcategory: cardData.subSubcategoryId || 'all',
+                    subcategory: 'all',
+                    subSubcategory: 'all',
                     search: ''
                 });
                 await updateProductViewUI(true, true);
@@ -701,16 +719,14 @@ async function createSingleCategoryRowElement(sectionData) {
     return container;
 }
 
-// [ 💡 چاککرا ] - ئێستا categoryId وەردەگرێت
 async function createAllProductsSectionElement(categoryId = null) {
-    const products = await fetchInitialProductsForHome(30, categoryId); // 30 items limit
+    const products = await fetchInitialProductsForHome(30, categoryId); 
     if (!products || products.length === 0) return null;
 
     const container = document.createElement('div');
     container.className = 'dynamic-section';
     container.style.marginTop = '20px'; 
     
-    // گۆڕینی ناونیشان بەپێی جۆر (ئەگەر لەناو جۆرێک بووین، دەنووسین "هەموو کاڵاکان" بەبێ "سەرەکی")
     const titleKey = (categoryId && categoryId !== 'all') ? 'all_products' : 'all_products_section_title';
     
     container.innerHTML = `
