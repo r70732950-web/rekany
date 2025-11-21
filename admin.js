@@ -1106,7 +1106,9 @@ window.AdminLogic = {
             }
 
             snapshot.forEach(doc => {
-                const item = { id: doc.id, ...doc.data() };
+                // [ 💡 چاککرا ] - دانانی id: doc.id لە کۆتاییدا بۆ ئەوەی ئایدی ڕاستەقینە وەرگرێت
+                const item = { ...doc.data(), id: doc.id }; 
+                
                 const itemElement = document.createElement('div');
                 itemElement.className = 'layout-item';
                 itemElement.dataset.id = item.id;
@@ -1392,12 +1394,15 @@ window.AdminLogic = {
         }
         
         const newSectionData = {
-            id: `section_${Date.now()}`, 
             name: nameObj,
             type,
             enabled: true, 
             ...specificIdData
         };
+
+        if (this.currentLayoutEditorContext.type === 'category') {
+            newSectionData.id = `section_${Date.now()}`;
+        }
 
         try {
             const context = this.currentLayoutEditorContext;
