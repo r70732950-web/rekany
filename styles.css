@@ -121,7 +121,6 @@ html.chat-active .bottom-nav {
     padding-bottom: 85px;
 }
 
-/* تایبەتمەندییەکانی لاپەڕەی چات بۆ فوول سکرین */
 #chatPage {
     padding-top: 0 !important;
     padding-bottom: 0 !important;
@@ -581,7 +580,6 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 }
 .bottom-nav-item .cart-count { position: absolute; top: 5px; left: calc(50% + 5px); background-color: var(--danger-light); color: white; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 11px; border: 1px solid white; }
 
-/* Chat Badge on Bottom Nav */
 .chat-badge { position: absolute; top: 5px; left: calc(50% + 5px); background-color: var(--danger-color); color: white; border-radius: 50%; width: 10px; height: 10px; border: 2px solid white; display: none; }
 .chat-badge.has-unread { display: block; }
 
@@ -600,7 +598,6 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 .sheet-category-btn.active { background-color: var(--primary-color); color: white; font-weight: bold; border-color: var(--primary-color); }
 .sheet-category-btn.active i { color: white !important; }
 
-/* [ 💡 نوێ ] - ستایلەکانی لاپەڕەی تەواوی کاڵا (Product Detail Page) */
 #productDetailPage {
     display: flex;
     flex-direction: column;
@@ -614,7 +611,6 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     padding: 0 15px 20px 15px;
 }
 
-/* ستایلی سلایدەری وێنەکان */
 .product-slider-wrapper {
     position: relative;
     margin-bottom: 15px;
@@ -630,7 +626,7 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     min-height: 250px;
     max-height: 350px;
     width: 100%;
-    position: relative; /* بۆ دڵنیابوونەوە */
+    position: relative; 
 }
 
 .detail-image-container img,
@@ -638,15 +634,14 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     max-width: 100%;
     max-height: 350px;
     object-fit: contain;
-    display: none; /* JS دەیکاتە block */
+    display: none; 
 }
 
-/* [ 💡 چاککرا ] - زیادکردنی Width و Height بۆ iframe */
 .detail-image-container iframe {
-    width: 100% !important; /* گرنگە */
-    height: 350px !important; /* گرنگە */
+    width: 100% !important; 
+    height: 350px !important; 
     border: none;
-    display: block; /* دڵنیابوونەوە */
+    display: block; 
 }
 
 .detail-image-container img.active,
@@ -654,7 +649,6 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     display: block !important;
 }
 
-/* [ 💡 چاککرا ] - ڕێکخستنی دەرکەوتنی ڤیدیۆ */
 .detail-image-container #videoPlayerWrapper {
     display: none;
     width: 100%;
@@ -668,7 +662,6 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     display: flex !important;
 }
 
-/* ستایلی هێڵەکانی ژێر وێنە (Indicators) */
 .slider-indicators {
     display: flex;
     justify-content: center;
@@ -695,7 +688,6 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 .slider-btn.prev { left: 10px; }
 .slider-btn.next { right: 10px; }
 
-/* ستایلەکانی تری لاپەڕەی کاڵا */
 #detailProductPrice {
     font-size: 22px; 
     font-weight: bold; 
@@ -721,8 +713,14 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 
 .image-upload-container {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 12px;
+}
+
+@media (max-width: 480px) {
+    .image-upload-container {
+        grid-template-columns: repeat(4, 1fr); 
+    }
 }
 
 .image-upload-slot {
@@ -1663,9 +1661,6 @@ input:checked + .slider:before {
     margin-right: 8px;
 }
 
-/* --- CHAT & ORDERS SYSTEM STYLES --- */
-
-/* Chat Container Layout */
 .chat-container {
     display: flex;
     flex-direction: column;
@@ -1674,7 +1669,6 @@ input:checked + .slider:before {
     position: relative;
 }
 
-/* Chat Header */
 .chat-header {
     padding: 10px;
     background-color: #f8f9fa;
@@ -1696,7 +1690,6 @@ input:checked + .slider:before {
     box-shadow: 0 0 4px var(--accent-color);
 }
 
-/* Messages Area */
 .chat-messages {
     flex: 1;
     overflow-y: auto;
@@ -1704,19 +1697,15 @@ input:checked + .slider:before {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    /* Removed scroll-behavior: smooth to prevent jumpy loading */
-    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); /* Subtle pattern */
+    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); 
     background-blend-mode: soft-light;
-    /* Add transition for opacity */
     transition: opacity 0.2s ease-in-out;
 }
 
-/* [ 💡 نوێ ] - کلاسێک بۆ شاردنەوەی کاتیی نامەکان */
 .chat-messages.hidden {
     opacity: 0;
 }
 
-/* Message Bubbles */
 .message-bubble {
     max-width: 75%;
     padding: 8px 12px;
@@ -1729,14 +1718,14 @@ input:checked + .slider:before {
 }
 
 .message-sent {
-    align-self: flex-end; /* User's message (Left in RTL) */
+    align-self: flex-end; 
     background-color: var(--chat-sent);
     border-bottom-left-radius: 0;
     color: #000;
 }
 
 .message-received {
-    align-self: flex-start; /* Admin's message (Right in RTL) */
+    align-self: flex-start; 
     background-color: var(--chat-received);
     border-bottom-right-radius: 0;
     color: #000;
@@ -1757,10 +1746,9 @@ input:checked + .slider:before {
     font-size: 10px;
 }
 .message-status-icon.seen {
-    color: #34B7F1; /* WhatsApp Blue */
+    color: #34B7F1; 
 }
 
-/* Chat Input Area */
 .chat-input-area {
     padding: 10px;
     background-color: #fff;
@@ -1815,7 +1803,6 @@ input:checked + .slider:before {
     100% { transform: scale(1); }
 }
 
-/* Admin Conversation List */
 .conversation-list {
     padding: 10px;
 }
@@ -1879,7 +1866,6 @@ input:checked + .slider:before {
     margin-right: 5px;
 }
 
-/* Order Notifications in Chat */
 .order-bubble {
     background-color: #fff;
     border: 1px solid var(--section-border);
@@ -1913,7 +1899,6 @@ input:checked + .slider:before {
     color: var(--accent-color);
 }
 
-/* Audio Message Player */
 .audio-player {
     display: flex;
     align-items: center;
@@ -1941,7 +1926,6 @@ input:checked + .slider:before {
     border-radius: 2px;
 }
 
-/* Typing Indicator */
 .typing-indicator {
     font-size: 12px;
     color: var(--dark-gray);
@@ -1953,7 +1937,6 @@ input:checked + .slider:before {
     display: block;
 }
 
-/* Image Message */
 .chat-image {
     max-width: 100%;
     border-radius: 6px;
@@ -1961,7 +1944,6 @@ input:checked + .slider:before {
     cursor: pointer;
 }
 
-/* New Login Requirement View for Chat */
 .chat-login-required {
     display: flex;
     flex-direction: column;
@@ -1988,7 +1970,6 @@ input:checked + .slider:before {
     font-weight: bold;
 }
 
-/* Empty Chat State */
 .empty-chat-state {
     display: flex;
     flex-direction: column;
@@ -2030,10 +2011,6 @@ input:checked + .slider:before {
     display: none !important;
 }
 
-
-/* [ 💡 زیادکرا ] - ستایلە نوێیەکان بۆ جۆرەکانی کاڵا (Variations) */
-
-/* ستایلی دوگمەکانی هەڵبژاردن لەلای بەکارهێنەر (productDetailSheet) */
 .variation-btn {
     background-color: var(--light-gray);
     border: 2px solid var(--medium-gray);
@@ -2064,8 +2041,6 @@ input:checked + .slider:before {
     border-color: var(--medium-gray);
 }
 
-
-/* ستایلی فۆڕمەکانی ئەدمین (productFormModal) */
 .variation-lvl1-box {
     border: 2px solid var(--primary-light);
     border-radius: 8px;
@@ -2088,7 +2063,6 @@ input:checked + .slider:before {
     color: var(--primary-color);
 }
 
-/* ستایلی وێنە بچووکەکانی ناو فۆڕمی ئەدمین */
 .variation-image-upload-container .image-upload-slot {
     border-width: 1px;
     border-style: dashed;
@@ -2106,7 +2080,6 @@ input:checked + .slider:before {
     font-size: 10px;
 }
 
-/* ستایلی ڕیزەکانی ئاستی دووەم (قەبارە و نرخ) */
 .variation-lvl2-item {
     display: flex;
     gap: 10px;
@@ -2131,5 +2104,5 @@ input:checked + .slider:before {
 .variation-lvl2-item .delete-btn {
     flex-shrink: 0;
     height: 38px;
-    margin-top: 20px; /* Bixe xwarê bo hevsengiya label */
+    margin-top: 20px; 
 }
