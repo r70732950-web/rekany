@@ -333,13 +333,35 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
 
     if (!fromHistory) {
          saveCurrentScrollPositionCore(); 
-         // زیادکردنی بۆ History بۆ ئەوەی Back کار بکات بەبێ تێکچوونی شوێن
+         // زیادکردنی بۆ History
          history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
     } else {
         if (!history.state || history.state.id !== 'subcategoryDetailPage') {
              history.replaceState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
         }
     }
+
+    const page = document.getElementById('subcategoryDetailPage');
+    
+    // [چاکسازی] پشکنین ئایا ئەم پەڕەیە پێشتر بارکراوە؟
+    const isSamePage = page.dataset.loadedMain === mainCatId && page.dataset.loadedSub === subCatId;
+
+    if (fromHistory && isSamePage) {
+        // ئەگەر هەمان پەڕە بوو، تەنها نیشانی دەدەین و Scroll دەگەڕێنینەوە
+        // false واتە Scroll مەکە بۆ سەرەوە
+        showPage('subcategoryDetailPage', subCatName, false); 
+        
+        if (history.state && history.state.scroll) {
+            setTimeout(() => {
+                page.scrollTo({ top: history.state.scroll, behavior: 'instant' });
+            }, 10);
+        }
+        return; // ناهێڵین دووبارە کاڵاکان بارببنەوە
+    }
+
+    // ئەگەر پەڕەیەکی نوێ بوو، داتای نوێ تۆمار دەکەین
+    page.dataset.loadedMain = mainCatId;
+    page.dataset.loadedSub = subCatId;
 
     showPage('subcategoryDetailPage', subCatName, true); 
 
@@ -350,7 +372,7 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     loader.style.display = 'block';
     productsContainer.innerHTML = '';
     subSubContainer.innerHTML = '';
-    subSubContainer.style.display = 'flex'; // دڵنیابوونەوە لەوەی دیارە
+    subSubContainer.style.display = 'flex'; 
 
     document.getElementById('subpageSearchInput').value = '';
     document.getElementById('subpageClearSearchBtn').style.display = 'none';
