@@ -727,20 +727,19 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     const page = document.getElementById('subcategoryDetailPage');
     const isSameCategory = page.dataset.loadedMain === mainCatId && page.dataset.loadedSub === subCatId;
 
-    // Clear previous "split view" content if any
     const subDetailContent = page.querySelector('.subcategory-detail-content');
     if(subDetailContent) {
-        // Ensure we are in "normal list mode" not split mode
-        // Re-inject normal structure if needed
         if (!document.getElementById('productsContainerOnDetailPage')) {
-             subDetailContent.innerHTML = `
-                 <div id="subSubCategoryContainerOnDetailPage" class="subcategories-container"></div>
-                 <div id="productsContainerOnDetailPage" class="products-container"></div>
-                 <div id="detailPageLoader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
+             // Re-inject normal structure if overwritten by split view
+             page.innerHTML = `
+                 <div class="subcategory-detail-content">
+                     <div id="subSubCategoryContainerOnDetailPage" class="subcategories-container"></div>
+                     <div id="productsContainerOnDetailPage" class="products-container"></div>
+                     <div id="detailPageLoader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
+                 </div>
              `;
         }
     } else {
-        // Re-create standard structure if overwritten by split view
         page.innerHTML = `
            <div class="subcategory-detail-content">
              <div id="subSubCategoryContainerOnDetailPage" class="subcategories-container"></div>
@@ -768,7 +767,6 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     productsContainer.innerHTML = '';
     subSubContainer.innerHTML = '';
     
-    // Ensure search is visible for product lists
     const searchBar = document.querySelector('.subpage-search');
     if(searchBar) searchBar.style.display = 'block';
     
@@ -1255,7 +1253,10 @@ async function loadCategoryContent(mainCatId, container) {
                         بینینی هەموو کاڵاکان
                     </button>
                 </div>`;
-            document.getElementById('btnViewAllForCat').onclick = () => showSubcategoryDetailPageUI(mainCatId, 'all');
+            const btnView = document.getElementById('btnViewAllForCat');
+            if (btnView) {
+                btnView.onclick = () => showSubcategoryDetailPageUI(mainCatId, 'all');
+            }
             return;
         }
 
@@ -1734,7 +1735,6 @@ window.addEventListener('popstate', async (event) => {
             if (popState.id === 'chatPage') {
                 openChatPage();
             }
-            // Re-render split view if going back to it
             if (popState.id === 'subcategoryDetailPage' && popState.isSplitView) {
                 showAllCategoriesPageUI();
             }
@@ -1912,85 +1912,4 @@ async function handleInitialPageLoadUI() {
             if (product) {
                 showProductDetailsUI(product, true);
             } else {
-                 showPage('mainPage');
-                 await updateProductViewUI(true, true);
-            }
-        }
-    } else { 
-         showPage('mainPage');
-         const initialState = {
-             category: params.get('category') || 'all',
-             subcategory: params.get('subcategory') || 'all',
-             subSubcategory: params.get('subSubcategory') || 'all',
-             search: params.get('search') || '',
-             scroll: 0
-         };
-         history.replaceState(initialState, ''); 
-         applyFilterStateCore(initialState); 
-         await updateProductViewUI(true, true); 
-
-         const element = document.getElementById(hash);
-         if (element) {
-              const isSheet = element.classList.contains('bottom-sheet');
-              const isModal = element.classList.contains('modal');
-              if (isSheet || isModal) {
-                   openPopup(hash, isSheet ? 'sheet' : 'modal');
-              }
-         }
-    }
-}
-
-async function renderContactLinksUI() {
-    const contactLinksContainer = document.getElementById('dynamicContactLinksContainer');
-     try {
-         const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
-         const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
-         const snapshot = await getDocs(q); 
-
-         contactLinksContainer.innerHTML = ''; 
-
-         if (snapshot.empty) {
-             contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هیچ لینکی پەیوەندی نییە.</p>';
-             return;
-         }
-
-         snapshot.forEach(doc => {
-             const link = doc.data();
-             const name = link['name_' + state.currentLanguage] || link.name_ku_sorani;
-
-             const linkElement = document.createElement('a');
-             linkElement.href = link.url;
-             linkElement.target = '_blank';
-             linkElement.className = 'settings-item';
-             linkElement.innerHTML = `
-                 <div>
-                     <i class="${link.icon}" style="margin-left: 10px;"></i>
-                     <span>${name}</span>
-                 </div>
-                 <i class="fas fa-external-link-alt"></i>
-             `;
-             contactLinksContainer.appendChild(linkElement);
-         });
-     } catch (error) {
-         console.error("Error fetching/rendering social links:", error);
-         contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هەڵە لە بارکردنی لینکەکان.</p>';
-     }
-}
-
-function setupGpsButtonUI() {
-     const getLocationBtn = document.getElementById('getLocationBtn');
-     const profileAddressInput = document.getElementById('profileAddress');
-
-     if (!getLocationBtn || !profileAddressInput) return;
-
-     const btnSpan = getLocationBtn.querySelector('span');
-     const originalBtnText = btnSpan ? btnSpan.textContent : 'وەرگرتنی ناونیشانم بە GPS';
-
-     getLocationBtn.addEventListener('click', () => {
-         if (!('geolocation' in navigator)) {
-             showNotification('وێبگەڕەکەت پشتگیری GPS ناکات', 'error');
-             return;
-         }
-
-         if(btnSpan) btnSpan.textContent = '...چاوەڕوان بە';
-         getLocationBtn.
+                 showPage
