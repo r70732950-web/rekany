@@ -1272,6 +1272,7 @@ body, .bottom-nav-item, .product-card {
     display: none;
 }
 
+/* --- Default/Medium Shortcut Card --- */
 .shortcut-card {
     display: flex;
     flex-direction: column;
@@ -1282,11 +1283,11 @@ body, .bottom-nav-item, .product-card {
     background-color: transparent;
     border: none;
     flex-shrink: 0;
-    width: 100px;
+    width: 110px; /* Medium Width */
 }
 
 .shortcut-card:hover {
-    transform: scale(1.05);
+    transform: translateY(-5px);
 }
 
 .shortcut-card-image {
@@ -1307,6 +1308,29 @@ body, .bottom-nav-item, .product-card {
     text-overflow: ellipsis;
     width: 100%;
 }
+
+/* --- Small/Square Shortcut Card --- */
+.shortcut-card.small-style {
+    width: 75px; 
+    gap: 5px;
+}
+
+.shortcut-card.small-style .shortcut-card-image {
+    width: 65px;
+    height: 65px;
+    border-radius: 12px; /* Square-ish */
+    border: 1px solid var(--medium-gray);
+    padding: 0;
+    background-color: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    object-fit: cover;
+}
+
+.shortcut-card.small-style .shortcut-card-name {
+    font-size: 11px;
+    margin-top: 2px;
+}
+
 .sheet-actions {
     display: none;
 }

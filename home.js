@@ -622,18 +622,39 @@ async function createSingleShortcutRowElement(rowId, sectionNameObj) {
      const cards = await fetchShortcutRowCards(rowId);
      if (!cards || cards.length === 0) return null;
 
+     // === بەشی نوێ: دیاریکردنی جۆری دیزاین ===
+     const designType = rowData.designType || 'medium';
+     const designClass = designType === 'small' ? 'small-style' : '';
+     // ========================================
+
      const sectionContainer = document.createElement('div');
      sectionContainer.className = 'shortcut-cards-section';
      const rowTitle = (sectionNameObj && sectionNameObj[state.currentLanguage]) || rowData.title[state.currentLanguage] || rowData.title.ku_sorani;
-     sectionContainer.innerHTML = `<h3 class="shortcut-row-title">${rowTitle}</h3><div class="shortcut-cards-container"></div>`;
+     
+     sectionContainer.innerHTML = `
+        <h3 class="shortcut-row-title">${rowTitle}</h3>
+        <div class="shortcut-cards-container"></div>
+     `;
      const cardsContainer = sectionContainer.querySelector('.shortcut-cards-container');
 
      cards.forEach(cardData => {
          const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
+         
+         // === بەشی نوێ: هەڵبژاردنی وێنەی ڕاست بەپێی زمان ===
+         let displayImage = "";
+         if (cardData.imageUrls) {
+             displayImage = cardData.imageUrls[state.currentLanguage] || cardData.imageUrls.ku_sorani;
+         } else {
+             displayImage = cardData.imageUrl;
+         }
+         // ==================================================
+
          const item = document.createElement('div');
-         item.className = 'shortcut-card';
+         // زیادکردنی کلاسی designClass
+         item.className = `shortcut-card ${designClass}`;
+         
          item.innerHTML = `
-             <img src="${cardData.imageUrl}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
+             <img src="${displayImage}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
              <div class="shortcut-card-name">${cardName}</div>
          `;
          
@@ -681,7 +702,15 @@ async function createPromoGridSectionElement(rowId) {
         cardEl.className = 'promo-grid-card';
         const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
         
-        cardEl.innerHTML = `<img src="${cardData.imageUrl}" alt="${cardName}" loading="lazy">`;
+        // هەڵبژاردنی وێنە بۆ Promo Grid
+        let displayImage = "";
+        if (cardData.imageUrls) {
+            displayImage = cardData.imageUrls[state.currentLanguage] || cardData.imageUrls.ku_sorani;
+        } else {
+            displayImage = cardData.imageUrl;
+        }
+
+        cardEl.innerHTML = `<img src="${displayImage}" alt="${cardName}" loading="lazy">`;
         
         cardEl.onclick = async () => {
             if (cardData.subSubcategoryId && cardData.subcategoryId && cardData.categoryId) {

@@ -111,6 +111,8 @@ window.AdminLogic = {
         }
     },
 
+    // --- Product Management ---
+
     editProduct: async function(productId) {
         const productRef = doc(db, "products", productId);
         const productSnap = await getDoc(productRef);
@@ -380,6 +382,8 @@ window.AdminLogic = {
         }
     },
 
+    // --- Settings & Misc ---
+
     loadPoliciesForAdmin: async function() {
         try {
             const docRef = doc(db, "settings", "policies");
@@ -527,6 +531,8 @@ window.AdminLogic = {
             });
         });
     },
+
+    // --- Category Management ---
 
     renderCategoryManagementUI: async function() {
         const container = document.getElementById('categoryListContainer');
@@ -679,6 +685,8 @@ window.AdminLogic = {
         });
     },
 
+    // --- Promo Group Management ---
+
     renderPromoGroupsAdminList: function() {
         const container = document.getElementById('promoGroupsListContainer');
         const groupSelect = document.getElementById('promoCardGroupSelect');
@@ -805,6 +813,8 @@ window.AdminLogic = {
             } catch (error) { showNotification('هەڵەیەک ڕوویدا', 'error'); }
         }
     },
+
+    // --- Brand Group Management ---
 
     renderBrandGroupsAdminList: function() {
         const container = document.getElementById('brandGroupsListContainer');
@@ -933,6 +943,8 @@ window.AdminLogic = {
         }
     },
     
+    // --- Shortcut Rows Management ---
+
     renderShortcutRowsAdminList: function() {
         const container = document.getElementById('shortcutRowsListContainer');
         const rowSelect = document.getElementById('selectRowForCard');
@@ -1006,6 +1018,8 @@ window.AdminLogic = {
             document.getElementById('shortcutRowTitleAr').value = row.title.ar || '';
             document.getElementById('shortcutRowOrder').value = row.order || 10;
 
+            document.getElementById('shortcutRowDesignType').value = row.designType || 'medium';
+
             document.getElementById('addShortcutRowForm').querySelector('button[type="submit"]').textContent = 'نوێکردنەوەی ڕیز';
             document.getElementById('cancelRowEditBtn').style.display = 'inline-block';
             document.getElementById('addShortcutRowForm').scrollIntoView({ behavior: 'smooth' });
@@ -1036,10 +1050,16 @@ window.AdminLogic = {
             const card = cardSnap.data();
             document.getElementById('editingShortcutCardId').value = cardId;
             document.getElementById('selectRowForCard').value = rowId;
+            
             document.getElementById('shortcutCardNameKuSorani').value = card.name.ku_sorani || '';
             document.getElementById('shortcutCardNameKuBadini').value = card.name.ku_badini || '';
             document.getElementById('shortcutCardNameAr').value = card.name.ar || '';
-            document.getElementById('shortcutCardImageUrl').value = card.imageUrl || '';
+            
+            const imageUrls = card.imageUrls || {}; 
+            document.getElementById('shortcutCardImageUrlKuSorani').value = imageUrls.ku_sorani || card.imageUrl || '';
+            document.getElementById('shortcutCardImageUrlKuBadini').value = imageUrls.ku_badini || card.imageUrl || '';
+            document.getElementById('shortcutCardImageUrlAr').value = imageUrls.ar || card.imageUrl || '';
+
             document.getElementById('shortcutCardOrder').value = card.order || 10;
             
             const mainCatSelect = document.getElementById('shortcutCardMainCategory');
@@ -1093,6 +1113,8 @@ window.AdminLogic = {
         });
     },
 
+    // --- Home Layout Management ---
+
     renderHomeLayoutAdmin: function() {
         const container = document.getElementById('homeLayoutListContainer');
         const layoutCollection = collection(db, 'home_layout');
@@ -1106,7 +1128,6 @@ window.AdminLogic = {
             }
 
             snapshot.forEach(doc => {
-                // [ 💡 چاککرا ] - دانانی id: doc.id لە کۆتاییدا بۆ ئەوەی ئایدی ڕاستەقینە وەرگرێت
                 const item = { ...doc.data(), id: doc.id }; 
                 
                 const itemElement = document.createElement('div');
@@ -1210,6 +1231,8 @@ window.AdminLogic = {
         }
     },
     
+    // --- Category Layout Management ---
+
     updateCategoryLayoutDropdowns: function() {
         const select = document.getElementById('categoryLayoutSelect');
         if (!select) return;
@@ -1559,6 +1582,8 @@ window.AdminLogic = {
         return variations;
     },
     
+    // --- Listeners ---
+
     setupAdminEventListeners: function() {
         if (this.listenersAttached) return;
         const self = this;
@@ -2420,6 +2445,99 @@ window.AdminLogic = {
             const deleteCardBtn = e.target.closest('.delete-card-btn');
             if (deleteCardBtn) {
                 self.deleteShortcutCard(deleteCardBtn.dataset.rowId, deleteCardBtn.dataset.cardId);
+            }
+        });
+
+        // --- Updated Shortcut Row Submit ---
+        document.getElementById('addShortcutRowForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const editingId = document.getElementById('editingShortcutRowId').value;
+            
+            const rowData = {
+                title: {
+                    ku_sorani: document.getElementById('shortcutRowTitleKuSorani').value,
+                    ku_badini: document.getElementById('shortcutRowTitleKuBadini').value,
+                    ar: document.getElementById('shortcutRowTitleAr').value,
+                },
+                order: parseInt(document.getElementById('shortcutRowOrder').value) || 10,
+                designType: document.getElementById('shortcutRowDesignType').value || 'medium' 
+            };
+
+            try {
+                if (editingId) {
+                    await updateDoc(doc(db, "shortcut_rows", editingId), rowData);
+                    showNotification('ڕیزەکە نوێکرایەوە', 'success');
+                } else {
+                    rowData.createdAt = Date.now();
+                    await addDoc(shortcutRowsCollection, rowData);
+                    showNotification('ڕیزی نوێ زیادکرا', 'success');
+                }
+                document.getElementById('addShortcutRowForm').reset();
+                document.getElementById('editingShortcutRowId').value = '';
+                document.getElementById('cancelRowEditBtn').style.display = 'none';
+                e.target.querySelector('button[type="submit"]').textContent = 'پاشەکەوتکردنی ڕیز';
+                clearProductCache();
+            } catch (error) {
+                console.error("Error saving shortcut row: ", error);
+                showNotification('هەڵەیەک ڕوویدا', 'error');
+            }
+        });
+
+        // --- Updated Shortcut Card Submit ---
+        document.getElementById('addCardToRowForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const rowId = document.getElementById('selectRowForCard').value;
+            if (!rowId) { showNotification('تکایە ڕیزێک هەڵبژێرە', 'error'); return; }
+
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            
+            const editingId = document.getElementById('editingShortcutCardId').value;
+
+            const cardData = {
+                name: {
+                    ku_sorani: document.getElementById('shortcutCardNameKuSorani').value,
+                    ku_badini: document.getElementById('shortcutCardNameKuBadini').value,
+                    ar: document.getElementById('shortcutCardNameAr').value,
+                },
+                imageUrls: {
+                    ku_sorani: document.getElementById('shortcutCardImageUrlKuSorani').value,
+                    ku_badini: document.getElementById('shortcutCardImageUrlKuBadini').value,
+                    ar: document.getElementById('shortcutCardImageUrlAr').value,
+                },
+                order: parseInt(document.getElementById('shortcutCardOrder').value) || 10,
+                categoryId: document.getElementById('shortcutCardMainCategory').value || null,
+                subcategoryId: document.getElementById('shortcutCardSubcategory').value || null,
+                subSubcategoryId: document.getElementById('shortcutCardSubSubcategory').value || null,
+            };
+
+            // Backward compatibility
+            cardData.imageUrl = cardData.imageUrls.ku_sorani; 
+
+            try {
+                const cardsCollectionRef = collection(db, "shortcut_rows", rowId, "cards");
+                if (editingId) {
+                    await setDoc(doc(cardsCollectionRef, editingId), cardData, { merge: true });
+                    showNotification('کارتەکە نوێکرایەوە', 'success');
+                } else {
+                    await addDoc(cardsCollectionRef, cardData);
+                    showNotification('کارتەکە زیادکرا', 'success');
+                }
+                
+                e.target.reset();
+                document.getElementById('editingShortcutCardId').value = '';
+                document.getElementById('cancelCardEditBtn').style.display = 'none';
+                
+                document.getElementById('shortcutCardSubContainer').style.display = 'none';
+                document.getElementById('shortcutCardSubSubContainer').style.display = 'none';
+                
+                submitButton.textContent = 'زیادکردنی کارت';
+                clearProductCache();
+            } catch (error) {
+                console.error(error);
+                showNotification('هەڵەیەک ڕوویدا', 'error');
+            } finally {
+                submitButton.disabled = false;
             }
         });
 
