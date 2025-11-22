@@ -727,6 +727,29 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     const page = document.getElementById('subcategoryDetailPage');
     const isSameCategory = page.dataset.loadedMain === mainCatId && page.dataset.loadedSub === subCatId;
 
+    // Clear previous "split view" content if any
+    const subDetailContent = page.querySelector('.subcategory-detail-content');
+    if(subDetailContent) {
+        // Ensure we are in "normal list mode" not split mode
+        // Re-inject normal structure if needed
+        if (!document.getElementById('productsContainerOnDetailPage')) {
+             subDetailContent.innerHTML = `
+                 <div id="subSubCategoryContainerOnDetailPage" class="subcategories-container"></div>
+                 <div id="productsContainerOnDetailPage" class="products-container"></div>
+                 <div id="detailPageLoader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
+             `;
+        }
+    } else {
+        // Re-create standard structure if overwritten by split view
+        page.innerHTML = `
+           <div class="subcategory-detail-content">
+             <div id="subSubCategoryContainerOnDetailPage" class="subcategories-container"></div>
+             <div id="productsContainerOnDetailPage" class="products-container"></div>
+             <div id="detailPageLoader" style="text-align: center; padding: 40px; color: var(--dark-gray); display: none;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
+         </div>
+        `;
+    }
+
     if (fromHistory && isSameCategory) {
         showPage('subcategoryDetailPage', subCatName, false); 
         return;
@@ -744,6 +767,11 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     loader.style.display = 'block';
     productsContainer.innerHTML = '';
     subSubContainer.innerHTML = '';
+    
+    // Ensure search is visible for product lists
+    const searchBar = document.querySelector('.subpage-search');
+    if(searchBar) searchBar.style.display = 'block';
+    
     document.getElementById('subpageSearchInput').value = '';
     document.getElementById('subpageClearSearchBtn').style.display = 'none';
 
@@ -1156,6 +1184,146 @@ function handleToggleFavoriteUI(productId) {
     }
 }
 
+/* ==========================================
+   NEW: Split View Categories Logic
+   ========================================== */
+
+export async function showAllCategoriesPageUI() {
+    // 1. Open Page
+    history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: t('nav_categories'), isSplitView: true }, '', '#categories_split');
+    showPage('subcategoryDetailPage', t('nav_categories'), false);
+
+    // 2. Prepare the DOM
+    const pageElement = document.getElementById('subcategoryDetailPage');
+    // Hide Search bar for this view
+    const searchBar = document.querySelector('.subpage-search');
+    if(searchBar) searchBar.style.display = 'none';
+    
+    // Inject Split View Structure
+    pageElement.innerHTML = `
+        <div class="category-split-container">
+            <div class="category-sidebar" id="categorySidebar"></div>
+            <div class="category-content-area" id="categoryContentArea"></div>
+        </div>
+    `;
+
+    const sidebar = document.getElementById('categorySidebar');
+    const contentArea = document.getElementById('categoryContentArea');
+    const categories = state.categories.filter(c => c.id !== 'all');
+
+    // 3. Populate Sidebar
+    categories.forEach((cat, index) => {
+        const name = cat['name_' + state.currentLanguage] || cat.name_ku_sorani;
+        const icon = cat.icon || 'fas fa-box';
+        
+        const item = document.createElement('div');
+        item.className = 'sidebar-item';
+        if (index === 0) item.classList.add('active'); // Select first by default
+        
+        item.innerHTML = `
+            <i class="${icon} sidebar-icon"></i>
+            <span class="sidebar-text">${name}</span>
+        `;
+        
+        item.onclick = () => {
+            document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            loadCategoryContent(cat.id, contentArea);
+        };
+        
+        sidebar.appendChild(item);
+    });
+
+    // 4. Load First Category Content
+    if (categories.length > 0) {
+        loadCategoryContent(categories[0].id, contentArea);
+    }
+}
+
+async function loadCategoryContent(mainCatId, container) {
+    container.innerHTML = `<div style="text-align:center; margin-top:50px;"><i class="fas fa-spinner fa-spin"></i></div>`;
+
+    try {
+        const subcategories = await fetchSubcategories(mainCatId);
+        container.innerHTML = '';
+
+        if (!subcategories || subcategories.length === 0) {
+            container.innerHTML = `
+                <div style="text-align:center; margin-top:50px;">
+                    <p style="color:var(--text-light);">هیچ لقێک نییە</p>
+                    <button class="add-to-cart-btn" style="width:auto; margin:10px auto; background-color:var(--primary-color);" id="btnViewAllForCat">
+                        بینینی هەموو کاڵاکان
+                    </button>
+                </div>`;
+            document.getElementById('btnViewAllForCat').onclick = () => showSubcategoryDetailPageUI(mainCatId, 'all');
+            return;
+        }
+
+        for (const sub of subcategories) {
+            const subName = sub['name_' + state.currentLanguage] || sub.name_ku_sorani;
+            
+            // Title for the Subcategory Section
+            const title = document.createElement('div');
+            title.className = 'content-group-title';
+            title.textContent = subName;
+            // Allow clicking title to see all items in this subcategory
+            title.onclick = () => showSubcategoryDetailPageUI(mainCatId, sub.id);
+            title.style.cursor = "pointer";
+            container.appendChild(title);
+
+            // Grid for Sub-items
+            const grid = document.createElement('div');
+            grid.className = 'content-grid';
+            
+            // Check for Sub-subcategories
+            const subSubcategories = await fetchSubSubcategories(mainCatId, sub.id);
+
+            if (subSubcategories && subSubcategories.length > 0) {
+                subSubcategories.forEach(ss => {
+                    const ssName = ss['name_' + state.currentLanguage] || ss.name_ku_sorani;
+                    const ssImage = ss.imageUrl || 'https://placehold.co/100x100/f0f2f5/718096?text=...';
+                    
+                    const card = document.createElement('div');
+                    card.className = 'sub-item-card';
+                    card.innerHTML = `
+                        <img src="${ssImage}" class="sub-item-image" loading="lazy">
+                        <span class="sub-item-name">${ssName}</span>
+                    `;
+                    
+                    card.onclick = () => {
+                        showSubcategoryDetailPageUI(mainCatId, sub.id);
+                        // Auto-select the filter bubble after a short delay
+                        setTimeout(() => {
+                            const btn = document.querySelector(`#subSubCategoryContainerOnDetailPage button[data-id="${ss.id}"]`);
+                            if(btn) btn.click();
+                        }, 400);
+                    };
+                    grid.appendChild(card);
+                });
+            } else {
+                // If no sub-subcategories, show a "See All" or generic item
+                const card = document.createElement('div');
+                card.className = 'sub-item-card';
+                card.innerHTML = `
+                    <img src="${sub.imageUrl || 'https://placehold.co/100x100/f0f2f5/718096?text=All'}" class="sub-item-image" loading="lazy">
+                    <span class="sub-item-name">${t('see_all')}</span>
+                `;
+                card.onclick = () => showSubcategoryDetailPageUI(mainCatId, sub.id);
+                grid.appendChild(card);
+            }
+            
+            container.appendChild(grid);
+        }
+
+    } catch (error) {
+        console.error(error);
+        container.innerHTML = '<p style="text-align:center; color:red; margin-top:20px;">هەڵەیەک ڕوویدا</p>';
+    }
+}
+
+/* ==========================================
+   Event Listeners & Initializers
+   ========================================== */
 
 function setupUIEventListeners() {
     
@@ -1194,7 +1362,13 @@ function setupUIEventListeners() {
     }
 
     cartBtn.onclick = () => { openPopup('cartSheet'); updateActiveNav('cartBtn'); };
-    categoriesBtn.onclick = () => { openPopup('categoriesSheet'); updateActiveNav('categoriesBtn'); };
+    
+    // --- Updated Categories Button Logic ---
+    categoriesBtn.onclick = () => { 
+        showAllCategoriesPageUI(); 
+        updateActiveNav('categoriesBtn'); 
+    };
+    
     settingsFavoritesBtn.onclick = () => { openPopup('favoritesSheet'); };
     settingsAdminLoginBtn.onclick = () => { openPopup('loginModal', 'modal'); };
     notificationBtn.addEventListener('click', () => { openPopup('notificationsSheet'); });
@@ -1410,23 +1584,16 @@ function setupUIEventListeners() {
         const observer = new IntersectionObserver(async (entries) => {
             const isMainPageActive = document.getElementById('mainPage')?.classList.contains('page-active');
             
-            // پشکنین: ئایا لیستی کاڵاکان لە پەڕەی گەڕان دیارە؟
             const isProductGridVisible = document.getElementById('productsContainer')?.style.display === 'grid';
-            
-            // [ 💡 نوێ ] - پشکنین: ئایا بەشی "هەموو کاڵاکان" لە پەڕەی سەرەکی هەیە؟
             const isHomeAllProductsVisible = document.querySelector('.all-products-grid');
 
-            // مەرج: دەبێت لە پەڕەی سەرەکی بین، و یەکێک لە لیستەکان دیار بێت، و هێشتا هەمووی بار نەبووبێت
             if (entries[0].isIntersecting && isMainPageActive && (isProductGridVisible || isHomeAllProductsVisible) && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
                  
                  loader.style.display = 'block'; 
-                 // ئەمە خۆی دەچێت 30ی تر دەهێنێت بەپێی lastVisibleProductDoc
                  const result = await fetchProducts(state.currentSearch, false); 
-                 
                  loader.style.display = 'none'; 
                  
                  if(result && result.products.length > 0) {
-                     // [ 💡 گرنگ ] - ئەگەر لە پەڕەی سەرەکی بووین، ئەوا append دەکەین بۆ ناو بەشی تایبەت
                      if (isHomeAllProductsVisible) {
                          result.products.forEach(product => {
                              const card = createProductCardElementUI(product); 
@@ -1435,12 +1602,10 @@ function setupUIEventListeners() {
                          });
                          setupScrollAnimations();
                      } else {
-                         // ئەگەر لە پەڕەی گەڕان بووین
                          await updateProductViewUI(false); 
                      }
                  }
                  
-                 // ئەگەر هەمووی تەواو بوو، ئیتر داواکاری مەنێرە
                  scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
             }
         }, { threshold: 0.1 });
@@ -1556,13 +1721,11 @@ window.addEventListener('popstate', async (event) => {
 
     if (popState) {
         if (popState.type === 'page') {
-            // [ 🛠️ Updated ] - Don't force scroll to top when going back in history
             showPage(popState.id, popState.title, false); 
 
             if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
                 await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
             }
-            // [ 💡 نوێ ] - Handled Product Detail Page
             if (popState.id === 'productDetailPage' && popState.productId) {
                  setTimeout(() => {
                     showProductDetailsUI({id: popState.productId}, true);
@@ -1571,16 +1734,19 @@ window.addEventListener('popstate', async (event) => {
             if (popState.id === 'chatPage') {
                 openChatPage();
             }
+            // Re-render split view if going back to it
+            if (popState.id === 'subcategoryDetailPage' && popState.isSplitView) {
+                showAllCategoriesPageUI();
+            }
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             openPopup(popState.id, popState.type, false);
         
         } else { 
-            showPage('mainPage', '', false); // Don't scroll top on back to home
+            showPage('mainPage', '', false); 
             
             const stateToApply = popState || { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
             applyFilterStateCore(stateToApply); 
 
-            // [ 🛠️ چاکسازی سەرەکی ]
             const prodContainer = document.getElementById('productsContainer');
             const homeContainer = document.getElementById('homePageSectionsContainer');
             const catContainer = document.getElementById('categoryLayoutContainer');
@@ -1626,7 +1792,6 @@ window.addEventListener('popstate', async (event) => {
             }
 
             if (!state.pendingFilterNav) { 
-                // [ 💡 چاککرا ] - گەڕاندنەوەی شوێنی Scroll
                 if (typeof stateToApply.scroll === 'number') {
                     setTimeout(() => {
                          const homePage = document.getElementById('mainPage');
@@ -1662,7 +1827,6 @@ window.addEventListener('popstate', async (event) => {
 
 async function initializeUI() {
     await initCore(); 
-    // [ 💡 چاککرا ] - ناچالاککردنی خۆکارانەی وێبگەڕ بۆ ئەوەی ئێمە کۆنترۆڵی بکەین
     if ('scrollRestoration' in history) {
         history.scrollRestoration = 'manual';
     }
@@ -1712,6 +1876,7 @@ async function handleInitialPageLoadUI() {
     const isChat = hash === 'chat'; 
     const isAdminChat = hash === 'admin-chats'; 
     const isProductDetail = params.get('product');
+    const isCategoriesSplit = hash === 'categories_split';
 
     if (isSettings) {
          history.replaceState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', `#${hash}`);
@@ -1726,12 +1891,13 @@ async function handleInitialPageLoadUI() {
          if(sessionStorage.getItem('isAdmin') === 'true') {
             openChatPage(); 
          }
+    } else if (isCategoriesSplit) {
+        showAllCategoriesPageUI();
     } else if (isSubcategoryDetail) {
          const ids = hash.split('_');
          const mainCatId = ids[1];
          const subCatId = ids[2];
          if (state.categories.length > 0) { 
-             // [ 💡 Fix ] Pass true for fromHistory to avoid pushing, but rely on internal repair logic
               await showSubcategoryDetailPageUI(mainCatId, subCatId, true); 
          } else {
              console.warn("Categories not ready on initial load, showing main page instead of detail.");
@@ -1739,13 +1905,11 @@ async function handleInitialPageLoadUI() {
              await updateProductViewUI(true, true); 
          }
     } else if (isProductDetail) {
-        // [ 💡 نوێ ] - Initial Load for Product Detail Page
         const productId = isProductDetail;
         if (productId) {
-            showPage('productDetailPage'); // Show empty page first to reduce flicker
+            showPage('productDetailPage'); 
             const product = await fetchProductById(productId);
             if (product) {
-                // [ 💡 Fix ] Pass true for fromHistory to handle state repair internally
                 showProductDetailsUI(product, true);
             } else {
                  showPage('mainPage');
@@ -1829,52 +1993,4 @@ function setupGpsButtonUI() {
          }
 
          if(btnSpan) btnSpan.textContent = '...چاوەڕوان بە';
-         getLocationBtn.disabled = true;
-
-         navigator.geolocation.getCurrentPosition(
-              async (position) => { 
-                   const { latitude, longitude } = position.coords;
-                   try {
-                        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ku,en`);
-                        const data = await response.json();
-                        if (data && data.display_name) {
-                             profileAddressInput.value = data.display_name;
-                             showNotification('ناونیشان وەرگیرا', 'success');
-                        } else {
-                             showNotification('نەتوانرا ناونیشان بدۆزرێتەوە', 'error');
-                        }
-                   } catch (error) {
-                        console.error('Reverse Geocoding Error:', error);
-                        showNotification('هەڵەیەک لە وەرگرتنی ناونیشان ڕوویدا', 'error');
-                   } finally {
-                        if(btnSpan) btnSpan.textContent = originalBtnText;
-                       getLocationBtn.disabled = false;
-                   }
-               },
-               (error) => { 
-                   let message = t('error_generic'); 
-                   switch (error.code) {
-                        case 1: message = 'ڕێگەت نەدا GPS بەکاربهێنرێت'; break;
-                        case 2: message = 'شوێنەکەت نەدۆزرایەوە'; break;
-                        case 3: message = 'کاتی داواکارییەکە تەواو بوو'; break;
-                   }
-                   showNotification(message, 'error');
-                    if(btnSpan) btnSpan.textContent = originalBtnText;
-                   getLocationBtn.disabled = false;
-               }
-         );
-     });
-}
-
-document.addEventListener('DOMContentLoaded', initializeUI);
-
-if (!window.globalAdminTools) {
-    window.globalAdminTools = {};
-}
-
-window.globalAdminTools.openPopup = openPopup;
-window.globalAdminTools.closeCurrentPopup = closeCurrentPopup;
-window.globalAdminTools.showNotification = showNotification; 
-window.globalAdminTools.updateCartCountUI = updateCartCountUI; 
-
-console.log('openPopup, closeCurrentPopup, & showNotification ji bo admin.js hatin zêdekirin.');
+         getLocationBtn.

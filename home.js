@@ -55,6 +55,7 @@ export function renderMainCategoriesUI() {
     if (!container) return;
     container.innerHTML = '';
 
+    // دوگمەی سەرەکی (Home)
     const homeBtn = document.createElement('button');
     homeBtn.className = 'main-category-btn';
     homeBtn.dataset.category = 'all'; 
@@ -76,7 +77,7 @@ export function renderMainCategoriesUI() {
     };
     container.appendChild(homeBtn);
 
-
+    // دوگمەی جۆرەکان
     state.categories.forEach(cat => {
         const btn = document.createElement('button');
         btn.className = 'main-category-btn';
@@ -91,6 +92,7 @@ export function renderMainCategoriesUI() {
 
         btn.innerHTML = `<i class="${categoryIcon}"></i> <span>${categoryName}</span>`;
 
+        // --- گەڕاندنەوە بۆ فیلتەرکردن (Filter Mode) ---
         btn.onclick = async () => {
              resetScrollPosition(container); 
              await navigateToFilterCore({
@@ -101,6 +103,7 @@ export function renderMainCategoriesUI() {
              });
              await updateProductViewUI(true, true);
         };
+        // ------------------------------------------------
 
         container.appendChild(btn);
     });
@@ -415,7 +418,6 @@ export async function renderPageContentUI(layoutSections, targetContainerElement
                      break;
                  case 'single_shortcut_row':
                      if (section.rowId) {
-                          // [ 💡 Fix ] - Pass 'section.name' here so we can prioritize the Admin's label
                           sectionElement = await createSingleShortcutRowElement(section.rowId, section.name); 
                          } else console.warn("Shortcut row missing rowId:", section);
                      break;
@@ -623,15 +625,12 @@ async function createSingleShortcutRowElement(rowId, sectionNameObj) {
      const cards = await fetchShortcutRowCards(rowId);
      if (!cards || cards.length === 0) return null;
 
-     // === دیاریکردنی جۆری دیزاین ===
      const designType = rowData.designType || 'medium';
      const designClass = designType === 'small' ? 'small-style' : '';
-     // ==============================
 
      const sectionContainer = document.createElement('div');
      sectionContainer.className = 'shortcut-cards-section';
      
-     // [ 💡 FIX ] - Prioritize rowData.title first (from Shortcut Row), then sectionNameObj (from Admin Layout)
      const rowTitle = (rowData.title && (rowData.title[state.currentLanguage] || rowData.title.ku_sorani)) ||
                       (sectionNameObj && (sectionNameObj[state.currentLanguage] || sectionNameObj.ku_sorani));
 
@@ -644,17 +643,15 @@ async function createSingleShortcutRowElement(rowId, sectionNameObj) {
      cards.forEach(cardData => {
          const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
          
-         // === هەڵبژاردنی وێنەی ڕاست بەپێی زمان ===
          let displayImage = "";
          if (cardData.imageUrls) {
              displayImage = cardData.imageUrls[state.currentLanguage] || cardData.imageUrls.ku_sorani;
          } else {
              displayImage = cardData.imageUrl;
          }
-         // ========================================
 
          const item = document.createElement('div');
-         item.className = `shortcut-card ${designClass}`; // کلاسی دیزاین لێرە زیاد دەبێت
+         item.className = `shortcut-card ${designClass}`; 
          
          item.innerHTML = `
              <img src="${displayImage}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
