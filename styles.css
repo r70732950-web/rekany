@@ -1177,21 +1177,21 @@ body, .bottom-nav-item, .product-card {
     background-color: var(--medium-gray);
 }
 
-.brands-section {
-    padding: 16px 0;
-    background-color: var(--section-bg);
-    margin: 0 0 16px;
-    border: 1px solid var(--section-border);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    border-right: none;
-    border-left: none;
+/* --- Compact & Seamless Sections (No borders/bg) --- */
+.brands-section,
+.shortcut-cards-section {
+    padding: 5px 0 10px 0;
+    background-color: transparent; /* Seamless background */
+    margin: 0;
+    border: none;
+    box-shadow: none;
 }
 
 .brands-container {
     display: flex;
     overflow-x: auto;
     gap: 15px;
-    padding: 10px 12px;
+    padding: 0 12px 10px 12px;
     scrollbar-width: none;
 }
 
@@ -1242,21 +1242,11 @@ body, .bottom-nav-item, .product-card {
     white-space: nowrap;
 }
 
-.shortcut-cards-section {
-    padding: 16px 0;
-    background-color: var(--section-bg);
-    margin: 0 0 16px;
-    border: 1px solid var(--section-border);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    border-right: none;
-    border-left: none;
-}
-
 .shortcut-row-title {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: bold;
     color: var(--primary-color);
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     padding-right: 12px;
 }
 
@@ -1264,7 +1254,7 @@ body, .bottom-nav-item, .product-card {
     display: flex;
     overflow-x: auto;
     gap: 12px;
-    padding: 5px 12px 15px 12px;
+    padding: 0 12px 10px 12px;
     scrollbar-width: none;
 }
 
@@ -1318,7 +1308,7 @@ body, .bottom-nav-item, .product-card {
 .shortcut-card.small-style .shortcut-card-image {
     width: 65px;
     height: 65px;
-    border-radius: 12px; /* Square-ish */
+    border-radius: 12px; /* Square with rounded corners */
     border: 1px solid var(--medium-gray);
     padding: 0;
     background-color: white;
@@ -2132,24 +2122,3 @@ input:checked + .slider:before {
 
 .promo-grid-card {
     position: relative;
-    width: 100%;
-    padding-top: 100%; 
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    cursor: pointer;
-}
-
-.promo-grid-card img {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-}
-
-.promo-grid-card:hover img {
-    transform: scale(1.05);
-}
