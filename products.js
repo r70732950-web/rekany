@@ -13,6 +13,34 @@ import {
 import { handleAddToCartUI } from './cart.js';
 import { showNotification, showPage } from './app-ui.js'; 
 
+// --- Helper: دەرهێنانی ئایدی یوتوب ---
+function parseYouTubeId(url) {
+    if (!url) return null;
+    if (!/^https?:\/\//i.test(url)) {
+        url = 'https://' + url;
+    }
+    try {
+        const urlObj = new URL(url);
+        if (urlObj.hostname.includes('youtube.com')) {
+            if (urlObj.searchParams.has('v')) {
+                return urlObj.searchParams.get('v');
+            }
+            if (urlObj.pathname.startsWith('/shorts/')) {
+                return urlObj.pathname.split('/')[2];
+            }
+            if (urlObj.pathname.startsWith('/embed/')) {
+                return urlObj.pathname.split('/')[2];
+            }
+        } 
+        else if (urlObj.hostname.includes('youtu.be')) {
+            return urlObj.pathname.slice(1);
+        }
+    } catch (e) {
+        return null;
+    }
+    return null;
+}
+
 // --- دروستکردنی کارتی کاڵا ---
 export function createProductCardElementUI(product) {
     const productCard = document.createElement('div');
@@ -278,7 +306,6 @@ function renderSliderImages(imageUrls, videoLink, productName) {
     imageContainer.innerHTML = ''; 
     indicatorsContainer.innerHTML = ''; 
 
-    // لۆجیکی سلایدەر (وەک پێشوو)
     let sliderElements = []; 
     let indicatorElements = []; 
     
@@ -299,8 +326,28 @@ function renderSliderImages(imageUrls, videoLink, productName) {
         });
     }
     
-    // Video logic handling (simplified for brevity, assuming parseYouTubeId exists or imported if needed)
-    // ... (Video logic remains same as before)
+    // [ چاککراوە ] - زیادکردنەوەی لۆجیکی ڤیدیۆ
+    const videoId = parseYouTubeId(videoLink); 
+    if (videoId) {
+        const videoWrapper = document.createElement('div');
+        videoWrapper.id = 'videoPlayerWrapper'; 
+        videoWrapper.style.cssText = "position: relative; width: 100%; background-color: #000; display: none; justify-content: center; align-items: center; overflow: hidden; flex-shrink: 0; max-height: 350px;";
+        
+        const videoIndex = sliderElements.length; 
+        imageContainer.appendChild(videoWrapper);
+        sliderElements.push(videoWrapper); 
+
+        const line = document.createElement('div');
+        line.className = `indicator-line`;
+        line.innerHTML = '<i class="fas fa-play" style="font-size:8px; color:white;"></i>'; 
+        line.style.display = 'flex';
+        line.style.alignItems = 'center';
+        line.style.justifyContent = 'center';
+        line.dataset.index = videoIndex;
+        line.onclick = () => updateSlider(videoIndex);
+        indicatorsContainer.appendChild(line);
+        indicatorElements.push(line);
+    }
 
     // Navigation Buttons Logic
     let currentIndex = 0;
@@ -308,10 +355,23 @@ function renderSliderImages(imageUrls, videoLink, productName) {
     const nextBtn = document.getElementById('detailNextBtn');
 
     function updateSlider(index) {
+        // Stop previous video if playing
+        const oldElement = sliderElements[currentIndex];
+        if (oldElement && oldElement.id === 'videoPlayerWrapper') {
+            oldElement.innerHTML = ''; 
+        }
+
         sliderElements.forEach(el => el.classList.remove('active'));
         indicatorElements.forEach(el => el.classList.remove('active'));
         
-        sliderElements[index].classList.add('active');
+        const activeElement = sliderElements[index];
+        // If new slide is video, embed it
+        if (activeElement.id === 'videoPlayerWrapper') { 
+            const videoSrc = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&autoplay=1&mute=0&controls=1`;
+            activeElement.innerHTML = `<iframe src="${videoSrc}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width: 100%; aspect-ratio: 16 / 9; max-height: 350px;"></iframe>`;
+        }
+
+        activeElement.classList.add('active');
         indicatorElements[index].classList.add('active');
         currentIndex = index; 
     }
