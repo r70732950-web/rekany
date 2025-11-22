@@ -8,50 +8,71 @@ import {
 } from './app-core.js';
 
 import { updateProductViewUI } from './home.js';
-import { showSubcategoryDetailPageUI } from './app-ui.js'; 
+import { showSubcategoryDetailPageUI, showPage } from './app-ui.js'; 
 
 // ڕەندەرکردنی پەڕەی دابەشبووی جۆرەکان (Split View)
 export async function renderSplitCategoriesPageUI() {
     const sidebar = document.getElementById('splitSidebar');
     if (!sidebar) return;
-    sidebar.innerHTML = '';
     
-    // ئەگەر جۆرەکان هێشتا بار نەکرابن
+    // ئەگەر جۆرەکان هێشتا بار نەکرابن، باریان دەکەین
     if (state.categories.length === 0) {
         await fetchCategories();
     }
 
-    // لابردنی 'all' لە لیستەکە ئەگەر هەبێت
-    const categoriesToShow = state.categories.filter(c => c.id !== 'all');
+    // [چاکسازی]: ئەگەر لیستەکە پێشتر دروستکرابێت، دووبارە دروستی مەکەرەوە
+    // ئەمە وادەکات کاتێک دەگەڕێیتەوە، شوێنی Scroll تێک نەچێت
+    if (sidebar.children.length === 0) {
+        const categoriesToShow = state.categories.filter(c => c.id !== 'all');
 
-    categoriesToShow.forEach((cat, index) => {
-        const name = (cat.name && cat.name[state.currentLanguage]) || cat.name_ku_sorani;
-        
-        const item = document.createElement('div');
-        item.className = 'sidebar-item';
-        item.dataset.id = cat.id;
-        item.innerHTML = `
-            <i class="${cat.icon}"></i>
-            <span>${name}</span>
-        `;
-        
-        item.onclick = () => {
-            // لابردنی کلاسى active لە هەموویان
-            sidebar.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
-            // زیادکردنی active بۆ ئەوەی کلیک کراوە
-            item.classList.add('active');
-            // پیشاندانی ناوەڕۆک
-            renderSplitSubcategoriesContent(cat);
-        };
+        categoriesToShow.forEach((cat, index) => {
+            const name = (cat.name && cat.name[state.currentLanguage]) || cat.name_ku_sorani;
+            
+            const item = document.createElement('div');
+            item.className = 'sidebar-item';
+            item.dataset.id = cat.id;
+            item.innerHTML = `
+                <i class="${cat.icon}"></i>
+                <span>${name}</span>
+            `;
+            
+            item.onclick = () => {
+                handleCategoryClick(cat.id, sidebar);
+            };
 
-        sidebar.appendChild(item);
+            sidebar.appendChild(item);
+        });
+    }
 
-        // یەکەم دانە با بە دیفۆڵت دیاری بکرێت
-        if (index === 0) {
-            item.classList.add('active');
-            renderSplitSubcategoriesContent(cat);
-        }
-    });
+    // دیاریکردنی جۆری چالاک (Active)
+    // سەرەتا سەیری مێمۆری دەکات (state)، ئەگەر نەبوو یەکەم دانە دیاری دەکات
+    let activeCatId = state.currentSplitCategory || (state.categories.find(c => c.id !== 'all')?.id);
+    if (activeCatId) {
+        handleCategoryClick(activeCatId, sidebar, false); 
+    }
+}
+
+// فەنکشنی مامەڵەکردن لەگەڵ کلیک لەسەر جۆرەکان
+async function handleCategoryClick(categoryId, sidebar, forceRefresh = true) {
+    // پاشەکەوتکردنی جۆری هەڵبژێردراو بۆ ئەوەی بیرمان نەچێت
+    state.currentSplitCategory = categoryId;
+
+    // لابردنی کلاسى active لە هەموویان
+    sidebar.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+    
+    // دۆزینەوەی توخمەکە و دیاریکردنی وەک active
+    const activeItem = sidebar.querySelector(`.sidebar-item[data-id="${categoryId}"]`);
+    if (activeItem) {
+        activeItem.classList.add('active');
+        // [چاکسازی]: خستنە بەرچاو (Scroll Into View) بە نەرمی
+        activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // دۆزینەوەی داتای جۆرەکە و نیشاندانی ناوەڕۆک
+    const category = state.categories.find(c => c.id === categoryId);
+    if (category) {
+        renderSplitSubcategoriesContent(category);
+    }
 }
 
 // ڕەندەرکردنی ناوەڕۆکی لای چەپ (جۆرە لاوەکییەکان)
@@ -64,14 +85,16 @@ async function renderSplitSubcategoriesContent(category) {
     contentDiv.innerHTML = `
         <div class="split-content-header">
             <span>${catName}</span>
-            <button class="see-all-link" id="splitViewSeeAllBtn" style="border:none; background:none; font-size:12px;">${t('see_all')}</button>
+            <button class="see-all-link" id="splitViewSeeAllBtn" style="border:none; background:none; font-size:12px; font-weight:bold; color:var(--primary-color);">${t('see_all')}</button>
         </div>
-        <div style="text-align: center; margin-top: 20px;"><i class="fas fa-spinner fa-spin"></i></div>
+        <div id="splitLoader" style="text-align: center; margin-top: 20px;"><i class="fas fa-spinner fa-spin"></i></div>
     `;
 
-    // فەنکشنی بینینی هەموو کاڵاکانی ئەو جۆرە
+    // [چاکسازی]: دوگمەی "هەمووی بینە" ئێستا دەچێتە پەڕەی سەرەکی
     document.getElementById('splitViewSeeAllBtn').onclick = async () => {
         await navigateToFilterCore({ category: category.id, subcategory: 'all', subSubcategory: 'all', search: '' });
+        // فەرمان دەکەین کە پەڕەی سەرەکی بکرێتەوە
+        showPage('mainPage'); 
         await updateProductViewUI(true, true);
     };
 
@@ -79,7 +102,7 @@ async function renderSplitSubcategoriesContent(category) {
     const subcats = await fetchSubcategories(category.id);
     
     // لابردنی لۆدەر
-    const loader = contentDiv.querySelector('.fa-spinner')?.parentNode;
+    const loader = document.getElementById('splitLoader');
     if(loader) loader.remove();
 
     if (subcats.length === 0) {
@@ -101,6 +124,8 @@ async function renderSplitSubcategoriesContent(category) {
             <span class="split-sub-name">${subName}</span>
         `;
 
+        // [چاکسازی]: دڵنیابوونەوە لەوەی کلیک کردن دەچێتە پەڕەی وردەکاری
+        // لەوێ جۆرە لاوەکییەکان (Sub-subcategories) دەردەکەون
         card.onclick = () => {
             showSubcategoryDetailPageUI(category.id, sub.id);
         };

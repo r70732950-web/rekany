@@ -7,7 +7,7 @@ import {
     usersCollection, 
     createUserWithEmailAndPassword, updateProfile, 
     sendPasswordResetEmail,
-    translations, state,
+    translations, 
     CART_KEY, FAVORITES_KEY, PRODUCTS_PER_PAGE,
 } from './app-setup.js';
 
@@ -21,12 +21,43 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
+// --- State Definition (Moved here for centralization) ---
+export let state = {
+    currentLanguage: localStorage.getItem('language') || 'ku_sorani',
+    deferredPrompt: null,
+    cart: JSON.parse(localStorage.getItem("maten_store_cart")) || [],
+    favorites: JSON.parse(localStorage.getItem("maten_store_favorites")) || [],
+    userProfile: {}, 
+    currentUser: null, 
+    editingProductId: null, 
+    products: [],
+    categories: [], 
+    subcategories: [], 
+    lastVisibleProductDoc: null,
+    isLoadingMoreProducts: false,
+    allProductsLoaded: false,
+    isRenderingHomePage: false,
+    productCache: {},
+    currentCategory: 'all',
+    currentSubcategory: 'all',
+    currentSubSubcategory: 'all',
+    currentSearch: '',
+    currentProductId: null, 
+    currentPageId: 'mainPage', 
+    currentPopupState: null, 
+    pendingFilterNav: null, 
+    sliderIntervals: {}, 
+    contactInfo: {}, 
+    activeChatUserId: null,
+    unreadMessagesCount: 0,
+    currentSplitCategory: null // [نوێ] بۆ پاراستنی شوێنی جۆرەکان
+};
+
 // Promise to ensure Auth is ready
 let authReadyResolver;
 export const authReady = new Promise(resolve => {
     authReadyResolver = resolve;
 });
-
 
 // --- Utility Functions ---
 
@@ -415,23 +446,20 @@ async function fetchBrandGroupBrands(groupId) {
     }
 }
 
-// [ 💡 چاککرا ] - زیادکردنی categoryId بۆ پاڵاوتن
 async function fetchNewestProducts(limitCount = 20, categoryId = null) {
     try {
         const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
         let q;
 
-        // ئەگەر ئایدی جۆر هەبوو (واتە لەناو پەڕەی جۆرەکانین)
         if (categoryId && categoryId !== 'all') {
              q = query(
                  productsCollection, 
-                 where('categoryId', '==', categoryId), // تەنها هی ئەم جۆرە
+                 where('categoryId', '==', categoryId), 
                  where('createdAt', '>=', fifteenDaysAgo), 
                  orderBy('createdAt', 'desc'), 
                  limit(limitCount)
              );
         } else {
-            // ئەگەر لە پەڕەی سەرەکی بووین (هەمووی بێنە)
              q = query(
                  productsCollection, 
                  where('createdAt', '>=', fifteenDaysAgo), 
@@ -473,7 +501,6 @@ async function fetchCategoryRowProducts(sectionData) {
     } else { return []; }
 
     try {
-        // [ 💡 چاککرا ] - Limit کراوە بە 20
         const q = query(productsCollection, where(queryField, '==', queryValue), orderBy('createdAt', 'desc'), limit(20));
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -483,16 +510,14 @@ async function fetchCategoryRowProducts(sectionData) {
     }
 }
 
-// [ 💡 چاککرا ] - ئەم فەنکشنە نوێ کرایەوە بۆ ئەوەی Pagination کار بکات
 async function fetchInitialProductsForHome(limitCount = 30, categoryId = null) {
      try {
         let q;
         
-        // پاککردنەوەی داتای کۆن ئەگەر سەرەتا بێت (تەنها ئەگەر یەکەمجار بێت)
         if (!state.lastVisibleProductDoc || state.currentCategory !== (categoryId || 'all')) {
              state.allProductsLoaded = false;
              state.lastVisibleProductDoc = null;
-             state.products = []; // Reset if logic requires
+             state.products = [];
         }
         
         let conditions = [];
@@ -506,15 +531,10 @@ async function fetchInitialProductsForHome(limitCount = 30, categoryId = null) {
 
         const snapshot = await getDocs(q);
         
-        // [ 💡 گرنگ ] - پاشەکەوتکردنی شوێنی کۆتایی بۆ ئەوەی Scroll کار بکات
         state.lastVisibleProductDoc = snapshot.docs[snapshot.docs.length - 1];
         state.allProductsLoaded = snapshot.docs.length < limitCount;
         
-        // کاڵاکان دەخەینە ناو state.productsـەوە بۆ ئەوەی زیادکردنی دواتر (Append) ئاسان بێت
         const fetchedProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // Note: We don't overwrite state.products here directly if we want append behavior in UI, 
-        // but for initial fetch usually we just return data. The UI handles appending.
-        // However, keeping state consistent is good.
         
         return fetchedProducts;
     } catch (error) {
@@ -523,7 +543,6 @@ async function fetchInitialProductsForHome(limitCount = 30, categoryId = null) {
     }
 }
 
-// [ 💡 گۆڕانکاری سەرەکی 💡 ] - فەنکشنی زیادکردن بۆ سەبەتە نوێکرایەوە
 export async function addToCartCore(productId, selectedVariationInfo = null) {
     let product = state.products.find(p => p.id === productId);
 
@@ -540,49 +559,44 @@ export async function addToCartCore(productId, selectedVariationInfo = null) {
     const calculatedShippingCost = extractShippingCostFromText(shippingText);
     const baseImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
 
-    // --- لۆجیکی نوێ بۆ جۆرەکان (Variations) ---
     let cartId = product.id;
     let cartItemName = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || (typeof product.name === 'string' ? product.name : 'کاڵای بێ ناو');
     let cartItemPrice = product.price;
     let cartItemImage = baseImage;
     
-    // ئەگەر جۆرێک هەڵبژێردرابوو
     if (selectedVariationInfo && selectedVariationInfo.lvl1Id) {
         cartId = `${product.id}_${selectedVariationInfo.lvl1Id}`;
         cartItemName += ` (${selectedVariationInfo.lvl1Name}`;
         
-        // وێنەی جۆری ئاستی یەک (ڕەنگ) وەردەگرین
         const lvl1Var = (product.variations || []).find(v => v.id === selectedVariationInfo.lvl1Id);
         if (lvl1Var && lvl1Var.imageUrls && lvl1Var.imageUrls.length > 0) {
             cartItemImage = lvl1Var.imageUrls[0];
         }
 
-        // ئەگەر جۆری ئاستی دوو هەڵبژێردرابوو
         if (selectedVariationInfo.lvl2Id) {
             cartId += `_${selectedVariationInfo.lvl2Id}`;
             cartItemName += ` - ${selectedVariationInfo.lvl2Name}`;
-            cartItemPrice = selectedVariationInfo.price; // نرخی تایبەت دادەنێین
+            cartItemPrice = selectedVariationInfo.price; 
         }
         
         cartItemName += `)`;
     }
-    // --- کۆتایی لۆجیکی نوێ ---
 
     const existingItem = state.cart.find(item => item.id === cartId);
 
     if (existingItem) {
         existingItem.quantity++;
-        existingItem.shippingCost = calculatedShippingCost; // دڵنیابوونەوە لە نرخی گەیاندن
+        existingItem.shippingCost = calculatedShippingCost; 
     } else {
         state.cart.push({
-            id: cartId, // IDی نوێی سەبەتە (e.g., product1_colorRed_sizeLG)
-            productId: product.id, // IDی بنەڕەتی کاڵا
-            name: cartItemName, // ناوی نوێ (e.g., "iPhone (ڕەش - 256GB)")
-            price: cartItemPrice, // نرخی نوێ
+            id: cartId, 
+            productId: product.id, 
+            name: cartItemName, 
+            price: cartItemPrice, 
             shippingCost: calculatedShippingCost,
-            image: cartItemImage, // وێنەی نوێ
+            image: cartItemImage, 
             quantity: 1,
-            variationInfo: selectedVariationInfo // هەڵگرتنی زانیاری جۆرەکان
+            variationInfo: selectedVariationInfo 
         });
     }
     saveCart();
@@ -590,7 +604,6 @@ export async function addToCartCore(productId, selectedVariationInfo = null) {
 }
 
 export function updateCartQuantityCore(cartId, change) {
-    // ئەم فەنکشنە وەک خۆی کاردەکات چونکە `cartId` بەکاردەهێنێت
     const cartItemIndex = state.cart.findIndex(item => item.id === cartId);
     if (cartItemIndex > -1) {
         state.cart[cartItemIndex].quantity += change;
@@ -604,7 +617,6 @@ export function updateCartQuantityCore(cartId, change) {
 }
 
 export function removeFromCartCore(cartId) {
-    // ئەم فەنکشنە وەک خۆی کاردەکات چونکە `cartId` بەکاردەهێنێت
     const initialLength = state.cart.length;
     state.cart = state.cart.filter(item => item.id !== cartId);
     if (state.cart.length < initialLength) {
@@ -626,7 +638,6 @@ export function generateOrderMessageCore() {
         
         total += lineTotal;
         
-        // [ 💡 گۆڕانکاری ] - دڵنیابوونەوە لەوەی ناوەکە وەک String مامەڵەی لەگەڵ دەکرێت
         const itemName = (typeof item.name === 'string') 
             ? item.name 
             : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
@@ -925,10 +936,9 @@ export async function initCore() {
                 document.dispatchEvent(new CustomEvent('authChange', { detail: { isAdmin } }));
                 document.dispatchEvent(new CustomEvent('userChange', { detail: { user: state.currentUser } }));
 
-                // [ 💡 زیادکرا ] - دڵنیابوونەوەی پرۆمیسەکە دوای تەواوبوونی هەموو شتێک
                 if (authReadyResolver) {
-                    authReadyResolver(user); // 'user'ـەکە دەنێرێت (کە یان user object یان null)
-                    authReadyResolver = null; // دڵنیابوونەوە لەوەی تەنها یەکجار کار بکات
+                    authReadyResolver(user); 
+                    authReadyResolver = null; 
                 }
             });
 
@@ -962,7 +972,7 @@ export async function initCore() {
 }
 
 export {
-    state, 
+    // state exported from definition above
     handleLogin, 
     handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
     fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, 

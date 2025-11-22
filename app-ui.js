@@ -10,7 +10,7 @@ import {
     notificationBtn, notificationBadge, notificationsSheet, notificationsListContainer,
     termsAndPoliciesBtn, termsSheet, termsContentContainer, subSubcategoriesContainer,
     homePageSectionsContainer, categoryLayoutContainer,
-    // ... (Admin DOM elements remain here as needed)
+    // ... Admin Elements
     adminPoliciesManagement, policiesForm, adminSocialMediaManagement, addSocialMediaForm, socialLinksListContainer, socialMediaToggle,
     adminAnnouncementManagement, announcementForm, announcementsListContainer, adminPromoCardsManagement, addPromoGroupForm, promoGroupsListContainer, addPromoCardForm,
     adminBrandsManagement, addBrandGroupForm, brandGroupsListContainer, addBrandForm, adminCategoryManagement, categoryListContainer, addCategoryForm,
@@ -175,10 +175,9 @@ export function openPopup(id, type = 'sheet', addToHistory = true) {
         sheetOverlay.classList.add('show');
         element.classList.add('show');
         
-        // [MODIFIED] Call imported functions
         if (id === 'cartSheet') renderCartUI();
         if (id === 'favoritesSheet') renderFavoritesPageUI();
-        if (id === 'categoriesSheet') renderSplitCategoriesPageUI(); // Fallback if using sheet
+        if (id === 'categoriesSheet') renderSplitCategoriesPageUI();
         if (id === 'notificationsSheet') renderUserNotificationsUI();
         if (id === 'termsSheet') renderPoliciesUI();
         if (id === 'profileSheet') updateProfileSheetUI();
@@ -221,8 +220,9 @@ function updateActiveNav(activeBtnId) {
     }
 }
 
-// --- Subcategory Detail Logic (Kept in app-ui.js as it's specific routing logic) ---
+// --- [چاککراوە] Subcategory Detail Logic ---
 
+// ڕەندەرکردنی جۆرە لاوەکییە لاوەکییەکان
 async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
      const container = document.getElementById('subSubCategoryContainerOnDetailPage');
      container.innerHTML = ''; 
@@ -236,6 +236,7 @@ async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
 
      container.style.display = 'flex';
 
+     // دوگمەی "هەموو"
      const allBtn = document.createElement('button');
      allBtn.className = `subcategory-btn active`; 
      allBtn.dataset.id = 'all';
@@ -249,6 +250,7 @@ async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
      };
      container.appendChild(allBtn);
 
+     // دروستکردنی دوگمەی لاوەکی لاوەکی
      subSubcategoriesData.forEach(subSubcat => {
           const btn = document.createElement('button');
           btn.className = `subcategory-btn`;
@@ -268,6 +270,7 @@ async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
      });
 }
 
+// ڕەندەرکردنی کاڵاکان لە پەڕەی وردەکاری جۆر
 async function renderProductsOnDetailPageUI(subCatId, subSubCatId = 'all', searchTerm = '') {
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const loader = document.getElementById('detailPageLoader');
@@ -316,6 +319,7 @@ async function renderProductsOnDetailPageUI(subCatId, subSubCatId = 'all', searc
      }
 }
 
+// [چاککراوە] کردنەوەی پەڕەی وردەکاری جۆر
 export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHistory = false) { 
     let subCatName = 'Details'; 
     try {
@@ -329,23 +333,13 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
 
     if (!fromHistory) {
          saveCurrentScrollPositionCore(); 
+         // زیادکردنی بۆ History بۆ ئەوەی Back کار بکات بەبێ تێکچوونی شوێن
          history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
     } else {
         if (!history.state || history.state.id !== 'subcategoryDetailPage') {
              history.replaceState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
         }
     }
-
-    const page = document.getElementById('subcategoryDetailPage');
-    const isSameCategory = page.dataset.loadedMain === mainCatId && page.dataset.loadedSub === subCatId;
-
-    if (fromHistory && isSameCategory) {
-        showPage('subcategoryDetailPage', subCatName, false); 
-        return;
-    }
-
-    page.dataset.loadedMain = mainCatId;
-    page.dataset.loadedSub = subCatId;
 
     showPage('subcategoryDetailPage', subCatName, true); 
 
@@ -356,16 +350,21 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     loader.style.display = 'block';
     productsContainer.innerHTML = '';
     subSubContainer.innerHTML = '';
+    subSubContainer.style.display = 'flex'; // دڵنیابوونەوە لەوەی دیارە
+
     document.getElementById('subpageSearchInput').value = '';
     document.getElementById('subpageClearSearchBtn').style.display = 'none';
 
+    // [چاکسازی] هێنانی بەشە لاوەکییە لاوەکییەکان
     await renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId); 
+    
+    // هێنانی کاڵاکان
     await renderProductsOnDetailPageUI(subCatId, 'all', ''); 
 
     loader.style.display = 'none'; 
 }
 
-// --- Favorites Rendering (Depends on createProductCardElementUI) ---
+// --- Favorites Rendering ---
 
 async function renderFavoritesPageUI() {
     favoritesContainer.innerHTML = '';
@@ -406,7 +405,7 @@ async function renderFavoritesPageUI() {
     }
 }
 
-// --- Other Rendering Functions (Policies, Notifications, Contacts) ---
+// --- Other Rendering Functions ---
 
 async function renderPoliciesUI() {
     termsContentContainer.innerHTML = `<p>${t('loading_policies')}</p>`;
@@ -591,7 +590,6 @@ function setupUIEventListeners() {
 
     cartBtn.onclick = () => { openPopup('cartSheet'); updateActiveNav('cartBtn'); };
     
-    // [MODIFIED] Categories Button Logic for Split View
     categoriesBtn.onclick = async () => {
         saveCurrentScrollPositionCore();
         history.pushState({ type: 'page', id: 'categoriesPage', title: t('nav_categories') }, '', '#categories');
@@ -914,7 +912,6 @@ async function handleSetLanguage(lang) {
         btn.classList.toggle('active', btn.dataset.lang === lang);
     });
 
-    // Re-render updated content
     if (document.getElementById('categoriesPage').classList.contains('page-active')) renderSplitCategoriesPageUI();
     if (document.getElementById('cartSheet').classList.contains('show')) renderCartUI();
     if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPageUI();
@@ -1078,10 +1075,6 @@ async function initializeUI() {
     const authTabSignUp = document.getElementById('authTabSignUp');
     if (authTabLogin) authTabLogin.textContent = t('auth_tab_login');
     if (authTabSignUp) authTabSignUp.textContent = t('auth_tab_signup');
-
-    // [MODIFIED] Call imported render if needed, or rely on click
-    // renderCategoriesSheetUI() was replaced by split view in main nav, 
-    // but sheet logic is kept in openPopup if needed.
 
     setupUIEventListeners();
 
