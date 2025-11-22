@@ -10,7 +10,9 @@ import {
     notificationBtn, notificationBadge, notificationsSheet, notificationsListContainer,
     termsAndPoliciesBtn, termsSheet, termsContentContainer,
     homePageSectionsContainer, 
-    categoryLayoutContainer,  
+    categoryLayoutContainer,
+    // [نوێ] زیادکردنی پەڕەی جۆرەکان
+    categoriesPage,
     adminPoliciesManagement, adminSocialMediaManagement, adminAnnouncementManagement, adminPromoCardsManagement,
     adminBrandsManagement, adminCategoryManagement, adminContactMethodsManagement, adminShortcutRowsManagement,
     adminHomeLayoutManagement, policiesForm, socialLinksListContainer, announcementForm,
@@ -88,6 +90,7 @@ function updateHeaderView(pageId, title = '') {
         headerTitle.textContent = title;
 
         if (subpageSearch) {
+            // [گۆڕانکاری] گەڕان تەنها لەم پەڕانە دیار بێت
             if (pageId === 'subcategoryDetailPage') {
                 subpageSearch.style.display = 'block'; 
             } else {
@@ -123,6 +126,9 @@ function showPage(pageId, pageTitle = '', scrollToTop = true) {
 
      if (pageId === 'settingsPage') {
          updateHeaderView('settingsPage', t('settings_title'));
+    } else if (pageId === 'categoriesPage') {
+         // [نوێ] پشتگیری بۆ پەڕەی جۆرەکان
+         updateHeaderView('categoriesPage', t('nav_categories'));
     } else if (pageId === 'subcategoryDetailPage') {
          updateHeaderView('subcategoryDetailPage', pageTitle);
     } else if (pageId === 'productDetailPage') {
@@ -139,6 +145,7 @@ function showPage(pageId, pageTitle = '', scrollToTop = true) {
     if (pageId === 'mainPage') activeBtnId = 'homeBtn';
     else if (pageId === 'settingsPage') activeBtnId = 'settingsBtn';
     else if (pageId === 'chatPage' || pageId === 'adminChatListPage') activeBtnId = 'chatBtn';
+    else if (pageId === 'categoriesPage') activeBtnId = 'categoriesBtn'; // [نوێ]
 
     if (activeBtnId) {
        updateActiveNav(activeBtnId);
@@ -1156,6 +1163,94 @@ function handleToggleFavoriteUI(productId) {
     }
 }
 
+// [نوێ] فەنکشنەکانی Split View بۆ جۆرەکان
+export async function renderSplitCategoriesPageUI() {
+    const sidebar = document.getElementById('splitSidebar');
+    sidebar.innerHTML = '';
+    
+    if (state.categories.length === 0) {
+        await fetchCategories();
+    }
+
+    const categoriesToShow = state.categories.filter(c => c.id !== 'all');
+
+    categoriesToShow.forEach((cat, index) => {
+        const name = (cat.name && cat.name[state.currentLanguage]) || cat.name_ku_sorani;
+        
+        const item = document.createElement('div');
+        item.className = 'sidebar-item';
+        item.dataset.id = cat.id;
+        item.innerHTML = `
+            <i class="${cat.icon}"></i>
+            <span>${name}</span>
+        `;
+        
+        item.onclick = () => {
+            sidebar.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+            item.classList.add('active');
+            renderSplitSubcategoriesContent(cat);
+        };
+
+        sidebar.appendChild(item);
+
+        if (index === 0) {
+            item.classList.add('active');
+            renderSplitSubcategoriesContent(cat);
+        }
+    });
+}
+
+async function renderSplitSubcategoriesContent(category) {
+    const contentDiv = document.getElementById('splitContent');
+    const catName = (category.name && category.name[state.currentLanguage]) || category.name_ku_sorani;
+    
+    contentDiv.innerHTML = `
+        <div class="split-content-header">
+            <span>${catName}</span>
+            <button class="see-all-link" id="splitViewSeeAllBtn" style="border:none; background:none; font-size:12px;">${t('see_all')}</button>
+        </div>
+        <div style="text-align: center; margin-top: 20px;"><i class="fas fa-spinner fa-spin"></i></div>
+    `;
+
+    document.getElementById('splitViewSeeAllBtn').onclick = async () => {
+        await navigateToFilterCore({ category: category.id, subcategory: 'all', subSubcategory: 'all', search: '' });
+        await updateProductViewUI(true, true);
+    };
+
+    const subcats = await fetchSubcategories(category.id);
+    
+    const loader = contentDiv.querySelector('.fa-spinner').parentNode;
+    loader.remove();
+
+    if (subcats.length === 0) {
+        contentDiv.innerHTML += `<p style="text-align:center; color:#999; margin-top:20px;">هیچ جۆرێکی لاوەکی نییە.</p>`;
+        return;
+    }
+
+    const grid = document.createElement('div');
+    grid.className = 'split-subcategories-grid';
+
+    subcats.forEach(sub => {
+        const subName = (sub.name && sub.name[state.currentLanguage]) || sub.name_ku_sorani;
+        const imgUrl = sub.imageUrl || "https://placehold.co/100";
+
+        const card = document.createElement('div');
+        card.className = 'split-sub-card';
+        card.innerHTML = `
+            <img src="${imgUrl}" class="split-sub-image" loading="lazy">
+            <span class="split-sub-name">${subName}</span>
+        `;
+
+        card.onclick = () => {
+            showSubcategoryDetailPageUI(category.id, sub.id);
+        };
+
+        grid.appendChild(card);
+    });
+
+    contentDiv.appendChild(grid);
+}
+
 
 function setupUIEventListeners() {
     
@@ -1194,7 +1289,16 @@ function setupUIEventListeners() {
     }
 
     cartBtn.onclick = () => { openPopup('cartSheet'); updateActiveNav('cartBtn'); };
-    categoriesBtn.onclick = () => { openPopup('categoriesSheet'); updateActiveNav('categoriesBtn'); };
+    
+    // [گۆڕانکاری] دوگمەی جۆرەکان ئێستا پەڕە دەکاتەوە نەک شیت
+    categoriesBtn.onclick = async () => {
+        saveCurrentScrollPositionCore();
+        history.pushState({ type: 'page', id: 'categoriesPage', title: t('nav_categories') }, '', '#categories');
+        showPage('categoriesPage', t('nav_categories'));
+        await renderSplitCategoriesPageUI();
+        updateActiveNav('categoriesBtn');
+    };
+
     settingsFavoritesBtn.onclick = () => { openPopup('favoritesSheet'); };
     settingsAdminLoginBtn.onclick = () => { openPopup('loginModal', 'modal'); };
     notificationBtn.addEventListener('click', () => { openPopup('notificationsSheet'); });
@@ -1409,24 +1513,16 @@ function setupUIEventListeners() {
     if (scrollTrigger) {
         const observer = new IntersectionObserver(async (entries) => {
             const isMainPageActive = document.getElementById('mainPage')?.classList.contains('page-active');
-            
-            // پشکنین: ئایا لیستی کاڵاکان لە پەڕەی گەڕان دیارە؟
             const isProductGridVisible = document.getElementById('productsContainer')?.style.display === 'grid';
-            
-            // [ 💡 نوێ ] - پشکنین: ئایا بەشی "هەموو کاڵاکان" لە پەڕەی سەرەکی هەیە؟
             const isHomeAllProductsVisible = document.querySelector('.all-products-grid');
 
-            // مەرج: دەبێت لە پەڕەی سەرەکی بین، و یەکێک لە لیستەکان دیار بێت، و هێشتا هەمووی بار نەبووبێت
             if (entries[0].isIntersecting && isMainPageActive && (isProductGridVisible || isHomeAllProductsVisible) && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
                  
                  loader.style.display = 'block'; 
-                 // ئەمە خۆی دەچێت 30ی تر دەهێنێت بەپێی lastVisibleProductDoc
                  const result = await fetchProducts(state.currentSearch, false); 
-                 
                  loader.style.display = 'none'; 
                  
                  if(result && result.products.length > 0) {
-                     // [ 💡 گرنگ ] - ئەگەر لە پەڕەی سەرەکی بووین، ئەوا append دەکەین بۆ ناو بەشی تایبەت
                      if (isHomeAllProductsVisible) {
                          result.products.forEach(product => {
                              const card = createProductCardElementUI(product); 
@@ -1435,12 +1531,9 @@ function setupUIEventListeners() {
                          });
                          setupScrollAnimations();
                      } else {
-                         // ئەگەر لە پەڕەی گەڕان بووین
                          await updateProductViewUI(false); 
                      }
                  }
-                 
-                 // ئەگەر هەمووی تەواو بوو، ئیتر داواکاری مەنێرە
                  scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
             }
         }, { threshold: 0.1 });
@@ -1521,6 +1614,8 @@ async function handleSetLanguage(lang) {
     if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPageUI();
     await updateProductViewUI(true, true); 
     await renderContactLinksUI();
+    // [نوێ] بارکردنەوەی پەڕەی جۆرەکان ئەگەر کرابێتەوە
+    if (state.currentPageId === 'categoriesPage') await renderSplitCategoriesPageUI();
 
     if (sessionStorage.getItem('isAdmin') === 'true' && window.AdminLogic) {
          window.AdminLogic.renderAdminAnnouncementsList?.();
@@ -1556,13 +1651,11 @@ window.addEventListener('popstate', async (event) => {
 
     if (popState) {
         if (popState.type === 'page') {
-            // [ 🛠️ Updated ] - Don't force scroll to top when going back in history
             showPage(popState.id, popState.title, false); 
 
             if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
                 await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
             }
-            // [ 💡 نوێ ] - Handled Product Detail Page
             if (popState.id === 'productDetailPage' && popState.productId) {
                  setTimeout(() => {
                     showProductDetailsUI({id: popState.productId}, true);
@@ -1571,16 +1664,19 @@ window.addEventListener('popstate', async (event) => {
             if (popState.id === 'chatPage') {
                 openChatPage();
             }
+            // [نوێ]
+            if (popState.id === 'categoriesPage') {
+                renderSplitCategoriesPageUI();
+            }
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             openPopup(popState.id, popState.type, false);
         
         } else { 
-            showPage('mainPage', '', false); // Don't scroll top on back to home
+            showPage('mainPage', '', false); 
             
             const stateToApply = popState || { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
             applyFilterStateCore(stateToApply); 
 
-            // [ 🛠️ چاکسازی سەرەکی ]
             const prodContainer = document.getElementById('productsContainer');
             const homeContainer = document.getElementById('homePageSectionsContainer');
             const catContainer = document.getElementById('categoryLayoutContainer');
@@ -1626,7 +1722,6 @@ window.addEventListener('popstate', async (event) => {
             }
 
             if (!state.pendingFilterNav) { 
-                // [ 💡 چاککرا ] - گەڕاندنەوەی شوێنی Scroll
                 if (typeof stateToApply.scroll === 'number') {
                     setTimeout(() => {
                          const homePage = document.getElementById('mainPage');
@@ -1662,7 +1757,6 @@ window.addEventListener('popstate', async (event) => {
 
 async function initializeUI() {
     await initCore(); 
-    // [ 💡 چاککرا ] - ناچالاککردنی خۆکارانەی وێبگەڕ بۆ ئەوەی ئێمە کۆنترۆڵی بکەین
     if ('scrollRestoration' in history) {
         history.scrollRestoration = 'manual';
     }
@@ -1710,12 +1804,18 @@ async function handleInitialPageLoadUI() {
     const isSettings = hash === 'settingsPage';
     const isSubcategoryDetail = hash.startsWith('subcategory_');
     const isChat = hash === 'chat'; 
-    const isAdminChat = hash === 'admin-chats'; 
+    const isAdminChat = hash === 'admin-chats';
+    const isCategoriesPage = hash === 'categories'; // [نوێ]
     const isProductDetail = params.get('product');
 
     if (isSettings) {
          history.replaceState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', `#${hash}`);
          showPage('settingsPage', t('settings_title'));
+    } else if (isCategoriesPage) {
+         // [نوێ]
+         history.replaceState({ type: 'page', id: 'categoriesPage', title: t('nav_categories') }, '', `#categories`);
+         showPage('categoriesPage', t('nav_categories'));
+         renderSplitCategoriesPageUI();
     } else if (isChat) { 
          history.replaceState({ type: 'page', id: 'chatPage', title: t('chat_title') }, '', `#chat`);
          showPage('chatPage', t('chat_title'));
@@ -1731,7 +1831,6 @@ async function handleInitialPageLoadUI() {
          const mainCatId = ids[1];
          const subCatId = ids[2];
          if (state.categories.length > 0) { 
-             // [ 💡 Fix ] Pass true for fromHistory to avoid pushing, but rely on internal repair logic
               await showSubcategoryDetailPageUI(mainCatId, subCatId, true); 
          } else {
              console.warn("Categories not ready on initial load, showing main page instead of detail.");
@@ -1739,13 +1838,11 @@ async function handleInitialPageLoadUI() {
              await updateProductViewUI(true, true); 
          }
     } else if (isProductDetail) {
-        // [ 💡 نوێ ] - Initial Load for Product Detail Page
         const productId = isProductDetail;
         if (productId) {
-            showPage('productDetailPage'); // Show empty page first to reduce flicker
+            showPage('productDetailPage'); 
             const product = await fetchProductById(productId);
             if (product) {
-                // [ 💡 Fix ] Pass true for fromHistory to handle state repair internally
                 showProductDetailsUI(product, true);
             } else {
                  showPage('mainPage');

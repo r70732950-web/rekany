@@ -24,6 +24,7 @@
 </head>
 <body>
     <script>
+      // Check for chat hash to hide header/nav immediately to prevent flicker
       (function() {
         try {
             var hash = window.location.hash.trim();
@@ -33,6 +34,7 @@
         } catch(e) { }
       })();
     </script>
+
     <div class="app-container">
         <header class="app-header">
             <div class="main-header-content">
@@ -202,7 +204,7 @@
                             </button>
                         </div>
                         <div class="form-group">
-                            <label for="profilePhone" data-translate-key="profile_phone">ژمارەی تەلەfۆن:</label>
+                            <label for="profilePhone" data-translate-key="profile_phone">ژمارەی تەلەفۆن:</label>
                             <input type="tel" id="profilePhone" placeholder="07XX XXX XXXX" required>
                         </div>
                         <button type="submit" data-translate-key="save_button">پاشەکەوتکردنی زانیاری گەیاندن</button>
@@ -525,7 +527,7 @@
                          <div class="form-group">
                              <label>جۆری لاوەکی هەڵبژێرە:</label>
                              <select id="parentSubcategorySelectForSubSub" required>
-                                 <option value="" disabled selected>-- چاوەڕێی هەڵbژاردنی جۆری سەرەki بە --</option>
+                                 <option value="" disabled selected>-- چاوەڕێی هەڵبژاردنی جۆری سەرەki بە --</option>
                              </select>
                          </div>
                          <div class="form-group">
@@ -1008,7 +1010,21 @@
                      <div id="announcementsListContainer"></div>
                  </div>
              </div>
-        </div> <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
+        </div>
+
+        <div class="page page-hidden" id="categoriesPage">
+            <div class="split-view-container">
+                <div class="split-sidebar" id="splitSidebar">
+                    </div>
+                <div class="split-content" id="splitContent">
+                    <div style="text-align: center; margin-top: 50px; color: var(--dark-gray);">
+                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="add-product-btn" id="addProductBtn"><i class="fas fa-plus"></i></div>
 
         <div id="addHomeSectionModal" class="modal">
             <div class="modal-content">
@@ -1218,7 +1234,9 @@
                  <span data-translate-key="nav_settings">ڕێکخستن</span>
              </button>
         </div>
-    </div> <div id="update-notification" class="update-notification">
+    </div> 
+    
+    <div id="update-notification" class="update-notification">
         <span>ڤێرژنێکی نوێ بەردەستە!</span>
         <button id="update-now-btn" class="update-now-btn">نوێی بکەرەوە</button>
     </div>
