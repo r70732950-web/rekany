@@ -2107,18 +2107,46 @@ input:checked + .slider:before {
     margin-top: 20px; 
 }
 
+/* --- Promo Grid (4 Images) Fix --- */
+
 .promo-grid-section {
-    padding: 10px 12px;
-    background-color: var(--section-bg);
-    margin-bottom: 16px;
+    padding: 0 12px 15px 12px; /* ڕێکخستنی بۆشاییەکان وەک ئەوانی تر */
+    background-color: transparent;
+    margin: 0;
+    border: none;
+    box-shadow: none;
 }
 
 .promo-grid-container {
     display: grid;
-    grid-template-columns: 1fr 1fr; 
-    gap: 8px;
+    grid-template-columns: repeat(2, 1fr); /* بە وردی دەکاتە دوو ستوون */
+    gap: 8px; /* بۆشایی نێوان وێنەکان */
     width: 100%;
+    box-sizing: border-box;
 }
 
 .promo-grid-card {
     position: relative;
+    width: 100%;
+    padding-top: 100%; /* ئەمە وادەکات هەمیشە چوارگۆشە بێت (Height = Width) */
+    border-radius: 12px;
+    overflow: hidden; /* ئەمە زۆر گرنگە: ناهێڵێت وێنەکە لە چوارچێوە دەرچێت */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    background-color: #fff; /* ئەگەر وێنەکە دواکەوت، با پاشبنەمای سپی بێت */
+    cursor: pointer;
+}
+
+.promo-grid-card img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* وێنەکە چوارچێوەکە پڕ دەکاتەوە بەبێ تێکچوون */
+    transition: transform 0.3s ease;
+    display: block;
+}
+
+.promo-grid-card:hover img {
+    transform: scale(1.05);
+}
