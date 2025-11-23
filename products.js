@@ -220,8 +220,8 @@ function renderSpecificationsUI(product) {
 
     if (rowsHTML) {
         table.innerHTML = rowsHTML;
-        // دانانی خشتەکە لە دوای وەسفی کاڵاکە
-        descriptionEl.parentNode.insertBefore(table, descriptionEl.nextSibling);
+        // [چاکسازی] دانانی خشتەکە لە سەرووی وەسفی کاڵاکە (Before Description)
+        descriptionEl.parentNode.insertBefore(table, descriptionEl);
     }
 }
 

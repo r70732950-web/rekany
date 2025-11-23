@@ -2314,3 +2314,32 @@ input:checked + .slider:before {
     font-weight: bold;
     width: 60%;
 }
+/* ستایلی تایبەت بۆ ئەوەی دوگمەکە لە خوارەوە جێگیر بێت */
+.fixed-product-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: white;
+    padding: 10px 15px;
+    /* بۆ ئەوەی لە ئایفۆن نەچێتە ژێر هێڵی خوارەوە */
+    padding-bottom: calc(10px + env(safe-area-inset-bottom)); 
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
+    z-index: 900; /* با لە سەرووی هەموو شتێکەوە بێت */
+    border-top: 1px solid var(--medium-gray);
+}
+
+/* کاتێک لەم پەڕەیەیت، با scroll کار بکات بەڵام دوگمەکە جێگیر بێت */
+#productDetailPage {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden; /* گرنگە */
+}
+
+.product-detail-content {
+    flex: 1;
+    overflow-y: auto; /* تەنها ناوەڕۆک سکڕۆڵ بێت */
+    padding-bottom: 20px;
+}
+
