@@ -115,7 +115,12 @@ export function showPage(pageId, pageTitle = '', scrollToTop = true) {
 
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) {
-        bottomNav.style.display = (pageId === 'chatPage') ? 'none' : 'flex';
+        // [چاکسازی] لیستی خوارەوە دەشارینەوە هەم لە چات و هەم لە پەڕەی کاڵا
+        if (pageId === 'chatPage' || pageId === 'productDetailPage') {
+            bottomNav.style.display = 'none';
+        } else {
+            bottomNav.style.display = 'flex';
+        }
     }
 
     if (pageId !== 'mainPage' && scrollToTop) {
