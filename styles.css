@@ -132,42 +132,36 @@ html.chat-active .bottom-nav {
     padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
 
-/* --- [Fixed] Product Detail Page Layout --- */
+/* --- Product Detail Page Layout --- */
 #productDetailPage {
     display: flex;
     flex-direction: column;
     background-color: var(--section-bg);
     height: 100vh;
-    overflow: hidden; /* Disable main scroll */
-    padding-top: 0 !important; /* Override generic padding */
+    overflow: hidden; 
+    padding-top: 0 !important; 
     padding-bottom: 0 !important;
 }
 
 .product-detail-content {
     flex: 1;
-    overflow-y: auto; /* Internal scroll */
+    overflow-y: auto; 
     overflow-x: hidden;
-    padding: 80px 15px 20px 15px; /* Add top padding for header */
+    padding: 80px 15px 20px 15px; 
     -webkit-overflow-scrolling: touch;
 }
 
-/* --- [Fixed] Sticky Footer Button --- */
+/* --- Sticky Footer Button --- */
 .fixed-product-footer {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     background-color: white;
-    
-    /* Increased padding to avoid overlap with home indicator */
     padding: 12px 15px;
     padding-bottom: calc(30px + env(safe-area-inset-bottom)); 
-    
     box-shadow: 0 -4px 15px rgba(0,0,0,0.1);
-    
-    /* High z-index to stay on top of everything */
     z-index: 2000; 
-    
     border-top: 1px solid var(--medium-gray);
 }
 
@@ -2136,7 +2130,7 @@ input:checked + .slider:before {
 /* --- Promo Grid (4 Images) Fix --- */
 
 .promo-grid-section {
-    padding: 0 12px 15px 12px; /* ڕێکخستنی بۆشاییەکان وەک ئەوانی تر */
+    padding: 0 12px 15px 12px; 
     background-color: transparent;
     margin: 0;
     border: none;
@@ -2145,8 +2139,8 @@ input:checked + .slider:before {
 
 .promo-grid-container {
     display: grid;
-    grid-template-columns: repeat(2, 1fr); /* بە وردی دەکاتە دوو ستوون */
-    gap: 8px; /* بۆشایی نێوان وێنەکان */
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 8px; 
     width: 100%;
     box-sizing: border-box;
 }
@@ -2154,11 +2148,11 @@ input:checked + .slider:before {
 .promo-grid-card {
     position: relative;
     width: 100%;
-    padding-top: 100%; /* ئەمە وادەکات هەمیشە چوارگۆشە بێت (Height = Width) */
+    padding-top: 100%; 
     border-radius: 12px;
-    overflow: hidden; /* ئەمە زۆر گرنگە: ناهێڵێت وێنەکە لە چوارچێوە دەرچێت */
+    overflow: hidden; 
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    background-color: #fff; /* ئەگەر وێنەکە دواکەوت، با پاشبنەمای سپی بێت */
+    background-color: #fff; 
     cursor: pointer;
 }
 
@@ -2168,7 +2162,7 @@ input:checked + .slider:before {
     left: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover; /* وێنەکە چوارچێوەکە پڕ دەکاتەوە بەبێ تێکچوون */
+    object-fit: cover; 
     transition: transform 0.3s ease;
     display: block;
 }
@@ -2179,10 +2173,10 @@ input:checked + .slider:before {
 
 /* --- Split View Categories Styles --- */
 #categoriesPage {
-    padding-top: 60px !important; /* Override standard page padding */
+    padding-top: 60px !important; 
     padding-bottom: calc(65px + env(safe-area-inset-bottom)) !important;
     background-color: #fff;
-    overflow: hidden; /* Disable page scroll, handle in split view */
+    overflow: hidden; 
 }
 
 .split-view-container {
@@ -2195,11 +2189,10 @@ input:checked + .slider:before {
 .split-sidebar {
     width: 95px;
     background-color: #f7f7f9;
-    border-left: 1px solid var(--medium-gray); /* RTL border */
+    border-left: 1px solid var(--medium-gray); 
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    /* Hide scrollbar */
     scrollbar-width: none; 
 }
 .split-sidebar::-webkit-scrollbar { display: none; }
@@ -2209,7 +2202,7 @@ input:checked + .slider:before {
     text-align: center;
     cursor: pointer;
     border-bottom: 1px solid transparent;
-    border-left: 4px solid transparent; /* RTL selection indicator */
+    border-left: 4px solid transparent; 
     transition: all 0.2s;
     display: flex;
     flex-direction: column;
@@ -2339,4 +2332,17 @@ input:checked + .slider:before {
     color: var(--text-color);
     font-weight: bold;
     width: 60%;
+}
+
+/* --- Image Protection Rules --- */
+/* ئەم کۆدانە زۆر گرنگن بۆ ڕێگریکردن لە سەیڤکردنی وێنەکان */
+img {
+    -webkit-touch-callout: none !important; /* Prevent iOS touch menu */
+    -webkit-user-select: none !important;   /* Prevent selection */
+    -khtml-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-user-drag: none !important;     /* Prevent dragging */
+    pointer-events: auto;                   /* Allow clicks but prevent default actions */
 }

@@ -115,7 +115,6 @@ export function showPage(pageId, pageTitle = '', scrollToTop = true) {
 
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) {
-        // [چاکسازی] لیستی خوارەوە دەشارینەوە هەم لە چات و هەم لە پەڕەی کاڵا
         if (pageId === 'chatPage' || pageId === 'productDetailPage') {
             bottomNav.style.display = 'none';
         } else {
@@ -127,12 +126,10 @@ export function showPage(pageId, pageTitle = '', scrollToTop = true) {
          requestAnimationFrame(() => { 
              const activePage = document.getElementById(pageId);
              if(activePage) {
-                 // [Fix Scroll] ئەگەر پەڕەکە بەشی ناوەکی هەبوو (وەک Product Detail)، ئەوەیان سفر دەکەینەوە
                  const internalScroll = activePage.querySelector('.product-detail-content');
                  if (internalScroll) {
                      internalScroll.scrollTo({ top: 0, behavior: 'instant' });
                  }
-                 // هێشتا پەڕە سەرەکییەکەش سفر دەکەینەوە بۆ دڵنیایی
                  activePage.scrollTo({ top: 0, behavior: 'instant' });
              }
          });
@@ -233,9 +230,8 @@ function updateActiveNav(activeBtnId) {
     }
 }
 
-// --- [چاککراوە] Subcategory Detail Logic ---
+// --- Subcategory Detail Logic ---
 
-// ڕەندەرکردنی جۆرە لاوەکییە لاوەکییەکان
 async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
      const container = document.getElementById('subSubCategoryContainerOnDetailPage');
      container.innerHTML = ''; 
@@ -249,7 +245,6 @@ async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
 
      container.style.display = 'flex';
 
-     // دوگمەی "هەموو"
      const allBtn = document.createElement('button');
      allBtn.className = `subcategory-btn active`; 
      allBtn.dataset.id = 'all';
@@ -263,7 +258,6 @@ async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
      };
      container.appendChild(allBtn);
 
-     // دروستکردنی دوگمەی لاوەکی لاوەکی
      subSubcategoriesData.forEach(subSubcat => {
           const btn = document.createElement('button');
           btn.className = `subcategory-btn`;
@@ -283,7 +277,6 @@ async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
      });
 }
 
-// ڕەندەرکردنی کاڵاکان لە پەڕەی وردەکاری جۆر
 async function renderProductsOnDetailPageUI(subCatId, subSubCatId = 'all', searchTerm = '') {
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const loader = document.getElementById('detailPageLoader');
@@ -332,7 +325,6 @@ async function renderProductsOnDetailPageUI(subCatId, subSubCatId = 'all', searc
      }
 }
 
-// [چاککراوە] کردنەوەی پەڕەی وردەکاری جۆر
 export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHistory = false) { 
     let subCatName = 'Details'; 
     try {
@@ -346,7 +338,6 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
 
     if (!fromHistory) {
          saveCurrentScrollPositionCore(); 
-         // زیادکردنی بۆ History
          history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
     } else {
         if (!history.state || history.state.id !== 'subcategoryDetailPage') {
@@ -356,12 +347,9 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
 
     const page = document.getElementById('subcategoryDetailPage');
     
-    // [چاکسازی] پشکنین ئایا ئەم پەڕەیە پێشتر بارکراوە؟
     const isSamePage = page.dataset.loadedMain === mainCatId && page.dataset.loadedSub === subCatId;
 
     if (fromHistory && isSamePage) {
-        // ئەگەر هەمان پەڕە بوو، تەنها نیشانی دەدەین و Scroll دەگەڕێنینەوە
-        // false واتە Scroll مەکە بۆ سەرەوە
         showPage('subcategoryDetailPage', subCatName, false); 
         
         if (history.state && history.state.scroll) {
@@ -369,10 +357,9 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
                 page.scrollTo({ top: history.state.scroll, behavior: 'instant' });
             }, 10);
         }
-        return; // ناهێڵین دووبارە کاڵاکان بارببنەوە
+        return; 
     }
 
-    // ئەگەر پەڕەیەکی نوێ بوو، داتای نوێ تۆمار دەکەین
     page.dataset.loadedMain = mainCatId;
     page.dataset.loadedSub = subCatId;
 
@@ -390,10 +377,7 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     document.getElementById('subpageSearchInput').value = '';
     document.getElementById('subpageClearSearchBtn').style.display = 'none';
 
-    // [چاکسازی] هێنانی بەشە لاوەکییە لاوەکییەکان
     await renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId); 
-    
-    // هێنانی کاڵاکان
     await renderProductsOnDetailPageUI(subCatId, 'all', ''); 
 
     loader.style.display = 'none'; 
@@ -928,6 +912,21 @@ function setupUIEventListeners() {
     });
 
     setupGpsButtonUI();
+
+    // --- [NOVELTY] Image Protection (Prevent Save/Menu) ---
+    // ئەم بەشە نوێیە: ڕێگری دەکات لە کرانەوەی مێنیوی وێنەکان
+    document.addEventListener('contextmenu', (event) => {
+        if (event.target.tagName === 'IMG') {
+            event.preventDefault();
+        }
+    });
+    
+    // ڕێگری لە ڕاکێشان (Drag)
+    document.addEventListener('dragstart', (event) => {
+        if (event.target.tagName === 'IMG') {
+            event.preventDefault();
+        }
+    });
 }
 
 async function handleSetLanguage(lang) {
