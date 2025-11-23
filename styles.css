@@ -127,9 +127,42 @@ html.chat-active .bottom-nav {
     z-index: 1;
 }
 
-.main-content, #subcategoryDetailPage, .settings-page, #productDetailPage {
+.main-content, #subcategoryDetailPage, .settings-page {
     padding-top: 80px;
     padding-bottom: calc(85px + env(safe-area-inset-bottom));
+}
+
+/* --- [Changed] Product Detail Page Layout --- */
+#productDetailPage {
+    display: flex;
+    flex-direction: column;
+    background-color: var(--section-bg);
+    height: 100vh;
+    overflow: hidden; /* Disable main scroll */
+    padding-top: 0 !important; /* Override generic padding */
+    padding-bottom: 0 !important;
+}
+
+.product-detail-content {
+    flex: 1;
+    overflow-y: auto; /* Internal scroll */
+    overflow-x: hidden;
+    padding: 80px 15px 20px 15px; /* Add top padding for header */
+    -webkit-overflow-scrolling: touch;
+}
+
+/* --- [New] Fixed Footer for Add to Cart --- */
+.fixed-product-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: white;
+    padding: 10px 15px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
+    z-index: 900;
+    border-top: 1px solid var(--medium-gray);
 }
 
 #chatPage {
@@ -617,19 +650,6 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 .sheet-category-btn:hover { background-color: var(--medium-gray); }
 .sheet-category-btn.active { background-color: var(--primary-color); color: white; font-weight: bold; border-color: var(--primary-color); }
 .sheet-category-btn.active i { color: white !important; }
-
-#productDetailPage {
-    display: flex;
-    flex-direction: column;
-    background-color: var(--section-bg);
-    height: 100vh;
-    overflow-y: auto;
-    overflow-x: hidden;
-}
-
-.product-detail-content {
-    padding: 0 15px 20px 15px;
-}
 
 .product-slider-wrapper {
     position: relative;
@@ -2314,32 +2334,3 @@ input:checked + .slider:before {
     font-weight: bold;
     width: 60%;
 }
-/* ستایلی تایبەت بۆ ئەوەی دوگمەکە لە خوارەوە جێگیر بێت */
-.fixed-product-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: white;
-    padding: 10px 15px;
-    /* بۆ ئەوەی لە ئایفۆن نەچێتە ژێر هێڵی خوارەوە */
-    padding-bottom: calc(10px + env(safe-area-inset-bottom)); 
-    box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
-    z-index: 900; /* با لە سەرووی هەموو شتێکەوە بێت */
-    border-top: 1px solid var(--medium-gray);
-}
-
-/* کاتێک لەم پەڕەیەیت، با scroll کار بکات بەڵام دوگمەکە جێگیر بێت */
-#productDetailPage {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    overflow: hidden; /* گرنگە */
-}
-
-.product-detail-content {
-    flex: 1;
-    overflow-y: auto; /* تەنها ناوەڕۆک سکڕۆڵ بێت */
-    padding-bottom: 20px;
-}
-
