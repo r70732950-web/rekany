@@ -132,7 +132,7 @@ html.chat-active .bottom-nav {
     padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
 
-/* --- [Changed] Product Detail Page Layout --- */
+/* --- [Fixed] Product Detail Page Layout --- */
 #productDetailPage {
     display: flex;
     flex-direction: column;
@@ -151,17 +151,23 @@ html.chat-active .bottom-nav {
     -webkit-overflow-scrolling: touch;
 }
 
-/* --- [New] Fixed Footer for Add to Cart --- */
+/* --- [Fixed] Sticky Footer Button --- */
 .fixed-product-footer {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     background-color: white;
-    padding: 10px 15px;
-    padding-bottom: calc(10px + env(safe-area-inset-bottom));
-    box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
-    z-index: 900;
+    
+    /* Increased padding to avoid overlap with home indicator */
+    padding: 12px 15px;
+    padding-bottom: calc(30px + env(safe-area-inset-bottom)); 
+    
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.1);
+    
+    /* High z-index to stay on top of everything */
+    z-index: 2000; 
+    
     border-top: 1px solid var(--medium-gray);
 }
 
