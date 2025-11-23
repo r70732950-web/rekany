@@ -129,9 +129,11 @@ window.AdminLogic = {
         
         this.variationImageData = {};
         document.getElementById('variationsContainer').innerHTML = '';
+        document.getElementById('specificationsContainer').innerHTML = ''; // Clear existing specs
         
         this.updateAdminCategoryDropdowns(); 
 
+        // Populate Basic Fields
         if (product.name && typeof product.name === 'object') {
             document.getElementById('productNameKuSorani').value = product.name.ku_sorani || '';
             document.getElementById('productNameKuBadini').value = product.name.ku_badini || '';
@@ -170,6 +172,14 @@ window.AdminLogic = {
             document.getElementById('shippingInfoAr').value = '';
         }
 
+        // Populate Specifications [NEW]
+        if (product.specifications && Array.isArray(product.specifications)) {
+            product.specifications.forEach(spec => {
+                this.createSpecRowUI(spec);
+            });
+        }
+
+        // Populate Variations
         if (product.variations && Array.isArray(product.variations)) {
             product.variations.forEach(lvl1Var => {
                 this.variationImageData[lvl1Var.id] = Array(10).fill("").map((_, i) => (lvl1Var.imageUrls && lvl1Var.imageUrls[i]) || "");
@@ -193,6 +203,76 @@ window.AdminLogic = {
         } catch (error) {
             showNotification(t('product_delete_error'), 'error');
         }
+    },
+
+    // --- Specification Helpers [NEW] ---
+    createSpecRowUI: function(data = null) {
+        const container = document.getElementById('specificationsContainer');
+        const row = document.createElement('div');
+        row.className = 'spec-row';
+        
+        row.innerHTML = `
+            <div class="spec-row-header">
+                <strong>تایبەتمەندی</strong>
+                <button type="button" class="delete-btn delete-spec-btn"><i class="fas fa-trash"></i></button>
+            </div>
+            <div class="spec-inputs-grid">
+                <div class="spec-input-group">
+                    <label>ناڤ (سۆرانی)</label>
+                    <input type="text" class="spec-label-ku-sorani" value="${data?.label?.ku_sorani || ''}" placeholder="مۆدێل">
+                </div>
+                <div class="spec-input-group">
+                    <label>ناڤەڕۆک (سۆرانی)</label>
+                    <input type="text" class="spec-value-ku-sorani" value="${data?.value?.ku_sorani || ''}" placeholder="2025">
+                </div>
+                
+                <div class="spec-input-group">
+                    <label>ناڤ (بادینی)</label>
+                    <input type="text" class="spec-label-ku-badini" value="${data?.label?.ku_badini || ''}">
+                </div>
+                <div class="spec-input-group">
+                    <label>ناڤەڕۆک (بادینی)</label>
+                    <input type="text" class="spec-value-ku-badini" value="${data?.value?.ku_badini || ''}">
+                </div>
+
+                <div class="spec-input-group">
+                    <label>الاسم (عربي)</label>
+                    <input type="text" class="spec-label-ar" value="${data?.label?.ar || ''}" style="direction: rtl;">
+                </div>
+                <div class="spec-input-group">
+                    <label>المحتوى (عربي)</label>
+                    <input type="text" class="spec-value-ar" value="${data?.value?.ar || ''}" style="direction: rtl;">
+                </div>
+            </div>
+        `;
+        container.appendChild(row);
+    },
+
+    collectSpecificationsData: function() {
+        const specs = [];
+        const container = document.getElementById('specificationsContainer');
+        
+        container.querySelectorAll('.spec-row').forEach(row => {
+            const labelSorani = row.querySelector('.spec-label-ku-sorani').value.trim();
+            const valueSorani = row.querySelector('.spec-value-ku-sorani').value.trim();
+            
+            // تەنها ئەگەر سۆرانی پڕکرابێتەوە داتا وەردەگرین
+            if (labelSorani && valueSorani) {
+                specs.push({
+                    label: {
+                        ku_sorani: labelSorani,
+                        ku_badini: row.querySelector('.spec-label-ku-badini').value.trim() || labelSorani,
+                        ar: row.querySelector('.spec-label-ar').value.trim() || labelSorani
+                    },
+                    value: {
+                        ku_sorani: valueSorani,
+                        ku_badini: row.querySelector('.spec-value-ku-badini').value.trim() || valueSorani,
+                        ar: row.querySelector('.spec-value-ar').value.trim() || valueSorani
+                    }
+                });
+            }
+        });
+        return specs;
     },
 
     createProductImageInputs: function(isVariation, variationId = null, existingImageUrls = []) {
@@ -1710,6 +1790,7 @@ window.AdminLogic = {
             
             self.variationImageData = {};
             document.getElementById('variationsContainer').innerHTML = '';
+            document.getElementById('specificationsContainer').innerHTML = ''; // Clear specs
             
             self.currentImageUrls = Array(10).fill("");
             self.createProductImageInputs(false);
@@ -1750,6 +1831,15 @@ window.AdminLogic = {
                 self.handleImageRemove(slot);
             }
             
+            if (e.target.id === 'addSpecBtn') {
+                self.createSpecRowUI();
+            }
+
+            const deleteSpecBtn = e.target.closest('.delete-spec-btn');
+            if (deleteSpecBtn) {
+                deleteSpecBtn.closest('.spec-row').remove();
+            }
+
             if (e.target.id === 'addVariationLvl1Btn') {
                 const variationId = `var_${Date.now()}`;
                 self.variationImageData[variationId] = Array(10).fill("");
@@ -1807,6 +1897,7 @@ window.AdminLogic = {
             };
             
             const variationsData = self.collectVariationsData();
+            const specificationsData = self.collectSpecificationsData(); // [NEW]
 
             try {
                 const productData = {
@@ -1826,7 +1917,8 @@ window.AdminLogic = {
                         ku_badini: document.getElementById('shippingInfoKuBadini').value.trim(),
                         ar: document.getElementById('shippingInfoAr').value.trim()
                     },
-                    variations: variationsData 
+                    variations: variationsData,
+                    specifications: specificationsData // [NEW]
                 };
                 const editingId = getEditingProductId();
                 if (editingId) {
