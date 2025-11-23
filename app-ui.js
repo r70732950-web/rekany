@@ -126,7 +126,15 @@ export function showPage(pageId, pageTitle = '', scrollToTop = true) {
     if (pageId !== 'mainPage' && scrollToTop) {
          requestAnimationFrame(() => { 
              const activePage = document.getElementById(pageId);
-             if(activePage) activePage.scrollTo({ top: 0, behavior: 'instant' });
+             if(activePage) {
+                 // [Fix Scroll] ئەگەر پەڕەکە بەشی ناوەکی هەبوو (وەک Product Detail)، ئەوەیان سفر دەکەینەوە
+                 const internalScroll = activePage.querySelector('.product-detail-content');
+                 if (internalScroll) {
+                     internalScroll.scrollTo({ top: 0, behavior: 'instant' });
+                 }
+                 // هێشتا پەڕە سەرەکییەکەش سفر دەکەینەوە بۆ دڵنیایی
+                 activePage.scrollTo({ top: 0, behavior: 'instant' });
+             }
          });
     }
 
