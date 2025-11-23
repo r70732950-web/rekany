@@ -1,5 +1,5 @@
 // sw.js
-// وەشانی: v14 (Çareserkirina Arişeya Cache.put)
+// وەشانی: v15 (Refactored: Added new modules)
 
 // 1. هێنانی کتێبخانەکانی فایەربەیس (Classic Mode)
 importScripts('https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js');
@@ -74,21 +74,24 @@ self.addEventListener('notificationclick', function(event) {
 // [ 💡 بەشی کاشکردن - نوێکراوە 💡 ]
 // -----------------------------------------------------------------
 
-// [ 💡 گۆڕانکاری ] : ناڤێ کاشێ هاتە گوهارتن بۆ وەشانا نوو
-const CACHE_NAME = 'maten-store-v14-swr-fix';
+// [ 💡 گۆڕانکاری ] : ناڤێ کاشێ هاتە گوهارتن بۆ وەشانا نوو (v15)
+const CACHE_NAME = 'maten-store-v15-refactor';
 
-// [ 💡 گۆڕانکاری ] : '/' هاتە لادان ژ لیستێ
+// [ 💡 گۆڕانکاری ] : فایلە نوێیەکان (categories, products, cart) زیادکران
 const APP_SHELL_URLS = [
-    '/index.html', // '/' لادان
+    '/index.html', 
     '/styles.css',
     '/app-setup.js',
     '/app-core.js',   
-    '/app-ui.js',     
+    '/app-ui.js',
+    '/categories.js', // نوێ
+    '/products.js',   // نوێ
+    '/cart.js',       // نوێ
     '/home.js',       
     '/chat.js',       
     '/admin.js',      
     '/manifest.json',
-    '/offline.html',  // لاپەڕا ئۆفلاین
+    '/offline.html',
     '/images/icons/icon-512x512.png' 
 ];
 

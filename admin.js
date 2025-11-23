@@ -30,8 +30,11 @@ window.AdminLogic = {
         this.renderSocialMediaLinks();
         this.renderContactMethodsAdmin();
         this.renderShortcutRowsAdminList();
+        
+        // بانگکردنی فەنکشنە نوێکراوەکان
         this.updateAdminCategoryDropdowns(); 
         this.updateShortcutCardCategoryDropdowns();
+        
         this.renderHomeLayoutAdmin();
         this.renderPromoGroupsAdminList();
         this.renderBrandGroupsAdminList();
@@ -111,6 +114,79 @@ window.AdminLogic = {
         }
     },
 
+    // --- [Fixed] Update Admin Category Dropdowns ---
+    updateAdminCategoryDropdowns: async function() {
+        let categories = getCategories();
+        
+        // ئەگەر جۆرەکان بار نەکرابوون (وەک کێشەکەی ڤیدیۆکە)، خۆمان باریان دەکەین
+        if (!categories || categories.length === 0) {
+            try {
+                const q = query(categoriesCollection, orderBy("order", "asc"));
+                const snapshot = await getDocs(q);
+                categories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // نوێکردنەوەی ستەیت بۆ ئەوەی شوێنەکانی تریش بیبینن
+                if (window.state) window.state.categories = categories;
+                
+            } catch (error) {
+                console.error("Error forcing category fetch in admin:", error);
+            }
+        }
+
+        if (!categories || categories.length === 0) return; 
+        
+        const categoriesWithoutAll = categories.filter(cat => cat.id && cat.id !== 'all'); 
+        if (categoriesWithoutAll.length === 0) return; 
+
+        // لیستی هەموو ئەو dropdownـانەی پێویستە پڕ بکرێنەوە
+        const dropdowns = [
+            { id: 'productCategoryId', defaultText: '-- جۆرێ سەرەکی هەڵبژێرە --', required: true },
+            { id: 'parentCategorySelect', defaultText: '-- جۆرێک هەڵبژێرە --', required: true },
+            { id: 'parentMainCategorySelectForSubSub', defaultText: '-- جۆرێک هەڵبژێرە --', required: true },
+            { id: 'promoCardTargetCategory', defaultText: '-- جۆرێک هەڵبژێرە --', required: true },
+            { id: 'brandTargetMainCategory', defaultText: '-- هەموو جۆرەکان --', required: false },
+            { id: 'newSectionMainCategory', defaultText: '-- جۆرێک هەڵبژێرە --', required: true } // ئەمە بۆ Home Layout
+        ];
+
+        dropdowns.forEach(d => {
+            const select = document.getElementById(d.id);
+            if (select) {
+                const requiredAttrs = d.required ? 'disabled selected' : '';
+                const firstOptionHTML = `<option value="" ${requiredAttrs}>${d.defaultText}</option>`;
+                select.innerHTML = firstOptionHTML;
+                
+                categoriesWithoutAll.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = cat.name_ku_sorani || cat.name_ku_badini;
+                    select.appendChild(option);
+                });
+            }
+        });
+        
+        // هەروەها نوێکردنەوەی Shortcut Category
+        this.updateShortcutCardCategoryDropdowns(categoriesWithoutAll);
+    },
+
+    updateShortcutCardCategoryDropdowns: function(preloadedCategories = null) {
+        let categories = preloadedCategories || getCategories();
+        if (!categories || categories.length === 0) return; 
+        
+        const categoriesWithoutAll = categories.filter(cat => cat.id && cat.id !== 'all');
+        if (categoriesWithoutAll.length === 0) return;
+        
+        const mainSelect = document.getElementById('shortcutCardMainCategory');
+        if(mainSelect) {
+            mainSelect.innerHTML = '<option value="">-- هەموو کاڵاکان --</option>';
+            categoriesWithoutAll.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.id;
+                option.textContent = cat.name_ku_sorani;
+                mainSelect.appendChild(option);
+            });
+        }
+    },
+
     // --- Product Management ---
 
     editProduct: async function(productId) {
@@ -129,8 +205,10 @@ window.AdminLogic = {
         
         this.variationImageData = {};
         document.getElementById('variationsContainer').innerHTML = '';
+        document.getElementById('specificationsContainer').innerHTML = ''; 
         
-        this.updateAdminCategoryDropdowns(); 
+        // دڵنیابوونەوە لەوەی لیستەکان پڕن
+        await this.updateAdminCategoryDropdowns(); 
 
         if (product.name && typeof product.name === 'object') {
             document.getElementById('productNameKuSorani').value = product.name.ku_sorani || '';
@@ -170,6 +248,12 @@ window.AdminLogic = {
             document.getElementById('shippingInfoAr').value = '';
         }
 
+        if (product.specifications && Array.isArray(product.specifications)) {
+            product.specifications.forEach(spec => {
+                this.createSpecRowUI(spec);
+            });
+        }
+
         if (product.variations && Array.isArray(product.variations)) {
             product.variations.forEach(lvl1Var => {
                 this.variationImageData[lvl1Var.id] = Array(10).fill("").map((_, i) => (lvl1Var.imageUrls && lvl1Var.imageUrls[i]) || "");
@@ -193,6 +277,75 @@ window.AdminLogic = {
         } catch (error) {
             showNotification(t('product_delete_error'), 'error');
         }
+    },
+
+    // --- Specification Helpers ---
+    createSpecRowUI: function(data = null) {
+        const container = document.getElementById('specificationsContainer');
+        const row = document.createElement('div');
+        row.className = 'spec-row';
+        
+        row.innerHTML = `
+            <div class="spec-row-header">
+                <strong>تایبەتمەندی</strong>
+                <button type="button" class="delete-btn delete-spec-btn"><i class="fas fa-trash"></i></button>
+            </div>
+            <div class="spec-inputs-grid">
+                <div class="spec-input-group">
+                    <label>ناڤ (سۆرانی)</label>
+                    <input type="text" class="spec-label-ku-sorani" value="${data?.label?.ku_sorani || ''}" placeholder="مۆدێل">
+                </div>
+                <div class="spec-input-group">
+                    <label>ناڤەڕۆک (سۆرانی)</label>
+                    <input type="text" class="spec-value-ku-sorani" value="${data?.value?.ku_sorani || ''}" placeholder="2025">
+                </div>
+                
+                <div class="spec-input-group">
+                    <label>ناڤ (بادینی)</label>
+                    <input type="text" class="spec-label-ku-badini" value="${data?.label?.ku_badini || ''}">
+                </div>
+                <div class="spec-input-group">
+                    <label>ناڤەڕۆک (بادینی)</label>
+                    <input type="text" class="spec-value-ku-badini" value="${data?.value?.ku_badini || ''}">
+                </div>
+
+                <div class="spec-input-group">
+                    <label>الاسم (عربي)</label>
+                    <input type="text" class="spec-label-ar" value="${data?.label?.ar || ''}" style="direction: rtl;">
+                </div>
+                <div class="spec-input-group">
+                    <label>المحتوى (عربي)</label>
+                    <input type="text" class="spec-value-ar" value="${data?.value?.ar || ''}" style="direction: rtl;">
+                </div>
+            </div>
+        `;
+        container.appendChild(row);
+    },
+
+    collectSpecificationsData: function() {
+        const specs = [];
+        const container = document.getElementById('specificationsContainer');
+        
+        container.querySelectorAll('.spec-row').forEach(row => {
+            const labelSorani = row.querySelector('.spec-label-ku-sorani').value.trim();
+            const valueSorani = row.querySelector('.spec-value-ku-sorani').value.trim();
+            
+            if (labelSorani && valueSorani) {
+                specs.push({
+                    label: {
+                        ku_sorani: labelSorani,
+                        ku_badini: row.querySelector('.spec-label-ku-badini').value.trim() || labelSorani,
+                        ar: row.querySelector('.spec-label-ar').value.trim() || labelSorani
+                    },
+                    value: {
+                        ku_sorani: valueSorani,
+                        ku_badini: row.querySelector('.spec-value-ku-badini').value.trim() || valueSorani,
+                        ar: row.querySelector('.spec-value-ar').value.trim() || valueSorani
+                    }
+                });
+            }
+        });
+        return specs;
     },
 
     createProductImageInputs: function(isVariation, variationId = null, existingImageUrls = []) {
@@ -652,38 +805,6 @@ window.AdminLogic = {
             }
         }
     },
-    
-    updateAdminCategoryDropdowns: function() {
-        const categories = getCategories();
-        if (categories.length === 0) return; 
-        
-        const categoriesWithoutAll = categories.filter(cat => cat.id && cat.id !== 'all'); 
-        if (categoriesWithoutAll.length === 0) return; 
-
-        const dropdowns = [
-            { id: 'productCategoryId', defaultText: '-- جۆرێ سەرەکی هەڵبژێرە --', required: true },
-            { id: 'parentCategorySelect', defaultText: '-- جۆرێک هەڵبژێرە --', required: true },
-            { id: 'parentMainCategorySelectForSubSub', defaultText: '-- جۆرێک هەڵبژێرە --', required: true },
-            { id: 'promoCardTargetCategory', defaultText: '-- جۆرێک هەڵبژێرە --', required: true },
-            { id: 'brandTargetMainCategory', defaultText: '-- هەموو جۆرەکان --', required: false } 
-        ];
-
-        dropdowns.forEach(d => {
-            const select = document.getElementById(d.id);
-            if (select) {
-                const requiredAttrs = d.required ? 'disabled selected' : '';
-                const firstOptionHTML = `<option value="" ${requiredAttrs}>${d.defaultText}</option>`;
-                select.innerHTML = firstOptionHTML;
-                
-                categoriesWithoutAll.forEach(cat => {
-                    const option = document.createElement('option');
-                    option.value = cat.id;
-                    option.textContent = cat.name_ku_sorani || cat.name_ku_badini;
-                    select.appendChild(option);
-                });
-            }
-        });
-    },
 
     // --- Promo Group Management ---
 
@@ -1096,23 +1217,6 @@ window.AdminLogic = {
         }
     },
     
-    updateShortcutCardCategoryDropdowns: function() {
-        const categories = getCategories();
-        if (categories.length === 0) return; 
-        const categoriesWithoutAll = categories.filter(cat => cat.id && cat.id !== 'all');
-        if (categoriesWithoutAll.length === 0) return;
-        
-        const mainSelect = document.getElementById('shortcutCardMainCategory');
-        
-        mainSelect.innerHTML = '<option value="">-- هەموو کاڵاکان --</option>';
-        categoriesWithoutAll.forEach(cat => {
-            const option = document.createElement('option');
-            option.value = cat.id;
-            option.textContent = cat.name_ku_sorani;
-            mainSelect.appendChild(option);
-        });
-    },
-
     // --- Home Layout Management ---
 
     renderHomeLayoutAdmin: function() {
@@ -1650,10 +1754,11 @@ window.AdminLogic = {
             } else if (type === 'single_category_row') {
                 categoryContainer.style.display = 'block';
                 mainCatSelect.required = true;
-                mainCatSelect.innerHTML = '<option value="">-- جۆری سەرەکی هەڵbژێرە (پێویستە) --</option>';
-                getCategories().filter(c => c.id !== 'all').forEach(cat => {
-                    mainCatSelect.innerHTML += `<option value="${cat.id}">${cat.name_ku_sorani}</option>`;
-                });
+                
+                // Ensure dropdown is populated
+                if (mainCatSelect.options.length <= 1) {
+                     self.updateAdminCategoryDropdowns();
+                }
             }
         });
         
@@ -1710,6 +1815,7 @@ window.AdminLogic = {
             
             self.variationImageData = {};
             document.getElementById('variationsContainer').innerHTML = '';
+            document.getElementById('specificationsContainer').innerHTML = ''; // Clear specs
             
             self.currentImageUrls = Array(10).fill("");
             self.createProductImageInputs(false);
@@ -1718,6 +1824,10 @@ window.AdminLogic = {
             document.getElementById('subSubcategorySelectContainer').style.display = 'none';
             document.getElementById('formTitle').textContent = 'زیادکردنی کاڵای نوێ';
             document.getElementById('productForm').querySelector('button[type="submit"]').textContent = 'پاشەکەوتکردن';
+            
+            // Ensure dropdowns are populated when opening modal
+            self.updateAdminCategoryDropdowns();
+            
             openPopup('productFormModal', 'modal');
         };
 
@@ -1750,6 +1860,15 @@ window.AdminLogic = {
                 self.handleImageRemove(slot);
             }
             
+            if (e.target.id === 'addSpecBtn') {
+                self.createSpecRowUI();
+            }
+
+            const deleteSpecBtn = e.target.closest('.delete-spec-btn');
+            if (deleteSpecBtn) {
+                deleteSpecBtn.closest('.spec-row').remove();
+            }
+
             if (e.target.id === 'addVariationLvl1Btn') {
                 const variationId = `var_${Date.now()}`;
                 self.variationImageData[variationId] = Array(10).fill("");
@@ -1807,6 +1926,7 @@ window.AdminLogic = {
             };
             
             const variationsData = self.collectVariationsData();
+            const specificationsData = self.collectSpecificationsData(); // [NEW]
 
             try {
                 const productData = {
@@ -1826,7 +1946,8 @@ window.AdminLogic = {
                         ku_badini: document.getElementById('shippingInfoKuBadini').value.trim(),
                         ar: document.getElementById('shippingInfoAr').value.trim()
                     },
-                    variations: variationsData 
+                    variations: variationsData,
+                    specifications: specificationsData // [NEW]
                 };
                 const editingId = getEditingProductId();
                 if (editingId) {
@@ -1870,6 +1991,8 @@ window.AdminLogic = {
                     showNotification('جۆری سەرەki بە سەرکەوتوویی زیادکرا', 'success');
                     addCategoryForm.reset();
                     clearProductCache();
+                    // Update dropdowns after adding
+                    self.updateAdminCategoryDropdowns();
                 } catch (error) {
                     console.error("Error adding main category: ", error);
                     showNotification(t('error_generic'), 'error');
@@ -2022,6 +2145,7 @@ window.AdminLogic = {
                     showNotification('گۆڕانکارییەکان پاشەکەوت کران', 'success');
                     closeCurrentPopup();
                     clearProductCache();
+                    self.updateAdminCategoryDropdowns();
                 } catch (error) {
                     console.error("Error updating category: ", error);
                     showNotification('هەڵەیەک ڕوویدا', 'error');

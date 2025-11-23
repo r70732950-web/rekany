@@ -10,9 +10,17 @@ import {
     db, doc, getDoc 
 } from './app-core.js';
 
+// [ گۆڕانکاری لێرە کرا ]
+// ئەو فەنکشنانەی پەیوەستن بە UI لە app-ui.js دەهێنین
 import {
-    renderSkeletonLoader, createProductCardElementUI, setupScrollAnimations, showSubcategoryDetailPageUI
+    renderSkeletonLoader, showSubcategoryDetailPageUI
 } from './app-ui.js';
+
+// [ گۆڕانکاری لێرە کرا ]
+// ئەو فەنکشنانەی گواسترانەوە بۆ products.js لەوێوە دەهێنین
+import {
+    createProductCardElementUI, setupScrollAnimations
+} from './products.js';
 
 function resetScrollPosition(containerElement) {
     if (containerElement) {
@@ -415,7 +423,6 @@ export async function renderPageContentUI(layoutSections, targetContainerElement
                      break;
                  case 'single_shortcut_row':
                      if (section.rowId) {
-                          // [ 💡 Fix ] - Pass 'section.name' here so we can prioritize the Admin's label
                           sectionElement = await createSingleShortcutRowElement(section.rowId, section.name); 
                          } else console.warn("Shortcut row missing rowId:", section);
                      break;
@@ -623,15 +630,12 @@ async function createSingleShortcutRowElement(rowId, sectionNameObj) {
      const cards = await fetchShortcutRowCards(rowId);
      if (!cards || cards.length === 0) return null;
 
-     // === دیاریکردنی جۆری دیزاین ===
      const designType = rowData.designType || 'medium';
      const designClass = designType === 'small' ? 'small-style' : '';
-     // ==============================
 
      const sectionContainer = document.createElement('div');
      sectionContainer.className = 'shortcut-cards-section';
      
-     // [ 💡 FIX ] - Prioritize rowData.title first (from Shortcut Row), then sectionNameObj (from Admin Layout)
      const rowTitle = (rowData.title && (rowData.title[state.currentLanguage] || rowData.title.ku_sorani)) ||
                       (sectionNameObj && (sectionNameObj[state.currentLanguage] || sectionNameObj.ku_sorani));
 
@@ -644,17 +648,15 @@ async function createSingleShortcutRowElement(rowId, sectionNameObj) {
      cards.forEach(cardData => {
          const cardName = cardData.name[state.currentLanguage] || cardData.name.ku_sorani;
          
-         // === هەڵبژاردنی وێنەی ڕاست بەپێی زمان ===
          let displayImage = "";
          if (cardData.imageUrls) {
              displayImage = cardData.imageUrls[state.currentLanguage] || cardData.imageUrls.ku_sorani;
          } else {
              displayImage = cardData.imageUrl;
          }
-         // ========================================
 
          const item = document.createElement('div');
-         item.className = `shortcut-card ${designClass}`; // کلاسی دیزاین لێرە زیاد دەبێت
+         item.className = `shortcut-card ${designClass}`; 
          
          item.innerHTML = `
              <img src="${displayImage}" alt="${cardName}" class="shortcut-card-image" loading="lazy">
