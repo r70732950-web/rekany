@@ -129,11 +129,10 @@ window.AdminLogic = {
         
         this.variationImageData = {};
         document.getElementById('variationsContainer').innerHTML = '';
-        document.getElementById('specificationsContainer').innerHTML = ''; // Clear existing specs
+        document.getElementById('specificationsContainer').innerHTML = ''; 
         
         this.updateAdminCategoryDropdowns(); 
 
-        // Populate Basic Fields
         if (product.name && typeof product.name === 'object') {
             document.getElementById('productNameKuSorani').value = product.name.ku_sorani || '';
             document.getElementById('productNameKuBadini').value = product.name.ku_badini || '';
@@ -172,14 +171,12 @@ window.AdminLogic = {
             document.getElementById('shippingInfoAr').value = '';
         }
 
-        // Populate Specifications [NEW]
         if (product.specifications && Array.isArray(product.specifications)) {
             product.specifications.forEach(spec => {
                 this.createSpecRowUI(spec);
             });
         }
 
-        // Populate Variations
         if (product.variations && Array.isArray(product.variations)) {
             product.variations.forEach(lvl1Var => {
                 this.variationImageData[lvl1Var.id] = Array(10).fill("").map((_, i) => (lvl1Var.imageUrls && lvl1Var.imageUrls[i]) || "");
@@ -205,7 +202,6 @@ window.AdminLogic = {
         }
     },
 
-    // --- Specification Helpers [NEW] ---
     createSpecRowUI: function(data = null) {
         const container = document.getElementById('specificationsContainer');
         const row = document.createElement('div');
@@ -256,7 +252,6 @@ window.AdminLogic = {
             const labelSorani = row.querySelector('.spec-label-ku-sorani').value.trim();
             const valueSorani = row.querySelector('.spec-value-ku-sorani').value.trim();
             
-            // تەنها ئەگەر سۆرانی پڕکرابێتەوە داتا وەردەگرین
             if (labelSorani && valueSorani) {
                 specs.push({
                     label: {
@@ -1794,6 +1789,8 @@ window.AdminLogic = {
             
             self.currentImageUrls = Array(10).fill("");
             self.createProductImageInputs(false);
+            
+            self.updateAdminCategoryDropdowns();
             
             document.getElementById('subcategorySelectContainer').style.display = 'none';
             document.getElementById('subSubcategorySelectContainer').style.display = 'none';
