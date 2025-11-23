@@ -1,11 +1,10 @@
 // sw.js
-// وەشانی: v15 (Refactored: Added new modules)
+// Version: v18 (Complete & Fixed)
 
-// 1. هێنانی کتێبخانەکانی فایەربەیس (Classic Mode)
 importScripts('https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging-compat.js');
 
-// 2. ڕێکخستنی فایەربەیس
+// 1. ڕێکخستنی فایەربەیس
 const firebaseConfig = {
     apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE",
     authDomain: "maten-store.firebaseapp.com",
@@ -19,16 +18,11 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// 3. گوێگرتن بۆ ئیشعار (Data-Only)
+// 2. وەرگرتنی ئاگادارکردنەوەکان (Notifications) لە باکگراوند
 messaging.onBackgroundMessage((payload) => {
-    console.log('[Service Worker] ئیشعار گەیشت: ', payload);
-
+    console.log('[Service Worker] Received background message:', payload);
     const data = payload.data;
-
-    if (!data || !data.is_notification) {
-        console.log("Not a notification payload.");
-        return;
-    }
+    if (!data) return;
 
     const notificationTitle = data.title || 'Maten Store';
     const notificationOptions = {
@@ -36,33 +30,28 @@ messaging.onBackgroundMessage((payload) => {
         icon: data.image || '/images/icons/icon-192x192.png',
         badge: '/images/icons/badge-72x72.png',
         tag: 'maten-notification',
-        data: { 
-            url: data.url || '/'
-        }
+        data: { url: data.url || '/' }
     };
 
     return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// 4. کاتێک کلیک لە ئیشعارەکە دەکرێت
+// 3. کلیک کردن لەسەر ئاگادارکردنەوە
 self.addEventListener('notificationclick', function(event) {
-    console.log('[Service Worker] کلیک لە ئیشعار کرا');
     event.notification.close();
-
-    let targetUrl = '/';
-    if (event.notification.data && event.notification.data.url) {
-        targetUrl = event.notification.data.url;
-    }
-    
+    let targetUrl = event.notification.data?.url || '/';
+    // دڵنیابوونەوە لەوەی URLـەکە تەواوە
     const fullUrl = new URL(targetUrl, self.location.origin).href;
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+            // ئەگەر پەڕەکە کراوەتەوە، تەنها فوکەس دەخاتە سەری
             for (let client of windowClients) {
                 if (client.url === fullUrl && 'focus' in client) {
                     return client.focus();
                 }
             }
+            // ئەگەر نەکرابۆوە، دەیکاتەوە
             if (clients.openWindow) {
                 return clients.openWindow(fullUrl);
             }
@@ -71,111 +60,106 @@ self.addEventListener('notificationclick', function(event) {
 });
 
 // -----------------------------------------------------------------
-// [ 💡 بەشی کاشکردن - نوێکراوە 💡 ]
+// [ بەشی کاشکردن و ئۆفلاین - بەهێزکراو ]
 // -----------------------------------------------------------------
 
-// [ 💡 گۆڕانکاری ] : ناڤێ کاشێ هاتە گوهارتن بۆ وەشانا نوو (v15)
-const CACHE_NAME = 'maten-store-v15-refactor';
+const CACHE_NAME = 'maten-store-v18-complete';
 
-// [ 💡 گۆڕانکاری ] : فایلە نوێیەکان (categories, products, cart) زیادکران
-const APP_SHELL_URLS = [
-    '/index.html', 
-    '/styles.css',
-    '/app-setup.js',
-    '/app-core.js',   
-    '/app-ui.js',
-    '/categories.js', // نوێ
-    '/products.js',   // نوێ
-    '/cart.js',       // نوێ
-    '/home.js',       
-    '/chat.js',       
-    '/admin.js',      
-    '/manifest.json',
-    '/offline.html',
-    '/images/icons/icon-512x512.png' 
+// لیستی ئەو فایلانەی پێویستە هەبن بۆ ئەوەی ئەپەکە بێ ئینتەرنێت کار بکات
+const FILES_TO_CACHE = [
+    './',
+    './index.html',
+    './styles.css',
+    './app-setup.js',
+    './app-core.js',
+    './app-ui.js',
+    './categories.js',
+    './products.js',
+    './cart.js',
+    './home.js',
+    './chat.js',
+    './admin.js',
+    './manifest.json',
+    // دڵنیابە ئەم وێنانە بوونیان هەیە، ئەگەر نەبن کێشە نییە (Promise.allSettled) ڕێگری لە وەستان دەکات
+    './images/icons/icon-192x192.png',
+    './images/icons/icon-512x512.png'
 ];
 
-// Install: کاشکرنا فایلێن سەرەکی
-self.addEventListener('install', event => {
-    console.log('[SW] Install - Caching App Shell');
+// قۆناغی یەکەم: دابەزاندن (Install)
+self.addEventListener('install', (event) => {
+    console.log('[Service Worker] Installing...');
+    // لابردنی چاوەڕوانی بۆ ئەوەی خێرا کار بکات
     self.skipWaiting();
+
     event.waitUntil(
-        caches.open(CACHE_NAME).then(cache => {
-            return cache.addAll(APP_SHELL_URLS);
+        caches.open(CACHE_NAME).then((cache) => {
+            // ئەمە زۆر گرنگە: Promise.allSettled بەکاردێنین
+            // واتە ئەگەر یەک فایل هەڵەی تێدا بێت، ئەپەکە ناوەستێت و فایلەکانی تر کاش دەکات
+            return Promise.allSettled(
+                FILES_TO_CACHE.map(url => 
+                    cache.add(url).catch(err => console.warn(`[SW] Failed to cache file: ${url}`, err))
+                )
+            );
         })
     );
 });
 
-// Activate: پاقژکرنا کاشێن کەڤن
-self.addEventListener('activate', event => {
-    console.log('[SW] Activate - Cleaning old caches');
+// قۆناغی دووەم: چالاککردن (Activate) - سڕینەوەی کاشە کۆنەکان
+self.addEventListener('activate', (event) => {
+    console.log('[Service Worker] Activating...');
     event.waitUntil(
-        caches.keys().then(cacheNames => {
-            return Promise.all(
-                cacheNames.map(cacheName => {
-                    // ئەگەر ناڤێ کاشێ نە مینا یێ نوو بیت، دێ هێتە ژێبرن
-                    if (cacheName !== CACHE_NAME) {
-                        console.log('[SW] Deleting old cache:', cacheName);
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
-        }).then(() => self.clients.claim()) // کۆنترۆلکرنا لاپەڕان
+        caches.keys().then((keyList) => {
+            return Promise.all(keyList.map((key) => {
+                if (key !== CACHE_NAME) {
+                    console.log('[Service Worker] Removing old cache', key);
+                    return caches.delete(key);
+                }
+            }));
+        }).then(() => self.clients.claim())
     );
 });
 
-
-// Fetch: بکارئینانا ستراتیژییا Stale-While-Revalidate
-self.addEventListener('fetch', event => {
-    // بتنێ داخازیێن GET کاش دکەین
+// قۆناغی سێیەم: وەڵامدانەوەی داواکارییەکان (Fetch)
+self.addEventListener('fetch', (event) => {
+    // تەنها داواکارییەکانی GET کاش دەکەین
     if (event.request.method !== 'GET') return;
-    
+
     const url = new URL(event.request.url);
 
-    // --- ستراتیژیا ١: Network First (بۆ API و Firestore) ---
-    if (url.origin.includes('googleapis.com') || url.origin.includes('firestore')) {
-        event.respondWith(
+    // ستراتیژی ١: Network First (بۆ داتای Firebase/API)
+    // هەمیشە هەوڵدەدات نوێترین داتا بهێنێت، ئەگەر ئینتەرنێت نەبوو، دەچێتە سەر کاش
+    if (url.origin.includes('firestore.googleapis.com') || url.origin.includes('googleapis.com')) {
+         event.respondWith(
             fetch(event.request)
                 .then(response => {
-                    // ئەگەر سەرکەفتی، کاشێ نوو بکە
-                    if (response && response.status === 200) {
-                        const resClone = response.clone();
-                        caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
-                    }
+                    const resClone = response.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
                     return response;
                 })
                 .catch(() => {
-                    // ئەگەر ئینتەرنێت نەبوو، ژ کاشێ بینە
                     return caches.match(event.request);
                 })
         );
         return;
     }
 
-    // --- ستراتیژیا ٢: Stale-While-Revalidate (بۆ هەمی فایلێن دی) ---
+    // ستراتیژی ٢: Stale-While-Revalidate (بۆ فایلەکان: HTML, JS, CSS)
+    // یەکسەر لە کاش نیشانی دەدات (بۆ خێرایی)، وە لە باکگراوند نوێی دەکاتەوە
     event.respondWith(
-        caches.open(CACHE_NAME).then(cache => {
-            return cache.match(event.request).then(cachedResponse => {
-                
-                // (Revalidate) : داخازیێ بۆ ئینتەرنێتێ فرێکە
-                const fetchPromise = fetch(event.request).then(networkResponse => {
-                    // ئەگەر ب سەرکەفتی هات، کاشێ نوو بکە
-                    if (networkResponse && networkResponse.status === 200) {
-                        cache.put(event.request, networkResponse.clone());
-                    }
-                    return networkResponse;
-                }).catch(err => {
-                    // ئەگەر داخازییا ئینتەرنێتێ سەرنەکەفت (بۆ نموونە ئۆفلاین)
-                    console.log('[SW] Fetch failed:', err);
-                    // ئەگەر چ تشت د کاشێ دا نەبوو، لاپەڕا ئۆفلاین نیشان بدە
-                    if (!cachedResponse) {
-                        return caches.match('/offline.html');
-                    }
-                });
-
-                // (Stale) : ئەگەر د کاشێ دا هەبوو، ئێک سەر بزڤرینە
-                return cachedResponse || fetchPromise;
+        caches.match(event.request).then((cachedResponse) => {
+            const fetchPromise = fetch(event.request).then((networkResponse) => {
+                // ئەگەر فایلەکە بە سەرکەوتوویی هات، کاشەکە نوێ دەکەینەوە
+                if(networkResponse && networkResponse.status === 200) {
+                     const resClone = networkResponse.clone();
+                     caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
+                }
+                return networkResponse;
+            }).catch(() => {
+                // ئەگەر ئینتەرنێت نەبوو، هیچ ناکەین (کاشەکە بەسە)
             });
+
+            // ئەگەر لە کاش هەبوو، بیگەڕێنەوە. ئەگەر نا، چاوەڕێی ئینتەرنێت بە.
+            return cachedResponse || fetchPromise;
         })
     );
 });

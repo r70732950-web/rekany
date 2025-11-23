@@ -375,6 +375,11 @@ function renderSliderImages(imageUrls, videoLink, productName) {
 
         const line = document.createElement('div');
         line.className = `indicator-line`;
+        
+        // 🔴 گۆڕانکاری بۆ ڕەنگی سوور
+        line.style.backgroundColor = '#dc2626'; 
+        line.style.border = '1px solid #dc2626'; 
+        
         line.innerHTML = '<i class="fas fa-play" style="font-size:8px; color:white;"></i>'; 
         line.style.display = 'flex';
         line.style.alignItems = 'center';

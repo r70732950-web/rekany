@@ -1,7 +1,23 @@
 // app-ui.js
-// [FIXED VERSION]
+import {
+    loginModal, addProductBtn, productFormModal, skeletonLoader, searchInput,
+    clearSearchBtn, loginForm, productForm, formTitle, imageInputsContainer, loader,
+    cartBtn, cartItemsContainer, emptyCartMessage, cartTotal, totalAmount, cartActions,
+    favoritesContainer, emptyFavoritesMessage, categoriesBtn, sheetOverlay, sheetCategoriesContainer,
+    productCategorySelect, subcategorySelectContainer, productSubcategorySelect, subSubcategorySelectContainer,
+    productSubSubcategorySelect, profileForm, settingsPage, mainPage, homeBtn, settingsBtn,
+    settingsFavoritesBtn, settingsAdminLoginBtn, settingsLogoutBtn, profileBtn, contactToggle,
+    notificationBtn, notificationBadge, notificationsSheet, notificationsListContainer,
+    termsAndPoliciesBtn, termsSheet, termsContentContainer, subSubcategoriesContainer,
+    homePageSectionsContainer, categoryLayoutContainer,
+    // ... Admin Elements
+    adminPoliciesManagement, policiesForm, adminSocialMediaManagement, addSocialMediaForm, socialLinksListContainer, socialMediaToggle,
+    adminAnnouncementManagement, announcementForm, announcementsListContainer, adminPromoCardsManagement, addPromoGroupForm, promoGroupsListContainer, addPromoCardForm,
+    adminBrandsManagement, addBrandGroupForm, brandGroupsListContainer, addBrandForm, adminCategoryManagement, categoryListContainer, addCategoryForm,
+    addSubcategoryForm, addSubSubcategoryForm, editCategoryForm, adminContactMethodsManagement, contactMethodsListContainer, adminShortcutRowsManagement, shortcutRowsListContainer, addShortcutRowForm, addCardToRowForm,
+    adminHomeLayoutManagement, homeLayoutListContainer, addHomeSectionBtn, addHomeSectionModal, addHomeSectionForm, adminCategoryLayoutManagement, categoryLayoutSelect, categoryLayoutEditorContainer, categoryLayoutEnableToggle, categoryLayoutListContainer, addCategorySectionBtn
+} from './app-setup.js';
 
-// 1. تەنها داتای پێویست لە setup و core دەهێنین (UI Elements لێرە نامێنن)
 import {
     state, t, debounce, formatDescription, handleLogin, handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
     fetchCategories, fetchProductById, fetchProducts, fetchSubcategories, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, fetchSubSubcategories,
@@ -11,114 +27,13 @@ import {
     db, collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection
 } from './app-core.js';
 
-import { 
-    auth, storage, ref, uploadBytes, getDownloadURL, 
-    updateDoc, deleteDoc, addDoc, setDoc, onSnapshot, signOut, runTransaction,
-    categoriesCollection, announcementsCollection, promoGroupsCollection, brandGroupsCollection, 
-    shortcutRowsCollection, categoryLayoutsCollection, chatsCollection, ordersCollection
-} from './app-setup.js';
-
 import { updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI, renderPageContentUI } from './home.js';
 import { initChatSystem, openChatPage } from './chat.js';
+
+// --- Import New Modules ---
 import { renderSplitCategoriesPageUI } from './categories.js';
 import { renderCartUI, updateCartCountUI, handleUpdateQuantityUI, handleRemoveFromCartUI } from './cart.js';
 import { createProductCardElementUI, showProductDetailsUI, setupScrollAnimations, handleToggleFavoriteUI } from './products.js';
-
-// -----------------------------------------------------------------
-// [ 💡 بەشی پێناسەکردنی توخمەکان - هێنراوەتە سەرەوە ]
-// -----------------------------------------------------------------
-
-// توخمە گشتییەکان
-export const loginModal = document.getElementById('loginModal');
-export const addProductBtn = document.getElementById('addProductBtn'); 
-export const productFormModal = document.getElementById('productFormModal');
-export const productsContainer = document.getElementById('productsContainer');
-export const skeletonLoader = document.getElementById('skeletonLoader');
-export const searchInput = document.getElementById('searchInput');
-export const clearSearchBtn = document.getElementById('clearSearchBtn');
-export const loginForm = document.getElementById('loginForm');
-export const productForm = document.getElementById('productForm');
-export const formTitle = document.getElementById('formTitle');
-export const imageInputsContainer = document.getElementById('imageInputsContainer');
-export const loader = document.getElementById('loader');
-export const cartBtn = document.getElementById('cartBtn');
-export const cartItemsContainer = document.getElementById('cartItemsContainer');
-export const emptyCartMessage = document.getElementById('emptyCartMessage');
-export const cartTotal = document.getElementById('cartTotal');
-export const totalAmount = document.getElementById('totalAmount');
-export const cartActions = document.getElementById('cartActions');
-export const favoritesContainer = document.getElementById('favoritesContainer');
-export const emptyFavoritesMessage = document.getElementById('emptyFavoritesMessage');
-export const categoriesBtn = document.getElementById('categoriesBtn');
-export const sheetOverlay = document.getElementById('sheet-overlay');
-export const sheetCategoriesContainer = document.getElementById('sheetCategoriesContainer');
-export const productCategorySelect = document.getElementById('productCategoryId');
-export const subcategorySelectContainer = document.getElementById('subcategorySelectContainer');
-export const productSubcategorySelect = document.getElementById('productSubcategoryId');
-export const subSubcategorySelectContainer = document.getElementById('subSubcategorySelectContainer');
-export const productSubSubcategorySelect = document.getElementById('productSubSubcategoryId');
-export const profileForm = document.getElementById('profileForm');
-export const settingsPage = document.getElementById('settingsPage');
-export const mainPage = document.getElementById('mainPage');
-export const homeBtn = document.getElementById('homeBtn');
-export const settingsBtn = document.getElementById('settingsBtn');
-export const settingsFavoritesBtn = document.getElementById('settingsFavoritesBtn');
-export const settingsAdminLoginBtn = document.getElementById('settingsAdminLoginBtn');
-export const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
-export const profileBtn = document.getElementById('profileBtn'); 
-export const contactToggle = document.getElementById('contactToggle');
-export const notificationBtn = document.getElementById('notificationBtn');
-export const notificationBadge = document.getElementById('notificationBadge');
-export const notificationsSheet = document.getElementById('notificationsSheet');
-export const notificationsListContainer = document.getElementById('notificationsListContainer');
-export const termsAndPoliciesBtn = document.getElementById('termsAndPoliciesBtn');
-export const termsSheet = document.getElementById('termsSheet');
-export const termsContentContainer = document.getElementById('termsContentContainer');
-export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer'); 
-export const homePageSectionsContainer = document.getElementById('homePageSectionsContainer');
-export const categoryLayoutContainer = document.getElementById('categoryLayoutContainer');
-
-// توخمەکانی ئەدمین
-export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
-export const policiesForm = document.getElementById('policiesForm');
-export const adminSocialMediaManagement = document.getElementById('adminSocialMediaManagement');
-export const addSocialMediaForm = document.getElementById('addSocialMediaForm');
-export const socialLinksListContainer = document.getElementById('socialLinksListContainer');
-export const socialMediaToggle = document.getElementById('socialMediaToggle');
-export const adminAnnouncementManagement = document.getElementById('adminAnnouncementManagement');
-export const announcementForm = document.getElementById('announcementForm');
-export const announcementsListContainer = document.getElementById('announcementsListContainer'); 
-export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
-export const addPromoGroupForm = document.getElementById('addPromoGroupForm');
-export const promoGroupsListContainer = document.getElementById('promoGroupsListContainer');
-export const addPromoCardForm = document.getElementById('addPromoCardForm');
-export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
-export const addBrandGroupForm = document.getElementById('addBrandGroupForm');
-export const brandGroupsListContainer = document.getElementById('brandGroupsListContainer');
-export const addBrandForm = document.getElementById('addBrandForm');
-export const adminCategoryManagement = document.getElementById('adminCategoryManagement');
-export const categoryListContainer = document.getElementById('categoryListContainer');
-export const addCategoryForm = document.getElementById('addCategoryForm');
-export const addSubcategoryForm = document.getElementById('addSubcategoryForm');
-export const addSubSubcategoryForm = document.getElementById('addSubSubcategoryForm');
-export const editCategoryForm = document.getElementById('editCategoryModal');
-export const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
-export const contactMethodsListContainer = document.getElementById('contactMethodsListContainer');
-export const adminShortcutRowsManagement = document.getElementById('adminShortcutRowsManagement');
-export const shortcutRowsListContainer = document.getElementById('shortcutRowsListContainer');
-export const addShortcutRowForm = document.getElementById('addShortcutRowForm');
-export const addCardToRowForm = document.getElementById('addCardToRowForm');
-export const adminHomeLayoutManagement = document.getElementById('adminHomeLayoutManagement');
-export const homeLayoutListContainer = document.getElementById('homeLayoutListContainer');
-export const addHomeSectionBtn = document.getElementById('addHomeSectionBtn');
-export const addHomeSectionModal = document.getElementById('addHomeSectionModal');
-export const addHomeSectionForm = document.getElementById('addHomeSectionForm');
-export const adminCategoryLayoutManagement = document.getElementById('adminCategoryLayoutManagement');
-export const categoryLayoutSelect = document.getElementById('categoryLayoutSelect');
-export const categoryLayoutEditorContainer = document.getElementById('categoryLayoutEditorContainer');
-export const categoryLayoutEnableToggle = document.getElementById('categoryLayoutEnableToggle');
-export const categoryLayoutListContainer = document.getElementById('categoryLayoutListContainer');
-export const addCategorySectionBtn = document.getElementById('addCategorySectionBtn');
 
 // --- Global UI Helpers ---
 
@@ -200,6 +115,7 @@ export function showPage(pageId, pageTitle = '', scrollToTop = true) {
 
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) {
+        // [چاکسازی] لیستی خوارەوە دەشارینەوە هەم لە چات و هەم لە پەڕەی کاڵا
         if (pageId === 'chatPage' || pageId === 'productDetailPage') {
             bottomNav.style.display = 'none';
         } else {
@@ -211,10 +127,12 @@ export function showPage(pageId, pageTitle = '', scrollToTop = true) {
          requestAnimationFrame(() => { 
              const activePage = document.getElementById(pageId);
              if(activePage) {
+                 // [Fix Scroll] ئەگەر پەڕەکە بەشی ناوەکی هەبوو (وەک Product Detail)، ئەوەیان سفر دەکەینەوە
                  const internalScroll = activePage.querySelector('.product-detail-content');
                  if (internalScroll) {
                      internalScroll.scrollTo({ top: 0, behavior: 'instant' });
                  }
+                 // هێشتا پەڕە سەرەکییەکەش سفر دەکەینەوە بۆ دڵنیایی
                  activePage.scrollTo({ top: 0, behavior: 'instant' });
              }
          });
@@ -317,6 +235,7 @@ function updateActiveNav(activeBtnId) {
 
 // --- [چاککراوە] Subcategory Detail Logic ---
 
+// ڕەندەرکردنی جۆرە لاوەکییە لاوەکییەکان
 async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
      const container = document.getElementById('subSubCategoryContainerOnDetailPage');
      container.innerHTML = ''; 
@@ -330,6 +249,7 @@ async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
 
      container.style.display = 'flex';
 
+     // دوگمەی "هەموو"
      const allBtn = document.createElement('button');
      allBtn.className = `subcategory-btn active`; 
      allBtn.dataset.id = 'all';
@@ -343,6 +263,7 @@ async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
      };
      container.appendChild(allBtn);
 
+     // دروستکردنی دوگمەی لاوەکی لاوەکی
      subSubcategoriesData.forEach(subSubcat => {
           const btn = document.createElement('button');
           btn.className = `subcategory-btn`;
@@ -362,6 +283,7 @@ async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
      });
 }
 
+// ڕەندەرکردنی کاڵاکان لە پەڕەی وردەکاری جۆر
 async function renderProductsOnDetailPageUI(subCatId, subSubCatId = 'all', searchTerm = '') {
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const loader = document.getElementById('detailPageLoader');
@@ -410,6 +332,7 @@ async function renderProductsOnDetailPageUI(subCatId, subSubCatId = 'all', searc
      }
 }
 
+// [چاککراوە] کردنەوەی پەڕەی وردەکاری جۆر
 export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHistory = false) { 
     let subCatName = 'Details'; 
     try {
@@ -423,6 +346,7 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
 
     if (!fromHistory) {
          saveCurrentScrollPositionCore(); 
+         // زیادکردنی بۆ History
          history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
     } else {
         if (!history.state || history.state.id !== 'subcategoryDetailPage') {
@@ -431,18 +355,24 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     }
 
     const page = document.getElementById('subcategoryDetailPage');
+    
+    // [چاکسازی] پشکنین ئایا ئەم پەڕەیە پێشتر بارکراوە؟
     const isSamePage = page.dataset.loadedMain === mainCatId && page.dataset.loadedSub === subCatId;
 
     if (fromHistory && isSamePage) {
+        // ئەگەر هەمان پەڕە بوو، تەنها نیشانی دەدەین و Scroll دەگەڕێنینەوە
+        // false واتە Scroll مەکە بۆ سەرەوە
         showPage('subcategoryDetailPage', subCatName, false); 
+        
         if (history.state && history.state.scroll) {
             setTimeout(() => {
                 page.scrollTo({ top: history.state.scroll, behavior: 'instant' });
             }, 10);
         }
-        return; 
+        return; // ناهێڵین دووبارە کاڵاکان بارببنەوە
     }
 
+    // ئەگەر پەڕەیەکی نوێ بوو، داتای نوێ تۆمار دەکەین
     page.dataset.loadedMain = mainCatId;
     page.dataset.loadedSub = subCatId;
 
@@ -460,7 +390,10 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     document.getElementById('subpageSearchInput').value = '';
     document.getElementById('subpageClearSearchBtn').style.display = 'none';
 
+    // [چاکسازی] هێنانی بەشە لاوەکییە لاوەکییەکان
     await renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId); 
+    
+    // هێنانی کاڵاکان
     await renderProductsOnDetailPageUI(subCatId, 'all', ''); 
 
     loader.style.display = 'none'; 
