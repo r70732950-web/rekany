@@ -183,46 +183,10 @@ export async function showProductDetailsUI(productData, fromHistory = false) {
     
     document.getElementById('detailProductDescription').innerHTML = formatDescription(baseProduct.description); 
     
-    // [نوێ] Render Specifications
-    renderSpecificationsUI(product);
-
     // Variations Logic
     setupVariationsUI(product, baseProduct);
 
     renderRelatedProductsUI(product);
-}
-
-function renderSpecificationsUI(product) {
-    // لابردنی خشتەی کۆن ئەگەر هەبێت
-    const existingTable = document.querySelector('.product-specs-table');
-    if (existingTable) existingTable.remove();
-
-    if (!product.specifications || product.specifications.length === 0) return;
-
-    const descriptionEl = document.getElementById('detailProductDescription');
-    const table = document.createElement('table');
-    table.className = 'product-specs-table';
-    
-    let rowsHTML = '';
-    product.specifications.forEach(spec => {
-        const label = (spec.label && spec.label[state.currentLanguage]) || spec.label.ku_sorani || '';
-        const value = (spec.value && spec.value[state.currentLanguage]) || spec.value.ku_sorani || '';
-        
-        if (label && value) {
-            rowsHTML += `
-                <tr>
-                    <td class="spec-label-cell">${label}</td>
-                    <td class="spec-value-cell">${value}</td>
-                </tr>
-            `;
-        }
-    });
-
-    if (rowsHTML) {
-        table.innerHTML = rowsHTML;
-        // دانانی خشتەکە لە دوای وەسفی کاڵاکە
-        descriptionEl.parentNode.insertBefore(table, descriptionEl.nextSibling);
-    }
 }
 
 function setupVariationsUI(product, baseProduct) {
@@ -362,7 +326,7 @@ function renderSliderImages(imageUrls, videoLink, productName) {
         });
     }
     
-    // زیادکردنەوەی لۆجیکی ڤیدیۆ
+    // [ چاککراوە ] - زیادکردنەوەی لۆجیکی ڤیدیۆ
     const videoId = parseYouTubeId(videoLink); 
     if (videoId) {
         const videoWrapper = document.createElement('div');
