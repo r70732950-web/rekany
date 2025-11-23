@@ -8,34 +8,45 @@ import {
     productSubSubcategorySelect, profileForm, settingsPage, mainPage, homeBtn, settingsBtn,
     settingsFavoritesBtn, settingsAdminLoginBtn, settingsLogoutBtn, profileBtn, contactToggle,
     notificationBtn, notificationBadge, notificationsSheet, notificationsListContainer,
-    termsAndPoliciesBtn, termsSheet, termsContentContainer, subSubcategoriesContainer,
-    homePageSectionsContainer, categoryLayoutContainer,
-    // ... Admin Elements
-    adminPoliciesManagement, policiesForm, adminSocialMediaManagement, addSocialMediaForm, socialLinksListContainer, socialMediaToggle,
-    adminAnnouncementManagement, announcementForm, announcementsListContainer, adminPromoCardsManagement, addPromoGroupForm, promoGroupsListContainer, addPromoCardForm,
-    adminBrandsManagement, addBrandGroupForm, brandGroupsListContainer, addBrandForm, adminCategoryManagement, categoryListContainer, addCategoryForm,
-    addSubcategoryForm, addSubSubcategoryForm, editCategoryForm, adminContactMethodsManagement, contactMethodsListContainer, adminShortcutRowsManagement, shortcutRowsListContainer, addShortcutRowForm, addCardToRowForm,
-    adminHomeLayoutManagement, homeLayoutListContainer, addHomeSectionBtn, addHomeSectionModal, addHomeSectionForm, adminCategoryLayoutManagement, categoryLayoutSelect, categoryLayoutEditorContainer, categoryLayoutEnableToggle, categoryLayoutListContainer, addCategorySectionBtn
+    termsAndPoliciesBtn, termsSheet, termsContentContainer,
+    homePageSectionsContainer, 
+    categoryLayoutContainer,  
+    adminPoliciesManagement, adminSocialMediaManagement, adminAnnouncementManagement, adminPromoCardsManagement,
+    adminBrandsManagement, adminCategoryManagement, adminContactMethodsManagement, adminShortcutRowsManagement,
+    adminHomeLayoutManagement, policiesForm, socialLinksListContainer, announcementForm,
+    announcementsListContainer, contactMethodsListContainer, categoryListContainer, addCategoryForm,
+    addSubcategoryForm, addSubSubcategoryForm, editCategoryForm,
+    addPromoGroupForm, promoGroupsListContainer, addPromoCardForm,
+    addBrandGroupForm, brandGroupsListContainer, addBrandForm,
+    shortcutRowsListContainer, addShortcutRowForm, addCardToRowForm,
+    homeLayoutListContainer, addHomeSectionBtn, addHomeSectionModal, addHomeSectionForm,
+    adminCategoryLayoutManagement, 
 } from './app-setup.js';
 
 import {
-    state, t, debounce, formatDescription, handleLogin, handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
-    fetchCategories, fetchProductById, fetchProducts, fetchSubcategories, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, fetchSubSubcategories,
-    addToCartCore, updateCartQuantityCore, removeFromCartCore, generateOrderMessageCore, toggleFavoriteCore, isFavorite, saveFavorites,
-    saveProfileCore, setLanguageCore, requestNotificationPermissionCore, checkNewAnnouncementsCore, updateLastSeenAnnouncementTimestamp,
-    handleInstallPrompt, forceUpdateCore, saveCurrentScrollPositionCore, applyFilterStateCore, navigateToFilterCore, initCore,
-    db, collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection
+    state, 
+    t, debounce, formatDescription,
+    handleLogin, 
+    handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
+    fetchCategories, fetchProductById, fetchProducts, fetchSubcategories, 
+    fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, fetchSubSubcategories,
+    addToCartCore, updateCartQuantityCore, removeFromCartCore, generateOrderMessageCore,
+    toggleFavoriteCore, isFavorite, saveFavorites,
+    saveProfileCore, 
+    setLanguageCore,
+    requestNotificationPermissionCore, checkNewAnnouncementsCore, updateLastSeenAnnouncementTimestamp,
+    handleInstallPrompt, forceUpdateCore,
+    saveCurrentScrollPositionCore, applyFilterStateCore, navigateToFilterCore,
+    initCore,
+    db,
+    collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection
 } from './app-core.js';
 
-import { updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI, renderPageContentUI } from './home.js';
+import {
+    renderPageContentUI, updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI
+} from './home.js'; 
+
 import { initChatSystem, openChatPage } from './chat.js';
-
-// --- Import New Modules ---
-import { renderSplitCategoriesPageUI } from './categories.js';
-import { renderCartUI, updateCartCountUI, handleUpdateQuantityUI, handleRemoveFromCartUI } from './cart.js';
-import { createProductCardElementUI, showProductDetailsUI, setupScrollAnimations, handleToggleFavoriteUI } from './products.js';
-
-// --- Global UI Helpers ---
 
 export function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
@@ -48,25 +59,6 @@ export function showNotification(message, type = 'success') {
         setTimeout(() => document.body.removeChild(notification), 300);
     }, 3000);
 }
-
-export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
-    if (!container) { return; }
-    container.innerHTML = ''; 
-    for (let i = 0; i < count; i++) {
-        const skeletonCard = document.createElement('div');
-        skeletonCard.className = 'skeleton-card';
-        skeletonCard.innerHTML = `
-            <div class="skeleton-image shimmer"></div>
-            <div class="skeleton-text shimmer"></div>
-            <div class="skeleton-price shimmer"></div>
-            <div class="skeleton-button shimmer"></div>
-        `;
-        container.appendChild(skeletonCard);
-    }
-    container.style.display = 'grid'; 
-}
-
-// --- Header & Navigation ---
 
 function updateHeaderView(pageId, title = '') {
     const appHeader = document.querySelector('.app-header');
@@ -105,7 +97,7 @@ function updateHeaderView(pageId, title = '') {
     }
 }
 
-export function showPage(pageId, pageTitle = '', scrollToTop = true) {
+function showPage(pageId, pageTitle = '', scrollToTop = true) {
     state.currentPageId = pageId; 
     document.querySelectorAll('.page').forEach(page => {
         const isActive = page.id === pageId;
@@ -115,7 +107,11 @@ export function showPage(pageId, pageTitle = '', scrollToTop = true) {
 
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) {
-        bottomNav.style.display = (pageId === 'chatPage') ? 'none' : 'flex';
+        if (pageId === 'chatPage') {
+            bottomNav.style.display = 'none';
+        } else {
+            bottomNav.style.display = 'flex';
+        }
     }
 
     if (pageId !== 'mainPage' && scrollToTop) {
@@ -125,21 +121,28 @@ export function showPage(pageId, pageTitle = '', scrollToTop = true) {
          });
     }
 
-    if (pageId === 'settingsPage') updateHeaderView('settingsPage', t('settings_title'));
-    else if (pageId === 'subcategoryDetailPage') updateHeaderView('subcategoryDetailPage', pageTitle);
-    else if (pageId === 'productDetailPage') updateHeaderView('productDetailPage', pageTitle);
-    else if (pageId === 'chatPage') updateHeaderView('chatPage', pageTitle);
-    else if (pageId === 'adminChatListPage') updateHeaderView('adminChatListPage', t('conversations_title'));
-    else if (pageId === 'categoriesPage') updateHeaderView('categoriesPage', t('nav_categories'));
-    else updateHeaderView('mainPage');
+     if (pageId === 'settingsPage') {
+         updateHeaderView('settingsPage', t('settings_title'));
+    } else if (pageId === 'subcategoryDetailPage') {
+         updateHeaderView('subcategoryDetailPage', pageTitle);
+    } else if (pageId === 'productDetailPage') {
+         updateHeaderView('productDetailPage', pageTitle);
+    } else if (pageId === 'chatPage') { 
+         updateHeaderView('chatPage', pageTitle);
+    } else if (pageId === 'adminChatListPage') { 
+         updateHeaderView('adminChatListPage', t('conversations_title'));
+    } else { 
+         updateHeaderView('mainPage');
+    }
 
     let activeBtnId = null;
     if (pageId === 'mainPage') activeBtnId = 'homeBtn';
     else if (pageId === 'settingsPage') activeBtnId = 'settingsBtn';
-    else if (pageId === 'categoriesPage') activeBtnId = 'categoriesBtn';
     else if (pageId === 'chatPage' || pageId === 'adminChatListPage') activeBtnId = 'chatBtn';
 
-    if (activeBtnId) updateActiveNav(activeBtnId);
+    if (activeBtnId) {
+       updateActiveNav(activeBtnId);
+    }
 }
 
 function stopAllVideos() {
@@ -147,6 +150,42 @@ function stopAllVideos() {
     if (videoWrapper) {
         videoWrapper.innerHTML = ''; 
     }
+}
+
+function parseYouTubeId(url) {
+    if (!url) return null;
+    if (!/^https?:\/\//i.test(url)) {
+        url = 'https://' + url;
+    }
+    try {
+        const urlObj = new URL(url);
+        if (urlObj.hostname.includes('youtube.com')) {
+            if (urlObj.searchParams.has('v')) {
+                return urlObj.searchParams.get('v');
+            }
+            if (urlObj.pathname.startsWith('/shorts/')) {
+                return urlObj.pathname.split('/')[2];
+            }
+            if (urlObj.pathname.startsWith('/embed/')) {
+                return urlObj.pathname.split('/')[2];
+            }
+        } 
+        else if (urlObj.hostname.includes('youtu.be')) {
+            return urlObj.pathname.slice(1);
+        }
+    } catch (e) {
+        return null;
+    }
+    return null;
+}
+
+function closeAllPopupsUI() {
+    document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
+    document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('show'));
+    sheetOverlay.classList.remove('show');
+    document.body.classList.remove('overlay-active');
+    
+    stopAllVideos(); 
 }
 
 export function openPopup(id, type = 'sheet', addToHistory = true) {
@@ -177,10 +216,12 @@ export function openPopup(id, type = 'sheet', addToHistory = true) {
         
         if (id === 'cartSheet') renderCartUI();
         if (id === 'favoritesSheet') renderFavoritesPageUI();
-        if (id === 'categoriesSheet') renderSplitCategoriesPageUI();
+        if (id === 'categoriesSheet') renderCategoriesSheetUI();
         if (id === 'notificationsSheet') renderUserNotificationsUI();
         if (id === 'termsSheet') renderPoliciesUI();
-        if (id === 'profileSheet') updateProfileSheetUI();
+        if (id === 'profileSheet') {
+            updateProfileSheetUI();
+        }
     } else { 
         element.style.display = 'block';
     }
@@ -191,14 +232,6 @@ export function openPopup(id, type = 'sheet', addToHistory = true) {
         state.currentPopupState = newState; 
         history.pushState(newState, '', `#${id}`);
     }
-}
-
-function closeAllPopupsUI() {
-    document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
-    document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('show'));
-    sheetOverlay.classList.remove('show');
-    document.body.classList.remove('overlay-active');
-    stopAllVideos(); 
 }
 
 export function closeCurrentPopup() {
@@ -220,10 +253,365 @@ function updateActiveNav(activeBtnId) {
     }
 }
 
-// --- [چاککراوە] Subcategory Detail Logic ---
+function updateCartCountUI() {
+    const totalItems = state.cart.reduce((total, item) => total + item.quantity, 0);
+    document.querySelectorAll('.cart-count').forEach(el => { el.textContent = totalItems; });
+}
 
-// ڕەندەرکردنی جۆرە لاوەکییە لاوەکییەکان
-async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
+export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
+    if (!container) { return; }
+    container.innerHTML = ''; 
+    for (let i = 0; i < count; i++) {
+        const skeletonCard = document.createElement('div');
+        skeletonCard.className = 'skeleton-card';
+        skeletonCard.innerHTML = `
+            <div class="skeleton-image shimmer"></div>
+            <div class.skeleton-text shimmer"></div>
+            <div class="skeleton-price shimmer"></div>
+            <div class="skeleton-button shimmer"></div>
+        `;
+        container.appendChild(skeletonCard);
+    }
+    container.style.display = 'grid'; 
+}
+
+export function createProductCardElementUI(product) {
+    const productCard = document.createElement('div');
+    productCard.className = 'product-card';
+    productCard.dataset.productId = product.id;
+    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+
+    const nameInCurrentLang = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
+    const mainImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || 'https://placehold.co/300x300/e2e8f0/2d3748?text=No+Image');
+
+    let priceHTML = `<div class="product-price-container"><div class="product-price">${product.price.toLocaleString()} د.ع.</div></div>`;
+    let discountBadgeHTML = '';
+    const hasDiscount = product.originalPrice && product.originalPrice > product.price;
+    if (hasDiscount) {
+        priceHTML = `<div class="product-price-container"><span class="product-price">${product.price.toLocaleString()} د.ع.</span><del class="original-price">${product.originalPrice.toLocaleString()} د.ع.</del></div>`;
+        const discountPercentage = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+        discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
+    }
+
+    let extraInfoHTML = '';
+    const shippingText = product.shippingInfo && product.shippingInfo[state.currentLanguage] && product.shippingInfo[state.currentLanguage].trim();
+    if (shippingText) {
+        extraInfoHTML = `
+            <div class="product-extra-info">
+                <div class="info-badge shipping-badge">
+                    <i class="fas fa-truck"></i>${shippingText}
+                </div>
+            </div>
+        `;
+    }
+
+    const isProdFavorite = isFavorite(product.id); 
+    const heartIconClass = isProdFavorite ? 'fas' : 'far';
+    const favoriteBtnClass = isProdFavorite ? 'favorite-btn favorited' : 'favorite-btn';
+
+    productCard.innerHTML = `
+        <div class="product-image-container">
+            <img src="${mainImage}" alt="${nameInCurrentLang}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
+            ${discountBadgeHTML}
+            <button class="${favoriteBtnClass}" aria-label="Add to favorites">
+                <i class="${heartIconClass} fa-heart"></i>
+            </button>
+             <button class="share-btn-card" aria-label="Share product">
+                 <i class="fas fa-share-alt"></i>
+            </button>
+        </div>
+        <div class="product-info">
+            <div class="product-name">${nameInCurrentLang}</div>
+            ${priceHTML}
+            <button class="add-to-cart-btn-card">
+                <i class="fas fa-cart-plus"></i>
+                <span>${t('add_to_cart')}</span>
+            </button>
+            ${extraInfoHTML}
+        </div>
+        <div class="product-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
+            <button class="edit-btn" aria-label="Edit product"><i class="fas fa-edit"></i></button>
+            <button class="delete-btn" aria-label="Delete product"><i class="fas fa-trash"></i></button>
+        </div>
+    `;
+
+     productCard.querySelector('.share-btn-card').addEventListener('click', async (event) => {
+         event.stopPropagation();
+         const productUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
+         const shareData = {
+             title: nameInCurrentLang,
+             text: `${t('share_text')}: ${nameInCurrentLang}`,
+             url: productUrl,
+         };
+         try {
+             if (navigator.share) {
+                  await navigator.share(shareData);
+             } else {
+                 const textArea = document.createElement('textarea');
+                  textArea.value = productUrl;
+                  document.body.appendChild(textArea);
+                  textArea.select();
+                  try { document.execCommand('copy'); showNotification('لينكى کاڵا کۆپى کرا!', 'success'); }
+                  catch (err) { showNotification('کۆپیکردن سەرکەوتوو نەبوو!', 'error'); }
+                  document.body.removeChild(textArea);
+             }
+         } catch (err) {
+              if (err.name !== 'AbortError') showNotification(t('share_error'), 'error');
+         }
+    });
+
+    productCard.querySelector('.favorite-btn').addEventListener('click', (event) => {
+        event.stopPropagation();
+        handleToggleFavoriteUI(product.id);
+    });
+
+    productCard.querySelector('.add-to-cart-btn-card').addEventListener('click', (event) => {
+        event.stopPropagation();
+        handleAddToCartUI(product.id, event.currentTarget); 
+    });
+
+    if (isAdmin) {
+        productCard.querySelector('.edit-btn')?.addEventListener('click', (event) => {
+            event.stopPropagation();
+             if (window.AdminLogic && window.AdminLogic.editProduct) {
+                 window.AdminLogic.editProduct(product.id);
+             }
+        });
+        productCard.querySelector('.delete-btn')?.addEventListener('click', (event) => {
+            event.stopPropagation();
+             if (window.AdminLogic && window.AdminLogic.deleteProduct) {
+                 window.AdminLogic.deleteProduct(product.id);
+             }
+        });
+    }
+
+    productCard.addEventListener('click', (event) => {
+        if (!event.target.closest('button')) {
+            saveCurrentScrollPositionCore(); 
+            showProductDetailsUI(product);
+        }
+    });
+
+    return productCard;
+}
+
+export function setupScrollAnimations() { 
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                observer.unobserve(entry.target); 
+            }
+        });
+    }, {
+        threshold: 0.1 
+    });
+
+    document.querySelectorAll('.product-card-reveal').forEach(card => {
+        observer.observe(card);
+    });
+}
+
+function renderCartUI() {
+    cartItemsContainer.innerHTML = '';
+    if (state.cart.length === 0) {
+        emptyCartMessage.style.display = 'block';
+        cartTotal.style.display = 'none';
+        cartActions.style.display = 'none';
+        return;
+    }
+
+    emptyCartMessage.style.display = 'none';
+    cartTotal.style.display = 'block';
+    cartActions.style.display = 'block';
+    renderCartActionButtonsUI(); 
+
+    let total = 0;
+    state.cart.forEach(item => {
+        const itemTotal = (item.price * item.quantity) + (item.shippingCost || 0);
+        total += itemTotal;
+        
+        const cartItem = document.createElement('div');
+        cartItem.className = 'cart-item';
+        
+        const itemNameInCurrentLang = (typeof item.name === 'string') 
+            ? item.name 
+            : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
+
+        let shippingDisplay = '';
+        if (item.shippingCost > 0) {
+            shippingDisplay = `<span style="font-size:12px; color:#e53e3e;">(+ ${item.shippingCost.toLocaleString()} گەیاندن)</span>`;
+        } else {
+            shippingDisplay = `<span style="font-size:12px; color:#38a169;">(گەیاندن بێ بەرامبەر)</span>`;
+        }
+
+        cartItem.innerHTML = `
+            <img src="${item.image}" alt="${itemNameInCurrentLang}" class="cart-item-image">
+            <div class="cart-item-details">
+                <div class="cart-item-title">${itemNameInCurrentLang}</div>
+                <div class="cart-item-price">
+                    ${item.price.toLocaleString()} د.ع <span style="font-size:11px; color:#666;">x ${item.quantity}</span>
+                    <br>
+                    ${shippingDisplay}
+                </div>
+                <div class="cart-item-quantity">
+                    <button class="quantity-btn increase-btn" data-id="${item.id}">+</button>
+                    <span class="quantity-text">${item.quantity}</span>
+                    <button class="quantity-btn decrease-btn" data-id="${item.id}">-</button>
+                </div>
+            </div>
+            <div class="cart-item-subtotal">
+                <div>کۆی گشتی</div>
+                <span style="color:var(--primary-color); font-size:16px;">${itemTotal.toLocaleString()} د.ع.</span>
+                <button class="cart-item-remove" data-id="${item.id}"><i class="fas fa-trash"></i></button>
+            </div>
+        `;
+        cartItemsContainer.appendChild(cartItem);
+    });
+
+    totalAmount.textContent = total.toLocaleString();
+
+    cartItemsContainer.querySelectorAll('.increase-btn').forEach(btn => btn.onclick = (e) => handleUpdateQuantityUI(e.currentTarget.dataset.id, 1));
+    cartItemsContainer.querySelectorAll('.decrease-btn').forEach(btn => btn.onclick = (e) => handleUpdateQuantityUI(e.currentTarget.dataset.id, -1));
+    cartItemsContainer.querySelectorAll('.cart-item-remove').forEach(btn => btn.onclick = (e) => handleRemoveFromCartUI(e.currentTarget.dataset.id));
+}
+
+async function renderCartActionButtonsUI() {
+    const container = document.getElementById('cartActions');
+    const oldButtons = container.querySelectorAll('.contact-method-btn');
+    oldButtons.forEach(btn => btn.remove());
+
+    const methods = await fetchContactMethods(); 
+
+    if (!methods || methods.length === 0) {
+        if (container.children.length === 0) {
+             container.innerHTML = '<p>هیچ ڕێگایەکی ناردن دیاری نەکراوە.</p>';
+        }
+        return;
+    }
+
+    methods.forEach(method => {
+        const btn = document.createElement('button');
+        btn.className = 'whatsapp-btn contact-method-btn'; 
+        btn.style.backgroundColor = method.color;
+
+        const name = method['name_' + state.currentLanguage] || method.name_ku_sorani;
+        btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
+
+        btn.onclick = () => {
+            const message = generateOrderMessageCore(); 
+            if (!message) return;
+
+            let link = '';
+            const encodedMessage = encodeURIComponent(message);
+            const value = method.value;
+
+            switch (method.type) {
+                case 'whatsapp': link = `https://wa.me/${value}?text=${encodedMessage}`; break;
+                case 'viber': link = `viber://chat?number=%2B${value}&text=${encodedMessage}`; break; 
+                case 'telegram': link = `https://t.me/${value}?text=${encodedMessage}`; break;
+                case 'phone': link = `tel:${value}`; break;
+                case 'url': link = value; break; 
+            }
+
+            if (link) {
+                window.open(link, '_blank');
+            }
+        };
+        container.appendChild(btn);
+    });
+    
+    initChatSystem();
+}
+
+async function renderFavoritesPageUI() {
+    favoritesContainer.innerHTML = '';
+
+    if (state.favorites.length === 0) {
+        emptyFavoritesMessage.style.display = 'block';
+        favoritesContainer.style.display = 'none';
+        return;
+    }
+
+    emptyFavoritesMessage.style.display = 'none';
+    favoritesContainer.style.display = 'grid';
+    renderSkeletonLoader(favoritesContainer, 4); 
+
+    try {
+        const fetchPromises = state.favorites.map(id => fetchProductById(id));
+        const favoritedProducts = (await Promise.all(fetchPromises)).filter(p => p !== null);
+
+        favoritesContainer.innerHTML = ''; 
+
+        if (favoritedProducts.length === 0) {
+            emptyFavoritesMessage.style.display = 'block';
+            favoritesContainer.style.display = 'none';
+            state.favorites = [];
+            saveFavorites(); 
+        } else {
+            if(favoritedProducts.length !== state.favorites.length) {
+                 state.favorites = favoritedProducts.map(p => p.id);
+                 saveFavorites(); 
+            }
+            favoritedProducts.forEach(product => {
+                const productCard = createProductCardElementUI(product); 
+                favoritesContainer.appendChild(productCard);
+            });
+        }
+    } catch (error) {
+        favoritesContainer.innerHTML = `<p style="text-align:center; padding: 20px;">${t('error_generic')}</p>`;
+    }
+}
+
+function renderCategoriesSheetUI() {
+    sheetCategoriesContainer.innerHTML = '';
+
+    const homeBtn = document.createElement('button');
+    homeBtn.className = 'sheet-category-btn';
+    homeBtn.dataset.category = 'all'; 
+    homeBtn.innerHTML = `<i class="fas fa-home"></i> ${t('nav_home')}`;
+    
+    if (state.currentCategory === 'all') {
+        homeBtn.classList.add('active');
+    }
+    
+    homeBtn.onclick = async () => {
+         state.pendingFilterNav = {
+             category: 'all',
+             subcategory: 'all',
+             subSubcategory: 'all',
+             search: ''
+         };
+         closeCurrentPopup();
+    };
+    sheetCategoriesContainer.appendChild(homeBtn);
+
+    state.categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'sheet-category-btn';
+        btn.dataset.category = cat.id;
+        if (state.currentCategory === cat.id) { btn.classList.add('active'); }
+
+        const categoryName = (cat['name_' + state.currentLanguage] || cat.name_ku_sorani);
+        const categoryIcon = cat.icon;
+
+        btn.innerHTML = `<i class="${categoryIcon}"></i> ${categoryName}`;
+
+        btn.onclick = async () => {
+             state.pendingFilterNav = {
+                 category: cat.id,
+                 subcategory: 'all',
+                 subSubcategory: 'all',
+                 search: ''
+             };
+             closeCurrentPopup();
+        };
+
+        sheetCategoriesContainer.appendChild(btn);
+    });
+}
+
+ async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
      const container = document.getElementById('subSubCategoryContainerOnDetailPage');
      container.innerHTML = ''; 
 
@@ -236,7 +624,6 @@ async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
 
      container.style.display = 'flex';
 
-     // دوگمەی "هەموو"
      const allBtn = document.createElement('button');
      allBtn.className = `subcategory-btn active`; 
      allBtn.dataset.id = 'all';
@@ -250,7 +637,6 @@ async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
      };
      container.appendChild(allBtn);
 
-     // دروستکردنی دوگمەی لاوەکی لاوەکی
      subSubcategoriesData.forEach(subSubcat => {
           const btn = document.createElement('button');
           btn.className = `subcategory-btn`;
@@ -270,8 +656,7 @@ async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
      });
 }
 
-// ڕەندەرکردنی کاڵاکان لە پەڕەی وردەکاری جۆر
-async function renderProductsOnDetailPageUI(subCatId, subSubCatId = 'all', searchTerm = '') {
+ async function renderProductsOnDetailPageUI(subCatId, subSubCatId = 'all', searchTerm = '') {
     const productsContainer = document.getElementById('productsContainerOnDetailPage');
     const loader = document.getElementById('detailPageLoader');
     loader.style.display = 'block';
@@ -319,7 +704,6 @@ async function renderProductsOnDetailPageUI(subCatId, subSubCatId = 'all', searc
      }
 }
 
-// [چاککراوە] کردنەوەی پەڕەی وردەکاری جۆر
 export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHistory = false) { 
     let subCatName = 'Details'; 
     try {
@@ -333,7 +717,6 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
 
     if (!fromHistory) {
          saveCurrentScrollPositionCore(); 
-         // زیادکردنی بۆ History
          history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
     } else {
         if (!history.state || history.state.id !== 'subcategoryDetailPage') {
@@ -342,24 +725,13 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     }
 
     const page = document.getElementById('subcategoryDetailPage');
-    
-    // [چاکسازی] پشکنین ئایا ئەم پەڕەیە پێشتر بارکراوە؟
-    const isSamePage = page.dataset.loadedMain === mainCatId && page.dataset.loadedSub === subCatId;
+    const isSameCategory = page.dataset.loadedMain === mainCatId && page.dataset.loadedSub === subCatId;
 
-    if (fromHistory && isSamePage) {
-        // ئەگەر هەمان پەڕە بوو، تەنها نیشانی دەدەین و Scroll دەگەڕێنینەوە
-        // false واتە Scroll مەکە بۆ سەرەوە
+    if (fromHistory && isSameCategory) {
         showPage('subcategoryDetailPage', subCatName, false); 
-        
-        if (history.state && history.state.scroll) {
-            setTimeout(() => {
-                page.scrollTo({ top: history.state.scroll, behavior: 'instant' });
-            }, 10);
-        }
-        return; // ناهێڵین دووبارە کاڵاکان بارببنەوە
+        return;
     }
 
-    // ئەگەر پەڕەیەکی نوێ بوو، داتای نوێ تۆمار دەکەین
     page.dataset.loadedMain = mainCatId;
     page.dataset.loadedSub = subCatId;
 
@@ -372,62 +744,258 @@ export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHisto
     loader.style.display = 'block';
     productsContainer.innerHTML = '';
     subSubContainer.innerHTML = '';
-    subSubContainer.style.display = 'flex'; 
-
     document.getElementById('subpageSearchInput').value = '';
     document.getElementById('subpageClearSearchBtn').style.display = 'none';
 
-    // [چاکسازی] هێنانی بەشە لاوەکییە لاوەکییەکان
     await renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId); 
-    
-    // هێنانی کاڵاکان
     await renderProductsOnDetailPageUI(subCatId, 'all', ''); 
 
     loader.style.display = 'none'; 
 }
 
-// --- Favorites Rendering ---
+async function showProductDetailsUI(productData, fromHistory = false) {
+    const product = productData || await fetchProductById(state.currentProductId); 
+    if (!product) { showNotification(t('product_not_found_error'), 'error'); return; }
 
-async function renderFavoritesPageUI() {
-    favoritesContainer.innerHTML = '';
+    state.currentProductId = product.id; 
+    const productName = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || 'کاڵای بێ ناو';
 
-    if (state.favorites.length === 0) {
-        emptyFavoritesMessage.style.display = 'block';
-        favoritesContainer.style.display = 'none';
-        return;
+    if (!fromHistory) {
+        saveCurrentScrollPositionCore();
+        const newUrl = `?product=${product.id}`;
+        history.pushState({ type: 'page', id: 'productDetailPage', title: productName, productId: product.id }, '', newUrl);
+    } else {
+        if (!history.state || history.state.id !== 'productDetailPage') {
+            const newUrl = `?product=${product.id}`;
+            history.replaceState({ type: 'page', id: 'productDetailPage', title: productName, productId: product.id }, '', newUrl);
+        }
+    }
+    
+    showPage('productDetailPage', productName);
+
+    const baseProduct = {
+        name: productName,
+        description: (product.description && product.description[state.currentLanguage]) || (product.description && product.description['ku_sorani']) || '',
+        basePrice: product.price,
+        originalPrice: product.originalPrice || null,
+        baseImages: (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls : (product.image ? [product.image] : []),
+        videoLink: product.externalLink || null
+    };
+    
+    document.getElementById('detailProductDescription').innerHTML = formatDescription(baseProduct.description); 
+    
+    const variationSelectorContainer = document.getElementById('variationSelectorContainer');
+    const lvl1Container = document.getElementById('variationLvl1Container');
+    const lvl1Buttons = document.getElementById('variationLvl1Buttons');
+    const lvl2Container = document.getElementById('variationLvl2Container');
+    const lvl2Buttons = document.getElementById('variationLvl2Buttons');
+    
+    lvl1Buttons.innerHTML = '';
+    lvl2Buttons.innerHTML = '';
+    lvl1Container.style.display = 'none';
+    lvl2Container.style.display = 'none';
+    variationSelectorContainer.style.display = 'none';
+
+    let selectedLvl1Id = null;
+    let selectedLvl2Id = null;
+
+    renderSliderImages(baseProduct.baseImages, baseProduct.videoLink, baseProduct.name);
+    renderProductPrice(baseProduct.basePrice, baseProduct.originalPrice);
+
+    const variations = product.variations || [];
+    if (variations.length > 0) {
+        variationSelectorContainer.style.display = 'flex';
+        lvl1Container.style.display = 'block';
+
+        variations.forEach(lvl1Var => {
+            const btn = document.createElement('button');
+            btn.className = 'variation-btn';
+            btn.dataset.lvl1Id = lvl1Var.id;
+            btn.textContent = (lvl1Var.name && lvl1Var.name[state.currentLanguage]) || lvl1Var.name.ku_sorani;
+            
+            btn.onclick = () => {
+                lvl1Buttons.querySelectorAll('.variation-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                selectedLvl1Id = lvl1Var.id;
+                selectedLvl2Id = null; 
+
+                const newImages = (lvl1Var.imageUrls && lvl1Var.imageUrls.length > 0) ? lvl1Var.imageUrls : baseProduct.baseImages;
+                renderSliderImages(newImages, baseProduct.videoLink, baseProduct.name);
+
+                lvl2Buttons.innerHTML = '';
+                const options = lvl1Var.options || [];
+                
+                if (options.length > 0) {
+                    options.forEach(lvl2Opt => {
+                        const optBtn = document.createElement('button');
+                        optBtn.className = 'variation-btn';
+                        optBtn.dataset.lvl2Id = lvl2Opt.id;
+                        optBtn.textContent = lvl2Opt.name;
+                        
+                        optBtn.onclick = () => {
+                            lvl2Buttons.querySelectorAll('.variation-btn').forEach(b => b.classList.remove('active'));
+                            optBtn.classList.add('active');
+                            selectedLvl2Id = lvl2Opt.id;
+                            renderProductPrice(lvl2Opt.price, null); 
+                        };
+                        lvl2Buttons.appendChild(optBtn);
+                    });
+                    lvl2Container.style.display = 'block';
+                } else {
+                    lvl2Container.style.display = 'none';
+                    renderProductPrice(baseProduct.basePrice, baseProduct.originalPrice);
+                }
+            };
+            lvl1Buttons.appendChild(btn);
+        });
     }
 
-    emptyFavoritesMessage.style.display = 'none';
-    favoritesContainer.style.display = 'grid';
-    renderSkeletonLoader(favoritesContainer, 4); 
+    const addToCartButton = document.getElementById('detailAddToCartBtn');
+    addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
+    addToCartButton.onclick = () => {
+        let selectedVariationInfo = null;
+        if (variations.length > 0) {
+            if (!selectedLvl1Id) { showNotification('تکایە سەرەتا جۆرێک (ڕەنگ) هەڵبژێرە', 'error'); return; }
+            const lvl1Var = variations.find(v => v.id === selectedLvl1Id);
+            if (!lvl1Var) return;
 
-    try {
-        const fetchPromises = state.favorites.map(id => fetchProductById(id));
-        const favoritedProducts = (await Promise.all(fetchPromises)).filter(p => p !== null);
+            selectedVariationInfo = {
+                lvl1Id: lvl1Var.id,
+                lvl1Name: (lvl1Var.name && lvl1Var.name[state.currentLanguage]) || lvl1Var.name.ku_sorani,
+                price: baseProduct.basePrice 
+            };
 
-        favoritesContainer.innerHTML = ''; 
-
-        if (favoritedProducts.length === 0) {
-            emptyFavoritesMessage.style.display = 'block';
-            favoritesContainer.style.display = 'none';
-            state.favorites = [];
-            saveFavorites(); 
-        } else {
-            if(favoritedProducts.length !== state.favorites.length) {
-                 state.favorites = favoritedProducts.map(p => p.id);
-                 saveFavorites(); 
+            const lvl2Options = lvl1Var.options || [];
+            if (lvl2Options.length > 0) {
+                if (!selectedLvl2Id) { showNotification('تکایە قەبارەیەک هەڵبژێرە', 'error'); return; }
+                const lvl2Opt = lvl2Options.find(o => o.id === selectedLvl2Id);
+                if (!lvl2Opt) return;
+                
+                selectedVariationInfo.lvl2Id = lvl2Opt.id;
+                selectedVariationInfo.lvl2Name = lvl2Opt.name;
+                selectedVariationInfo.price = lvl2Opt.price; 
             }
-            favoritedProducts.forEach(product => {
-                const productCard = createProductCardElementUI(product); 
-                favoritesContainer.appendChild(productCard);
-            });
         }
-    } catch (error) {
-        favoritesContainer.innerHTML = `<p style="text-align:center; padding: 20px;">${t('error_generic')}</p>`;
+        handleAddToCartUI(product.id, addToCartButton, selectedVariationInfo); 
+    };
+
+    renderRelatedProductsUI(product);
+}
+
+function renderSliderImages(imageUrls, videoLink, productName) {
+    const imageContainer = document.getElementById('detailImageContainer');
+    const indicatorsContainer = document.getElementById('detailImageIndicators');
+    
+    imageContainer.innerHTML = ''; 
+    indicatorsContainer.innerHTML = ''; 
+
+    let sliderElements = []; 
+    let indicatorElements = []; 
+    
+    if (imageUrls.length > 0) {
+        imageUrls.forEach((url, index) => {
+            const img = document.createElement('img');
+            img.src = url; 
+            img.alt = productName; 
+            img.className = index === 0 ? 'active' : ''; 
+            
+            imageContainer.appendChild(img);
+            sliderElements.push(img); 
+            
+            const line = document.createElement('div');
+            line.className = `indicator-line ${index === 0 ? 'active' : ''}`;
+            line.dataset.index = index;
+            indicatorsContainer.appendChild(line);
+            indicatorElements.push(line);
+        });
+    }
+
+    const videoId = parseYouTubeId(videoLink); 
+    if (videoId) {
+        const videoWrapper = document.createElement('div');
+        videoWrapper.id = 'videoPlayerWrapper'; 
+        videoWrapper.style.cssText = "position: relative; width: 100%; background-color: #000; display: none; justify-content: center; align-items: center; overflow: hidden; flex-shrink: 0; max-height: 350px;";
+        
+        const videoIndex = sliderElements.length; 
+        imageContainer.appendChild(videoWrapper);
+        sliderElements.push(videoWrapper); 
+
+        const line = document.createElement('div');
+        line.className = `indicator-line`;
+        line.innerHTML = ''; 
+        line.dataset.index = videoIndex;
+        indicatorsContainer.appendChild(line);
+        indicatorElements.push(line);
+    }
+
+    let currentIndex = 0;
+    const prevBtn = document.getElementById('detailPrevBtn');
+    const nextBtn = document.getElementById('detailNextBtn');
+
+    function updateSlider(index) {
+        if (!sliderElements[index]) return;
+
+        const oldElement = sliderElements[currentIndex];
+        if (oldElement && oldElement.id === 'videoPlayerWrapper') {
+            oldElement.innerHTML = ''; 
+        }
+
+        sliderElements.forEach(el => el.classList.remove('active'));
+        
+        indicatorElements.forEach(el => el.classList.remove('active'));
+
+        const activeElement = sliderElements[index];
+        if (activeElement.id === 'videoPlayerWrapper') { 
+            const videoSrc = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&autoplay=1&mute=1&controls=1`;
+            activeElement.innerHTML = `<iframe src="${videoSrc}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width: 100%; aspect-ratio: 16 / 9; max-height: 350px;"></iframe>`;
+        }
+        activeElement.classList.add('active');
+        indicatorElements[index].classList.add('active');
+        
+        currentIndex = index; 
+    }
+
+    const showSliderBtns = sliderElements.length > 1;
+    prevBtn.style.display = showSliderBtns ? 'flex' : 'none';
+    nextBtn.style.display = showSliderBtns ? 'flex' : 'none';
+    indicatorsContainer.style.display = showSliderBtns ? 'flex' : 'none';
+
+    if(showSliderBtns) {
+        prevBtn.onclick = () => updateSlider((currentIndex - 1 + sliderElements.length) % sliderElements.length);
+        nextBtn.onclick = () => updateSlider((currentIndex + 1) % sliderElements.length);
+        
+        indicatorElements.forEach((indicator, idx) => {
+            indicator.onclick = () => updateSlider(idx);
+        });
     }
 }
 
-// --- Other Rendering Functions ---
+function renderProductPrice(price, originalPrice = null) {
+    const priceContainer = document.getElementById('detailProductPrice');
+    if (originalPrice && originalPrice > price) {
+        priceContainer.innerHTML = `<span style="color: var(--accent-color);">${price.toLocaleString()} د.ع</span> <del style="color: var(--dark-gray); font-size: 16px; margin-right: 10px;">${originalPrice.toLocaleString()} د.ع</del>`;
+    } else {
+        priceContainer.innerHTML = `<span>${price.toLocaleString()} د.ع</span>`;
+    }
+}
+
+async function renderRelatedProductsUI(currentProduct) {
+    const section = document.getElementById('relatedProductsSection');
+    const container = document.getElementById('relatedProductsContainer');
+    container.innerHTML = '';
+    section.style.display = 'none'; 
+
+    const relatedProducts = await fetchRelatedProducts(currentProduct); 
+
+    if (relatedProducts && relatedProducts.length > 0) {
+        relatedProducts.forEach(product => {
+            const card = createProductCardElementUI(product); 
+            container.appendChild(card);
+        });
+        section.style.display = 'block'; 
+    }
+}
 
 async function renderPoliciesUI() {
     termsContentContainer.innerHTML = `<p>${t('loading_policies')}</p>`;
@@ -474,43 +1042,6 @@ async function renderUserNotificationsUI() {
 
     updateLastSeenAnnouncementTimestamp(latestTimestamp); 
     notificationBadge.style.display = 'none'; 
-}
-
-async function renderContactLinksUI() {
-    const contactLinksContainer = document.getElementById('dynamicContactLinksContainer');
-     try {
-         const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
-         const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
-         const snapshot = await getDocs(q); 
-
-         contactLinksContainer.innerHTML = ''; 
-
-         if (snapshot.empty) {
-             contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هیچ لینکی پەیوەندی نییە.</p>';
-             return;
-         }
-
-         snapshot.forEach(doc => {
-             const link = doc.data();
-             const name = link['name_' + state.currentLanguage] || link.name_ku_sorani;
-
-             const linkElement = document.createElement('a');
-             linkElement.href = link.url;
-             linkElement.target = '_blank';
-             linkElement.className = 'settings-item';
-             linkElement.innerHTML = `
-                 <div>
-                     <i class="${link.icon}" style="margin-left: 10px;"></i>
-                     <span>${name}</span>
-                 </div>
-                 <i class="fas fa-external-link-alt"></i>
-             `;
-             contactLinksContainer.appendChild(linkElement);
-         });
-     } catch (error) {
-         console.error("Error fetching/rendering social links:", error);
-         contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هەڵە لە بارکردنی لینکەکان.</p>';
-     }
 }
 
 function updateAdminUIAuth(isAdmin) {
@@ -572,7 +1103,59 @@ function updateProfileSheetUI() {
     }
 }
 
-// --- Initialization & Listeners ---
+async function handleAddToCartUI(productId, buttonElement, selectedVariationInfo = null) {
+    const result = await addToCartCore(productId, selectedVariationInfo); 
+    
+    showNotification(result.message, result.success ? 'success' : 'error');
+    if (result.success) {
+        updateCartCountUI(); 
+        if (buttonElement && !buttonElement.disabled) {
+            const originalContent = buttonElement.innerHTML;
+            buttonElement.disabled = true;
+            buttonElement.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`; 
+            setTimeout(() => {
+                buttonElement.innerHTML = `<i class="fas fa-check"></i> <span>${t('added_to_cart')}</span>`; 
+                setTimeout(() => {
+                    buttonElement.innerHTML = originalContent; 
+                    buttonElement.disabled = false;
+                }, 1500);
+            }, 500);
+        }
+    }
+}
+
+function handleUpdateQuantityUI(productId, change) {
+    if (updateCartQuantityCore(productId, change)) { 
+        renderCartUI(); 
+        updateCartCountUI(); 
+    }
+}
+
+function handleRemoveFromCartUI(productId) {
+    if (removeFromCartCore(productId)) { 
+        renderCartUI(); 
+        updateCartCountUI(); 
+    }
+}
+
+function handleToggleFavoriteUI(productId) {
+    const result = toggleFavoriteCore(productId); 
+    showNotification(result.message, result.favorited ? 'success' : 'error');
+
+    document.querySelectorAll(`[data-product-id="${productId}"] .favorite-btn`).forEach(btn => {
+        btn.classList.toggle('favorited', result.favorited);
+        const icon = btn.querySelector('.fa-heart');
+        if (icon) {
+            icon.classList.toggle('fas', result.favorited);
+            icon.classList.toggle('far', !result.favorited);
+        }
+    });
+
+    if (document.getElementById('favoritesSheet')?.classList.contains('show')) {
+        renderFavoritesPageUI();
+    }
+}
+
 
 function setupUIEventListeners() {
     
@@ -611,15 +1194,7 @@ function setupUIEventListeners() {
     }
 
     cartBtn.onclick = () => { openPopup('cartSheet'); updateActiveNav('cartBtn'); };
-    
-    categoriesBtn.onclick = async () => {
-        saveCurrentScrollPositionCore();
-        history.pushState({ type: 'page', id: 'categoriesPage', title: t('nav_categories') }, '', '#categories');
-        showPage('categoriesPage', t('nav_categories'));
-        await renderSplitCategoriesPageUI();
-        updateActiveNav('categoriesBtn');
-    };
-
+    categoriesBtn.onclick = () => { openPopup('categoriesSheet'); updateActiveNav('categoriesBtn'); };
     settingsFavoritesBtn.onclick = () => { openPopup('favoritesSheet'); };
     settingsAdminLoginBtn.onclick = () => { openPopup('loginModal', 'modal'); };
     notificationBtn.addEventListener('click', () => { openPopup('notificationsSheet'); });
@@ -835,18 +1410,23 @@ function setupUIEventListeners() {
         const observer = new IntersectionObserver(async (entries) => {
             const isMainPageActive = document.getElementById('mainPage')?.classList.contains('page-active');
             
+            // پشکنین: ئایا لیستی کاڵاکان لە پەڕەی گەڕان دیارە؟
             const isProductGridVisible = document.getElementById('productsContainer')?.style.display === 'grid';
             
+            // [ 💡 نوێ ] - پشکنین: ئایا بەشی "هەموو کاڵاکان" لە پەڕەی سەرەکی هەیە؟
             const isHomeAllProductsVisible = document.querySelector('.all-products-grid');
 
+            // مەرج: دەبێت لە پەڕەی سەرەکی بین، و یەکێک لە لیستەکان دیار بێت، و هێشتا هەمووی بار نەبووبێت
             if (entries[0].isIntersecting && isMainPageActive && (isProductGridVisible || isHomeAllProductsVisible) && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
                  
                  loader.style.display = 'block'; 
+                 // ئەمە خۆی دەچێت 30ی تر دەهێنێت بەپێی lastVisibleProductDoc
                  const result = await fetchProducts(state.currentSearch, false); 
                  
                  loader.style.display = 'none'; 
                  
                  if(result && result.products.length > 0) {
+                     // [ 💡 گرنگ ] - ئەگەر لە پەڕەی سەرەکی بووین، ئەوا append دەکەین بۆ ناو بەشی تایبەت
                      if (isHomeAllProductsVisible) {
                          result.products.forEach(product => {
                              const card = createProductCardElementUI(product); 
@@ -855,10 +1435,12 @@ function setupUIEventListeners() {
                          });
                          setupScrollAnimations();
                      } else {
+                         // ئەگەر لە پەڕەی گەڕان بووین
                          await updateProductViewUI(false); 
                      }
                  }
                  
+                 // ئەگەر هەمووی تەواو بوو، ئیتر داواکاری مەنێرە
                  scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
             }
         }, { threshold: 0.1 });
@@ -934,7 +1516,7 @@ async function handleSetLanguage(lang) {
         btn.classList.toggle('active', btn.dataset.lang === lang);
     });
 
-    if (document.getElementById('categoriesPage').classList.contains('page-active')) renderSplitCategoriesPageUI();
+    renderCategoriesSheetUI(); 
     if (document.getElementById('cartSheet').classList.contains('show')) renderCartUI();
     if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPageUI();
     await updateProductViewUI(true, true); 
@@ -974,11 +1556,13 @@ window.addEventListener('popstate', async (event) => {
 
     if (popState) {
         if (popState.type === 'page') {
+            // [ 🛠️ Updated ] - Don't force scroll to top when going back in history
             showPage(popState.id, popState.title, false); 
 
             if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
                 await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
             }
+            // [ 💡 نوێ ] - Handled Product Detail Page
             if (popState.id === 'productDetailPage' && popState.productId) {
                  setTimeout(() => {
                     showProductDetailsUI({id: popState.productId}, true);
@@ -987,19 +1571,16 @@ window.addEventListener('popstate', async (event) => {
             if (popState.id === 'chatPage') {
                 openChatPage();
             }
-            if (popState.id === 'categoriesPage') {
-                await renderSplitCategoriesPageUI();
-            }
-
         } else if (popState.type === 'sheet' || popState.type === 'modal') {
             openPopup(popState.id, popState.type, false);
         
         } else { 
-            showPage('mainPage', '', false); 
+            showPage('mainPage', '', false); // Don't scroll top on back to home
             
             const stateToApply = popState || { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
             applyFilterStateCore(stateToApply); 
 
+            // [ 🛠️ چاکسازی سەرەکی ]
             const prodContainer = document.getElementById('productsContainer');
             const homeContainer = document.getElementById('homePageSectionsContainer');
             const catContainer = document.getElementById('categoryLayoutContainer');
@@ -1045,6 +1626,7 @@ window.addEventListener('popstate', async (event) => {
             }
 
             if (!state.pendingFilterNav) { 
+                // [ 💡 چاککرا ] - گەڕاندنەوەی شوێنی Scroll
                 if (typeof stateToApply.scroll === 'number') {
                     setTimeout(() => {
                          const homePage = document.getElementById('mainPage');
@@ -1080,6 +1662,7 @@ window.addEventListener('popstate', async (event) => {
 
 async function initializeUI() {
     await initCore(); 
+    // [ 💡 چاککرا ] - ناچالاککردنی خۆکارانەی وێبگەڕ بۆ ئەوەی ئێمە کۆنترۆڵی بکەین
     if ('scrollRestoration' in history) {
         history.scrollRestoration = 'manual';
     }
@@ -1097,6 +1680,9 @@ async function initializeUI() {
     const authTabSignUp = document.getElementById('authTabSignUp');
     if (authTabLogin) authTabLogin.textContent = t('auth_tab_login');
     if (authTabSignUp) authTabSignUp.textContent = t('auth_tab_signup');
+
+
+    renderCategoriesSheetUI();
 
     setupUIEventListeners();
 
@@ -1126,7 +1712,6 @@ async function handleInitialPageLoadUI() {
     const isChat = hash === 'chat'; 
     const isAdminChat = hash === 'admin-chats'; 
     const isProductDetail = params.get('product');
-    const isCategories = hash === 'categories';
 
     if (isSettings) {
          history.replaceState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', `#${hash}`);
@@ -1141,16 +1726,12 @@ async function handleInitialPageLoadUI() {
          if(sessionStorage.getItem('isAdmin') === 'true') {
             openChatPage(); 
          }
-    } else if (isCategories) {
-         history.replaceState({ type: 'page', id: 'categoriesPage', title: t('nav_categories') }, '', `#categories`);
-         showPage('categoriesPage', t('nav_categories'));
-         await renderSplitCategoriesPageUI();
-         updateActiveNav('categoriesBtn');
     } else if (isSubcategoryDetail) {
          const ids = hash.split('_');
          const mainCatId = ids[1];
          const subCatId = ids[2];
          if (state.categories.length > 0) { 
+             // [ 💡 Fix ] Pass true for fromHistory to avoid pushing, but rely on internal repair logic
               await showSubcategoryDetailPageUI(mainCatId, subCatId, true); 
          } else {
              console.warn("Categories not ready on initial load, showing main page instead of detail.");
@@ -1158,11 +1739,13 @@ async function handleInitialPageLoadUI() {
              await updateProductViewUI(true, true); 
          }
     } else if (isProductDetail) {
+        // [ 💡 نوێ ] - Initial Load for Product Detail Page
         const productId = isProductDetail;
         if (productId) {
-            showPage('productDetailPage'); 
+            showPage('productDetailPage'); // Show empty page first to reduce flicker
             const product = await fetchProductById(productId);
             if (product) {
+                // [ 💡 Fix ] Pass true for fromHistory to handle state repair internally
                 showProductDetailsUI(product, true);
             } else {
                  showPage('mainPage');
@@ -1191,6 +1774,43 @@ async function handleInitialPageLoadUI() {
               }
          }
     }
+}
+
+async function renderContactLinksUI() {
+    const contactLinksContainer = document.getElementById('dynamicContactLinksContainer');
+     try {
+         const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
+         const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
+         const snapshot = await getDocs(q); 
+
+         contactLinksContainer.innerHTML = ''; 
+
+         if (snapshot.empty) {
+             contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هیچ لینکی پەیوەندی نییە.</p>';
+             return;
+         }
+
+         snapshot.forEach(doc => {
+             const link = doc.data();
+             const name = link['name_' + state.currentLanguage] || link.name_ku_sorani;
+
+             const linkElement = document.createElement('a');
+             linkElement.href = link.url;
+             linkElement.target = '_blank';
+             linkElement.className = 'settings-item';
+             linkElement.innerHTML = `
+                 <div>
+                     <i class="${link.icon}" style="margin-left: 10px;"></i>
+                     <span>${name}</span>
+                 </div>
+                 <i class="fas fa-external-link-alt"></i>
+             `;
+             contactLinksContainer.appendChild(linkElement);
+         });
+     } catch (error) {
+         console.error("Error fetching/rendering social links:", error);
+         contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هەڵە لە بارکردنی لینکەکان.</p>';
+     }
 }
 
 function setupGpsButtonUI() {
@@ -1255,4 +1875,6 @@ if (!window.globalAdminTools) {
 window.globalAdminTools.openPopup = openPopup;
 window.globalAdminTools.closeCurrentPopup = closeCurrentPopup;
 window.globalAdminTools.showNotification = showNotification; 
-window.globalAdminTools.updateCartCountUI = updateCartCountUI;
+window.globalAdminTools.updateCartCountUI = updateCartCountUI; 
+
+console.log('openPopup, closeCurrentPopup, & showNotification ji bo admin.js hatin zêdekirin.');
