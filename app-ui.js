@@ -19,7 +19,7 @@ import {
 } from './app-setup.js';
 
 import {
-    state, t, debounce, formatDescription, handleLogin, handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
+    state, t, debounce, formatDescription, handleLogin, handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset, handleDeleteAccount, // <--- زیادکراوە
     fetchCategories, fetchProductById, fetchProducts, fetchSubcategories, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, fetchSubSubcategories,
     addToCartCore, updateCartQuantityCore, removeFromCartCore, generateOrderMessageCore, toggleFavoriteCore, isFavorite, saveFavorites,
     saveProfileCore, setLanguageCore, requestNotificationPermissionCore, checkNewAnnouncementsCore, updateLastSeenAnnouncementTimestamp,
@@ -735,6 +735,33 @@ function setupUIEventListeners() {
         showNotification(result.message, result.success ? 'success' : 'error');
     };
 
+    // --- Delete Account Button Logic ---
+    const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+    if (deleteAccountBtn) {
+        deleteAccountBtn.onclick = async () => {
+            deleteAccountBtn.disabled = true;
+            const originalContent = deleteAccountBtn.innerHTML;
+            deleteAccountBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            const result = await handleDeleteAccount();
+
+            if (result.message === "Cancelled") {
+                deleteAccountBtn.disabled = false;
+                deleteAccountBtn.innerHTML = originalContent;
+                return;
+            }
+
+            if (result.success) {
+                showNotification(result.message, 'success');
+                closeCurrentPopup();
+                updateProfileSheetUI();
+            } else {
+                showNotification(result.message, 'error');
+                deleteAccountBtn.disabled = false;
+                deleteAccountBtn.innerHTML = originalContent;
+            }
+        };
+    }
 
     const debouncedSearch = debounce(async (term) => {
         await navigateToFilterCore({ search: term }); 
@@ -914,7 +941,6 @@ function setupUIEventListeners() {
     setupGpsButtonUI();
 
     // --- [NOVELTY] Image Protection (Prevent Save/Menu) ---
-    // ئەم بەشە نوێیە: ڕێگری دەکات لە کرانەوەی مێنیوی وێنەکان
     document.addEventListener('contextmenu', (event) => {
         if (event.target.tagName === 'IMG') {
             event.preventDefault();

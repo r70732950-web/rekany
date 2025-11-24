@@ -2346,3 +2346,23 @@ img {
     -webkit-user-drag: none !important;     /* Prevent dragging */
     pointer-events: auto;                   /* Allow clicks but prevent default actions */
 }
+
+/* --- Delete Account Button Style --- */
+.delete-account-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: transparent; 
+    color: var(--danger-color);
+    border: 1px solid var(--danger-color);
+    border-radius: 6px;
+    font-weight: bold;
+    margin-top: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.delete-account-btn:hover {
+    background-color: var(--danger-color);
+    color: white;
+}

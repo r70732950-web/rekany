@@ -1,8 +1,36 @@
 // app-setup.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-analytics.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-import { getFirestore, enableIndexedDbPersistence, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where, startAfter, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+import { 
+    getAuth, 
+    signInWithEmailAndPassword, 
+    onAuthStateChanged, 
+    signOut, 
+    createUserWithEmailAndPassword, 
+    updateProfile, 
+    sendPasswordResetEmail,
+    deleteUser // <--- زیادکراوە
+} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+import { 
+    getFirestore, 
+    enableIndexedDbPersistence, 
+    collection, 
+    addDoc, 
+    doc, 
+    updateDoc, 
+    deleteDoc, 
+    onSnapshot, 
+    query, 
+    orderBy, 
+    getDocs, 
+    limit, 
+    getDoc, 
+    setDoc, 
+    where, 
+    startAfter, 
+    runTransaction, 
+    serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
 
@@ -28,6 +56,7 @@ export const storage = getStorage(app);
 export {
     signInWithEmailAndPassword, onAuthStateChanged, signOut,
     createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail,
+    deleteUser, // <--- زیادکراوە بۆ Export
     serverTimestamp,
     ref, uploadBytes, getDownloadURL
 };
@@ -165,7 +194,12 @@ export const translations = {
         order_confirm_title: "ناردنی داواکاری",
         order_confirm_msg: "دڵنیایت دەتەوێت ئەم داواکارییە بنێریت؟",
         yes_send: "بەڵێ، بینێرە",
-        cancel: "پاشگەزبوونەوە"
+        cancel: "پاشگەزبوونەوە",
+        // نوێ
+        delete_account_btn: "سڕینەوەی ئەکاونت",
+        delete_account_confirm: "دڵنیایت دەتەوێت ئەکاونتەکەت بسڕیتەوە؟ ئەم کارە پاشگەزبوونەوەی نییە و هەموو زانیارییەکانت دەسڕدرێنەوە.",
+        account_deleted_success: "ئەکاونتەکەت بە سەرکەوتوویی سڕدرایەوە.",
+        delete_account_error_login: "بۆ ئاسایشی زیاتر، تکایە سەرەتا بچۆ دەرەوە و دووبارە بچۆرە ژوورەوە، ئینجا هەوڵ بدە."
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -286,7 +320,12 @@ export const translations = {
         order_confirm_title: "فرێکرنا داخازیێ",
         order_confirm_msg: "تۆ پشتڕاستی تە دڤێت ڤێ داخازیێ فرێکەی؟",
         yes_send: "بەڵێ، فرێکە",
-        cancel: "پەشێمانبوون"
+        cancel: "پەشێمانبوون",
+        // نوێ
+        delete_account_btn: "ژێبرنا ئەکاونتی",
+        delete_account_confirm: "تۆ پشتڕاستی تە دڤێت ئەکاونتێ خۆ ژێبەى؟ ئەڤ کارە پەشێمانبوون تێدا نینە و هەمی پێزانینێن تە دێ هێنە ژێبرن.",
+        account_deleted_success: "ئەکاونتێ تە ب سەرکەفتیانە هاتە ژێبرن.",
+        delete_account_error_login: "ژبۆ پاراستنێ، هیڤیە سەرەتا دەرکەڤە و دووبارە وەرە ژوور، پاشی هەوڵ بدە."
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -407,7 +446,12 @@ export const translations = {
         order_confirm_title: "تأكيد الطلب",
         order_confirm_msg: "هل أنت متأكد من أنك تريد إرسال هذا الطلب؟",
         yes_send: "نعم، أرسل",
-        cancel: "إلغاء"
+        cancel: "إلغاء",
+        // نوێ
+        delete_account_btn: "حذف الحساب",
+        delete_account_confirm: "هل أنت متأكد أنك تريد حذف حسابك؟ هذا الإجراء لا رجعة فيه وسيتم حذف جميع بياناتك.",
+        account_deleted_success: "تم حذف حسابك بنجاح.",
+        delete_account_error_login: "لأغراض أمنية، يرجى تسجيل الخروج وتسجيل الدخول مرة أخرى ثم المحاولة."
     }
 };
 
@@ -439,11 +483,11 @@ export let state = {
     contactInfo: {}, 
     activeChatUserId: null,
     unreadMessagesCount: 0,
+    currentSplitCategory: null 
 };
 
 export const CART_KEY = "maten_store_cart";
 export const FAVORITES_KEY = "maten_store_favorites";
-// [ 💡 گۆڕانکاری ] - کراوە بە 30
 export const PRODUCTS_PER_PAGE = 30;
 
 // Elements Exports

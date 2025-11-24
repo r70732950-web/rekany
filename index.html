@@ -6,7 +6,7 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -210,8 +210,13 @@
                         <button type="submit" data-translate-key="save_button">پاشەکەوتکردنی زانیاری گەیاندن</button>
                     </form>
                     
-                    <button id="userLogoutBtn" style="width: 100%; padding: 10px; background-color: var(--danger-color); color: white; border: none; border-radius: 6px; font-weight: bold; margin-top: 15px; cursor: pointer;">
-                        <i class="fas fa-sign-out-alt"></i> چوونەدەرەوە
+                    <button id="userLogoutBtn" style="width: 100%; padding: 10px; background-color: var(--dark-gray); color: white; border: none; border-radius: 6px; font-weight: bold; margin-top: 15px; cursor: pointer;">
+                        <i class="fas fa-sign-out-alt"></i> <span data-translate-key="logout_nav">چوونەدەرەوە</span>
+                    </button>
+
+                    <!-- دوگمەی سڕینەوەی ئەکاونت -->
+                    <button id="deleteAccountBtn" class="delete-account-btn">
+                        <i class="fas fa-user-times"></i> <span data-translate-key="delete_account_btn">سڕینەوەی ئەکاونت</span>
                     </button>
                 </div>
                 
@@ -1273,3 +1278,4 @@
     <script src="admin.js" defer></script>
 </body>
 </html>
+
