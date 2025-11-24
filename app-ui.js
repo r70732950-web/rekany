@@ -19,7 +19,7 @@ import {
 } from './app-setup.js';
 
 import {
-    state, t, debounce, formatDescription, handleLogin, handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset, handleDeleteAccount, // <--- زیادکراوە
+    state, t, debounce, formatDescription, handleLogin, handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset, handleDeleteAccount,
     fetchCategories, fetchProductById, fetchProducts, fetchSubcategories, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, fetchSubSubcategories,
     addToCartCore, updateCartQuantityCore, removeFromCartCore, generateOrderMessageCore, toggleFavoriteCore, isFavorite, saveFavorites,
     saveProfileCore, setLanguageCore, requestNotificationPermissionCore, checkNewAnnouncementsCore, updateLastSeenAnnouncementTimestamp,
@@ -735,30 +735,40 @@ function setupUIEventListeners() {
         showNotification(result.message, result.success ? 'success' : 'error');
     };
 
-    // --- Delete Account Button Logic ---
+    // --- Delete Account Button Logic (Updated for Custom Modal) ---
     const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteAccountBtn');
+    const cancelDeleteBtn = document.getElementById('cancelDeleteAccountBtn');
+
     if (deleteAccountBtn) {
-        deleteAccountBtn.onclick = async () => {
-            deleteAccountBtn.disabled = true;
-            const originalContent = deleteAccountBtn.innerHTML;
-            deleteAccountBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        deleteAccountBtn.onclick = () => {
+            window.globalAdminTools.openPopup('deleteAccountModal', 'modal');
+        };
+    }
 
-            const result = await handleDeleteAccount();
+    if (cancelDeleteBtn) {
+        cancelDeleteBtn.onclick = () => {
+            window.globalAdminTools.closeCurrentPopup();
+        };
+    }
 
-            if (result.message === "Cancelled") {
-                deleteAccountBtn.disabled = false;
-                deleteAccountBtn.innerHTML = originalContent;
-                return;
-            }
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.onclick = async () => {
+            confirmDeleteBtn.disabled = true;
+            const originalContent = confirmDeleteBtn.innerHTML;
+            confirmDeleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            const result = await handleDeleteAccount(true); // Pass true to skip native confirmation
 
             if (result.success) {
                 showNotification(result.message, 'success');
-                closeCurrentPopup();
-                updateProfileSheetUI();
+                closeCurrentPopup(); 
+                updateProfileSheetUI(); 
+                window.globalAdminTools.closeCurrentPopup(); 
             } else {
                 showNotification(result.message, 'error');
-                deleteAccountBtn.disabled = false;
-                deleteAccountBtn.innerHTML = originalContent;
+                confirmDeleteBtn.disabled = false;
+                confirmDeleteBtn.innerHTML = originalContent;
             }
         };
     }
@@ -947,7 +957,6 @@ function setupUIEventListeners() {
         }
     });
     
-    // ڕێگری لە ڕاکێشان (Drag)
     document.addEventListener('dragstart', (event) => {
         if (event.target.tagName === 'IMG') {
             event.preventDefault();

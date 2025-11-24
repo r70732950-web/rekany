@@ -7,7 +7,7 @@ import {
     usersCollection, 
     createUserWithEmailAndPassword, updateProfile, 
     sendPasswordResetEmail,
-    deleteUser, // <--- زیادکراوە
+    deleteUser, 
     translations, 
     CART_KEY, FAVORITES_KEY, PRODUCTS_PER_PAGE,
 } from './app-setup.js';
@@ -188,11 +188,11 @@ async function handlePasswordReset(email) {
     }
 }
 
-// [نوێ] فەنکشنی سڕینەوەی ئەکاونت
-export async function handleDeleteAccount() {
+// [نوێ] فەنکشنی سڕینەوەی ئەکاونت (نوێکراوە بۆ skipConfirmation)
+export async function handleDeleteAccount(skipConfirmation = false) {
     if (!state.currentUser) return { success: false, message: "Error" };
 
-    if (!confirm(t('delete_account_confirm'))) {
+    if (!skipConfirmation && !confirm(t('delete_account_confirm'))) {
         return { success: false, message: "Cancelled" };
     }
 
