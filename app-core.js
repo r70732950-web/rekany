@@ -7,6 +7,7 @@ import {
     usersCollection, 
     createUserWithEmailAndPassword, updateProfile, 
     sendPasswordResetEmail,
+    deleteUser, // <--- زیادکراوە
     translations, 
     CART_KEY, FAVORITES_KEY, PRODUCTS_PER_PAGE,
 } from './app-setup.js';
@@ -50,7 +51,7 @@ export let state = {
     contactInfo: {}, 
     activeChatUserId: null,
     unreadMessagesCount: 0,
-    currentSplitCategory: null // [نوێ] بۆ پاراستنی شوێنی جۆرەکان
+    currentSplitCategory: null 
 };
 
 // Promise to ensure Auth is ready
@@ -183,6 +184,41 @@ async function handlePasswordReset(email) {
         if (error.code === 'auth/user-not-found') {
             return { success: false, message: t('password_reset_error_not_found') };
         }
+        return { success: false, message: t('error_generic') };
+    }
+}
+
+// [نوێ] فەنکشنی سڕینەوەی ئەکاونت
+export async function handleDeleteAccount() {
+    if (!state.currentUser) return { success: false, message: "Error" };
+
+    if (!confirm(t('delete_account_confirm'))) {
+        return { success: false, message: "Cancelled" };
+    }
+
+    try {
+        const uid = state.currentUser.uid;
+        const user = auth.currentUser;
+
+        // ١. سڕینەوەی داتای بەکارهێنەر لە Firestore
+        await deleteDoc(doc(db, "users", uid));
+        
+        // ٢. سڕینەوەی بەکارهێنەر لە Authentication
+        await deleteUser(user);
+
+        // ٣. پاککردنەوەی ستەیت
+        state.currentUser = null;
+        state.userProfile = {};
+        
+        return { success: true, message: t('account_deleted_success') };
+
+    } catch (error) {
+        console.error("Delete Account Error:", error);
+        
+        if (error.code === 'auth/requires-recent-login') {
+            return { success: false, message: t('delete_account_error_login') };
+        }
+        
         return { success: false, message: t('error_generic') };
     }
 }
@@ -785,12 +821,10 @@ async function forceUpdateCore() {
     return { success: false, message: 'Update cancelled.' }; 
 }
 
-// [چاکسازی] : فەنکشنەکە ئێستا بۆ هەموو پەڕەکان کار دەکات
 export function saveCurrentScrollPositionCore() {
     const currentState = history.state;
     const activePage = document.getElementById(state.currentPageId); 
     
-    // ئەگەر پەڕەکە هەبوو و سکڕۆڵی هەبوو، پاشەکەوتی دەکەین
     if (activePage && currentState) {
         history.replaceState({ ...currentState, scroll: activePage.scrollTop }, '');
     }
