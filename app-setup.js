@@ -9,7 +9,7 @@ import {
     createUserWithEmailAndPassword, 
     updateProfile, 
     sendPasswordResetEmail,
-    deleteUser // <--- زیادکراوە
+    deleteUser 
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { 
     getFirestore, 
@@ -52,11 +52,10 @@ export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 export const storage = getStorage(app);
 
-// هەناردەکردنی فەنکشنەکان بۆ ئەوەی لە فایلەکانی تر بەکاربێن
 export {
     signInWithEmailAndPassword, onAuthStateChanged, signOut,
     createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail,
-    deleteUser, // <--- زیادکراوە بۆ Export
+    deleteUser, 
     serverTimestamp,
     ref, uploadBytes, getDownloadURL
 };
@@ -195,11 +194,11 @@ export const translations = {
         order_confirm_msg: "دڵنیایت دەتەوێت ئەم داواکارییە بنێریت؟",
         yes_send: "بەڵێ، بینێرە",
         cancel: "پاشگەزبوونەوە",
-        // نوێ
         delete_account_btn: "سڕینەوەی ئەکاونت",
         delete_account_confirm: "دڵنیایت دەتەوێت ئەکاونتەکەت بسڕیتەوە؟ ئەم کارە پاشگەزبوونەوەی نییە و هەموو زانیارییەکانت دەسڕدرێنەوە.",
         account_deleted_success: "ئەکاونتەکەت بە سەرکەوتوویی سڕدرایەوە.",
-        delete_account_error_login: "بۆ ئاسایشی زیاتر، تکایە سەرەتا بچۆ دەرەوە و دووبارە بچۆرە ژوورەوە، ئینجا هەوڵ بدە."
+        delete_account_error_login: "بۆ ئاسایشی زیاتر، تکایە سەرەتا بچۆ دەرەوە و دووبارە بچۆرە ژوورەوە، ئینجا هەوڵ بدە.",
+        yes_delete: "بەڵێ، بیسڕەوە"
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -321,11 +320,11 @@ export const translations = {
         order_confirm_msg: "تۆ پشتڕاستی تە دڤێت ڤێ داخازیێ فرێکەی؟",
         yes_send: "بەڵێ، فرێکە",
         cancel: "پەشێمانبوون",
-        // نوێ
         delete_account_btn: "ژێبرنا ئەکاونتی",
         delete_account_confirm: "تۆ پشتڕاستی تە دڤێت ئەکاونتێ خۆ ژێبەى؟ ئەڤ کارە پەشێمانبوون تێدا نینە و هەمی پێزانینێن تە دێ هێنە ژێبرن.",
         account_deleted_success: "ئەکاونتێ تە ب سەرکەفتیانە هاتە ژێبرن.",
-        delete_account_error_login: "ژبۆ پاراستنێ، هیڤیە سەرەتا دەرکەڤە و دووبارە وەرە ژوور، پاشی هەوڵ بدە."
+        delete_account_error_login: "ژبۆ پاراستنێ، هیڤیە سەرەتا دەرکەڤە و دووبارە وەرە ژوور، پاشی هەوڵ بدە.",
+        yes_delete: "بەلێ، ژێبە"
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -447,11 +446,11 @@ export const translations = {
         order_confirm_msg: "هل أنت متأكد من أنك تريد إرسال هذا الطلب؟",
         yes_send: "نعم، أرسل",
         cancel: "إلغاء",
-        // نوێ
         delete_account_btn: "حذف الحساب",
         delete_account_confirm: "هل أنت متأكد أنك تريد حذف حسابك؟ هذا الإجراء لا رجعة فيه وسيتم حذف جميع بياناتك.",
         account_deleted_success: "تم حذف حسابك بنجاح.",
-        delete_account_error_login: "لأغراض أمنية، يرجى تسجيل الخروج وتسجيل الدخول مرة أخرى ثم المحاولة."
+        delete_account_error_login: "لأغراض أمنية، يرجى تسجيل الخروج وتسجيل الدخول مرة أخرى ثم المحاولة.",
+        yes_delete: "نعم، احذف"
     }
 };
 

@@ -102,6 +102,7 @@
             </div>
         </div>
 
+        <!-- [NOVELTY] Delete Account Confirmation Modal (Added Here) -->
         <div id="deleteAccountModal" class="modal">
             <div class="modal-content" style="text-align: center; padding: 25px;">
                 <span class="close" aria-label="Close">&times;</span>
@@ -110,7 +111,7 @@
                 <p style="margin-bottom: 25px; color: var(--text-light); line-height: 1.6;" data-translate-key="delete_account_confirm">دڵنیایت دەتەوێت ئەکاونتەکەت بسڕیتەوە؟</p>
                 
                 <div style="display: flex; gap: 10px;">
-                    <button id="confirmDeleteAccountBtn" style="background-color: var(--danger-color); color: white; flex: 1; padding: 12px; border-radius: 8px;">بەڵێ، بیسڕەوە</button>
+                    <button id="confirmDeleteAccountBtn" style="background-color: var(--danger-color); color: white; flex: 1; padding: 12px; border-radius: 8px;" data-translate-key="yes_delete">بەڵێ، بیسڕەوە</button>
                     <button id="cancelDeleteAccountBtn" style="background-color: #e2e8f0; color: var(--text-color); flex: 1; padding: 12px; border-radius: 8px;" data-translate-key="cancel">پاشگەزبوونەوە</button>
                 </div>
             </div>
@@ -228,6 +229,7 @@
                         <i class="fas fa-sign-out-alt"></i> <span data-translate-key="logout_nav">چوونەدەرەوە</span>
                     </button>
 
+                    <!-- دوگمەی سڕینەوەی ئەکاونت -->
                     <button id="deleteAccountBtn" class="delete-account-btn">
                         <i class="fas fa-user-times"></i> <span data-translate-key="delete_account_btn">سڕینەوەی ئەکاونت</span>
                     </button>
@@ -1291,3 +1293,4 @@
     <script src="admin.js" defer></script>
 </body>
 </html>
+
