@@ -573,6 +573,14 @@ function updateProfileSheetUI() {
 
 function setupUIEventListeners() {
     
+    // --- [NOVELTY] Refresh Button Logic ---
+    const refreshAppBtn = document.getElementById('manualRefreshBtn');
+    if (refreshAppBtn) {
+        refreshAppBtn.onclick = () => {
+            window.location.reload();
+        };
+    }
+
     homeBtn.onclick = async () => {
         saveCurrentScrollPositionCore();
 
