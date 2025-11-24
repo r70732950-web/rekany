@@ -6,13 +6,6 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
 
-    <!-- iOS Specific Meta Tags for Native Feel -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Maten Store">
-    <meta name="format-detection" content="telephone=no">
-    <link rel="apple-touch-startup-image" href="images/icons/icon-512x512.png">
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,11 +16,15 @@
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a365d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Maten Store">
     <link rel="apple-touch-icon" href="images/icons/icon-512x512.png">
 
 </head>
 <body>
     <script>
+      // Check for chat hash to hide header/nav immediately to prevent flicker
       (function() {
         try {
             var hash = window.location.hash.trim();
@@ -51,11 +48,6 @@
                     <button id="clearSearchBtn" class="clear-search-btn" style="display: none;">&times;</button>
                 </div>
                 <div class="header-actions">
-                    <!-- [NOVELTY] Refresh Button Added Here -->
-                    <button id="manualRefreshBtn" class="header-icon-btn" style="font-size: 18px;">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-
                     <button id="notificationBtn" class="header-icon-btn">
                         <i class="fas fa-bell"></i>
                         <span id="notificationBadge" class="notification-badge" style="display: none;"></span>
@@ -110,7 +102,7 @@
             </div>
         </div>
 
-        <!-- Delete Account Confirmation Modal -->
+        <!-- [NOVELTY] Delete Account Confirmation Modal (Added Here) -->
         <div id="deleteAccountModal" class="modal">
             <div class="modal-content" style="text-align: center; padding: 25px;">
                 <span class="close" aria-label="Close">&times;</span>
@@ -237,6 +229,7 @@
                         <i class="fas fa-sign-out-alt"></i> <span data-translate-key="logout_nav">چوونەدەرەوە</span>
                     </button>
 
+                    <!-- دوگمەی سڕینەوەی ئەکاونت -->
                     <button id="deleteAccountBtn" class="delete-account-btn">
                         <i class="fas fa-user-times"></i> <span data-translate-key="delete_account_btn">سڕینەوەی ئەکاونت</span>
                     </button>
@@ -1300,5 +1293,4 @@
     <script src="admin.js" defer></script>
 </body>
 </html>
-
 
