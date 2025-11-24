@@ -183,7 +183,7 @@ export async function showProductDetailsUI(productData, fromHistory = false) {
     
     document.getElementById('detailProductDescription').innerHTML = formatDescription(baseProduct.description); 
     
-    // Render Specifications
+    // [نوێ] Render Specifications
     renderSpecificationsUI(product);
 
     // Variations Logic
@@ -193,6 +193,7 @@ export async function showProductDetailsUI(productData, fromHistory = false) {
 }
 
 function renderSpecificationsUI(product) {
+    // لابردنی خشتەی کۆن ئەگەر هەبێت
     const existingTable = document.querySelector('.product-specs-table');
     if (existingTable) existingTable.remove();
 
@@ -219,6 +220,7 @@ function renderSpecificationsUI(product) {
 
     if (rowsHTML) {
         table.innerHTML = rowsHTML;
+        // [چاکسازی] دانانی خشتەکە لە سەرووی وەسفی کاڵاکە (Before Description)
         descriptionEl.parentNode.insertBefore(table, descriptionEl);
     }
 }
@@ -373,14 +375,7 @@ function renderSliderImages(imageUrls, videoLink, productName) {
 
         const line = document.createElement('div');
         line.className = `indicator-line`;
-        
-        // ڕەنگی پاشبنەما سوور (وەک پێشوو)
-        line.style.backgroundColor = '#dc2626'; 
-        line.style.border = '1px solid #dc2626'; 
-        
-        // 🔴 [گۆڕانکاری] : ئایکۆنەکە کرایە ڕەش (color:black)
-        line.innerHTML = '<i class="fas fa-play" style="font-size:8px; color:black;"></i>'; 
-        
+        line.innerHTML = '<i class="fas fa-play" style="font-size:8px; color:white;"></i>'; 
         line.style.display = 'flex';
         line.style.alignItems = 'center';
         line.style.justifyContent = 'center';
