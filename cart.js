@@ -6,7 +6,8 @@ import {
     generateOrderMessageCore, 
     addToCartCore, 
     updateCartQuantityCore, 
-    removeFromCartCore 
+    removeFromCartCore,
+    calculateCartTotals // <--- زیاد کراوە
 } from './app-core.js';
 
 import { 
@@ -30,6 +31,8 @@ export function renderCartUI() {
     if (!cartItemsContainer) return;
     
     cartItemsContainer.innerHTML = '';
+    
+    // پشکنین ئەگەر سەبەتە بەتاڵ بێت
     if (state.cart.length === 0) {
         emptyCartMessage.style.display = 'block';
         cartTotal.style.display = 'none';
@@ -43,10 +46,14 @@ export function renderCartUI() {
     
     renderCartActionButtonsUI(); 
 
-    let total = 0;
+    // --- گۆڕانکاری: بەکارهێنانی فەنکشنی نوێ بۆ حیسابکردن ---
+    const totals = calculateCartTotals(); 
+    // ----------------------------------------------------
+
     state.cart.forEach(item => {
-        const itemTotal = (item.price * item.quantity) + (item.shippingCost || 0);
-        total += itemTotal;
+        // لێرەدا تەنها نرخی کاڵاکە و ژمارەکەی حیساب دەکەین بۆ پیشاندان لەسەر کارتەکە
+        // نرخی گەیاندن لێرە کۆ ناکەینەوە چونکە لە کۆتاییدا بەپێی مارکێت حیساب دەکرێت
+        const itemLineTotal = (item.price * item.quantity);
         
         const cartItem = document.createElement('div');
         cartItem.className = 'cart-item';
@@ -55,32 +62,31 @@ export function renderCartUI() {
             ? item.name 
             : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
 
-        let shippingDisplay = '';
+        // پیشاندانی زانیاری گەیاندن تەنها وەک زانیاری (نەک بۆ کۆکردنەوە)
+        let shippingInfoDisplay = '';
         if (item.shippingCost > 0) {
-            shippingDisplay = `<span style="font-size:12px; color:#e53e3e;">(+ ${item.shippingCost.toLocaleString()} گەیاندن)</span>`;
+            shippingInfoDisplay = `<div style="font-size:11px; color:#888;">(گەیاندن: ${item.shippingCost.toLocaleString()})</div>`;
         } else {
-            shippingDisplay = `<span style="font-size:12px; color:#38a169;">(گەیاندن بێ بەرامبەر)</span>`;
+            shippingInfoDisplay = `<div style="font-size:11px; color:#38a169;">(گەیاندن بێ بەرامبەر)</div>`;
         }
 
-        // --- [MARKET CODE DISPLAY START] ---
-        // ئەگەر کاڵاکە کۆدی مارکێتی هەبوو، پیشانی بدە
+        // --- [MARKET CODE DISPLAY] ---
         let marketCodeHtml = '';
         if (item.marketCode) {
-            marketCodeHtml = `<span style="font-size: 11px; background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; margin-right: 5px; color: #555; border: 1px solid #ddd;">${item.marketCode}</span>`;
+            marketCodeHtml = `<span style="font-size: 11px; background-color: #e2e8f0; padding: 2px 8px; border-radius: 4px; color: #2d3748; font-weight: bold; display:inline-block; margin-top:4px;">🏪 ${item.marketCode}</span>`;
         }
-        // --- [MARKET CODE DISPLAY END] ---
+        // -----------------------------
 
         cartItem.innerHTML = `
             <img src="${item.image}" alt="${itemNameInCurrentLang}" class="cart-item-image">
             <div class="cart-item-details">
                 <div class="cart-item-title">
                     ${itemNameInCurrentLang}
-                    <div style="margin-top: 4px;">${marketCodeHtml}</div>
+                    <div>${marketCodeHtml}</div>
                 </div>
                 <div class="cart-item-price">
                     ${item.price.toLocaleString()} د.ع <span style="font-size:11px; color:#666;">x ${item.quantity}</span>
-                    <br>
-                    ${shippingDisplay}
+                    ${shippingInfoDisplay}
                 </div>
                 <div class="cart-item-quantity">
                     <button class="quantity-btn increase-btn" data-id="${item.id}">+</button>
@@ -89,15 +95,16 @@ export function renderCartUI() {
                 </div>
             </div>
             <div class="cart-item-subtotal">
-                <div>کۆی گشتی</div>
-                <span style="color:var(--primary-color); font-size:16px;">${itemTotal.toLocaleString()} د.ع.</span>
+                <div>کۆی کاڵا</div>
+                <span style="color:var(--primary-color); font-size:16px;">${itemLineTotal.toLocaleString()} د.ع.</span>
                 <button class="cart-item-remove" data-id="${item.id}"><i class="fas fa-trash"></i></button>
             </div>
         `;
         cartItemsContainer.appendChild(cartItem);
     });
 
-    totalAmount.textContent = total.toLocaleString();
+    // نوێکردنەوەی نرخی کۆتایی بەپێی حیساباتە نوێیەکە (کاڵا + گەیاندنی مارکێت)
+    totalAmount.textContent = totals.grandTotal.toLocaleString();
 
     // Event Listeners
     cartItemsContainer.querySelectorAll('.increase-btn').forEach(btn => btn.onclick = (e) => handleUpdateQuantityUI(e.currentTarget.dataset.id, 1));

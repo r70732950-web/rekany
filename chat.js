@@ -7,7 +7,7 @@ import {
 } from './app-setup.js';
 
 import { 
-    state, t, saveCart, authReady
+    state, t, saveCart, authReady, calculateCartTotals // <--- زیاد کراوە
 } from './app-core.js';
 
 import { 
@@ -186,8 +186,6 @@ function setupChatListeners() {
 export async function openChatPage(targetUserId = null, targetUserName = null) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     
-    // [ 🛠️ چاککراوە ] - سەرەتا پشکنین دەکەین ئەگەر ئەدمین بوو، ڕاستەوخۆ دەچینە لیستی چاتەکان
-    // بەم شێوەیە چیتر شاشەی چاتی بەکارهێنەر ناکاتەوە و دیزاین تێک نادات.
     if (isAdmin && !targetUserId) {
         openAdminChatList();
         return;
@@ -273,7 +271,6 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
 
 function openAdminChatList() {
     const bottomNav = document.querySelector('.bottom-nav');
-    // دڵنیابوونەوە لەوەی بۆ لیستی ئەدمین، دوگمەکانی خوارەوە دەردەکەون
     if (bottomNav) bottomNav.style.display = 'flex';
 
     history.pushState({ type: 'page', id: 'adminChatListPage', title: t('conversations_title') }, '', '#admin-chats');
@@ -358,47 +355,28 @@ function renderSingleMessage(msg, container, chatUserId) {
                         ${order.items.map(i => {
                             const price = Number(i.price) || 0;
                             const quantity = Number(i.quantity) || 1;
-                            const shipping = Number(i.shippingCost) || 0;
+                            const itemTotal = price * quantity;
                             
-                            const singleTotal = (price * quantity) + shipping;
+                            // گۆڕانکاری: چیتر گەیاندن لێرە بە جیا پیشان نادرێت بۆ ئەوەی سەر لێ تێکچوون دروست نەبێت
+                            // چونکە گەیاندن ئێستا بەپێی مارکێتە نەک کاڵا
                             
-                            let priceDisplay = '';
-                            if (shipping > 0) {
-                                priceDisplay = `
-                                    <div style="font-size:11px; color:#555;">
-                                        (${price.toLocaleString()} x ${quantity}) + <span style="color:#e53e3e;">${shipping.toLocaleString()} (گەیاندن)</span>
-                                    </div>
-                                    <div style="font-weight:bold; color:var(--primary-color);">
-                                        = ${singleTotal.toLocaleString()} د.ع
-                                    </div>
-                                `;
-                            } else {
-                                priceDisplay = `
-                                    <div style="font-size:11px; color:#555;">
-                                        (${price.toLocaleString()} x ${quantity}) + <span style="color:#38a169;">(بێ بەرامبەر)</span>
-                                    </div>
-                                    <div style="font-weight:bold; color:var(--primary-color);">
-                                        = ${singleTotal.toLocaleString()} د.ع
-                                    </div>
-                                `;
-                            }
-
                             const itemName = i.name && i.name[state.currentLanguage] 
                                 ? i.name[state.currentLanguage] 
                                 : (i.name && i.name.ku_sorani ? i.name.ku_sorani : (typeof i.name === 'string' ? i.name : 'کاڵا'));
+
+                            let marketBadge = '';
+                            if(i.marketCode) marketBadge = `<span style="font-size:10px; background:#eee; padding:1px 4px; border-radius:3px;">${i.marketCode}</span>`;
 
                             return `
                             <div class="order-bubble-item" style="display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #eee;">
                                 <img src="${i.image || 'https://placehold.co/50'}" style="width: 50px; height: 50px; border-radius: 6px; object-fit: cover; border: 1px solid #eee;">
                                 <div style="flex: 1; overflow: hidden;">
                                     <div style="font-weight: bold; font-size: 13px;">
-                                        ${itemName}
+                                        ${itemName} ${marketBadge}
                                     </div>
                                     
-                                    ${priceDisplay}
-                                    
-                                    <div style="font-size: 12px; color: #666; margin-top:2px;">
-                                        ژمارە: <span style="color:black; font-weight:bold;">${quantity}</span>
+                                    <div style="font-size:12px; color:#555;">
+                                        ${price.toLocaleString()} x ${quantity} = <strong>${itemTotal.toLocaleString()}</strong>
                                     </div>
                                 </div>
                             </div>
@@ -655,9 +633,10 @@ async function handleDirectOrder() {
 }
 
 async function processOrderSubmission() {
-    const total = state.cart.reduce((sum, item) => {
-        return sum + (item.price * item.quantity) + (item.shippingCost || 0);
-    }, 0);
+    // --- گۆڕانکاری: بەکارهێنانی لۆجیکی نوێی حیسابکردن ---
+    const totals = calculateCartTotals();
+    const total = totals.grandTotal;
+    // ------------------------------------------------
     
     const orderData = {
         userId: state.currentUser.uid,
@@ -665,7 +644,7 @@ async function processOrderSubmission() {
         userPhone: state.userProfile.phone || '', 
         userAddress: state.userProfile.address || '', 
         items: state.cart,
-        total: total,
+        total: total, // نرخی ڕاست بەپێی یاسای مارکێت
         status: 'pending', 
         createdAt: Date.now() 
     };

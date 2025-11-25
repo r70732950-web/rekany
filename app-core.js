@@ -623,9 +623,7 @@ export async function addToCartCore(productId, selectedVariationInfo = null) {
             id: cartId, 
             productId: product.id, 
             name: cartItemName,
-            // --- [MARKET CODE: START] ---
-            marketCode: product.marketCode || '', // ئێرە زیاد کرا
-            // --- [MARKET CODE: END] ---
+            marketCode: product.marketCode || '', 
             price: cartItemPrice, 
             shippingCost: calculatedShippingCost,
             image: cartItemImage, 
@@ -660,43 +658,87 @@ export function removeFromCartCore(cartId) {
     return false; 
 }
 
+// --- NEW FUNCTION: Calculate Totals Grouped by Market ---
+export function calculateCartTotals() {
+    let itemTotal = 0;
+    let totalShipping = 0;
+    
+    // 1. Group items by Market Code
+    const itemsByMarket = {};
+    
+    state.cart.forEach(item => {
+        // Calculate Item Price Total
+        itemTotal += (item.price * item.quantity);
+        
+        const market = item.marketCode || 'default'; 
+        if (!itemsByMarket[market]) {
+            itemsByMarket[market] = [];
+        }
+        itemsByMarket[market].push(item);
+    });
+
+    // 2. Calculate Shipping Per Group (Max Shipping Rule)
+    Object.keys(itemsByMarket).forEach(market => {
+        const items = itemsByMarket[market];
+        
+        // Find highest shipping cost in this group
+        let maxShippingInGroup = 0;
+        items.forEach(item => {
+            const shipping = item.shippingCost || 0;
+            if (shipping > maxShippingInGroup) {
+                maxShippingInGroup = shipping;
+            }
+        });
+        
+        totalShipping += maxShippingInGroup;
+    });
+
+    return {
+        itemTotal: itemTotal,
+        shippingTotal: totalShipping,
+        grandTotal: itemTotal + totalShipping,
+        groupedItems: itemsByMarket 
+    };
+}
+
+// --- UPDATED FUNCTION: Generate Message with Market Grouping ---
 export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
-    let total = 0;
+    const totals = calculateCartTotals();
     let message = t('order_greeting') + "\n\n";
     
-    state.cart.forEach(item => {
-        const shipping = item.shippingCost || 0;
-        const lineTotal = (item.price * item.quantity) + shipping;
+    // Iterate through markets
+    Object.keys(totals.groupedItems).forEach(market => {
+        const items = totals.groupedItems[market];
         
-        total += lineTotal;
-        
-        const itemName = (typeof item.name === 'string') 
-            ? item.name 
-            : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
-        
-        // --- [MARKET CODE: START] ---
-        let marketInfo = "";
-        if (item.marketCode) {
-            marketInfo = ` [مارکێت: ${item.marketCode}]`;
-        }
-        // --- [MARKET CODE: END] ---
+        // Find max shipping for display
+        let maxShipping = 0;
+        items.forEach(i => { if((i.shippingCost||0) > maxShipping) maxShipping = i.shippingCost||0; });
 
-        let priceDetails = "";
-        if (shipping > 0) {
-             priceDetails = `(${item.price.toLocaleString()} x ${item.quantity}) + ${shipping.toLocaleString()} (${t('shipping_cost') || 'گەیاندن'}) = ${lineTotal.toLocaleString()}`;
-        } else {
-             priceDetails = `(${item.price.toLocaleString()} x ${item.quantity}) + (${t('free_shipping') || 'گەیاندن بێ بەرامبەر'}) = ${lineTotal.toLocaleString()}`;
-        }
+        // Market Header
+        const marketName = market === 'default' ? (t('general_market') || 'گشتی') : market;
+        message += `🏪 *${t('market') || 'مارکێت'}: ${marketName}*\n`;
+        message += `------------------\n`;
 
-        // --- [MARKET CODE: Added marketInfo] ---
-        message += `- ${itemName}${marketInfo}\n`;
-        message += `   💰 ${priceDetails}\n`;
-        message += `   ----------------\n`;
+        items.forEach(item => {
+            const itemName = (typeof item.name === 'string') 
+                ? item.name 
+                : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵا');
+            
+            message += `- ${itemName}\n`;
+            message += `   💰 ${item.price.toLocaleString()} x ${item.quantity} = ${(item.price * item.quantity).toLocaleString()}\n`;
+        });
+
+        // Market Shipping
+        const shippingLabel = t('shipping_cost') || 'گەیاندن';
+        const freeLabel = t('free_shipping') || 'بێ بەرامبەر';
+        message += `   🚚 ${shippingLabel}: ${maxShipping > 0 ? maxShipping.toLocaleString() : freeLabel}\n`;
+        message += `\n`;
     });
     
-    message += `\n💵 ${t('order_total')}: ${total.toLocaleString()} د.ع.\n`;
+    message += `==================\n`;
+    message += `💵 ${t('order_total')}: ${totals.grandTotal.toLocaleString()} د.ع.\n`;
 
     if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
         message += `\n👤 ${t('order_user_info')}\n`;
@@ -1023,6 +1065,7 @@ export {
     requestNotificationPermissionCore,
     handleInstallPrompt, 
     forceUpdateCore, 
+    calculateCartTotals, // <-- New Export
 
     db, 
     productsCollection,
