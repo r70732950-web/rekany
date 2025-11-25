@@ -44,39 +44,40 @@ export function renderCartUI() {
     
     renderCartActionButtonsUI(); 
 
-    // --- [LOGIC: Calculating Total based on Market Rules] ---
+    // --- [NEW LOGIC: Calculating Total based on Market Rules] ---
     let totalItemPrice = 0;
-    const marketMaxShipping = {}; // پاشەکەوتکردنی بەرزترین گەیاندن بۆ هەر مارکێتێک
+    const marketMaxShipping = {}; // To store the single highest shipping cost per market
 
     state.cart.forEach(item => {
-        // 1. کۆکردنەوەی نرخی کاڵاکان بەتەنها
+        // 1. Sum item prices (Price * Quantity)
         totalItemPrice += (item.price * item.quantity);
         
-        // 2. دیاریکردنی گەیاندن بۆ هەر مارکێتێک
-        const mCode = item.marketCode || 'default'; 
+        // 2. Determine shipping per market
+        const mCode = item.marketCode || 'default'; // Group by market code
         const itemShipping = item.shippingCost || 0;
         
         if (marketMaxShipping[mCode] === undefined) {
             marketMaxShipping[mCode] = 0;
         }
         
-        // ئەگەر گەیاندنی ئەم کاڵایە زیاتر بوو لەوەی پێشوو بۆ هەمان مارکێت، ئەوەیان وەربگرە
+        // If this item's shipping is higher than what we found so far for this market, update it
         if (itemShipping > marketMaxShipping[mCode]) {
             marketMaxShipping[mCode] = itemShipping;
         }
     });
 
-    // 3. کۆکردنەوەی گەیاندنەکان (بۆ هەر مارکێتێک تەنها یەک دانە)
+    // 3. Sum up the shipping costs (only one per market)
     let totalShipping = 0;
     for (const mCode in marketMaxShipping) {
         totalShipping += marketMaxShipping[mCode];
     }
 
-    // 4. کۆی گشتی کۆتایی
+    // 4. Final Total = All Items Price + Total Market Shipping
     const finalTotal = totalItemPrice + totalShipping;
     // -----------------------------------------------------------
 
     state.cart.forEach(item => {
+        // Note: Here we show the item's subtotal normally.
         const itemTotal = (item.price * item.quantity); 
         
         const cartItem = document.createElement('div');
@@ -89,7 +90,6 @@ export function renderCartUI() {
         // --- [VISIBILITY: Show shipping cost for each item transparently] ---
         let shippingDisplay = '';
         if (item.shippingCost > 0) {
-            // نیشاندانی گەیاندن بۆ هەموو کاڵایەک (وەک داوات کرد هەموو شتێک دیار بێت)
             shippingDisplay = `<span style="font-size:11px; color:#e53e3e;">(+ ${item.shippingCost.toLocaleString()} گەیاندن)</span>`;
         } else {
             shippingDisplay = `<span style="font-size:11px; color:#38a169;">(گەیاندن بێ بەرامبەر)</span>`;
@@ -98,7 +98,7 @@ export function renderCartUI() {
         // --- [MARKET CODE DISPLAY] ---
         let marketCodeHtml = '';
         if (item.marketCode) {
-            marketCodeHtml = `<span style="font-size: 11px; background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; margin-right: 5px; color: #555; border: 1px solid #ddd;">🏪 ${item.marketCode}</span>`;
+            marketCodeHtml = `<span style="font-size: 11px; background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; margin-left: 5px; color: #555; border: 1px solid #ddd;">🏪 ${item.marketCode}</span>`;
         }
 
         cartItem.innerHTML = `
@@ -111,7 +111,8 @@ export function renderCartUI() {
                 <div class="cart-item-price">
                     ${item.price.toLocaleString()} د.ع <span style="font-size:11px; color:#666;">x ${item.quantity}</span>
                     <br>
-                    ${shippingDisplay} </div>
+                    ${shippingDisplay}
+                </div>
                 <div class="cart-item-quantity">
                     <button class="quantity-btn increase-btn" data-id="${item.id}">+</button>
                     <span class="quantity-text">${item.quantity}</span>
@@ -127,7 +128,7 @@ export function renderCartUI() {
         cartItemsContainer.appendChild(cartItem);
     });
 
-    // نیشاندانی کۆی گشتی (کە بەپێی یاساکە ڕێکخراوە: تەنها یەک گەیاندن بۆ هەر مارکێتێک)
+    // Set the calculated Final Total
     totalAmount.textContent = finalTotal.toLocaleString();
 
     // Event Listeners

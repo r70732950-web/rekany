@@ -716,7 +716,7 @@ export function generateOrderMessageCore() {
         grandTotal += marketTotal;
 
         message += `------------------------\n`;
-        message += `کۆی کاڵاکان: ${marketItemsTotal.toLocaleString()}\n`;
+        // message += `کۆی کاڵاکان: ${marketItemsTotal.toLocaleString()}\n`; // Optional: remove intermediate sum
         
         if (shippingFee > 0) {
             message += `🚚 گەیاندنی هەژمارکراو (تەنها یەک دانە): ${shippingFee.toLocaleString()}\n`;
