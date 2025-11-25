@@ -98,6 +98,56 @@ function extractShippingCostFromText(text) {
     return match ? parseInt(match[0], 10) : 0;
 }
 
+// --- [NEW FUNCTION] Advanced Total Calculation ---
+export function calculateCartTotals() {
+    let itemsTotal = 0;
+    let finalShippingTotal = 0;
+    
+    // Group 1: Items with Market Code (Grouping logic applied)
+    const marketGroups = {};
+    
+    // Group 2: Items without Market Code (Standard logic applied)
+    let noMarketShippingTotal = 0;
+
+    state.cart.forEach(item => {
+        // 1. Add Item Price to total
+        itemsTotal += item.price * item.quantity;
+
+        const shippingCost = item.shippingCost || 0;
+        const code = item.marketCode ? item.marketCode.trim() : null;
+
+        if (code) {
+            // If it has a market code, we track the MAX shipping for that code
+            if (!marketGroups[code]) {
+                marketGroups[code] = 0;
+            }
+            // Keep only the highest shipping cost for this market
+            if (shippingCost > marketGroups[code]) {
+                marketGroups[code] = shippingCost;
+            }
+        } else {
+            // No market code? Add shipping cost directly (per item/logic)
+            // Here assuming standard behavior: shipping applies per item type
+            noMarketShippingTotal += shippingCost;
+        }
+    });
+
+    // Sum up the max shipping from each market group
+    Object.values(marketGroups).forEach(cost => {
+        finalShippingTotal += cost;
+    });
+
+    // Add the shipping for items without codes
+    finalShippingTotal += noMarketShippingTotal;
+
+    return {
+        itemsTotal,
+        shippingTotal: finalShippingTotal,
+        grandTotal: itemsTotal + finalShippingTotal,
+        marketGroups // Return this for detailed breakdown if needed
+    };
+}
+
 // --- Storage Helpers ---
 
 export function saveCart() {
@@ -623,9 +673,7 @@ export async function addToCartCore(productId, selectedVariationInfo = null) {
             id: cartId, 
             productId: product.id, 
             name: cartItemName,
-            // --- [MARKET CODE: START] ---
-            marketCode: product.marketCode || '', // ئێرە زیاد کرا
-            // --- [MARKET CODE: END] ---
+            marketCode: product.marketCode || '', 
             price: cartItemPrice, 
             shippingCost: calculatedShippingCost,
             image: cartItemImage, 
@@ -663,40 +711,43 @@ export function removeFromCartCore(cartId) {
 export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
-    let total = 0;
+    // --- [UPDATED] Use the grouping logic for the WhatsApp message too
+    const totals = calculateCartTotals();
+    
     let message = t('order_greeting') + "\n\n";
     
     state.cart.forEach(item => {
         const shipping = item.shippingCost || 0;
-        const lineTotal = (item.price * item.quantity) + shipping;
-        
-        total += lineTotal;
+        const lineTotal = (item.price * item.quantity); // Show item price only here
         
         const itemName = (typeof item.name === 'string') 
             ? item.name 
             : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
         
-        // --- [MARKET CODE: START] ---
         let marketInfo = "";
         if (item.marketCode) {
             marketInfo = ` [مارکێت: ${item.marketCode}]`;
         }
-        // --- [MARKET CODE: END] ---
 
-        let priceDetails = "";
-        if (shipping > 0) {
-             priceDetails = `(${item.price.toLocaleString()} x ${item.quantity}) + ${shipping.toLocaleString()} (${t('shipping_cost') || 'گەیاندن'}) = ${lineTotal.toLocaleString()}`;
-        } else {
-             priceDetails = `(${item.price.toLocaleString()} x ${item.quantity}) + (${t('free_shipping') || 'گەیاندن بێ بەرامبەر'}) = ${lineTotal.toLocaleString()}`;
-        }
+        let priceDetails = `(${item.price.toLocaleString()} x ${item.quantity}) = ${lineTotal.toLocaleString()}`;
 
-        // --- [MARKET CODE: Added marketInfo] ---
         message += `- ${itemName}${marketInfo}\n`;
         message += `   💰 ${priceDetails}\n`;
+        if (shipping > 0) {
+             message += `   🚚 گەیاندنی تەنها: ${shipping.toLocaleString()}\n`;
+        }
         message += `   ----------------\n`;
     });
     
-    message += `\n💵 ${t('order_total')}: ${total.toLocaleString()} د.ع.\n`;
+    message += `\n📊 کۆی گشتی نرخی کاڵاکان: ${totals.itemsTotal.toLocaleString()} د.ع.\n`;
+    
+    // Show shipping breakdown
+    message += `🚚 کۆی گشتی گەیاندن: ${totals.shippingTotal.toLocaleString()} د.ع.\n`;
+    if (Object.keys(totals.marketGroups).length > 0) {
+        message += `   (گەیاندن بۆ هەر مارکێتێک بە جیا حیساب کراوە: تەنها زۆرترین نرخی گەیاندن بۆ هەر مارکێتێک)\n`;
+    }
+
+    message += `\n💵 کۆی گشتی (کاڵا + گەیاندن): ${totals.grandTotal.toLocaleString()} د.ع.\n`;
 
     if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
         message += `\n👤 ${t('order_user_info')}\n`;
@@ -1023,6 +1074,9 @@ export {
     requestNotificationPermissionCore,
     handleInstallPrompt, 
     forceUpdateCore, 
+    
+    // Exporting calculateCartTotals
+    calculateCartTotals,
 
     db, 
     productsCollection,
