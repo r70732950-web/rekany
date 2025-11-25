@@ -44,40 +44,33 @@ export function renderCartUI() {
     
     renderCartActionButtonsUI(); 
 
-    // --- [NEW LOGIC: Calculating Total based on Market Rules] ---
+    // --- 1. Pre-calculate Max Shipping per Market ---
     let totalItemPrice = 0;
-    const marketMaxShipping = {}; // To store the single highest shipping cost per market
+    const marketMaxMap = {}; // Map to store max shipping cost for each market code
 
     state.cart.forEach(item => {
-        // 1. Sum item prices (Price * Quantity)
         totalItemPrice += (item.price * item.quantity);
+        const mCode = item.marketCode || 'default';
+        const cost = item.shippingCost || 0;
         
-        // 2. Determine shipping per market
-        const mCode = item.marketCode || 'default'; // Group by market code
-        const itemShipping = item.shippingCost || 0;
-        
-        if (marketMaxShipping[mCode] === undefined) {
-            marketMaxShipping[mCode] = 0;
-        }
-        
-        // If this item's shipping is higher than what we found so far for this market, update it
-        if (itemShipping > marketMaxShipping[mCode]) {
-            marketMaxShipping[mCode] = itemShipping;
+        // Find the highest shipping cost in this market group
+        if (marketMaxMap[mCode] === undefined || cost > marketMaxMap[mCode]) {
+            marketMaxMap[mCode] = cost;
         }
     });
 
-    // 3. Sum up the shipping costs (only one per market)
+    // Calculate Total Shipping Sum
     let totalShipping = 0;
-    for (const mCode in marketMaxShipping) {
-        totalShipping += marketMaxShipping[mCode];
+    for (const m in marketMaxMap) {
+        totalShipping += marketMaxMap[m];
     }
-
-    // 4. Final Total = All Items Price + Total Market Shipping
     const finalTotal = totalItemPrice + totalShipping;
-    // -----------------------------------------------------------
+
+    // --- 2. Render Items ---
+    // We need to track which markets have already been "charged" so we don't charge twice
+    const marketsCharged = new Set(); 
 
     state.cart.forEach(item => {
-        // Note: Here we show the item's subtotal normally.
         const itemTotal = (item.price * item.quantity); 
         
         const cartItem = document.createElement('div');
@@ -87,18 +80,27 @@ export function renderCartUI() {
             ? item.name 
             : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
 
-        // --- [VISIBILITY: Show shipping cost for each item transparently] ---
+        // --- LOGIC: Determine if THIS item displays the shipping price or "Free" ---
+        const mCode = item.marketCode || 'default';
         let shippingDisplay = '';
-        if (item.shippingCost > 0) {
+        
+        // Check if this item's shipping matches the max for the market
+        // AND if we haven't already assigned the charge to a previous item in this loop
+        const isPayer = (item.shippingCost || 0) === marketMaxMap[mCode] && !marketsCharged.has(mCode);
+
+        if (isPayer && (item.shippingCost > 0)) {
+            // ئەم کاڵایە پارەی گەیاندنەکەی دەدرێت
             shippingDisplay = `<span style="font-size:11px; color:#e53e3e;">(+ ${item.shippingCost.toLocaleString()} گەیاندن)</span>`;
+            marketsCharged.add(mCode); // Mark this market as charged
         } else {
+            // ئەم کاڵایە دەبێتە بێ بەرامبەر (چونکە کاڵایەکی تر پارەکەی داوە یان گەیاندنی نەبووە)
             shippingDisplay = `<span style="font-size:11px; color:#38a169;">(گەیاندن بێ بەرامبەر)</span>`;
         }
 
-        // --- [MARKET CODE DISPLAY] ---
+        // Market Code Badge
         let marketCodeHtml = '';
         if (item.marketCode) {
-            marketCodeHtml = `<span style="font-size: 11px; background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; margin-left: 5px; color: #555; border: 1px solid #ddd;">🏪 ${item.marketCode}</span>`;
+            marketCodeHtml = `<span style="font-size: 11px; background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; margin-right: 5px; color: #555; border: 1px solid #ddd;">🏪 ${item.marketCode}</span>`;
         }
 
         cartItem.innerHTML = `
@@ -128,10 +130,9 @@ export function renderCartUI() {
         cartItemsContainer.appendChild(cartItem);
     });
 
-    // Set the calculated Final Total
     totalAmount.textContent = finalTotal.toLocaleString();
 
-    // Event Listeners
+    // Listeners
     cartItemsContainer.querySelectorAll('.increase-btn').forEach(btn => btn.onclick = (e) => handleUpdateQuantityUI(e.currentTarget.dataset.id, 1));
     cartItemsContainer.querySelectorAll('.decrease-btn').forEach(btn => btn.onclick = (e) => handleUpdateQuantityUI(e.currentTarget.dataset.id, -1));
     cartItemsContainer.querySelectorAll('.cart-item-remove').forEach(btn => btn.onclick = (e) => handleRemoveFromCartUI(e.currentTarget.dataset.id));
@@ -189,7 +190,6 @@ export async function renderCartActionButtonsUI() {
 // زیادکردن بۆ سەبەتە (UI Logic)
 export async function handleAddToCartUI(productId, buttonElement, selectedVariationInfo = null) {
     const result = await addToCartCore(productId, selectedVariationInfo); 
-    
     showNotification(result.message, result.success ? 'success' : 'error');
     if (result.success) {
         updateCartCountUI(); 
