@@ -98,6 +98,45 @@ function extractShippingCostFromText(text) {
     return match ? parseInt(match[0], 10) : 0;
 }
 
+// --- New Smart Calculation Logic (Combined Shipping) ---
+
+export function calculateSmartTotal(cartItems) {
+    let itemsTotal = 0;
+    let shippingTotal = 0;
+    const marketGroups = {};
+
+    cartItems.forEach(item => {
+        // 1. Calculate pure item price (Price * Quantity)
+        itemsTotal += (item.price * item.quantity);
+
+        // 2. Group shipping costs
+        if (item.marketCode) {
+            // If item has a market code (e.g., M1), add its shipping to that group list
+            if (!marketGroups[item.marketCode]) {
+                marketGroups[item.marketCode] = [];
+            }
+            marketGroups[item.marketCode].push(item.shippingCost || 0);
+        } else {
+            // If no code, add shipping normally
+            shippingTotal += (item.shippingCost || 0);
+        }
+    });
+
+    // 3. Process Groups: Find MAX shipping for each group
+    for (const code in marketGroups) {
+        const costs = marketGroups[code];
+        const maxShipping = Math.max(...costs);
+        shippingTotal += maxShipping;
+    }
+
+    return {
+        itemsTotal: itemsTotal,
+        shippingTotal: shippingTotal,
+        grandTotal: itemsTotal + shippingTotal,
+        marketGroups: marketGroups // Returning this for detail display if needed
+    };
+}
+
 // --- Storage Helpers ---
 
 export function saveCart() {
@@ -188,7 +227,6 @@ async function handlePasswordReset(email) {
     }
 }
 
-// [نوێ] فەنکشنی سڕینەوەی ئەکاونت (نوێکراوە بۆ skipConfirmation)
 export async function handleDeleteAccount(skipConfirmation = false) {
     if (!state.currentUser) return { success: false, message: "Error" };
 
@@ -200,13 +238,9 @@ export async function handleDeleteAccount(skipConfirmation = false) {
         const uid = state.currentUser.uid;
         const user = auth.currentUser;
 
-        // ١. سڕینەوەی داتای بەکارهێنەر لە Firestore
         await deleteDoc(doc(db, "users", uid));
-        
-        // ٢. سڕینەوەی بەکارهێنەر لە Authentication
         await deleteUser(user);
 
-        // ٣. پاککردنەوەی ستەیت
         state.currentUser = null;
         state.userProfile = {};
         
@@ -595,6 +629,10 @@ export async function addToCartCore(productId, selectedVariationInfo = null) {
     const calculatedShippingCost = extractShippingCostFromText(shippingText);
     const baseImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
 
+    // [CODE EXTRACTION]
+    const codeMatch = (product.description || "").match(/(?:Code|کۆد)\s*[:]\s*([A-Za-z0-9]+)/i);
+    const marketCode = codeMatch ? codeMatch[1].toUpperCase() : null;
+
     let cartId = product.id;
     let cartItemName = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || (typeof product.name === 'string' ? product.name : 'کاڵای بێ ناو');
     let cartItemPrice = product.price;
@@ -623,6 +661,7 @@ export async function addToCartCore(productId, selectedVariationInfo = null) {
     if (existingItem) {
         existingItem.quantity++;
         existingItem.shippingCost = calculatedShippingCost; 
+        existingItem.marketCode = marketCode; // Update market code just in case
     } else {
         state.cart.push({
             id: cartId, 
@@ -632,7 +671,8 @@ export async function addToCartCore(productId, selectedVariationInfo = null) {
             shippingCost: calculatedShippingCost,
             image: cartItemImage, 
             quantity: 1,
-            variationInfo: selectedVariationInfo 
+            variationInfo: selectedVariationInfo,
+            marketCode: marketCode // Store extraction result
         });
     }
     saveCart();
@@ -662,35 +702,50 @@ export function removeFromCartCore(cartId) {
     return false; 
 }
 
+// [UPDATED] Smart Order Message Generation
 export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
-    let total = 0;
+    const smartCalc = calculateSmartTotal(state.cart);
     let message = t('order_greeting') + "\n\n";
     
+    // 1. List all items
     state.cart.forEach(item => {
-        const shipping = item.shippingCost || 0;
-        const lineTotal = (item.price * item.quantity) + shipping;
-        
-        total += lineTotal;
-        
         const itemName = (typeof item.name === 'string') 
             ? item.name 
             : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
         
-        let priceDetails = "";
-        if (shipping > 0) {
-             priceDetails = `(${item.price.toLocaleString()} x ${item.quantity}) + ${shipping.toLocaleString()} (${t('shipping_cost') || 'گەیاندن'}) = ${lineTotal.toLocaleString()}`;
-        } else {
-             priceDetails = `(${item.price.toLocaleString()} x ${item.quantity}) + (${t('free_shipping') || 'گەیاندن بێ بەرامبەر'}) = ${lineTotal.toLocaleString()}`;
+        message += `- ${itemName}`;
+        if (item.marketCode) {
+            message += ` [Code: ${item.marketCode}]`;
         }
-
-        message += `- ${itemName}\n`;
-        message += `   💰 ${priceDetails}\n`;
-        message += `   ----------------\n`;
+        message += `\n   💰 ${item.price.toLocaleString()} x ${item.quantity} = ${(item.price * item.quantity).toLocaleString()}\n`;
     });
+
+    message += `   ----------------\n`;
+
+    // 2. Breakdown Logic (Smart Calculation)
+    const marketGroups = smartCalc.marketGroups || {};
+    let standardShippingTotal = 0;
+    const standardItems = state.cart.filter(item => !item.marketCode);
     
-    message += `\n💵 ${t('order_total')}: ${total.toLocaleString()} د.ع.\n`;
+    standardItems.forEach(item => {
+        standardShippingTotal += (item.shippingCost || 0);
+    });
+
+    message += `\n📦 **وردەکاری گەیاندن:**\n`;
+    
+    if (standardShippingTotal > 0) {
+        message += `• گەیاندنی ئاسایی: ${standardShippingTotal.toLocaleString()}\n`;
+    }
+
+    for (const code in marketGroups) {
+        const costs = marketGroups[code];
+        const maxCost = Math.max(...costs);
+        message += `• گروپی ${code}: ${maxCost.toLocaleString()} (یەکگرتوو)\n`;
+    }
+
+    message += `\n💵 **کۆی گشتی:** ${smartCalc.grandTotal.toLocaleString()} د.ع.\n`;
 
     if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
         message += `\n👤 ${t('order_user_info')}\n`;

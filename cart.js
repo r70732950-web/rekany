@@ -6,7 +6,8 @@ import {
     generateOrderMessageCore, 
     addToCartCore, 
     updateCartQuantityCore, 
-    removeFromCartCore 
+    removeFromCartCore,
+    calculateSmartTotal // <--- Import Smart Calculation
 } from './app-core.js';
 
 import { 
@@ -17,7 +18,7 @@ import {
 } from './app-setup.js';
 
 import { initChatSystem } from './chat.js';
-import { showNotification } from './app-ui.js'; // Import helper from main UI file
+import { showNotification } from './app-ui.js'; 
 
 // نوێکردنەوەی ژمارەی سەر ئایکۆنی سەبەتە
 export function updateCartCountUI() {
@@ -43,10 +44,31 @@ export function renderCartUI() {
     
     renderCartActionButtonsUI(); 
 
-    let total = 0;
+    // --- SMART CALCULATION START ---
+    // بەکارهێنانی حساباتی زیرەک بۆ کۆی گشتی
+    const smartResult = calculateSmartTotal(state.cart);
+    // --- SMART CALCULATION END ---
+
     state.cart.forEach(item => {
-        const itemTotal = (item.price * item.quantity) + (item.shippingCost || 0);
-        total += itemTotal;
+        // بۆ هەر دێڕێک، دەبێت دیاری بکەین چۆن نرخی گەیاندن پیشان بدەین
+        let itemRowTotal = item.price * item.quantity;
+        let shippingDisplay = '';
+
+        if (item.marketCode) {
+            // ئەگەر کۆدی هەبوو (Combined Shipping)
+            // نرخی گەیاندن نەخەینە سەر نرخی تاکەکە، چونکە لە کۆتاییدا حساب دەکرێت
+            shippingDisplay = `<span style="font-size:11px; color:#6b46c1; font-weight:bold;">📦 گەیاندنی یەکگرتوو (کۆد: ${item.marketCode})</span>`;
+        } else {
+            // حاڵەتی ئاسایی
+            const shipCost = item.shippingCost || 0;
+            itemRowTotal += shipCost; // لێرە گەیاندن دەخرێتە سەر نرخی تاکەکە وەک جاران
+
+            if (shipCost > 0) {
+                shippingDisplay = `<span style="font-size:12px; color:#e53e3e;">(+ ${shipCost.toLocaleString()} گەیاندن)</span>`;
+            } else {
+                shippingDisplay = `<span style="font-size:12px; color:#38a169;">(گەیاندن بێ بەرامبەر)</span>`;
+            }
+        }
         
         const cartItem = document.createElement('div');
         cartItem.className = 'cart-item';
@@ -54,13 +76,6 @@ export function renderCartUI() {
         const itemNameInCurrentLang = (typeof item.name === 'string') 
             ? item.name 
             : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
-
-        let shippingDisplay = '';
-        if (item.shippingCost > 0) {
-            shippingDisplay = `<span style="font-size:12px; color:#e53e3e;">(+ ${item.shippingCost.toLocaleString()} گەیاندن)</span>`;
-        } else {
-            shippingDisplay = `<span style="font-size:12px; color:#38a169;">(گەیاندن بێ بەرامبەر)</span>`;
-        }
 
         cartItem.innerHTML = `
             <img src="${item.image}" alt="${itemNameInCurrentLang}" class="cart-item-image">
@@ -78,15 +93,16 @@ export function renderCartUI() {
                 </div>
             </div>
             <div class="cart-item-subtotal">
-                <div>کۆی گشتی</div>
-                <span style="color:var(--primary-color); font-size:16px;">${itemTotal.toLocaleString()} د.ع.</span>
+                <div>کۆی کاڵا</div>
+                <span style="color:var(--primary-color); font-size:16px;">${itemRowTotal.toLocaleString()} د.ع.</span>
                 <button class="cart-item-remove" data-id="${item.id}"><i class="fas fa-trash"></i></button>
             </div>
         `;
         cartItemsContainer.appendChild(cartItem);
     });
 
-    totalAmount.textContent = total.toLocaleString();
+    // لێرە نرخی کۆتایی دادەنێین کە لە calculateSmartTotal هاتووە
+    totalAmount.textContent = smartResult.grandTotal.toLocaleString();
 
     // Event Listeners
     cartItemsContainer.querySelectorAll('.increase-btn').forEach(btn => btn.onclick = (e) => handleUpdateQuantityUI(e.currentTarget.dataset.id, 1));
@@ -118,6 +134,7 @@ export async function renderCartActionButtonsUI() {
         btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
 
         btn.onclick = () => {
+            // Note: generateOrderMessageCore already uses calculateSmartTotal internally now
             const message = generateOrderMessageCore(); 
             if (!message) return;
 

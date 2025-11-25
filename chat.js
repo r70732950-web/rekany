@@ -7,7 +7,8 @@ import {
 } from './app-setup.js';
 
 import { 
-    state, t, saveCart, authReady
+    state, t, saveCart, authReady,
+    calculateSmartTotal // <--- Import Smart Calculation
 } from './app-core.js';
 
 import { 
@@ -186,8 +187,6 @@ function setupChatListeners() {
 export async function openChatPage(targetUserId = null, targetUserName = null) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     
-    // [ 🛠️ چاککراوە ] - سەرەتا پشکنین دەکەین ئەگەر ئەدمین بوو، ڕاستەوخۆ دەچینە لیستی چاتەکان
-    // بەم شێوەیە چیتر شاشەی چاتی بەکارهێنەر ناکاتەوە و دیزاین تێک نادات.
     if (isAdmin && !targetUserId) {
         openAdminChatList();
         return;
@@ -273,7 +272,6 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
 
 function openAdminChatList() {
     const bottomNav = document.querySelector('.bottom-nav');
-    // دڵنیابوونەوە لەوەی بۆ لیستی ئەدمین، دوگمەکانی خوارەوە دەردەکەون
     if (bottomNav) bottomNav.style.display = 'flex';
 
     history.pushState({ type: 'page', id: 'adminChatListPage', title: t('conversations_title') }, '', '#admin-chats');
@@ -363,24 +361,38 @@ function renderSingleMessage(msg, container, chatUserId) {
                             const singleTotal = (price * quantity) + shipping;
                             
                             let priceDisplay = '';
-                            if (shipping > 0) {
+                            
+                            if (i.marketCode) {
+                                // Combined Shipping Display
                                 priceDisplay = `
                                     <div style="font-size:11px; color:#555;">
-                                        (${price.toLocaleString()} x ${quantity}) + <span style="color:#e53e3e;">${shipping.toLocaleString()} (گەیاندن)</span>
+                                        (${price.toLocaleString()} x ${quantity})
                                     </div>
-                                    <div style="font-weight:bold; color:var(--primary-color);">
-                                        = ${singleTotal.toLocaleString()} د.ع
+                                    <div style="font-weight:bold; color:var(--primary-color); font-size:11px;">
+                                        📦 گەیاندنی یەکگرتوو (کۆد: ${i.marketCode})
                                     </div>
                                 `;
                             } else {
-                                priceDisplay = `
-                                    <div style="font-size:11px; color:#555;">
-                                        (${price.toLocaleString()} x ${quantity}) + <span style="color:#38a169;">(بێ بەرامبەر)</span>
-                                    </div>
-                                    <div style="font-weight:bold; color:var(--primary-color);">
-                                        = ${singleTotal.toLocaleString()} د.ع
-                                    </div>
-                                `;
+                                // Standard Display
+                                if (shipping > 0) {
+                                    priceDisplay = `
+                                        <div style="font-size:11px; color:#555;">
+                                            (${price.toLocaleString()} x ${quantity}) + <span style="color:#e53e3e;">${shipping.toLocaleString()} (گەیاندن)</span>
+                                        </div>
+                                        <div style="font-weight:bold; color:var(--primary-color);">
+                                            = ${singleTotal.toLocaleString()} د.ع
+                                        </div>
+                                    `;
+                                } else {
+                                    priceDisplay = `
+                                        <div style="font-size:11px; color:#555;">
+                                            (${price.toLocaleString()} x ${quantity}) + <span style="color:#38a169;">(بێ بەرامبەر)</span>
+                                        </div>
+                                        <div style="font-weight:bold; color:var(--primary-color);">
+                                            = ${singleTotal.toLocaleString()} د.ع
+                                        </div>
+                                    `;
+                                }
                             }
 
                             const itemName = i.name && i.name[state.currentLanguage] 
@@ -655,9 +667,10 @@ async function handleDirectOrder() {
 }
 
 async function processOrderSubmission() {
-    const total = state.cart.reduce((sum, item) => {
-        return sum + (item.price * item.quantity) + (item.shippingCost || 0);
-    }, 0);
+    // START: Smart Calculation for Order Total
+    const smartCalc = calculateSmartTotal(state.cart);
+    const total = smartCalc.grandTotal;
+    // END: Smart Calculation
     
     const orderData = {
         userId: state.currentUser.uid,
