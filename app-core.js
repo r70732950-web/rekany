@@ -659,7 +659,7 @@ export function removeFromCartCore(cartId) {
     return false; 
 }
 
-// --- [NEW] Updated Logic: Group by Market, Calculate Shipping "Behind Scenes" ---
+// --- [UPDATED] Generate Order Message (Transparent Calculation) ---
 export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
@@ -702,18 +702,24 @@ export function generateOrderMessageCore() {
                 ? item.name 
                 : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
 
-            // We do NOT show individual shipping here, only item price
+            const itemShippingRaw = item.shippingCost || 0;
+            const shippingStr = itemShippingRaw > 0 ? `(گەیاندن: ${itemShippingRaw.toLocaleString()})` : `(گەیاندن: بێ بەرامبەر)`;
+
             message += `▪️ ${itemName}\n`;
             message += `   ${item.quantity} x ${item.price.toLocaleString()} = ${lineTotal.toLocaleString()}\n`;
+            message += `   ${shippingStr}\n`;
         });
 
-        // Add Shipping for this market (calculated behind scenes, shown as single line)
+        // Add Shipping for this market (Calculated behind scenes, shown as result)
         const shippingFee = data.maxShipping;
         const marketTotal = marketItemsTotal + shippingFee;
         grandTotal += marketTotal;
 
+        message += `------------------------\n`;
+        message += `کۆی کاڵاکان: ${marketItemsTotal.toLocaleString()}\n`;
+        
         if (shippingFee > 0) {
-            message += `🚚 گەیاندن: ${shippingFee.toLocaleString()}\n`;
+            message += `🚚 گەیاندنی هەژمارکراو (تەنها یەک دانە): ${shippingFee.toLocaleString()}\n`;
         } else {
             message += `🚚 گەیاندن: بێ بەرامبەر\n`;
         }
@@ -722,7 +728,7 @@ export function generateOrderMessageCore() {
     }
     
     message += `================\n`;
-    message += `💵 *کۆی گشتی (هەموو مارکێتەکان): ${grandTotal.toLocaleString()} د.ع.*\n`;
+    message += `💵 *کۆی گشتی هەمووی: ${grandTotal.toLocaleString()} د.ع.*\n`;
 
     if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
         message += `\n👤 ${t('order_user_info')}\n`;

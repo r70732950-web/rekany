@@ -355,12 +355,16 @@ function renderSingleMessage(msg, container, chatUserId) {
                         ${order.items.map(i => {
                             const price = Number(i.price) || 0;
                             const quantity = Number(i.quantity) || 1;
+                            const shipping = Number(i.shippingCost) || 0;
                             
                             const itemName = i.name && i.name[state.currentLanguage] 
                                 ? i.name[state.currentLanguage] 
                                 : (i.name && i.name.ku_sorani ? i.name.ku_sorani : (typeof i.name === 'string' ? i.name : 'کاڵا'));
                             
                             const mCode = i.marketCode ? `<span style="font-size:10px; color:#777; display:block;">مارکێت: ${i.marketCode}</span>` : '';
+                            
+                            // --- [UPDATED] Show shipping clearly ---
+                            const shippingDisplay = shipping > 0 ? `(+ ${shipping.toLocaleString()} گەیاندن)` : '(گەیاندن بێ بەرامبەر)';
 
                             return `
                             <div class="order-bubble-item" style="display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #eee;">
@@ -372,6 +376,7 @@ function renderSingleMessage(msg, container, chatUserId) {
                                     </div>
                                     <div style="font-size: 12px; color: #666; margin-top:2px;">
                                         ${quantity} x ${price.toLocaleString()} د.ع
+                                        <br><span style="color:#e53e3e; font-size:10px;">${shippingDisplay}</span>
                                     </div>
                                 </div>
                             </div>
@@ -379,7 +384,7 @@ function renderSingleMessage(msg, container, chatUserId) {
                         }).join('')}
                         
                         <div class="order-bubble-total" style="margin-top: 10px; font-size: 16px; text-align:center; background:#f1f1f1; padding:5px; border-radius:4px;">
-                            کۆی گشتی: ${(order.total || 0).toLocaleString()} د.ع
+                            کۆی گشتی (لەگەڵ گەیاندن): ${(order.total || 0).toLocaleString()} د.ع
                         </div>
 
                         <div style="background-color: #fff; border:1px solid #eee; padding: 8px; border-radius: 6px; margin-top: 10px; font-size: 12px; color: #444;">
@@ -629,13 +634,15 @@ async function handleDirectOrder() {
 
 async function processOrderSubmission() {
     // --- [NEW LOGIC: Calculating Total based on Market Rules] ---
-    // This calculation is done behind the scenes so the correct total is stored in DB
+    // This must match cart.js logic to ensure the total stored in DB is correct
     let totalItemPrice = 0;
-    const marketMaxShipping = {}; 
+    const marketMaxShipping = {}; // To store the single highest shipping cost per market
 
     state.cart.forEach(item => {
+        // 1. Sum item prices
         totalItemPrice += (item.price * item.quantity);
         
+        // 2. Determine shipping per market
         const mCode = item.marketCode || 'default';
         const itemShipping = item.shippingCost || 0;
         
@@ -643,11 +650,13 @@ async function processOrderSubmission() {
             marketMaxShipping[mCode] = 0;
         }
         
+        // Take the highest shipping cost for this market
         if (itemShipping > marketMaxShipping[mCode]) {
             marketMaxShipping[mCode] = itemShipping;
         }
     });
 
+    // 3. Sum up the shipping costs
     let totalShipping = 0;
     for (const mCode in marketMaxShipping) {
         totalShipping += marketMaxShipping[mCode];

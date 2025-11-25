@@ -44,41 +44,39 @@ export function renderCartUI() {
     
     renderCartActionButtonsUI(); 
 
-    // --- [NEW LOGIC: Calculating Total based on Market Rules] ---
+    // --- [LOGIC: Calculating Total based on Market Rules] ---
     let totalItemPrice = 0;
-    const marketMaxShipping = {}; // To store the single highest shipping cost per market
+    const marketMaxShipping = {}; // پاشەکەوتکردنی بەرزترین گەیاندن بۆ هەر مارکێتێک
 
     state.cart.forEach(item => {
-        // 1. Sum item prices
+        // 1. کۆکردنەوەی نرخی کاڵاکان بەتەنها
         totalItemPrice += (item.price * item.quantity);
         
-        // 2. Determine shipping per market
-        const mCode = item.marketCode || 'default'; // Group by market code (or 'default')
+        // 2. دیاریکردنی گەیاندن بۆ هەر مارکێتێک
+        const mCode = item.marketCode || 'default'; 
         const itemShipping = item.shippingCost || 0;
         
         if (marketMaxShipping[mCode] === undefined) {
             marketMaxShipping[mCode] = 0;
         }
         
-        // If this item's shipping is higher than what we found so far for this market, update it
+        // ئەگەر گەیاندنی ئەم کاڵایە زیاتر بوو لەوەی پێشوو بۆ هەمان مارکێت، ئەوەیان وەربگرە
         if (itemShipping > marketMaxShipping[mCode]) {
             marketMaxShipping[mCode] = itemShipping;
         }
     });
 
-    // 3. Sum up the shipping costs (one per market)
+    // 3. کۆکردنەوەی گەیاندنەکان (بۆ هەر مارکێتێک تەنها یەک دانە)
     let totalShipping = 0;
     for (const mCode in marketMaxShipping) {
         totalShipping += marketMaxShipping[mCode];
     }
 
-    // 4. Final Total
+    // 4. کۆی گشتی کۆتایی
     const finalTotal = totalItemPrice + totalShipping;
     // -----------------------------------------------------------
 
     state.cart.forEach(item => {
-        // Note: We display the itemTotal here just for the user to see the item cost.
-        // The shipping logic is hidden from individual items to avoid confusion.
         const itemTotal = (item.price * item.quantity); 
         
         const cartItem = document.createElement('div');
@@ -87,6 +85,15 @@ export function renderCartUI() {
         const itemNameInCurrentLang = (typeof item.name === 'string') 
             ? item.name 
             : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
+
+        // --- [VISIBILITY: Show shipping cost for each item transparently] ---
+        let shippingDisplay = '';
+        if (item.shippingCost > 0) {
+            // نیشاندانی گەیاندن بۆ هەموو کاڵایەک (وەک داوات کرد هەموو شتێک دیار بێت)
+            shippingDisplay = `<span style="font-size:11px; color:#e53e3e;">(+ ${item.shippingCost.toLocaleString()} گەیاندن)</span>`;
+        } else {
+            shippingDisplay = `<span style="font-size:11px; color:#38a169;">(گەیاندن بێ بەرامبەر)</span>`;
+        }
 
         // --- [MARKET CODE DISPLAY] ---
         let marketCodeHtml = '';
@@ -103,7 +110,8 @@ export function renderCartUI() {
                 </div>
                 <div class="cart-item-price">
                     ${item.price.toLocaleString()} د.ع <span style="font-size:11px; color:#666;">x ${item.quantity}</span>
-                </div>
+                    <br>
+                    ${shippingDisplay} </div>
                 <div class="cart-item-quantity">
                     <button class="quantity-btn increase-btn" data-id="${item.id}">+</button>
                     <span class="quantity-text">${item.quantity}</span>
@@ -119,7 +127,7 @@ export function renderCartUI() {
         cartItemsContainer.appendChild(cartItem);
     });
 
-    // Set the calculated Final Total (Items + Market Shipping)
+    // نیشاندانی کۆی گشتی (کە بەپێی یاساکە ڕێکخراوە: تەنها یەک گەیاندن بۆ هەر مارکێتێک)
     totalAmount.textContent = finalTotal.toLocaleString();
 
     // Event Listeners
