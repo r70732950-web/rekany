@@ -93,6 +93,7 @@ export function formatDescription(text) {
 
 function extractShippingCostFromText(text) {
     if (!text) return 0;
+    // لابردنی کۆما و هەر پیتێک بۆ دەرهێنانی تەنها ژمارە
     const cleanText = text.toString().replace(/,/g, '');
     const match = cleanText.match(/(\d+)/);
     return match ? parseInt(match[0], 10) : 0;
@@ -623,7 +624,7 @@ export async function addToCartCore(productId, selectedVariationInfo = null) {
             id: cartId, 
             productId: product.id, 
             name: cartItemName,
-            marketCode: product.marketCode || '', 
+            marketCode: product.marketCode || '', // NEW: Save market code
             price: cartItemPrice, 
             shippingCost: calculatedShippingCost,
             image: cartItemImage, 
@@ -658,87 +659,69 @@ export function removeFromCartCore(cartId) {
     return false; 
 }
 
-// --- NEW FUNCTION: Calculate Totals Grouped by Market ---
-export function calculateCartTotals() {
-    let itemTotal = 0;
-    let totalShipping = 0;
+// --- [NEW] Updated Logic for Shipping Calculation by Market ---
+export function generateOrderMessageCore() {
+    if (state.cart.length === 0) return "";
+
+    let message = t('order_greeting') + "\n\n";
     
     // 1. Group items by Market Code
     const itemsByMarket = {};
     
     state.cart.forEach(item => {
-        // Calculate Item Price Total
-        itemTotal += (item.price * item.quantity);
-        
-        const market = item.marketCode || 'default'; 
-        if (!itemsByMarket[market]) {
-            itemsByMarket[market] = [];
+        const mCode = item.marketCode || 'گشتی'; // ئەگەر مارکێت نەبوو، دەبێتە گشتی
+        if (!itemsByMarket[mCode]) {
+            itemsByMarket[mCode] = {
+                items: [],
+                maxShipping: 0
+            };
         }
-        itemsByMarket[market].push(item);
+        itemsByMarket[mCode].items.push(item);
+        
+        // Check for max shipping in this market
+        const itemShipping = item.shippingCost || 0;
+        if (itemShipping > itemsByMarket[mCode].maxShipping) {
+            itemsByMarket[mCode].maxShipping = itemShipping;
+        }
     });
 
-    // 2. Calculate Shipping Per Group (Max Shipping Rule)
-    Object.keys(itemsByMarket).forEach(market => {
-        const items = itemsByMarket[market];
+    let grandTotal = 0;
+
+    // 2. Build Message Market by Market
+    for (const [marketName, data] of Object.entries(itemsByMarket)) {
+        message += `🏪 *مارکێت: ${marketName}*\n`;
+        message += `------------------------\n`;
         
-        // Find highest shipping cost in this group
-        let maxShippingInGroup = 0;
-        items.forEach(item => {
-            const shipping = item.shippingCost || 0;
-            if (shipping > maxShippingInGroup) {
-                maxShippingInGroup = shipping;
-            }
-        });
-        
-        totalShipping += maxShippingInGroup;
-    });
+        let marketItemsTotal = 0;
 
-    return {
-        itemTotal: itemTotal,
-        shippingTotal: totalShipping,
-        grandTotal: itemTotal + totalShipping,
-        groupedItems: itemsByMarket 
-    };
-}
-
-// --- UPDATED FUNCTION: Generate Message with Market Grouping ---
-export function generateOrderMessageCore() {
-    if (state.cart.length === 0) return "";
-
-    const totals = calculateCartTotals();
-    let message = t('order_greeting') + "\n\n";
-    
-    // Iterate through markets
-    Object.keys(totals.groupedItems).forEach(market => {
-        const items = totals.groupedItems[market];
-        
-        // Find max shipping for display
-        let maxShipping = 0;
-        items.forEach(i => { if((i.shippingCost||0) > maxShipping) maxShipping = i.shippingCost||0; });
-
-        // Market Header
-        const marketName = market === 'default' ? (t('general_market') || 'گشتی') : market;
-        message += `🏪 *${t('market') || 'مارکێت'}: ${marketName}*\n`;
-        message += `------------------\n`;
-
-        items.forEach(item => {
+        data.items.forEach(item => {
+            const lineTotal = item.price * item.quantity;
+            marketItemsTotal += lineTotal;
+            
             const itemName = (typeof item.name === 'string') 
                 ? item.name 
-                : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵا');
-            
-            message += `- ${itemName}\n`;
-            message += `   💰 ${item.price.toLocaleString()} x ${item.quantity} = ${(item.price * item.quantity).toLocaleString()}\n`;
+                : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
+
+            message += `▪️ ${itemName}\n`;
+            message += `   ${item.quantity} x ${item.price.toLocaleString()} = ${lineTotal.toLocaleString()}\n`;
         });
 
-        // Market Shipping
-        const shippingLabel = t('shipping_cost') || 'گەیاندن';
-        const freeLabel = t('free_shipping') || 'بێ بەرامبەر';
-        message += `   🚚 ${shippingLabel}: ${maxShipping > 0 ? maxShipping.toLocaleString() : freeLabel}\n`;
-        message += `\n`;
-    });
+        // Add Shipping for this market (Only once per market)
+        const shippingFee = data.maxShipping;
+        const marketTotal = marketItemsTotal + shippingFee;
+        grandTotal += marketTotal;
+
+        if (shippingFee > 0) {
+            message += `🚚 گەیاندن (تێکڕا): ${shippingFee.toLocaleString()}\n`;
+        } else {
+            message += `🚚 گەیاندن: بێ بەرامبەر\n`;
+        }
+        
+        message += `💰 کۆی مارکێت: ${marketTotal.toLocaleString()} د.ع\n\n`;
+    }
     
-    message += `==================\n`;
-    message += `💵 ${t('order_total')}: ${totals.grandTotal.toLocaleString()} د.ع.\n`;
+    message += `================\n`;
+    message += `💵 *کۆی گشتی (هەموو مارکێتەکان): ${grandTotal.toLocaleString()} د.ع.*\n`;
 
     if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
         message += `\n👤 ${t('order_user_info')}\n`;
@@ -1065,7 +1048,6 @@ export {
     requestNotificationPermissionCore,
     handleInstallPrompt, 
     forceUpdateCore, 
-    calculateCartTotals, // <-- New Export
 
     db, 
     productsCollection,

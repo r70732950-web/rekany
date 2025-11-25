@@ -6,15 +6,15 @@ import {
     generateOrderMessageCore, 
     addToCartCore, 
     updateCartQuantityCore, 
-    removeFromCartCore,
-    calculateCartTotals // <--- زیاد کراوە
+    removeFromCartCore 
 } from './app-core.js';
 
 import { 
     cartItemsContainer, 
     emptyCartMessage, 
     cartTotal, 
-    totalAmount 
+    totalAmount,
+    cartActions
 } from './app-setup.js';
 
 import { initChatSystem } from './chat.js';
@@ -31,8 +31,6 @@ export function renderCartUI() {
     if (!cartItemsContainer) return;
     
     cartItemsContainer.innerHTML = '';
-    
-    // پشکنین ئەگەر سەبەتە بەتاڵ بێت
     if (state.cart.length === 0) {
         emptyCartMessage.style.display = 'block';
         cartTotal.style.display = 'none';
@@ -46,14 +44,42 @@ export function renderCartUI() {
     
     renderCartActionButtonsUI(); 
 
-    // --- گۆڕانکاری: بەکارهێنانی فەنکشنی نوێ بۆ حیسابکردن ---
-    const totals = calculateCartTotals(); 
-    // ----------------------------------------------------
+    // --- [NEW LOGIC: Calculating Total based on Market Rules] ---
+    let totalItemPrice = 0;
+    const marketMaxShipping = {}; // To store the single highest shipping cost per market
 
     state.cart.forEach(item => {
-        // لێرەدا تەنها نرخی کاڵاکە و ژمارەکەی حیساب دەکەین بۆ پیشاندان لەسەر کارتەکە
-        // نرخی گەیاندن لێرە کۆ ناکەینەوە چونکە لە کۆتاییدا بەپێی مارکێت حیساب دەکرێت
-        const itemLineTotal = (item.price * item.quantity);
+        // 1. Sum item prices
+        totalItemPrice += (item.price * item.quantity);
+        
+        // 2. Determine shipping per market
+        const mCode = item.marketCode || 'default'; // Group by market code (or 'default')
+        const itemShipping = item.shippingCost || 0;
+        
+        if (marketMaxShipping[mCode] === undefined) {
+            marketMaxShipping[mCode] = 0;
+        }
+        
+        // If this item's shipping is higher than what we found so far for this market, update it
+        if (itemShipping > marketMaxShipping[mCode]) {
+            marketMaxShipping[mCode] = itemShipping;
+        }
+    });
+
+    // 3. Sum up the shipping costs (one per market)
+    let totalShipping = 0;
+    for (const mCode in marketMaxShipping) {
+        totalShipping += marketMaxShipping[mCode];
+    }
+
+    // 4. Final Total
+    const finalTotal = totalItemPrice + totalShipping;
+    // -----------------------------------------------------------
+
+    state.cart.forEach(item => {
+        // Note: We display the itemTotal here just for the user to see the item cost, 
+        // but the Grand Total is calculated above using the specific shipping logic.
+        const itemTotal = (item.price * item.quantity); 
         
         const cartItem = document.createElement('div');
         cartItem.className = 'cart-item';
@@ -62,31 +88,30 @@ export function renderCartUI() {
             ? item.name 
             : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
 
-        // پیشاندانی زانیاری گەیاندن تەنها وەک زانیاری (نەک بۆ کۆکردنەوە)
-        let shippingInfoDisplay = '';
+        let shippingDisplay = '';
         if (item.shippingCost > 0) {
-            shippingInfoDisplay = `<div style="font-size:11px; color:#888;">(گەیاندن: ${item.shippingCost.toLocaleString()})</div>`;
+            shippingDisplay = `<span style="font-size:12px; color:#e53e3e;">(+ ${item.shippingCost.toLocaleString()} گەیاندن)</span>`;
         } else {
-            shippingInfoDisplay = `<div style="font-size:11px; color:#38a169;">(گەیاندن بێ بەرامبەر)</div>`;
+            shippingDisplay = `<span style="font-size:12px; color:#38a169;">(گەیاندن بێ بەرامبەر)</span>`;
         }
 
         // --- [MARKET CODE DISPLAY] ---
         let marketCodeHtml = '';
         if (item.marketCode) {
-            marketCodeHtml = `<span style="font-size: 11px; background-color: #e2e8f0; padding: 2px 8px; border-radius: 4px; color: #2d3748; font-weight: bold; display:inline-block; margin-top:4px;">🏪 ${item.marketCode}</span>`;
+            marketCodeHtml = `<span style="font-size: 11px; background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; margin-left: 5px; color: #555; border: 1px solid #ddd;">🏪 ${item.marketCode}</span>`;
         }
-        // -----------------------------
 
         cartItem.innerHTML = `
             <img src="${item.image}" alt="${itemNameInCurrentLang}" class="cart-item-image">
             <div class="cart-item-details">
                 <div class="cart-item-title">
                     ${itemNameInCurrentLang}
-                    <div>${marketCodeHtml}</div>
+                    <div style="margin-top: 4px;">${marketCodeHtml}</div>
                 </div>
                 <div class="cart-item-price">
                     ${item.price.toLocaleString()} د.ع <span style="font-size:11px; color:#666;">x ${item.quantity}</span>
-                    ${shippingInfoDisplay}
+                    <br>
+                    ${shippingDisplay}
                 </div>
                 <div class="cart-item-quantity">
                     <button class="quantity-btn increase-btn" data-id="${item.id}">+</button>
@@ -96,15 +121,15 @@ export function renderCartUI() {
             </div>
             <div class="cart-item-subtotal">
                 <div>کۆی کاڵا</div>
-                <span style="color:var(--primary-color); font-size:16px;">${itemLineTotal.toLocaleString()} د.ع.</span>
+                <span style="color:var(--primary-color); font-size:16px;">${itemTotal.toLocaleString()} د.ع.</span>
                 <button class="cart-item-remove" data-id="${item.id}"><i class="fas fa-trash"></i></button>
             </div>
         `;
         cartItemsContainer.appendChild(cartItem);
     });
 
-    // نوێکردنەوەی نرخی کۆتایی بەپێی حیساباتە نوێیەکە (کاڵا + گەیاندنی مارکێت)
-    totalAmount.textContent = totals.grandTotal.toLocaleString();
+    // Set the calculated Final Total
+    totalAmount.textContent = finalTotal.toLocaleString();
 
     // Event Listeners
     cartItemsContainer.querySelectorAll('.increase-btn').forEach(btn => btn.onclick = (e) => handleUpdateQuantityUI(e.currentTarget.dataset.id, 1));

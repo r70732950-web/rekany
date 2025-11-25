@@ -7,7 +7,7 @@ import {
 } from './app-setup.js';
 
 import { 
-    state, t, saveCart, authReady, calculateCartTotals // <--- زیاد کراوە
+    state, t, saveCart, authReady
 } from './app-core.js';
 
 import { 
@@ -355,28 +355,22 @@ function renderSingleMessage(msg, container, chatUserId) {
                         ${order.items.map(i => {
                             const price = Number(i.price) || 0;
                             const quantity = Number(i.quantity) || 1;
-                            const itemTotal = price * quantity;
-                            
-                            // گۆڕانکاری: چیتر گەیاندن لێرە بە جیا پیشان نادرێت بۆ ئەوەی سەر لێ تێکچوون دروست نەبێت
-                            // چونکە گەیاندن ئێستا بەپێی مارکێتە نەک کاڵا
-                            
                             const itemName = i.name && i.name[state.currentLanguage] 
                                 ? i.name[state.currentLanguage] 
                                 : (i.name && i.name.ku_sorani ? i.name.ku_sorani : (typeof i.name === 'string' ? i.name : 'کاڵا'));
-
-                            let marketBadge = '';
-                            if(i.marketCode) marketBadge = `<span style="font-size:10px; background:#eee; padding:1px 4px; border-radius:3px;">${i.marketCode}</span>`;
+                            
+                            const mCode = i.marketCode ? `<span style="font-size:10px; color:#777; display:block;">مارکێت: ${i.marketCode}</span>` : '';
 
                             return `
                             <div class="order-bubble-item" style="display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #eee;">
                                 <img src="${i.image || 'https://placehold.co/50'}" style="width: 50px; height: 50px; border-radius: 6px; object-fit: cover; border: 1px solid #eee;">
                                 <div style="flex: 1; overflow: hidden;">
                                     <div style="font-weight: bold; font-size: 13px;">
-                                        ${itemName} ${marketBadge}
+                                        ${itemName}
+                                        ${mCode}
                                     </div>
-                                    
-                                    <div style="font-size:12px; color:#555;">
-                                        ${price.toLocaleString()} x ${quantity} = <strong>${itemTotal.toLocaleString()}</strong>
+                                    <div style="font-size: 12px; color: #666; margin-top:2px;">
+                                        ${quantity} x ${price.toLocaleString()} د.ع
                                     </div>
                                 </div>
                             </div>
@@ -633,10 +627,37 @@ async function handleDirectOrder() {
 }
 
 async function processOrderSubmission() {
-    // --- گۆڕانکاری: بەکارهێنانی لۆجیکی نوێی حیسابکردن ---
-    const totals = calculateCartTotals();
-    const total = totals.grandTotal;
-    // ------------------------------------------------
+    // --- [NEW LOGIC: Calculating Total based on Market Rules] ---
+    // This must match cart.js logic to ensure the total stored in DB is correct
+    let totalItemPrice = 0;
+    const marketMaxShipping = {}; // To store the single highest shipping cost per market
+
+    state.cart.forEach(item => {
+        // 1. Sum item prices
+        totalItemPrice += (item.price * item.quantity);
+        
+        // 2. Determine shipping per market
+        const mCode = item.marketCode || 'default';
+        const itemShipping = item.shippingCost || 0;
+        
+        if (marketMaxShipping[mCode] === undefined) {
+            marketMaxShipping[mCode] = 0;
+        }
+        
+        // Take the highest shipping cost for this market
+        if (itemShipping > marketMaxShipping[mCode]) {
+            marketMaxShipping[mCode] = itemShipping;
+        }
+    });
+
+    // 3. Sum up the shipping costs
+    let totalShipping = 0;
+    for (const mCode in marketMaxShipping) {
+        totalShipping += marketMaxShipping[mCode];
+    }
+
+    const total = totalItemPrice + totalShipping;
+    // -----------------------------------------------------------
     
     const orderData = {
         userId: state.currentUser.uid,
@@ -644,7 +665,7 @@ async function processOrderSubmission() {
         userPhone: state.userProfile.phone || '', 
         userAddress: state.userProfile.address || '', 
         items: state.cart,
-        total: total, // نرخی ڕاست بەپێی یاسای مارکێت
+        total: total,
         status: 'pending', 
         createdAt: Date.now() 
     };
