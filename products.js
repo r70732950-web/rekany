@@ -183,11 +183,32 @@ export async function showProductDetailsUI(productData, fromHistory = false) {
     
     document.getElementById('detailProductDescription').innerHTML = formatDescription(baseProduct.description); 
     
-    // [نوێ] Render Specifications
-    renderSpecificationsUI(product);
-
     // Variations Logic
     setupVariationsUI(product, baseProduct);
+
+    // [NEW] Market Code Display
+    const priceContainer = document.getElementById('detailProductPrice');
+    // لابردنی کۆدی کۆن ئەگەر هەبێت
+    const oldBadge = priceContainer.querySelector('.market-code-badge');
+    if(oldBadge) oldBadge.remove();
+
+    if (product.marketCode) {
+        const marketBadge = document.createElement('div');
+        marketBadge.className = 'market-code-badge';
+        marketBadge.style.marginTop = '12px';
+        marketBadge.style.marginBottom = '5px';
+        marketBadge.style.textAlign = 'center';
+        marketBadge.innerHTML = `
+            <span style="background-color: #f8f9fa; padding: 6px 12px; border-radius: 8px; font-size: 13px; color: var(--text-light); border: 1px solid #e2e8f0; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="fas fa-store-alt" style="color: var(--primary-color);"></i> 
+                مارکێت: <b style="color: var(--text-color);">${product.marketCode}</b>
+            </span>
+        `;
+        priceContainer.appendChild(marketBadge);
+    }
+
+    // Render Specifications
+    renderSpecificationsUI(product);
 
     renderRelatedProductsUI(product);
 }
@@ -220,7 +241,6 @@ function renderSpecificationsUI(product) {
 
     if (rowsHTML) {
         table.innerHTML = rowsHTML;
-        // [چاکسازی] دانانی خشتەکە لە سەرووی وەسفی کاڵاکە (Before Description)
         descriptionEl.parentNode.insertBefore(table, descriptionEl);
     }
 }
@@ -328,10 +348,18 @@ function setupVariationsUI(product, baseProduct) {
 
 function renderProductPrice(price, originalPrice = null) {
     const priceContainer = document.getElementById('detailProductPrice');
+    // پاراستنی کۆدی مارکێت ئەگەر پێشتر زیاد کرابێت (چونکە ئەم فەنکشنە هەموو جارێک دەیکوژێنێتەوە)
+    const marketBadge = priceContainer.querySelector('.market-code-badge');
+    const marketCodeHTML = marketBadge ? marketBadge.outerHTML : '';
+
     if (originalPrice && originalPrice > price) {
         priceContainer.innerHTML = `<span style="color: var(--accent-color);">${price.toLocaleString()} د.ع</span> <del style="color: var(--dark-gray); font-size: 16px; margin-right: 10px;">${originalPrice.toLocaleString()} د.ع</del>`;
     } else {
         priceContainer.innerHTML = `<span>${price.toLocaleString()} د.ع</span>`;
+    }
+    
+    if(marketCodeHTML) {
+        priceContainer.innerHTML += marketCodeHTML;
     }
 }
 
