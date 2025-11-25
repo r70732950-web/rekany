@@ -348,6 +348,19 @@ function renderSingleMessage(msg, container, chatUserId) {
     } else if (msg.type === 'order') {
         const order = msg.orderDetails;
         if(order && order.items) {
+            
+            // --- 1. Pre-calculate Max Shipping per Market for display ---
+            const marketMaxMap = {};
+            order.items.forEach(item => {
+                const mCode = item.marketCode || 'default';
+                const cost = item.shippingCost || 0;
+                if (marketMaxMap[mCode] === undefined || cost > marketMaxMap[mCode]) {
+                    marketMaxMap[mCode] = cost;
+                }
+            });
+            
+            const marketsCharged = new Set();
+
             contentHtml = `
                 <div class="order-bubble">
                     <div class="order-bubble-header"><i class="fas fa-receipt"></i> ${t('order_notification_title')}</div>
@@ -355,7 +368,6 @@ function renderSingleMessage(msg, container, chatUserId) {
                         ${order.items.map(i => {
                             const price = Number(i.price) || 0;
                             const quantity = Number(i.quantity) || 1;
-                            const shipping = Number(i.shippingCost) || 0;
                             
                             const itemName = i.name && i.name[state.currentLanguage] 
                                 ? i.name[state.currentLanguage] 
@@ -363,8 +375,19 @@ function renderSingleMessage(msg, container, chatUserId) {
                             
                             const mCode = i.marketCode ? `<span style="font-size:10px; color:#777; display:block;">مارکێت: ${i.marketCode}</span>` : '';
                             
-                            // --- [UPDATED] Show shipping clearly ---
-                            const shippingDisplay = shipping > 0 ? `(+ ${shipping.toLocaleString()} گەیاندن)` : '(گەیاندن بێ بەرامبەر)';
+                            // --- LOGIC: Determine text display ---
+                            const mCodeKey = i.marketCode || 'default';
+                            const itemCost = i.shippingCost || 0;
+                            let shippingDisplay = '';
+
+                            const isPayer = (itemCost === marketMaxMap[mCodeKey]) && !marketsCharged.has(mCodeKey);
+
+                            if (isPayer && itemCost > 0) {
+                                shippingDisplay = `<span style="color:#e53e3e; font-size:10px;">(+ ${itemCost.toLocaleString()} گەیاندن)</span>`;
+                                marketsCharged.add(mCodeKey);
+                            } else {
+                                shippingDisplay = `<span style="color:#38a169; font-size:10px;">(گەیاندن بێ بەرامبەر)</span>`;
+                            }
 
                             return `
                             <div class="order-bubble-item" style="display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #eee;">
@@ -376,7 +399,7 @@ function renderSingleMessage(msg, container, chatUserId) {
                                     </div>
                                     <div style="font-size: 12px; color: #666; margin-top:2px;">
                                         ${quantity} x ${price.toLocaleString()} د.ع
-                                        <br><span style="color:#e53e3e; font-size:10px;">${shippingDisplay}</span>
+                                        <br>${shippingDisplay}
                                     </div>
                                 </div>
                             </div>
@@ -384,7 +407,7 @@ function renderSingleMessage(msg, container, chatUserId) {
                         }).join('')}
                         
                         <div class="order-bubble-total" style="margin-top: 10px; font-size: 16px; text-align:center; background:#f1f1f1; padding:5px; border-radius:4px;">
-                            کۆی گشتی (لەگەڵ گەیاندن): ${(order.total || 0).toLocaleString()} د.ع
+                            کۆی گشتی: ${(order.total || 0).toLocaleString()} د.ع
                         </div>
 
                         <div style="background-color: #fff; border:1px solid #eee; padding: 8px; border-radius: 6px; margin-top: 10px; font-size: 12px; color: #444;">
@@ -636,7 +659,7 @@ async function processOrderSubmission() {
     // --- [NEW LOGIC: Calculating Total based on Market Rules] ---
     // This must match cart.js logic to ensure the total stored in DB is correct
     let totalItemPrice = 0;
-    const marketMaxShipping = {}; // To store the single highest shipping cost per market
+    const marketMaxMap = {}; // To store max shipping cost for each market code
 
     state.cart.forEach(item => {
         // 1. Sum item prices
@@ -644,22 +667,18 @@ async function processOrderSubmission() {
         
         // 2. Determine shipping per market
         const mCode = item.marketCode || 'default';
-        const itemShipping = item.shippingCost || 0;
+        const cost = item.shippingCost || 0;
         
-        if (marketMaxShipping[mCode] === undefined) {
-            marketMaxShipping[mCode] = 0;
-        }
-        
-        // Take the highest shipping cost for this market
-        if (itemShipping > marketMaxShipping[mCode]) {
-            marketMaxShipping[mCode] = itemShipping;
+        // Find the highest shipping cost in this market group
+        if (marketMaxMap[mCode] === undefined || cost > marketMaxMap[mCode]) {
+            marketMaxMap[mCode] = cost;
         }
     });
 
-    // 3. Sum up the shipping costs
+    // 3. Sum up the shipping costs (only one per market)
     let totalShipping = 0;
-    for (const mCode in marketMaxShipping) {
-        totalShipping += marketMaxShipping[mCode];
+    for (const m in marketMaxMap) {
+        totalShipping += marketMaxMap[m];
     }
 
     const total = totalItemPrice + totalShipping;
