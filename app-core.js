@@ -629,10 +629,10 @@ export async function addToCartCore(productId, selectedVariationInfo = null) {
     const calculatedShippingCost = extractShippingCostFromText(shippingText);
     const baseImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
 
-    // [CODE EXTRACTION WITH ERROR FIX]
-    // We force conversion to String() to prevent .match is not a function error if description is number/undefined
+    // [UPDATED] Robust extraction that strips HTML and handles non-string descriptions
     const descString = product.description ? String(product.description) : "";
-    const codeMatch = descString.match(/(?:Code|کۆد)\s*[:]\s*([A-Za-z0-9]+)/i);
+    const cleanDesc = descString.replace(/<[^>]*>?/gm, ' '); // Remove HTML tags
+    const codeMatch = cleanDesc.match(/(?:Code|کۆد)\s*[:]\s*([A-Za-z0-9]+)/i);
     const marketCode = codeMatch ? codeMatch[1].toUpperCase() : null;
 
     let cartId = product.id;
@@ -663,7 +663,7 @@ export async function addToCartCore(productId, selectedVariationInfo = null) {
     if (existingItem) {
         existingItem.quantity++;
         existingItem.shippingCost = calculatedShippingCost; 
-        existingItem.marketCode = marketCode; // Update market code just in case
+        existingItem.marketCode = marketCode; 
     } else {
         state.cart.push({
             id: cartId, 
@@ -674,7 +674,7 @@ export async function addToCartCore(productId, selectedVariationInfo = null) {
             image: cartItemImage, 
             quantity: 1,
             variationInfo: selectedVariationInfo,
-            marketCode: marketCode // Store extraction result
+            marketCode: marketCode 
         });
     }
     saveCart();
@@ -704,7 +704,6 @@ export function removeFromCartCore(cartId) {
     return false; 
 }
 
-// [UPDATED] Smart Order Message Generation
 export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
