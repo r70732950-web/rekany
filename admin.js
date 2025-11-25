@@ -31,7 +31,6 @@ window.AdminLogic = {
         this.renderContactMethodsAdmin();
         this.renderShortcutRowsAdminList();
         
-        // بانگکردنی فەنکشنە نوێکراوەکان
         this.updateAdminCategoryDropdowns(); 
         this.updateShortcutCardCategoryDropdowns();
         
@@ -114,20 +113,15 @@ window.AdminLogic = {
         }
     },
 
-    // --- [Fixed] Update Admin Category Dropdowns ---
     updateAdminCategoryDropdowns: async function() {
         let categories = getCategories();
         
-        // ئەگەر جۆرەکان بار نەکرابوون (وەک کێشەکەی ڤیدیۆکە)، خۆمان باریان دەکەین
         if (!categories || categories.length === 0) {
             try {
                 const q = query(categoriesCollection, orderBy("order", "asc"));
                 const snapshot = await getDocs(q);
                 categories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                // نوێکردنەوەی ستەیت بۆ ئەوەی شوێنەکانی تریش بیبینن
                 if (window.state) window.state.categories = categories;
-                
             } catch (error) {
                 console.error("Error forcing category fetch in admin:", error);
             }
@@ -138,14 +132,13 @@ window.AdminLogic = {
         const categoriesWithoutAll = categories.filter(cat => cat.id && cat.id !== 'all'); 
         if (categoriesWithoutAll.length === 0) return; 
 
-        // لیستی هەموو ئەو dropdownـانەی پێویستە پڕ بکرێنەوە
         const dropdowns = [
             { id: 'productCategoryId', defaultText: '-- جۆرێ سەرەکی هەڵبژێرە --', required: true },
             { id: 'parentCategorySelect', defaultText: '-- جۆرێک هەڵبژێرە --', required: true },
             { id: 'parentMainCategorySelectForSubSub', defaultText: '-- جۆرێک هەڵبژێرە --', required: true },
             { id: 'promoCardTargetCategory', defaultText: '-- جۆرێک هەڵبژێرە --', required: true },
             { id: 'brandTargetMainCategory', defaultText: '-- هەموو جۆرەکان --', required: false },
-            { id: 'newSectionMainCategory', defaultText: '-- جۆرێک هەڵبژێرە --', required: true } // ئەمە بۆ Home Layout
+            { id: 'newSectionMainCategory', defaultText: '-- جۆرێک هەڵبژێرە --', required: true }
         ];
 
         dropdowns.forEach(d => {
@@ -164,7 +157,6 @@ window.AdminLogic = {
             }
         });
         
-        // هەروەها نوێکردنەوەی Shortcut Category
         this.updateShortcutCardCategoryDropdowns(categoriesWithoutAll);
     },
 
@@ -207,7 +199,6 @@ window.AdminLogic = {
         document.getElementById('variationsContainer').innerHTML = '';
         document.getElementById('specificationsContainer').innerHTML = ''; 
         
-        // دڵنیابوونەوە لەوەی لیستەکان پڕن
         await this.updateAdminCategoryDropdowns(); 
 
         if (product.name && typeof product.name === 'object') {
@@ -219,6 +210,9 @@ window.AdminLogic = {
             document.getElementById('productNameKuBadini').value = '';
             document.getElementById('productNameAr').value = '';
         }
+
+        // [NEW CODE: Market Code]
+        document.getElementById('productMarketCode').value = product.marketCode || '';
 
         document.getElementById('productPrice').value = product.price;
         document.getElementById('productOriginalPrice').value = product.originalPrice || '';
@@ -279,7 +273,6 @@ window.AdminLogic = {
         }
     },
 
-    // --- Specification Helpers ---
     createSpecRowUI: function(data = null) {
         const container = document.getElementById('specificationsContainer');
         const row = document.createElement('div');
@@ -553,6 +546,8 @@ window.AdminLogic = {
         }
     },
 
+    // ... (Previous helper functions like renderAdminAnnouncementsList, renderSocialMediaLinks, etc. remain unchanged)
+    
     deleteAnnouncement: async function(id) {
         if (confirm(t('announcement_delete_confirm'))) {
             try {
@@ -1926,12 +1921,14 @@ window.AdminLogic = {
             };
             
             const variationsData = self.collectVariationsData();
-            const specificationsData = self.collectSpecificationsData(); // [NEW]
+            const specificationsData = self.collectSpecificationsData(); 
 
             try {
                 const productData = {
                     name: productNameObject,
                     searchableName: productNameKuSorani.toLowerCase(),
+                    // <--- گۆڕانکاری لێرە کرا (کۆدی مارکێت زیاد کرا) -->
+                    marketCode: document.getElementById('productMarketCode').value.trim(), 
                     price: parseInt(document.getElementById('productPrice').value),
                     originalPrice: parseInt(document.getElementById('productOriginalPrice').value) || null,
                     categoryId: document.getElementById('productCategoryId').value,
@@ -1947,7 +1944,7 @@ window.AdminLogic = {
                         ar: document.getElementById('shippingInfoAr').value.trim()
                     },
                     variations: variationsData,
-                    specifications: specificationsData // [NEW]
+                    specifications: specificationsData 
                 };
                 const editingId = getEditingProductId();
                 if (editingId) {

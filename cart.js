@@ -6,8 +6,7 @@ import {
     generateOrderMessageCore, 
     addToCartCore, 
     updateCartQuantityCore, 
-    removeFromCartCore,
-    calculateSmartTotal // <--- Import Smart Calculation
+    removeFromCartCore 
 } from './app-core.js';
 
 import { 
@@ -44,31 +43,10 @@ export function renderCartUI() {
     
     renderCartActionButtonsUI(); 
 
-    // --- SMART CALCULATION START ---
-    // بەکارهێنانی حساباتی زیرەک بۆ کۆی گشتی
-    const smartResult = calculateSmartTotal(state.cart);
-    // --- SMART CALCULATION END ---
-
+    let total = 0;
     state.cart.forEach(item => {
-        // بۆ هەر دێڕێک، دەبێت دیاری بکەین چۆن نرخی گەیاندن پیشان بدەین
-        let itemRowTotal = item.price * item.quantity;
-        let shippingDisplay = '';
-
-        if (item.marketCode) {
-            // ئەگەر کۆدی هەبوو (Combined Shipping)
-            // نرخی گەیاندن نەخەینە سەر نرخی تاکەکە، چونکە لە کۆتاییدا حساب دەکرێت
-            shippingDisplay = `<span style="font-size:11px; color:#6b46c1; font-weight:bold;">📦 گەیاندنی یەکگرتوو (کۆد: ${item.marketCode})</span>`;
-        } else {
-            // حاڵەتی ئاسایی
-            const shipCost = item.shippingCost || 0;
-            itemRowTotal += shipCost; // لێرە گەیاندن دەخرێتە سەر نرخی تاکەکە وەک جاران
-
-            if (shipCost > 0) {
-                shippingDisplay = `<span style="font-size:12px; color:#e53e3e;">(+ ${shipCost.toLocaleString()} گەیاندن)</span>`;
-            } else {
-                shippingDisplay = `<span style="font-size:12px; color:#38a169;">(گەیاندن بێ بەرامبەر)</span>`;
-            }
-        }
+        const itemTotal = (item.price * item.quantity) + (item.shippingCost || 0);
+        total += itemTotal;
         
         const cartItem = document.createElement('div');
         cartItem.className = 'cart-item';
@@ -77,10 +55,28 @@ export function renderCartUI() {
             ? item.name 
             : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
 
+        let shippingDisplay = '';
+        if (item.shippingCost > 0) {
+            shippingDisplay = `<span style="font-size:12px; color:#e53e3e;">(+ ${item.shippingCost.toLocaleString()} گەیاندن)</span>`;
+        } else {
+            shippingDisplay = `<span style="font-size:12px; color:#38a169;">(گەیاندن بێ بەرامبەر)</span>`;
+        }
+
+        // --- [MARKET CODE DISPLAY START] ---
+        // ئەگەر کاڵاکە کۆدی مارکێتی هەبوو، پیشانی بدە
+        let marketCodeHtml = '';
+        if (item.marketCode) {
+            marketCodeHtml = `<span style="font-size: 11px; background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; margin-right: 5px; color: #555; border: 1px solid #ddd;">${item.marketCode}</span>`;
+        }
+        // --- [MARKET CODE DISPLAY END] ---
+
         cartItem.innerHTML = `
             <img src="${item.image}" alt="${itemNameInCurrentLang}" class="cart-item-image">
             <div class="cart-item-details">
-                <div class="cart-item-title">${itemNameInCurrentLang}</div>
+                <div class="cart-item-title">
+                    ${itemNameInCurrentLang}
+                    <div style="margin-top: 4px;">${marketCodeHtml}</div>
+                </div>
                 <div class="cart-item-price">
                     ${item.price.toLocaleString()} د.ع <span style="font-size:11px; color:#666;">x ${item.quantity}</span>
                     <br>
@@ -93,16 +89,15 @@ export function renderCartUI() {
                 </div>
             </div>
             <div class="cart-item-subtotal">
-                <div>کۆی کاڵا</div>
-                <span style="color:var(--primary-color); font-size:16px;">${itemRowTotal.toLocaleString()} د.ع.</span>
+                <div>کۆی گشتی</div>
+                <span style="color:var(--primary-color); font-size:16px;">${itemTotal.toLocaleString()} د.ع.</span>
                 <button class="cart-item-remove" data-id="${item.id}"><i class="fas fa-trash"></i></button>
             </div>
         `;
         cartItemsContainer.appendChild(cartItem);
     });
 
-    // لێرە نرخی کۆتایی دادەنێین کە لە calculateSmartTotal هاتووە
-    totalAmount.textContent = smartResult.grandTotal.toLocaleString();
+    totalAmount.textContent = total.toLocaleString();
 
     // Event Listeners
     cartItemsContainer.querySelectorAll('.increase-btn').forEach(btn => btn.onclick = (e) => handleUpdateQuantityUI(e.currentTarget.dataset.id, 1));
@@ -134,7 +129,6 @@ export async function renderCartActionButtonsUI() {
         btn.innerHTML = `<i class="${method.icon}"></i> <span>${name}</span>`;
 
         btn.onclick = () => {
-            // Note: generateOrderMessageCore already uses calculateSmartTotal internally now
             const message = generateOrderMessageCore(); 
             if (!message) return;
 
