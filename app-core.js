@@ -629,8 +629,10 @@ export async function addToCartCore(productId, selectedVariationInfo = null) {
     const calculatedShippingCost = extractShippingCostFromText(shippingText);
     const baseImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
 
-    // [CODE EXTRACTION]
-    const codeMatch = (product.description || "").match(/(?:Code|کۆد)\s*[:]\s*([A-Za-z0-9]+)/i);
+    // [CODE EXTRACTION WITH ERROR FIX]
+    // We force conversion to String() to prevent .match is not a function error if description is number/undefined
+    const descString = product.description ? String(product.description) : "";
+    const codeMatch = descString.match(/(?:Code|کۆد)\s*[:]\s*([A-Za-z0-9]+)/i);
     const marketCode = codeMatch ? codeMatch[1].toUpperCase() : null;
 
     let cartId = product.id;
