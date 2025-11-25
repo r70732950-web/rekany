@@ -624,7 +624,7 @@ export async function addToCartCore(productId, selectedVariationInfo = null) {
             id: cartId, 
             productId: product.id, 
             name: cartItemName,
-            marketCode: product.marketCode || '', // NEW: Save market code
+            marketCode: product.marketCode || '', // Ensure market code is saved
             price: cartItemPrice, 
             shippingCost: calculatedShippingCost,
             image: cartItemImage, 
@@ -659,7 +659,7 @@ export function removeFromCartCore(cartId) {
     return false; 
 }
 
-// --- [NEW] Updated Logic for Shipping Calculation by Market ---
+// --- [NEW] Updated Logic: Group by Market, Calculate Shipping "Behind Scenes" ---
 export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
@@ -669,7 +669,7 @@ export function generateOrderMessageCore() {
     const itemsByMarket = {};
     
     state.cart.forEach(item => {
-        const mCode = item.marketCode || 'گشتی'; // ئەگەر مارکێت نەبوو، دەبێتە گشتی
+        const mCode = item.marketCode || 'گشتی'; 
         if (!itemsByMarket[mCode]) {
             itemsByMarket[mCode] = {
                 items: [],
@@ -702,22 +702,23 @@ export function generateOrderMessageCore() {
                 ? item.name 
                 : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
 
+            // We do NOT show individual shipping here, only item price
             message += `▪️ ${itemName}\n`;
             message += `   ${item.quantity} x ${item.price.toLocaleString()} = ${lineTotal.toLocaleString()}\n`;
         });
 
-        // Add Shipping for this market (Only once per market)
+        // Add Shipping for this market (calculated behind scenes, shown as single line)
         const shippingFee = data.maxShipping;
         const marketTotal = marketItemsTotal + shippingFee;
         grandTotal += marketTotal;
 
         if (shippingFee > 0) {
-            message += `🚚 گەیاندن (تێکڕا): ${shippingFee.toLocaleString()}\n`;
+            message += `🚚 گەیاندن: ${shippingFee.toLocaleString()}\n`;
         } else {
             message += `🚚 گەیاندن: بێ بەرامبەر\n`;
         }
         
-        message += `💰 کۆی مارکێت: ${marketTotal.toLocaleString()} د.ع\n\n`;
+        message += `💰 کۆی گشتی مارکێت: ${marketTotal.toLocaleString()} د.ع\n\n`;
     }
     
     message += `================\n`;

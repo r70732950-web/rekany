@@ -355,6 +355,7 @@ function renderSingleMessage(msg, container, chatUserId) {
                         ${order.items.map(i => {
                             const price = Number(i.price) || 0;
                             const quantity = Number(i.quantity) || 1;
+                            
                             const itemName = i.name && i.name[state.currentLanguage] 
                                 ? i.name[state.currentLanguage] 
                                 : (i.name && i.name.ku_sorani ? i.name.ku_sorani : (typeof i.name === 'string' ? i.name : 'کاڵا'));
@@ -628,15 +629,13 @@ async function handleDirectOrder() {
 
 async function processOrderSubmission() {
     // --- [NEW LOGIC: Calculating Total based on Market Rules] ---
-    // This must match cart.js logic to ensure the total stored in DB is correct
+    // This calculation is done behind the scenes so the correct total is stored in DB
     let totalItemPrice = 0;
-    const marketMaxShipping = {}; // To store the single highest shipping cost per market
+    const marketMaxShipping = {}; 
 
     state.cart.forEach(item => {
-        // 1. Sum item prices
         totalItemPrice += (item.price * item.quantity);
         
-        // 2. Determine shipping per market
         const mCode = item.marketCode || 'default';
         const itemShipping = item.shippingCost || 0;
         
@@ -644,13 +643,11 @@ async function processOrderSubmission() {
             marketMaxShipping[mCode] = 0;
         }
         
-        // Take the highest shipping cost for this market
         if (itemShipping > marketMaxShipping[mCode]) {
             marketMaxShipping[mCode] = itemShipping;
         }
     });
 
-    // 3. Sum up the shipping costs
     let totalShipping = 0;
     for (const mCode in marketMaxShipping) {
         totalShipping += marketMaxShipping[mCode];

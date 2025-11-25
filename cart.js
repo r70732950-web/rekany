@@ -77,8 +77,8 @@ export function renderCartUI() {
     // -----------------------------------------------------------
 
     state.cart.forEach(item => {
-        // Note: We display the itemTotal here just for the user to see the item cost, 
-        // but the Grand Total is calculated above using the specific shipping logic.
+        // Note: We display the itemTotal here just for the user to see the item cost.
+        // The shipping logic is hidden from individual items to avoid confusion.
         const itemTotal = (item.price * item.quantity); 
         
         const cartItem = document.createElement('div');
@@ -88,17 +88,10 @@ export function renderCartUI() {
             ? item.name 
             : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
 
-        let shippingDisplay = '';
-        if (item.shippingCost > 0) {
-            shippingDisplay = `<span style="font-size:12px; color:#e53e3e;">(+ ${item.shippingCost.toLocaleString()} گەیاندن)</span>`;
-        } else {
-            shippingDisplay = `<span style="font-size:12px; color:#38a169;">(گەیاندن بێ بەرامبەر)</span>`;
-        }
-
         // --- [MARKET CODE DISPLAY] ---
         let marketCodeHtml = '';
         if (item.marketCode) {
-            marketCodeHtml = `<span style="font-size: 11px; background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; margin-left: 5px; color: #555; border: 1px solid #ddd;">🏪 ${item.marketCode}</span>`;
+            marketCodeHtml = `<span style="font-size: 11px; background-color: #f0f0f0; padding: 2px 6px; border-radius: 4px; margin-right: 5px; color: #555; border: 1px solid #ddd;">🏪 ${item.marketCode}</span>`;
         }
 
         cartItem.innerHTML = `
@@ -110,8 +103,6 @@ export function renderCartUI() {
                 </div>
                 <div class="cart-item-price">
                     ${item.price.toLocaleString()} د.ع <span style="font-size:11px; color:#666;">x ${item.quantity}</span>
-                    <br>
-                    ${shippingDisplay}
                 </div>
                 <div class="cart-item-quantity">
                     <button class="quantity-btn increase-btn" data-id="${item.id}">+</button>
@@ -128,7 +119,7 @@ export function renderCartUI() {
         cartItemsContainer.appendChild(cartItem);
     });
 
-    // Set the calculated Final Total
+    // Set the calculated Final Total (Items + Market Shipping)
     totalAmount.textContent = finalTotal.toLocaleString();
 
     // Event Listeners
