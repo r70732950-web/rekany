@@ -10,25 +10,22 @@ import {
     db, doc, getDoc 
 } from './app-core.js';
 
-// [ گۆڕانکاری لێرە کرا ]
-// ئەو فەنکشنانەی پەیوەستن بە UI لە app-ui.js دەهێنین
 import {
     renderSkeletonLoader, showSubcategoryDetailPageUI
 } from './app-ui.js';
 
-// [ گۆڕانکاری لێرە کرا ]
-// ئەو فەنکشنانەی گواسترانەوە بۆ products.js لەوێوە دەهێنین
 import {
     createProductCardElementUI, setupScrollAnimations
 } from './products.js';
 
+// تێبینی: ئەم فەنکشنەمان لابرد یان ناچالاکمان کرد بۆ ئەوەی سکڕۆڵەکە نەگەڕێتەوە سەرەتا
 function resetScrollPosition(containerElement) {
-    if (containerElement) {
-        containerElement.scrollTo({
-            left: 0,
-            behavior: 'smooth' 
-        });
-    }
+    // if (containerElement) {
+    //     containerElement.scrollTo({
+    //         left: 0,
+    //         behavior: 'smooth' 
+    //     });
+    // }
 }
 
 function renderProductsGridUI(newProductsOnly = false) {
@@ -73,7 +70,7 @@ export function renderMainCategoriesUI() {
     }
 
     homeBtn.onclick = async () => {
-         resetScrollPosition(container); 
+         // resetScrollPosition(container); // لابرا
          await navigateToFilterCore({
              category: 'all',
              subcategory: 'all',
@@ -100,7 +97,7 @@ export function renderMainCategoriesUI() {
         btn.innerHTML = `<i class="${categoryIcon}"></i> <span>${categoryName}</span>`;
 
         btn.onclick = async () => {
-             resetScrollPosition(container); 
+             // resetScrollPosition(container); // لابرا: بۆ ئەوەی سکڕۆڵەکە نەگەڕێتەوە سەرەتا
              await navigateToFilterCore({
                  category: cat.id,
                  subcategory: 'all',
@@ -138,7 +135,7 @@ export async function renderSubcategoriesUI(subcategoriesData) {
         <span>${t('all_categories_label')}</span>
     `;
     allBtn.onclick = async () => {
-         resetScrollPosition(subcategoriesContainer); 
+         // resetScrollPosition(subcategoriesContainer); // لابرا
          await navigateToFilterCore({
              category: state.currentCategory, 
              subcategory: 'all',
@@ -162,7 +159,7 @@ export async function renderSubcategoriesUI(subcategoriesData) {
              <span>${subcatName}</span>
         `;
         subcatBtn.onclick = async () => {
-            resetScrollPosition(subcategoriesContainer); 
+            // resetScrollPosition(subcategoriesContainer); // لابرا
             showSubcategoryDetailPageUI(state.currentCategory, subcat.id);
         };
         subcategoriesContainer.appendChild(subcatBtn);
@@ -200,7 +197,7 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
         <span>${t('all_categories_label')}</span>
     `;
     allBtn.onclick = async () => {
-         resetScrollPosition(container); 
+         // resetScrollPosition(container); // لابرا
          await navigateToFilterCore({
              category: state.currentCategory,
              subcategory: state.currentSubcategory,
@@ -221,7 +218,7 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
         btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
 
         btn.onclick = async () => {
-             resetScrollPosition(container); 
+             // resetScrollPosition(container); // لابرا
              showSubcategoryDetailPageUI(state.currentCategory, state.currentSubcategory);
         };
         container.appendChild(btn);
@@ -734,7 +731,7 @@ async function createPromoGridSectionElement(rowId) {
                 });
                 await updateProductViewUI(true, true);
             }
-        };
+         };
         
         gridDiv.appendChild(cardEl);
     });
