@@ -56,7 +56,7 @@ html.chat-active .bottom-nav {
 
 .app-container { max-width: 100%; margin: 0 auto; background-color: var(--light-gray); min-height: 100vh; position: relative; overflow-x: hidden; }
 
-/* --- 1. Header Fixed (قاتی یەکەم) --- */
+/* --- 1. Header Fixed --- */
 .app-header {
     background-color: white;
     color: var(--primary-color);
@@ -73,11 +73,11 @@ html.chat-active .bottom-nav {
     left: 0;
     right: 0;
     width: 100%;
-    height: 60px; /* بەرزییەکەیم کردە 60 بۆ ئەوەی تێر بکات */
-    z-index: 1000; /* لە هەموو شتێک بەرزترە */
+    height: 55px; /* بەرزی هێدەر */
+    z-index: 1000;
     
-    box-shadow: none; /* سێبەرم لابرد بۆ ئەوەی لەگەڵ ئەوەی خوارەوە یەک بگرێت */
-    border-bottom: 1px solid var(--medium-gray);
+    box-shadow: none; /* سێبەرم لابرد تا لەگەڵ شریتەکە یەک بگرێت */
+    border-bottom: 1px solid #f0f0f0; /* هێڵێکی زۆر کاڵ */
     gap: 15px;
     transform: none !important;
     transition: none !important;
@@ -136,27 +136,28 @@ html.chat-active .bottom-nav {
     z-index: 1;
 }
 
-/* --- 2. Category Bar FIXED (قاتی دووەم) --- */
-/* ئەمە گرنگترین گۆڕانکارییە: کردمە Fixed نەک Sticky */
+/* --- 2. Category Bar FIXED --- */
+/* ئەم بەشە بەرپرسە لە جێگیرکردنی شریتەکە */
 .main-categories-container {
     display: flex;
     gap: 8px;
     overflow-x: auto;
-    padding: 8px 12px;
+    padding: 10px 12px;
     scrollbar-width: none;
     
-    /* Fixed Positioning */
-    position: fixed !important; 
-    top: 60px; /* ڕێک لە ژێر هێدەرەکە دەست پێ دەکات (60px) */
+    /* Fixed Positioning - بە جێگیری دەمێنێتەوە */
+    position: fixed !important;
+    top: 55px; /* ڕێک لە ژێر هێدەرەکە */
     left: 0;
     right: 0;
     width: 100%;
-    height: 50px; /* بەرزی دیاریکراو */
-    z-index: 999; /* لە ژێر هێدەرەکە بەڵام لە سەرووی ناوەڕۆک */
+    height: 60px; /* بەرزی شریتەکە */
+    z-index: 999;
     
-    background-color: white; /* کردمە سپی بۆ ئەوەی وەک بەشێک لە هێدەر دەرکەوێت */
-    border-bottom: 1px solid #ccc;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* سێبەرەکە لێرە دەردەکەوێت */
+    background-color: #ffffff; /* ڕەنگی سپی (ڕەساسی لابرا) */
+    border-bottom: 1px solid var(--medium-gray); /* هێڵێک لە ژێری */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* سێبەرێکی جوان */
+    
     margin: 0;
 }
 
@@ -165,12 +166,12 @@ html.chat-active .bottom-nav {
 }
 
 /* --- 3. Push Content Down --- */
-/* ناوەڕۆکەکە دەبەینە خوارەوە بۆ ئەوەی نەکەوێتە ژێر دوو قاتەکە */
+/* بۆشایی سەرەوە بۆ ئەوەی ناوەڕۆک نەکەوێتە ژێر شریتەکە */
 .main-content, 
 #subcategoryDetailPage, 
 .settings-page {
-    /* 60px (Header) + 50px (Category Bar) + 10px (Space) = 120px */
-    padding-top: 120px !important; 
+    /* 55px Header + 60px CatBar = 115px */
+    padding-top: 115px !important; 
     padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
 
@@ -1010,6 +1011,31 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 }
 .update-now-btn:hover {
     background-color: var(--accent-light);
+}
+
+/* --- 2. Category Bar FIXED --- */
+/* ئەم بەشە بەرپرسە لە جێگیرکردنی شریتەکە */
+.main-categories-container {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 8px 12px; /* بۆشایی کەم کرایەوە */
+    scrollbar-width: none;
+    
+    /* Fixed Positioning - بە جێگیری دەمێنێتەوە */
+    position: fixed !important;
+    top: 55px; /* ڕێک لە ژێر هێدەرەکە */
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 50px; /* بەرزی شریتەکە */
+    z-index: 999;
+    
+    background-color: #ffffff; /* ڕەنگی سپی (ڕەساسی لابرا) */
+    border-bottom: 1px solid var(--medium-gray); /* هێڵێک لە ژێری */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* سێبەرێکی جوان */
+    
+    margin: 0;
 }
 
 .main-category-btn {
