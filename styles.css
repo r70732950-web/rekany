@@ -56,24 +56,32 @@ html.chat-active .bottom-nav {
 
 .app-container { max-width: 100%; margin: 0 auto; background-color: var(--light-gray); min-height: 100vh; position: relative; overflow-x: hidden; }
 
+/* --- Header Fixed --- */
 .app-header {
     background-color: white;
     color: var(--primary-color);
     padding: 12px 15px;
     padding-top: calc(12px + env(safe-area-inset-top));
+    
     display: flex;
     justify-content: space-between;
     align-items: center;
-    position: fixed;
+    
+    /* Fixed Positioning */
+    position: fixed !important;
     top: 0;
     left: 0;
     right: 0;
-    z-index: 100;
+    width: 100%;
+    z-index: 9999;
+    
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     border-bottom: 1px solid var(--medium-gray);
     gap: 15px;
-    transition: transform 0.3s ease;
+    transform: none !important;
+    transition: none !important;
 }
+
 .logo { display: flex; align-items: center; gap: 10px; }
 .logo-bottom { font-size: 22px; font-weight: bold; color: var(--primary-color); white-space: nowrap; }
 
@@ -127,8 +135,11 @@ html.chat-active .bottom-nav {
     z-index: 1;
 }
 
-.main-content, #subcategoryDetailPage, .settings-page {
-    padding-top: 80px;
+/* --- Padding Adjusted for Fixed Header --- */
+.main-content, 
+#subcategoryDetailPage, 
+.settings-page {
+    padding-top: 60px !important; /* Adjusted to bring content up */
     padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
 
@@ -970,13 +981,26 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     background-color: var(--accent-light);
 }
 
+/* --- Sticky Category Bar --- */
 .main-categories-container {
     display: flex;
     gap: 8px;
     overflow-x: auto;
-    padding: 5px 12px 10px 12px;
+    padding: 10px 12px; /* Adjusted padding */
     scrollbar-width: none;
+    
+    /* Sticky Logic */
+    position: -webkit-sticky;
+    position: sticky;
+    top: 58px; /* Adjust this value if needed to match header height */
+    z-index: 90;
+    background-color: var(--light-gray);
+    border-bottom: 1px solid var(--medium-gray);
+    margin-top: 0;
+    margin-bottom: 10px;
+    transition: top 0.3s ease;
 }
+
 .main-categories-container::-webkit-scrollbar {
     display: none;
 }
@@ -2366,28 +2390,3 @@ img {
     background-color: var(--danger-color);
     color: white;
 }
-/* ئەم بەشە بەرپرسە لەو شریتەی بەشەکان (Categories) */
-.main-categories-container {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding: 10px 12px; /* کەمێک بۆشاییم زیاد کرد بۆ جوانی */
-    scrollbar-width: none;
-    
-    /* --- کۆدی جێگیرکردن (Sticky) --- */
-    position: -webkit-sticky; /* بۆ سەفاری */
-    position: sticky;
-    top: 68px; /* ئەم ژمارەیە گرنگە: بەرزی هێدەرەکەی سەرەوەیە */
-    z-index: 90; /* دەکەوێتە ژێر هێدەرەکە بەڵام بەسەر کاڵاکاندا */
-    background-color: var(--light-gray); /* ڕەنگی پاشبنەما بۆ ئەوەی کاڵاکان لە ژێرییەوە دەرنەکەون */
-    border-bottom: 1px solid var(--medium-gray); /* هێڵێک بۆ جیاکردنەوە */
-    margin-top: -16px; /* بۆ ڕێککردنەوەی بۆشایی زیادە */
-    margin-bottom: 10px;
-    transition: top 0.3s ease;
-}
-
-/* لابردنی سکڕۆڵ بار */
-.main-categories-container::-webkit-scrollbar {
-    display: none;
-}
-
