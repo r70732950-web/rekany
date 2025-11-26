@@ -73,7 +73,7 @@ html.chat-active .bottom-nav {
     left: 0;
     right: 0;
     width: 100%;
-    height: 55px; /* بەرزی دیاریکراو */
+    height: 55px; /* بەرزی هێدەر */
     z-index: 1000;
     
     box-shadow: none; 
@@ -116,7 +116,7 @@ html.chat-active .bottom-nav {
     flex-shrink: 0;
 }
 
-/* --- 2. Page Logic Adjustment --- */
+/* --- 2. Page Logic Adjustment (گرنگە بۆ Fixed) --- */
 .page {
     position: absolute;
     top: 0;
@@ -129,8 +129,7 @@ html.chat-active .bottom-nav {
     overflow-y: auto;
 }
 
-/* ئەمە زۆر گرنگە: لابردنی Transform کاتێک پەڕەکە چالاکە */
-/* بۆ ئەوەی position: fixed کار بکات */
+/* لابردنی Transform کاتێک پەڕەکە چالاکە تا Fixed کار بکات */
 .page-active {
     transform: none !important; 
     z-index: 10;
@@ -146,7 +145,7 @@ html.chat-active .bottom-nav {
     display: flex;
     gap: 8px;
     overflow-x: auto;
-    padding: 10px 12px;
+    padding: 8px 12px;
     scrollbar-width: none;
     
     /* Fixed Positioning */
@@ -155,14 +154,14 @@ html.chat-active .bottom-nav {
     left: 0;
     right: 0;
     width: 100%;
-    height: 55px; /* بەرزی شریتەکە */
+    height: 60px; /* بەرزی شریتەکە */
     z-index: 999; /* لە ژێر هێدەرەکە بەڵام لە سەرووی ناوەڕۆک */
     
     background-color: #ffffff !important; /* سپی تەواو */
     border-bottom: 1px solid #f0f0f0;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     
-    margin: 0;
+    margin: 0 !important;
     border-radius: 0 !important;
 }
 
@@ -170,16 +169,17 @@ html.chat-active .bottom-nav {
     display: none;
 }
 
+/* --- 4. Water Drop Style Buttons --- */
 .main-category-btn {
     padding: 6px 12px;
     border: 1px solid var(--medium-gray);
     background-color: white;
     color: var(--text-color);
-    border-radius: 8px;
+    border-radius: 8px; /* گۆشەی ئاسایی بۆ ئەوانەی ناچالاکن */
     cursor: pointer;
     font-size: 13px;
     white-space: nowrap;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -192,21 +192,33 @@ html.chat-active .bottom-nav {
     border-color: var(--dark-gray);
 }
 
+/* --- ستایلی دڵۆپە ئاو بۆ دوگمەی چالاک --- */
 .main-category-btn.active {
-    background-color: var(--primary-color);
-    color: white;
-    border-color: var(--primary-color);
+    /* ڕەنگی دڵۆپە ئاو (Gradient Blue) */
+    background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%) !important;
+    
+    /* ڕەنگی دەق و ئایکۆن */
+    color: white !important;
+    border-color: transparent !important;
+    
+    /* شێوەی دڵۆپە (Drop Shape) */
+    border-radius: 20px 20px 20px 4px !important;
+
+    /* سێبەر بۆ جوانی (Glow Effect) */
+    box-shadow: 0 4px 15px rgba(0, 114, 255, 0.4) !important;
+    
+    transform: scale(1.05);
 }
 
 .main-category-btn.active i {
     color: white !important;
 }
 
-/* --- 4. Push Content Down --- */
+/* --- 5. Push Content Down --- */
 .main-content, 
 #subcategoryDetailPage, 
 .settings-page {
-    /* 55px Header + 55px CatBar + 10px Space = 120px */
+    /* 55px Header + 60px CatBar + 5px Space = 120px */
     padding-top: 120px !important; 
     padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
