@@ -18,14 +18,8 @@ import {
     createProductCardElementUI, setupScrollAnimations
 } from './products.js';
 
-// تێبینی: ئەم فەنکشنەمان لابرد یان ناچالاکمان کرد بۆ ئەوەی سکڕۆڵەکە نەگەڕێتەوە سەرەتا
 function resetScrollPosition(containerElement) {
-    // if (containerElement) {
-    //     containerElement.scrollTo({
-    //         left: 0,
-    //         behavior: 'smooth' 
-    //     });
-    // }
+    // ئەمەمان لابردبوو تاوەکو پەڕەکە نەگەڕێتە سەرەوە، وازی لێ دێنین
 }
 
 function renderProductsGridUI(newProductsOnly = false) {
@@ -60,17 +54,19 @@ export function renderMainCategoriesUI() {
     if (!container) return;
     container.innerHTML = '';
 
+    // 1. دوگمەی سەرەکی (Home/All)
     const homeBtn = document.createElement('button');
     homeBtn.className = 'main-category-btn';
     homeBtn.dataset.category = 'all'; 
-    homeBtn.innerHTML = `<i class="fas fa-home"></i> <span>${t('nav_home')}</span>`;
+    
+    // لێرە ئایکۆنەکەمان گۆڕی بۆ چوارگۆشەکان (وەک داواکاری پێشووترت)
+    homeBtn.innerHTML = `<i class="fas fa-th-large"></i> <span>${t('nav_home')}</span>`;
 
     if (state.currentCategory === 'all') {
         homeBtn.classList.add('active');
     }
 
     homeBtn.onclick = async () => {
-         // resetScrollPosition(container); // لابرا
          await navigateToFilterCore({
              category: 'all',
              subcategory: 'all',
@@ -81,7 +77,7 @@ export function renderMainCategoriesUI() {
     };
     container.appendChild(homeBtn);
 
-
+    // 2. دوگمەی جۆرەکان (Categories)
     state.categories.forEach(cat => {
         const btn = document.createElement('button');
         btn.className = 'main-category-btn';
@@ -97,7 +93,6 @@ export function renderMainCategoriesUI() {
         btn.innerHTML = `<i class="${categoryIcon}"></i> <span>${categoryName}</span>`;
 
         btn.onclick = async () => {
-             // resetScrollPosition(container); // لابرا: بۆ ئەوەی سکڕۆڵەکە نەگەڕێتەوە سەرەتا
              await navigateToFilterCore({
                  category: cat.id,
                  subcategory: 'all',
@@ -109,6 +104,19 @@ export function renderMainCategoriesUI() {
 
         container.appendChild(btn);
     });
+
+    // --- [NEW FIX] Scroll Active Button into View ---
+    // ئەم کۆدە وادەکات کە شریتەکە بجوڵێت بۆ ئەوەی دوگمە چالاکەکە بخاتە ناوەڕاست
+    setTimeout(() => {
+        const activeBtn = container.querySelector('.main-category-btn.active');
+        if (activeBtn) {
+            activeBtn.scrollIntoView({
+                behavior: 'smooth',
+                inline: 'center', // دەیخاتە ناوەڕاستی شاشەکە
+                block: 'nearest'
+            });
+        }
+    }, 100); // کەمێک دواکەوتن بۆ دڵنیابوون لەوەی دروست بووە
 }
 
 export async function renderSubcategoriesUI(subcategoriesData) { 
@@ -135,7 +143,6 @@ export async function renderSubcategoriesUI(subcategoriesData) {
         <span>${t('all_categories_label')}</span>
     `;
     allBtn.onclick = async () => {
-         // resetScrollPosition(subcategoriesContainer); // لابرا
          await navigateToFilterCore({
              category: state.currentCategory, 
              subcategory: 'all',
@@ -159,7 +166,6 @@ export async function renderSubcategoriesUI(subcategoriesData) {
              <span>${subcatName}</span>
         `;
         subcatBtn.onclick = async () => {
-            // resetScrollPosition(subcategoriesContainer); // لابرا
             showSubcategoryDetailPageUI(state.currentCategory, subcat.id);
         };
         subcategoriesContainer.appendChild(subcatBtn);
@@ -197,7 +203,6 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
         <span>${t('all_categories_label')}</span>
     `;
     allBtn.onclick = async () => {
-         // resetScrollPosition(container); // لابرا
          await navigateToFilterCore({
              category: state.currentCategory,
              subcategory: state.currentSubcategory,
@@ -218,7 +223,6 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
         btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
 
         btn.onclick = async () => {
-             // resetScrollPosition(container); // لابرا
              showSubcategoryDetailPageUI(state.currentCategory, state.currentSubcategory);
         };
         container.appendChild(btn);
