@@ -56,7 +56,7 @@ html.chat-active .bottom-nav {
 
 .app-container { max-width: 100%; margin: 0 auto; background-color: var(--light-gray); min-height: 100vh; position: relative; overflow-x: hidden; }
 
-/* --- 1. Header Fixed (قاتی یەکەم) --- */
+/* --- 1. Header Fixed --- */
 .app-header {
     background-color: white;
     color: var(--primary-color);
@@ -116,7 +116,7 @@ html.chat-active .bottom-nav {
     flex-shrink: 0;
 }
 
-/* --- 2. Page Logic Adjustment (گرنگە بۆ Fixed) --- */
+/* --- 2. Page Logic --- */
 .page {
     position: absolute;
     top: 0;
@@ -129,7 +129,6 @@ html.chat-active .bottom-nav {
     overflow-y: auto;
 }
 
-/* لابردنی Transform کاتێک پەڕەکە چالاکە تا Fixed کار بکات */
 .page-active {
     transform: none !important; 
     z-index: 10;
@@ -140,7 +139,7 @@ html.chat-active .bottom-nav {
     z-index: 1;
 }
 
-/* --- 3. Category Bar FIXED (قاتی دووەم) --- */
+/* --- 3. Category Bar FIXED (Only for Main Page) --- */
 .main-categories-container {
     display: flex;
     gap: 8px;
@@ -148,16 +147,15 @@ html.chat-active .bottom-nav {
     padding: 8px 12px;
     scrollbar-width: none;
     
-    /* Fixed Positioning */
     position: fixed !important; 
-    top: 55px; /* ڕێک لە ژێر هێدەرەکە */
+    top: 55px; 
     left: 0;
     right: 0;
     width: 100%;
-    height: 60px; /* بەرزی شریتەکە */
-    z-index: 999; /* لە ژێر هێدەرەکە بەڵام لە سەرووی ناوەڕۆک */
+    height: 60px; 
+    z-index: 999; 
     
-    background-color: #ffffff !important; /* سپی تەواو */
+    background-color: #ffffff !important; 
     border-bottom: 1px solid #f0f0f0;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     
@@ -169,57 +167,22 @@ html.chat-active .bottom-nav {
     display: none;
 }
 
-/* --- 4. Water Drop Style Buttons --- */
-.main-category-btn {
-    padding: 6px 12px;
-    border: 1px solid var(--medium-gray);
-    background-color: white;
-    color: var(--text-color);
-    border-radius: 8px; /* گۆشەی ئاسایی بۆ ئەوانەی ناچالاکن */
-    cursor: pointer;
-    font-size: 13px;
-    white-space: nowrap;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    font-weight: bold;
-}
+/* --- 4. Padding Adjustment (The Fix) --- */
 
-.main-category-btn:hover {
-    background-color: var(--light-gray);
-    border-color: var(--dark-gray);
-}
-
-/* --- ستایلی دڵۆپە ئاو بۆ دوگمەی چالاک --- */
-.main-category-btn.active {
-    /* ڕەنگی دڵۆپە ئاو (Gradient Blue) */
-    background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%) !important;
-    
-    /* ڕەنگی دەق و ئایکۆن */
-    color: white !important;
-    border-color: transparent !important;
-    
-    /* شێوەی دڵۆپە (Drop Shape) */
-    border-radius: 20px 20px 20px 4px !important;
-
-    /* سێبەر بۆ جوانی (Glow Effect) */
-    box-shadow: 0 4px 15px rgba(0, 114, 255, 0.4) !important;
-    
-    transform: scale(1.05);
-}
-
-.main-category-btn.active i {
-    color: white !important;
-}
-
-/* --- 5. Push Content Down --- */
-.main-content, 
-#subcategoryDetailPage, 
-.settings-page {
+/* A. Main Page: Needs space for Header + Category Bar */
+.main-content {
     /* 55px Header + 60px CatBar + 5px Space = 120px */
     padding-top: 120px !important; 
+    padding-bottom: calc(85px + env(safe-area-inset-bottom));
+}
+
+/* B. Subpages: Need space ONLY for Header */
+#subcategoryDetailPage, 
+.settings-page,
+#adminChatListPage,
+#categoriesPage {
+    /* 55px Header + 10px Space = 65px */
+    padding-top: 65px !important; 
     padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
 
@@ -1088,10 +1051,14 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     border-color: var(--dark-gray);
 }
 
+/* --- Water Drop Effect for Active Category --- */
 .main-category-btn.active {
-    background-color: var(--primary-color);
-    color: white;
-    border-color: var(--primary-color);
+    background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%) !important;
+    color: white !important;
+    border-color: transparent !important;
+    border-radius: 20px 20px 20px 4px !important;
+    box-shadow: 0 4px 15px rgba(0, 114, 255, 0.4) !important;
+    transform: scale(1.05);
 }
 
 .main-category-btn.active i {
