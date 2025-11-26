@@ -227,7 +227,7 @@ html.chat-active .bottom-nav {
 .main-content, 
 #subcategoryDetailPage, 
 .settings-page {
-    padding-top: 60px !important; 
+    padding-top: 110px !important; 
     padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
 
