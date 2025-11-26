@@ -56,7 +56,7 @@ html.chat-active .bottom-nav {
 
 .app-container { max-width: 100%; margin: 0 auto; background-color: var(--light-gray); min-height: 100vh; position: relative; overflow-x: hidden; }
 
-/* --- 1. Header Fixed --- */
+/* --- 1. Header Fixed (قاتی یەکەم) --- */
 .app-header {
     background-color: white;
     color: var(--primary-color);
@@ -73,11 +73,11 @@ html.chat-active .bottom-nav {
     left: 0;
     right: 0;
     width: 100%;
-    height: 55px; /* بەرزی هێدەر */
+    height: 55px; /* بەرزی دیاریکراو */
     z-index: 1000;
     
-    box-shadow: none; /* سێبەرم لابرد تا لەگەڵ شریتەکە یەک بگرێت */
-    border-bottom: 1px solid #f0f0f0; /* هێڵێکی زۆر کاڵ */
+    box-shadow: none; 
+    border-bottom: 1px solid #f0f0f0;
     gap: 15px;
     transform: none !important;
     transition: none !important;
@@ -116,6 +116,7 @@ html.chat-active .bottom-nav {
     flex-shrink: 0;
 }
 
+/* --- 2. Page Logic Adjustment --- */
 .page {
     position: absolute;
     top: 0;
@@ -127,17 +128,20 @@ html.chat-active .bottom-nav {
     overflow-x: hidden;
     overflow-y: auto;
 }
+
+/* ئەمە زۆر گرنگە: لابردنی Transform کاتێک پەڕەکە چالاکە */
+/* بۆ ئەوەی position: fixed کار بکات */
 .page-active {
-    transform: translateX(0);
+    transform: none !important; 
     z-index: 10;
 }
+
 .page-hidden {
     transform: translateX(100%);
     z-index: 1;
 }
 
-/* --- 2. Category Bar FIXED --- */
-/* ئەم بەشە بەرپرسە لە جێگیرکردنی شریتەکە */
+/* --- 3. Category Bar FIXED (قاتی دووەم) --- */
 .main-categories-container {
     display: flex;
     gap: 8px;
@@ -145,37 +149,69 @@ html.chat-active .bottom-nav {
     padding: 10px 12px;
     scrollbar-width: none;
     
-    /* Fixed Positioning - بە جێگیری دەمێنێتەوە */
-    position: fixed !important;
+    /* Fixed Positioning */
+    position: fixed !important; 
     top: 55px; /* ڕێک لە ژێر هێدەرەکە */
     left: 0;
     right: 0;
     width: 100%;
-    height: 60px; /* بەرزی شریتەکە */
-    z-index: 999;
+    height: 55px; /* بەرزی شریتەکە */
+    z-index: 999; /* لە ژێر هێدەرەکە بەڵام لە سەرووی ناوەڕۆک */
     
-    background-color: #ffffff; /* ڕەنگی سپی (ڕەساسی لابرا) */
-    border-bottom: 1px solid var(--medium-gray); /* هێڵێک لە ژێری */
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* سێبەرێکی جوان */
+    background-color: #ffffff !important; /* سپی تەواو */
+    border-bottom: 1px solid #f0f0f0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     
     margin: 0;
+    border-radius: 0 !important;
 }
 
 .main-categories-container::-webkit-scrollbar {
     display: none;
 }
 
-/* --- 3. Push Content Down --- */
-/* بۆشایی سەرەوە بۆ ئەوەی ناوەڕۆک نەکەوێتە ژێر شریتەکە */
+.main-category-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--medium-gray);
+    background-color: white;
+    color: var(--text-color);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    white-space: nowrap;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    font-weight: bold;
+}
+
+.main-category-btn:hover {
+    background-color: var(--light-gray);
+    border-color: var(--dark-gray);
+}
+
+.main-category-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.main-category-btn.active i {
+    color: white !important;
+}
+
+/* --- 4. Push Content Down --- */
 .main-content, 
 #subcategoryDetailPage, 
 .settings-page {
-    /* 55px Header + 60px CatBar = 115px */
-    padding-top: 115px !important; 
+    /* 55px Header + 55px CatBar + 10px Space = 120px */
+    padding-top: 120px !important; 
     padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
 
-/* --- Product Detail Page Layout --- */
+/* --- Product Detail Page --- */
 #productDetailPage {
     display: flex;
     flex-direction: column;
@@ -1011,31 +1047,6 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 }
 .update-now-btn:hover {
     background-color: var(--accent-light);
-}
-
-/* --- 2. Category Bar FIXED --- */
-/* ئەم بەشە بەرپرسە لە جێگیرکردنی شریتەکە */
-.main-categories-container {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding: 8px 12px; /* بۆشایی کەم کرایەوە */
-    scrollbar-width: none;
-    
-    /* Fixed Positioning - بە جێگیری دەمێنێتەوە */
-    position: fixed !important;
-    top: 55px; /* ڕێک لە ژێر هێدەرەکە */
-    left: 0;
-    right: 0;
-    width: 100%;
-    height: 50px; /* بەرزی شریتەکە */
-    z-index: 999;
-    
-    background-color: #ffffff; /* ڕەنگی سپی (ڕەساسی لابرا) */
-    border-bottom: 1px solid var(--medium-gray); /* هێڵێک لە ژێری */
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* سێبەرێکی جوان */
-    
-    margin: 0;
 }
 
 .main-category-btn {
