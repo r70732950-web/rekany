@@ -228,7 +228,7 @@ html.chat-active .bottom-nav {
 
 /* A. تەنها پەڕەی سەرەکی پێویستی بە 120px هەیە */
 .main-content {
-    padding-top: 100px !important; 
+    padding-top: 110px !important; 
     padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
 
@@ -237,7 +237,7 @@ html.chat-active .bottom-nav {
 .settings-page,
 #adminChatListPage,
 #categoriesPage {
-    padding-top: 50px !important;  /* ئەمە وادەکات Subcategories بچێتە سەرەوە */
+    padding-top: 55px !important;  /* ئەمە وادەکات Subcategories بچێتە سەرەوە */
     padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
 
