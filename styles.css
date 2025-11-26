@@ -2366,3 +2366,28 @@ img {
     background-color: var(--danger-color);
     color: white;
 }
+/* ئەم بەشە بەرپرسە لەو شریتەی بەشەکان (Categories) */
+.main-categories-container {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px 12px; /* کەمێک بۆشاییم زیاد کرد بۆ جوانی */
+    scrollbar-width: none;
+    
+    /* --- کۆدی جێگیرکردن (Sticky) --- */
+    position: -webkit-sticky; /* بۆ سەفاری */
+    position: sticky;
+    top: 68px; /* ئەم ژمارەیە گرنگە: بەرزی هێدەرەکەی سەرەوەیە */
+    z-index: 90; /* دەکەوێتە ژێر هێدەرەکە بەڵام بەسەر کاڵاکاندا */
+    background-color: var(--light-gray); /* ڕەنگی پاشبنەما بۆ ئەوەی کاڵاکان لە ژێرییەوە دەرنەکەون */
+    border-bottom: 1px solid var(--medium-gray); /* هێڵێک بۆ جیاکردنەوە */
+    margin-top: -16px; /* بۆ ڕێککردنەوەی بۆشایی زیادە */
+    margin-bottom: 10px;
+    transition: top 0.3s ease;
+}
+
+/* لابردنی سکڕۆڵ بار */
+.main-categories-container::-webkit-scrollbar {
+    display: none;
+}
+
