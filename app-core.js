@@ -51,10 +51,7 @@ export let state = {
     contactInfo: {}, 
     activeChatUserId: null,
     unreadMessagesCount: 0,
-    currentSplitCategory: null,
-    
-    // --- [NEW] Store Scroll Positions ---
-    horizontalScrollPositions: {} 
+    currentSplitCategory: null 
 };
 
 // Promise to ensure Auth is ready
@@ -96,6 +93,7 @@ export function formatDescription(text) {
 
 function extractShippingCostFromText(text) {
     if (!text) return 0;
+    // لابردنی کۆما و هەر پیتێک بۆ دەرهێنانی تەنها ژمارە
     const cleanText = text.toString().replace(/,/g, '');
     const match = cleanText.match(/(\d+)/);
     return match ? parseInt(match[0], 10) : 0;
@@ -661,7 +659,7 @@ export function removeFromCartCore(cartId) {
     return false; 
 }
 
-// --- [UPDATED] Generate Order Message (Transparent Calculation) ---
+// --- [UPDATED LOGIC] Generate Order Message with Transparent Shipping ---
 export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
@@ -695,7 +693,7 @@ export function generateOrderMessageCore() {
         message += `------------------------\n`;
         
         let marketItemsTotal = 0;
-        let isMarketCharged = false;
+        let isMarketCharged = false; // Flag to ensure only ONE item shows the price, others show Free
 
         data.items.forEach((item) => {
             const lineTotal = item.price * item.quantity;
@@ -705,10 +703,11 @@ export function generateOrderMessageCore() {
                 ? item.name 
                 : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
 
-            // --- LOGIC: Determine text display for this item ---
+            // --- LOGIC: Determine text display for this item in WhatsApp message ---
             let shippingStr = "";
             const itemCost = item.shippingCost || 0;
 
+            // If this item matches the max shipping AND we haven't charged yet
             if (itemCost === data.maxShipping && !isMarketCharged && itemCost > 0) {
                 shippingStr = `(گەیاندن: ${itemCost.toLocaleString()})`;
                 isMarketCharged = true;
@@ -721,11 +720,13 @@ export function generateOrderMessageCore() {
             message += `   ${shippingStr}\n`;
         });
 
+        // Add Shipping for this market
         const shippingFee = data.maxShipping;
         const marketTotal = marketItemsTotal + shippingFee;
         grandTotal += marketTotal;
 
         message += `------------------------\n`;
+        // message += `🚚 کۆی گەیاندنی مارکێت: ${shippingFee.toLocaleString()}\n`; // Optional summary line
         message += `💰 کۆی گشتی مارکێت: ${marketTotal.toLocaleString()} د.ع\n\n`;
     }
     

@@ -19,7 +19,7 @@ import {
 } from './products.js';
 
 function resetScrollPosition(containerElement) {
-    // ئەمەمان لابردبوو تاوەکو پەڕەکە نەگەڕێتە سەرەوە، وازی لێ دێنین
+    // ئەمە ناچالاک کراوە وەک داواکاری پێشوو
 }
 
 function renderProductsGridUI(newProductsOnly = false) {
@@ -58,8 +58,6 @@ export function renderMainCategoriesUI() {
     const homeBtn = document.createElement('button');
     homeBtn.className = 'main-category-btn';
     homeBtn.dataset.category = 'all'; 
-    
-    // لێرە ئایکۆنەکەمان گۆڕی بۆ چوارگۆشەکان (وەک داواکاری پێشووترت)
     homeBtn.innerHTML = `<i class="fas fa-th-large"></i> <span>${t('nav_home')}</span>`;
 
     if (state.currentCategory === 'all') {
@@ -77,7 +75,7 @@ export function renderMainCategoriesUI() {
     };
     container.appendChild(homeBtn);
 
-    // 2. دوگمەی جۆرەکان (Categories)
+    // 2. دوگمەی جۆرەکان
     state.categories.forEach(cat => {
         const btn = document.createElement('button');
         btn.className = 'main-category-btn';
@@ -105,18 +103,23 @@ export function renderMainCategoriesUI() {
         container.appendChild(btn);
     });
 
-    // --- [NEW FIX] Scroll Active Button into View ---
-    // ئەم کۆدە وادەکات کە شریتەکە بجوڵێت بۆ ئەوەی دوگمە چالاکەکە بخاتە ناوەڕاست
+    // --- [UPDATED FIX] Scroll only the container, NOT the page ---
     setTimeout(() => {
         const activeBtn = container.querySelector('.main-category-btn.active');
         if (activeBtn) {
-            activeBtn.scrollIntoView({
-                behavior: 'smooth',
-                inline: 'center', // دەیخاتە ناوەڕاستی شاشەکە
-                block: 'nearest'
+            // ئەم هاوکێشەیە دوگمەکە دەخاتە ناوەڕاستی شریتەکە بەبێ جوڵاندنی پەڕەکە
+            const containerWidth = container.offsetWidth;
+            const btnLeft = activeBtn.offsetLeft;
+            const btnWidth = activeBtn.offsetWidth;
+            
+            const scrollPos = btnLeft - (containerWidth / 2) + (btnWidth / 2);
+
+            container.scrollTo({
+                left: scrollPos,
+                behavior: 'smooth'
             });
         }
-    }, 100); // کەمێک دواکەوتن بۆ دڵنیابوون لەوەی دروست بووە
+    }, 100);
 }
 
 export async function renderSubcategoriesUI(subcategoriesData) { 

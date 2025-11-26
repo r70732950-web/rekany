@@ -122,7 +122,6 @@ export function showPage(pageId, pageTitle = '', scrollToTop = true) {
         }
     }
 
-    // تەنها ئەگەر پەڕەی سەرەکی نەبوو، یان ئەگەر بەڕاشکاوی داواکرابوو بچێتە سەرەوە
     if (pageId !== 'mainPage' && scrollToTop) {
          requestAnimationFrame(() => { 
              const activePage = document.getElementById(pageId);
@@ -1094,17 +1093,10 @@ window.addEventListener('popstate', async (event) => {
 
             if (!state.pendingFilterNav) { 
                 if (typeof stateToApply.scroll === 'number') {
-                    // --- [UPDATED SCROLL RESTORATION LOGIC] ---
-                    requestAnimationFrame(() => {
-                        setTimeout(() => {
-                             const homePage = document.getElementById('mainPage');
-                             if(homePage) {
-                                 homePage.scrollTo({ top: stateToApply.scroll, behavior: 'instant' });
-                                 // A second attempt for safety
-                                 setTimeout(() => homePage.scrollTo({ top: stateToApply.scroll, behavior: 'instant' }), 100);
-                             }
-                        }, 10);
-                    });
+                    setTimeout(() => {
+                         const homePage = document.getElementById('mainPage');
+                         if(homePage) homePage.scrollTo({ top: stateToApply.scroll, behavior: 'instant' });
+                    }, 50);
                 } else {
                     requestAnimationFrame(() => {
                         activePage.scrollTo({ top: 0, behavior: 'instant' });
