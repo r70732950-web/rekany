@@ -56,11 +56,11 @@ html.chat-active .bottom-nav {
 
 .app-container { max-width: 100%; margin: 0 auto; background-color: var(--light-gray); min-height: 100vh; position: relative; overflow-x: hidden; }
 
-/* --- Header Fixed --- */
+/* --- 1. Header Fixed (قاتی یەکەم) --- */
 .app-header {
     background-color: white;
     color: var(--primary-color);
-    padding: 10px 15px; /* Padding کەمکرایەوە */
+    padding: 10px 15px;
     padding-top: calc(10px + env(safe-area-inset-top));
     
     display: flex;
@@ -73,10 +73,10 @@ html.chat-active .bottom-nav {
     left: 0;
     right: 0;
     width: 100%;
-    z-index: 9999;
-    height: 55px; /* بەرزی دیاریکراو */
+    height: 60px; /* بەرزییەکەیم کردە 60 بۆ ئەوەی تێر بکات */
+    z-index: 1000; /* لە هەموو شتێک بەرزترە */
     
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    box-shadow: none; /* سێبەرم لابرد بۆ ئەوەی لەگەڵ ئەوەی خوارەوە یەک بگرێت */
     border-bottom: 1px solid var(--medium-gray);
     gap: 15px;
     transform: none !important;
@@ -136,15 +136,8 @@ html.chat-active .bottom-nav {
     z-index: 1;
 }
 
-/* --- Padding Adjusted for Fixed Header (55px) --- */
-.main-content, 
-#subcategoryDetailPage, 
-.settings-page {
-    padding-top: 55px !important; /* ناوەڕۆکەکە بەرز کرایەوە */
-    padding-bottom: calc(85px + env(safe-area-inset-bottom));
-}
-
-/* --- Sticky Category Bar --- */
+/* --- 2. Category Bar FIXED (قاتی دووەم) --- */
+/* ئەمە گرنگترین گۆڕانکارییە: کردمە Fixed نەک Sticky */
 .main-categories-container {
     display: flex;
     gap: 8px;
@@ -152,21 +145,33 @@ html.chat-active .bottom-nav {
     padding: 8px 12px;
     scrollbar-width: none;
     
-    /* Sticky Logic */
-    position: -webkit-sticky;
-    position: sticky;
-    top: 55px; /* ڕێک لە ژێر هێدەرەکە دەوەستێت */
-    z-index: 90;
+    /* Fixed Positioning */
+    position: fixed !important; 
+    top: 60px; /* ڕێک لە ژێر هێدەرەکە دەست پێ دەکات (60px) */
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 50px; /* بەرزی دیاریکراو */
+    z-index: 999; /* لە ژێر هێدەرەکە بەڵام لە سەرووی ناوەڕۆک */
     
-    background-color: var(--light-gray);
-    border-bottom: 1px solid var(--medium-gray);
-    margin-top: 0;
-    margin-bottom: 10px;
-    transition: top 0.3s ease;
+    background-color: white; /* کردمە سپی بۆ ئەوەی وەک بەشێک لە هێدەر دەرکەوێت */
+    border-bottom: 1px solid #ccc;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* سێبەرەکە لێرە دەردەکەوێت */
+    margin: 0;
 }
 
 .main-categories-container::-webkit-scrollbar {
     display: none;
+}
+
+/* --- 3. Push Content Down --- */
+/* ناوەڕۆکەکە دەبەینە خوارەوە بۆ ئەوەی نەکەوێتە ژێر دوو قاتەکە */
+.main-content, 
+#subcategoryDetailPage, 
+.settings-page {
+    /* 60px (Header) + 50px (Category Bar) + 10px (Space) = 120px */
+    padding-top: 120px !important; 
+    padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
 
 /* --- Product Detail Page Layout --- */
