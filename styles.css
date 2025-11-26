@@ -25,6 +25,11 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+/* زیادکردنی Smooth Scrolling بۆ هەموو ئەپەکە */
+html {
+    scroll-behavior: smooth;
+}
+
 body {
     background-color: var(--light-gray);
     color: var(--text-color);
@@ -56,26 +61,34 @@ html.chat-active .bottom-nav {
 
 .app-container { max-width: 100%; margin: 0 auto; background-color: var(--light-gray); min-height: 100vh; position: relative; overflow-x: hidden; }
 
+/* --- 1. Header Fixed --- */
 .app-header {
     background-color: white;
     color: var(--primary-color);
-    padding: 12px 15px;
-    padding-top: calc(12px + env(safe-area-inset-top));
+    padding: 10px 15px;
+    padding-top: calc(10px + env(safe-area-inset-top));
+    
     display: flex;
     justify-content: space-between;
     align-items: center;
-    position: fixed;
+    
+    position: fixed !important;
     top: 0;
     left: 0;
     right: 0;
-    z-index: 100;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    border-bottom: 1px solid var(--medium-gray);
+    width: 100%;
+    height: 55px; 
+    z-index: 1000;
+    
+    box-shadow: none; 
+    border-bottom: 1px solid #f0f0f0;
     gap: 15px;
-    transition: transform 0.3s ease;
+    transform: none !important;
+    transition: none !important;
 }
+
 .logo { display: flex; align-items: center; gap: 10px; }
-.logo-bottom { font-size: 22px; font-weight: bold; color: var(--primary-color); white-space: nowrap; }
+.logo-bottom { font-size: 20px; font-weight: bold; color: var(--primary-color); white-space: nowrap; }
 
 .main-header-content, .subpage-header-content {
     display: flex;
@@ -107,6 +120,7 @@ html.chat-active .bottom-nav {
     flex-shrink: 0;
 }
 
+/* --- 2. Page Logic --- */
 .page {
     position: absolute;
     top: 0;
@@ -118,21 +132,106 @@ html.chat-active .bottom-nav {
     overflow-x: hidden;
     overflow-y: auto;
 }
+
 .page-active {
-    transform: translateX(0);
+    transform: none !important; 
     z-index: 10;
 }
+
 .page-hidden {
     transform: translateX(100%);
     z-index: 1;
 }
 
-.main-content, #subcategoryDetailPage, .settings-page {
-    padding-top: 80px;
+/* --- 3. Category Bar FIXED with SNAP --- */
+.main-categories-container {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 8px 12px;
+    scrollbar-width: none;
+    
+    /* Fixed Positioning */
+    position: fixed !important; 
+    top: 55px; 
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 60px; 
+    z-index: 999; 
+    
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #f0f0f0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    
+    margin: 0 !important;
+    border-radius: 0 !important;
+    
+    /* --- SCROLL SNAP (ئەمە گرنگە) --- */
+    scroll-snap-type: x mandatory; /* فەرمان دەکات کە بوەستێت */
+    -webkit-overflow-scrolling: touch; /* بۆ ئایفۆن نەرم بێت */
+}
+
+.main-categories-container::-webkit-scrollbar {
+    display: none;
+}
+
+.main-category-btn {
+    display: flex;
+    flex-direction: row; 
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 14px;
+    height: 34px; 
+    border-radius: 50px; 
+    background-color: #f5f7fa; 
+    border: 1px solid transparent;
+    color: var(--text-light);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    box-shadow: none;
+    flex-shrink: 0; /* نابێت بچووک بێتەوە */
+    
+    /* --- SNAP ALIGN (ئەمە گرنگە) --- */
+    scroll-snap-align: start; /* لە سەرەتا دەوەستێت */
+}
+
+.main-category-btn i {
+    font-size: 14px;
+    color: var(--dark-gray);
+    margin: 0;
+}
+
+.main-category-btn:hover {
+    background-color: var(--medium-gray);
+}
+
+.main-category-btn.active {
+    background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%) !important; 
+    color: white !important;
+    border-color: transparent !important;
+    border-radius: 50px !important;
+    box-shadow: 0 2px 6px rgba(26, 54, 93, 0.3);
+    transform: none; 
+}
+
+.main-category-btn.active i {
+    color: white !important;
+}
+
+/* --- 5. Push Content Down --- */
+.main-content, 
+#subcategoryDetailPage, 
+.settings-page {
+    padding-top: 120px !important; 
     padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
 
-/* --- Product Detail Page Layout --- */
+/* --- Product Detail Page --- */
 #productDetailPage {
     display: flex;
     flex-direction: column;
@@ -187,6 +286,7 @@ html.chat-active .bottom-nav {
     border-left: none;
 }
 
+/* --- Subcategories (Circles) with SNAP --- */
 .subcategories-container {
     display: flex;
     flex-direction: row;
@@ -195,6 +295,10 @@ html.chat-active .bottom-nav {
     gap: 8px;
     padding: 5px 12px 15px 12px;
     scrollbar-width: none;
+    
+    /* SNAP */
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
 }
 
 .subcategories-container::-webkit-scrollbar {
@@ -219,6 +323,9 @@ html.chat-active .bottom-nav {
     font-size: 12px;
     text-align: center;
     font-weight: bold;
+    
+    /* SNAP */
+    scroll-snap-align: start;
 }
 
 .subcategory-btn:hover {
@@ -256,8 +363,8 @@ html.chat-active .bottom-nav {
     margin: 0;
     position: relative;
 }
-.search-input { width: 100%; padding: 10px 40px 10px 40px; border: 1px solid var(--section-border); border-radius: 6px; font-size: 15px; background-color: var(--light-gray); }
-.search-icon { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--dark-gray); }
+.search-input { width: 100%; padding: 8px 35px 8px 35px; border: 1px solid var(--section-border); border-radius: 6px; font-size: 14px; background-color: var(--light-gray); }
+.search-icon { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--dark-gray); font-size: 14px; }
 .clear-search-btn {
     position: absolute;
     left: 10px;
@@ -265,7 +372,7 @@ html.chat-active .bottom-nav {
     transform: translateY(-50%);
     background: none;
     border: none;
-    font-size: 20px;
+    font-size: 18px;
     color: var(--dark-gray);
     cursor: pointer;
 }
@@ -278,7 +385,7 @@ html.chat-active .bottom-nav {
 .header-icon-btn {
     background: none;
     border: none;
-    font-size: 22px;
+    font-size: 20px;
     color: var(--primary-color);
     cursor: pointer;
     position: relative;
@@ -970,54 +1077,6 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     background-color: var(--accent-light);
 }
 
-.main-categories-container {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding: 5px 12px 10px 12px;
-    scrollbar-width: none;
-}
-.main-categories-container::-webkit-scrollbar {
-    display: none;
-}
-
-.main-category-btn {
-    padding: 6px 12px;
-    border: 1px solid var(--medium-gray);
-    background-color: white;
-    color: var(--text-color);
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 13px;
-    white-space: nowrap;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    font-weight: bold;
-}
-
-.main-category-btn i {
-    color: var(--primary-color);
-    font-size: 16px;
-}
-
-.main-category-btn:hover {
-    background-color: var(--light-gray);
-    border-color: var(--dark-gray);
-}
-
-.main-category-btn.active {
-    background-color: var(--primary-color);
-    color: white;
-    border-color: var(--primary-color);
-}
-
-.main-category-btn.active i {
-    color: white !important;
-}
-
 .social-link-item {
     display: flex;
     align-items: center;
@@ -1159,6 +1218,10 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     overflow-x: auto;
     padding: 5px 12px 15px 12px;
     scrollbar-width: none;
+    
+    /* --- SNAP for Products (Added) --- */
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
 }
 
 .horizontal-products-container::-webkit-scrollbar {
@@ -1168,6 +1231,9 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 .horizontal-products-container .product-card {
     flex-shrink: 0;
     width: 160px;
+    
+    /* --- SNAP Align for Products (Added) --- */
+    scroll-snap-align: start;
 }
 
 .section-title-header {
@@ -1217,6 +1283,10 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     gap: 15px;
     padding: 0 12px 10px 12px;
     scrollbar-width: none;
+    
+    /* --- SNAP for Brands (Added) --- */
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
 }
 
 .brands-container::-webkit-scrollbar {
@@ -1232,6 +1302,9 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     text-align: center;
     flex-shrink: 0;
     width: 80px;
+    
+    /* --- SNAP Align for Brands (Added) --- */
+    scroll-snap-align: start;
 }
 
 .brand-image-wrapper {
@@ -1282,6 +1355,10 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     gap: 12px;
     padding: 0 12px 10px 12px;
     scrollbar-width: none;
+    
+    /* --- SNAP for Shortcuts (Added) --- */
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
 }
 
 .shortcut-cards-container::-webkit-scrollbar {
@@ -1300,6 +1377,9 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
     border: none;
     flex-shrink: 0;
     width: 110px; /* Medium Width */
+    
+    /* --- SNAP Align for Shortcuts (Added) --- */
+    scroll-snap-align: start;
 }
 
 .shortcut-card:hover {
