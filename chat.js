@@ -133,6 +133,11 @@ function setupChatListeners() {
         if (backBtn) {
             const bottomNav = document.querySelector('.bottom-nav');
             if (bottomNav) bottomNav.style.display = 'flex';
+            // Restore Header when going back
+            const appHeader = document.querySelector('.app-header');
+            if (appHeader) appHeader.style.display = 'flex';
+            document.documentElement.classList.remove('chat-active');
+            
             history.back();
         }
     });
@@ -191,6 +196,11 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
         return;
     }
     
+    // --- [NEW FIX] Hide Header and Bottom Nav ---
+    const appHeader = document.querySelector('.app-header');
+    if (appHeader) appHeader.style.display = 'none';
+    document.documentElement.classList.add('chat-active');
+
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) bottomNav.style.display = 'none';
 
@@ -273,6 +283,11 @@ function openAdminChatList() {
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) bottomNav.style.display = 'flex';
 
+    // Ensure header is visible for Admin List
+    const appHeader = document.querySelector('.app-header');
+    if (appHeader) appHeader.style.display = 'flex';
+    document.documentElement.classList.remove('chat-active');
+
     history.pushState({ type: 'page', id: 'adminChatListPage', title: t('conversations_title') }, '', '#admin-chats');
     
     document.querySelectorAll('.page').forEach(page => {
@@ -349,7 +364,6 @@ function renderSingleMessage(msg, container, chatUserId) {
         const order = msg.orderDetails;
         if(order && order.items) {
             
-            // --- 1. Pre-calculate Max Shipping per Market for display ---
             const marketMaxMap = {};
             order.items.forEach(item => {
                 const mCode = item.marketCode || 'default';
@@ -375,7 +389,6 @@ function renderSingleMessage(msg, container, chatUserId) {
                             
                             const mCode = i.marketCode ? `<span style="font-size:10px; color:#777; display:block;">مارکێت: ${i.marketCode}</span>` : '';
                             
-                            // --- LOGIC: Determine text display ---
                             const mCodeKey = i.marketCode || 'default';
                             const itemCost = i.shippingCost || 0;
                             let shippingDisplay = '';
@@ -659,7 +672,7 @@ async function processOrderSubmission() {
     // --- [NEW LOGIC: Calculating Total based on Market Rules] ---
     // This must match cart.js logic to ensure the total stored in DB is correct
     let totalItemPrice = 0;
-    const marketMaxMap = {}; // To store max shipping cost for each market code
+    const marketMaxShipping = {}; // To store the single highest shipping cost per market
 
     state.cart.forEach(item => {
         // 1. Sum item prices
@@ -667,18 +680,22 @@ async function processOrderSubmission() {
         
         // 2. Determine shipping per market
         const mCode = item.marketCode || 'default';
-        const cost = item.shippingCost || 0;
+        const itemShipping = item.shippingCost || 0;
         
-        // Find the highest shipping cost in this market group
-        if (marketMaxMap[mCode] === undefined || cost > marketMaxMap[mCode]) {
-            marketMaxMap[mCode] = cost;
+        if (marketMaxShipping[mCode] === undefined) {
+            marketMaxShipping[mCode] = 0;
+        }
+        
+        // Take the highest shipping cost for this market
+        if (itemShipping > marketMaxShipping[mCode]) {
+            marketMaxShipping[mCode] = itemShipping;
         }
     });
 
-    // 3. Sum up the shipping costs (only one per market)
+    // 3. Sum up the shipping costs
     let totalShipping = 0;
-    for (const m in marketMaxMap) {
-        totalShipping += marketMaxMap[m];
+    for (const mCode in marketMaxShipping) {
+        totalShipping += marketMaxShipping[mCode];
     }
 
     const total = totalItemPrice + totalShipping;
