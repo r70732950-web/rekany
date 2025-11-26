@@ -60,8 +60,8 @@ html.chat-active .bottom-nav {
 .app-header {
     background-color: white;
     color: var(--primary-color);
-    padding: 12px 15px;
-    padding-top: calc(12px + env(safe-area-inset-top));
+    padding: 10px 15px; /* Padding کەمکرایەوە */
+    padding-top: calc(10px + env(safe-area-inset-top));
     
     display: flex;
     justify-content: space-between;
@@ -74,6 +74,7 @@ html.chat-active .bottom-nav {
     right: 0;
     width: 100%;
     z-index: 9999;
+    height: 55px; /* بەرزی دیاریکراو */
     
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     border-bottom: 1px solid var(--medium-gray);
@@ -83,7 +84,7 @@ html.chat-active .bottom-nav {
 }
 
 .logo { display: flex; align-items: center; gap: 10px; }
-.logo-bottom { font-size: 22px; font-weight: bold; color: var(--primary-color); white-space: nowrap; }
+.logo-bottom { font-size: 20px; font-weight: bold; color: var(--primary-color); white-space: nowrap; }
 
 .main-header-content, .subpage-header-content {
     display: flex;
@@ -135,12 +136,37 @@ html.chat-active .bottom-nav {
     z-index: 1;
 }
 
-/* --- Padding Adjusted for Fixed Header --- */
+/* --- Padding Adjusted for Fixed Header (55px) --- */
 .main-content, 
 #subcategoryDetailPage, 
 .settings-page {
-    padding-top: 60px !important; /* Adjusted to bring content up */
+    padding-top: 55px !important; /* ناوەڕۆکەکە بەرز کرایەوە */
     padding-bottom: calc(85px + env(safe-area-inset-bottom));
+}
+
+/* --- Sticky Category Bar --- */
+.main-categories-container {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 8px 12px;
+    scrollbar-width: none;
+    
+    /* Sticky Logic */
+    position: -webkit-sticky;
+    position: sticky;
+    top: 55px; /* ڕێک لە ژێر هێدەرەکە دەوەستێت */
+    z-index: 90;
+    
+    background-color: var(--light-gray);
+    border-bottom: 1px solid var(--medium-gray);
+    margin-top: 0;
+    margin-bottom: 10px;
+    transition: top 0.3s ease;
+}
+
+.main-categories-container::-webkit-scrollbar {
+    display: none;
 }
 
 /* --- Product Detail Page Layout --- */
@@ -267,8 +293,8 @@ html.chat-active .bottom-nav {
     margin: 0;
     position: relative;
 }
-.search-input { width: 100%; padding: 10px 40px 10px 40px; border: 1px solid var(--section-border); border-radius: 6px; font-size: 15px; background-color: var(--light-gray); }
-.search-icon { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--dark-gray); }
+.search-input { width: 100%; padding: 8px 35px 8px 35px; border: 1px solid var(--section-border); border-radius: 6px; font-size: 14px; background-color: var(--light-gray); }
+.search-icon { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--dark-gray); font-size: 14px; }
 .clear-search-btn {
     position: absolute;
     left: 10px;
@@ -276,7 +302,7 @@ html.chat-active .bottom-nav {
     transform: translateY(-50%);
     background: none;
     border: none;
-    font-size: 20px;
+    font-size: 18px;
     color: var(--dark-gray);
     cursor: pointer;
 }
@@ -289,7 +315,7 @@ html.chat-active .bottom-nav {
 .header-icon-btn {
     background: none;
     border: none;
-    font-size: 22px;
+    font-size: 20px;
     color: var(--primary-color);
     cursor: pointer;
     position: relative;
@@ -979,30 +1005,6 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 }
 .update-now-btn:hover {
     background-color: var(--accent-light);
-}
-
-/* --- Sticky Category Bar --- */
-.main-categories-container {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding: 10px 12px; /* Adjusted padding */
-    scrollbar-width: none;
-    
-    /* Sticky Logic */
-    position: -webkit-sticky;
-    position: sticky;
-    top: 58px; /* Adjust this value if needed to match header height */
-    z-index: 90;
-    background-color: var(--light-gray);
-    border-bottom: 1px solid var(--medium-gray);
-    margin-top: 0;
-    margin-bottom: 10px;
-    transition: top 0.3s ease;
-}
-
-.main-categories-container::-webkit-scrollbar {
-    display: none;
 }
 
 .main-category-btn {
