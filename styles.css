@@ -25,7 +25,6 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-/* زیادکردنی Smooth Scrolling بۆ هەموو ئەپەکە */
 html {
     scroll-behavior: smooth;
 }
@@ -72,6 +71,7 @@ html.chat-active .bottom-nav {
     justify-content: space-between;
     align-items: center;
     
+    /* Fixed Positioning */
     position: fixed !important;
     top: 0;
     left: 0;
@@ -143,12 +143,13 @@ html.chat-active .bottom-nav {
     z-index: 1;
 }
 
-/* --- 3. Category Bar FIXED with SNAP --- */
+/* --- 3. Category Bar FIXED (Only on Home Page) --- */
 .main-categories-container {
     display: flex;
     gap: 8px;
     overflow-x: auto;
-    padding: 8px 12px;
+    align-items: center; /* Center pills vertically */
+    padding: 0 12px; 
     scrollbar-width: none;
     
     /* Fixed Positioning */
@@ -167,15 +168,16 @@ html.chat-active .bottom-nav {
     margin: 0 !important;
     border-radius: 0 !important;
     
-    /* --- SCROLL SNAP (ئەمە گرنگە) --- */
-    scroll-snap-type: x mandatory; /* فەرمان دەکات کە بوەستێت */
-    -webkit-overflow-scrolling: touch; /* بۆ ئایفۆن نەرم بێت */
+    /* SNAP */
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
 }
 
 .main-categories-container::-webkit-scrollbar {
     display: none;
 }
 
+/* Pill Button Design */
 .main-category-btn {
     display: flex;
     flex-direction: row; 
@@ -194,10 +196,8 @@ html.chat-active .bottom-nav {
     white-space: nowrap;
     transition: all 0.2s ease;
     box-shadow: none;
-    flex-shrink: 0; /* نابێت بچووک بێتەوە */
-    
-    /* --- SNAP ALIGN (ئەمە گرنگە) --- */
-    scroll-snap-align: start; /* لە سەرەتا دەوەستێت */
+    flex-shrink: 0;
+    scroll-snap-align: start;
 }
 
 .main-category-btn i {
@@ -210,24 +210,34 @@ html.chat-active .bottom-nav {
     background-color: var(--medium-gray);
 }
 
+/* Active Pill */
 .main-category-btn.active {
-    background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%) !important; 
+    background-color: var(--primary-color) !important; 
     color: white !important;
     border-color: transparent !important;
     border-radius: 50px !important;
     box-shadow: 0 2px 6px rgba(26, 54, 93, 0.3);
-    transform: none; 
+    transform: none;
 }
 
 .main-category-btn.active i {
     color: white !important;
 }
 
-/* --- 5. Push Content Down --- */
-.main-content, 
+/* --- 4. Padding Adjustment (The Fix for Subcategories) --- */
+
+/* A. تەنها پەڕەی سەرەکی پێویستی بە 120px هەیە */
+.main-content {
+    padding-top: 120px !important; 
+    padding-bottom: calc(85px + env(safe-area-inset-bottom));
+}
+
+/* B. هەموو پەڕەکانی تر تەنها 60px یان دەوێت (چونکە شریتی جۆرەکانیان نییە) */
 #subcategoryDetailPage, 
-.settings-page {
-    padding-top: 55px !important; 
+.settings-page,
+#adminChatListPage,
+#categoriesPage {
+    padding-top: 60px !important;  /* ئەمە وادەکات Subcategories بچێتە سەرەوە */
     padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
 
@@ -286,7 +296,6 @@ html.chat-active .bottom-nav {
     border-left: none;
 }
 
-/* --- Subcategories (Circles) with SNAP --- */
 .subcategories-container {
     display: flex;
     flex-direction: row;
@@ -295,8 +304,6 @@ html.chat-active .bottom-nav {
     gap: 8px;
     padding: 5px 12px 15px 12px;
     scrollbar-width: none;
-    
-    /* SNAP */
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
 }
@@ -323,8 +330,6 @@ html.chat-active .bottom-nav {
     font-size: 12px;
     text-align: center;
     font-weight: bold;
-    
-    /* SNAP */
     scroll-snap-align: start;
 }
 
@@ -1075,6 +1080,43 @@ button[type="submit"] { background-color: var(--accent-color); color: white; bor
 }
 .update-now-btn:hover {
     background-color: var(--accent-light);
+}
+
+.main-category-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--medium-gray);
+    background-color: white;
+    color: var(--text-color);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    white-space: nowrap;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    font-weight: bold;
+}
+
+.main-category-btn i {
+    color: var(--primary-color);
+    font-size: 16px;
+}
+
+.main-category-btn:hover {
+    background-color: var(--light-gray);
+    border-color: var(--dark-gray);
+}
+
+.main-category-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.main-category-btn.active i {
+    color: white !important;
 }
 
 .social-link-item {
