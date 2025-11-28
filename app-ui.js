@@ -1082,10 +1082,12 @@ window.addEventListener('popstate', async (event) => {
                 } else {
                     if(prodContainer) {
                         prodContainer.style.display = 'grid';
-                        // --- FIX START ---
-                        // If container is empty but we have products, re-render!
+                        // --- FIX START: If products are in memory but DOM is empty, re-render ---
                         if (prodContainer.children.length === 0 && state.products.length > 0) {
                              if(window.renderProductsGridUI) window.renderProductsGridUI();
+                        } else if (prodContainer.children.length === 0 && state.products.length === 0) {
+                             // If completely empty, fetch again
+                             await updateProductViewUI(true, false);
                         }
                         // --- FIX END ---
                     }
