@@ -1080,7 +1080,15 @@ window.addEventListener('popstate', async (event) => {
                     const subcats = await fetchSubcategories(state.currentCategory);
                     renderSubcategoriesUI(subcats);
                 } else {
-                    if(prodContainer) prodContainer.style.display = 'grid';
+                    if(prodContainer) {
+                        prodContainer.style.display = 'grid';
+                        // --- FIX START ---
+                        // If container is empty but we have products, re-render!
+                        if (prodContainer.children.length === 0 && state.products.length > 0) {
+                             if(window.renderProductsGridUI) window.renderProductsGridUI();
+                        }
+                        // --- FIX END ---
+                    }
                     const subcats = await fetchSubcategories(state.currentCategory);
                     renderSubcategoriesUI(subcats);
                 }

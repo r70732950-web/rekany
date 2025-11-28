@@ -211,7 +211,6 @@ window.AdminLogic = {
             document.getElementById('productNameAr').value = '';
         }
 
-        // [NEW CODE: Market Code]
         document.getElementById('productMarketCode').value = product.marketCode || '';
 
         document.getElementById('productPrice').value = product.price;
@@ -545,8 +544,6 @@ window.AdminLogic = {
             console.error("Error loading policies for admin:", error);
         }
     },
-
-    // ... (Previous helper functions like renderAdminAnnouncementsList, renderSocialMediaLinks, etc. remain unchanged)
     
     deleteAnnouncement: async function(id) {
         if (confirm(t('announcement_delete_confirm'))) {
@@ -1332,18 +1329,35 @@ window.AdminLogic = {
     
     // --- Category Layout Management ---
 
-    updateCategoryLayoutDropdowns: function() {
+    updateCategoryLayoutDropdowns: async function() {
         const select = document.getElementById('categoryLayoutSelect');
         if (!select) return;
         
-        const categories = getCategories();
+        // هەوڵ دەدەین داتا لە مێمۆری وەربگرین
+        let categories = getCategories();
+
+        // --- چاکسازی: ئەگەر داتا نەبوو، بە زۆر دایبەزێنە ---
+        if (!categories || categories.length === 0) {
+            try {
+                const q = query(categoriesCollection, orderBy("order", "asc"));
+                const snapshot = await getDocs(q);
+                categories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // ئەگەر ستەیت هەبوو نوێی دەکەینەوە
+                if (window.state) window.state.categories = categories;
+            } catch (error) {
+                console.error("Error forcing category fetch in admin layout:", error);
+            }
+        }
+        // ----------------------------------------------------
+        
         const categoriesWithoutAll = categories.filter(cat => cat.id && cat.id !== 'all');
         
         select.innerHTML = `<option value="" disabled selected data-translate-key="admin_category_layout_select">${t('admin_category_layout_select')}</option>`;
+        
         categoriesWithoutAll.forEach(cat => {
             const option = document.createElement('option');
             option.value = cat.id;
-            option.textContent = cat.name_ku_sorani || cat.name_ku_badini;
+            option.textContent = (cat.name && cat.name[getCurrentLanguage()]) || cat.name_ku_sorani || cat.name_ku_badini;
             select.appendChild(option);
         });
     },
