@@ -1098,15 +1098,21 @@ window.addEventListener('popstate', async (event) => {
                              // ئەگەر هیچ نەبوو، دووبارە دابەزێنە
                              await updateProductViewUI(true, false);
                         }
+                        
+                        // --- بەشی گرنگ (لابردنی ئەنیمەیشن) ---
+                        // هەموو کارتەکان دیار دەکەین بە زۆر
+                        Array.from(prodContainer.children).forEach(card => {
+                            card.classList.add('visible');
+                            card.style.opacity = '1';
+                            card.style.transform = 'none';
+                        });
+                        // ------------------------------------
                     }
                     const subcats = await fetchSubcategories(state.currentCategory);
                     renderSubcategoriesUI(subcats);
                 }
                 
                 renderMainCategoriesUI();
-                
-                // --- دڵنیابوونەوە لە دەرکەوتنی کاڵاکان ---
-                setupScrollAnimations(); 
                 
             } else {
                 await updateProductViewUI(true, false);
