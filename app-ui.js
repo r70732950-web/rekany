@@ -1042,6 +1042,7 @@ window.addEventListener('popstate', async (event) => {
             openPopup(popState.id, popState.type, false);
         
         } else { 
+            // گەڕانەوە بۆ لاپەڕەی سەرەکی
             showPage('mainPage', '', false); 
             
             const stateToApply = popState || { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
@@ -1067,7 +1068,14 @@ window.addEventListener('popstate', async (event) => {
                 if(document.getElementById('skeletonLoader')) document.getElementById('skeletonLoader').style.display = 'none';
 
                 if (isHomeState) {
-                    if(homeContainer) homeContainer.style.display = 'block';
+                    if(homeContainer) {
+                        homeContainer.style.display = 'block';
+                        // --- چاکسازی بۆ لاپەڕەی سەرەکی ---
+                        // ئەگەر بەتاڵ بوو، دووبارە پڕی بکەرەوە
+                        if(homeContainer.children.length === 0) {
+                             await renderPageContentUI(null, homeContainer, 'home');
+                        }
+                    }
                     document.getElementById('subcategoriesContainer').style.display = 'none';
                     document.getElementById('subSubcategoriesContainer').style.display = 'none';
                 } else if (isCatLayoutState) {
@@ -1082,20 +1090,23 @@ window.addEventListener('popstate', async (event) => {
                 } else {
                     if(prodContainer) {
                         prodContainer.style.display = 'grid';
-                        // --- FIX START: If products are in memory but DOM is empty, re-render ---
+                        // --- چاکسازی بۆ لیستی کاڵاکان ---
+                        // ئەگەر بەتاڵ بوو، یان کاڵاکان دیار نەبوون
                         if (prodContainer.children.length === 0 && state.products.length > 0) {
                              if(window.renderProductsGridUI) window.renderProductsGridUI();
                         } else if (prodContainer.children.length === 0 && state.products.length === 0) {
-                             // If completely empty, fetch again
+                             // ئەگەر هیچ نەبوو، دووبارە دابەزێنە
                              await updateProductViewUI(true, false);
                         }
-                        // --- FIX END ---
                     }
                     const subcats = await fetchSubcategories(state.currentCategory);
                     renderSubcategoriesUI(subcats);
                 }
                 
                 renderMainCategoriesUI();
+                
+                // --- دڵنیابوونەوە لە دەرکەوتنی کاڵاکان ---
+                setupScrollAnimations(); 
                 
             } else {
                 await updateProductViewUI(true, false);
@@ -1124,6 +1135,7 @@ window.addEventListener('popstate', async (event) => {
             }
         }
     } else {
+        // حاڵەتی گەڕانەوەی سەرەتایی
         const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
         showPage('mainPage'); 
         applyFilterStateCore(defaultState); 
