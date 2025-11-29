@@ -93,6 +93,7 @@ export function formatDescription(text) {
 
 function extractShippingCostFromText(text) {
     if (!text) return 0;
+    // لابردنی کۆما و هەر پیتێک بۆ دەرهێنانی تەنها ژمارە
     const cleanText = text.toString().replace(/,/g, '');
     const match = cleanText.match(/(\d+)/);
     return match ? parseInt(match[0], 10) : 0;
@@ -317,21 +318,17 @@ export async function fetchCategoryLayout(categoryId) {
     }
 }
 
-// --- [FIXED] Updated fetchProducts function ---
 async function fetchProducts(searchTerm = '', isNewSearch = false) {
-    
-    if (isNewSearch) {
-        const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-        if (shouldShowHomeSections) {
-            return { isHome: true, layout: null, products: [], allLoaded: true };
-        }
+    const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
+    if (shouldShowHomeSections) {
+        return { isHome: true, layout: null, products: [], allLoaded: true };
+    }
 
-        const shouldShowCategoryLayout = !searchTerm && state.currentCategory !== 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-        if (shouldShowCategoryLayout) {
-            const categoryLayoutData = await fetchCategoryLayout(state.currentCategory);
-            if (categoryLayoutData) { 
-                return { isHome: true, layout: categoryLayoutData.sections, products: [], allLoaded: true };
-            }
+    const shouldShowCategoryLayout = !searchTerm && state.currentCategory !== 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
+    if (shouldShowCategoryLayout) {
+        const categoryLayoutData = await fetchCategoryLayout(state.currentCategory);
+        if (categoryLayoutData) { 
+            return { isHome: true, layout: categoryLayoutData.sections, products: [], allLoaded: true };
         }
     }
     
@@ -378,7 +375,6 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
 
         let finalQuery = query(productsQuery, ...conditions, ...orderByClauses);
 
-        // --- بەکارهێنانی Pagination ---
         if (state.lastVisibleProductDoc && !isNewSearch) {
             finalQuery = query(finalQuery, startAfter(state.lastVisibleProductDoc));
         }
@@ -546,14 +542,10 @@ async function fetchCategoryRowProducts(sectionData) {
     }
 }
 
-// --- [FIXED] Updated Initial Products Fetch ---
-// ئەم بەشە نوێکراوەتەوە بۆ ئەوەی دڵنیابین کە کۆتا دۆکیۆمێنت (Last Doc) بە دروستی پاشەکەوت دەکات
-// بۆ ئەوەی لە کاتی Scroll دا ئەوانی تر بێنێت.
 async function fetchInitialProductsForHome(limitCount = 30, categoryId = null) {
      try {
         let q;
         
-        // ئەگەر Scroll نەبوو (واتە یەکەم جارە)، هەموو شتێک سفر دەکەینەوە
         if (!state.lastVisibleProductDoc || state.currentCategory !== (categoryId || 'all')) {
              state.allProductsLoaded = false;
              state.lastVisibleProductDoc = null;
@@ -571,21 +563,10 @@ async function fetchInitialProductsForHome(limitCount = 30, categoryId = null) {
 
         const snapshot = await getDocs(q);
         
-        // گرنگ: نوێکردنەوەی ستەیت بۆ ئەوەی بزانین تا کوێ هاتووین
         state.lastVisibleProductDoc = snapshot.docs[snapshot.docs.length - 1];
         state.allProductsLoaded = snapshot.docs.length < limitCount;
         
         const fetchedProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        // زیادکردن بۆ لیستی گشتی (نەک سڕینەوە) ئەگەر پێشتر هەبوون
-        if (state.products.length === 0) {
-            state.products = fetchedProducts;
-        } else {
-            // ئەگەر ئەمە بۆ Pagination نییە و تەنها Initial Loadـە، دەبێت سەرەتا بێت
-            // بەڵام لێرە ئێمە تەنها بۆ Load More بەکاریدێنین لە App UI
-            // بۆیە دەکرێت تەنها Replace بێت ئەگەر Refresh بێت
-             state.products = fetchedProducts; // Initial load resets products
-        }
         
         return fetchedProducts;
     } catch (error) {

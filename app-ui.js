@@ -867,53 +867,32 @@ function setupUIEventListeners() {
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
     if (scrollTrigger) {
         const observer = new IntersectionObserver(async (entries) => {
-            if (!entries[0].isIntersecting) return;
-            if (state.isLoadingMoreProducts || state.allProductsLoaded) return;
-
             const isMainPageActive = document.getElementById('mainPage')?.classList.contains('page-active');
-            if (!isMainPageActive) return;
-
-            // 1. Check if we are in "Home Layout" mode (Category 'all' + No search)
-            // Look specifically for the grid inside the home sections container
-            const homeAllProductsGrid = document.querySelector('#homePageSectionsContainer .all-products-grid');
             
-            // 2. Check if we are in "Standard Grid" mode (Category page or Search)
-            const standardProductsGrid = document.getElementById('productsContainer');
-            const isStandardGridVisible = standardProductsGrid?.style.display !== 'none';
+            const isProductGridVisible = document.getElementById('productsContainer')?.style.display === 'grid';
+            
+            const isHomeAllProductsVisible = document.querySelector('.all-products-grid');
 
-            if (homeAllProductsGrid || isStandardGridVisible) {
+            if (entries[0].isIntersecting && isMainPageActive && (isProductGridVisible || isHomeAllProductsVisible) && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
                  
-                 // Show loader
                  loader.style.display = 'block'; 
-                 
-                 // Fetch next page
                  const result = await fetchProducts(state.currentSearch, false); 
                  
                  loader.style.display = 'none'; 
                  
                  if(result && result.products.length > 0) {
-                     if (homeAllProductsGrid) {
-                         // Append to Home Page Grid
+                     if (isHomeAllProductsVisible) {
                          result.products.forEach(product => {
                              const card = createProductCardElementUI(product); 
                              card.classList.add('product-card-reveal');
-                             homeAllProductsGrid.appendChild(card);
+                             isHomeAllProductsVisible.appendChild(card);
                          });
                          setupScrollAnimations();
-                     } else if (isStandardGridVisible) {
-                         // Append to Standard Grid (Search/Category)
-                         // Note: fetchProducts typically updates state.products, 
-                         // but for appending to DOM we do it manually here to avoid full re-render
-                         result.products.forEach(product => {
-                             const card = createProductCardElementUI(product); 
-                             card.classList.add('product-card-reveal');
-                             standardProductsGrid.appendChild(card);
-                         });
-                         setupScrollAnimations();
+                     } else {
+                         await updateProductViewUI(false); 
                      }
                  }
                  
-                 // Hide trigger if all loaded
                  scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
             }
         }, { threshold: 0.1 });
@@ -991,8 +970,173 @@ async function handleSetLanguage(lang) {
     document.querySelectorAll('[data-translate-key]').forEach(element => {
         const key = element.dataset.translateKey;
         const translation = t(key);
-        if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') { if(element.placeholder) element.placeholder = translation; }
-        else { element.textContent = translation; }
+        if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+            if(element.placeholder) element.placeholder = translation;
+        } else {
+            element.textContent = translation;
+        }
+    });
+
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === lang);
+    });
+
+    if (document.getElementById('categoriesPage').classList.contains('page-active')) renderSplitCategoriesPageUI();
+    if (document.getElementById('cartSheet').classList.contains('show')) renderCartUI();
+    if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPageUI();
+    await updateProductViewUI(true, true); 
+    await renderContactLinksUI();
+
+    if (sessionStorage.getItem('isAdmin') === 'true' && window.AdminLogic) {
+         window.AdminLogic.renderAdminAnnouncementsList?.();
+         window.AdminLogic.renderSocialMediaLinks?.();
+         window.AdminLogic.renderContactMethodsAdmin?.();
+         window.AdminLogic.renderCategoryManagementUI?.();
+         window.AdminLogic.renderPromoGroupsAdminList?.();
+         window.AdminLogic.renderBrandGroupsAdminList?.();
+         window.AdminLogic.renderShortcutRowsAdminList?.();
+         window.AdminLogic.renderHomeLayoutAdmin?.();
+         window.AdminLogic.renderCategoryLayoutAdmin?.();
+    }
+    
+    const authTabLogin = document.getElementById('authTabLogin');
+    const authTabSignUp = document.getElementById('authTabSignUp');
+    if (authTabLogin) authTabLogin.textContent = t('auth_tab_login');
+    if (authTabSignUp) authTabSignUp.textContent = t('auth_tab_signup');
+}
+
+window.addEventListener('popstate', async (event) => {
+    const wasPopupOpen = state.currentPopupState !== null; 
+    const previousPageId = state.currentPageId; 
+
+    state.currentPopupState = null; 
+    closeAllPopupsUI(); 
+
+    const popState = event.state;
+    const activePage = document.getElementById(state.currentPageId); 
+    
+    if (!activePage) {
+        return;
+    }
+
+    if (popState) {
+        if (popState.type === 'page') {
+            showPage(popState.id, popState.title, false); 
+
+            if (popState.id === 'subcategoryDetailPage' && popState.mainCatId && popState.subCatId) {
+                await showSubcategoryDetailPageUI(popState.mainCatId, popState.subCatId, true);
+            }
+            if (popState.id === 'productDetailPage' && popState.productId) {
+                 setTimeout(() => {
+                    showProductDetailsUI({id: popState.productId}, true);
+                 }, 50);
+            }
+            if (popState.id === 'chatPage') {
+                openChatPage();
+            }
+            if (popState.id === 'categoriesPage') {
+                await renderSplitCategoriesPageUI();
+            }
+
+        } else if (popState.type === 'sheet' || popState.type === 'modal') {
+            openPopup(popState.id, popState.type, false);
+        
+        } else { 
+            showPage('mainPage', '', false); 
+            
+            const stateToApply = popState || { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
+            applyFilterStateCore(stateToApply); 
+
+            const prodContainer = document.getElementById('productsContainer');
+            const homeContainer = document.getElementById('homePageSectionsContainer');
+            const catContainer = document.getElementById('categoryLayoutContainer');
+            
+            const hasProducts = prodContainer && prodContainer.children.length > 0;
+            const hasHome = homeContainer && homeContainer.children.length > 0;
+            const hasCatLayout = catContainer && catContainer.children.length > 0;
+            
+            const isContentAvailable = hasProducts || hasHome || hasCatLayout;
+
+            if (isContentAvailable) {
+                const isHomeState = state.currentCategory === 'all' && !state.currentSearch;
+                const isCatLayoutState = state.currentCategory !== 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all' && !state.currentSearch;
+                
+                if(prodContainer) prodContainer.style.display = 'none';
+                if(homeContainer) homeContainer.style.display = 'none';
+                if(catContainer) catContainer.style.display = 'none';
+                if(document.getElementById('skeletonLoader')) document.getElementById('skeletonLoader').style.display = 'none';
+
+                if (isHomeState) {
+                    if(homeContainer) homeContainer.style.display = 'block';
+                    document.getElementById('subcategoriesContainer').style.display = 'none';
+                    document.getElementById('subSubcategoriesContainer').style.display = 'none';
+                } else if (isCatLayoutState) {
+                    if(catContainer) {
+                        catContainer.style.display = 'block';
+                        Array.from(catContainer.children).forEach(child => {
+                             child.style.display = (child.id === `layout-cache-${state.currentCategory}`) ? 'block' : 'none';
+                        });
+                    }
+                    const subcats = await fetchSubcategories(state.currentCategory);
+                    renderSubcategoriesUI(subcats);
+                } else {
+                    if(prodContainer) prodContainer.style.display = 'grid';
+                    const subcats = await fetchSubcategories(state.currentCategory);
+                    renderSubcategoriesUI(subcats);
+                }
+                
+                renderMainCategoriesUI();
+                
+            } else {
+                await updateProductViewUI(true, false);
+            }
+
+            if (!state.pendingFilterNav) { 
+                if (typeof stateToApply.scroll === 'number') {
+                    setTimeout(() => {
+                         const homePage = document.getElementById('mainPage');
+                         if(homePage) homePage.scrollTo({ top: stateToApply.scroll, behavior: 'instant' });
+                    }, 50);
+                } else {
+                    requestAnimationFrame(() => {
+                        activePage.scrollTo({ top: 0, behavior: 'instant' });
+                    });
+                }
+            }
+            
+            if (state.pendingFilterNav) {
+                const filterToApply = state.pendingFilterNav;
+                state.pendingFilterNav = null; 
+                setTimeout(async () => {
+                    await navigateToFilterCore(filterToApply);
+                    await updateProductViewUI(true, true); 
+                }, 50); 
+            }
+        }
+    } else {
+        const defaultState = { category: 'all', subcategory: 'all', subSubcategory: 'all', search: '', scroll: 0 };
+        showPage('mainPage'); 
+        applyFilterStateCore(defaultState); 
+        await updateProductViewUI(true, true); 
+        requestAnimationFrame(() => {
+             const homePage = document.getElementById('mainPage');
+             if(homePage) homePage.scrollTo({ top: 0, behavior: 'instant' });
+        });
+    }
+});
+
+async function initializeUI() {
+    await initCore(); 
+    if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+    }
+
+    setLanguageCore(state.currentLanguage); 
+     document.querySelectorAll('[data-translate-key]').forEach(element => { 
+         const key = element.dataset.translateKey;
+         const translation = t(key);
+         if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') { if(element.placeholder) element.placeholder = translation; }
+         else { element.textContent = translation; }
     });
      document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.lang === state.currentLanguage)); 
     
