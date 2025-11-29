@@ -318,19 +318,26 @@ export async function fetchCategoryLayout(categoryId) {
     }
 }
 
+// === [FIXED FUNCTION] ===
 async function fetchProducts(searchTerm = '', isNewSearch = false) {
+    // 1. Check for Home Page (Only stop if it is a FRESH load, allow scrolling)
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-    if (shouldShowHomeSections) {
+    
+    if (shouldShowHomeSections && isNewSearch) {
         return { isHome: true, layout: null, products: [], allLoaded: true };
     }
 
+    // 2. Check for Category Layout (Only stop if it is a FRESH load, allow scrolling)
     const shouldShowCategoryLayout = !searchTerm && state.currentCategory !== 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-    if (shouldShowCategoryLayout) {
+    
+    if (shouldShowCategoryLayout && isNewSearch) {
         const categoryLayoutData = await fetchCategoryLayout(state.currentCategory);
         if (categoryLayoutData) { 
             return { isHome: true, layout: categoryLayoutData.sections, products: [], allLoaded: true };
         }
     }
+    
+    // --- Continue normal fetching for products (including pagination) ---
     
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
     if (isNewSearch && state.productCache[cacheKey]) {
@@ -341,11 +348,13 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
     }
 
     if (state.isLoadingMoreProducts) return null; 
+    
     if (isNewSearch) {
         state.allProductsLoaded = false;
         state.lastVisibleProductDoc = null;
         state.products = [];
     }
+    
     if (state.allProductsLoaded && !isNewSearch) return null; 
 
     state.isLoadingMoreProducts = true;
@@ -375,6 +384,7 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
 
         let finalQuery = query(productsQuery, ...conditions, ...orderByClauses);
 
+        // Pagination Logic
         if (state.lastVisibleProductDoc && !isNewSearch) {
             finalQuery = query(finalQuery, startAfter(state.lastVisibleProductDoc));
         }
@@ -659,7 +669,6 @@ export function removeFromCartCore(cartId) {
     return false; 
 }
 
-// --- [UPDATED LOGIC] Generate Order Message with Transparent Shipping ---
 export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
