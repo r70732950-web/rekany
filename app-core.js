@@ -318,17 +318,23 @@ export async function fetchCategoryLayout(categoryId) {
     }
 }
 
+// --- [FIXED] Updated fetchProducts function ---
 async function fetchProducts(searchTerm = '', isNewSearch = false) {
-    const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-    if (shouldShowHomeSections) {
-        return { isHome: true, layout: null, products: [], allLoaded: true };
-    }
+    
+    // کێشەکە لێرە بوو: ئەگەر Scroll بکەیت (isNewSearch=false)، نابێت ئەم بەشە کار بکات
+    // بۆیە مەرجی (if isNewSearch)ـمان بۆ زیاد کرد
+    if (isNewSearch) {
+        const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
+        if (shouldShowHomeSections) {
+            return { isHome: true, layout: null, products: [], allLoaded: true };
+        }
 
-    const shouldShowCategoryLayout = !searchTerm && state.currentCategory !== 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-    if (shouldShowCategoryLayout) {
-        const categoryLayoutData = await fetchCategoryLayout(state.currentCategory);
-        if (categoryLayoutData) { 
-            return { isHome: true, layout: categoryLayoutData.sections, products: [], allLoaded: true };
+        const shouldShowCategoryLayout = !searchTerm && state.currentCategory !== 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
+        if (shouldShowCategoryLayout) {
+            const categoryLayoutData = await fetchCategoryLayout(state.currentCategory);
+            if (categoryLayoutData) { 
+                return { isHome: true, layout: categoryLayoutData.sections, products: [], allLoaded: true };
+            }
         }
     }
     
@@ -375,6 +381,7 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
 
         let finalQuery = query(productsQuery, ...conditions, ...orderByClauses);
 
+        // --- گرنگ: بەکارهێنانی Pagination ---
         if (state.lastVisibleProductDoc && !isNewSearch) {
             finalQuery = query(finalQuery, startAfter(state.lastVisibleProductDoc));
         }
@@ -546,6 +553,7 @@ async function fetchInitialProductsForHome(limitCount = 30, categoryId = null) {
      try {
         let q;
         
+        // ئەگەر Scroll نەبوو، سفر دەکەینەوە
         if (!state.lastVisibleProductDoc || state.currentCategory !== (categoryId || 'all')) {
              state.allProductsLoaded = false;
              state.lastVisibleProductDoc = null;
