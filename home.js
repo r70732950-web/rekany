@@ -803,9 +803,8 @@ async function createSingleCategoryRowElement(sectionData) {
     return container;
 }
 
-// === [UPDATED: WITH LOAD MORE BUTTON] ===
+// === [UPDATED: WITH AUTO-LOAD & BUTTON] ===
 async function createAllProductsSectionElement(categoryId = null) {
-    // 1. Initial Fetch (First 30 products)
     const products = await fetchInitialProductsForHome(30, categoryId, false); 
     
     if (!products || products.length === 0) return null;
@@ -878,6 +877,20 @@ async function createAllProductsSectionElement(categoryId = null) {
             loadMoreBtn.disabled = false;
         }
     };
+
+    // --- NEW: Hybrid Infinite Scroll ---
+    const observer = new IntersectionObserver((entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting && !loadMoreBtn.disabled && !state.allProductsLoaded) {
+            console.log("Auto-loading more products...");
+            loadMoreBtn.click();
+        }
+    }, {
+        root: null,
+        threshold: 0.1 
+    });
+
+    observer.observe(loadMoreBtn);
 
     return container;
 }
