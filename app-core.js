@@ -93,7 +93,6 @@ export function formatDescription(text) {
 
 function extractShippingCostFromText(text) {
     if (!text) return 0;
-    // لابردنی کۆما و هەر پیتێک بۆ دەرهێنانی تەنها ژمارە
     const cleanText = text.toString().replace(/,/g, '');
     const match = cleanText.match(/(\d+)/);
     return match ? parseInt(match[0], 10) : 0;
@@ -318,7 +317,7 @@ export async function fetchCategoryLayout(categoryId) {
     }
 }
 
-// === [FIXED FUNCTION] ===
+// === [FIXED for Layout Scrolling] ===
 async function fetchProducts(searchTerm = '', isNewSearch = false) {
     // 1. Check for Home Page (Only stop if it is a FRESH load, allow scrolling)
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
@@ -336,8 +335,6 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
             return { isHome: true, layout: categoryLayoutData.sections, products: [], allLoaded: true };
         }
     }
-    
-    // --- Continue normal fetching for products (including pagination) ---
     
     const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
     if (isNewSearch && state.productCache[cacheKey]) {
@@ -552,28 +549,46 @@ async function fetchCategoryRowProducts(sectionData) {
     }
 }
 
-async function fetchInitialProductsForHome(limitCount = 30, categoryId = null) {
+// === [FIXED for Load More Button] ===
+async function fetchInitialProductsForHome(limitCount = 30, categoryId = null, isLoadMore = false) {
      try {
         let q;
         
-        if (!state.lastVisibleProductDoc || state.currentCategory !== (categoryId || 'all')) {
+        // ئەگەر Load More نەبوو، واتە سەرەتایە، هەموو شتێک سفر کەرەوە
+        if (!isLoadMore) {
              state.allProductsLoaded = false;
              state.lastVisibleProductDoc = null;
              state.products = [];
+        } else if (state.allProductsLoaded) {
+            // ئەگەر هەمووی بار بووبێت، هیچ مەکە
+            return [];
         }
         
         let conditions = [];
-        
+        let orderByClauses = [orderBy('createdAt', 'desc')];
+
         if (categoryId && categoryId !== 'all') {
              conditions.push(where('categoryId', '==', categoryId));
         }
-        conditions.push(orderBy('createdAt', 'desc'));
 
-        q = query(productsCollection, ...conditions, limit(limitCount));
+        let queryConstraints = [...conditions, ...orderByClauses];
+
+        // ئەگەر Load More بوو وە دۆکیۆمێنتی پێشوو هەبوو، ئەوا لە دوای ئەو دەست پێ بکە
+        if (isLoadMore && state.lastVisibleProductDoc) {
+            queryConstraints.push(startAfter(state.lastVisibleProductDoc));
+        }
+
+        queryConstraints.push(limit(limitCount));
+
+        q = query(productsCollection, ...queryConstraints);
 
         const snapshot = await getDocs(q);
         
-        state.lastVisibleProductDoc = snapshot.docs[snapshot.docs.length - 1];
+        if (!snapshot.empty) {
+            state.lastVisibleProductDoc = snapshot.docs[snapshot.docs.length - 1];
+        }
+        
+        // ئەگەر ژمارەی هاتوو کەمتر بێت لە لیمیت، واتە ئیتر کاڵا نەماوە
         state.allProductsLoaded = snapshot.docs.length < limitCount;
         
         const fetchedProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));

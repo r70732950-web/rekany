@@ -22,6 +22,7 @@ function resetScrollPosition(containerElement) {
     // ئەمە ناچالاک کراوە وەک داواکاری پێشوو
 }
 
+// ئەم فەنکشنە بۆ کاتی گەڕان (Search) یان کاتێک دیزاینی تایبەت نییە بەکاردێت
 function renderProductsGridUI(newProductsOnly = false) {
     const container = document.getElementById('productsContainer'); 
     if (!container) return;
@@ -103,11 +104,10 @@ export function renderMainCategoriesUI() {
         container.appendChild(btn);
     });
 
-    // --- [UPDATED FIX] Scroll only the container, NOT the page ---
+    // Scroll to active button
     setTimeout(() => {
         const activeBtn = container.querySelector('.main-category-btn.active');
         if (activeBtn) {
-            // ئەم هاوکێشەیە دوگمەکە دەخاتە ناوەڕاستی شریتەکە بەبێ جوڵاندنی پەڕەکە
             const containerWidth = container.offsetWidth;
             const btnLeft = activeBtn.offsetLeft;
             const btnWidth = activeBtn.offsetWidth;
@@ -803,26 +803,81 @@ async function createSingleCategoryRowElement(sectionData) {
     return container;
 }
 
+// === [UPDATED: WITH LOAD MORE BUTTON] ===
 async function createAllProductsSectionElement(categoryId = null) {
-    const products = await fetchInitialProductsForHome(30, categoryId); 
+    // 1. Initial Fetch (First 30 products)
+    const products = await fetchInitialProductsForHome(30, categoryId, false); 
+    
     if (!products || products.length === 0) return null;
 
     const container = document.createElement('div');
     container.className = 'dynamic-section';
     container.style.marginTop = '20px'; 
+    container.style.paddingBottom = '20px';
     
     const titleKey = (categoryId && categoryId !== 'all') ? 'all_products' : 'all_products_section_title';
     
     container.innerHTML = `
         <div class="section-title-header">
             <h3 class="section-title-main">${t(titleKey)}</h3>
-             </div>
+        </div>
         <div class="products-container all-products-grid"></div>
+        
+        <div style="text-align: center; margin-top: 20px; display: none;" id="homeLoadMoreContainer">
+            <button id="homeLoadMoreBtn" style="
+                background-color: var(--primary-color);
+                color: white;
+                border: none;
+                padding: 10px 25px;
+                border-radius: 25px;
+                font-weight: bold;
+                cursor: pointer;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                transition: transform 0.2s;
+                font-size: 14px;
+            ">
+                <i class="fas fa-arrow-down" style="margin-left: 5px;"></i> زیاتر ببینە
+            </button>
+        </div>
     `;
+
     const productsGrid = container.querySelector('.products-container');
-    products.forEach(product => {
-        const card = createProductCardElementUI(product); 
-        productsGrid.appendChild(card);
-    });
+    const loadMoreContainer = container.querySelector('#homeLoadMoreContainer');
+    const loadMoreBtn = container.querySelector('#homeLoadMoreBtn');
+
+    const appendProducts = (items) => {
+        items.forEach(product => {
+            const card = createProductCardElementUI(product); 
+            card.classList.add('product-card-reveal');
+            productsGrid.appendChild(card);
+        });
+        setupScrollAnimations();
+    };
+
+    appendProducts(products);
+
+    if (!state.allProductsLoaded && products.length >= 30) {
+        loadMoreContainer.style.display = 'block';
+    }
+
+    loadMoreBtn.onclick = async () => {
+        const originalText = loadMoreBtn.innerHTML;
+        loadMoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...جارێ بار دەکات';
+        loadMoreBtn.disabled = true;
+
+        const newProducts = await fetchInitialProductsForHome(30, categoryId, true);
+
+        if (newProducts && newProducts.length > 0) {
+            appendProducts(newProducts);
+        }
+
+        if (state.allProductsLoaded || newProducts.length === 0) {
+            loadMoreContainer.style.display = 'none';
+        } else {
+            loadMoreBtn.innerHTML = originalText;
+            loadMoreBtn.disabled = false;
+        }
+    };
+
     return container;
 }
