@@ -340,6 +340,7 @@ function subscribeToMessages(chatUserId) {
     });
 }
 
+// === [UPDATED] Render Order Message with New Shipping Logic ===
 function renderSingleMessage(msg, container, chatUserId) {
     const isMe = msg.senderId === (sessionStorage.getItem('isAdmin') === 'true' ? 'admin' : (state.currentUser ? state.currentUser.uid : ''));
     const alignClass = isMe ? 'message-sent' : 'message-received';
@@ -364,16 +365,20 @@ function renderSingleMessage(msg, container, chatUserId) {
         const order = msg.orderDetails;
         if(order && order.items) {
             
-            const marketMaxMap = {};
+            // --- 1. Group Items to Apply Rules ---
+            const marketGroups = {};
             order.items.forEach(item => {
                 const mCode = item.marketCode || 'default';
-                const cost = item.shippingCost || 0;
-                if (marketMaxMap[mCode] === undefined || cost > marketMaxMap[mCode]) {
-                    marketMaxMap[mCode] = cost;
+                if (!marketGroups[mCode]) {
+                    marketGroups[mCode] = { items: [], maxShipping: 0 };
+                }
+                marketGroups[mCode].items.push(item);
+                if ((item.shippingCost || 0) > marketGroups[mCode].maxShipping) {
+                    marketGroups[mCode].maxShipping = item.shippingCost || 0;
                 }
             });
             
-            const marketsCharged = new Set();
+            const marketMaxChargedTracker = {}; 
 
             contentHtml = `
                 <div class="order-bubble">
@@ -389,17 +394,30 @@ function renderSingleMessage(msg, container, chatUserId) {
                             
                             const mCode = i.marketCode ? `<span style="font-size:10px; color:#777; display:block;">مارکێت: ${i.marketCode}</span>` : '';
                             
+                            // --- Determine Shipping Display based on New Rule ---
                             const mCodeKey = i.marketCode || 'default';
+                            const group = marketGroups[mCodeKey];
+                            const itemCount = group.items.length;
                             const itemCost = i.shippingCost || 0;
+                            
                             let shippingDisplay = '';
 
-                            const isPayer = (itemCost === marketMaxMap[mCodeKey]) && !marketsCharged.has(mCodeKey);
-
-                            if (isPayer && itemCost > 0) {
-                                shippingDisplay = `<span style="color:#e53e3e; font-size:10px;">(+ ${itemCost.toLocaleString()} گەیاندن)</span>`;
-                                marketsCharged.add(mCodeKey);
+                            if (itemCount >= 3) {
+                                // Rule: 3+, pay only Max
+                                const isPayer = (itemCost === group.maxShipping) && !marketMaxChargedTracker[mCodeKey];
+                                if (isPayer && itemCost > 0) {
+                                    shippingDisplay = `<span style="color:#e53e3e; font-size:10px;">(+ ${itemCost.toLocaleString()} گەیاندن)</span>`;
+                                    marketMaxChargedTracker[mCodeKey] = true;
+                                } else {
+                                    shippingDisplay = `<span style="color:#38a169; font-size:10px;">(گەیاندن بێ بەرامبەر)</span>`;
+                                }
                             } else {
-                                shippingDisplay = `<span style="color:#38a169; font-size:10px;">(گەیاندن بێ بەرامبەر)</span>`;
+                                // Rule: < 3, pay All
+                                if (itemCost > 0) {
+                                    shippingDisplay = `<span style="color:#e53e3e; font-size:10px;">(+ ${itemCost.toLocaleString()} گەیاندن)</span>`;
+                                } else {
+                                    shippingDisplay = `<span style="color:#38a169; font-size:10px;">(گەیاندن بێ بەرامبەر)</span>`;
+                                }
                             }
 
                             return `
@@ -668,38 +686,35 @@ async function handleDirectOrder() {
     };
 }
 
+// === [UPDATED] Calculate Total with New Rules for Database ===
 async function processOrderSubmission() {
-    // --- [NEW LOGIC: Calculating Total based on Market Rules] ---
-    // This must match cart.js logic to ensure the total stored in DB is correct
     let totalItemPrice = 0;
-    const marketMaxShipping = {}; // To store the single highest shipping cost per market
+    let totalShipping = 0;
+    const marketGroups = {};
 
     state.cart.forEach(item => {
-        // 1. Sum item prices
         totalItemPrice += (item.price * item.quantity);
-        
-        // 2. Determine shipping per market
         const mCode = item.marketCode || 'default';
-        const itemShipping = item.shippingCost || 0;
-        
-        if (marketMaxShipping[mCode] === undefined) {
-            marketMaxShipping[mCode] = 0;
+        if (!marketGroups[mCode]) {
+            marketGroups[mCode] = { items: [], maxShipping: 0 };
         }
-        
-        // Take the highest shipping cost for this market
-        if (itemShipping > marketMaxShipping[mCode]) {
-            marketMaxShipping[mCode] = itemShipping;
+        marketGroups[mCode].items.push(item);
+        if ((item.shippingCost || 0) > marketGroups[mCode].maxShipping) {
+            marketGroups[mCode].maxShipping = item.shippingCost || 0;
         }
     });
 
-    // 3. Sum up the shipping costs
-    let totalShipping = 0;
-    for (const mCode in marketMaxShipping) {
-        totalShipping += marketMaxShipping[mCode];
+    for (const [mCode, group] of Object.entries(marketGroups)) {
+        if (group.items.length >= 3) {
+            // Rule: 3+ items -> Pay Max only
+            totalShipping += group.maxShipping;
+        } else {
+            // Rule: < 3 items -> Pay All
+            totalShipping += group.items.reduce((sum, i) => sum + (i.shippingCost || 0), 0);
+        }
     }
 
     const total = totalItemPrice + totalShipping;
-    // -----------------------------------------------------------
     
     const orderData = {
         userId: state.currentUser.uid,

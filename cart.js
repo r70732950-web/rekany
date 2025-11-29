@@ -44,32 +44,48 @@ export function renderCartUI() {
     
     renderCartActionButtonsUI(); 
 
-    // --- 1. Pre-calculate Max Shipping per Market ---
+    // --- 1. Group Items by Market to Analyze Counts ---
+    const marketGroups = {};
     let totalItemPrice = 0;
-    const marketMaxMap = {}; // Map to store max shipping cost for each market code
 
     state.cart.forEach(item => {
         totalItemPrice += (item.price * item.quantity);
         const mCode = item.marketCode || 'default';
-        const cost = item.shippingCost || 0;
         
-        // Find the highest shipping cost in this market group
-        if (marketMaxMap[mCode] === undefined || cost > marketMaxMap[mCode]) {
-            marketMaxMap[mCode] = cost;
+        if (!marketGroups[mCode]) {
+            marketGroups[mCode] = {
+                items: [],
+                maxShipping: 0
+            };
+        }
+        marketGroups[mCode].items.push(item);
+        
+        // Find highest shipping in this group
+        if ((item.shippingCost || 0) > marketGroups[mCode].maxShipping) {
+            marketGroups[mCode].maxShipping = (item.shippingCost || 0);
         }
     });
 
-    // Calculate Total Shipping Sum
+    // --- 2. Calculate Total Shipping based on Rules ---
     let totalShipping = 0;
-    for (const m in marketMaxMap) {
-        totalShipping += marketMaxMap[m];
+    // Set to track if we have charged the "Max Shipping" for a market (used when items >= 3)
+    const marketMaxChargedTracker = {}; 
+
+    // Calculate shipping logic BEFORE rendering
+    for (const [mCode, group] of Object.entries(marketGroups)) {
+        if (group.items.length >= 3) {
+            // Rule: 3 or more items -> Pay only ONE shipping (the highest one)
+            totalShipping += group.maxShipping;
+        } else {
+            // Rule: Less than 3 items -> Pay ALL shipping costs
+            const groupShippingSum = group.items.reduce((sum, item) => sum + (item.shippingCost || 0), 0);
+            totalShipping += groupShippingSum;
+        }
     }
+
     const finalTotal = totalItemPrice + totalShipping;
 
-    // --- 2. Render Items ---
-    // We need to track which markets have already been "charged" so we don't charge twice
-    const marketsCharged = new Set(); 
-
+    // --- 3. Render Items ---
     state.cart.forEach(item => {
         const itemTotal = (item.price * item.quantity); 
         
@@ -80,21 +96,29 @@ export function renderCartUI() {
             ? item.name 
             : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
 
-        // --- LOGIC: Determine if THIS item displays the shipping price or "Free" ---
+        // --- Display Logic per Item ---
         const mCode = item.marketCode || 'default';
+        const group = marketGroups[mCode];
+        const itemCount = group.items.length;
         let shippingDisplay = '';
-        
-        // Check if this item's shipping matches the max for the market
-        // AND if we haven't already assigned the charge to a previous item in this loop
-        const isPayer = (item.shippingCost || 0) === marketMaxMap[mCode] && !marketsCharged.has(mCode);
 
-        if (isPayer && (item.shippingCost > 0)) {
-            // ئەم کاڵایە پارەی گەیاندنەکەی دەدرێت
-            shippingDisplay = `<span style="font-size:11px; color:#e53e3e;">(+ ${item.shippingCost.toLocaleString()} گەیاندن)</span>`;
-            marketsCharged.add(mCode); // Mark this market as charged
+        if (itemCount >= 3) {
+            // Case: 3 or more items (Pay only Max)
+            const isPayer = (item.shippingCost || 0) === group.maxShipping && !marketMaxChargedTracker[mCode];
+            
+            if (isPayer && (item.shippingCost > 0)) {
+                shippingDisplay = `<span style="font-size:11px; color:#e53e3e;">(+ ${item.shippingCost.toLocaleString()} گەیاندن)</span>`;
+                marketMaxChargedTracker[mCode] = true; // Mark as paid
+            } else {
+                shippingDisplay = `<span style="font-size:11px; color:#38a169;">(گەیاندن بێ بەرامبەر - ئۆفەری ٣ دانە)</span>`;
+            }
         } else {
-            // ئەم کاڵایە دەبێتە بێ بەرامبەر (چونکە کاڵایەکی تر پارەکەی داوە یان گەیاندنی نەبووە)
-            shippingDisplay = `<span style="font-size:11px; color:#38a169;">(گەیاندن بێ بەرامبەر)</span>`;
+            // Case: 1 or 2 items (Pay All)
+            if (item.shippingCost > 0) {
+                shippingDisplay = `<span style="font-size:11px; color:#e53e3e;">(+ ${item.shippingCost.toLocaleString()} گەیاندن)</span>`;
+            } else {
+                shippingDisplay = `<span style="font-size:11px; color:#38a169;">(گەیاندن بێ بەرامبەر)</span>`;
+            }
         }
 
         // Market Code Badge

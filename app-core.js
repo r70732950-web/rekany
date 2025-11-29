@@ -317,7 +317,6 @@ export async function fetchCategoryLayout(categoryId) {
     }
 }
 
-// === [FIXED for Layout Scrolling] ===
 async function fetchProducts(searchTerm = '', isNewSearch = false) {
     // 1. Check for Home Page (Only stop if it is a FRESH load, allow scrolling)
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
@@ -549,18 +548,15 @@ async function fetchCategoryRowProducts(sectionData) {
     }
 }
 
-// === [FIXED for Load More Button] ===
 async function fetchInitialProductsForHome(limitCount = 30, categoryId = null, isLoadMore = false) {
      try {
         let q;
         
-        // ئەگەر Load More نەبوو، واتە سەرەتایە، هەموو شتێک سفر کەرەوە
         if (!isLoadMore) {
              state.allProductsLoaded = false;
              state.lastVisibleProductDoc = null;
              state.products = [];
         } else if (state.allProductsLoaded) {
-            // ئەگەر هەمووی بار بووبێت، هیچ مەکە
             return [];
         }
         
@@ -573,7 +569,6 @@ async function fetchInitialProductsForHome(limitCount = 30, categoryId = null, i
 
         let queryConstraints = [...conditions, ...orderByClauses];
 
-        // ئەگەر Load More بوو وە دۆکیۆمێنتی پێشوو هەبوو، ئەوا لە دوای ئەو دەست پێ بکە
         if (isLoadMore && state.lastVisibleProductDoc) {
             queryConstraints.push(startAfter(state.lastVisibleProductDoc));
         }
@@ -588,7 +583,6 @@ async function fetchInitialProductsForHome(limitCount = 30, categoryId = null, i
             state.lastVisibleProductDoc = snapshot.docs[snapshot.docs.length - 1];
         }
         
-        // ئەگەر ژمارەی هاتوو کەمتر بێت لە لیمیت، واتە ئیتر کاڵا نەماوە
         state.allProductsLoaded = snapshot.docs.length < limitCount;
         
         const fetchedProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -684,6 +678,7 @@ export function removeFromCartCore(cartId) {
     return false; 
 }
 
+// === [UPDATED: Order Message Generator with 3+ Item Rule] ===
 export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
@@ -702,7 +697,7 @@ export function generateOrderMessageCore() {
         }
         itemsByMarket[mCode].items.push(item);
         
-        // Check for max shipping in this market
+        // Check for max shipping in this market group
         const itemShipping = item.shippingCost || 0;
         if (itemShipping > itemsByMarket[mCode].maxShipping) {
             itemsByMarket[mCode].maxShipping = itemShipping;
@@ -717,7 +712,17 @@ export function generateOrderMessageCore() {
         message += `------------------------\n`;
         
         let marketItemsTotal = 0;
-        let isMarketCharged = false; // Flag to ensure only ONE item shows the price, others show Free
+        let marketShippingFee = 0;
+        const itemCount = data.items.length;
+        let isMaxShippingCharged = false; // Flag for the 3+ items rule
+
+        // Calculate Shipping Fee based on Rule
+        if (itemCount >= 3) {
+            marketShippingFee = data.maxShipping; // Pay only max
+        } else {
+            // Pay sum of all
+            marketShippingFee = data.items.reduce((sum, i) => sum + (i.shippingCost || 0), 0);
+        }
 
         data.items.forEach((item) => {
             const lineTotal = item.price * item.quantity;
@@ -727,16 +732,25 @@ export function generateOrderMessageCore() {
                 ? item.name 
                 : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
 
-            // --- LOGIC: Determine text display for this item in WhatsApp message ---
+            // --- LOGIC: Text Display for WhatsApp ---
             let shippingStr = "";
             const itemCost = item.shippingCost || 0;
 
-            // If this item matches the max shipping AND we haven't charged yet
-            if (itemCost === data.maxShipping && !isMarketCharged && itemCost > 0) {
-                shippingStr = `(گەیاندن: ${itemCost.toLocaleString()})`;
-                isMarketCharged = true;
+            if (itemCount >= 3) {
+                // If 3+, only the max payer shows the cost
+                if (itemCost === data.maxShipping && !isMaxShippingCharged && itemCost > 0) {
+                    shippingStr = `(گەیاندن: ${itemCost.toLocaleString()})`;
+                    isMaxShippingCharged = true;
+                } else {
+                    shippingStr = `(گەیاندن: بێ بەرامبەر - ئۆفەری ٣ دانە)`;
+                }
             } else {
-                shippingStr = `(گەیاندن: بێ بەرامبەر)`;
+                // If < 3, everyone shows their cost
+                if (itemCost > 0) {
+                    shippingStr = `(گەیاندن: ${itemCost.toLocaleString()})`;
+                } else {
+                    shippingStr = `(گەیاندن: بێ بەرامبەر)`;
+                }
             }
 
             message += `▪️ ${itemName}\n`;
@@ -744,13 +758,11 @@ export function generateOrderMessageCore() {
             message += `   ${shippingStr}\n`;
         });
 
-        // Add Shipping for this market
-        const shippingFee = data.maxShipping;
-        const marketTotal = marketItemsTotal + shippingFee;
+        const marketTotal = marketItemsTotal + marketShippingFee;
         grandTotal += marketTotal;
 
         message += `------------------------\n`;
-        // message += `🚚 کۆی گەیاندنی مارکێت: ${shippingFee.toLocaleString()}\n`; // Optional summary line
+        // message += `🚚 کۆی گەیاندنی مارکێت: ${marketShippingFee.toLocaleString()}\n`; 
         message += `💰 کۆی گشتی مارکێت: ${marketTotal.toLocaleString()} د.ع\n\n`;
     }
     
