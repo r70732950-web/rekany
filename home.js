@@ -22,10 +22,61 @@ function resetScrollPosition(containerElement) {
     // ئەمە ناچالاک کراوە وەک داواکاری پێشوو
 }
 
+// --- Helper: دروستکردنی دوگمەی Load More ---
+function createLoadMoreBtnElement(onClickHandler) {
+    const container = document.createElement('div');
+    container.className = 'load-more-container'; // Class added for easy removal
+    container.style.textAlign = 'center';
+    container.style.marginTop = '20px';
+    container.style.marginBottom = '40px';
+    container.style.gridColumn = '1 / -1'; // Ensure it spans full width in grid
+
+    const btn = document.createElement('button');
+    btn.innerHTML = `<i class="fas fa-arrow-down" style="margin-left: 5px;"></i> زیاتر ببینە`;
+    btn.style.cssText = `
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 10px 25px;
+        border-radius: 25px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        transition: transform 0.2s;
+        font-size: 14px;
+    `;
+
+    btn.onclick = async () => {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...جارێ بار دەکات';
+        btn.disabled = true;
+        
+        await onClickHandler(btn, container); // Call the specific logic
+        
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    };
+
+    // Auto-load (Hybrid Infinite Scroll)
+    const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && !btn.disabled) {
+            btn.click();
+        }
+    }, { threshold: 0.1 });
+    observer.observe(btn);
+
+    container.appendChild(btn);
+    return container;
+}
+
 // ئەم فەنکشنە بۆ کاتی گەڕان (Search) یان کاتێک دیزاینی تایبەت نییە بەکاردێت
 function renderProductsGridUI(newProductsOnly = false) {
     const container = document.getElementById('productsContainer'); 
     if (!container) return;
+
+    // لابردنی دوگمەی کۆن ئەگەر هەبێت
+    const oldBtn = container.querySelector('.load-more-container');
+    if(oldBtn) oldBtn.remove();
 
     if (Array.isArray(newProductsOnly)) { 
         newProductsOnly.forEach(item => {
@@ -302,8 +353,22 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
          loader.style.display = 'none';
          if(result && result.products.length > 0) {
             renderProductsGridUI(result.products); 
+            
+            // --- NEW: Add Load More to Category Grid if more items exist ---
+            if (!state.allProductsLoaded) {
+                const loadMoreBtn = createLoadMoreBtnElement(async (btn, container) => {
+                    const moreResult = await fetchProducts(state.currentSearch, false);
+                    if (moreResult && moreResult.products.length > 0) {
+                        renderProductsGridUI(moreResult.products);
+                    }
+                    if (state.allProductsLoaded) {
+                        container.remove();
+                    }
+                });
+                productsContainer.appendChild(loadMoreBtn);
+            }
          }
-         scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
+         scrollTrigger.style.display = 'none'; // We use button now
          
          renderMainCategoriesUI();
          return; 
@@ -360,8 +425,22 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
                 productsContainer.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هەڵەیەک ڕوویدا.</p>';
             } else {
                 renderProductsGridUI(null); 
+                
+                // --- NEW: Initial Load More Button for Category Grid ---
+                if (!state.allProductsLoaded) {
+                    const loadMoreBtn = createLoadMoreBtnElement(async (btn, container) => {
+                        const moreResult = await fetchProducts(state.currentSearch, false);
+                        if (moreResult && moreResult.products.length > 0) {
+                            renderProductsGridUI(moreResult.products);
+                        }
+                        if (state.allProductsLoaded) {
+                            container.remove();
+                        }
+                    });
+                    productsContainer.appendChild(loadMoreBtn);
+                }
             }
-            scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block'; 
+            scrollTrigger.style.display = 'none'; 
         }
     }
 
@@ -803,7 +882,6 @@ async function createSingleCategoryRowElement(sectionData) {
     return container;
 }
 
-// === [UPDATED: WITH AUTO-LOAD & BUTTON] ===
 async function createAllProductsSectionElement(categoryId = null) {
     const products = await fetchInitialProductsForHome(30, categoryId, false); 
     
@@ -821,28 +899,9 @@ async function createAllProductsSectionElement(categoryId = null) {
             <h3 class="section-title-main">${t(titleKey)}</h3>
         </div>
         <div class="products-container all-products-grid"></div>
-        
-        <div style="text-align: center; margin-top: 20px; display: none;" id="homeLoadMoreContainer">
-            <button id="homeLoadMoreBtn" style="
-                background-color: var(--primary-color);
-                color: white;
-                border: none;
-                padding: 10px 25px;
-                border-radius: 25px;
-                font-weight: bold;
-                cursor: pointer;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-                transition: transform 0.2s;
-                font-size: 14px;
-            ">
-                <i class="fas fa-arrow-down" style="margin-left: 5px;"></i> زیاتر ببینە
-            </button>
-        </div>
     `;
 
     const productsGrid = container.querySelector('.products-container');
-    const loadMoreContainer = container.querySelector('#homeLoadMoreContainer');
-    const loadMoreBtn = container.querySelector('#homeLoadMoreBtn');
 
     const appendProducts = (items) => {
         items.forEach(product => {
@@ -856,41 +915,17 @@ async function createAllProductsSectionElement(categoryId = null) {
     appendProducts(products);
 
     if (!state.allProductsLoaded && products.length >= 30) {
-        loadMoreContainer.style.display = 'block';
+        const loadMoreContainer = createLoadMoreBtnElement(async (btn, container) => {
+            const newProducts = await fetchInitialProductsForHome(30, categoryId, true);
+            if (newProducts && newProducts.length > 0) {
+                appendProducts(newProducts);
+            }
+            if (state.allProductsLoaded || newProducts.length === 0) {
+                container.remove();
+            }
+        });
+        container.appendChild(loadMoreContainer);
     }
-
-    loadMoreBtn.onclick = async () => {
-        const originalText = loadMoreBtn.innerHTML;
-        loadMoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...جارێ بار دەکات';
-        loadMoreBtn.disabled = true;
-
-        const newProducts = await fetchInitialProductsForHome(30, categoryId, true);
-
-        if (newProducts && newProducts.length > 0) {
-            appendProducts(newProducts);
-        }
-
-        if (state.allProductsLoaded || newProducts.length === 0) {
-            loadMoreContainer.style.display = 'none';
-        } else {
-            loadMoreBtn.innerHTML = originalText;
-            loadMoreBtn.disabled = false;
-        }
-    };
-
-    // --- NEW: Hybrid Infinite Scroll ---
-    const observer = new IntersectionObserver((entries) => {
-        const entry = entries[0];
-        if (entry.isIntersecting && !loadMoreBtn.disabled && !state.allProductsLoaded) {
-            console.log("Auto-loading more products...");
-            loadMoreBtn.click();
-        }
-    }, {
-        root: null,
-        threshold: 0.1 
-    });
-
-    observer.observe(loadMoreBtn);
 
     return container;
 }
