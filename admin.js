@@ -1687,7 +1687,9 @@ window.AdminLogic = {
                 }
             });
 
-            if (lvl1Data.name.ku_sorani && lvl1Data.imageUrls.length > 0 && lvl1Data.options.length > 0) {
+            // === [FIX] Allow saving even if no options (sizes) ===
+            // Removed: && lvl1Data.options.length > 0
+            if (lvl1Data.name.ku_sorani && lvl1Data.imageUrls.length > 0) {
                 variations.push(lvl1Data);
             }
         });
