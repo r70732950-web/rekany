@@ -198,7 +198,11 @@ export const translations = {
         delete_account_confirm: "دڵنیایت دەتەوێت ئەکاونتەکەت بسڕیتەوە؟ ئەم کارە پاشگەزبوونەوەی نییە و هەموو زانیارییەکانت دەسڕدرێنەوە.",
         account_deleted_success: "ئەکاونتەکەت بە سەرکەوتوویی سڕدرایەوە.",
         delete_account_error_login: "بۆ ئاسایشی زیاتر، تکایە سەرەتا بچۆ دەرەوە و دووبارە بچۆرە ژوورەوە، ئینجا هەوڵ بدە.",
-        yes_delete: "بەڵێ، بیسڕەوە"
+        yes_delete: "بەڵێ، بیسڕەوە",
+        
+        // --- Out of Stock Translations ---
+        out_of_stock_badge: "نەماوە 🚫",
+        out_of_stock_btn: "لە کۆگا نەماوە"
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -324,7 +328,11 @@ export const translations = {
         delete_account_confirm: "تۆ پشتڕاستی تە دڤێت ئەکاونتێ خۆ ژێبەى؟ ئەڤ کارە پەشێمانبوون تێدا نینە و هەمی پێزانینێن تە دێ هێنە ژێبرن.",
         account_deleted_success: "ئەکاونتێ تە ب سەرکەفتیانە هاتە ژێبرن.",
         delete_account_error_login: "ژبۆ پاراستنێ، هیڤیە سەرەتا دەرکەڤە و دووبارە وەرە ژوور، پاشی هەوڵ بدە.",
-        yes_delete: "بەلێ، ژێبە"
+        yes_delete: "بەلێ، ژێبە",
+        
+        // --- Out of Stock Translations ---
+        out_of_stock_badge: "نەما یە 🚫",
+        out_of_stock_btn: "ل کۆگەهێ نەما یە"
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -450,7 +458,11 @@ export const translations = {
         delete_account_confirm: "هل أنت متأكد أنك تريد حذف حسابك؟ هذا الإجراء لا رجعة فيه وسيتم حذف جميع بياناتك.",
         account_deleted_success: "تم حذف حسابك بنجاح.",
         delete_account_error_login: "لأغراض أمنية، يرجى تسجيل الخروج وتسجيل الدخول مرة أخرى ثم المحاولة.",
-        yes_delete: "نعم، احذف"
+        yes_delete: "نعم، احذف",
+        
+        // --- Out of Stock Translations ---
+        out_of_stock_badge: "نفذت الكمية 🚫",
+        out_of_stock_btn: "نفذت من المخزون"
     }
 };
 

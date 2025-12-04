@@ -46,11 +46,10 @@ export function createProductCardElementUI(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
     
-    // === NEW: Add class if out of stock ===
+    // زیادکردنی کلاس ئەگەر کاڵا نەما بێت (بۆ گۆڕینی ڕەنگ)
     if (product.isOutOfStock) {
         productCard.classList.add('out-of-stock');
     }
-    // ======================================
 
     productCard.dataset.productId = product.id;
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
@@ -85,21 +84,23 @@ export function createProductCardElementUI(product) {
     const heartIconClass = isProdFavorite ? 'fas' : 'far';
     const favoriteBtnClass = isProdFavorite ? 'favorite-btn favorited' : 'favorite-btn';
 
-    // === NEW: Out Of Stock UI Logic ===
+    // === Out Of Stock Logic (Using Translation) ===
     let outOfStockHTML = '';
     let addToCartDisabled = '';
     
     if (product.isOutOfStock) {
-        outOfStockHTML = `<div class="out-of-stock-badge">نەماوە 🚫</div>`;
+        // لێرە t() بەکاردەهێنین بۆ ئەوەی بەپێی زمان بگۆڕێت
+        outOfStockHTML = `<div class="out-of-stock-badge">${t('out_of_stock_badge')}</div>`;
         addToCartDisabled = 'disabled';
     }
-    // =================================
+    // ==============================================
 
     productCard.innerHTML = `
         <div class="product-image-container">
             <img src="${mainImage}" alt="${nameInCurrentLang}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
             ${discountBadgeHTML}
-            ${outOfStockHTML} <button class="${favoriteBtnClass}" aria-label="Add to favorites">
+            ${outOfStockHTML}
+            <button class="${favoriteBtnClass}" aria-label="Add to favorites">
                 <i class="${heartIconClass} fa-heart"></i>
             </button>
              <button class="share-btn-card" aria-label="Share product">
@@ -109,7 +110,8 @@ export function createProductCardElementUI(product) {
         <div class="product-info">
             <div class="product-name">${nameInCurrentLang}</div>
             ${priceHTML}
-            <button class="add-to-cart-btn-card" ${addToCartDisabled}> <i class="fas fa-cart-plus"></i>
+            <button class="add-to-cart-btn-card" ${addToCartDisabled}>
+                <i class="fas fa-cart-plus"></i>
                 <span>${t('add_to_cart')}</span>
             </button>
             ${extraInfoHTML}
@@ -145,9 +147,9 @@ function setupProductCardListeners(card, product, name, isAdmin) {
         handleToggleFavoriteUI(product.id);
     });
 
-    // دوگمەی سەبەتە
+    // دوگمەی سەبەتە (تەنها ئەگەر مابێت)
     const cartBtn = card.querySelector('.add-to-cart-btn-card');
-    if (!product.isOutOfStock) { // Only add listener if stock exists
+    if (!product.isOutOfStock) { 
         cartBtn.addEventListener('click', (event) => {
             event.stopPropagation();
             handleAddToCartUI(product.id, event.currentTarget); 
@@ -278,12 +280,11 @@ function setupVariationsUI(product, baseProduct) {
     lvl2Container.style.display = 'none';
     variationSelectorContainer.style.display = 'none';
 
-    // === NEW: Reset Button State ===
+    // Reset Button State Default
     addToCartButton.disabled = false;
     addToCartButton.style.backgroundColor = "var(--accent-color)";
     addToCartButton.style.color = "white";
     addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
-    // ===============================
 
     let selectedLvl1Id = null;
     let selectedLvl2Id = null;
@@ -292,15 +293,14 @@ function setupVariationsUI(product, baseProduct) {
     renderSliderImages(baseProduct.baseImages, baseProduct.videoLink, baseProduct.name);
     renderProductPrice(baseProduct.basePrice, baseProduct.originalPrice);
 
-    // === NEW: Check Out Of Stock for Details Page ===
+    // === Check Out Of Stock for Details Page ===
     if (product.isOutOfStock) {
         addToCartButton.disabled = true;
-        addToCartButton.innerHTML = `<i class="fas fa-ban"></i> لە کۆگا نەماوە`;
+        addToCartButton.innerHTML = `<i class="fas fa-ban"></i> ${t('out_of_stock_btn')}`;
         addToCartButton.style.backgroundColor = "#cbd5e0";
         addToCartButton.style.color = "#4a5568";
-        // We still render variations so user can see them, but action is blocked
     }
-    // ================================================
+    // ===========================================
 
     const variations = product.variations || [];
     if (variations.length > 0) {
