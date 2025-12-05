@@ -18,7 +18,7 @@ import {
     createProductCardElementUI, setupScrollAnimations
 } from './products.js';
 
-// --- Helper: دروستکردنی دوگمەی Load More ---
+// --- Helper: دروستکردنی دوگمەی Load More (بەهێزکراو) ---
 function createLoadMoreBtnElement(onClickHandler) {
     const container = document.createElement('div');
     container.className = 'load-more-container'; 
@@ -42,24 +42,45 @@ function createLoadMoreBtnElement(onClickHandler) {
         font-size: 14px;
     `;
 
-    btn.onclick = async () => {
+    // زیادکردنی گۆڕاوێک بۆ ڕێگری لە داواکاری دووبارە (Lock)
+    let isBtnLoading = false;
+
+    const executeLoad = async () => {
+        if (isBtnLoading || btn.disabled) return;
+        
+        isBtnLoading = true;
+        btn.disabled = true;
         const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...جارێ بار دەکات';
-        btn.disabled = true;
         
-        await onClickHandler(btn, container); 
-        
-        btn.disabled = false;
-        btn.innerHTML = originalText;
+        try {
+            await onClickHandler(btn, container); 
+        } catch (e) {
+            console.error("Load more error:", e);
+        } finally {
+            // تەنها ئەگەر کۆنتێنەرەکە مابێت (واتە کاڵا مابێت) دوگمەکە چالاک بکەرەوە
+            if (document.body.contains(btn)) {
+                isBtnLoading = false;
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
     };
 
-    // Auto-load (Optional: You can remove this observer if you only want manual click)
+    btn.onclick = executeLoad;
+
+    // Auto-load (Infinite Scroll)
+    // بەکارهێنانی IntersectionObserver بە شێوەیەکی کۆنتڕۆڵکراو
     const observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && !btn.disabled) {
-            btn.click();
+        if (entries[0].isIntersecting && !isBtnLoading && !btn.disabled) {
+            executeLoad();
         }
     }, { threshold: 0.1 });
-    observer.observe(btn);
+    
+    // کەمێک دواکەوتن بۆ ئەوەی یەکسەر لەگەڵ کردنەوەی پەڕە ئیش نەکات
+    setTimeout(() => {
+        if (document.body.contains(btn)) observer.observe(btn);
+    }, 1000);
 
     container.appendChild(btn);
     return container;
@@ -69,6 +90,7 @@ function renderProductsGridUI(newProductsOnly = false) {
     const container = document.getElementById('productsContainer'); 
     if (!container) return;
 
+    // لابردنی دوگمەی کۆن ئەگەر هەبێت (بۆ ئەوەی دووبارە نەبێتەوە)
     const oldBtn = container.querySelector('.load-more-container');
     if(oldBtn) oldBtn.remove();
 
@@ -124,6 +146,7 @@ export function renderMainCategoriesUI() {
     }
 
     homeBtn.onclick = async (e) => {
+         // Instant Feedback
          const allBtns = container.querySelectorAll('.main-category-btn');
          allBtns.forEach(b => b.classList.remove('active'));
          e.currentTarget.classList.add('active');
@@ -154,6 +177,7 @@ export function renderMainCategoriesUI() {
         btn.innerHTML = `<i class="${categoryIcon}"></i> <span>${categoryName}</span>`;
 
         btn.onclick = async (e) => {
+             // Instant Feedback
              const allBtns = container.querySelectorAll('.main-category-btn');
              allBtns.forEach(b => b.classList.remove('active'));
              e.currentTarget.classList.add('active');
@@ -896,12 +920,11 @@ async function createSingleCategoryRowElement(sectionData) {
 }
 
 async function createAllProductsSectionElement(categoryId = null) {
-    // === FIX START: Reset Loading State & Data for Fresh Load ===
+    // RESET State to ensure fresh load
     state.isLoadingMoreProducts = false;
     state.allProductsLoaded = false;
     state.lastVisibleProductDoc = null;
-    state.products = []; // Clear current products to avoid duplicates if re-rendering
-    // ============================================================
+    state.products = [];
 
     const products = await fetchInitialProductsForHome(30, categoryId, false); 
     
@@ -934,24 +957,22 @@ async function createAllProductsSectionElement(categoryId = null) {
 
     appendProducts(products);
 
-    // === FIX START: Robust Button Logic ===
     if (!state.allProductsLoaded) {
         const loadMoreContainer = createLoadMoreBtnElement(async (btn, container) => {
-            // Ensure we use the correct fetch function with isLoadMore=true
+            // بەکارهێنانی fetchInitialProductsForHome بە مەرجی isLoadMore=true
             const newProducts = await fetchInitialProductsForHome(30, categoryId, true);
             
             if (newProducts && newProducts.length > 0) {
                 appendProducts(newProducts);
             }
             
-            // Remove button if no more products or explicit flag is set
+            // ئەگەر کاڵا نەما، دوگمەکە لایبە
             if (state.allProductsLoaded || !newProducts || newProducts.length === 0) {
                 container.remove();
             }
         });
         container.appendChild(loadMoreContainer);
     }
-    // ======================================
 
     return container;
 }
