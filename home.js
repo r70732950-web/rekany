@@ -3,7 +3,7 @@ import {
     state, t, debounce,
     fetchHomeLayout, 
     fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts,
-    fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome, // <--- دڵنیابە ئەمە هەیە
+    fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
     fetchSubcategories, navigateToFilterCore,
     fetchProducts,
     fetchSubSubcategories, 
@@ -17,6 +17,10 @@ import {
 import {
     createProductCardElementUI, setupScrollAnimations
 } from './products.js';
+
+function resetScrollPosition(containerElement) {
+    // ئەمە ناچالاک کراوە وەک داواکاری پێشوو
+}
 
 // --- Helper: دروستکردنی دوگمەی Load More ---
 function createLoadMoreBtnElement(onClickHandler) {
@@ -42,40 +46,23 @@ function createLoadMoreBtnElement(onClickHandler) {
         font-size: 14px;
     `;
 
-    let isBtnLoading = false;
-
-    const executeLoad = async () => {
-        if (isBtnLoading || btn.disabled) return;
-        
-        isBtnLoading = true;
-        btn.disabled = true;
+    btn.onclick = async () => {
         const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...جارێ بار دەکات';
+        btn.disabled = true;
         
-        try {
-            await onClickHandler(btn, container); 
-        } catch (e) {
-            console.error("Load more error:", e);
-        } finally {
-            // ئەگەر دوگمەکە مابوو (نەسڕابووەوە)، چاکی بکەرەوە
-            if (document.body.contains(btn)) {
-                isBtnLoading = false;
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            }
-        }
+        await onClickHandler(btn, container); 
+        
+        btn.disabled = false;
+        btn.innerHTML = originalText;
     };
 
-    btn.onclick = executeLoad;
-
-    // Auto-load removed/controlled to prevent conflicts
-    // دەتوانیت ئەم بەشە لابدەیت ئەگەر دەتەوێت تەنها بە پەنجە ئیش بکات
-    // const observer = new IntersectionObserver((entries) => {
-    //     if (entries[0].isIntersecting && !isBtnLoading && !btn.disabled) {
-    //         executeLoad();
-    //     }
-    // }, { threshold: 0.1 });
-    // setTimeout(() => { if (document.body.contains(btn)) observer.observe(btn); }, 1000);
+    const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && !btn.disabled) {
+            btn.click();
+        }
+    }, { threshold: 0.1 });
+    observer.observe(btn);
 
     container.appendChild(btn);
     return container;
@@ -129,6 +116,7 @@ export function renderMainCategoriesUI() {
 
     container.innerHTML = '';
 
+    // 1. دوگمەی سەرەکی (Home/All)
     const homeBtn = document.createElement('button');
     homeBtn.className = 'main-category-btn';
     homeBtn.dataset.category = 'all'; 
@@ -153,6 +141,7 @@ export function renderMainCategoriesUI() {
     };
     container.appendChild(homeBtn);
 
+    // 2. دوگمەی جۆرەکان
     state.categories.forEach(cat => {
         const btn = document.createElement('button');
         btn.className = 'main-category-btn';
@@ -190,8 +179,13 @@ export function renderMainCategoriesUI() {
             const containerWidth = container.offsetWidth;
             const btnLeft = activeBtn.offsetLeft;
             const btnWidth = activeBtn.offsetWidth;
+            
             const scrollPos = btnLeft - (containerWidth / 2) + (btnWidth / 2);
-            container.scrollTo({ left: scrollPos, behavior: 'smooth' });
+
+            container.scrollTo({
+                left: scrollPos,
+                behavior: 'smooth'
+            });
         }
     }, 100);
 }
@@ -306,6 +300,7 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
     });
 }
 
+
 export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop = true) {
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
@@ -370,11 +365,6 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
     if (isNewSearch && (isHomeLoaded || isCategoryLayoutLoaded)) {
         result = null; 
     } else if (!isNewSearch && isTargetProductGrid) {
-         // === FIX: Reset button logic here too ===
-         const existingBtn = productsContainer.querySelector('.load-more-container');
-         if(existingBtn) existingBtn.remove();
-         // =======================================
-
          loader.style.display = 'block'; 
          result = await fetchProducts(state.currentSearch, false); 
          loader.style.display = 'none';
@@ -478,6 +468,7 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
         }
     }
 }
+
 
 export async function renderPageContentUI(layoutSections, targetContainerElement) {
     if (!targetContainerElement) {
@@ -906,19 +897,10 @@ async function createSingleCategoryRowElement(sectionData) {
     return container;
 }
 
+// === FIXED: Use homePagination state ===
 async function createAllProductsSectionElement(categoryId = null) {
-    // === Critical Fix for Home Page State Isolation ===
-    // We use LOCAL state variables for this specific section instance
-    // instead of the global state which conflicts with the search/category page.
-    let sectionLastDoc = null;
-    let sectionAllLoaded = false;
-
-    // 1. Initial Fetch
-    const { products, lastDoc, hasMore } = await fetchInitialProductsForHome(30, categoryId, null);
+    const products = await fetchInitialProductsForHome(30, categoryId, false); 
     
-    sectionLastDoc = lastDoc;
-    sectionAllLoaded = !hasMore;
-
     if (!products || products.length === 0) return null;
 
     const container = document.createElement('div');
@@ -948,20 +930,16 @@ async function createAllProductsSectionElement(categoryId = null) {
 
     appendProducts(products);
 
-    // 2. Load More Button Logic (Using Local State)
-    if (!sectionAllLoaded) {
-        const loadMoreContainer = createLoadMoreBtnElement(async (btn, btnContainer) => {
-            // Fetch next batch using the local cursor
-            const { products: newProducts, lastDoc: newLastDoc, hasMore: newHasMore } = await fetchInitialProductsForHome(30, categoryId, sectionLastDoc);
-            
+    // CHANGED: Use state.homePagination.allLoaded
+    if (!state.homePagination.allLoaded && products.length >= 30) {
+        const loadMoreContainer = createLoadMoreBtnElement(async (btn, container) => {
+            const newProducts = await fetchInitialProductsForHome(30, categoryId, true);
             if (newProducts && newProducts.length > 0) {
                 appendProducts(newProducts);
-                sectionLastDoc = newLastDoc; // Update local cursor
             }
-            
-            if (!newHasMore || !newProducts || newProducts.length === 0) {
-                sectionAllLoaded = true;
-                btnContainer.remove();
+            // CHANGED: Use state.homePagination.allLoaded
+            if (state.homePagination.allLoaded || newProducts.length === 0) {
+                container.remove();
             }
         });
         container.appendChild(loadMoreContainer);

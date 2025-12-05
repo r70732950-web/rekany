@@ -31,12 +31,24 @@ export let state = {
     userProfile: {}, 
     currentUser: null, 
     editingProductId: null, 
+    
+    // --- State بۆ گەڕان و لیستی جۆرەکان ---
     products: [],
     categories: [], 
     subcategories: [], 
     lastVisibleProductDoc: null,
     isLoadingMoreProducts: false,
     allProductsLoaded: false,
+
+    // --- State تایبەت بە پەڕەی سەرەکی (FIXED) ---
+    homePagination: {
+        products: [],
+        lastVisible: null,
+        allLoaded: false,
+        isLoading: false
+    },
+    // ------------------------------------------
+
     isRenderingHomePage: false,
     productCache: {},
     currentCategory: 'all',
@@ -317,15 +329,14 @@ export async function fetchCategoryLayout(categoryId) {
     }
 }
 
+// ئەمە بۆ گەڕان و فیلتەری جۆرەکانە (Stateـی گشتی بەکاردێنێت)
 async function fetchProducts(searchTerm = '', isNewSearch = false) {
-    // 1. Check for Home Page (Only stop if it is a FRESH load, allow scrolling)
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
     
     if (shouldShowHomeSections && isNewSearch) {
         return { isHome: true, layout: null, products: [], allLoaded: true };
     }
 
-    // 2. Check for Category Layout
     const shouldShowCategoryLayout = !searchTerm && state.currentCategory !== 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
     
     if (shouldShowCategoryLayout && isNewSearch) {
@@ -380,7 +391,6 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
 
         let finalQuery = query(productsQuery, ...conditions, ...orderByClauses);
 
-        // Pagination Logic
         if (state.lastVisibleProductDoc && !isNewSearch) {
             finalQuery = query(finalQuery, startAfter(state.lastVisibleProductDoc));
         }
@@ -548,10 +558,23 @@ async function fetchCategoryRowProducts(sectionData) {
     }
 }
 
-// === UPDATED FUNCTION: Stateless Fetch for Home Page ===
-async function fetchInitialProductsForHome(limitCount = 30, categoryId = null, lastDoc = null) {
+// --- FIXED: Use unique state for home pagination ---
+async function fetchInitialProductsForHome(limitCount = 30, categoryId = null, isLoadMore = false) {
      try {
-        let productsQuery = collection(db, "products");
+        let q;
+        
+        // ئەگەر Load More نەبوو، Stateـی ماڵەوە ڕیسێت دەکەینەوە
+        if (!isLoadMore) {
+             state.homePagination.allLoaded = false;
+             state.homePagination.lastVisible = null;
+             state.homePagination.products = [];
+        } else if (state.homePagination.allLoaded) {
+            return [];
+        }
+        
+        if (state.homePagination.isLoading) return [];
+        state.homePagination.isLoading = true;
+
         let conditions = [];
         let orderByClauses = [orderBy('createdAt', 'desc')];
 
@@ -561,34 +584,48 @@ async function fetchInitialProductsForHome(limitCount = 30, categoryId = null, l
 
         let queryConstraints = [...conditions, ...orderByClauses];
 
-        if (lastDoc) {
-            queryConstraints.push(startAfter(lastDoc));
+        // بەکارهێنانی homePagination.lastVisible
+        if (isLoadMore && state.homePagination.lastVisible) {
+            queryConstraints.push(startAfter(state.homePagination.lastVisible));
         }
 
         queryConstraints.push(limit(limitCount));
 
-        const q = query(productsQuery, ...queryConstraints);
+        q = query(productsCollection, ...queryConstraints);
 
         const snapshot = await getDocs(q);
         
-        const fetchedProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const newLastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
+        if (!snapshot.empty) {
+            state.homePagination.lastVisible = snapshot.docs[snapshot.docs.length - 1];
+        }
         
-        return { 
-            products: fetchedProducts, 
-            lastDoc: newLastDoc,
-            hasMore: snapshot.docs.length === limitCount
-        };
+        state.homePagination.allLoaded = snapshot.docs.length < limitCount;
+        
+        const fetchedProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        if (isLoadMore) {
+            state.homePagination.products = [...state.homePagination.products, ...fetchedProducts];
+        } else {
+            state.homePagination.products = fetchedProducts;
+        }
 
+        state.homePagination.isLoading = false;
+        
+        return fetchedProducts;
     } catch (error) {
         console.error("Error fetching initial products for home page:", error);
-        return { products: [], lastDoc: null, hasMore: false };
+        state.homePagination.isLoading = false;
+        return [];
     }
 }
-// =======================================================
 
 export async function addToCartCore(productId, selectedVariationInfo = null) {
     let product = state.products.find(p => p.id === productId);
+
+    if (!product) {
+        // ئەگەر لە لیستی گەڕان نەبوو، لەوانەیە لە لیستی ماڵەوە بێت
+        product = state.homePagination.products.find(p => p.id === productId);
+    }
 
     if (!product) {
         console.warn("Product not found in local cache for cart. Fetching...");
@@ -636,7 +673,7 @@ export async function addToCartCore(productId, selectedVariationInfo = null) {
             id: cartId, 
             productId: product.id, 
             name: cartItemName,
-            marketCode: product.marketCode || '', // Ensure market code is saved
+            marketCode: product.marketCode || '', 
             price: cartItemPrice, 
             shippingCost: calculatedShippingCost,
             image: cartItemImage, 
@@ -671,6 +708,7 @@ export function removeFromCartCore(cartId) {
     return false; 
 }
 
+// === Order Message Generator with 3+ Item Rule ===
 export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
@@ -689,7 +727,6 @@ export function generateOrderMessageCore() {
         }
         itemsByMarket[mCode].items.push(item);
         
-        // Check for max shipping in this market group
         const itemShipping = item.shippingCost || 0;
         if (itemShipping > itemsByMarket[mCode].maxShipping) {
             itemsByMarket[mCode].maxShipping = itemShipping;
@@ -698,7 +735,6 @@ export function generateOrderMessageCore() {
 
     let grandTotal = 0;
 
-    // 2. Build Message Market by Market
     for (const [marketName, data] of Object.entries(itemsByMarket)) {
         message += `🏪 *مارکێت: ${marketName}*\n`;
         message += `------------------------\n`;
@@ -706,8 +742,9 @@ export function generateOrderMessageCore() {
         let marketItemsTotal = 0;
         let marketShippingFee = 0;
         const itemCount = data.items.length;
-        let isMaxShippingCharged = false; 
+        let isMaxShippingCharged = false;
 
+        // Calculate Shipping Fee based on Rule
         if (itemCount >= 3) {
             marketShippingFee = data.maxShipping; 
         } else {
@@ -845,7 +882,6 @@ async function saveTokenToFirestore(token) {
         }
 
         await setDoc(doc(tokensCollection, token), tokenData, { merge: true });
-        console.log("Token saved with userId:", tokenData.userId);
     } catch (error) { console.error('Error saving token: ', error); }
 }
 
