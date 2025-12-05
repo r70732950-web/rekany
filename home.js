@@ -3,7 +3,7 @@ import {
     state, t, debounce,
     fetchHomeLayout, 
     fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts,
-    fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
+    fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome, // <--- دڵنیابە ئەمە هەیە
     fetchSubcategories, navigateToFilterCore,
     fetchProducts,
     fetchSubSubcategories, 
@@ -17,10 +17,6 @@ import {
 import {
     createProductCardElementUI, setupScrollAnimations
 } from './products.js';
-
-function resetScrollPosition(containerElement) {
-    // ئەمە ناچالاک کراوە وەک داواکاری پێشوو
-}
 
 // --- Helper: دروستکردنی دوگمەی Load More ---
 function createLoadMoreBtnElement(onClickHandler) {
@@ -46,23 +42,40 @@ function createLoadMoreBtnElement(onClickHandler) {
         font-size: 14px;
     `;
 
-    btn.onclick = async () => {
+    let isBtnLoading = false;
+
+    const executeLoad = async () => {
+        if (isBtnLoading || btn.disabled) return;
+        
+        isBtnLoading = true;
+        btn.disabled = true;
         const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...جارێ بار دەکات';
-        btn.disabled = true;
         
-        await onClickHandler(btn, container); 
-        
-        btn.disabled = false;
-        btn.innerHTML = originalText;
+        try {
+            await onClickHandler(btn, container); 
+        } catch (e) {
+            console.error("Load more error:", e);
+        } finally {
+            // ئەگەر دوگمەکە مابوو (نەسڕابووەوە)، چاکی بکەرەوە
+            if (document.body.contains(btn)) {
+                isBtnLoading = false;
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
     };
 
-    const observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && !btn.disabled) {
-            btn.click();
-        }
-    }, { threshold: 0.1 });
-    observer.observe(btn);
+    btn.onclick = executeLoad;
+
+    // Auto-load removed/controlled to prevent conflicts
+    // دەتوانیت ئەم بەشە لابدەیت ئەگەر دەتەوێت تەنها بە پەنجە ئیش بکات
+    // const observer = new IntersectionObserver((entries) => {
+    //     if (entries[0].isIntersecting && !isBtnLoading && !btn.disabled) {
+    //         executeLoad();
+    //     }
+    // }, { threshold: 0.1 });
+    // setTimeout(() => { if (document.body.contains(btn)) observer.observe(btn); }, 1000);
 
     container.appendChild(btn);
     return container;
@@ -102,8 +115,6 @@ export function renderMainCategoriesUI() {
     const container = document.getElementById('mainCategoriesContainer');
     if (!container) return;
     
-    // ئەگەر لیستەکە بەتاڵ نەبوو، واتە پێشتر دروستکراوە، دووبارە دروستی مەکەرەوە
-    // تەنها کلاسەکان نوێ بکەرەوە. ئەمە بۆ ئەوەیە Scrollـەکە تێک نەچێت.
     if (container.children.length > 0) {
         const btns = container.querySelectorAll('.main-category-btn');
         btns.forEach(btn => {
@@ -118,7 +129,6 @@ export function renderMainCategoriesUI() {
 
     container.innerHTML = '';
 
-    // 1. دوگمەی سەرەکی (Home/All)
     const homeBtn = document.createElement('button');
     homeBtn.className = 'main-category-btn';
     homeBtn.dataset.category = 'all'; 
@@ -129,11 +139,9 @@ export function renderMainCategoriesUI() {
     }
 
     homeBtn.onclick = async (e) => {
-         // === Instant Visual Feedback (یەکسەر ڕەنگ دەگۆڕێت) ===
          const allBtns = container.querySelectorAll('.main-category-btn');
          allBtns.forEach(b => b.classList.remove('active'));
          e.currentTarget.classList.add('active');
-         // ====================================================
 
          await navigateToFilterCore({
              category: 'all',
@@ -145,7 +153,6 @@ export function renderMainCategoriesUI() {
     };
     container.appendChild(homeBtn);
 
-    // 2. دوگمەی جۆرەکان
     state.categories.forEach(cat => {
         const btn = document.createElement('button');
         btn.className = 'main-category-btn';
@@ -161,11 +168,9 @@ export function renderMainCategoriesUI() {
         btn.innerHTML = `<i class="${categoryIcon}"></i> <span>${categoryName}</span>`;
 
         btn.onclick = async (e) => {
-             // === Instant Visual Feedback (یەکسەر ڕەنگ دەگۆڕێت) ===
              const allBtns = container.querySelectorAll('.main-category-btn');
              allBtns.forEach(b => b.classList.remove('active'));
              e.currentTarget.classList.add('active');
-             // ====================================================
 
              await navigateToFilterCore({
                  category: cat.id,
@@ -179,20 +184,14 @@ export function renderMainCategoriesUI() {
         container.appendChild(btn);
     });
 
-    // Scroll to active button
     setTimeout(() => {
         const activeBtn = container.querySelector('.main-category-btn.active');
         if (activeBtn) {
             const containerWidth = container.offsetWidth;
             const btnLeft = activeBtn.offsetLeft;
             const btnWidth = activeBtn.offsetWidth;
-            
             const scrollPos = btnLeft - (containerWidth / 2) + (btnWidth / 2);
-
-            container.scrollTo({
-                left: scrollPos,
-                behavior: 'smooth'
-            });
+            container.scrollTo({ left: scrollPos, behavior: 'smooth' });
         }
     }, 100);
 }
@@ -307,7 +306,6 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
     });
 }
 
-
 export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop = true) {
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
@@ -372,6 +370,11 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
     if (isNewSearch && (isHomeLoaded || isCategoryLayoutLoaded)) {
         result = null; 
     } else if (!isNewSearch && isTargetProductGrid) {
+         // === FIX: Reset button logic here too ===
+         const existingBtn = productsContainer.querySelector('.load-more-container');
+         if(existingBtn) existingBtn.remove();
+         // =======================================
+
          loader.style.display = 'block'; 
          result = await fetchProducts(state.currentSearch, false); 
          loader.style.display = 'none';
@@ -475,7 +478,6 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
         }
     }
 }
-
 
 export async function renderPageContentUI(layoutSections, targetContainerElement) {
     if (!targetContainerElement) {
@@ -905,8 +907,18 @@ async function createSingleCategoryRowElement(sectionData) {
 }
 
 async function createAllProductsSectionElement(categoryId = null) {
-    const products = await fetchInitialProductsForHome(30, categoryId, false); 
+    // === Critical Fix for Home Page State Isolation ===
+    // We use LOCAL state variables for this specific section instance
+    // instead of the global state which conflicts with the search/category page.
+    let sectionLastDoc = null;
+    let sectionAllLoaded = false;
+
+    // 1. Initial Fetch
+    const { products, lastDoc, hasMore } = await fetchInitialProductsForHome(30, categoryId, null);
     
+    sectionLastDoc = lastDoc;
+    sectionAllLoaded = !hasMore;
+
     if (!products || products.length === 0) return null;
 
     const container = document.createElement('div');
@@ -936,15 +948,20 @@ async function createAllProductsSectionElement(categoryId = null) {
 
     appendProducts(products);
 
-    // === GORANKARI: CHECK LENGTH ONLY, IGNORE STATE INITIALLY ===
-    if (products.length >= 30) {
-        const loadMoreContainer = createLoadMoreBtnElement(async (btn, container) => {
-            const newProducts = await fetchInitialProductsForHome(30, categoryId, true);
+    // 2. Load More Button Logic (Using Local State)
+    if (!sectionAllLoaded) {
+        const loadMoreContainer = createLoadMoreBtnElement(async (btn, btnContainer) => {
+            // Fetch next batch using the local cursor
+            const { products: newProducts, lastDoc: newLastDoc, hasMore: newHasMore } = await fetchInitialProductsForHome(30, categoryId, sectionLastDoc);
+            
             if (newProducts && newProducts.length > 0) {
                 appendProducts(newProducts);
+                sectionLastDoc = newLastDoc; // Update local cursor
             }
-            if (state.homeAllProductsLoaded || newProducts.length === 0) {
-                container.remove();
+            
+            if (!newHasMore || !newProducts || newProducts.length === 0) {
+                sectionAllLoaded = true;
+                btnContainer.remove();
             }
         });
         container.appendChild(loadMoreContainer);
