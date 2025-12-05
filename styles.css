@@ -2523,3 +2523,25 @@ img {
     background-color: var(--danger-color);
     color: white;
 }
+/* لە ناو styles.css زیاد بکە (لە کۆتاییەکەی) */
+
+.detail-shipping-container {
+    background-color: #f0fdf4; /* ڕەنگێکی سەوزی کراوە */
+    border: 1px solid #bbf7d0;
+    color: #166534; /* نووسینی سەوزی تۆخ */
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px; /* مەودا لەگەڵ وەسفەکە */
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: bold;
+    font-size: 14px;
+    direction: rtl;
+}
+
+.detail-shipping-container i {
+    font-size: 18px;
+}
+
