@@ -904,7 +904,6 @@ async function createSingleCategoryRowElement(sectionData) {
     return container;
 }
 
-// === [UPDATED] Use Home-Specific State for "Load More" ===
 async function createAllProductsSectionElement(categoryId = null) {
     const products = await fetchInitialProductsForHome(30, categoryId, false); 
     
@@ -937,8 +936,8 @@ async function createAllProductsSectionElement(categoryId = null) {
 
     appendProducts(products);
 
-    // Using homeAllProductsLoaded instead of allProductsLoaded
-    if (!state.homeAllProductsLoaded && products.length >= 30) {
+    // === GORANKARI: CHECK LENGTH ONLY, IGNORE STATE INITIALLY ===
+    if (products.length >= 30) {
         const loadMoreContainer = createLoadMoreBtnElement(async (btn, container) => {
             const newProducts = await fetchInitialProductsForHome(30, categoryId, true);
             if (newProducts && newProducts.length > 0) {
@@ -953,4 +952,3 @@ async function createAllProductsSectionElement(categoryId = null) {
 
     return container;
 }
-// =========================================================
