@@ -45,6 +45,12 @@ function parseYouTubeId(url) {
 export function createProductCardElementUI(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
+    
+    // زیادکردنی کلاس ئەگەر کاڵا نەما بێت (بۆ گۆڕینی ڕەنگ)
+    if (product.isOutOfStock) {
+        productCard.classList.add('out-of-stock');
+    }
+
     productCard.dataset.productId = product.id;
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
 
@@ -78,10 +84,22 @@ export function createProductCardElementUI(product) {
     const heartIconClass = isProdFavorite ? 'fas' : 'far';
     const favoriteBtnClass = isProdFavorite ? 'favorite-btn favorited' : 'favorite-btn';
 
+    // === Out Of Stock Logic (Using Translation) ===
+    let outOfStockHTML = '';
+    let addToCartDisabled = '';
+    
+    if (product.isOutOfStock) {
+        // لێرە t() بەکاردەهێنین بۆ ئەوەی بەپێی زمان بگۆڕێت
+        outOfStockHTML = `<div class="out-of-stock-badge">${t('out_of_stock_badge')}</div>`;
+        addToCartDisabled = 'disabled';
+    }
+    // ==============================================
+
     productCard.innerHTML = `
         <div class="product-image-container">
             <img src="${mainImage}" alt="${nameInCurrentLang}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
             ${discountBadgeHTML}
+            ${outOfStockHTML}
             <button class="${favoriteBtnClass}" aria-label="Add to favorites">
                 <i class="${heartIconClass} fa-heart"></i>
             </button>
@@ -92,7 +110,7 @@ export function createProductCardElementUI(product) {
         <div class="product-info">
             <div class="product-name">${nameInCurrentLang}</div>
             ${priceHTML}
-            <button class="add-to-cart-btn-card">
+            <button class="add-to-cart-btn-card" ${addToCartDisabled}>
                 <i class="fas fa-cart-plus"></i>
                 <span>${t('add_to_cart')}</span>
             </button>
@@ -129,11 +147,14 @@ function setupProductCardListeners(card, product, name, isAdmin) {
         handleToggleFavoriteUI(product.id);
     });
 
-    // دوگمەی سەبەتە
-    card.querySelector('.add-to-cart-btn-card').addEventListener('click', (event) => {
-        event.stopPropagation();
-        handleAddToCartUI(product.id, event.currentTarget); 
-    });
+    // دوگمەی سەبەتە (تەنها ئەگەر مابێت)
+    const cartBtn = card.querySelector('.add-to-cart-btn-card');
+    if (!product.isOutOfStock) { 
+        cartBtn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            handleAddToCartUI(product.id, event.currentTarget); 
+        });
+    }
 
     // کردنەوەی وردەکاری
     card.addEventListener('click', (event) => {
@@ -251,6 +272,7 @@ function setupVariationsUI(product, baseProduct) {
     const lvl1Buttons = document.getElementById('variationLvl1Buttons');
     const lvl2Container = document.getElementById('variationLvl2Container');
     const lvl2Buttons = document.getElementById('variationLvl2Buttons');
+    const addToCartButton = document.getElementById('detailAddToCartBtn');
     
     lvl1Buttons.innerHTML = '';
     lvl2Buttons.innerHTML = '';
@@ -258,12 +280,27 @@ function setupVariationsUI(product, baseProduct) {
     lvl2Container.style.display = 'none';
     variationSelectorContainer.style.display = 'none';
 
+    // Reset Button State Default
+    addToCartButton.disabled = false;
+    addToCartButton.style.backgroundColor = "var(--accent-color)";
+    addToCartButton.style.color = "white";
+    addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
+
     let selectedLvl1Id = null;
     let selectedLvl2Id = null;
 
     // Initial Render
     renderSliderImages(baseProduct.baseImages, baseProduct.videoLink, baseProduct.name);
     renderProductPrice(baseProduct.basePrice, baseProduct.originalPrice);
+
+    // === Check Out Of Stock for Details Page ===
+    if (product.isOutOfStock) {
+        addToCartButton.disabled = true;
+        addToCartButton.innerHTML = `<i class="fas fa-ban"></i> ${t('out_of_stock_btn')}`;
+        addToCartButton.style.backgroundColor = "#cbd5e0";
+        addToCartButton.style.color = "#4a5568";
+    }
+    // ===========================================
 
     const variations = product.variations || [];
     if (variations.length > 0) {
@@ -315,33 +352,33 @@ function setupVariationsUI(product, baseProduct) {
         });
     }
 
-    // Add to Cart Logic with Variations
-    const addToCartButton = document.getElementById('detailAddToCartBtn');
-    addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
-    addToCartButton.onclick = () => {
-        let selectedVariationInfo = null;
-        if (variations.length > 0) {
-            if (!selectedLvl1Id) { showNotification('تکایە سەرەتا جۆرێک (ڕەنگ) هەڵبژێرە', 'error'); return; }
-            const lvl1Var = variations.find(v => v.id === selectedLvl1Id);
-            
-            selectedVariationInfo = {
-                lvl1Id: lvl1Var.id,
-                lvl1Name: (lvl1Var.name && lvl1Var.name[state.currentLanguage]) || lvl1Var.name.ku_sorani,
-                price: baseProduct.basePrice 
-            };
-
-            const lvl2Options = lvl1Var.options || [];
-            if (lvl2Options.length > 0) {
-                if (!selectedLvl2Id) { showNotification('تکایە قەبارەیەک هەڵبژێرە', 'error'); return; }
-                const lvl2Opt = lvl2Options.find(o => o.id === selectedLvl2Id);
+    // Add to Cart Logic with Variations (Only if stock available)
+    if (!product.isOutOfStock) {
+        addToCartButton.onclick = () => {
+            let selectedVariationInfo = null;
+            if (variations.length > 0) {
+                if (!selectedLvl1Id) { showNotification('تکایە سەرەتا جۆرێک (ڕەنگ) هەڵبژێرە', 'error'); return; }
+                const lvl1Var = variations.find(v => v.id === selectedLvl1Id);
                 
-                selectedVariationInfo.lvl2Id = lvl2Opt.id;
-                selectedVariationInfo.lvl2Name = lvl2Opt.name;
-                selectedVariationInfo.price = lvl2Opt.price; 
+                selectedVariationInfo = {
+                    lvl1Id: lvl1Var.id,
+                    lvl1Name: (lvl1Var.name && lvl1Var.name[state.currentLanguage]) || lvl1Var.name.ku_sorani,
+                    price: baseProduct.basePrice 
+                };
+
+                const lvl2Options = lvl1Var.options || [];
+                if (lvl2Options.length > 0) {
+                    if (!selectedLvl2Id) { showNotification('تکایە قەبارەیەک هەڵبژێرە', 'error'); return; }
+                    const lvl2Opt = lvl2Options.find(o => o.id === selectedLvl2Id);
+                    
+                    selectedVariationInfo.lvl2Id = lvl2Opt.id;
+                    selectedVariationInfo.lvl2Name = lvl2Opt.name;
+                    selectedVariationInfo.price = lvl2Opt.price; 
+                }
             }
-        }
-        handleAddToCartUI(product.id, addToCartButton, selectedVariationInfo); 
-    };
+            handleAddToCartUI(product.id, addToCartButton, selectedVariationInfo); 
+        };
+    }
 }
 
 // --- Helpers ---

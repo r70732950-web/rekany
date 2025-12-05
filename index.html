@@ -6,7 +6,7 @@
     <title>Maten Store - فرۆشتن و کاڵا</title>
     <meta http-equiv="Content-Language" content="ku">
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1158,6 +1158,15 @@
                     <div class="form-group"><label for="productPrice">نرخی فرۆشتن (د.ع.):</label><input type="number" id="productPrice" required min="0" step="1"></div>
                     <div class="form-group"><label for="productOriginalPrice">نرخی ڕەسەن (د.ع.):</label><input type="number" id="productOriginalPrice" min="0" step="1" placeholder="ئەگەر داشکانی نییە، بەتاڵ بێت"></div>
 
+                    <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; background: #fff0f0; padding: 10px; border-radius: 8px; border: 1px solid #ffcccc; margin-top: 15px;">
+                        <label for="isOutOfStockToggle" style="margin:0; color: var(--danger-color); font-weight: bold; font-size: 14px;">
+                            <i class="fas fa-box-open"></i> ئایا کاڵا لە مەخزەن نەماوە؟
+                        </label>
+                        <label class="switch">
+                            <input type="checkbox" id="isOutOfStockToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                     <div class="form-group"><label for="productCategoryId">جۆری سەرەki:</label>
                         <select id="productCategoryId" required>
                             <option value="" disabled selected>-- جۆرێ سەرەki هەڵbژێرە --</option>

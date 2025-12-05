@@ -201,6 +201,7 @@ window.AdminLogic = {
         
         await this.updateAdminCategoryDropdowns(); 
 
+        // Set Basic Info
         if (product.name && typeof product.name === 'object') {
             document.getElementById('productNameKuSorani').value = product.name.ku_sorani || '';
             document.getElementById('productNameKuBadini').value = product.name.ku_badini || '';
@@ -212,9 +213,14 @@ window.AdminLogic = {
         }
 
         document.getElementById('productMarketCode').value = product.marketCode || '';
-
         document.getElementById('productPrice').value = product.price;
         document.getElementById('productOriginalPrice').value = product.originalPrice || '';
+
+        // *** Out Of Stock Toggle Logic ***
+        const stockToggle = document.getElementById('isOutOfStockToggle');
+        if (stockToggle) {
+            stockToggle.checked = product.isOutOfStock || false;
+        }
 
         const categoryId = product.categoryId || product.category;
         document.getElementById('productCategoryId').value = categoryId;
@@ -1333,22 +1339,18 @@ window.AdminLogic = {
         const select = document.getElementById('categoryLayoutSelect');
         if (!select) return;
         
-        // هەوڵ دەدەین داتا لە مێمۆری وەربگرین
         let categories = getCategories();
 
-        // --- چاکسازی: ئەگەر داتا نەبوو، بە زۆر دایبەزێنە ---
         if (!categories || categories.length === 0) {
             try {
                 const q = query(categoriesCollection, orderBy("order", "asc"));
                 const snapshot = await getDocs(q);
                 categories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                // ئەگەر ستەیت هەبوو نوێی دەکەینەوە
                 if (window.state) window.state.categories = categories;
             } catch (error) {
                 console.error("Error forcing category fetch in admin layout:", error);
             }
         }
-        // ----------------------------------------------------
         
         const categoriesWithoutAll = categories.filter(cat => cat.id && cat.id !== 'all');
         
@@ -1687,7 +1689,6 @@ window.AdminLogic = {
                 }
             });
 
-            // === [FIXED] Allow saving if name exists, regardless of images or options ===
             if (lvl1Data.name.ku_sorani) {
                 variations.push(lvl1Data);
             }
@@ -1823,9 +1824,14 @@ window.AdminLogic = {
             setEditingProductId(null);
             document.getElementById('productForm').reset();
             
+            // --- NEW: Reset Out Of Stock Toggle ---
+            const stockToggle = document.getElementById('isOutOfStockToggle');
+            if(stockToggle) stockToggle.checked = false;
+            // --------------------------------------
+
             self.variationImageData = {};
             document.getElementById('variationsContainer').innerHTML = '';
-            document.getElementById('specificationsContainer').innerHTML = ''; // Clear specs
+            document.getElementById('specificationsContainer').innerHTML = ''; 
             
             self.currentImageUrls = Array(10).fill("");
             self.createProductImageInputs(false);
@@ -1835,7 +1841,6 @@ window.AdminLogic = {
             document.getElementById('formTitle').textContent = 'زیادکردنی کاڵای نوێ';
             document.getElementById('productForm').querySelector('button[type="submit"]').textContent = 'پاشەکەوتکردن';
             
-            // Ensure dropdowns are populated when opening modal
             self.updateAdminCategoryDropdowns();
             
             openPopup('productFormModal', 'modal');
@@ -1938,14 +1943,18 @@ window.AdminLogic = {
             const variationsData = self.collectVariationsData();
             const specificationsData = self.collectSpecificationsData(); 
 
+            // --- NEW: Get Out Of Stock Status ---
+            const isOutOfStock = document.getElementById('isOutOfStockToggle').checked;
+            // ------------------------------------
+
             try {
                 const productData = {
                     name: productNameObject,
                     searchableName: productNameKuSorani.toLowerCase(),
-                    // <--- گۆڕانکاری لێرە کرا (کۆدی مارکێت زیاد کرا) -->
                     marketCode: document.getElementById('productMarketCode').value.trim(), 
                     price: parseInt(document.getElementById('productPrice').value),
                     originalPrice: parseInt(document.getElementById('productOriginalPrice').value) || null,
+                    isOutOfStock: isOutOfStock, // <--- Add to data
                     categoryId: document.getElementById('productCategoryId').value,
                     subcategoryId: document.getElementById('productSubcategoryId').value || null,
                     subSubcategoryId: document.getElementById('productSubSubcategoryId').value || null,
