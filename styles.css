@@ -518,7 +518,7 @@ html.chat-active .bottom-nav {
     -webkit-user-drag: none;
 }
 
-/* === NEW: Out of Stock Styles === */
+/* === Out of Stock Styles === */
 .product-card.out-of-stock .product-image {
     opacity: 0.5;
     filter: grayscale(100%);
@@ -541,11 +541,12 @@ html.chat-active .bottom-nav {
     box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     pointer-events: none; 
 }
-/* =============================== */
+/* =========================== */
 
+/* === UPDATED: Height and Bottom Layout to remove white space === */
 .product-info {
     background-color: white;
-    height: 80px;
+    height: 60px; /* Reduced from 80px */
     position: relative;
     padding: 0;
     text-align: right;
@@ -568,7 +569,7 @@ html.chat-active .bottom-nav {
 
 .product-price-container {
     position: absolute;
-    bottom: 40px;
+    bottom: 12px; /* Adjusted down from 40px */
     left: 12px;
     right: auto;
     top: auto;
@@ -624,7 +625,7 @@ html.chat-active .bottom-nav {
 
 .add-to-cart-btn-card {
     position: absolute;
-    bottom: 40px;
+    bottom: 8px; /* Adjusted down from 40px */
     right: 12px;
     left: auto;
     top: auto;
@@ -649,7 +650,6 @@ html.chat-active .bottom-nav {
 .add-to-cart-btn-card span { display: none; }
 .add-to-cart-btn-card i { font-size: 15px; margin: 0; }
 
-/* === NEW: Disabled Button Style === */
 .add-to-cart-btn-card:disabled,
 .add-to-cart-btn:disabled {
     background-color: #cbd5e0 !important;
@@ -658,7 +658,6 @@ html.chat-active .bottom-nav {
     transform: none !important;
     box-shadow: none !important;
 }
-/* ================================= */
 
 .favorite-btn {
     position: absolute; top: 8px; left: 8px; background: rgba(255, 255, 255, 0.8); border: 1px solid var(--medium-gray);
@@ -684,24 +683,7 @@ html.chat-active .bottom-nav {
 }
 
 .shipping-badge {
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    right: auto;
-    top: auto;
-    display: inline-flex;
-    align-items: center;
-    padding: 3px 8px;
-    border-radius: 16px;
-    background-color: rgba(230, 244, 234, 0.9);
-    color: #38a169;
-    font-size: 11px;
-    font-weight: bold;
-    white-space: nowrap;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    z-index: 6;
-    animation: move-peek 5s infinite ease-in-out;
+    display: none; /* Hidden */
 }
 
 @keyframes scaleIn {
@@ -2492,16 +2474,15 @@ input:checked + .slider:before {
 }
 
 /* --- Image Protection Rules --- */
-/* ئەم کۆدانە زۆر گرنگن بۆ ڕێگریکردن لە سەیڤکردنی وێنەکان */
 img {
-    -webkit-touch-callout: none !important; /* Prevent iOS touch menu */
-    -webkit-user-select: none !important;   /* Prevent selection */
+    -webkit-touch-callout: none !important; 
+    -webkit-user-select: none !important;   
     -khtml-user-select: none !important;
     -moz-user-select: none !important;
     -ms-user-select: none !important;
     user-select: none !important;
-    -webkit-user-drag: none !important;     /* Prevent dragging */
-    pointer-events: auto;                   /* Allow clicks but prevent default actions */
+    -webkit-user-drag: none !important;     
+    pointer-events: auto;                   
 }
 
 /* --- Delete Account Button Style --- */
@@ -2523,15 +2504,15 @@ img {
     background-color: var(--danger-color);
     color: white;
 }
-/* لە ناو styles.css زیاد بکە (لە کۆتاییەکەی) */
 
+/* --- NEW: Shipping Container (Inside Details Page) --- */
 .detail-shipping-container {
-    background-color: #f0fdf4; /* ڕەنگێکی سەوزی کراوە */
+    background-color: #f0fdf4;
     border: 1px solid #bbf7d0;
-    color: #166534; /* نووسینی سەوزی تۆخ */
+    color: #166534;
     padding: 12px;
     border-radius: 8px;
-    margin-bottom: 20px; /* مەودا لەگەڵ وەسفەکە */
+    margin-bottom: 20px;
     margin-top: 10px;
     display: flex;
     align-items: center;
@@ -2544,4 +2525,3 @@ img {
 .detail-shipping-container i {
     font-size: 18px;
 }
-
