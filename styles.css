@@ -518,35 +518,9 @@ html.chat-active .bottom-nav {
     -webkit-user-drag: none;
 }
 
-/* === Out of Stock Styles === */
-.product-card.out-of-stock .product-image {
-    opacity: 0.5;
-    filter: grayscale(100%);
-}
-
-.out-of-stock-badge {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-15deg);
-    background-color: rgba(197, 48, 48, 0.9);
-    color: white;
-    padding: 5px 15px;
-    font-weight: bold;
-    font-size: 16px;
-    border: 2px solid white;
-    border-radius: 8px;
-    z-index: 10;
-    white-space: nowrap;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-    pointer-events: none; 
-}
-/* =========================== */
-
-/* === UPDATED: Even Smaller Height to remove white space === */
 .product-info {
     background-color: white;
-    height: 50px; /* Reduced from 60px to 50px */
+    height: 80px;
     position: relative;
     padding: 0;
     text-align: right;
@@ -569,8 +543,8 @@ html.chat-active .bottom-nav {
 
 .product-price-container {
     position: absolute;
-    bottom: 10px; /* Adjusted */
-    left: 10px;
+    bottom: 40px;
+    left: 12px;
     right: auto;
     top: auto;
 }
@@ -625,12 +599,12 @@ html.chat-active .bottom-nav {
 
 .add-to-cart-btn-card {
     position: absolute;
-    bottom: 8px; /* Adjusted */
+    bottom: 40px;
     right: 12px;
     left: auto;
     top: auto;
-    width: 30px; /* Slightly smaller */
-    height: 30px; /* Slightly smaller */
+    width: 32px;
+    height: 32px;
     background-color: var(--accent-color);
     color: white;
     border: none;
@@ -648,16 +622,8 @@ html.chat-active .bottom-nav {
     transform: scale(1.1);
 }
 .add-to-cart-btn-card span { display: none; }
-.add-to-cart-btn-card i { font-size: 14px; margin: 0; }
-
-.add-to-cart-btn-card:disabled,
-.add-to-cart-btn:disabled {
-    background-color: #cbd5e0 !important;
-    cursor: not-allowed;
-    color: #718096 !important;
-    transform: none !important;
-    box-shadow: none !important;
-}
+.add-to-cart-btn-card i { font-size: 15px; margin: 0; }
+.add-to-cart-btn-card:disabled { background-color: var(--dark-gray); cursor: not-allowed; }
 
 .favorite-btn {
     position: absolute; top: 8px; left: 8px; background: rgba(255, 255, 255, 0.8); border: 1px solid var(--medium-gray);
@@ -683,7 +649,24 @@ html.chat-active .bottom-nav {
 }
 
 .shipping-badge {
-    display: none; /* Hidden */
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    right: auto;
+    top: auto;
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 16px;
+    background-color: rgba(230, 244, 234, 0.9);
+    color: #38a169;
+    font-size: 11px;
+    font-weight: bold;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    z-index: 6;
+    animation: move-peek 5s infinite ease-in-out;
 }
 
 @keyframes scaleIn {
@@ -2504,25 +2487,4 @@ img {
 .delete-account-btn:hover {
     background-color: var(--danger-color);
     color: white;
-}
-
-/* --- NEW: Shipping Container (Inside Details Page) --- */
-.detail-shipping-container {
-    background-color: #f0fdf4; /* ڕەنگێکی سەوزی کراوە */
-    border: 1px solid #bbf7d0;
-    color: #166534; /* نووسینی سەوزی تۆخ */
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 20px; /* مەودا لەگەڵ وەسفەکە */
-    margin-top: 10px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: bold;
-    font-size: 14px;
-    direction: rtl;
-}
-
-.detail-shipping-container i {
-    font-size: 18px;
 }

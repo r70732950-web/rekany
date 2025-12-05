@@ -45,12 +45,6 @@ function parseYouTubeId(url) {
 export function createProductCardElementUI(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
-    
-    // زیادکردنی کلاس ئەگەر کاڵا نەما بێت
-    if (product.isOutOfStock) {
-        productCard.classList.add('out-of-stock');
-    }
-
     productCard.dataset.productId = product.id;
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
 
@@ -66,28 +60,28 @@ export function createProductCardElementUI(product) {
         discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
     }
 
-    // *** تێبینی: بەشی Shipping Info لێرە بە تەواوی سڕایەوە ***
+    // زانیاری گەیاندن
+    let extraInfoHTML = '';
+    const shippingText = product.shippingInfo && product.shippingInfo[state.currentLanguage] && product.shippingInfo[state.currentLanguage].trim();
+    if (shippingText) {
+        extraInfoHTML = `
+            <div class="product-extra-info">
+                <div class="info-badge shipping-badge">
+                    <i class="fas fa-truck"></i>${shippingText}
+                </div>
+            </div>
+        `;
+    }
 
     // دڵخوازەکان
     const isProdFavorite = isFavorite(product.id); 
     const heartIconClass = isProdFavorite ? 'fas' : 'far';
     const favoriteBtnClass = isProdFavorite ? 'favorite-btn favorited' : 'favorite-btn';
 
-    // === Out Of Stock Logic ===
-    let outOfStockHTML = '';
-    let addToCartDisabled = '';
-    
-    if (product.isOutOfStock) {
-        outOfStockHTML = `<div class="out-of-stock-badge">${t('out_of_stock_badge')}</div>`;
-        addToCartDisabled = 'disabled';
-    }
-    // ==========================
-
     productCard.innerHTML = `
         <div class="product-image-container">
             <img src="${mainImage}" alt="${nameInCurrentLang}" class="product-image" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/300x300/e2e8f0/2d3748?text=وێنە+نییە';">
             ${discountBadgeHTML}
-            ${outOfStockHTML}
             <button class="${favoriteBtnClass}" aria-label="Add to favorites">
                 <i class="${heartIconClass} fa-heart"></i>
             </button>
@@ -98,10 +92,11 @@ export function createProductCardElementUI(product) {
         <div class="product-info">
             <div class="product-name">${nameInCurrentLang}</div>
             ${priceHTML}
-            <button class="add-to-cart-btn-card" ${addToCartDisabled}>
+            <button class="add-to-cart-btn-card">
                 <i class="fas fa-cart-plus"></i>
                 <span>${t('add_to_cart')}</span>
             </button>
+            ${extraInfoHTML}
         </div>
         <div class="product-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
             <button class="edit-btn" aria-label="Edit product"><i class="fas fa-edit"></i></button>
@@ -134,14 +129,11 @@ function setupProductCardListeners(card, product, name, isAdmin) {
         handleToggleFavoriteUI(product.id);
     });
 
-    // دوگمەی سەبەتە (تەنها ئەگەر مابێت)
-    const cartBtn = card.querySelector('.add-to-cart-btn-card');
-    if (!product.isOutOfStock) { 
-        cartBtn.addEventListener('click', (event) => {
-            event.stopPropagation();
-            handleAddToCartUI(product.id, event.currentTarget); 
-        });
-    }
+    // دوگمەی سەبەتە
+    card.querySelector('.add-to-cart-btn-card').addEventListener('click', (event) => {
+        event.stopPropagation();
+        handleAddToCartUI(product.id, event.currentTarget); 
+    });
 
     // کردنەوەی وردەکاری
     card.addEventListener('click', (event) => {
@@ -189,14 +181,14 @@ export async function showProductDetailsUI(productData, fromHistory = false) {
         videoLink: product.externalLink || null
     };
     
-    const descriptionElement = document.getElementById('detailProductDescription');
-    descriptionElement.innerHTML = formatDescription(baseProduct.description); 
+    document.getElementById('detailProductDescription').innerHTML = formatDescription(baseProduct.description); 
     
     // Variations Logic
     setupVariationsUI(product, baseProduct);
 
-    // Market Code Display
+    // [NEW] Market Code Display
     const priceContainer = document.getElementById('detailProductPrice');
+    // لابردنی کۆدی کۆن ئەگەر هەبێت
     const oldBadge = priceContainer.querySelector('.market-code-badge');
     if(oldBadge) oldBadge.remove();
 
@@ -215,31 +207,6 @@ export async function showProductDetailsUI(productData, fromHistory = false) {
         priceContainer.appendChild(marketBadge);
     }
 
-    // === Show Shipping Info ABOVE Description (DETAILS PAGE ONLY) ===
-    
-    // 1. Remove old element if exists
-    const existingShipping = document.getElementById('detailShippingDisplay');
-    if (existingShipping) existingShipping.remove();
-
-    // 2. Get text based on language
-    const shippingText = (product.shippingInfo && product.shippingInfo[state.currentLanguage]) || 
-                         (product.shippingInfo && product.shippingInfo.ku_sorani) || '';
-
-    // 3. Create and Insert Element
-    if (shippingText) {
-        const shippingDiv = document.createElement('div');
-        shippingDiv.id = 'detailShippingDisplay';
-        shippingDiv.className = 'detail-shipping-container'; // Styled in CSS
-        shippingDiv.innerHTML = `
-            <i class="fas fa-truck"></i>
-            <span>${shippingText}</span>
-        `;
-        
-        // Insert before description element
-        descriptionElement.parentNode.insertBefore(shippingDiv, descriptionElement);
-    }
-    // ================================================================
-
     // Render Specifications
     renderSpecificationsUI(product);
 
@@ -247,6 +214,7 @@ export async function showProductDetailsUI(productData, fromHistory = false) {
 }
 
 function renderSpecificationsUI(product) {
+    // لابردنی خشتەی کۆن ئەگەر هەبێت
     const existingTable = document.querySelector('.product-specs-table');
     if (existingTable) existingTable.remove();
 
@@ -283,7 +251,6 @@ function setupVariationsUI(product, baseProduct) {
     const lvl1Buttons = document.getElementById('variationLvl1Buttons');
     const lvl2Container = document.getElementById('variationLvl2Container');
     const lvl2Buttons = document.getElementById('variationLvl2Buttons');
-    const addToCartButton = document.getElementById('detailAddToCartBtn');
     
     lvl1Buttons.innerHTML = '';
     lvl2Buttons.innerHTML = '';
@@ -291,27 +258,12 @@ function setupVariationsUI(product, baseProduct) {
     lvl2Container.style.display = 'none';
     variationSelectorContainer.style.display = 'none';
 
-    // Reset Button State Default
-    addToCartButton.disabled = false;
-    addToCartButton.style.backgroundColor = "var(--accent-color)";
-    addToCartButton.style.color = "white";
-    addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
-
     let selectedLvl1Id = null;
     let selectedLvl2Id = null;
 
     // Initial Render
     renderSliderImages(baseProduct.baseImages, baseProduct.videoLink, baseProduct.name);
     renderProductPrice(baseProduct.basePrice, baseProduct.originalPrice);
-
-    // === Check Out Of Stock for Details Page ===
-    if (product.isOutOfStock) {
-        addToCartButton.disabled = true;
-        addToCartButton.innerHTML = `<i class="fas fa-ban"></i> ${t('out_of_stock_btn')}`;
-        addToCartButton.style.backgroundColor = "#cbd5e0";
-        addToCartButton.style.color = "#4a5568";
-    }
-    // ===========================================
 
     const variations = product.variations || [];
     if (variations.length > 0) {
@@ -363,33 +315,33 @@ function setupVariationsUI(product, baseProduct) {
         });
     }
 
-    // Add to Cart Logic with Variations (Only if stock available)
-    if (!product.isOutOfStock) {
-        addToCartButton.onclick = () => {
-            let selectedVariationInfo = null;
-            if (variations.length > 0) {
-                if (!selectedLvl1Id) { showNotification('تکایە سەرەتا جۆرێک (ڕەنگ) هەڵبژێرە', 'error'); return; }
-                const lvl1Var = variations.find(v => v.id === selectedLvl1Id);
-                
-                selectedVariationInfo = {
-                    lvl1Id: lvl1Var.id,
-                    lvl1Name: (lvl1Var.name && lvl1Var.name[state.currentLanguage]) || lvl1Var.name.ku_sorani,
-                    price: baseProduct.basePrice 
-                };
+    // Add to Cart Logic with Variations
+    const addToCartButton = document.getElementById('detailAddToCartBtn');
+    addToCartButton.innerHTML = `<i class="fas fa-cart-plus"></i> ${t('add_to_cart')}`;
+    addToCartButton.onclick = () => {
+        let selectedVariationInfo = null;
+        if (variations.length > 0) {
+            if (!selectedLvl1Id) { showNotification('تکایە سەرەتا جۆرێک (ڕەنگ) هەڵبژێرە', 'error'); return; }
+            const lvl1Var = variations.find(v => v.id === selectedLvl1Id);
+            
+            selectedVariationInfo = {
+                lvl1Id: lvl1Var.id,
+                lvl1Name: (lvl1Var.name && lvl1Var.name[state.currentLanguage]) || lvl1Var.name.ku_sorani,
+                price: baseProduct.basePrice 
+            };
 
-                const lvl2Options = lvl1Var.options || [];
-                if (lvl2Options.length > 0) {
-                    if (!selectedLvl2Id) { showNotification('تکایە قەبارەیەک هەڵبژێرە', 'error'); return; }
-                    const lvl2Opt = lvl2Options.find(o => o.id === selectedLvl2Id);
-                    
-                    selectedVariationInfo.lvl2Id = lvl2Opt.id;
-                    selectedVariationInfo.lvl2Name = lvl2Opt.name;
-                    selectedVariationInfo.price = lvl2Opt.price; 
-                }
+            const lvl2Options = lvl1Var.options || [];
+            if (lvl2Options.length > 0) {
+                if (!selectedLvl2Id) { showNotification('تکایە قەبارەیەک هەڵبژێرە', 'error'); return; }
+                const lvl2Opt = lvl2Options.find(o => o.id === selectedLvl2Id);
+                
+                selectedVariationInfo.lvl2Id = lvl2Opt.id;
+                selectedVariationInfo.lvl2Name = lvl2Opt.name;
+                selectedVariationInfo.price = lvl2Opt.price; 
             }
-            handleAddToCartUI(product.id, addToCartButton, selectedVariationInfo); 
-        };
-    }
+        }
+        handleAddToCartUI(product.id, addToCartButton, selectedVariationInfo); 
+    };
 }
 
 // --- Helpers ---

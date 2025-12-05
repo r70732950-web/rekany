@@ -964,11 +964,9 @@ function setupUIEventListeners() {
     });
 }
 
-// === UPDATED HANDLE SET LANGUAGE ===
 async function handleSetLanguage(lang) {
     setLanguageCore(lang); 
 
-    // 1. نوێکردنەوەی هەموو دەقەکان لە ڕووکاردا
     document.querySelectorAll('[data-translate-key]').forEach(element => {
         const key = element.dataset.translateKey;
         const translation = t(key);
@@ -979,36 +977,16 @@ async function handleSetLanguage(lang) {
         }
     });
 
-    // 2. گۆڕینی ستایلی دوگمەکان
     document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.lang === lang);
     });
 
-    // 3. نوێکردنەوەی پەڕە چالاکەکان (بۆ ئەوەی ناوەڕۆکی کاڵاکانیش وەربگێڕدرێن)
-    if (document.getElementById('categoriesPage').classList.contains('page-active')) {
-        renderSplitCategoriesPageUI();
-    }
-    if (document.getElementById('cartSheet').classList.contains('show')) {
-        renderCartUI();
-    }
-    if (document.getElementById('favoritesSheet').classList.contains('show')) {
-        renderFavoritesPageUI();
-    }
-    
-    // *** گرنگ: ئەگەر لە پەڕەی وردەکاری کاڵا بوویت، دووبارە باری بکەرەوە ***
-    if (document.getElementById('productDetailPage').classList.contains('page-active') && state.currentProductId) {
-         const product = await fetchProductById(state.currentProductId);
-         if(product) {
-             showProductDetailsUI(product, true); // true = نوێکردنەوەی بێ Scroll
-         }
-    } else {
-        // ئەگەر لە پەڕەی سەرەکی بوویت
-        await updateProductViewUI(true, true); 
-    }
-
+    if (document.getElementById('categoriesPage').classList.contains('page-active')) renderSplitCategoriesPageUI();
+    if (document.getElementById('cartSheet').classList.contains('show')) renderCartUI();
+    if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPageUI();
+    await updateProductViewUI(true, true); 
     await renderContactLinksUI();
-    
-    // نوێکردنەوەی UIـی ئەدمین ئەگەر هەبێت
+
     if (sessionStorage.getItem('isAdmin') === 'true' && window.AdminLogic) {
          window.AdminLogic.renderAdminAnnouncementsList?.();
          window.AdminLogic.renderSocialMediaLinks?.();
@@ -1019,7 +997,6 @@ async function handleSetLanguage(lang) {
          window.AdminLogic.renderShortcutRowsAdminList?.();
          window.AdminLogic.renderHomeLayoutAdmin?.();
          window.AdminLogic.renderCategoryLayoutAdmin?.();
-         window.AdminLogic.updateAdminCategoryDropdowns?.();
     }
     
     const authTabLogin = document.getElementById('authTabLogin');
@@ -1027,7 +1004,6 @@ async function handleSetLanguage(lang) {
     if (authTabLogin) authTabLogin.textContent = t('auth_tab_login');
     if (authTabSignUp) authTabSignUp.textContent = t('auth_tab_signup');
 }
-// =====================================
 
 window.addEventListener('popstate', async (event) => {
     const wasPopupOpen = state.currentPopupState !== null; 
@@ -1186,18 +1162,6 @@ async function initializeUI() {
         openPopup('welcomeModal', 'modal');
         localStorage.setItem('hasVisited', 'true');
     }
-
-    // === Hide Splash Screen ===
-    const splashScreen = document.getElementById('app-splash-screen');
-    if (splashScreen) {
-        setTimeout(() => {
-            splashScreen.classList.add('splash-hidden');
-            setTimeout(() => {
-                splashScreen.style.display = 'none';
-            }, 500);
-        }, 500);
-    }
-    // ===========================
 }
 
 async function handleInitialPageLoadUI() {
