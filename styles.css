@@ -543,10 +543,10 @@ html.chat-active .bottom-nav {
 }
 /* =========================== */
 
-/* === UPDATED: Height and Bottom Layout to remove white space === */
+/* === UPDATED: Even Smaller Height to remove white space === */
 .product-info {
     background-color: white;
-    height: 60px; /* Reduced from 80px */
+    height: 50px; /* Reduced from 60px to 50px */
     position: relative;
     padding: 0;
     text-align: right;
@@ -569,8 +569,8 @@ html.chat-active .bottom-nav {
 
 .product-price-container {
     position: absolute;
-    bottom: 12px; /* Adjusted down from 40px */
-    left: 12px;
+    bottom: 10px; /* Adjusted */
+    left: 10px;
     right: auto;
     top: auto;
 }
@@ -625,12 +625,12 @@ html.chat-active .bottom-nav {
 
 .add-to-cart-btn-card {
     position: absolute;
-    bottom: 8px; /* Adjusted down from 40px */
+    bottom: 8px; /* Adjusted */
     right: 12px;
     left: auto;
     top: auto;
-    width: 32px;
-    height: 32px;
+    width: 30px; /* Slightly smaller */
+    height: 30px; /* Slightly smaller */
     background-color: var(--accent-color);
     color: white;
     border: none;
@@ -648,7 +648,7 @@ html.chat-active .bottom-nav {
     transform: scale(1.1);
 }
 .add-to-cart-btn-card span { display: none; }
-.add-to-cart-btn-card i { font-size: 15px; margin: 0; }
+.add-to-cart-btn-card i { font-size: 14px; margin: 0; }
 
 .add-to-cart-btn-card:disabled,
 .add-to-cart-btn:disabled {
@@ -2474,15 +2474,16 @@ input:checked + .slider:before {
 }
 
 /* --- Image Protection Rules --- */
+/* ئەم کۆدانە زۆر گرنگن بۆ ڕێگریکردن لە سەیڤکردنی وێنەکان */
 img {
-    -webkit-touch-callout: none !important; 
-    -webkit-user-select: none !important;   
+    -webkit-touch-callout: none !important; /* Prevent iOS touch menu */
+    -webkit-user-select: none !important;   /* Prevent selection */
     -khtml-user-select: none !important;
     -moz-user-select: none !important;
     -ms-user-select: none !important;
     user-select: none !important;
-    -webkit-user-drag: none !important;     
-    pointer-events: auto;                   
+    -webkit-user-drag: none !important;     /* Prevent dragging */
+    pointer-events: auto;                   /* Allow clicks but prevent default actions */
 }
 
 /* --- Delete Account Button Style --- */
@@ -2507,12 +2508,12 @@ img {
 
 /* --- NEW: Shipping Container (Inside Details Page) --- */
 .detail-shipping-container {
-    background-color: #f0fdf4;
+    background-color: #f0fdf4; /* ڕەنگێکی سەوزی کراوە */
     border: 1px solid #bbf7d0;
-    color: #166534;
+    color: #166534; /* نووسینی سەوزی تۆخ */
     padding: 12px;
     border-radius: 8px;
-    margin-bottom: 20px;
+    margin-bottom: 20px; /* مەودا لەگەڵ وەسفەکە */
     margin-top: 10px;
     display: flex;
     align-items: center;
