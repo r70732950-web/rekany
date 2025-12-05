@@ -66,7 +66,7 @@ export function createProductCardElementUI(product) {
         discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
     }
 
-    // *** تێبینی: بەشی Shipping Info لێرە سڕایەوە بەپێی داواکاری ***
+    // *** تێبینی: بەشی Shipping Info لێرە بە تەواوی سڕایەوە ***
 
     // دڵخوازەکان
     const isProdFavorite = isFavorite(product.id); 
@@ -102,7 +102,7 @@ export function createProductCardElementUI(product) {
                 <i class="fas fa-cart-plus"></i>
                 <span>${t('add_to_cart')}</span>
             </button>
-            </div>
+        </div>
         <div class="product-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
             <button class="edit-btn" aria-label="Edit product"><i class="fas fa-edit"></i></button>
             <button class="delete-btn" aria-label="Delete product"><i class="fas fa-trash"></i></button>
@@ -215,7 +215,7 @@ export async function showProductDetailsUI(productData, fromHistory = false) {
         priceContainer.appendChild(marketBadge);
     }
 
-    // === Show Shipping Info ABOVE Description ===
+    // === Show Shipping Info ABOVE Description (DETAILS PAGE ONLY) ===
     
     // 1. Remove old element if exists
     const existingShipping = document.getElementById('detailShippingDisplay');
@@ -238,7 +238,7 @@ export async function showProductDetailsUI(productData, fromHistory = false) {
         // Insert before description element
         descriptionElement.parentNode.insertBefore(shippingDiv, descriptionElement);
     }
-    // =================================================
+    // ================================================================
 
     // Render Specifications
     renderSpecificationsUI(product);
