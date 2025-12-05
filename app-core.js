@@ -325,7 +325,7 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
         return { isHome: true, layout: null, products: [], allLoaded: true };
     }
 
-    // 2. Check for Category Layout (Only stop if it is a FRESH load, allow scrolling)
+    // 2. Check for Category Layout
     const shouldShowCategoryLayout = !searchTerm && state.currentCategory !== 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
     
     if (shouldShowCategoryLayout && isNewSearch) {
@@ -548,18 +548,10 @@ async function fetchCategoryRowProducts(sectionData) {
     }
 }
 
-async function fetchInitialProductsForHome(limitCount = 30, categoryId = null, isLoadMore = false) {
+// === UPDATED FUNCTION: Stateless Fetch for Home Page ===
+async function fetchInitialProductsForHome(limitCount = 30, categoryId = null, lastDoc = null) {
      try {
-        let q;
-        
-        if (!isLoadMore) {
-             state.allProductsLoaded = false;
-             state.lastVisibleProductDoc = null;
-             state.products = [];
-        } else if (state.allProductsLoaded) {
-            return [];
-        }
-        
+        let productsQuery = collection(db, "products");
         let conditions = [];
         let orderByClauses = [orderBy('createdAt', 'desc')];
 
@@ -569,30 +561,31 @@ async function fetchInitialProductsForHome(limitCount = 30, categoryId = null, i
 
         let queryConstraints = [...conditions, ...orderByClauses];
 
-        if (isLoadMore && state.lastVisibleProductDoc) {
-            queryConstraints.push(startAfter(state.lastVisibleProductDoc));
+        if (lastDoc) {
+            queryConstraints.push(startAfter(lastDoc));
         }
 
         queryConstraints.push(limit(limitCount));
 
-        q = query(productsCollection, ...queryConstraints);
+        const q = query(productsQuery, ...queryConstraints);
 
         const snapshot = await getDocs(q);
         
-        if (!snapshot.empty) {
-            state.lastVisibleProductDoc = snapshot.docs[snapshot.docs.length - 1];
-        }
-        
-        state.allProductsLoaded = snapshot.docs.length < limitCount;
-        
         const fetchedProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const newLastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
         
-        return fetchedProducts;
+        return { 
+            products: fetchedProducts, 
+            lastDoc: newLastDoc,
+            hasMore: snapshot.docs.length === limitCount
+        };
+
     } catch (error) {
         console.error("Error fetching initial products for home page:", error);
-        return [];
+        return { products: [], lastDoc: null, hasMore: false };
     }
 }
+// =======================================================
 
 export async function addToCartCore(productId, selectedVariationInfo = null) {
     let product = state.products.find(p => p.id === productId);
@@ -678,7 +671,6 @@ export function removeFromCartCore(cartId) {
     return false; 
 }
 
-// === [UPDATED: Order Message Generator with 3+ Item Rule] ===
 export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
@@ -714,13 +706,11 @@ export function generateOrderMessageCore() {
         let marketItemsTotal = 0;
         let marketShippingFee = 0;
         const itemCount = data.items.length;
-        let isMaxShippingCharged = false; // Flag for the 3+ items rule
+        let isMaxShippingCharged = false; 
 
-        // Calculate Shipping Fee based on Rule
         if (itemCount >= 3) {
-            marketShippingFee = data.maxShipping; // Pay only max
+            marketShippingFee = data.maxShipping; 
         } else {
-            // Pay sum of all
             marketShippingFee = data.items.reduce((sum, i) => sum + (i.shippingCost || 0), 0);
         }
 
@@ -732,12 +722,10 @@ export function generateOrderMessageCore() {
                 ? item.name 
                 : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
 
-            // --- LOGIC: Text Display for WhatsApp ---
             let shippingStr = "";
             const itemCost = item.shippingCost || 0;
 
             if (itemCount >= 3) {
-                // If 3+, only the max payer shows the cost
                 if (itemCost === data.maxShipping && !isMaxShippingCharged && itemCost > 0) {
                     shippingStr = `(گەیاندن: ${itemCost.toLocaleString()})`;
                     isMaxShippingCharged = true;
@@ -745,7 +733,6 @@ export function generateOrderMessageCore() {
                     shippingStr = `(گەیاندن: بێ بەرامبەر - ئۆفەری ٣ دانە)`;
                 }
             } else {
-                // If < 3, everyone shows their cost
                 if (itemCost > 0) {
                     shippingStr = `(گەیاندن: ${itemCost.toLocaleString()})`;
                 } else {
@@ -762,7 +749,6 @@ export function generateOrderMessageCore() {
         grandTotal += marketTotal;
 
         message += `------------------------\n`;
-        // message += `🚚 کۆی گەیاندنی مارکێت: ${marketShippingFee.toLocaleString()}\n`; 
         message += `💰 کۆی گشتی مارکێت: ${marketTotal.toLocaleString()} د.ع\n\n`;
     }
     
