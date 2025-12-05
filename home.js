@@ -3,7 +3,7 @@ import {
     state, t, debounce,
     fetchHomeLayout, 
     fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts,
-    fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome, // <--- دڵنیابە ئەمە هەیە
+    fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
     fetchSubcategories, navigateToFilterCore,
     fetchProducts,
     fetchSubSubcategories, 
@@ -26,6 +26,7 @@ function createLoadMoreBtnElement(onClickHandler) {
     container.style.marginTop = '20px';
     container.style.marginBottom = '40px';
     container.style.gridColumn = '1 / -1'; 
+    container.style.minHeight = '60px'; // Ensure visibility for observer
 
     const btn = document.createElement('button');
     btn.innerHTML = `<i class="fas fa-arrow-down" style="margin-left: 5px;"></i> زیاتر ببینە`;
@@ -57,7 +58,7 @@ function createLoadMoreBtnElement(onClickHandler) {
         } catch (e) {
             console.error("Load more error:", e);
         } finally {
-            // ئەگەر دوگمەکە مابوو (نەسڕابووەوە)، چاکی بکەرەوە
+            // ئەگەر دوگمەکە مابوو، چاکی بکەرەوە
             if (document.body.contains(btn)) {
                 isBtnLoading = false;
                 btn.disabled = false;
@@ -68,14 +69,24 @@ function createLoadMoreBtnElement(onClickHandler) {
 
     btn.onclick = executeLoad;
 
-    // Auto-load removed/controlled to prevent conflicts
-    // دەتوانیت ئەم بەشە لابدەیت ئەگەر دەتەوێت تەنها بە پەنجە ئیش بکات
-    // const observer = new IntersectionObserver((entries) => {
-    //     if (entries[0].isIntersecting && !isBtnLoading && !btn.disabled) {
-    //         executeLoad();
-    //     }
-    // }, { threshold: 0.1 });
-    // setTimeout(() => { if (document.body.contains(btn)) observer.observe(btn); }, 1000);
+    // === ENABLE AUTO LOAD (INFINITE SCROLL) ===
+    const observer = new IntersectionObserver((entries) => {
+        // ئەگەر دوگمەکە هاتە بەرچاو و خەریکی بارکردن نەبوو، کلیکی لێ بکە
+        if (entries[0].isIntersecting && !isBtnLoading && !btn.disabled) {
+            executeLoad();
+        }
+    }, { 
+        threshold: 0.1,
+        rootMargin: '200px' // 200px پێش ئەوەی بگەیتە خوارەوە دەست دەکات بە بارکردن
+    });
+    
+    // کەمێک دواکەوتن بۆ دڵنیابوون
+    setTimeout(() => {
+        if (document.body.contains(btn)) {
+            observer.observe(btn);
+        }
+    }, 500);
+    // ==========================================
 
     container.appendChild(btn);
     return container;
@@ -370,10 +381,8 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
     if (isNewSearch && (isHomeLoaded || isCategoryLayoutLoaded)) {
         result = null; 
     } else if (!isNewSearch && isTargetProductGrid) {
-         // === FIX: Reset button logic here too ===
          const existingBtn = productsContainer.querySelector('.load-more-container');
          if(existingBtn) existingBtn.remove();
-         // =======================================
 
          loader.style.display = 'block'; 
          result = await fetchProducts(state.currentSearch, false); 
@@ -907,9 +916,6 @@ async function createSingleCategoryRowElement(sectionData) {
 }
 
 async function createAllProductsSectionElement(categoryId = null) {
-    // === Critical Fix for Home Page State Isolation ===
-    // We use LOCAL state variables for this specific section instance
-    // instead of the global state which conflicts with the search/category page.
     let sectionLastDoc = null;
     let sectionAllLoaded = false;
 
@@ -956,7 +962,7 @@ async function createAllProductsSectionElement(categoryId = null) {
             
             if (newProducts && newProducts.length > 0) {
                 appendProducts(newProducts);
-                sectionLastDoc = newLastDoc; // Update local cursor
+                sectionLastDoc = newLastDoc; 
             }
             
             if (!newHasMore || !newProducts || newProducts.length === 0) {
