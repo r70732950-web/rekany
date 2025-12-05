@@ -46,7 +46,7 @@ export function createProductCardElementUI(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
     
-    // زیادکردنی کلاس ئەگەر کاڵا نەما بێت (بۆ گۆڕینی ڕەنگ)
+    // زیادکردنی کلاس ئەگەر کاڵا نەما بێت
     if (product.isOutOfStock) {
         productCard.classList.add('out-of-stock');
     }
@@ -66,34 +66,22 @@ export function createProductCardElementUI(product) {
         discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
     }
 
-    // زانیاری گەیاندن
-    let extraInfoHTML = '';
-    const shippingText = product.shippingInfo && product.shippingInfo[state.currentLanguage] && product.shippingInfo[state.currentLanguage].trim();
-    if (shippingText) {
-        extraInfoHTML = `
-            <div class="product-extra-info">
-                <div class="info-badge shipping-badge">
-                    <i class="fas fa-truck"></i>${shippingText}
-                </div>
-            </div>
-        `;
-    }
+    // *** تێبینی: بەشی Shipping Info لێرە بە تەواوی سڕایەوە ***
 
     // دڵخوازەکان
     const isProdFavorite = isFavorite(product.id); 
     const heartIconClass = isProdFavorite ? 'fas' : 'far';
     const favoriteBtnClass = isProdFavorite ? 'favorite-btn favorited' : 'favorite-btn';
 
-    // === Out Of Stock Logic (Using Translation) ===
+    // === Out Of Stock Logic ===
     let outOfStockHTML = '';
     let addToCartDisabled = '';
     
     if (product.isOutOfStock) {
-        // لێرە t() بەکاردەهێنین بۆ ئەوەی بەپێی زمان بگۆڕێت
         outOfStockHTML = `<div class="out-of-stock-badge">${t('out_of_stock_badge')}</div>`;
         addToCartDisabled = 'disabled';
     }
-    // ==============================================
+    // ==========================
 
     productCard.innerHTML = `
         <div class="product-image-container">
@@ -114,7 +102,6 @@ export function createProductCardElementUI(product) {
                 <i class="fas fa-cart-plus"></i>
                 <span>${t('add_to_cart')}</span>
             </button>
-            ${extraInfoHTML}
         </div>
         <div class="product-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
             <button class="edit-btn" aria-label="Edit product"><i class="fas fa-edit"></i></button>
@@ -202,14 +189,14 @@ export async function showProductDetailsUI(productData, fromHistory = false) {
         videoLink: product.externalLink || null
     };
     
-    document.getElementById('detailProductDescription').innerHTML = formatDescription(baseProduct.description); 
+    const descriptionElement = document.getElementById('detailProductDescription');
+    descriptionElement.innerHTML = formatDescription(baseProduct.description); 
     
     // Variations Logic
     setupVariationsUI(product, baseProduct);
 
-    // [NEW] Market Code Display
+    // Market Code Display
     const priceContainer = document.getElementById('detailProductPrice');
-    // لابردنی کۆدی کۆن ئەگەر هەبێت
     const oldBadge = priceContainer.querySelector('.market-code-badge');
     if(oldBadge) oldBadge.remove();
 
@@ -228,6 +215,31 @@ export async function showProductDetailsUI(productData, fromHistory = false) {
         priceContainer.appendChild(marketBadge);
     }
 
+    // === Show Shipping Info ABOVE Description (DETAILS PAGE ONLY) ===
+    
+    // 1. Remove old element if exists
+    const existingShipping = document.getElementById('detailShippingDisplay');
+    if (existingShipping) existingShipping.remove();
+
+    // 2. Get text based on language
+    const shippingText = (product.shippingInfo && product.shippingInfo[state.currentLanguage]) || 
+                         (product.shippingInfo && product.shippingInfo.ku_sorani) || '';
+
+    // 3. Create and Insert Element
+    if (shippingText) {
+        const shippingDiv = document.createElement('div');
+        shippingDiv.id = 'detailShippingDisplay';
+        shippingDiv.className = 'detail-shipping-container'; // Styled in CSS
+        shippingDiv.innerHTML = `
+            <i class="fas fa-truck"></i>
+            <span>${shippingText}</span>
+        `;
+        
+        // Insert before description element
+        descriptionElement.parentNode.insertBefore(shippingDiv, descriptionElement);
+    }
+    // ================================================================
+
     // Render Specifications
     renderSpecificationsUI(product);
 
@@ -235,7 +247,6 @@ export async function showProductDetailsUI(productData, fromHistory = false) {
 }
 
 function renderSpecificationsUI(product) {
-    // لابردنی خشتەی کۆن ئەگەر هەبێت
     const existingTable = document.querySelector('.product-specs-table');
     if (existingTable) existingTable.remove();
 

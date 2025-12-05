@@ -18,18 +18,14 @@ import {
     createProductCardElementUI, setupScrollAnimations
 } from './products.js';
 
-function resetScrollPosition(containerElement) {
-    // ئەمە ناچالاک کراوە وەک داواکاری پێشوو
-}
-
 // --- Helper: دروستکردنی دوگمەی Load More ---
 function createLoadMoreBtnElement(onClickHandler) {
     const container = document.createElement('div');
-    container.className = 'load-more-container'; // Class added for easy removal
+    container.className = 'load-more-container'; 
     container.style.textAlign = 'center';
     container.style.marginTop = '20px';
     container.style.marginBottom = '40px';
-    container.style.gridColumn = '1 / -1'; // Ensure it spans full width in grid
+    container.style.gridColumn = '1 / -1'; 
 
     const btn = document.createElement('button');
     btn.innerHTML = `<i class="fas fa-arrow-down" style="margin-left: 5px;"></i> زیاتر ببینە`;
@@ -51,13 +47,13 @@ function createLoadMoreBtnElement(onClickHandler) {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...جارێ بار دەکات';
         btn.disabled = true;
         
-        await onClickHandler(btn, container); // Call the specific logic
+        await onClickHandler(btn, container); 
         
         btn.disabled = false;
         btn.innerHTML = originalText;
     };
 
-    // Auto-load (Hybrid Infinite Scroll)
+    // Auto-load (Optional: You can remove this observer if you only want manual click)
     const observer = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting && !btn.disabled) {
             btn.click();
@@ -69,12 +65,10 @@ function createLoadMoreBtnElement(onClickHandler) {
     return container;
 }
 
-// ئەم فەنکشنە بۆ کاتی گەڕان (Search) یان کاتێک دیزاینی تایبەت نییە بەکاردێت
 function renderProductsGridUI(newProductsOnly = false) {
     const container = document.getElementById('productsContainer'); 
     if (!container) return;
 
-    // لابردنی دوگمەی کۆن ئەگەر هەبێت
     const oldBtn = container.querySelector('.load-more-container');
     if(oldBtn) oldBtn.remove();
 
@@ -104,6 +98,19 @@ window.renderProductsGridUI = renderProductsGridUI;
 export function renderMainCategoriesUI() {
     const container = document.getElementById('mainCategoriesContainer');
     if (!container) return;
+    
+    if (container.children.length > 0) {
+        const btns = container.querySelectorAll('.main-category-btn');
+        btns.forEach(btn => {
+            if (btn.dataset.category === state.currentCategory) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        return;
+    }
+
     container.innerHTML = '';
 
     // 1. دوگمەی سەرەکی (Home/All)
@@ -116,7 +123,11 @@ export function renderMainCategoriesUI() {
         homeBtn.classList.add('active');
     }
 
-    homeBtn.onclick = async () => {
+    homeBtn.onclick = async (e) => {
+         const allBtns = container.querySelectorAll('.main-category-btn');
+         allBtns.forEach(b => b.classList.remove('active'));
+         e.currentTarget.classList.add('active');
+
          await navigateToFilterCore({
              category: 'all',
              subcategory: 'all',
@@ -142,7 +153,11 @@ export function renderMainCategoriesUI() {
 
         btn.innerHTML = `<i class="${categoryIcon}"></i> <span>${categoryName}</span>`;
 
-        btn.onclick = async () => {
+        btn.onclick = async (e) => {
+             const allBtns = container.querySelectorAll('.main-category-btn');
+             allBtns.forEach(b => b.classList.remove('active'));
+             e.currentTarget.classList.add('active');
+
              await navigateToFilterCore({
                  category: cat.id,
                  subcategory: 'all',
@@ -354,7 +369,6 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
          if(result && result.products.length > 0) {
             renderProductsGridUI(result.products); 
             
-            // --- NEW: Add Load More to Category Grid if more items exist ---
             if (!state.allProductsLoaded) {
                 const loadMoreBtn = createLoadMoreBtnElement(async (btn, container) => {
                     const moreResult = await fetchProducts(state.currentSearch, false);
@@ -368,7 +382,7 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
                 productsContainer.appendChild(loadMoreBtn);
             }
          }
-         scrollTrigger.style.display = 'none'; // We use button now
+         scrollTrigger.style.display = 'none'; 
          
          renderMainCategoriesUI();
          return; 
@@ -426,7 +440,6 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
             } else {
                 renderProductsGridUI(null); 
                 
-                // --- NEW: Initial Load More Button for Category Grid ---
                 if (!state.allProductsLoaded) {
                     const loadMoreBtn = createLoadMoreBtnElement(async (btn, container) => {
                         const moreResult = await fetchProducts(state.currentSearch, false);
@@ -883,6 +896,13 @@ async function createSingleCategoryRowElement(sectionData) {
 }
 
 async function createAllProductsSectionElement(categoryId = null) {
+    // === FIX START: Reset Loading State & Data for Fresh Load ===
+    state.isLoadingMoreProducts = false;
+    state.allProductsLoaded = false;
+    state.lastVisibleProductDoc = null;
+    state.products = []; // Clear current products to avoid duplicates if re-rendering
+    // ============================================================
+
     const products = await fetchInitialProductsForHome(30, categoryId, false); 
     
     if (!products || products.length === 0) return null;
@@ -914,18 +934,24 @@ async function createAllProductsSectionElement(categoryId = null) {
 
     appendProducts(products);
 
-    if (!state.allProductsLoaded && products.length >= 30) {
+    // === FIX START: Robust Button Logic ===
+    if (!state.allProductsLoaded) {
         const loadMoreContainer = createLoadMoreBtnElement(async (btn, container) => {
+            // Ensure we use the correct fetch function with isLoadMore=true
             const newProducts = await fetchInitialProductsForHome(30, categoryId, true);
+            
             if (newProducts && newProducts.length > 0) {
                 appendProducts(newProducts);
             }
-            if (state.allProductsLoaded || newProducts.length === 0) {
+            
+            // Remove button if no more products or explicit flag is set
+            if (state.allProductsLoaded || !newProducts || newProducts.length === 0) {
                 container.remove();
             }
         });
         container.appendChild(loadMoreContainer);
     }
+    // ======================================
 
     return container;
 }
