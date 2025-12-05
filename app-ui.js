@@ -864,16 +864,17 @@ function setupUIEventListeners() {
         }
     });
 
+    // --- FIX: Updated Scroll Trigger Logic ---
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
     if (scrollTrigger) {
         const observer = new IntersectionObserver(async (entries) => {
             const isMainPageActive = document.getElementById('mainPage')?.classList.contains('page-active');
             
+            // Only trigger if productsContainer is visible (meaning we are searching or browsing categories)
+            // We EXCLUDE the Home Page's "All Products" section because it handles its own loading button.
             const isProductGridVisible = document.getElementById('productsContainer')?.style.display === 'grid';
             
-            const isHomeAllProductsVisible = document.querySelector('.all-products-grid');
-
-            if (entries[0].isIntersecting && isMainPageActive && (isProductGridVisible || isHomeAllProductsVisible) && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
+            if (entries[0].isIntersecting && isMainPageActive && isProductGridVisible && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
                  
                  loader.style.display = 'block'; 
                  const result = await fetchProducts(state.currentSearch, false); 
@@ -881,16 +882,7 @@ function setupUIEventListeners() {
                  loader.style.display = 'none'; 
                  
                  if(result && result.products.length > 0) {
-                     if (isHomeAllProductsVisible) {
-                         result.products.forEach(product => {
-                             const card = createProductCardElementUI(product); 
-                             card.classList.add('product-card-reveal');
-                             isHomeAllProductsVisible.appendChild(card);
-                         });
-                         setupScrollAnimations();
-                     } else {
-                         await updateProductViewUI(false); 
-                     }
+                     await updateProductViewUI(false); 
                  }
                  
                  scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
@@ -898,6 +890,7 @@ function setupUIEventListeners() {
         }, { threshold: 0.1 });
         observer.observe(scrollTrigger);
     }
+    // ----------------------------------------
 
     document.addEventListener('authChange', (e) => {
         updateAdminUIAuth(e.detail.isAdmin);
