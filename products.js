@@ -46,7 +46,7 @@ export function createProductCardElementUI(product) {
     const productCard = document.createElement('div');
     productCard.className = 'product-card';
     
-    // زیادکردنی کلاس ئەگەر کاڵا نەما بێت (بۆ گۆڕینی ڕەنگ)
+    // زیادکردنی کلاس ئەگەر کاڵا نەما بێت
     if (product.isOutOfStock) {
         productCard.classList.add('out-of-stock');
     }
@@ -66,19 +66,7 @@ export function createProductCardElementUI(product) {
         discountBadgeHTML = `<div class="discount-badge">-%${discountPercentage}</div>`;
     }
 
-    // زانیاری گەیاندن (بۆ سەر کارتەکە)
-    let extraInfoHTML = '';
-    // تێبینی: ئێمە لێرە تەنها ئەیکۆنێک پیشان دەدەین، وردەکارییەکە لە پەڕەی دیتاڵسە
-    const shippingText = product.shippingInfo && product.shippingInfo[state.currentLanguage] && product.shippingInfo[state.currentLanguage].trim();
-    if (shippingText) {
-        extraInfoHTML = `
-            <div class="product-extra-info">
-                <div class="info-badge shipping-badge">
-                    <i class="fas fa-truck"></i>${shippingText}
-                </div>
-            </div>
-        `;
-    }
+    // *** تێبینی: بەشی Shipping Info لێرە سڕایەوە بەپێی داواکاری ***
 
     // دڵخوازەکان
     const isProdFavorite = isFavorite(product.id); 
@@ -114,8 +102,7 @@ export function createProductCardElementUI(product) {
                 <i class="fas fa-cart-plus"></i>
                 <span>${t('add_to_cart')}</span>
             </button>
-            ${extraInfoHTML}
-        </div>
+            </div>
         <div class="product-actions" style="display: ${isAdmin ? 'flex' : 'none'};">
             <button class="edit-btn" aria-label="Edit product"><i class="fas fa-edit"></i></button>
             <button class="delete-btn" aria-label="Delete product"><i class="fas fa-trash"></i></button>
@@ -228,7 +215,7 @@ export async function showProductDetailsUI(productData, fromHistory = false) {
         priceContainer.appendChild(marketBadge);
     }
 
-    // === NEW: Show Shipping Info ABOVE Description ===
+    // === Show Shipping Info ABOVE Description ===
     
     // 1. Remove old element if exists
     const existingShipping = document.getElementById('detailShippingDisplay');
