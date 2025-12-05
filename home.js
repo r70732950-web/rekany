@@ -102,6 +102,8 @@ export function renderMainCategoriesUI() {
     const container = document.getElementById('mainCategoriesContainer');
     if (!container) return;
     
+    // ئەگەر لیستەکە بەتاڵ نەبوو، واتە پێشتر دروستکراوە، دووبارە دروستی مەکەرەوە
+    // تەنها کلاسەکان نوێ بکەرەوە. ئەمە بۆ ئەوەیە Scrollـەکە تێک نەچێت.
     if (container.children.length > 0) {
         const btns = container.querySelectorAll('.main-category-btn');
         btns.forEach(btn => {
@@ -127,9 +129,11 @@ export function renderMainCategoriesUI() {
     }
 
     homeBtn.onclick = async (e) => {
+         // === Instant Visual Feedback (یەکسەر ڕەنگ دەگۆڕێت) ===
          const allBtns = container.querySelectorAll('.main-category-btn');
          allBtns.forEach(b => b.classList.remove('active'));
          e.currentTarget.classList.add('active');
+         // ====================================================
 
          await navigateToFilterCore({
              category: 'all',
@@ -157,9 +161,11 @@ export function renderMainCategoriesUI() {
         btn.innerHTML = `<i class="${categoryIcon}"></i> <span>${categoryName}</span>`;
 
         btn.onclick = async (e) => {
+             // === Instant Visual Feedback (یەکسەر ڕەنگ دەگۆڕێت) ===
              const allBtns = container.querySelectorAll('.main-category-btn');
              allBtns.forEach(b => b.classList.remove('active'));
              e.currentTarget.classList.add('active');
+             // ====================================================
 
              await navigateToFilterCore({
                  category: cat.id,
@@ -173,6 +179,7 @@ export function renderMainCategoriesUI() {
         container.appendChild(btn);
     });
 
+    // Scroll to active button
     setTimeout(() => {
         const activeBtn = container.querySelector('.main-category-btn.active');
         if (activeBtn) {
@@ -897,7 +904,7 @@ async function createSingleCategoryRowElement(sectionData) {
     return container;
 }
 
-// === FIXED: Use homePagination state ===
+// === [UPDATED] Use Home-Specific State for "Load More" ===
 async function createAllProductsSectionElement(categoryId = null) {
     const products = await fetchInitialProductsForHome(30, categoryId, false); 
     
@@ -930,15 +937,14 @@ async function createAllProductsSectionElement(categoryId = null) {
 
     appendProducts(products);
 
-    // CHANGED: Use state.homePagination.allLoaded
-    if (!state.homePagination.allLoaded && products.length >= 30) {
+    // Using homeAllProductsLoaded instead of allProductsLoaded
+    if (!state.homeAllProductsLoaded && products.length >= 30) {
         const loadMoreContainer = createLoadMoreBtnElement(async (btn, container) => {
             const newProducts = await fetchInitialProductsForHome(30, categoryId, true);
             if (newProducts && newProducts.length > 0) {
                 appendProducts(newProducts);
             }
-            // CHANGED: Use state.homePagination.allLoaded
-            if (state.homePagination.allLoaded || newProducts.length === 0) {
+            if (state.homeAllProductsLoaded || newProducts.length === 0) {
                 container.remove();
             }
         });
@@ -947,3 +953,4 @@ async function createAllProductsSectionElement(categoryId = null) {
 
     return container;
 }
+// =========================================================
