@@ -71,7 +71,6 @@ function createLoadMoreBtnElement(onClickHandler) {
 
     // === ENABLE AUTO LOAD (INFINITE SCROLL) ===
     const observer = new IntersectionObserver((entries) => {
-        // ئەگەر دوگمەکە هاتە بەرچاو و خەریکی بارکردن نەبوو، کلیکی لێ بکە
         if (entries[0].isIntersecting && !isBtnLoading && !btn.disabled) {
             executeLoad();
         }
@@ -80,13 +79,11 @@ function createLoadMoreBtnElement(onClickHandler) {
         rootMargin: '200px' // 200px پێش ئەوەی بگەیتە خوارەوە دەست دەکات بە بارکردن
     });
     
-    // کەمێک دواکەوتن بۆ دڵنیابوون
     setTimeout(() => {
         if (document.body.contains(btn)) {
             observer.observe(btn);
         }
     }, 500);
-    // ==========================================
 
     container.appendChild(btn);
     return container;
@@ -100,9 +97,11 @@ function renderProductsGridUI(newProductsOnly = false) {
     if(oldBtn) oldBtn.remove();
 
     if (Array.isArray(newProductsOnly)) { 
-        newProductsOnly.forEach(item => {
+        newProductsOnly.forEach((item, index) => {
             let element = createProductCardElementUI(item); 
             element.classList.add('product-card-reveal'); 
+            // === Staggered Animation Delay ===
+            element.style.animationDelay = `${index * 0.1}s`;
             container.appendChild(element);
         });
     } else {
@@ -110,9 +109,11 @@ function renderProductsGridUI(newProductsOnly = false) {
         if (!state.products || state.products.length === 0) {
             container.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         } else {
-            state.products.forEach(item => {
+            state.products.forEach((item, index) => {
                 let element = createProductCardElementUI(item); 
                 element.classList.add('product-card-reveal'); 
+                // === Staggered Animation Delay ===
+                element.style.animationDelay = `${index * 0.1}s`;
                 container.appendChild(element);
             });
         }
@@ -126,6 +127,7 @@ export function renderMainCategoriesUI() {
     const container = document.getElementById('mainCategoriesContainer');
     if (!container) return;
     
+    // ئەگەر لیستەکە پێشتر دروستکراوە، تەنها کلاسەکان نوێ بکەرەوە (بۆ ئەوەی Scroll تێک نەچێت)
     if (container.children.length > 0) {
         const btns = container.querySelectorAll('.main-category-btn');
         btns.forEach(btn => {
@@ -140,6 +142,7 @@ export function renderMainCategoriesUI() {
 
     container.innerHTML = '';
 
+    // 1. دوگمەی سەرەکی (Home/All)
     const homeBtn = document.createElement('button');
     homeBtn.className = 'main-category-btn';
     homeBtn.dataset.category = 'all'; 
@@ -150,9 +153,11 @@ export function renderMainCategoriesUI() {
     }
 
     homeBtn.onclick = async (e) => {
+         // === Instant Visual Feedback (یەکسەر ڕەنگ دەگۆڕێت) ===
          const allBtns = container.querySelectorAll('.main-category-btn');
          allBtns.forEach(b => b.classList.remove('active'));
          e.currentTarget.classList.add('active');
+         // ====================================================
 
          await navigateToFilterCore({
              category: 'all',
@@ -164,6 +169,7 @@ export function renderMainCategoriesUI() {
     };
     container.appendChild(homeBtn);
 
+    // 2. دوگمەی جۆرەکان
     state.categories.forEach(cat => {
         const btn = document.createElement('button');
         btn.className = 'main-category-btn';
@@ -179,9 +185,11 @@ export function renderMainCategoriesUI() {
         btn.innerHTML = `<i class="${categoryIcon}"></i> <span>${categoryName}</span>`;
 
         btn.onclick = async (e) => {
+             // === Instant Visual Feedback ===
              const allBtns = container.querySelectorAll('.main-category-btn');
              allBtns.forEach(b => b.classList.remove('active'));
              e.currentTarget.classList.add('active');
+             // ==============================
 
              await navigateToFilterCore({
                  category: cat.id,
@@ -195,14 +203,20 @@ export function renderMainCategoriesUI() {
         container.appendChild(btn);
     });
 
+    // Scroll to active button
     setTimeout(() => {
         const activeBtn = container.querySelector('.main-category-btn.active');
         if (activeBtn) {
             const containerWidth = container.offsetWidth;
             const btnLeft = activeBtn.offsetLeft;
             const btnWidth = activeBtn.offsetWidth;
+            
             const scrollPos = btnLeft - (containerWidth / 2) + (btnWidth / 2);
-            container.scrollTo({ left: scrollPos, behavior: 'smooth' });
+
+            container.scrollTo({
+                left: scrollPos,
+                behavior: 'smooth'
+            });
         }
     }, 100);
 }
@@ -916,6 +930,9 @@ async function createSingleCategoryRowElement(sectionData) {
 }
 
 async function createAllProductsSectionElement(categoryId = null) {
+    // === Critical Fix for Home Page State Isolation ===
+    // We use LOCAL state variables for this specific section instance
+    // instead of the global state which conflicts with the search/category page.
     let sectionLastDoc = null;
     let sectionAllLoaded = false;
 
@@ -944,9 +961,11 @@ async function createAllProductsSectionElement(categoryId = null) {
     const productsGrid = container.querySelector('.products-container');
 
     const appendProducts = (items) => {
-        items.forEach(product => {
+        items.forEach((product, index) => { // Added index
             const card = createProductCardElementUI(product); 
             card.classList.add('product-card-reveal');
+            // === Staggered Animation ===
+            card.style.animationDelay = `${index * 0.1}s`;
             productsGrid.appendChild(card);
         });
         setupScrollAnimations();
@@ -962,7 +981,7 @@ async function createAllProductsSectionElement(categoryId = null) {
             
             if (newProducts && newProducts.length > 0) {
                 appendProducts(newProducts);
-                sectionLastDoc = newLastDoc; 
+                sectionLastDoc = newLastDoc; // Update local cursor
             }
             
             if (!newHasMore || !newProducts || newProducts.length === 0) {
