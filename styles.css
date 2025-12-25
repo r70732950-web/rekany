@@ -148,7 +148,7 @@ html.chat-active .bottom-nav {
     display: flex;
     gap: 8px;
     overflow-x: auto;
-    align-items: center; /* Center pills vertically */
+    align-items: center;
     padding: 0 12px; 
     scrollbar-width: none;
     
@@ -224,20 +224,18 @@ html.chat-active .bottom-nav {
     color: white !important;
 }
 
-/* --- 4. Padding Adjustment (The Fix for Subcategories) --- */
+/* --- 4. Padding Adjustment --- */
 
-/* A. تەنها پەڕەی سەرەکی پێویستی بە 120px هەیە */
 .main-content {
     padding-top: 110px !important; 
     padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
 
-/* B. هەموو پەڕەکانی تر تەنها 60px یان دەوێت (چونکە شریتی جۆرەکانیان نییە) */
 #subcategoryDetailPage, 
 .settings-page,
 #adminChatListPage,
 #categoriesPage {
-    padding-top: 55px !important;  /* ئەمە وادەکات Subcategories بچێتە سەرەوە */
+    padding-top: 55px !important;
     padding-bottom: calc(85px + env(safe-area-inset-bottom));
 }
 
@@ -294,6 +292,11 @@ html.chat-active .bottom-nav {
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     border-right: none;
     border-left: none;
+}
+
+/* --- [UPDATED] Hide Subcategories on Main Page --- */
+#subcategoriesContainer {
+    display: none !important;
 }
 
 .subcategories-container {
@@ -543,10 +546,9 @@ html.chat-active .bottom-nav {
 }
 /* =========================== */
 
-/* === UPDATED: Even Smaller Height to remove white space === */
 .product-info {
     background-color: white;
-    height: 50px; /* Reduced from 60px to 50px */
+    height: 50px; 
     position: relative;
     padding: 0;
     text-align: right;
@@ -569,7 +571,7 @@ html.chat-active .bottom-nav {
 
 .product-price-container {
     position: absolute;
-    bottom: 10px; /* Adjusted */
+    bottom: 10px; 
     left: 10px;
     right: auto;
     top: auto;
@@ -625,12 +627,12 @@ html.chat-active .bottom-nav {
 
 .add-to-cart-btn-card {
     position: absolute;
-    bottom: 8px; /* Adjusted */
+    bottom: 8px; 
     right: 12px;
     left: auto;
     top: auto;
-    width: 30px; /* Slightly smaller */
-    height: 30px; /* Slightly smaller */
+    width: 30px; 
+    height: 30px; 
     background-color: var(--accent-color);
     color: white;
     border: none;
@@ -683,7 +685,7 @@ html.chat-active .bottom-nav {
 }
 
 .shipping-badge {
-    display: none; /* Hidden */
+    display: none; 
 }
 
 @keyframes scaleIn {
@@ -2474,16 +2476,15 @@ input:checked + .slider:before {
 }
 
 /* --- Image Protection Rules --- */
-/* ئەم کۆدانە زۆر گرنگن بۆ ڕێگریکردن لە سەیڤکردنی وێنەکان */
 img {
-    -webkit-touch-callout: none !important; /* Prevent iOS touch menu */
-    -webkit-user-select: none !important;   /* Prevent selection */
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
     -khtml-user-select: none !important;
     -moz-user-select: none !important;
     -ms-user-select: none !important;
     user-select: none !important;
-    -webkit-user-drag: none !important;     /* Prevent dragging */
-    pointer-events: auto;                   /* Allow clicks but prevent default actions */
+    -webkit-user-drag: none !important;
+    pointer-events: auto;
 }
 
 /* --- Delete Account Button Style --- */
@@ -2508,12 +2509,12 @@ img {
 
 /* --- NEW: Shipping Container (Inside Details Page) --- */
 .detail-shipping-container {
-    background-color: #f0fdf4; /* ڕەنگێکی سەوزی کراوە */
+    background-color: #f0fdf4;
     border: 1px solid #bbf7d0;
-    color: #166534; /* نووسینی سەوزی تۆخ */
+    color: #166534;
     padding: 12px;
     border-radius: 8px;
-    margin-bottom: 20px; /* مەودا لەگەڵ وەسفەکە */
+    margin-bottom: 20px;
     margin-top: 10px;
     display: flex;
     align-items: center;
@@ -2526,8 +2527,58 @@ img {
 .detail-shipping-container i {
     font-size: 18px;
 }
-/* شاردنەوەی لیستی جۆرە لاوەکییەکان لە پەڕەی سەرەکی */
-#subcategoriesContainer {
-    display: none !important;
+
+/* --- Orders History Styles --- */
+.order-history-card {
+    background-color: white;
+    border: 1px solid var(--section-border);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+}
+
+.order-id {
+    font-size: 12px;
+    color: var(--dark-gray);
+    font-family: monospace;
+}
+
+.order-date {
+    font-size: 12px;
+    color: var(--text-light);
+}
+
+.order-status-badge {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+    display: inline-block;
+    margin-top: 5px;
+}
+
+/* Status Colors */
+.status-pending { background-color: #f6ad55; color: white; } /* Orange */
+.status-accepted { background-color: #4299e1; color: white; } /* Blue */
+.status-delivery { background-color: #805ad5; color: white; } /* Purple */
+.status-completed { background-color: #48bb78; color: white; } /* Green */
+.status-cancelled { background-color: #e53e3e; color: white; } /* Red */
+
+.order-total-price {
+    font-weight: bold;
+    color: var(--primary-color);
+    font-size: 16px;
+    margin-top: 8px;
+    text-align: left;
+}
