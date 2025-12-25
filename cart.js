@@ -14,12 +14,10 @@ import {
     emptyCartMessage, 
     cartTotal, 
     totalAmount,
-    cartActions,
-    ordersCollection, // <--- دڵنیابەرەوە ئەمە هەیە
-    addDoc // <--- دڵنیابەرەوە ئەمە هەیە
+    cartActions
 } from './app-setup.js';
 
-import { initChatSystem, sendMessage, openChatPage } from './chat.js';
+import { initChatSystem } from './chat.js';
 import { showNotification } from './app-ui.js'; 
 
 // نوێکردنەوەی ژمارەی سەر ئایکۆنی سەبەتە
@@ -247,112 +245,5 @@ export function handleRemoveFromCartUI(productId) {
     if (removeFromCartCore(productId)) { 
         renderCartUI(); 
         updateCartCountUI(); 
-    }
-}
-
-async function handleDirectOrder() {
-    if (!state.currentUser) {
-        showNotification('تکایە سەرەتا بچۆ ژوورەوە', 'error');
-        window.globalAdminTools.openPopup('profileSheet');
-        return;
-    }
-
-    if (state.cart.length === 0) {
-        showNotification(t('cart_empty'), 'error');
-        return;
-    }
-
-    if (!state.userProfile.phone || !state.userProfile.address) {
-        showNotification('تکایە سەرەتا زانیارییەکانت (ناونیشان و تەلەفۆن) لە پڕۆفایل پڕبکەرەوە', 'error');
-        window.globalAdminTools.openPopup('profileSheet');
-        return;
-    }
-
-    window.globalAdminTools.openPopup('orderConfirmationModal', 'modal');
-
-    const confirmBtn = document.getElementById('confirmOrderBtn');
-    const cancelBtn = document.getElementById('cancelOrderBtn');
-
-    // Remove old listeners to prevent duplicates
-    const newConfirmBtn = confirmBtn.cloneNode(true);
-    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-
-    const newCancelBtn = cancelBtn.cloneNode(true);
-    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
-
-    newCancelBtn.onclick = () => {
-        window.globalAdminTools.closeCurrentPopup();
-    };
-
-    newConfirmBtn.onclick = async () => {
-        window.globalAdminTools.closeCurrentPopup(); // Close modal first
-        setTimeout(() => {
-             processOrderSubmission();
-        }, 150);
-    };
-}
-
-// === [UPDATED] Critical Section for Order Tracking ===
-async function processOrderSubmission() {
-    let totalItemPrice = 0;
-    let totalShipping = 0;
-    const marketGroups = {};
-
-    state.cart.forEach(item => {
-        totalItemPrice += (item.price * item.quantity);
-        const mCode = item.marketCode || 'default';
-        if (!marketGroups[mCode]) {
-            marketGroups[mCode] = { items: [], maxShipping: 0 };
-        }
-        marketGroups[mCode].items.push(item);
-        if ((item.shippingCost || 0) > marketGroups[mCode].maxShipping) {
-            marketGroups[mCode].maxShipping = item.shippingCost || 0;
-        }
-    });
-
-    for (const [mCode, group] of Object.entries(marketGroups)) {
-        if (group.items.length >= 3) {
-            // Rule: 3+ items -> Pay Max only
-            totalShipping += group.maxShipping;
-        } else {
-            // Rule: < 3 items -> Pay All
-            totalShipping += group.items.reduce((sum, i) => sum + (i.shippingCost || 0), 0);
-        }
-    }
-
-    const total = totalItemPrice + totalShipping;
-    
-    const orderData = {
-        userId: state.currentUser.uid,
-        userName: state.userProfile.name || state.currentUser.displayName, 
-        userPhone: state.userProfile.phone || '', 
-        userAddress: state.userProfile.address || '', 
-        items: state.cart,
-        total: total,
-        status: 'pending', // <--- Initial Status
-        createdAt: Date.now() 
-    };
-
-    try {
-        // 1. Add to Firestore and GET THE DOC REFERENCE
-        const docRef = await addDoc(ordersCollection, orderData);
-        
-        // 2. IMPORTANT: Inject the ID into the order object
-        orderData.id = docRef.id;
-
-        // 3. Send Message with the ID
-        await sendMessage('order', null, orderData);
-
-        // 4. Cleanup
-        state.cart = [];
-        localStorage.setItem("maten_store_cart", JSON.stringify([]));
-        document.querySelectorAll('.cart-count').forEach(el => el.textContent = '0');
-
-        openChatPage();
-        showNotification(t('order_submitted'), 'success');
-
-    } catch (error) {
-        console.error("Order Error:", error);
-        showNotification(t('error_generic'), 'error');
     }
 }
