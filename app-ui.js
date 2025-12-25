@@ -10,16 +10,12 @@ import {
     notificationBtn, notificationBadge, notificationsSheet, notificationsListContainer,
     termsAndPoliciesBtn, termsSheet, termsContentContainer, subSubcategoriesContainer,
     homePageSectionsContainer, categoryLayoutContainer,
-    // --- NEW: Orders Elements ---
-    ordersSheet, ordersListContainer,
     // ... Admin Elements
     adminPoliciesManagement, policiesForm, adminSocialMediaManagement, addSocialMediaForm, socialLinksListContainer, socialMediaToggle,
     adminAnnouncementManagement, announcementForm, announcementsListContainer, adminPromoCardsManagement, addPromoGroupForm, promoGroupsListContainer, addPromoCardForm,
     adminBrandsManagement, addBrandGroupForm, brandGroupsListContainer, addBrandForm, adminCategoryManagement, categoryListContainer, addCategoryForm,
     addSubcategoryForm, addSubSubcategoryForm, editCategoryForm, adminContactMethodsManagement, contactMethodsListContainer, adminShortcutRowsManagement, shortcutRowsListContainer, addShortcutRowForm, addCardToRowForm,
-    adminHomeLayoutManagement, homeLayoutListContainer, addHomeSectionBtn, addHomeSectionModal, addHomeSectionForm, adminCategoryLayoutManagement, categoryLayoutSelect, categoryLayoutEditorContainer, categoryLayoutEnableToggle, categoryLayoutListContainer, addCategorySectionBtn,
-    // Collections
-    ordersCollection 
+    adminHomeLayoutManagement, homeLayoutListContainer, addHomeSectionBtn, addHomeSectionModal, addHomeSectionForm, adminCategoryLayoutManagement, categoryLayoutSelect, categoryLayoutEditorContainer, categoryLayoutEnableToggle, categoryLayoutListContainer, addCategorySectionBtn
 } from './app-setup.js';
 
 import {
@@ -193,7 +189,6 @@ export function openPopup(id, type = 'sheet', addToHistory = true) {
         if (id === 'favoritesSheet') renderFavoritesPageUI();
         if (id === 'categoriesSheet') renderSplitCategoriesPageUI();
         if (id === 'notificationsSheet') renderUserNotificationsUI();
-        if (id === 'ordersSheet') renderOrdersHistoryUI(); // <--- Load Orders
         if (id === 'termsSheet') renderPoliciesUI();
         if (id === 'profileSheet') updateProfileSheetUI();
     } else { 
@@ -478,92 +473,6 @@ async function renderUserNotificationsUI() {
     notificationBadge.style.display = 'none'; 
 }
 
-// === NEW: Orders History Logic ===
-async function renderOrdersHistoryUI() {
-    const container = document.getElementById('ordersListContainer');
-    container.innerHTML = '<div style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> ...بارکردن</div>';
-
-    if (!state.currentUser) {
-        container.innerHTML = '<p style="text-align:center; padding:20px;">تکایە سەرەتا بچۆ ژوورەوە.</p>';
-        return;
-    }
-
-    try {
-        const q = query(
-            ordersCollection, 
-            where("userId", "==", state.currentUser.uid), 
-            orderBy("createdAt", "desc")
-        );
-        
-        const snapshot = await getDocs(q);
-
-        container.innerHTML = '';
-
-        if (snapshot.empty) {
-            container.innerHTML = '<div class="cart-empty"><i class="fas fa-box-open"></i><p>هیچ داواکارییەکت نییە.</p></div>';
-            return;
-        }
-
-        snapshot.forEach(docSnap => {
-            const order = docSnap.data();
-            const date = new Date(order.createdAt).toLocaleDateString('ku-IQ');
-            
-            // دیاریکردنی دۆخ بەپێی زمان
-            let statusKey = 'status_pending'; // Default
-            let statusClass = 'status-pending';
-
-            switch(order.status) {
-                case 'pending':
-                    statusKey = 'status_pending';
-                    statusClass = 'status-pending';
-                    break;
-                case 'accepted':
-                    statusKey = 'status_accepted';
-                    statusClass = 'status-accepted';
-                    break;
-                case 'delivery':
-                    statusKey = 'status_delivery';
-                    statusClass = 'status-delivery';
-                    break;
-                case 'completed':
-                    statusKey = 'status_completed';
-                    statusClass = 'status-completed';
-                    break;
-                case 'cancelled':
-                    statusKey = 'status_cancelled';
-                    statusClass = 'status-cancelled';
-                    break;
-            }
-            
-            const statusText = t(statusKey); 
-
-            const card = document.createElement('div');
-            card.className = 'order-history-card';
-            card.innerHTML = `
-                <div class="order-header">
-                    <span class="order-id">#${docSnap.id.slice(0, 8)}</span>
-                    <span class="order-date">${date}</span>
-                </div>
-                <div style="margin-bottom: 10px;">
-                    <strong>کاڵاکان:</strong>
-                    <p style="font-size: 13px; color: var(--text-light); margin-top: 4px;">
-                        ${order.items.map(item => `${item.quantity}x ${item.name}`).join(', ')}
-                    </p>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span class="order-status-badge ${statusClass}">${statusText}</span>
-                    <div class="order-total-price">${order.total.toLocaleString()} د.ع</div>
-                </div>
-            `;
-            container.appendChild(card);
-        });
-
-    } catch (error) {
-        console.error("Error fetching orders:", error);
-        container.innerHTML = '<p style="text-align:center; color:red;">هەڵەیەک ڕوویدا لە بارکردنی داواکارییەکان.</p>';
-    }
-}
-
 async function renderContactLinksUI() {
     const contactLinksContainer = document.getElementById('dynamicContactLinksContainer');
      try {
@@ -713,15 +622,6 @@ function setupUIEventListeners() {
     notificationBtn.addEventListener('click', () => { openPopup('notificationsSheet'); });
     termsAndPoliciesBtn?.addEventListener('click', () => { openPopup('termsSheet'); });
 
-    // === NEW: My Orders Button Listener ===
-    const myOrdersBtn = document.getElementById('myOrdersBtn');
-    if (myOrdersBtn) {
-        myOrdersBtn.onclick = () => {
-            openPopup('ordersSheet');
-            renderOrdersHistoryUI();
-        };
-    }
-
     sheetOverlay.onclick = closeCurrentPopup;
     document.querySelectorAll('.close').forEach(btn => btn.onclick = closeCurrentPopup);
     window.onclick = (e) => { if (e.target.classList.contains('modal')) closeCurrentPopup(); };
@@ -835,7 +735,7 @@ function setupUIEventListeners() {
         showNotification(result.message, result.success ? 'success' : 'error');
     };
 
-    // --- Delete Account Button Logic ---
+    // --- Delete Account Button Logic (Updated for Custom Modal) ---
     const deleteAccountBtn = document.getElementById('deleteAccountBtn');
     const confirmDeleteBtn = document.getElementById('confirmDeleteAccountBtn');
     const cancelDeleteBtn = document.getElementById('cancelDeleteAccountBtn');
@@ -858,7 +758,7 @@ function setupUIEventListeners() {
             const originalContent = confirmDeleteBtn.innerHTML;
             confirmDeleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-            const result = await handleDeleteAccount(true); 
+            const result = await handleDeleteAccount(true); // Pass true to skip native confirmation
 
             if (result.success) {
                 showNotification(result.message, 'success');
@@ -1050,6 +950,7 @@ function setupUIEventListeners() {
 
     setupGpsButtonUI();
 
+    // --- [NOVELTY] Image Protection (Prevent Save/Menu) ---
     document.addEventListener('contextmenu', (event) => {
         if (event.target.tagName === 'IMG') {
             event.preventDefault();
@@ -1063,7 +964,6 @@ function setupUIEventListeners() {
     });
 }
 
-// === UPDATED HANDLE SET LANGUAGE ===
 async function handleSetLanguage(lang) {
     setLanguageCore(lang); 
 
@@ -1081,30 +981,12 @@ async function handleSetLanguage(lang) {
         btn.classList.toggle('active', btn.dataset.lang === lang);
     });
 
-    if (document.getElementById('categoriesPage').classList.contains('page-active')) {
-        renderSplitCategoriesPageUI();
-    }
-    if (document.getElementById('cartSheet').classList.contains('show')) {
-        renderCartUI();
-    }
-    if (document.getElementById('favoritesSheet').classList.contains('show')) {
-        renderFavoritesPageUI();
-    }
-    if (document.getElementById('ordersSheet').classList.contains('show')) { // <--- Update Orders List on Language Change
-        renderOrdersHistoryUI();
-    }
-    
-    if (document.getElementById('productDetailPage').classList.contains('page-active') && state.currentProductId) {
-         const product = await fetchProductById(state.currentProductId);
-         if(product) {
-             showProductDetailsUI(product, true); 
-         }
-    } else {
-        await updateProductViewUI(true, true); 
-    }
-
+    if (document.getElementById('categoriesPage').classList.contains('page-active')) renderSplitCategoriesPageUI();
+    if (document.getElementById('cartSheet').classList.contains('show')) renderCartUI();
+    if (document.getElementById('favoritesSheet').classList.contains('show')) renderFavoritesPageUI();
+    await updateProductViewUI(true, true); 
     await renderContactLinksUI();
-    
+
     if (sessionStorage.getItem('isAdmin') === 'true' && window.AdminLogic) {
          window.AdminLogic.renderAdminAnnouncementsList?.();
          window.AdminLogic.renderSocialMediaLinks?.();
@@ -1115,7 +997,6 @@ async function handleSetLanguage(lang) {
          window.AdminLogic.renderShortcutRowsAdminList?.();
          window.AdminLogic.renderHomeLayoutAdmin?.();
          window.AdminLogic.renderCategoryLayoutAdmin?.();
-         window.AdminLogic.updateAdminCategoryDropdowns?.();
     }
     
     const authTabLogin = document.getElementById('authTabLogin');
@@ -1123,7 +1004,6 @@ async function handleSetLanguage(lang) {
     if (authTabLogin) authTabLogin.textContent = t('auth_tab_login');
     if (authTabSignUp) authTabSignUp.textContent = t('auth_tab_signup');
 }
-// =====================================
 
 window.addEventListener('popstate', async (event) => {
     const wasPopupOpen = state.currentPopupState !== null; 
@@ -1281,16 +1161,6 @@ async function initializeUI() {
     if (!localStorage.getItem('hasVisited')) {
         openPopup('welcomeModal', 'modal');
         localStorage.setItem('hasVisited', 'true');
-    }
-
-    const splashScreen = document.getElementById('app-splash-screen');
-    if (splashScreen) {
-        setTimeout(() => {
-            splashScreen.classList.add('splash-hidden');
-            setTimeout(() => {
-                splashScreen.style.display = 'none';
-            }, 500);
-        }, 500);
     }
 }
 

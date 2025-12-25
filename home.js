@@ -18,15 +18,18 @@ import {
     createProductCardElementUI, setupScrollAnimations
 } from './products.js';
 
+function resetScrollPosition(containerElement) {
+    // ئەمە ناچالاک کراوە وەک داواکاری پێشوو
+}
+
 // --- Helper: دروستکردنی دوگمەی Load More ---
 function createLoadMoreBtnElement(onClickHandler) {
     const container = document.createElement('div');
-    container.className = 'load-more-container'; 
+    container.className = 'load-more-container'; // Class added for easy removal
     container.style.textAlign = 'center';
     container.style.marginTop = '20px';
     container.style.marginBottom = '40px';
-    container.style.gridColumn = '1 / -1'; 
-    container.style.minHeight = '60px'; // Ensure visibility for observer
+    container.style.gridColumn = '1 / -1'; // Ensure it spans full width in grid
 
     const btn = document.createElement('button');
     btn.innerHTML = `<i class="fas fa-arrow-down" style="margin-left: 5px;"></i> زیاتر ببینە`;
@@ -43,65 +46,42 @@ function createLoadMoreBtnElement(onClickHandler) {
         font-size: 14px;
     `;
 
-    let isBtnLoading = false;
-
-    const executeLoad = async () => {
-        if (isBtnLoading || btn.disabled) return;
-        
-        isBtnLoading = true;
-        btn.disabled = true;
+    btn.onclick = async () => {
         const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...جارێ بار دەکات';
+        btn.disabled = true;
         
-        try {
-            await onClickHandler(btn, container); 
-        } catch (e) {
-            console.error("Load more error:", e);
-        } finally {
-            // ئەگەر دوگمەکە مابوو، چاکی بکەرەوە
-            if (document.body.contains(btn)) {
-                isBtnLoading = false;
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            }
-        }
+        await onClickHandler(btn, container); // Call the specific logic
+        
+        btn.disabled = false;
+        btn.innerHTML = originalText;
     };
 
-    btn.onclick = executeLoad;
-
-    // === ENABLE AUTO LOAD (INFINITE SCROLL) ===
+    // Auto-load (Hybrid Infinite Scroll)
     const observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && !isBtnLoading && !btn.disabled) {
-            executeLoad();
+        if (entries[0].isIntersecting && !btn.disabled) {
+            btn.click();
         }
-    }, { 
-        threshold: 0.1,
-        rootMargin: '200px' // 200px پێش ئەوەی بگەیتە خوارەوە دەست دەکات بە بارکردن
-    });
-    
-    setTimeout(() => {
-        if (document.body.contains(btn)) {
-            observer.observe(btn);
-        }
-    }, 500);
+    }, { threshold: 0.1 });
+    observer.observe(btn);
 
     container.appendChild(btn);
     return container;
 }
 
+// ئەم فەنکشنە بۆ کاتی گەڕان (Search) یان کاتێک دیزاینی تایبەت نییە بەکاردێت
 function renderProductsGridUI(newProductsOnly = false) {
     const container = document.getElementById('productsContainer'); 
     if (!container) return;
 
+    // لابردنی دوگمەی کۆن ئەگەر هەبێت
     const oldBtn = container.querySelector('.load-more-container');
     if(oldBtn) oldBtn.remove();
 
     if (Array.isArray(newProductsOnly)) { 
-        newProductsOnly.forEach((item, index) => {
+        newProductsOnly.forEach(item => {
             let element = createProductCardElementUI(item); 
             element.classList.add('product-card-reveal'); 
-            // === Staggered Animation Delay ===
-            element.style.animationDelay = `${index * 0.1}s`;
             container.appendChild(element);
         });
     } else {
@@ -109,11 +89,9 @@ function renderProductsGridUI(newProductsOnly = false) {
         if (!state.products || state.products.length === 0) {
             container.innerHTML = '<p style="text-align:center; padding: 20px; grid-column: 1 / -1;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
         } else {
-            state.products.forEach((item, index) => {
+            state.products.forEach(item => {
                 let element = createProductCardElementUI(item); 
                 element.classList.add('product-card-reveal'); 
-                // === Staggered Animation Delay ===
-                element.style.animationDelay = `${index * 0.1}s`;
                 container.appendChild(element);
             });
         }
@@ -126,20 +104,6 @@ window.renderProductsGridUI = renderProductsGridUI;
 export function renderMainCategoriesUI() {
     const container = document.getElementById('mainCategoriesContainer');
     if (!container) return;
-    
-    // ئەگەر لیستەکە پێشتر دروستکراوە، تەنها کلاسەکان نوێ بکەرەوە (بۆ ئەوەی Scroll تێک نەچێت)
-    if (container.children.length > 0) {
-        const btns = container.querySelectorAll('.main-category-btn');
-        btns.forEach(btn => {
-            if (btn.dataset.category === state.currentCategory) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-        return;
-    }
-
     container.innerHTML = '';
 
     // 1. دوگمەی سەرەکی (Home/All)
@@ -152,13 +116,7 @@ export function renderMainCategoriesUI() {
         homeBtn.classList.add('active');
     }
 
-    homeBtn.onclick = async (e) => {
-         // === Instant Visual Feedback (یەکسەر ڕەنگ دەگۆڕێت) ===
-         const allBtns = container.querySelectorAll('.main-category-btn');
-         allBtns.forEach(b => b.classList.remove('active'));
-         e.currentTarget.classList.add('active');
-         // ====================================================
-
+    homeBtn.onclick = async () => {
          await navigateToFilterCore({
              category: 'all',
              subcategory: 'all',
@@ -184,13 +142,7 @@ export function renderMainCategoriesUI() {
 
         btn.innerHTML = `<i class="${categoryIcon}"></i> <span>${categoryName}</span>`;
 
-        btn.onclick = async (e) => {
-             // === Instant Visual Feedback ===
-             const allBtns = container.querySelectorAll('.main-category-btn');
-             allBtns.forEach(b => b.classList.remove('active'));
-             e.currentTarget.classList.add('active');
-             // ==============================
-
+        btn.onclick = async () => {
              await navigateToFilterCore({
                  category: cat.id,
                  subcategory: 'all',
@@ -331,6 +283,7 @@ async function renderSubSubcategoriesUI(mainCatId, subCatId) {
     });
 }
 
+
 export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop = true) {
     const scrollTrigger = document.getElementById('scroll-loader-trigger');
     const homeSectionsContainer = document.getElementById('homePageSectionsContainer');
@@ -395,15 +348,13 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
     if (isNewSearch && (isHomeLoaded || isCategoryLayoutLoaded)) {
         result = null; 
     } else if (!isNewSearch && isTargetProductGrid) {
-         const existingBtn = productsContainer.querySelector('.load-more-container');
-         if(existingBtn) existingBtn.remove();
-
          loader.style.display = 'block'; 
          result = await fetchProducts(state.currentSearch, false); 
          loader.style.display = 'none';
          if(result && result.products.length > 0) {
             renderProductsGridUI(result.products); 
             
+            // --- NEW: Add Load More to Category Grid if more items exist ---
             if (!state.allProductsLoaded) {
                 const loadMoreBtn = createLoadMoreBtnElement(async (btn, container) => {
                     const moreResult = await fetchProducts(state.currentSearch, false);
@@ -417,7 +368,7 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
                 productsContainer.appendChild(loadMoreBtn);
             }
          }
-         scrollTrigger.style.display = 'none'; 
+         scrollTrigger.style.display = 'none'; // We use button now
          
          renderMainCategoriesUI();
          return; 
@@ -475,6 +426,7 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
             } else {
                 renderProductsGridUI(null); 
                 
+                // --- NEW: Initial Load More Button for Category Grid ---
                 if (!state.allProductsLoaded) {
                     const loadMoreBtn = createLoadMoreBtnElement(async (btn, container) => {
                         const moreResult = await fetchProducts(state.currentSearch, false);
@@ -501,6 +453,7 @@ export async function updateProductViewUI(isNewSearch = false, shouldScrollToTop
         }
     }
 }
+
 
 export async function renderPageContentUI(layoutSections, targetContainerElement) {
     if (!targetContainerElement) {
@@ -930,18 +883,8 @@ async function createSingleCategoryRowElement(sectionData) {
 }
 
 async function createAllProductsSectionElement(categoryId = null) {
-    // === Critical Fix for Home Page State Isolation ===
-    // We use LOCAL state variables for this specific section instance
-    // instead of the global state which conflicts with the search/category page.
-    let sectionLastDoc = null;
-    let sectionAllLoaded = false;
-
-    // 1. Initial Fetch
-    const { products, lastDoc, hasMore } = await fetchInitialProductsForHome(30, categoryId, null);
+    const products = await fetchInitialProductsForHome(30, categoryId, false); 
     
-    sectionLastDoc = lastDoc;
-    sectionAllLoaded = !hasMore;
-
     if (!products || products.length === 0) return null;
 
     const container = document.createElement('div');
@@ -961,11 +904,9 @@ async function createAllProductsSectionElement(categoryId = null) {
     const productsGrid = container.querySelector('.products-container');
 
     const appendProducts = (items) => {
-        items.forEach((product, index) => { // Added index
+        items.forEach(product => {
             const card = createProductCardElementUI(product); 
             card.classList.add('product-card-reveal');
-            // === Staggered Animation ===
-            card.style.animationDelay = `${index * 0.1}s`;
             productsGrid.appendChild(card);
         });
         setupScrollAnimations();
@@ -973,20 +914,14 @@ async function createAllProductsSectionElement(categoryId = null) {
 
     appendProducts(products);
 
-    // 2. Load More Button Logic (Using Local State)
-    if (!sectionAllLoaded) {
-        const loadMoreContainer = createLoadMoreBtnElement(async (btn, btnContainer) => {
-            // Fetch next batch using the local cursor
-            const { products: newProducts, lastDoc: newLastDoc, hasMore: newHasMore } = await fetchInitialProductsForHome(30, categoryId, sectionLastDoc);
-            
+    if (!state.allProductsLoaded && products.length >= 30) {
+        const loadMoreContainer = createLoadMoreBtnElement(async (btn, container) => {
+            const newProducts = await fetchInitialProductsForHome(30, categoryId, true);
             if (newProducts && newProducts.length > 0) {
                 appendProducts(newProducts);
-                sectionLastDoc = newLastDoc; // Update local cursor
             }
-            
-            if (!newHasMore || !newProducts || newProducts.length === 0) {
-                sectionAllLoaded = true;
-                btnContainer.remove();
+            if (state.allProductsLoaded || newProducts.length === 0) {
+                container.remove();
             }
         });
         container.appendChild(loadMoreContainer);

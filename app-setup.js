@@ -202,20 +202,7 @@ export const translations = {
         
         // --- Out of Stock Translations ---
         out_of_stock_badge: "نەماوە 🚫",
-        out_of_stock_btn: "لە کۆگا نەماوە",
-
-        // --- Order Status & Admin Controls ---
-        status_pending: "لە چاوەڕوانیدایە ⏳",
-        status_accepted: "وەرگیرا (لەلایەن ئەدمین) ✅",
-        status_delivery: "لەلای مەندوبە / گەیاندن 🛵",
-        status_completed: "گەیشت / تەواو بوو 🎉",
-        status_cancelled: "ڕەتکرایەوە ❌",
-        
-        btn_accept: "وەرگرتن",
-        btn_delivery: "مەندوب",
-        btn_complete: "تەواو",
-        btn_cancel: "ڕەتکردنەوە",
-        confirm_status_change: "دڵنیایت دەتەوێت دۆخەکە بگۆڕیت؟"
+        out_of_stock_btn: "لە کۆگا نەماوە"
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -345,20 +332,7 @@ export const translations = {
         
         // --- Out of Stock Translations ---
         out_of_stock_badge: "نەما یە 🚫",
-        out_of_stock_btn: "ل کۆگەهێ نەما یە",
-
-        // --- Order Status & Admin Controls ---
-        status_pending: "د چاوەڕوانیێ دایە ⏳",
-        status_accepted: "هاتە وەرگرتن (ژ لایێ ئەدمینی) ✅",
-        status_delivery: "یادایەف مەندوبی / گەهاندن 🛵",
-        status_completed: "گەهشت / تمام بوو 🎉",
-        status_cancelled: "هاتە ڕەتکرن ❌",
-
-        btn_accept: "وەرگرتن",
-        btn_delivery: "مەندوب",
-        btn_complete: "تەواو",
-        btn_cancel: "ڕەتکرن",
-        confirm_status_change: "تۆ پشتڕاستی تە دڤێت دۆخی بگوهۆڕی؟"
+        out_of_stock_btn: "ل کۆگەهێ نەما یە"
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -488,20 +462,7 @@ export const translations = {
         
         // --- Out of Stock Translations ---
         out_of_stock_badge: "نفذت الكمية 🚫",
-        out_of_stock_btn: "نفذت من المخزون",
-
-        // --- Order Status & Admin Controls ---
-        status_pending: "قيد الانتظار ⏳",
-        status_accepted: "تم القبول (من الإدارة) ✅",
-        status_delivery: "جاري التوصيل / مع المندوب 🛵",
-        status_completed: "تم التوصيل / مكتمل 🎉",
-        status_cancelled: "تم الإلغاء ❌",
-
-        btn_accept: "قبول",
-        btn_delivery: "توصيل",
-        btn_complete: "اكتمل",
-        btn_cancel: "إلغاء",
-        confirm_status_change: "هل أنت متأكد من تغيير الحالة؟"
+        out_of_stock_btn: "نفذت من المخزون"
     }
 };
 
@@ -541,8 +502,142 @@ export const FAVORITES_KEY = "maten_store_favorites";
 export const PRODUCTS_PER_PAGE = 30;
 
 // Elements Exports
-// ... (The rest of the file remains as provided in previous turns, or is loaded dynamically in app-ui.js) ...
-// NOTE: app-setup.js in the original structure actually ends with the exports above.
-// The DOM elements are exported in app-ui.js in the refactored version.
-// If your version of app-setup.js contained DOM elements, you should keep them.
-// Based on the split structure we established: app-setup.js handles Firebase & Translations & State.
+export const loginModal = document.getElementById('loginModal');
+export const addProductBtn = document.getElementById('addProductBtn'); 
+export const productFormModal = document.getElementById('productFormModal');
+export const productsContainer = document.getElementById('productsContainer');
+export const skeletonLoader = document.getElementById('skeletonLoader');
+export const searchInput = document.getElementById('searchInput');
+export const clearSearchBtn = document.getElementById('clearSearchBtn');
+export const loginForm = document.getElementById('loginForm');
+export const productForm = document.getElementById('productForm');
+export const formTitle = document.getElementById('formTitle');
+export const imageInputsContainer = document.getElementById('imageInputsContainer');
+export const loader = document.getElementById('loader');
+export const cartBtn = document.getElementById('cartBtn');
+export const cartItemsContainer = document.getElementById('cartItemsContainer');
+export const emptyCartMessage = document.getElementById('emptyCartMessage');
+export const cartTotal = document.getElementById('cartTotal');
+export const totalAmount = document.getElementById('totalAmount');
+export const cartActions = document.getElementById('cartActions');
+export const favoritesContainer = document.getElementById('favoritesContainer');
+export const emptyFavoritesMessage = document.getElementById('emptyFavoritesMessage');
+export const categoriesBtn = document.getElementById('categoriesBtn');
+export const sheetOverlay = document.getElementById('sheet-overlay');
+export const sheetCategoriesContainer = document.getElementById('sheetCategoriesContainer');
+export const productCategorySelect = document.getElementById('productCategoryId');
+export const subcategorySelectContainer = document.getElementById('subcategorySelectContainer');
+export const productSubcategorySelect = document.getElementById('productSubcategoryId');
+export const subSubcategorySelectContainer = document.getElementById('subSubcategorySelectContainer');
+export const productSubSubcategorySelect = document.getElementById('productSubSubcategoryId');
+export const profileForm = document.getElementById('profileForm');
+export const settingsPage = document.getElementById('settingsPage');
+export const mainPage = document.getElementById('mainPage');
+export const homeBtn = document.getElementById('homeBtn');
+export const settingsBtn = document.getElementById('settingsBtn');
+export const settingsFavoritesBtn = document.getElementById('settingsFavoritesBtn');
+export const settingsAdminLoginBtn = document.getElementById('settingsAdminLoginBtn');
+export const settingsLogoutBtn = document.getElementById('settingsLogoutBtn');
+export const profileBtn = document.getElementById('profileBtn'); 
+export const contactToggle = document.getElementById('contactToggle');
+export const notificationBtn = document.getElementById('notificationBtn');
+export const notificationBadge = document.getElementById('notificationBadge');
+export const notificationsSheet = document.getElementById('notificationsSheet');
+export const notificationsListContainer = document.getElementById('notificationsListContainer');
+export const termsAndPoliciesBtn = document.getElementById('termsAndPoliciesBtn');
+export const termsSheet = document.getElementById('termsSheet');
+export const termsContentContainer = document.getElementById('termsContentContainer');
+export const subSubcategoriesContainer = document.getElementById('subSubcategoriesContainer'); 
+
+export const homePageSectionsContainer = document.getElementById('homePageSectionsContainer');
+export const categoryLayoutContainer = document.getElementById('categoryLayoutContainer');
+
+export const adminPoliciesManagement = document.getElementById('adminPoliciesManagement');
+export const policiesForm = document.getElementById('policiesForm');
+export const adminSocialMediaManagement = document.getElementById('adminSocialMediaManagement');
+export const addSocialMediaForm = document.getElementById('addSocialMediaForm');
+export const socialLinksListContainer = document.getElementById('socialLinksListContainer');
+export const socialMediaToggle = document.getElementById('socialMediaToggle');
+export const adminAnnouncementManagement = document.getElementById('adminAnnouncementManagement');
+export const announcementForm = document.getElementById('announcementForm');
+export const announcementsListContainer = document.getElementById('announcementsListContainer'); 
+export const adminPromoCardsManagement = document.getElementById('adminPromoCardsManagement');
+export const addPromoGroupForm = document.getElementById('addPromoGroupForm');
+export const promoGroupsListContainer = document.getElementById('promoGroupsListContainer');
+export const addPromoCardForm = document.getElementById('addPromoCardForm');
+export const adminBrandsManagement = document.getElementById('adminBrandsManagement');
+export const addBrandGroupForm = document.getElementById('addBrandGroupForm');
+export const brandGroupsListContainer = document.getElementById('brandGroupsListContainer');
+export const addBrandForm = document.getElementById('addBrandForm');
+export const adminCategoryManagement = document.getElementById('adminCategoryManagement');
+export const categoryListContainer = document.getElementById('categoryListContainer');
+export const addCategoryForm = document.getElementById('addCategoryForm');
+export const addSubcategoryForm = document.getElementById('addSubcategoryForm');
+export const addSubSubcategoryForm = document.getElementById('addSubSubcategoryForm');
+export const editCategoryForm = document.getElementById('editCategoryModal');
+export const adminContactMethodsManagement = document.getElementById('adminContactMethodsManagement');
+export const contactMethodsListContainer = document.getElementById('contactMethodsListContainer');
+export const adminShortcutRowsManagement = document.getElementById('adminShortcutRowsManagement');
+export const shortcutRowsListContainer = document.getElementById('shortcutRowsListContainer');
+export const addShortcutRowForm = document.getElementById('addShortcutRowForm');
+export const addCardToRowForm = document.getElementById('addCardToRowForm');
+export const adminHomeLayoutManagement = document.getElementById('adminHomeLayoutManagement');
+export const homeLayoutListContainer = document.getElementById('homeLayoutListContainer');
+export const addHomeSectionBtn = document.getElementById('addHomeSectionBtn');
+export const addHomeSectionModal = document.getElementById('addHomeSectionModal');
+export const addHomeSectionForm = document.getElementById('addHomeSectionForm');
+export const adminCategoryLayoutManagement = document.getElementById('adminCategoryLayoutManagement');
+export const categoryLayoutSelect = document.getElementById('categoryLayoutSelect');
+export const categoryLayoutEditorContainer = document.getElementById('categoryLayoutEditorContainer');
+export const categoryLayoutEnableToggle = document.getElementById('categoryLayoutEnableToggle');
+export const categoryLayoutListContainer = document.getElementById('categoryLayoutListContainer');
+export const addCategorySectionBtn = document.getElementById('addCategorySectionBtn');
+
+window.globalAdminTools = {
+    db, auth,
+    storage, ref, uploadBytes, getDownloadURL,
+    doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc, collection,
+    query, orderBy, onSnapshot, getDocs, signOut, where, limit, runTransaction,
+
+    productsCollection, categoriesCollection, announcementsCollection,
+    promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
+    categoryLayoutsCollection, 
+    chatsCollection, ordersCollection,
+
+    setEditingProductId: (id) => { state.editingProductId = id; },
+    getEditingProductId: () => state.editingProductId,
+    getCategories: () => state.categories,
+    getCurrentLanguage: () => state.currentLanguage,
+
+    t: (key, replacements = {}) => { 
+        let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
+        for (const placeholder in replacements) {
+            translation = translation.replace(`{${placeholder}}`, replacements[placeholder]);
+        }
+        return translation;
+    },
+    showNotification: (message, type = 'success') => { 
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.classList.add('show'), 10);
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => document.body.removeChild(notification), 300);
+        }, 3000);
+    },
+     clearProductCache: () => { 
+          console.log("Product cache and home page cleared due to admin action.");
+          state.productCache = {};
+          const homeContainer = document.getElementById('homePageSectionsContainer');
+          if (homeContainer) {
+              homeContainer.innerHTML = '';
+          }
+          const categoryContainer = document.getElementById('categoryLayoutContainer');
+          if (categoryContainer) {
+              categoryContainer.innerHTML = '';
+          }
+          document.dispatchEvent(new Event('clearCacheTriggerRender'));
+     },
+};
