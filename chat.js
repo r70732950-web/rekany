@@ -1,7 +1,7 @@
 // chat.js
 import { 
     db, auth, storage, 
-    chatsCollection, ordersCollection, 
+    chatsCollection, ordersCollection, usersCollection, 
     serverTimestamp,
     ref, uploadBytes, getDownloadURL 
 } from './app-setup.js';
@@ -11,12 +11,12 @@ import {
 } from './app-core.js';
 
 import { 
-    showNotification, openPopup 
+    showNotification, openPopup, closeCurrentPopup
 } from './app-ui.js';
 
 import { 
-    collection, addDoc, query, orderBy, onSnapshot, 
-    doc, setDoc, updateDoc, getDoc, writeBatch 
+    collection, addDoc, query, where, orderBy, onSnapshot, 
+    doc, setDoc, updateDoc, getDoc, limit, writeBatch 
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
 let messagesUnsubscribe = null;
@@ -36,8 +36,27 @@ export function initChatSystem() {
 }
 
 function setupChatUI() {
-    // Chat Page Structure
+    const cartActions = document.getElementById('cartActions');
+    if (cartActions) {
+        const existingBtn = cartActions.querySelector('.direct-order-btn');
+        if(existingBtn) existingBtn.remove();
+
+        const directOrderBtn = document.createElement('button');
+        directOrderBtn.className = 'whatsapp-btn direct-order-btn'; 
+        directOrderBtn.style.backgroundColor = 'var(--primary-color)';
+        directOrderBtn.style.marginTop = '10px';
+        directOrderBtn.innerHTML = `<i class="fas fa-paper-plane"></i> <span>${t('submit_order_direct')}</span>`;
+        directOrderBtn.onclick = handleDirectOrder;
+        
+        if (cartActions.firstChild) {
+            cartActions.insertBefore(directOrderBtn, cartActions.firstChild);
+        } else {
+            cartActions.appendChild(directOrderBtn);
+        }
+    }
+
     const chatPage = document.getElementById('chatPage');
+    
     if (chatPage && !chatPage.querySelector('.chat-container')) {
         chatPage.innerHTML = `
             <div class="chat-container">
@@ -82,7 +101,6 @@ function setupChatUI() {
         `;
     }
     
-    // Admin List Page Structure
     const adminChatListPage = document.getElementById('adminChatListPage');
     if (adminChatListPage && !adminChatListPage.querySelector('.conversation-list-container')) {
         adminChatListPage.innerHTML = `
@@ -115,6 +133,7 @@ function setupChatListeners() {
         if (backBtn) {
             const bottomNav = document.querySelector('.bottom-nav');
             if (bottomNav) bottomNav.style.display = 'flex';
+            // Restore Header when going back
             const appHeader = document.querySelector('.app-header');
             if (appHeader) appHeader.style.display = 'flex';
             document.documentElement.classList.remove('chat-active');
@@ -169,31 +188,6 @@ function setupChatListeners() {
     }, 1000);
 }
 
-// === NEW: Update Order Status Function (Global for buttons) ===
-window.updateOrderStatus = async function(orderId, newStatus, btnElement) {
-    if(!confirm(t('confirm_status_change'))) return;
-    
-    const originalText = btnElement.innerText;
-    btnElement.innerText = "...";
-    btnElement.disabled = true;
-
-    try {
-        const orderRef = doc(db, "orders", orderId);
-        await updateDoc(orderRef, {
-            status: newStatus
-        });
-        
-        showNotification(`دۆخ هاتە گوهۆڕین بۆ: ${t('status_' + newStatus)}`, 'success');
-        btnElement.innerText = "✓ " + originalText;
-        
-    } catch (error) {
-        console.error("Error updating order:", error);
-        showNotification("خەلەتییەک چێبوو", 'error');
-        btnElement.innerText = originalText;
-        btnElement.disabled = false;
-    }
-};
-
 export async function openChatPage(targetUserId = null, targetUserName = null) {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     
@@ -202,6 +196,7 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
         return;
     }
     
+    // --- [NEW FIX] Hide Header and Bottom Nav ---
     const appHeader = document.querySelector('.app-header');
     if (appHeader) appHeader.style.display = 'none';
     document.documentElement.classList.add('chat-active');
@@ -288,6 +283,7 @@ function openAdminChatList() {
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) bottomNav.style.display = 'flex';
 
+    // Ensure header is visible for Admin List
     const appHeader = document.querySelector('.app-header');
     if (appHeader) appHeader.style.display = 'flex';
     document.documentElement.classList.remove('chat-active');
@@ -344,10 +340,9 @@ function subscribeToMessages(chatUserId) {
     });
 }
 
-// === UPDATED: Render Single Message with Admin Controls ===
+// === [UPDATED] Render Order Message with New Shipping Logic ===
 function renderSingleMessage(msg, container, chatUserId) {
-    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-    const isMe = msg.senderId === (isAdmin ? 'admin' : (state.currentUser ? state.currentUser.uid : ''));
+    const isMe = msg.senderId === (sessionStorage.getItem('isAdmin') === 'true' ? 'admin' : (state.currentUser ? state.currentUser.uid : ''));
     const alignClass = isMe ? 'message-sent' : 'message-received';
     
     const div = document.createElement('div');
@@ -385,23 +380,9 @@ function renderSingleMessage(msg, container, chatUserId) {
             
             const marketMaxChargedTracker = {}; 
 
-            // --- 2. Admin Controls Logic ---
-            let adminControls = '';
-            if (isAdmin && order.id) { 
-                const oid = order.id;
-                adminControls = `
-                    <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; display: flex; flex-wrap: wrap; gap: 5px;">
-                        <button onclick="window.updateOrderStatus('${oid}', 'accepted', this)" style="flex:1; background:#4299e1; color:white; border:none; padding:5px; border-radius:4px; font-size:11px; cursor:pointer;">${t('btn_accept')}</button>
-                        <button onclick="window.updateOrderStatus('${oid}', 'delivery', this)" style="flex:1; background:#805ad5; color:white; border:none; padding:5px; border-radius:4px; font-size:11px; cursor:pointer;">${t('btn_delivery')}</button>
-                        <button onclick="window.updateOrderStatus('${oid}', 'completed', this)" style="flex:1; background:#48bb78; color:white; border:none; padding:5px; border-radius:4px; font-size:11px; cursor:pointer;">${t('btn_complete')}</button>
-                        <button onclick="window.updateOrderStatus('${oid}', 'cancelled', this)" style="flex:1; background:#e53e3e; color:white; border:none; padding:5px; border-radius:4px; font-size:11px; cursor:pointer;">${t('btn_cancel')}</button>
-                    </div>
-                `;
-            }
-
             contentHtml = `
                 <div class="order-bubble">
-                    <div class="order-bubble-header"><i class="fas fa-receipt"></i> ${t('order_notification_title')} ${order.id ? `<span style="font-size:10px; float:left;">#${order.id.slice(0,5)}</span>` : ''}</div>
+                    <div class="order-bubble-header"><i class="fas fa-receipt"></i> ${t('order_notification_title')}</div>
                     <div class="order-bubble-content">
                         ${order.items.map(i => {
                             const price = Number(i.price) || 0;
@@ -413,6 +394,7 @@ function renderSingleMessage(msg, container, chatUserId) {
                             
                             const mCode = i.marketCode ? `<span style="font-size:10px; color:#777; display:block;">مارکێت: ${i.marketCode}</span>` : '';
                             
+                            // --- Determine Shipping Display based on New Rule ---
                             const mCodeKey = i.marketCode || 'default';
                             const group = marketGroups[mCodeKey];
                             const itemCount = group.items.length;
@@ -421,6 +403,7 @@ function renderSingleMessage(msg, container, chatUserId) {
                             let shippingDisplay = '';
 
                             if (itemCount >= 3) {
+                                // Rule: 3+, pay only Max
                                 const isPayer = (itemCost === group.maxShipping) && !marketMaxChargedTracker[mCodeKey];
                                 if (isPayer && itemCost > 0) {
                                     shippingDisplay = `<span style="color:#e53e3e; font-size:10px;">(+ ${itemCost.toLocaleString()} گەیاندن)</span>`;
@@ -429,6 +412,7 @@ function renderSingleMessage(msg, container, chatUserId) {
                                     shippingDisplay = `<span style="color:#38a169; font-size:10px;">(گەیاندن بێ بەرامبەر)</span>`;
                                 }
                             } else {
+                                // Rule: < 3, pay All
                                 if (itemCost > 0) {
                                     shippingDisplay = `<span style="color:#e53e3e; font-size:10px;">(+ ${itemCost.toLocaleString()} گەیاندن)</span>`;
                                 } else {
@@ -462,8 +446,6 @@ function renderSingleMessage(msg, container, chatUserId) {
                             <div style="margin-bottom: 4px;"><i class="fas fa-phone" style="width: 15px; text-align: center;"></i> <a href="tel:${order.userPhone}" style="color: inherit; text-decoration: none;">${order.userPhone || 'ژمارە نییە'}</a></div>
                             <div><i class="fas fa-map-marker-alt" style="width: 15px; text-align: center;"></i> ${order.userAddress || 'ناونیشان نییە'}</div>
                         </div>
-
-                        ${adminControls}
                     </div>
                 </div>
             `;
@@ -492,7 +474,7 @@ function renderSingleMessage(msg, container, chatUserId) {
     container.appendChild(div);
 }
 
-export async function sendMessage(type, file = null, orderData = null) {
+async function sendMessage(type, file = null, orderData = null) {
     if (!state.currentUser && sessionStorage.getItem('isAdmin') !== 'true') return;
 
     const textInput = document.getElementById('chatTextInput');
@@ -659,6 +641,107 @@ async function handleVoiceRecording() {
     else if (mediaRecorder.state === 'recording') {
         isRecordingCancelled = false; 
         mediaRecorder.stop(); 
+    }
+}
+
+
+async function handleDirectOrder() {
+    if (!state.currentUser) {
+        showNotification('تکایە سەرەتا بچۆ ژوورەوە', 'error');
+        openPopup('profileSheet');
+        return;
+    }
+
+    if (state.cart.length === 0) {
+        showNotification(t('cart_empty'), 'error');
+        return;
+    }
+
+    if (!state.userProfile.phone || !state.userProfile.address) {
+        showNotification('تکایە سەرەتا زانیارییەکانت (ناونیشان و تەلەفۆن) لە پڕۆفایل پڕبکەرەوە', 'error');
+        openPopup('profileSheet');
+        return;
+    }
+
+    window.globalAdminTools.openPopup('orderConfirmationModal', 'modal');
+
+    const confirmBtn = document.getElementById('confirmOrderBtn');
+    const cancelBtn = document.getElementById('cancelOrderBtn');
+
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+    newCancelBtn.onclick = () => {
+        window.globalAdminTools.closeCurrentPopup();
+    };
+
+    newConfirmBtn.onclick = async () => {
+        history.go(-2); 
+        setTimeout(() => {
+             processOrderSubmission();
+        }, 150);
+    };
+}
+
+// === [UPDATED] Calculate Total with New Rules for Database ===
+async function processOrderSubmission() {
+    let totalItemPrice = 0;
+    let totalShipping = 0;
+    const marketGroups = {};
+
+    state.cart.forEach(item => {
+        totalItemPrice += (item.price * item.quantity);
+        const mCode = item.marketCode || 'default';
+        if (!marketGroups[mCode]) {
+            marketGroups[mCode] = { items: [], maxShipping: 0 };
+        }
+        marketGroups[mCode].items.push(item);
+        if ((item.shippingCost || 0) > marketGroups[mCode].maxShipping) {
+            marketGroups[mCode].maxShipping = item.shippingCost || 0;
+        }
+    });
+
+    for (const [mCode, group] of Object.entries(marketGroups)) {
+        if (group.items.length >= 3) {
+            // Rule: 3+ items -> Pay Max only
+            totalShipping += group.maxShipping;
+        } else {
+            // Rule: < 3 items -> Pay All
+            totalShipping += group.items.reduce((sum, i) => sum + (i.shippingCost || 0), 0);
+        }
+    }
+
+    const total = totalItemPrice + totalShipping;
+    
+    const orderData = {
+        userId: state.currentUser.uid,
+        userName: state.userProfile.name || state.currentUser.displayName, 
+        userPhone: state.userProfile.phone || '', 
+        userAddress: state.userProfile.address || '', 
+        items: state.cart,
+        total: total,
+        status: 'pending', 
+        createdAt: Date.now() 
+    };
+
+    try {
+        await addDoc(ordersCollection, orderData);
+        await sendMessage('order', null, orderData);
+
+        state.cart = [];
+        saveCart();
+        
+        document.querySelectorAll('.cart-count').forEach(el => el.textContent = '0');
+
+        openChatPage();
+        showNotification(t('order_submitted'), 'success');
+
+    } catch (error) {
+        console.error("Order Error:", error);
+        showNotification(t('error_generic'), 'error');
     }
 }
 
