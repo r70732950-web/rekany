@@ -120,7 +120,7 @@ export const translations = {
         conversations_title: "نامەکانی بەکارهێنەران",
         order_submitted: "داواکارییەکەت بە سەرکەوتوویی نێردرا",
         submit_order_direct: "ناردنی داواکاری ڕاستەوخۆ",
-        order_notification_title: "پسوڵەی داواکاری",
+        order_notification_title: "داواکاری نوێ",
         order_details: "وردەکاری داواکاری",
         contact_us_title: "پەیوەندیمان پێوە بکە",
         add_to_cart: "زیادکردن بۆ سەبەتە",
@@ -201,16 +201,14 @@ export const translations = {
         yes_delete: "بەڵێ، بیسڕەوە",
         out_of_stock_badge: "نەماوە 🚫",
         out_of_stock_btn: "لە کۆگا نەماوە",
-        
-        // --- NEW CHAT TRANSLATIONS ---
-        my_order_btn: "داواکاری من",
-        track_order_title: "بەدواداچوونی داواکاری",
-        status_pending: "چاوەڕوانی",
-        status_accepted: "وەرگیرا",
-        status_shipping: "لای مەندوب",
-        status_delivered: "گەیشت",
-        change_status: "گۆڕینی دۆخ:",
-        free_shipping_badge: "گەیاندن بێ بەرامبەر"
+
+        // --- NEW ORDER STATUS KEYS ---
+        order_status_pending: "چاوەڕێیە",
+        order_status_accepted: "وەرگیرا (قبوڵکرا)",
+        order_status_shipping: "لای مەندوبە",
+        order_status_delivered: "گەیشت",
+        order_status_rejected: "ڕەتکرایەوە",
+        order_status_label: "دۆخی داواکاری:"
     },
     ku_badini: {
         search_placeholder: "لێگەریان ب ناڤێ کاڵای...",
@@ -258,7 +256,7 @@ export const translations = {
         conversations_title: "نامەیێن بکارهێنەران",
         order_submitted: "داخازیا تە ب سەرکەفتیانە هاتە فرێکرن",
         submit_order_direct: "فرێکرنا داخازیێ راستەوخۆ",
-        order_notification_title: "پوولێ داخازیێ",
+        order_notification_title: "داخازیەکا نوو",
         order_details: "وردەکاریێن داخازیێ",
         contact_us_title: "پەیوەندیێ ب مە بکە",
         add_to_cart: "زێدەکرن بۆ سەلکێ",
@@ -340,15 +338,13 @@ export const translations = {
         out_of_stock_badge: "نەما یە 🚫",
         out_of_stock_btn: "ل کۆگەهێ نەما یە",
 
-        // --- NEW CHAT TRANSLATIONS ---
-        my_order_btn: "داخازیا من",
-        track_order_title: "دویڤچوونا داخازیێ",
-        status_pending: "لیستا چاڤەڕێبوونێ",
-        status_accepted: "هاتە وەرگرتن",
-        status_shipping: "ل دەڤ مەندوبی",
-        status_delivered: "گەهشت",
-        change_status: "گوهۆرینا رەوشی:",
-        free_shipping_badge: "گەهاندن بێ بەرامبەرە"
+        // --- NEW ORDER STATUS KEYS ---
+        order_status_pending: "ل هیویا بەرسڤێ",
+        order_status_accepted: "هاتە وەرگرتن",
+        order_status_shipping: "ل دەف مەندوبی",
+        order_status_delivered: "گەهشت",
+        order_status_rejected: "هاتە ڕەتکرن",
+        order_status_label: "ڕەوشا داخازیێ:"
     },
     ar: {
         search_placeholder: "البحث باسم المنتج...",
@@ -396,7 +392,7 @@ export const translations = {
         conversations_title: "رسائل المستخدمين",
         order_submitted: "تم إرسال طلبك بنجاح",
         submit_order_direct: "إرسال الطلب مباشرة",
-        order_notification_title: "فاتورة الطلب",
+        order_notification_title: "طلب جديد",
         order_details: "تفاصيل الطلب",
         contact_us_title: "تواصل معنا",
         add_to_cart: "إضافة إلى السلة",
@@ -478,15 +474,13 @@ export const translations = {
         out_of_stock_badge: "نفذت الكمية 🚫",
         out_of_stock_btn: "نفذت من المخزون",
 
-        // --- NEW CHAT TRANSLATIONS ---
-        my_order_btn: "طلبي",
-        track_order_title: "تتبع الطلب",
-        status_pending: "قيد الانتظار",
-        status_accepted: "تم الاستلام",
-        status_shipping: "عند المندوب",
-        status_delivered: "تم التوصيل",
-        change_status: "تغيير الحالة:",
-        free_shipping_badge: "توصيل مجاني"
+        // --- NEW ORDER STATUS KEYS ---
+        order_status_pending: "قيد الانتظار",
+        order_status_accepted: "تم القبول",
+        order_status_shipping: "مع المندوب",
+        order_status_delivered: "تم التوصيل",
+        order_status_rejected: "تم الرفض",
+        order_status_label: "حالة الطلب:"
     }
 };
 
