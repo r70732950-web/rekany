@@ -3,7 +3,8 @@ import {
     db, auth, storage, 
     chatsCollection, ordersCollection, usersCollection, 
     serverTimestamp,
-    ref, uploadBytes, getDownloadURL 
+    ref, uploadBytes, getDownloadURL,
+    translations // <--- ئەمەمان زیاد کرد بۆ دەستگەیشتن بە هەموو زمانەکان
 } from './app-setup.js';
 
 import { 
@@ -133,7 +134,6 @@ function setupChatListeners() {
         if (backBtn) {
             const bottomNav = document.querySelector('.bottom-nav');
             if (bottomNav) bottomNav.style.display = 'flex';
-            // Restore Header when going back
             const appHeader = document.querySelector('.app-header');
             if (appHeader) appHeader.style.display = 'flex';
             document.documentElement.classList.remove('chat-active');
@@ -196,7 +196,6 @@ export async function openChatPage(targetUserId = null, targetUserName = null) {
         return;
     }
     
-    // --- [NEW FIX] Hide Header and Bottom Nav ---
     const appHeader = document.querySelector('.app-header');
     if (appHeader) appHeader.style.display = 'none';
     document.documentElement.classList.add('chat-active');
@@ -283,7 +282,6 @@ function openAdminChatList() {
     const bottomNav = document.querySelector('.bottom-nav');
     if (bottomNav) bottomNav.style.display = 'flex';
 
-    // Ensure header is visible for Admin List
     const appHeader = document.querySelector('.app-header');
     if (appHeader) appHeader.style.display = 'flex';
     document.documentElement.classList.remove('chat-active');
@@ -341,8 +339,12 @@ function subscribeToMessages(chatUserId) {
     });
 }
 
-// === [UPDATED] Render Order Message with New Status Logic ===
+// === Render Order Message ===
 function renderSingleMessage(msg, container, chatUserId, messageId) {
+    
+    // ئەگەر نامەکە تایبەت بێت (مەخفی)، ڕەندەری مەکە
+    if (msg.isSystemMessage) return;
+
     const isMe = msg.senderId === (sessionStorage.getItem('isAdmin') === 'true' ? 'admin' : (state.currentUser ? state.currentUser.uid : ''));
     const alignClass = isMe ? 'message-sent' : 'message-received';
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
@@ -367,7 +369,6 @@ function renderSingleMessage(msg, container, chatUserId, messageId) {
         const order = msg.orderDetails;
         if(order && order.items) {
             
-            // --- 1. Group Items to Apply Rules ---
             const marketGroups = {};
             order.items.forEach(item => {
                 const mCode = item.marketCode || 'default';
@@ -382,7 +383,6 @@ function renderSingleMessage(msg, container, chatUserId, messageId) {
             
             const marketMaxChargedTracker = {}; 
 
-            // --- Status Logic ---
             const orderStatus = order.status || 'pending';
             let statusHtml = '';
 
@@ -423,7 +423,6 @@ function renderSingleMessage(msg, container, chatUserId, messageId) {
                             
                             const mCode = i.marketCode ? `<span style="font-size:10px; color:#777; display:block;">مارکێت: ${i.marketCode}</span>` : '';
                             
-                            // Shipping Logic
                             const mCodeKey = i.marketCode || 'default';
                             const group = marketGroups[mCodeKey];
                             const itemCount = group.items.length;
@@ -500,7 +499,6 @@ function renderSingleMessage(msg, container, chatUserId, messageId) {
         </div>
     `;
 
-    // Add Change Event Listener for Admin Status
     if (isAdmin && msg.type === 'order') {
         const select = div.querySelector('.admin-status-select');
         if (select) {
@@ -508,13 +506,7 @@ function renderSingleMessage(msg, container, chatUserId, messageId) {
                 const newStatus = e.target.value;
                 const msgId = e.target.dataset.msgId;
                 const chatUid = e.target.dataset.chatUid;
-                const orderId = msg.orderId; 
-
-                // 1. Update Message Doc
                 await updateOrderStatus(chatUid, msgId, newStatus);
-                
-                // 2. Update Order Collection if linked (optional, but good)
-                // If you stored orderId in message, update it too
             });
         }
     }
@@ -522,15 +514,23 @@ function renderSingleMessage(msg, container, chatUserId, messageId) {
     container.appendChild(div);
 }
 
-// --- Function to Update Order Status in Database ---
+// === [UPDATED & FIXED] Update Status & Send Multi-Language Notification ===
 async function updateOrderStatus(chatUserId, messageId, newStatus) {
     try {
         const msgRef = doc(db, "chats", chatUserId, "messages", messageId);
-        
-        // We need to update the nested 'orderDetails.status' field
         await updateDoc(msgRef, {
             "orderDetails.status": newStatus
         });
+
+        // Get translation for all languages (FIXED)
+        const soraniText = translations['ku_sorani']['order_status_' + newStatus];
+        const badiniText = translations['ku_badini']['order_status_' + newStatus];
+        const arabicText = translations['ar']['order_status_' + newStatus];
+
+        // Combine them so everyone understands in notification
+        const autoMessageText = `${soraniText} | ${badiniText} | ${arabicText}`;
+        
+        await sendMessage('text', null, null, autoMessageText, true); 
         
         showNotification("دۆخی داواکاری گۆڕدرا", "success");
     } catch (error) {
@@ -539,13 +539,15 @@ async function updateOrderStatus(chatUserId, messageId, newStatus) {
     }
 }
 
-async function sendMessage(type, file = null, orderData = null) {
+async function sendMessage(type, file = null, orderData = null, customText = null, isSystem = false) {
     if (!state.currentUser && sessionStorage.getItem('isAdmin') !== 'true') return;
 
     const textInput = document.getElementById('chatTextInput');
     let content = '';
     
-    if (textInput) {
+    if (customText) {
+        content = customText;
+    } else if (textInput) {
         content = textInput.value.trim();
     }
     
@@ -566,11 +568,12 @@ async function sendMessage(type, file = null, orderData = null) {
         type: type,
         content: type === 'text' ? content : '',
         timestamp: serverTimestamp(),
-        isRead: false
+        isRead: false,
+        isSystemMessage: isSystem 
     };
 
     try {
-        if (type === 'text' && textInput) {
+        if (type === 'text' && textInput && !customText) {
             textInput.value = '';
             const sendBtn = document.getElementById('chatSendBtn');
             const voiceBtn = document.getElementById('chatVoiceBtn');
@@ -587,10 +590,8 @@ async function sendMessage(type, file = null, orderData = null) {
         }
 
         if (type === 'order') {
-            // Set default status when creating order message
             orderData.status = 'pending'; 
             messageData.orderDetails = orderData;
-            // Optionally store orderId if we have it to link back
             if(orderData.id) messageData.orderId = orderData.id; 
         }
 
@@ -598,8 +599,15 @@ async function sendMessage(type, file = null, orderData = null) {
         await addDoc(messagesRef, messageData);
 
         const chatDocRef = doc(db, "chats", docId);
+        
+        let previewText = '';
+        if (type === 'text') previewText = content;
+        else if (type === 'image') previewText = '📷 Image';
+        else if (type === 'audio') previewText = '🎤 Audio';
+        else if (type === 'order') previewText = '📦 Order';
+
         const chatUpdateData = {
-            lastMessage: type === 'text' ? content : (type === 'image' ? '📷 Image' : (type === 'audio' ? '🎤 Audio' : '📦 Order')),
+            lastMessage: previewText,
             lastMessageTime: serverTimestamp(),
             isReadByAdmin: isAdmin, 
             isReadByUser: !isAdmin  

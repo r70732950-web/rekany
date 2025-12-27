@@ -2568,3 +2568,79 @@ img {
     color: var(--text-color);
     outline: none;
 }
+/* --- Winter Theme Advanced Styles --- */
+.winter-modal {
+    /* Background Image looks like snow/ice */
+    background: linear-gradient(to bottom, #e0f7fa 0%, #ffffff 100%);
+    border: 3px solid #b3e5fc;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    border-radius: 20px !important;
+}
+
+.winter-icon-wrapper {
+    position: relative;
+    z-index: 5;
+    margin-bottom: 10px;
+    background: white;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(137, 207, 240, 0.3);
+    border: 2px solid #e1f5fe;
+}
+
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+/* Snow Animation Container */
+.snowflakes {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.snowflake {
+    color: #b3e5fc; /* Light Ice Blue */
+    font-size: 1.5em;
+    font-family: Arial, sans-serif;
+    text-shadow: 0 0 1px #81d4fa;
+    position: absolute;
+    top: -10%;
+    z-index: 2;
+    user-select: none;
+    cursor: default;
+    animation-name: snowflakes-fall, snowflakes-shake;
+    animation-duration: 10s, 3s;
+    animation-timing-function: linear, ease-in-out;
+    animation-iteration-count: infinite, infinite;
+    animation-play-state: running, running;
+}
+
+@keyframes snowflakes-fall {
+    0% { top: -10%; }
+    100% { top: 100%; }
+}
+
+@keyframes snowflakes-shake {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(80px); }
+}
+
+/* Randomizing Snowflakes for Natural Look */
+.snowflake:nth-of-type(1) { left: 1%; animation-delay: 0s, 0s; font-size: 1em; }
+.snowflake:nth-of-type(2) { left: 10%; animation-delay: 1s, 1s; font-size: 2em; opacity: 0.6; }
+.snowflake:nth-of-type(3) { left: 20%; animation-delay: 6s, 0.5s; font-size: 1.2em; }
+.snowflake:nth-of-type(4) { left: 30%; animation-delay: 4s, 2s; font-size: 1.5em; opacity: 0.8; }
+.snowflake:nth-of-type(5) { left: 40%; animation-delay: 2s, 2s; font-size: 1em; }
+.snowflake:nth-of-type(6) { left: 50%; animation-delay: 8s, 3s; font-size: 2.2em; opacity: 0.5; }
+.snowflake:nth-of-type(7) { left: 60%; animation-delay: 6s, 2s; font-size: 1.1em; }
+.snowflake:nth-of-type(8) { left: 70%; animation-delay: 2.5s, 1s; font-size: 1.8em; }
+.snowflake:nth-of-type(9) { left: 80%; animation-delay: 1s, 0s; font-size: 1.3em; }
+.snowflake:nth-of-type(10) { left: 90%; animation-delay: 3s, 1.5s; font-size: 1.6em; }
+

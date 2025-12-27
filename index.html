@@ -81,13 +81,36 @@
         </div>
 
         <div id="welcomeModal" class="modal">
-            <div class="modal-content" style="text-align: center;">
-                <span class="close" aria-label="Close">&times;</span>
-                <i class="fas fa-store" style="font-size: 40px; color: var(--accent-color); margin-bottom: 15px;"></i>
-                <h2 style="margin-bottom: 10px;">بەخێرهاتن بۆ فرۆشگای MATEN</h2>
-                <p style="color: var(--text-light);">هیوادارین ئەزموونێکی کڕینی خۆشت هەبێت!</p>
-            </div>
+    <div class="modal-content winter-modal" style="text-align: center; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 320px;">
+        
+        <div class="snowflakes" aria-hidden="true">
+            <div class="snowflake">❅</div><div class="snowflake">❆</div><div class="snowflake">❅</div>
+            <div class="snowflake">❆</div><div class="snowflake">❅</div><div class="snowflake">❆</div>
+            <div class="snowflake">❅</div><div class="snowflake">❆</div><div class="snowflake">❅</div>
+            <div class="snowflake">❆</div>
         </div>
+
+        <span class="close" aria-label="Close" style="z-index: 10; color: #1a365d;">&times;</span>
+        
+        <div class="winter-icon-wrapper">
+            <i class="fas fa-store" style="font-size: 50px; color: #1a365d;"></i>
+            <i class="fas fa-snowflake" style="position: absolute; top: -5px; right: -10px; color: #89CFF0; font-size: 20px; animation: spin 3s linear infinite;"></i>
+        </div>
+        
+        <h2 style="margin: 15px 0 5px 0; color: #1a365d; font-size: 28px; font-weight: 900; z-index: 5; text-shadow: 2px 2px 4px rgba(255,255,255,0.8);">
+            MATEN STORE
+        </h2>
+        
+        <p style="color: #5a7b9c; z-index: 5; margin-bottom: 25px; font-weight: bold;">
+            <i class="fas fa-snowflake" style="color: #89CFF0;"></i> ئۆفەرێن تایبەتێن زڤستانێ <i class="fas fa-snowflake" style="color: #89CFF0;"></i>
+        </p>
+        
+        <button onclick="document.querySelector('.close').click()" style="background: linear-gradient(135deg, #1a365d 0%, #2a4365 100%); color: white; border: none; padding: 12px 40px; border-radius: 50px; font-weight: bold; cursor: pointer; z-index: 5; box-shadow: 0 4px 15px rgba(26, 54, 93, 0.3); transition: transform 0.2s;">
+            دەستپێکرن
+        </button>
+    </div>
+</div>
+
 
         <div id="orderConfirmationModal" class="modal">
             <div class="modal-content" style="text-align: center; padding: 25px;">
