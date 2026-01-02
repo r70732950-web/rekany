@@ -1,1210 +1,1108 @@
-// app-core.js (وەشانی چاککراوی کۆتایی)
+// app-ui.js (وەشانی چاککراوی کۆتایی - بێ کێشەی ڕۆبۆت)
 import {
-    db, messaging, // تێبینی: auth لێرە لابرا
-    app, // <--- ئەمەمان پێویستە
-    productsCollection, categoriesCollection, announcementsCollection,
-    promoGroupsCollection, brandGroupsCollection, shortcutRowsCollection,
-    categoryLayoutsCollection, 
-    usersCollection, 
-    createUserWithEmailAndPassword, updateProfile, 
-    sendPasswordResetEmail,
-    deleteUser, 
-    translations, 
-    CART_KEY, FAVORITES_KEY, PRODUCTS_PER_PAGE,
-    // --- فەنکشنەکان ---
-    RecaptchaVerifier, 
-    signInWithPhoneNumber 
+    loginModal, addProductBtn, productFormModal, skeletonLoader, searchInput,
+    clearSearchBtn, loginForm, productForm, formTitle, imageInputsContainer, loader,
+    cartBtn, cartItemsContainer, emptyCartMessage, cartTotal, totalAmount, cartActions,
+    favoritesContainer, emptyFavoritesMessage, categoriesBtn, sheetOverlay, sheetCategoriesContainer,
+    productCategorySelect, subcategorySelectContainer, productSubcategorySelect, subSubcategorySelectContainer,
+    productSubSubcategorySelect, profileForm, settingsPage, mainPage, homeBtn, settingsBtn,
+    settingsFavoritesBtn, settingsAdminLoginBtn, settingsLogoutBtn, profileBtn, contactToggle,
+    notificationBtn, notificationBadge, notificationsSheet, notificationsListContainer,
+    termsAndPoliciesBtn, termsSheet, termsContentContainer, subSubcategoriesContainer,
+    homePageSectionsContainer, categoryLayoutContainer,
+    // ... Admin Elements
+    adminPoliciesManagement, policiesForm, adminSocialMediaManagement, addSocialMediaForm, socialLinksListContainer, socialMediaToggle,
+    adminAnnouncementManagement, announcementForm, announcementsListContainer, adminPromoCardsManagement, addPromoGroupForm, promoGroupsListContainer, addPromoCardForm,
+    adminBrandsManagement, addBrandGroupForm, brandGroupsListContainer, addBrandForm, adminCategoryManagement, categoryListContainer, addCategoryForm,
+    addSubcategoryForm, addSubSubcategoryForm, editCategoryForm, adminContactMethodsManagement, contactMethodsListContainer, adminShortcutRowsManagement, shortcutRowsListContainer, addShortcutRowForm, addCardToRowForm,
+    adminHomeLayoutManagement, homeLayoutListContainer, addHomeSectionBtn, addHomeSectionModal, addHomeSectionForm, adminCategoryLayoutManagement, categoryLayoutSelect, categoryLayoutEditorContainer, categoryLayoutEnableToggle, categoryLayoutListContainer, addCategorySectionBtn
 } from './app-setup.js';
 
-import { 
-    getAuth, // <--- ئەمەمان زیاد کرد بۆ دڵنیابوون
-    signInWithEmailAndPassword, onAuthStateChanged, signOut 
-} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-
 import {
-    enableIndexedDbPersistence, collection, doc, updateDoc, deleteDoc,
-    onSnapshot, query, orderBy, getDocs, limit, getDoc, setDoc, where,
-    startAfter, addDoc, runTransaction
-} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-import { getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
+    state, t, debounce, formatDescription, handleLogin, handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset, handleDeleteAccount,
+    fetchCategories, fetchProductById, fetchProducts, fetchSubcategories, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, fetchSubSubcategories,
+    addToCartCore, updateCartQuantityCore, removeFromCartCore, generateOrderMessageCore, toggleFavoriteCore, isFavorite, saveFavorites,
+    saveProfileCore, setLanguageCore, requestNotificationPermissionCore, checkNewAnnouncementsCore, updateLastSeenAnnouncementTimestamp,
+    handleInstallPrompt, forceUpdateCore, saveCurrentScrollPositionCore, applyFilterStateCore, navigateToFilterCore, initCore,
+    db, collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection,
+    // --- زیادکراو بۆ مۆبایل ---
+    setupRecaptcha, sendOtpCore, verifyOtpCore
+} from './app-core.js';
 
-// --- State Definition ---
-export let state = {
-    currentLanguage: localStorage.getItem('language') || 'ku_sorani',
-    deferredPrompt: null,
-    cart: JSON.parse(localStorage.getItem("maten_store_cart")) || [],
-    favorites: JSON.parse(localStorage.getItem("maten_store_favorites")) || [],
-    userProfile: {}, 
-    currentUser: null, 
-    editingProductId: null, 
-    products: [],
-    categories: [], 
-    subcategories: [], 
-    lastVisibleProductDoc: null,
-    isLoadingMoreProducts: false,
-    allProductsLoaded: false,
-    isRenderingHomePage: false,
-    productCache: {},
-    currentCategory: 'all',
-    currentSubcategory: 'all',
-    currentSubSubcategory: 'all',
-    currentSearch: '',
-    currentProductId: null, 
-    currentPageId: 'mainPage', 
-    currentPopupState: null, 
-    pendingFilterNav: null, 
-    sliderIntervals: {}, 
-    contactInfo: {}, 
-    activeChatUserId: null,
-    unreadMessagesCount: 0,
-    currentSplitCategory: null 
-};
+import { updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI, renderPageContentUI } from './home.js';
+import { initChatSystem, openChatPage } from './chat.js';
 
-// گۆڕاوی auth لێرە پێناسە دەکەین بۆ ئەوەی لە هەموو شوێنێک بەردەست بێت
-const auth = getAuth(app); 
+// --- Import New Modules ---
+import { renderSplitCategoriesPageUI } from './categories.js';
+import { renderCartUI, updateCartCountUI, handleUpdateQuantityUI, handleRemoveFromCartUI } from './cart.js';
+import { createProductCardElementUI, showProductDetailsUI, setupScrollAnimations, handleToggleFavoriteUI } from './products.js';
 
-// Promise to ensure Auth is ready
-let authReadyResolver;
-export const authReady = new Promise(resolve => {
-    authReadyResolver = resolve;
-});
+// --- Global UI Helpers ---
 
-// --- Utility Functions ---
-
-export function debounce(func, delay = 500) {
-    let timeout;
-    return (...args) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-            func.apply(this, args);
-        }, delay);
-    };
+export function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.classList.add('show'), 10);
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => document.body.removeChild(notification), 300);
+    }, 3000);
 }
 
-export function t(key, replacements = {}) {
-    let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
-    for (const placeholder in replacements) {
-        translation = translation.replace(`{${placeholder}}`, replacements[placeholder]);
+export function renderSkeletonLoader(container = skeletonLoader, count = 8) {
+    if (!container) { return; }
+    container.innerHTML = ''; 
+    for (let i = 0; i < count; i++) {
+        const skeletonCard = document.createElement('div');
+        skeletonCard.className = 'skeleton-card';
+        skeletonCard.innerHTML = `
+            <div class="skeleton-image shimmer"></div>
+            <div class="skeleton-text shimmer"></div>
+            <div class="skeleton-price shimmer"></div>
+            <div class="skeleton-button shimmer"></div>
+        `;
+        container.appendChild(skeletonCard);
     }
-    return translation;
+    container.style.display = 'grid'; 
 }
 
-export function formatDescription(text) {
-    if (!text) return '';
-    let escapedText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
-    let textWithLinks = escapedText.replace(urlRegex, (url) => {
-        const hyperLink = url.startsWith('http') ? url : `https://www.${url}`;
-        return `<a href="${hyperLink}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-    });
-    return textWithLinks.replace(/\n/g, '<br>');
-}
+// --- Header & Navigation ---
 
-function extractShippingCostFromText(text) {
-    if (!text) return 0;
-    const cleanText = text.toString().replace(/,/g, '');
-    const match = cleanText.match(/(\d+)/);
-    return match ? parseInt(match[0], 10) : 0;
-}
+function updateHeaderView(pageId, title = '') {
+    const appHeader = document.querySelector('.app-header');
+    const mainHeader = document.querySelector('.main-header-content');
+    const subpageHeader = document.querySelector('.subpage-header-content');
+    const headerTitle = document.getElementById('headerTitle');
+    const subpageSearch = document.querySelector('.subpage-search'); 
 
-// --- Storage Helpers ---
-
-export function saveCart() {
-    localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
-}
-
-export function saveFavorites() {
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify(state.favorites));
-}
-
-export function isFavorite(productId) {
-    return state.favorites.includes(productId);
-}
-
-// --- Auth Functions (Email & Phone) ---
-
-// ١. ئامادەکردنی ReCaptcha (FIXED)
-export function setupRecaptcha(buttonId) {
-    // ئەگەر پێشتر هەبوو، پاکی بکەرەوە بۆ ئەوەی دووبارە دروست بکرێتەوە (بۆ ئەوەی تووشی هەڵە نەبێت)
-    if (window.recaptchaVerifier) {
-        try {
-            window.recaptchaVerifier.clear();
-        } catch(e) { console.log("Clearing old recaptcha"); }
-        window.recaptchaVerifier = null;
-    }
-
-    // دڵنیابوونەوە لە auth بەکارهێنانی getAuth ڕاستەوخۆ
-    const authInstance = getAuth(app); 
-
-    if (!authInstance) {
-        console.error("Firebase Auth initialized نییە!");
+    if (pageId === 'chatPage') {
+        if (appHeader) appHeader.style.display = 'none';
+        document.documentElement.classList.add('chat-active'); 
         return;
-    }
+    } 
+    
+    if (appHeader) appHeader.style.display = 'flex';
+    document.documentElement.classList.remove('chat-active');
+    
+    if (pageId === 'mainPage') {
+        mainHeader.style.display = 'flex';
+        subpageHeader.style.display = 'none';
+        const mainSearchContainer = document.querySelector('.main-header-content .search-container');
+        if (mainSearchContainer) mainSearchContainer.style.display = 'block';
+    } 
+    else {
+        mainHeader.style.display = 'none';
+        subpageHeader.style.display = 'flex';
+        headerTitle.textContent = title;
 
-    const container = document.getElementById('recaptcha-container');
-    if (!container) {
-        console.error("توخمی recaptcha-container نەدۆزرایەوە!");
-        return;
-    }
-
-    // خاوێنکردنەوەی DOM
-    container.innerHTML = '';
-
-    try {
-        console.log("خەریکی دروستکردنی Invisible Recaptcha...");
-        
-        window.recaptchaVerifier = new RecaptchaVerifier(authInstance, container, {
-            'size': 'invisible', 
-            'callback': (response) => {
-                console.log("Recaptcha Solved!");
-                const btn = document.getElementById(buttonId);
-                if(btn) {
-                    btn.disabled = false;
-                    btn.click(); // کلیک کردنەوەی ئۆتۆماتیکی
-                }
-            },
-            'expired-callback': () => {
-                console.log("Recaptcha Expired");
-                if(window.recaptchaVerifier) window.recaptchaVerifier.clear();
-                window.recaptchaVerifier = null;
-                const btn = document.getElementById(buttonId);
-                if(btn) btn.disabled = true;
+        if (subpageSearch) {
+            if (pageId === 'subcategoryDetailPage') {
+                subpageSearch.style.display = 'block'; 
+            } else {
+                subpageSearch.style.display = 'none'; 
             }
-        });
-
-        // تەنها render دەکەین، چاوەڕێی وەڵام ناکەین لێرە
-        window.recaptchaVerifier.render();
-
-    } catch (e) {
-        console.error("هەڵە لە دروستکردنی Recaptcha:", e);
-    }
-}
-
-// ٢. ناردنی SMS
-export async function sendOtpCore(phoneNumber) {
-    try {
-        if (!window.recaptchaVerifier) {
-            // ئەگەر نەبوو، هەڵە دەگەڕێنینەوە تا دوگمەکە جارێکی تر دابگیرێتەوە
-            throw new Error("Recaptcha not ready. Please try again.");
         }
-        
-        const authInstance = getAuth(app);
-        const appVerifier = window.recaptchaVerifier;
-        
-        const confirmationResult = await signInWithPhoneNumber(authInstance, phoneNumber, appVerifier);
-        window.confirmationResult = confirmationResult;
-        return { success: true, message: "کۆدەکە نێردرا" };
-    } catch (error) {
-        console.error("SMS Error:", error);
-        
-        // ئەگەر هەڵە هەبوو، ڕیکاپچا پاک بکەرەوە تا سەرلەنوێ دروست بکرێت
-        if(window.recaptchaVerifier) {
-            try { window.recaptchaVerifier.clear(); } catch(e){}
-            window.recaptchaVerifier = null;
-        }
-        
-        return { success: false, message: "هەڵە: " + (error.message || "نەتوانرا نامە بنێردرێت") };
     }
 }
 
-// ٣. پشکنینی کۆدەکە
-export async function verifyOtpCore(code) {
-    try {
-        if (!window.confirmationResult) {
-            throw new Error("No confirmation result found");
-        }
-        const result = await window.confirmationResult.confirm(code);
-        const user = result.user;
-        
-        // دروستکردنی پرۆفایل ئەگەر نەبێت
-        const userProfileRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(userProfileRef);
-        
-        if (!docSnap.exists()) {
-            await setDoc(userProfileRef, {
-                email: "", 
-                displayName: "بەکارهێنەری مۆبایل",
-                createdAt: Date.now(),
-                phone: user.phoneNumber,
-                name: "", address: ""
-            });
-        }
-        
-        return { success: true, message: "بەخێربێیت!" };
-    } catch (error) {
-        console.error("OTP Error:", error);
-        return { success: false, message: "کۆدەکە هەڵەیە" };
-    }
-}
+export function showPage(pageId, pageTitle = '', scrollToTop = true) {
+    state.currentPageId = pageId; 
+    document.querySelectorAll('.page').forEach(page => {
+        const isActive = page.id === pageId;
+        page.classList.toggle('page-active', isActive);
+        page.classList.toggle('page-hidden', !isActive);
+    });
 
-async function handleLogin(email, password) {
-    try {
-        await signInWithEmailAndPassword(auth, email, password);
-    } catch (error) {
-        throw new Error(t('login_error')); 
-    }
-}
-
-async function handleUserLogin(email, password) {
-    try {
-        await signInWithEmailAndPassword(auth, email, password);
-        return { success: true };
-    } catch (error) {
-        console.error("User login error:", error.code);
-        return { success: false, message: t('user_login_error') };
-    }
-}
-
-async function handleUserSignUp(name, email, password) {
-    try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        await updateProfile(user, { displayName: name });
-
-        const userProfileRef = doc(usersCollection, user.uid);
-        await setDoc(userProfileRef, {
-            email: user.email,
-            displayName: name,
-            createdAt: Date.now(),
-            name: "",      
-            address: "",  
-            phone: ""     
-        });
-
-        return { success: true, message: t('user_signup_success') };
-    } catch (error) {
-        console.error("User signup error:", error.code);
-        if (error.code === 'auth/email-already-in-use') {
-            return { success: false, message: t('user_signup_email_exists') };
-        }
-        if (error.code === 'auth/weak-password') {
-            return { success: false, message: t('user_signup_weak_password') };
-        }
-        return { success: false, message: t('error_generic') };
-    }
-}
-
-async function handleUserLogout() {
-    try {
-        await signOut(auth);
-        return { success: true, message: t('user_logout_success') };
-    } catch (error) {
-        console.error("User logout error:", error);
-        return { success: false, message: t('error_generic') };
-    }
-}
-
-async function handlePasswordReset(email) {
-    if (!email) {
-        return { success: false, message: t('password_reset_enter_email') };
-    }
-    try {
-        await sendPasswordResetEmail(auth, email);
-        return { success: true, message: t('password_reset_email_sent') };
-    } catch (error) {
-        console.error("Password reset error:", error.code);
-        if (error.code === 'auth/user-not-found') {
-            return { success: false, message: t('password_reset_error_not_found') };
-        }
-        return { success: false, message: t('error_generic') };
-    }
-}
-
-export async function handleDeleteAccount(skipConfirmation = false) {
-    if (!state.currentUser) return { success: false, message: "Error" };
-
-    if (!skipConfirmation && !confirm(t('delete_account_confirm'))) {
-        return { success: false, message: "Cancelled" };
-    }
-
-    try {
-        const uid = state.currentUser.uid;
-        const user = auth.currentUser;
-
-        await deleteDoc(doc(db, "users", uid));
-        await deleteUser(user);
-
-        state.currentUser = null;
-        state.userProfile = {};
-        
-        return { success: true, message: t('account_deleted_success') };
-
-    } catch (error) {
-        console.error("Delete Account Error:", error);
-        
-        if (error.code === 'auth/requires-recent-login') {
-            return { success: false, message: t('delete_account_error_login') };
-        }
-        
-        return { success: false, message: t('error_generic') };
-    }
-}
-
-// --- Fetching Data ---
-
-async function fetchCategories() {
-    const categoriesQuery = query(categoriesCollection, orderBy("order", "asc"));
-    const snapshot = await getDocs(categoriesQuery);
-    const fetchedCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    state.categories = fetchedCategories;
-}
-
-async function fetchSubcategories(categoryId) {
-    if (categoryId === 'all') return []; 
-    try {
-        const subcategoriesQuery = collection(db, "categories", categoryId, "subcategories");
-        const q = query(subcategoriesQuery, orderBy("order", "asc"));
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
-        console.error("Error fetching subcategories: ", error);
-        return [];
-    }
-}
-
-async function fetchSubSubcategories(mainCatId, subCatId) {
-    if (!mainCatId || !subCatId) return [];
-    try {
-        const ref = collection(db, "categories", mainCatId, "subcategories", subCatId, "subSubcategories");
-        const q = query(ref, orderBy("order", "asc"));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
-        console.error("Error fetching sub-subcategories:", error);
-        return [];
-    }
-}
-
-async function fetchProductById(productId) {
-    try {
-        const docRef = doc(db, "products", productId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            return { id: docSnap.id, ...docSnap.data() };
+    const bottomNav = document.querySelector('.bottom-nav');
+    if (bottomNav) {
+        if (pageId === 'chatPage' || pageId === 'productDetailPage') {
+            bottomNav.style.display = 'none';
         } else {
-            console.warn(`Product with ID ${productId} not found.`);
-            return null;
+            bottomNav.style.display = 'flex';
         }
-    } catch (error) {
-        console.error("Error fetching product by ID:", error);
-        return null;
+    }
+
+    if (pageId !== 'mainPage' && scrollToTop) {
+         requestAnimationFrame(() => { 
+             const activePage = document.getElementById(pageId);
+             if(activePage) {
+                 const internalScroll = activePage.querySelector('.product-detail-content');
+                 if (internalScroll) {
+                     internalScroll.scrollTo({ top: 0, behavior: 'instant' });
+                 }
+                 activePage.scrollTo({ top: 0, behavior: 'instant' });
+             }
+         });
+    }
+
+    if (pageId === 'settingsPage') updateHeaderView('settingsPage', t('settings_title'));
+    else if (pageId === 'subcategoryDetailPage') updateHeaderView('subcategoryDetailPage', pageTitle);
+    else if (pageId === 'productDetailPage') updateHeaderView('productDetailPage', pageTitle);
+    else if (pageId === 'chatPage') updateHeaderView('chatPage', pageTitle);
+    else if (pageId === 'adminChatListPage') updateHeaderView('adminChatListPage', t('conversations_title'));
+    else if (pageId === 'categoriesPage') updateHeaderView('categoriesPage', t('nav_categories'));
+    else updateHeaderView('mainPage');
+
+    let activeBtnId = null;
+    if (pageId === 'mainPage') activeBtnId = 'homeBtn';
+    else if (pageId === 'settingsPage') activeBtnId = 'settingsBtn';
+    else if (pageId === 'categoriesPage') activeBtnId = 'categoriesBtn';
+    else if (pageId === 'chatPage' || pageId === 'adminChatListPage') activeBtnId = 'chatBtn';
+
+    if (activeBtnId) updateActiveNav(activeBtnId);
+}
+
+function stopAllVideos() {
+    const videoWrapper = document.getElementById('videoPlayerWrapper');
+    if (videoWrapper) {
+        videoWrapper.innerHTML = ''; 
     }
 }
 
-async function fetchRelatedProducts(currentProduct) {
-    if (!currentProduct.subcategoryId && !currentProduct.categoryId) return [];
+export function openPopup(id, type = 'sheet', addToHistory = true) {
+    saveCurrentScrollPositionCore(); 
+    const element = document.getElementById(id);
+    if (!element) return;
 
-    const baseQuery = collection(db, "products");
-    let conditions = [];
-    let orderByClauses = []; 
+    if (addToHistory) {
+        closeAllPopupsUI(); 
+    } else {
+        document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
+        document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('show'));
+    }
 
-    if (currentProduct.subSubcategoryId) {
-        conditions.push(where('subSubcategoryId', '==', currentProduct.subSubcategoryId));
-    } else if (currentProduct.subcategoryId) {
-        conditions.push(where('subcategoryId', '==', currentProduct.subcategoryId));
+    const activePage = document.getElementById(state.currentPageId);
+    if (activePage && id === 'categoriesSheet') { 
+        activePage.scrollTo({ top: 0, behavior: 'instant' });
+    }
+
+    if (type === 'sheet') {
+        const sheetContent = element.querySelector('.sheet-content');
+        if (sheetContent) {
+            sheetContent.scrollTop = 0;
+        }
+
+        sheetOverlay.classList.add('show');
+        element.classList.add('show');
+        
+        if (id === 'cartSheet') renderCartUI();
+        if (id === 'favoritesSheet') renderFavoritesPageUI();
+        if (id === 'categoriesSheet') renderSplitCategoriesPageUI();
+        if (id === 'notificationsSheet') renderUserNotificationsUI();
+        if (id === 'termsSheet') renderPoliciesUI();
+        if (id === 'profileSheet') updateProfileSheetUI();
     } else { 
-        conditions.push(where('categoryId', '==', currentProduct.categoryId));
+        element.style.display = 'block';
     }
+    document.body.classList.add('overlay-active'); 
 
-    orderByClauses.push(orderBy('createdAt', 'desc'));
-
-    const q = query(baseQuery, ...conditions, ...orderByClauses, limit(7));
-
-    try {
-        const snapshot = await getDocs(q);
-        const allRelated = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const filteredProducts = allRelated.filter(product => product.id !== currentProduct.id).slice(0, 6); 
-        return filteredProducts;
-    } catch (error) {
-        console.error("Error fetching related products:", error);
-        return [];
+    if (addToHistory) {
+        const newState = { type: type, id: id };
+        state.currentPopupState = newState; 
+        history.pushState(newState, '', `#${id}`);
     }
 }
 
-export async function fetchCategoryLayout(categoryId) { 
-    if (!categoryId) return null;
-    try {
-        const layoutDocRef = doc(db, "category_layouts", categoryId);
-        const docSnap = await getDoc(layoutDocRef);
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data.enabled === true && Array.isArray(data.sections)) {
-                return data;
-            }
-        }
-        return null; 
-    } catch (error) {
-        console.error(`Error fetching layout for category ${categoryId}:`, error);
-        return null;
-    }
+function closeAllPopupsUI() {
+    document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
+    document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('show'));
+    sheetOverlay.classList.remove('show');
+    document.body.classList.remove('overlay-active');
+    stopAllVideos(); 
 }
 
-async function fetchProducts(searchTerm = '', isNewSearch = false) {
-    const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-    
-    if (shouldShowHomeSections && isNewSearch) {
-        return { isHome: true, layout: null, products: [], allLoaded: true };
-    }
-
-    const shouldShowCategoryLayout = !searchTerm && state.currentCategory !== 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
-    
-    if (shouldShowCategoryLayout && isNewSearch) {
-        const categoryLayoutData = await fetchCategoryLayout(state.currentCategory);
-        if (categoryLayoutData) { 
-            return { isHome: true, layout: categoryLayoutData.sections, products: [], allLoaded: true };
-        }
-    }
-    
-    const cacheKey = `${state.currentCategory}-${state.currentSubcategory}-${state.currentSubSubcategory}-${searchTerm.trim().toLowerCase()}`;
-    if (isNewSearch && state.productCache[cacheKey]) {
-        state.products = state.productCache[cacheKey].products;
-        state.lastVisibleProductDoc = state.productCache[cacheKey].lastVisible;
-        state.allProductsLoaded = state.productCache[cacheKey].allLoaded;
-        return { isHome: false, products: state.products, allLoaded: state.allProductsLoaded };
-    }
-
-    if (state.isLoadingMoreProducts) return null; 
-    
-    if (isNewSearch) {
-        state.allProductsLoaded = false;
-        state.lastVisibleProductDoc = null;
-        state.products = [];
-    }
-    
-    if (state.allProductsLoaded && !isNewSearch) return null; 
-
-    state.isLoadingMoreProducts = true;
-
-    try {
-        let productsQuery = collection(db, "products");
-        let conditions = [];
-        let orderByClauses = [];
-
-        if (state.currentCategory && state.currentCategory !== 'all') {
-            conditions.push(where("categoryId", "==", state.currentCategory));
-        }
-        if (state.currentSubcategory && state.currentSubcategory !== 'all') {
-            conditions.push(where("subcategoryId", "==", state.currentSubcategory));
-        }
-        if (state.currentSubSubcategory && state.currentSubSubcategory !== 'all') {
-            conditions.push(where("subSubcategoryId", "==", state.currentSubSubcategory));
-        }
-
-        const finalSearchTerm = searchTerm.trim().toLowerCase();
-        if (finalSearchTerm) {
-            conditions.push(where('searchableName', '>=', finalSearchTerm));
-            conditions.push(where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
-            orderByClauses.push(orderBy("searchableName", "asc"));
-        }
-        orderByClauses.push(orderBy("createdAt", "desc"));
-
-        let finalQuery = query(productsQuery, ...conditions, ...orderByClauses);
-
-        if (state.lastVisibleProductDoc && !isNewSearch) {
-            finalQuery = query(finalQuery, startAfter(state.lastVisibleProductDoc));
-        }
-
-        finalQuery = query(finalQuery, limit(PRODUCTS_PER_PAGE));
-
-        const productSnapshot = await getDocs(finalQuery);
-        const newProducts = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        state.lastVisibleProductDoc = productSnapshot.docs[productSnapshot.docs.length - 1];
-        state.allProductsLoaded = productSnapshot.docs.length < PRODUCTS_PER_PAGE;
-
-        if (isNewSearch) {
-            state.products = newProducts;
-            state.productCache[cacheKey] = {
-                products: state.products,
-                lastVisible: state.lastVisibleProductDoc,
-                allLoaded: state.allProductsLoaded
-            };
-        } else {
-            state.products = [...state.products, ...newProducts];
-        }
-        
-        return { isHome: false, products: newProducts, allLoaded: state.allProductsLoaded };
-
-    } catch (error) {
-        console.error("Error fetching products:", error);
-        return { isHome: false, products: [], allLoaded: true, error: true }; 
-    } finally {
-        state.isLoadingMoreProducts = false;
-    }
-}
-
-async function fetchPolicies() {
-    try {
-        const docRef = doc(db, "settings", "policies");
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists() && docSnap.data().content) {
-            return docSnap.data().content;
-        }
-        return null;
-    } catch (error) {
-        console.error("Error fetching policies:", error);
-        return null;
-    }
-}
-
-async function fetchAnnouncements() {
-    try {
-        const q = query(announcementsCollection, orderBy("createdAt", "desc"));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
-        console.error("Error fetching announcements:", error);
-        return [];
-    }
-}
-
-async function fetchContactMethods() {
-    try {
-        const methodsCollection = collection(db, 'settings', 'contactInfo', 'contactMethods');
-        const q = query(methodsCollection, orderBy("createdAt"));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
-        console.error("Error fetching contact methods:", error);
-        return [];
-    }
-}
-
-async function fetchHomeLayout() {
-    try {
-        const layoutQuery = query(collection(db, 'home_layout'), where('enabled', '==', true), orderBy('order', 'asc'));
-        const layoutSnapshot = await getDocs(layoutQuery);
-        return layoutSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
-        console.error("Error fetching home layout:", error);
-        return [];
-    }
-}
-
-async function fetchPromoGroupCards(groupId) {
-    try {
-        const cardsQuery = query(collection(db, "promo_groups", groupId, "cards"), orderBy("order", "asc"));
-        const cardsSnapshot = await getDocs(cardsQuery);
-        return cardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
-        console.error(`Error fetching promo cards for group ${groupId}:`, error);
-        return [];
-    }
-}
-
-async function fetchBrandGroupBrands(groupId) {
-    try {
-        const q = query(collection(db, "brand_groups", groupId, "brands"), orderBy("order", "asc"), limit(30));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
-        console.error(`Error fetching brands for group ${groupId}:`, error);
-        return [];
-    }
-}
-
-async function fetchNewestProducts(limitCount = 20, categoryId = null) {
-    try {
-        const fifteenDaysAgo = Date.now() - (15 * 24 * 60 * 60 * 1000);
-        let q;
-
-        if (categoryId && categoryId !== 'all') {
-             q = query(
-                 productsCollection, 
-                 where('categoryId', '==', categoryId), 
-                 where('createdAt', '>=', fifteenDaysAgo), 
-                 orderBy('createdAt', 'desc'), 
-                 limit(limitCount)
-             );
-        } else {
-             q = query(
-                 productsCollection, 
-                 where('createdAt', '>=', fifteenDaysAgo), 
-                 orderBy('createdAt', 'desc'), 
-                 limit(limitCount)
-             );
-        }
-
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
-        console.error("Error fetching newest products:", error);
-        return [];
-    }
-}
-
-async function fetchShortcutRowCards(rowId) {
-    try {
-        const cardsCollectionRef = collection(db, "shortcut_rows", rowId, "cards");
-        const cardsQuery = query(cardsCollectionRef, orderBy("order", "asc"));
-        const cardsSnapshot = await getDocs(cardsQuery);
-        return cardsSnapshot.docs.map(cardDoc => ({ id: cardDoc.id, ...cardDoc.data() }));
-    } catch(error) {
-        console.error(`Error fetching shortcut cards for row ${rowId}:`, error);
-        return [];
-    }
-}
-
-async function fetchCategoryRowProducts(sectionData) {
-    const { categoryId, subcategoryId, subSubcategoryId } = sectionData;
-    let queryField, queryValue;
-
-    if (subSubcategoryId) {
-        queryField = 'subSubcategoryId'; queryValue = subSubcategoryId;
-    } else if (subcategoryId) {
-        queryField = 'subcategoryId'; queryValue = subcategoryId;
-    } else if (categoryId) {
-        queryField = 'categoryId'; queryValue = categoryId;
-    } else { return []; }
-
-    try {
-        const q = query(productsCollection, where(queryField, '==', queryValue), orderBy('createdAt', 'desc'), limit(20));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
-        console.error(`Error fetching products for single category row:`, error);
-        return [];
-    }
-}
-
-async function fetchInitialProductsForHome(limitCount = 30, categoryId = null, isLoadMore = false) {
-     try {
-        let q;
-        
-        if (!isLoadMore) {
-             state.allProductsLoaded = false;
-             state.lastVisibleProductDoc = null;
-             state.products = [];
-        } else if (state.allProductsLoaded) {
-            return [];
-        }
-        
-        let conditions = [];
-        let orderByClauses = [orderBy('createdAt', 'desc')];
-
-        if (categoryId && categoryId !== 'all') {
-             conditions.push(where('categoryId', '==', categoryId));
-        }
-
-        let queryConstraints = [...conditions, ...orderByClauses];
-
-        if (isLoadMore && state.lastVisibleProductDoc) {
-            queryConstraints.push(startAfter(state.lastVisibleProductDoc));
-        }
-
-        queryConstraints.push(limit(limitCount));
-
-        q = query(productsCollection, ...queryConstraints);
-
-        const snapshot = await getDocs(q);
-        
-        if (!snapshot.empty) {
-            state.lastVisibleProductDoc = snapshot.docs[snapshot.docs.length - 1];
-        }
-        
-        state.allProductsLoaded = snapshot.docs.length < limitCount;
-        
-        const fetchedProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        return fetchedProducts;
-    } catch (error) {
-        console.error("Error fetching initial products for home page:", error);
-        return [];
-    }
-}
-
-export async function addToCartCore(productId, selectedVariationInfo = null) {
-    let product = state.products.find(p => p.id === productId);
-
-    if (!product) {
-        console.warn("Product not found in local cache for cart. Fetching...");
-        product = await fetchProductById(productId);
-        if (!product) {
-            return { success: false, message: t('product_not_found_error') };
-        }
-    }
-
-    const shippingText = (product.shippingInfo && product.shippingInfo[state.currentLanguage]) ||
-                         (product.shippingInfo && product.shippingInfo.ku_sorani) || '';
-    const calculatedShippingCost = extractShippingCostFromText(shippingText);
-    const baseImage = (product.imageUrls && product.imageUrls.length > 0) ? product.imageUrls[0] : (product.image || '');
-
-    let cartId = product.id;
-    let cartItemName = (product.name && product.name[state.currentLanguage]) || (product.name && product.name.ku_sorani) || (typeof product.name === 'string' ? product.name : 'کاڵای بێ ناو');
-    let cartItemPrice = product.price;
-    let cartItemImage = baseImage;
-    
-    if (selectedVariationInfo && selectedVariationInfo.lvl1Id) {
-        cartId = `${product.id}_${selectedVariationInfo.lvl1Id}`;
-        cartItemName += ` (${selectedVariationInfo.lvl1Name}`;
-        
-        const lvl1Var = (product.variations || []).find(v => v.id === selectedVariationInfo.lvl1Id);
-        if (lvl1Var && lvl1Var.imageUrls && lvl1Var.imageUrls.length > 0) {
-            cartItemImage = lvl1Var.imageUrls[0];
-        }
-
-        if (selectedVariationInfo.lvl2Id) {
-            cartId += `_${selectedVariationInfo.lvl2Id}`;
-            cartItemName += ` - ${selectedVariationInfo.lvl2Name}`;
-            cartItemPrice = selectedVariationInfo.price; 
-        }
-        
-        cartItemName += `)`;
-    }
-
-    const existingItem = state.cart.find(item => item.id === cartId);
-
-    if (existingItem) {
-        existingItem.quantity++;
-        existingItem.shippingCost = calculatedShippingCost; 
+export function closeCurrentPopup() {
+    if (history.state && (history.state.type === 'sheet' || history.state.type === 'modal')) {
+        history.back();
     } else {
-        state.cart.push({
-            id: cartId, 
-            productId: product.id, 
-            name: cartItemName,
-            marketCode: product.marketCode || '', 
-            price: cartItemPrice, 
-            shippingCost: calculatedShippingCost,
-            image: cartItemImage, 
-            quantity: 1,
-            variationInfo: selectedVariationInfo 
-        });
+        closeAllPopupsUI();
+        state.currentPopupState = null;
     }
-    saveCart();
-    return { success: true, message: t('product_added_to_cart') };
 }
 
-export function updateCartQuantityCore(cartId, change) {
-    const cartItemIndex = state.cart.findIndex(item => item.id === cartId);
-    if (cartItemIndex > -1) {
-        state.cart[cartItemIndex].quantity += change;
-        if (state.cart[cartItemIndex].quantity <= 0) {
-            state.cart.splice(cartItemIndex, 1); 
+function updateActiveNav(activeBtnId) {
+    document.querySelectorAll('.bottom-nav-item').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const activeBtn = document.getElementById(activeBtnId);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+}
+
+// --- Subcategory Detail Logic ---
+
+async function renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId) {
+     const container = document.getElementById('subSubCategoryContainerOnDetailPage');
+     container.innerHTML = ''; 
+
+     const subSubcategoriesData = await fetchSubSubcategories(mainCatId, subCatId); 
+
+     if (!subSubcategoriesData || subSubcategoriesData.length === 0) {
+           container.style.display = 'none';
+           return;
+     }
+
+     container.style.display = 'flex';
+
+     const allBtn = document.createElement('button');
+     allBtn.className = `subcategory-btn active`; 
+     allBtn.dataset.id = 'all';
+     const allIconSvg = `<svg viewBox="0 0 24 24" fill="currentColor" style="padding: 12px; color: var(--text-light);"><path d="M10 3H4C3.44772 3 3 3.44772 3 4V10C3 10.5523 3.44772 11 4 11H10C10.5523 11 11 10.5523 11 10V4C11 3.44772 10.5523 3 10 3Z M20 3H14C13.4477 3 13 3.44772 13 4V10C13 10.5523 13.4477 11 14 11H20C20.5523 11 21 10.5523 21 10V4C21 3.44772 20.5523 3 20 3Z M10 13H4C3.44772 13 3 13.4477 3 14V20C3 20.5523 3.44772 21 4 21H10C10.5523 21 11 20.5523 11 20V14C11 13.4477 10.5523 13 10 13Z M20 13H14C13.4477 13 13 13.4477 13 14V20C13 20.5523 13.4477 21 14 21H20C20.5523 21 21 20.5523 21 20V14C21 13.4477 20.5523 13 20 13Z"></path></svg>`;
+     allBtn.innerHTML = `<div class="subcategory-image">${allIconSvg}</div><span>${t('all_categories_label')}</span>`;
+     allBtn.onclick = () => {
+         container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
+         allBtn.classList.add('active');
+         const currentSearch = document.getElementById('subpageSearchInput').value;
+         renderProductsOnDetailPageUI(subCatId, 'all', currentSearch); 
+     };
+     container.appendChild(allBtn);
+
+     subSubcategoriesData.forEach(subSubcat => {
+          const btn = document.createElement('button');
+          btn.className = `subcategory-btn`;
+          btn.dataset.id = subSubcat.id;
+          const subSubcatName = subSubcat['name_' + state.currentLanguage] || subSubcat.name_ku_sorani;
+          const placeholderImg = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+          const imageUrl = subSubcat.imageUrl || placeholderImg;
+          btn.innerHTML = `<img src="${imageUrl}" alt="${subSubcatName}" class="subcategory-image" onerror="this.src='${placeholderImg}';"><span>${subSubcatName}</span>`;
+
+          btn.onclick = () => {
+               container.querySelectorAll('.subcategory-btn').forEach(b => b.classList.remove('active'));
+               btn.classList.add('active');
+               const currentSearch = document.getElementById('subpageSearchInput').value;
+               renderProductsOnDetailPageUI(subCatId, subSubcat.id, currentSearch); 
+          };
+          container.appendChild(btn);
+     });
+}
+
+async function renderProductsOnDetailPageUI(subCatId, subSubCatId = 'all', searchTerm = '') {
+    const productsContainer = document.getElementById('productsContainerOnDetailPage');
+    const loader = document.getElementById('detailPageLoader');
+    loader.style.display = 'block';
+    productsContainer.innerHTML = '';
+    renderSkeletonLoader(productsContainer, 4); 
+
+     try {
+         let conditions = [];
+         let orderByClauses = [];
+
+         if (subSubCatId === 'all') {
+             conditions.push(where("subcategoryId", "==", subCatId));
+         } else {
+             conditions.push(where("subSubcategoryId", "==", subSubCatId));
+         }
+
+         const finalSearchTerm = searchTerm.trim().toLowerCase();
+         if (finalSearchTerm) {
+             conditions.push(where('searchableName', '>=', finalSearchTerm));
+             conditions.push(where('searchableName', '<=', finalSearchTerm + '\uf8ff'));
+             orderByClauses.push(orderBy("searchableName", "asc"));
+         }
+         orderByClauses.push(orderBy("createdAt", "desc")); 
+
+         let detailQuery = query(productsCollection, ...conditions, ...orderByClauses); 
+
+         const productSnapshot = await getDocs(detailQuery);
+         const products = productSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+         productsContainer.innerHTML = ''; 
+
+         if (products.length === 0) {
+             productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هیچ کاڵایەک نەدۆزرایەوە.</p>';
+         } else {
+             products.forEach(product => {
+                 const card = createProductCardElementUI(product); 
+                 productsContainer.appendChild(card);
+             });
+         }
+     } catch (error) {
+         console.error(`Error rendering products on detail page:`, error);
+         productsContainer.innerHTML = '<p style="text-align:center; padding: 20px;">هەڵەیەک ڕوویدا.</p>';
+     } finally {
+         loader.style.display = 'none';
+     }
+}
+
+export async function showSubcategoryDetailPageUI(mainCatId, subCatId, fromHistory = false) { 
+    let subCatName = 'Details'; 
+    try {
+        const subCatRef = doc(db, "categories", mainCatId, "subcategories", subCatId);
+        const subCatSnap = await getDoc(subCatRef);
+        if (subCatSnap.exists()) {
+            const subCat = subCatSnap.data();
+            subCatName = subCat['name_' + state.currentLanguage] || subCat.name_ku_sorani || 'Details';
         }
-        saveCart();
-        return true; 
+    } catch (e) { console.error("Could not fetch subcategory name:", e); }
+
+    if (!fromHistory) {
+         saveCurrentScrollPositionCore(); 
+         history.pushState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
+    } else {
+        if (!history.state || history.state.id !== 'subcategoryDetailPage') {
+             history.replaceState({ type: 'page', id: 'subcategoryDetailPage', title: subCatName, mainCatId: mainCatId, subCatId: subCatId }, '', `#subcategory_${mainCatId}_${subCatId}`);
+        }
     }
-    return false; 
-}
 
-export function removeFromCartCore(cartId) {
-    const initialLength = state.cart.length;
-    state.cart = state.cart.filter(item => item.id !== cartId);
-    if (state.cart.length < initialLength) {
-        saveCart();
-        return true; 
-    }
-    return false; 
-}
-
-export function generateOrderMessageCore() {
-    if (state.cart.length === 0) return "";
-
-    let message = t('order_greeting') + "\n\n";
-    const itemsByMarket = {};
+    const page = document.getElementById('subcategoryDetailPage');
     
-    state.cart.forEach(item => {
-        const mCode = item.marketCode || 'گشتی'; 
-        if (!itemsByMarket[mCode]) {
-            itemsByMarket[mCode] = {
-                items: [],
-                maxShipping: 0
-            };
-        }
-        itemsByMarket[mCode].items.push(item);
+    const isSamePage = page.dataset.loadedMain === mainCatId && page.dataset.loadedSub === subCatId;
+
+    if (fromHistory && isSamePage) {
+        showPage('subcategoryDetailPage', subCatName, false); 
         
-        const itemShipping = item.shippingCost || 0;
-        if (itemShipping > itemsByMarket[mCode].maxShipping) {
-            itemsByMarket[mCode].maxShipping = itemShipping;
+        if (history.state && history.state.scroll) {
+            setTimeout(() => {
+                page.scrollTo({ top: history.state.scroll, behavior: 'instant' });
+            }, 10);
         }
+        return; 
+    }
+
+    page.dataset.loadedMain = mainCatId;
+    page.dataset.loadedSub = subCatId;
+
+    showPage('subcategoryDetailPage', subCatName, true); 
+
+    const loader = document.getElementById('detailPageLoader');
+    const productsContainer = document.getElementById('productsContainerOnDetailPage');
+    const subSubContainer = document.getElementById('subSubCategoryContainerOnDetailPage');
+
+    loader.style.display = 'block';
+    productsContainer.innerHTML = '';
+    subSubContainer.innerHTML = '';
+    subSubContainer.style.display = 'flex'; 
+
+    document.getElementById('subpageSearchInput').value = '';
+    document.getElementById('subpageClearSearchBtn').style.display = 'none';
+
+    await renderSubSubcategoriesOnDetailPageUI(mainCatId, subCatId); 
+    await renderProductsOnDetailPageUI(subCatId, 'all', ''); 
+
+    loader.style.display = 'none'; 
+}
+
+// --- Favorites Rendering ---
+
+async function renderFavoritesPageUI() {
+    favoritesContainer.innerHTML = '';
+
+    if (state.favorites.length === 0) {
+        emptyFavoritesMessage.style.display = 'block';
+        favoritesContainer.style.display = 'none';
+        return;
+    }
+
+    emptyFavoritesMessage.style.display = 'none';
+    favoritesContainer.style.display = 'grid';
+    renderSkeletonLoader(favoritesContainer, 4); 
+
+    try {
+        const fetchPromises = state.favorites.map(id => fetchProductById(id));
+        const favoritedProducts = (await Promise.all(fetchPromises)).filter(p => p !== null);
+
+        favoritesContainer.innerHTML = ''; 
+
+        if (favoritedProducts.length === 0) {
+            emptyFavoritesMessage.style.display = 'block';
+            favoritesContainer.style.display = 'none';
+            state.favorites = [];
+            saveFavorites(); 
+        } else {
+            if(favoritedProducts.length !== state.favorites.length) {
+                 state.favorites = favoritedProducts.map(p => p.id);
+                 saveFavorites(); 
+            }
+            favoritedProducts.forEach(product => {
+                const productCard = createProductCardElementUI(product); 
+                favoritesContainer.appendChild(productCard);
+            });
+        }
+    } catch (error) {
+        favoritesContainer.innerHTML = `<p style="text-align:center; padding: 20px;">${t('error_generic')}</p>`;
+    }
+}
+
+// --- Other Rendering Functions ---
+
+async function renderPoliciesUI() {
+    termsContentContainer.innerHTML = `<p>${t('loading_policies')}</p>`;
+    const policies = await fetchPolicies(); 
+    if (policies) {
+        const content = policies[state.currentLanguage] || policies.ku_sorani || '';
+        termsContentContainer.innerHTML = content ? content.replace(/\n/g, '<br>') : `<p>${t('no_policies_found')}</p>`;
+    } else {
+        termsContentContainer.innerHTML = `<p>${t('no_policies_found')}</p>`;
+    }
+}
+
+async function renderUserNotificationsUI() {
+    const announcements = await fetchAnnouncements(); 
+    notificationsListContainer.innerHTML = '';
+
+    if (!announcements || announcements.length === 0) {
+        notificationsListContainer.innerHTML = `<div class="cart-empty"><i class="fas fa-bell-slash"></i><p>${t('no_notifications_found')}</p></div>`;
+        return;
+    }
+
+    let latestTimestamp = 0;
+    announcements.forEach(announcement => {
+        if (announcement.createdAt > latestTimestamp) {
+            latestTimestamp = announcement.createdAt;
+        }
+
+        const date = new Date(announcement.createdAt);
+        const formattedDate = `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+        const title = (announcement.title && announcement.title[state.currentLanguage]) || (announcement.title && announcement.title.ku_sorani) || '';
+        const content = (announcement.content && announcement.content[state.currentLanguage]) || (announcement.content && announcement.content.ku_sorani) || '';
+
+        const item = document.createElement('div');
+        item.className = 'notification-item';
+        item.innerHTML = `
+            <div class="notification-header">
+                <span class="notification-title">${title}</span>
+                <span class="notification-date">${formattedDate}</span>
+            </div>
+            <p class="notification-content">${content}</p>
+        `;
+        notificationsListContainer.appendChild(item);
     });
 
-    let grandTotal = 0;
+    updateLastSeenAnnouncementTimestamp(latestTimestamp); 
+    notificationBadge.style.display = 'none'; 
+}
 
-    for (const [marketName, data] of Object.entries(itemsByMarket)) {
-        message += `🏪 *مارکێت: ${marketName}*\n`;
-        message += `------------------------\n`;
-        
-        let marketItemsTotal = 0;
-        let marketShippingFee = 0;
-        const itemCount = data.items.length;
-        let isMaxShippingCharged = false; 
+async function renderContactLinksUI() {
+    const contactLinksContainer = document.getElementById('dynamicContactLinksContainer');
+     try {
+         const socialLinksCollection = collection(db, 'settings', 'contactInfo', 'socialLinks');
+         const q = query(socialLinksCollection, orderBy("createdAt", "desc"));
+         const snapshot = await getDocs(q); 
 
-        if (itemCount >= 3) {
-            marketShippingFee = data.maxShipping; 
-        } else {
-            marketShippingFee = data.items.reduce((sum, i) => sum + (i.shippingCost || 0), 0);
-        }
+         contactLinksContainer.innerHTML = ''; 
 
-        data.items.forEach((item) => {
-            const lineTotal = item.price * item.quantity;
-            marketItemsTotal += lineTotal;
-            
-            const itemName = (typeof item.name === 'string') 
-                ? item.name 
-                : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
+         if (snapshot.empty) {
+             contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هیچ لینکی پەیوەندی نییە.</p>';
+             return;
+         }
 
-            let shippingStr = "";
-            const itemCost = item.shippingCost || 0;
+         snapshot.forEach(doc => {
+             const link = doc.data();
+             const name = link['name_' + state.currentLanguage] || link.name_ku_sorani;
 
-            if (itemCount >= 3) {
-                if (itemCost === data.maxShipping && !isMaxShippingCharged && itemCost > 0) {
-                    shippingStr = `(گەیاندن: ${itemCost.toLocaleString()})`;
-                    isMaxShippingCharged = true;
-                } else {
-                    shippingStr = `(گەیاندن: بێ بەرامبەر - ئۆفەری ٣ دانە)`;
-                }
-            } else {
-                if (itemCost > 0) {
-                    shippingStr = `(گەیاندن: ${itemCost.toLocaleString()})`;
-                } else {
-                    shippingStr = `(گەیاندن: بێ بەرامبەر)`;
-                }
-            }
+             const linkElement = document.createElement('a');
+             linkElement.href = link.url;
+             linkElement.target = '_blank';
+             linkElement.className = 'settings-item';
+             linkElement.innerHTML = `
+                 <div>
+                     <i class="${link.icon}" style="margin-left: 10px;"></i>
+                     <span>${name}</span>
+                 </div>
+                 <i class="fas fa-external-link-alt"></i>
+             `;
+             contactLinksContainer.appendChild(linkElement);
+         });
+     } catch (error) {
+         console.error("Error fetching/rendering social links:", error);
+         contactLinksContainer.innerHTML = '<p style="padding: 15px; text-align: center;">هەڵە لە بارکردنی لینکەکان.</p>';
+     }
+}
 
-            message += `▪️ ${itemName}\n`;
-            message += `   ${item.quantity} x ${item.price.toLocaleString()} = ${lineTotal.toLocaleString()}\n`;
-            message += `   ${shippingStr}\n`;
-        });
+function updateAdminUIAuth(isAdmin) {
+    document.querySelectorAll('.product-actions').forEach(el => el.style.display = isAdmin ? 'flex' : 'none');
 
-        const marketTotal = marketItemsTotal + marketShippingFee;
-        grandTotal += marketTotal;
-
-        message += `------------------------\n`;
-        message += `💰 کۆی گشتی مارکێت: ${marketTotal.toLocaleString()} د.ع\n\n`;
-    }
+    const adminSections = [
+         'adminPoliciesManagement', 'adminSocialMediaManagement', 'adminAnnouncementManagement',
+         'adminPromoCardsManagement', 'adminBrandsManagement', 'adminCategoryManagement',
+         'adminContactMethodsManagement', 'adminShortcutRowsManagement',
+         'adminHomeLayoutManagement',
+         'adminCategoryLayoutManagement',
+         'adminChatsManagement'
+    ];
     
-    message += `================\n`;
-    message += `💵 *کۆی گشتی هەمووی: ${grandTotal.toLocaleString()} د.ع.*\n`;
+    adminSections.forEach(id => {
+        const section = document.getElementById(id);
+        if (section) section.style.display = isAdmin ? 'block' : 'none';
+    });
 
-    if (state.userProfile.name && state.userProfile.address && state.userProfile.phone) {
-        message += `\n👤 ${t('order_user_info')}\n`;
-        message += `${t('order_user_name')}: ${state.userProfile.name}\n`;
-        message += `${t('order_user_address')}: ${state.userProfile.address}\n`;
-        message += `${t('order_user_phone')}: ${state.userProfile.phone}\n`;
-    } else {
-        message += `\n${t('order_prompt_info')}\n`;
-    }
-    return message;
-}
+    settingsLogoutBtn.style.display = isAdmin ? 'flex' : 'none';
+    settingsAdminLoginBtn.style.display = isAdmin ? 'none' : 'flex';
+    addProductBtn.style.display = isAdmin ? 'flex' : 'none';
 
-export function toggleFavoriteCore(productId) {
-    const isCurrentlyFavorite = isFavorite(productId);
-    if (isCurrentlyFavorite) {
-        state.favorites = state.favorites.filter(id => id !== productId);
-        saveFavorites();
-        return { favorited: false, message: t('product_removed_from_favorites') };
-    } else {
-        state.favorites.push(productId);
-        saveFavorites();
-        return { favorited: true, message: t('product_added_to_favorites') };
+    const favoritesSheet = document.getElementById('favoritesSheet');
+    if (favoritesSheet?.classList.contains('show')) {
+        renderFavoritesPageUI();
     }
 }
 
-export async function saveProfileCore(profileData) {
+function updateProfileSheetUI() {
+    const authView = document.getElementById('authView');
+    const profileView = document.getElementById('profileView');
+    const phoneSection = document.getElementById('phoneAuthSection');
+    const userLoginForm = document.getElementById('userLoginForm');
+    
     if (!state.currentUser) {
-        return { success: false, message: "تکایە سەرەتا بچۆ ژوورەوە" }; 
-    }
-    try {
-        const userProfileRef = doc(usersCollection, state.currentUser.uid);
-        await setDoc(userProfileRef, {
-            name: profileData.name || '',
-            address: profileData.address || '',
-            phone: profileData.phone || '',
-        }, { merge: true }); 
+        authView.style.display = 'block';
+        profileView.style.display = 'none';
         
-        return { success: true, message: t('profile_saved') };
-    } catch (error) {
-        console.error("Error saving profile to Firestore:", error);
-        return { success: false, message: t('error_generic') };
+        // Reset to default Email view on load
+        if(phoneSection) phoneSection.style.display = 'none';
+        if(userLoginForm) userLoginForm.style.display = 'block';
+        const toggleBtn = document.getElementById('togglePhoneAuthBtn');
+        if(toggleBtn) toggleBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> بەکارهێنانی ژمارە مۆبایل';
+
+        document.getElementById('authTabLogin').classList.add('active');
+        document.getElementById('authTabLogin').style.color = 'var(--primary-color)';
+        document.getElementById('authTabLogin').style.borderBottomColor = 'var(--primary-color)';
+        
+        document.getElementById('authTabSignUp').classList.remove('active');
+        document.getElementById('authTabSignUp').style.color = 'var(--dark-gray)';
+        document.getElementById('authTabSignUp').style.borderBottomColor = 'transparent';
+        
+    } else {
+        authView.style.display = 'none';
+        profileView.style.display = 'block';
+
+        const displayName = state.currentUser.displayName || state.currentUser.phoneNumber || "بەکارهێنەر";
+        document.getElementById('profileDisplayName').textContent = displayName;
+        
+        const emailOrPhone = state.currentUser.email || state.currentUser.phoneNumber;
+        document.getElementById('profileDisplayEmail').textContent = emailOrPhone;
+
+        document.getElementById('profileName').value = state.userProfile.name || '';
+        document.getElementById('profileAddress').value = state.userProfile.address || '';
+        document.getElementById('profilePhone').value = state.userProfile.phone || '';
     }
 }
 
-async function requestNotificationPermissionCore() {
-    if (!("Notification" in window)) {
-        return { granted: false, message: 'مۆبایلەکەت پشتگیری ئاگەداری (Notifications) ناکات.' };
-    }
-    if (Notification.permission === 'denied') {
-        return { granted: false, message: 'مۆڵەتی ئاگەداری ڕەت کراوەتەوە (Blocked). تکایە لە ڕێکخستنەکانی وێبگەڕ (Settings) چالاکی بکە.' };
-    }
+// --- Initialization & Listeners ---
 
-    try {
-        const permission = await Notification.requestPermission();
+function setupUIEventListeners() {
+    
+    homeBtn.onclick = async () => {
+        saveCurrentScrollPositionCore();
+
+        const resetState = { 
+            category: 'all', 
+            subcategory: 'all', 
+            subSubcategory: 'all', 
+            search: '', 
+            scroll: 0 
+        };
+
+        history.pushState(resetState, '', window.location.pathname);
         
-        if (permission === 'granted') {
-            const registration = await navigator.serviceWorker.ready;
-            const vapidKey = "BBu5yMLTteU8iIyneiAjmo6j5ERmlqCjOwKxZ8aPfLOHTETkehoqnML_7kM92yLwNyMr0xCC2AmeIyeumYgHBtM";
-            const currentToken = await getToken(messaging, { 
-                serviceWorkerRegistration: registration,
-                vapidKey: vapidKey 
-            });
+        state.currentCategory = 'all';
+        state.currentSubcategory = 'all';
+        state.currentSubSubcategory = 'all';
+        state.currentSearch = '';
+        showPage('mainPage');
+        await updateProductViewUI(true, true);
+    };
 
-            if (currentToken) {
-                await saveTokenToFirestore(currentToken);
-                return { granted: true, message: 'مۆڵەتی ناردنی ئاگەداری بە سەرکەوتوویی درا' };
-            } else {
-                return { granted: false, message: 'تۆکن وەرنەگیرا (Token Error)' };
-            }
-        } else {
-            return { granted: false, message: 'مۆڵەت نەدرا (Denied)' };
+    settingsBtn.onclick = () => {
+        saveCurrentScrollPositionCore(); 
+        history.pushState({ type: 'page', id: 'settingsPage', title: t('settings_title') }, '', '#settingsPage');
+        showPage('settingsPage', t('settings_title'));
+    };
+
+    document.getElementById('headerBackBtn').onclick = () => { history.back(); };
+
+    const settingsProfileBtn = document.getElementById('settingsProfileBtn');
+    if (settingsProfileBtn) {
+        settingsProfileBtn.onclick = () => { openPopup('profileSheet'); };
+    }
+
+    cartBtn.onclick = () => { openPopup('cartSheet'); updateActiveNav('cartBtn'); };
+    
+    categoriesBtn.onclick = async () => {
+        saveCurrentScrollPositionCore();
+        history.pushState({ type: 'page', id: 'categoriesPage', title: t('nav_categories') }, '', '#categories');
+        showPage('categoriesPage', t('nav_categories'));
+        await renderSplitCategoriesPageUI();
+        updateActiveNav('categoriesBtn');
+    };
+
+    settingsFavoritesBtn.onclick = () => { openPopup('favoritesSheet'); };
+    settingsAdminLoginBtn.onclick = () => { openPopup('loginModal', 'modal'); };
+    notificationBtn.addEventListener('click', () => { openPopup('notificationsSheet'); });
+    termsAndPoliciesBtn?.addEventListener('click', () => { openPopup('termsSheet'); });
+
+    sheetOverlay.onclick = closeCurrentPopup;
+    document.querySelectorAll('.close').forEach(btn => btn.onclick = closeCurrentPopup);
+    window.onclick = (e) => { if (e.target.classList.contains('modal')) closeCurrentPopup(); };
+
+    loginForm.onsubmit = async (e) => {
+        e.preventDefault();
+        try {
+            await handleLogin(document.getElementById('email').value, document.getElementById('password').value);
+            closeCurrentPopup(); 
+        } catch (error) {
+            showNotification(error.message, 'error');
         }
-    } catch (error) {
-        console.error("Notification Error:", error);
-        return { granted: false, message: 'هەڵە: ' + error.message };
-    }
-}
+    };
+    
+    const authTabLogin = document.getElementById('authTabLogin');
+    const authTabSignUp = document.getElementById('authTabSignUp');
+    const userLoginForm = document.getElementById('userLoginForm');
+    const userSignUpForm = document.getElementById('userSignUpForm');
 
-async function saveTokenToFirestore(token) {
-    try {
-        const tokensCollection = collection(db, 'device_tokens');
-        const tokenData = {
-            lastUpdatedAt: Date.now(),
-            language: state.currentLanguage
+    authTabLogin.onclick = () => {
+        authTabLogin.classList.add('active');
+        authTabLogin.style.color = 'var(--primary-color)';
+        authTabLogin.style.borderBottomColor = 'var(--primary-color)';
+        authTabSignUp.classList.remove('active');
+        authTabSignUp.style.color = 'var(--dark-gray)';
+        authTabSignUp.style.borderBottomColor = 'transparent';
+        userLoginForm.style.display = 'block';
+        userSignUpForm.style.display = 'none';
+        
+        // Hide phone auth if switching tabs
+        document.getElementById('phoneAuthSection').style.display = 'none';
+        document.getElementById('togglePhoneAuthBtn').innerHTML = '<i class="fas fa-mobile-alt"></i> بەکارهێنانی ژمارە مۆبایل';
+    };
+
+    authTabSignUp.onclick = () => {
+        authTabSignUp.classList.add('active');
+        authTabSignUp.style.color = 'var(--primary-color)';
+        authTabSignUp.style.borderBottomColor = 'var(--primary-color)';
+        authTabLogin.classList.remove('active');
+        authTabLogin.style.color = 'var(--dark-gray)';
+        authTabLogin.style.borderBottomColor = 'transparent';
+        userLoginForm.style.display = 'none';
+        userSignUpForm.style.display = 'block';
+        
+        // Hide phone auth if switching tabs
+        document.getElementById('phoneAuthSection').style.display = 'none';
+        document.getElementById('togglePhoneAuthBtn').innerHTML = '<i class="fas fa-mobile-alt"></i> بەکارهێنانی ژمارە مۆبایل';
+    };
+
+    userLoginForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('userLoginEmail').value;
+        const password = document.getElementById('userLoginPassword').value;
+        const errorP = document.getElementById('userLoginError');
+        const submitBtn = userLoginForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        errorP.style.display = 'none';
+        
+        const result = await handleUserLogin(email, password);
+        
+        if (result.success) {
+            closeCurrentPopup(); 
+        } else {
+            errorP.textContent = result.message;
+            errorP.style.display = 'block';
+            submitBtn.disabled = false;
+        }
+    };
+
+    // --- Phone Auth Logic (Final Fix) ---
+    const togglePhoneBtn = document.getElementById('togglePhoneAuthBtn');
+    if (togglePhoneBtn) {
+        togglePhoneBtn.onclick = () => {
+            const section = document.getElementById('phoneAuthSection');
+            const loginForm = document.getElementById('userLoginForm');
+            const signupForm = document.getElementById('userSignUpForm');
+            const authTabs = document.querySelector('.auth-tabs');
+            
+            if (section.style.display === 'none') {
+                section.style.display = 'block';
+                loginForm.style.display = 'none';
+                signupForm.style.display = 'none';
+                authTabs.style.display = 'none'; 
+                togglePhoneBtn.innerHTML = '<i class="fas fa-envelope"></i> بەکارهێنانی ئیمەیڵ';
+                
+                // Initialize Recaptcha immediately (lazy init)
+                setTimeout(() => setupRecaptcha('sendOtpBtn'), 500);
+            } else {
+                section.style.display = 'none';
+                authTabs.style.display = 'flex';
+                document.getElementById('authTabLogin').click(); 
+                togglePhoneBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> بەکارهێنانی ژمارە مۆبایل';
+            }
+        };
+    }
+
+    const sendOtpBtn = document.getElementById('sendOtpBtn');
+    if (sendOtpBtn) {
+        sendOtpBtn.onclick = async () => {
+            const phone = document.getElementById('phoneNumberInput').value;
+            // Clean phone number (remove spaces)
+            const cleanPhone = phone.replace(/\s/g, ''); 
+
+            if (!cleanPhone || cleanPhone.length < 10) { 
+                showNotification('تکایە ژمارەکە بە تەواوی بنووسە', 'error'); 
+                return; 
+            }
+            
+            // Check if Recaptcha exists, if not try to init
+            if (!window.recaptchaVerifier) {
+                // If invisible, just init and it will auto-click in callback
+                setupRecaptcha('sendOtpBtn');
+                // Don't return, let the callback handle the click if it was not ready
+                // Or better, if setupRecaptcha is sync for creation but async for render:
+                // Since render is async, we can't send immediately if not ready.
+                // But setupRecaptcha handles auto-click on success.
+                // So we stop here if it wasn't ready.
+                return; 
+            }
+
+            sendOtpBtn.disabled = true;
+            sendOtpBtn.textContent = '...ناردن';
+            
+            const result = await sendOtpCore(cleanPhone);
+            
+            if (result.success) {
+                showNotification(result.message, 'success');
+                document.getElementById('phoneInputContainer').style.display = 'none';
+                document.getElementById('otpInputContainer').style.display = 'block';
+            } else {
+                showNotification(result.message, 'error');
+                sendOtpBtn.disabled = false;
+                sendOtpBtn.textContent = 'ناردنی کۆد';
+                // Reset recaptcha on error
+                if (window.recaptchaVerifier) {
+                    try { window.recaptchaVerifier.clear(); } catch(e){}
+                    window.recaptchaVerifier = null;
+                    // Re-init so it's ready for next try
+                    setupRecaptcha('sendOtpBtn');
+                }
+            }
+        };
+    }
+
+    const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+    if (verifyOtpBtn) {
+        verifyOtpBtn.onclick = async () => {
+            const code = document.getElementById('otpInput').value;
+            if (code.length < 6) { showNotification('کۆدەکە هەڵەیە', 'error'); return; }
+            
+            verifyOtpBtn.disabled = true;
+            verifyOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            const result = await verifyOtpCore(code);
+            
+            if (result.success) {
+                showNotification(result.message, 'success');
+                closeCurrentPopup();
+            } else {
+                showNotification(result.message, 'error');
+                verifyOtpBtn.disabled = false;
+                verifyOtpBtn.textContent = 'پشتڕاستکردنەوە';
+            }
+        };
+    }
+
+    const retryPhoneBtn = document.getElementById('retryPhoneBtn');
+    if (retryPhoneBtn) {
+        retryPhoneBtn.onclick = () => {
+            document.getElementById('phoneInputContainer').style.display = 'block';
+            document.getElementById('otpInputContainer').style.display = 'none';
+            document.getElementById('sendOtpBtn').disabled = false;
+            document.getElementById('sendOtpBtn').textContent = 'ناردنی کۆد';
+            
+            // Re-setup recaptcha for retry
+            if(window.recaptchaVerifier) {
+                 try { window.recaptchaVerifier.clear(); } catch(e){}
+                 window.recaptchaVerifier = null;
+            }
+            setupRecaptcha('sendOtpBtn');
+        };
+    }
+    // ----------------------------------
+
+    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+    if (forgotPasswordLink) {
+        forgotPasswordLink.onclick = async () => {
+            const email = document.getElementById('userLoginEmail').value;
+            const errorP = document.getElementById('userLoginError');
+            errorP.style.display = 'none';
+
+            if (!email) {
+                showNotification(t('password_reset_enter_email'), 'error');
+                errorP.textContent = t('password_reset_enter_email');
+                errorP.style.display = 'block';
+                return;
+            }
+            
+            const result = await handlePasswordReset(email);
+            
+            showNotification(result.message, result.success ? 'success' : 'error');
+            
+            if (!result.success) {
+                errorP.textContent = result.message;
+                errorP.style.display = 'block';
+            }
+        };
+    }
+
+    userSignUpForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('userSignUpName').value;
+        const email = document.getElementById('userSignUpEmail').value;
+        const password = document.getElementById('userSignUpPassword').value;
+        const errorP = document.getElementById('userSignUpError');
+        const submitBtn = userSignUpForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        errorP.style.display = 'none';
+
+        const result = await handleUserSignUp(name, email, password);
+        
+        if (result.success) {
+            showNotification(result.message, 'success');
+            closeCurrentPopup(); 
+        } else {
+            errorP.textContent = result.message;
+            errorP.style.display = 'block';
+            submitBtn.disabled = false;
+        }
+    };
+
+    document.getElementById('userLogoutBtn').onclick = async () => {
+        const result = await handleUserLogout();
+        showNotification(result.message, result.success ? 'success' : 'error');
+    };
+
+    // --- Delete Account Button Logic ---
+    const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteAccountBtn');
+    const cancelDeleteBtn = document.getElementById('cancelDeleteAccountBtn');
+
+    if (deleteAccountBtn) {
+        deleteAccountBtn.onclick = () => {
+            window.globalAdminTools.openPopup('deleteAccountModal', 'modal');
+        };
+    }
+
+    if (cancelDeleteBtn) {
+        cancelDeleteBtn.onclick = () => {
+            window.globalAdminTools.closeCurrentPopup();
+        };
+    }
+
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.onclick = async () => {
+            confirmDeleteBtn.disabled = true;
+            const originalContent = confirmDeleteBtn.innerHTML;
+            confirmDeleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            const result = await handleDeleteAccount(true); 
+
+            if (result.success) {
+                showNotification(result.message, 'success');
+                closeCurrentPopup(); 
+                updateProfileSheetUI(); 
+                window.globalAdminTools.closeCurrentPopup(); 
+            } else {
+                showNotification(result.message, 'error');
+                confirmDeleteBtn.disabled = false;
+                confirmDeleteBtn.innerHTML = originalContent;
+            }
+        };
+    }
+
+    const debouncedSearch = debounce(async (term) => {
+        await navigateToFilterCore({ search: term }); 
+        await updateProductViewUI(true, true); 
+    }, 500);
+    searchInput.oninput = () => {
+        const searchTerm = searchInput.value;
+        clearSearchBtn.style.display = searchTerm ? 'block' : 'none';
+        debouncedSearch(searchTerm);
+    };
+    clearSearchBtn.onclick = () => {
+        searchInput.value = '';
+        clearSearchBtn.style.display = 'none';
+        debouncedSearch(''); 
+    };
+
+    const subpageSearchInput = document.getElementById('subpageSearchInput');
+    const subpageClearSearchBtn = document.getElementById('subpageClearSearchBtn');
+    const debouncedSubpageSearch = debounce(async (term) => {
+        const hash = window.location.hash.substring(1);
+        if (hash.startsWith('subcategory_')) {
+            const ids = hash.split('_');
+            const subCatId = ids[2];
+            const activeSubSubBtn = document.querySelector('#subSubCategoryContainerOnDetailPage .subcategory-btn.active');
+            const subSubCatId = activeSubSubBtn ? (activeSubSubBtn.dataset.id || 'all') : 'all';
+            await renderProductsOnDetailPageUI(subCatId, subSubCatId, term); 
+        }
+    }, 500);
+    subpageSearchInput.oninput = () => {
+        const searchTerm = subpageSearchInput.value;
+        subpageClearSearchBtn.style.display = searchTerm ? 'block' : 'none';
+        debouncedSubpageSearch(searchTerm);
+    };
+    subpageClearSearchBtn.onclick = () => {
+        subpageSearchInput.value = '';
+        subpageClearSearchBtn.style.display = 'none';
+        debouncedSubpageSearch('');
+    };
+
+    profileForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const profileData = {
+            name: document.getElementById('profileName').value,
+            address: document.getElementById('profileAddress').value,
+            phone: document.getElementById('profilePhone').value,
         };
         
-        if (state.currentUser && state.currentUser.uid) {
-            tokenData.userId = state.currentUser.uid;
+        const submitBtn = profileForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+
+        const result = await saveProfileCore(profileData); 
+        
+        showNotification(result.message, result.success ? 'success' : 'error');
+        if(result.success) {
+            closeCurrentPopup();
         }
+        submitBtn.disabled = false;
+    };
 
-        await setDoc(doc(tokensCollection, token), tokenData, { merge: true });
-        console.log("Token saved with userId:", tokenData.userId);
-    } catch (error) { console.error('Error saving token: ', error); }
-}
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.onclick = () => {
+            handleSetLanguage(btn.dataset.lang);
+        };
+    });
 
-export function checkNewAnnouncementsCore(latestAnnouncementTimestamp) {
-    const lastSeenTimestamp = localStorage.getItem('lastSeenAnnouncementTimestamp') || 0;
-    return latestAnnouncementTimestamp > lastSeenTimestamp;
-}
+    contactToggle.onclick = () => {
+        const container = document.getElementById('dynamicContactLinksContainer');
+        const chevron = contactToggle.querySelector('.contact-chevron');
+        container.classList.toggle('open');
+        chevron.classList.toggle('open');
+    };
 
-export function updateLastSeenAnnouncementTimestamp(timestamp) {
-     localStorage.setItem('lastSeenAnnouncementTimestamp', timestamp);
-}
-
-async function handleInstallPrompt(installBtn) {
-    if (state.deferredPrompt) {
-        installBtn.style.display = 'none'; 
-        state.deferredPrompt.prompt();
-        const { outcome } = await state.deferredPrompt.userChoice;
-        state.deferredPrompt = null; 
+    const installBtn = document.getElementById('installAppBtn');
+    if (installBtn) {
+        installBtn.addEventListener('click', () => handleInstallPrompt(installBtn));
     }
-}
 
-async function forceUpdateCore() {
-    if (confirm(t('update_confirm'))) {
-        try {
-            if ('serviceWorker' in navigator) {
-                const registrations = await navigator.serviceWorker.getRegistrations();
-                for (const registration of registrations) { await registration.unregister(); }
-            }
-            if (window.caches) {
-                const keys = await window.caches.keys();
-                await Promise.all(keys.map(key => window.caches.delete(key)));
-            }
-            return { success: true, message: t('update_success') };
-        } catch (error) { return { success: false, message: t('error_generic') }; }
-    }
-    return { success: false, message: 'Update cancelled.' }; 
-}
+    document.getElementById('enableNotificationsBtn')?.addEventListener('click', async () => {
+        const result = await requestNotificationPermissionCore();
+        showNotification(result.message, result.granted ? 'success' : 'error');
+    });
 
-export function saveCurrentScrollPositionCore() {
-    const currentState = history.state;
-    const activePage = document.getElementById(state.currentPageId); 
-    
-    if (activePage && currentState) {
-        history.replaceState({ ...currentState, scroll: activePage.scrollTop }, '');
-    }
-}
-
-export function applyFilterStateCore(filterState) {
-    state.currentCategory = filterState.category || 'all';
-    state.currentSubcategory = filterState.subcategory || 'all';
-    state.currentSubSubcategory = filterState.subSubcategory || 'all';
-    state.currentSearch = filterState.search || '';
-}
-
-export function navigateToFilterCore(newState) {
-    saveCurrentScrollPositionCore(); 
-    const finalState = { ...history.state, ...newState }; 
-    const params = new URLSearchParams();
-    if (finalState.category && finalState.category !== 'all') params.set('category', finalState.category);
-    if (finalState.subcategory && finalState.subcategory !== 'all') params.set('subcategory', finalState.subcategory);
-    if (finalState.subSubcategory && finalState.subSubcategory !== 'all') params.set('subSubcategory', finalState.subSubcategory);
-    if (finalState.search) params.set('search', finalState.search);
-    const newUrl = `${window.location.pathname}?${params.toString()}`;
-    history.pushState(finalState, '', newUrl);
-    applyFilterStateCore(finalState);
-}
-
-async function initializeCoreLogic() {
-    if (!state.sliderIntervals) state.sliderIntervals = {};
-    await fetchCategories();
-    if ('Notification' in window && Notification.permission === 'granted') {
-        requestNotificationPermissionCore(); 
-    }
-}
-
-async function updateTokenLanguageInFirestore(newLang) {
-    if ('Notification' in window && Notification.permission === 'granted') {
-        try {
-            const currentToken = await getToken(messaging, { serviceWorkerRegistration: await navigator.serviceWorker.ready });
-            if (currentToken) {
-                const tokensCollection = collection(db, 'device_tokens');
-                await setDoc(doc(tokensCollection, currentToken), { language: newLang }, { merge: true }); 
-            }
-        } catch (error) { console.error('Error updating token language:', error); }
-    }
-}
-
-export function setLanguageCore(lang) {
-    state.currentLanguage = lang;
-    localStorage.setItem('language', lang);
-    document.documentElement.lang = lang.startsWith('ar') ? 'ar' : 'ku';
-    document.documentElement.dir = 'rtl';
-    state.productCache = {};
-    const homeContainer = document.getElementById('homePageSectionsContainer');
-    if (homeContainer) homeContainer.innerHTML = '';
-    updateTokenLanguageInFirestore(lang);
-}
-
-let userProfileUnsubscribe = null; 
-
-async function loadUserProfile(uid) {
-    if (userProfileUnsubscribe) {
-        userProfileUnsubscribe();
-        userProfileUnsubscribe = null;
-    }
-    const userProfileRef = doc(usersCollection, uid);
-    
-    userProfileUnsubscribe = onSnapshot(userProfileRef, (docSnap) => {
-        if (docSnap.exists()) {
-            const profileData = docSnap.data();
-            state.userProfile = {
-                name: profileData.name || '',
-                address: profileData.address || '',
-                phone: profileData.phone || ''
-            };
-            if (state.currentUser) {
-                state.currentUser.displayName = profileData.displayName;
-                state.currentUser.email = profileData.email;
-            }
-        } else {
-            setDoc(userProfileRef, {
-                email: state.currentUser.email || "",
-                displayName: state.currentUser.displayName || "User",
-                createdAt: Date.now(),
-                name: "", address: "", phone: state.currentUser.phoneNumber || ""
-            }).catch(e => console.error("Error creating profile:", e));
-            state.userProfile = { name: "", address: "", phone: state.currentUser.phoneNumber || "" };
+    document.getElementById('forceUpdateBtn')?.addEventListener('click', async () => {
+        const result = await forceUpdateCore();
+        if (result.success) {
+            showNotification(result.message, 'success');
+            setTimeout(() => window.location.reload(true), 1500);
+        } else if (result.message !== 'Update cancelled.') {
+            showNotification(result.message, 'error');
         }
-        document.dispatchEvent(new CustomEvent('profileLoaded'));
+    });
+
+    const scrollTrigger = document.getElementById('scroll-loader-trigger');
+    if (scrollTrigger) {
+        const observer = new IntersectionObserver(async (entries) => {
+            const isMainPageActive = document.getElementById('mainPage')?.classList.contains('page-active');
+            
+            const isProductGridVisible = document.getElementById('productsContainer')?.style.display === 'grid';
+            
+            const isHomeAllProductsVisible = document.querySelector('.all-products-grid');
+
+            if (entries[0].isIntersecting && isMainPageActive && (isProductGridVisible || isHomeAllProductsVisible) && !state.isLoadingMoreProducts && !state.allProductsLoaded) {
+                 
+                 loader.style.display = 'block'; 
+                 const result = await fetchProducts(state.currentSearch, false); 
+                 
+                 loader.style.display = 'none'; 
+                 
+                 if(result && result.products.length > 0) {
+                     if (isHomeAllProductsVisible) {
+                         result.products.forEach(product => {
+                             const card = createProductCardElementUI(product); 
+                             card.classList.add('product-card-reveal');
+                             isHomeAllProductsVisible.appendChild(card);
+                         });
+                         setupScrollAnimations();
+                     } else {
+                         await updateProductViewUI(false); 
+                     }
+                 }
+                 
+                 scrollTrigger.style.display = state.allProductsLoaded ? 'none' : 'block';
+            }
+        }, { threshold: 0.1 });
+        observer.observe(scrollTrigger);
+    }
+
+    document.addEventListener('authChange', (e) => {
+        updateAdminUIAuth(e.detail.isAdmin);
+        if(e.detail.isAdmin && loginModal.style.display === 'block') {
+             closeCurrentPopup();
+        }
+    });
+    
+    document.addEventListener('userChange', () => {
+        if (document.getElementById('profileSheet')?.classList.contains('show')) {
+            updateProfileSheetUI();
+        }
+    });
+    
+    document.addEventListener('profileLoaded', () => {
+        if (document.getElementById('profileSheet')?.classList.contains('show')) {
+            updateProfileSheetUI();
+        }
+    });
+
+
+    document.addEventListener('fcmMessage', (e) => {
+        const payload = e.detail;
+        const title = payload.notification?.title || 'Notification';
+        const body = payload.notification?.body || '';
+        showNotification(`${title}: ${body}`, 'success');
+        notificationBadge.style.display = 'block'; 
+    });
+
+    document.addEventListener('installPromptReady', () => {
+        const installBtn = document.getElementById('installAppBtn');
+        if (installBtn) installBtn.style.display = 'flex';
+    });
+
+    document.addEventListener('swUpdateReady', (e) => {
+        const updateNotification = document.getElementById('update-notification');
+        const updateNowBtn = document.getElementById('update-now-btn');
+        updateNotification.classList.add('show');
+        updateNowBtn.onclick = () => {
+             e.detail.registration?.waiting?.postMessage({ action: 'skipWaiting' });
+        };
+    });
+
+    document.addEventListener('clearCacheTriggerRender', async () => {
+        console.log("UI received clearCacheTriggerRender event.");
+        if(state.currentCategory === 'all' && !state.currentSearch) {
+             await updateProductViewUI(true, true); 
+        }
+    });
+
+    setupGpsButtonUI();
+
+    document.addEventListener('contextmenu', (event) => {
+        if (event.target.tagName === 'IMG') {
+            event.preventDefault();
+        }
+    });
+    
+    document.addEventListener('dragstart', (event) => {
+        if (event.target.tagName === 'IMG') {
+            event.preventDefault();
+        }
     });
 }
 
-export async function initCore() {
-    return enableIndexedDbPersistence(db)
-        .then(() => console.log("Firestore offline persistence enabled."))
-        .catch((err) => console.warn("Firestore Persistence failed:", err.code))
-        .finally(async () => { 
-            await initializeCoreLogic(); 
+document.addEventListener('DOMContentLoaded', initializeUI);
 
-            onAuthStateChanged(auth, async (user) => {
-                const adminUID = "xNjDmjYkTxOjEKURGP879wvgpcG3";
-                let isAdmin = false;
-
-                if (userProfileUnsubscribe) {
-                    userProfileUnsubscribe();
-                    userProfileUnsubscribe = null;
-                }
-
-                if (user) {
-                    if (user.uid === adminUID) {
-                        isAdmin = true;
-                        state.currentUser = null; 
-                        state.userProfile = {};
-                        
-                        const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
-                        sessionStorage.setItem('isAdmin', 'true');
-                        if (!wasAdmin && window.AdminLogic && typeof window.AdminLogic.initialize === 'function') {
-                            window.AdminLogic.initialize();
-                        }
-                    } 
-                    else {
-                        isAdmin = false;
-                        state.currentUser = user; 
-                        await loadUserProfile(user.uid);
-                        
-                        const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
-                        sessionStorage.removeItem('isAdmin');
-                        if (wasAdmin && window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
-                            window.AdminLogic.deinitialize();
-                        }
-                        if ('Notification' in window && Notification.permission === 'granted') {
-                            requestNotificationPermissionCore();
-                        }
-                    }
-                } 
-                else {
-                    isAdmin = false;
-                    state.currentUser = null;
-                    state.userProfile = {}; 
-                    
-                    const wasAdmin = sessionStorage.getItem('isAdmin') === 'true';
-                    sessionStorage.removeItem('isAdmin');
-                    if (wasAdmin && window.AdminLogic && typeof window.AdminLogic.deinitialize === 'function') {
-                        window.AdminLogic.deinitialize();
-                    }
-                }
-                
-                document.dispatchEvent(new CustomEvent('authChange', { detail: { isAdmin } }));
-                document.dispatchEvent(new CustomEvent('userChange', { detail: { user: state.currentUser } }));
-
-                if (authReadyResolver) {
-                    authReadyResolver(user); 
-                    authReadyResolver = null; 
-                }
-            });
-
-            onMessage(messaging, (payload) => {
-                document.dispatchEvent(new CustomEvent('fcmMessage', { detail: payload }));
-            });
-
-             window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                state.deferredPrompt = e;
-                document.dispatchEvent(new Event('installPromptReady')); 
-            });
-
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js').then(registration => {
-                    registration.addEventListener('updatefound', () => {
-                        const newWorker = registration.installing;
-                        newWorker.addEventListener('statechange', () => {
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                document.dispatchEvent(new CustomEvent('swUpdateReady', { detail: { registration } }));
-                            }
-                        });
-                    });
-                }).catch(err => console.error('SW registration failed: ', err));
-
-                navigator.serviceWorker.addEventListener('controllerchange', () => {
-                     window.location.reload();
-                });
-            }
-        });
+if (!window.globalAdminTools) {
+    window.globalAdminTools = {};
 }
 
-export {
-    handleLogin, 
-    handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
-    fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, 
-    fetchHomeLayout, fetchPromoGroupCards, fetchBrandGroupBrands, fetchNewestProducts, fetchShortcutRowCards, fetchCategoryRowProducts, fetchInitialProductsForHome,
-    requestNotificationPermissionCore,
-    handleInstallPrompt, 
-    forceUpdateCore, 
-
-    db, 
-    productsCollection,
-    collection, doc, getDoc, updateDoc, deleteDoc, addDoc, setDoc,
-    query, orderBy, onSnapshot, getDocs, where, limit, startAfter, runTransaction
-};
+window.globalAdminTools.openPopup = openPopup;
+window.globalAdminTools.closeCurrentPopup = closeCurrentPopup;
+window.globalAdminTools.showNotification = showNotification; 
+window.globalAdminTools.updateCartCountUI = updateCartCountUI;
