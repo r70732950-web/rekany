@@ -117,40 +117,55 @@ export function isFavorite(productId) {
 
 // --- Auth Functions (Email & Phone) ---
 
-// ١. ئامادەکردنی ReCaptcha (چاککراو)
+// ١. ئامادەکردنی ReCaptcha (Invisible Mode)
 export function setupRecaptcha(buttonId) {
-    if (!window.recaptchaVerifier) {
-        // وەرگرتنی توخمەکە نەک تەنها ناوەکەی
-        const container = document.getElementById('recaptcha-container');
-        if (!container) {
-            console.error("Recaptcha container not found!");
-            return;
-        }
-        
-        // پاککردنەوەی کۆن ئەگەر هەبێت
-        container.innerHTML = '';
+    if (window.recaptchaVerifier) {
+        return; 
+    }
 
-        try {
-            window.recaptchaVerifier = new RecaptchaVerifier(auth, container, {
-                'size': 'normal',
-                'callback': (response) => {
-                    // ReCaptcha solved
-                    const btn = document.getElementById(buttonId);
-                    if(btn) btn.disabled = false;
-                },
-                'expired-callback': () => {
-                    // Response expired
-                    const btn = document.getElementById(buttonId);
-                    if(btn) btn.disabled = true;
+    if (!auth) {
+        console.error("Firebase Auth initialized نییە!");
+        return;
+    }
+
+    const container = document.getElementById('recaptcha-container');
+    if (!container) {
+        console.error("توخمی recaptcha-container نەدۆزرایەوە!");
+        return;
+    }
+
+    container.innerHTML = '';
+
+    try {
+        console.log("خەریکی دروستکردنی Invisible Recaptcha...");
+        
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, container, {
+            'size': 'invisible', // <--- گرنگ: ئەمە وادەکات شاردراوە بێت
+            'callback': (response) => {
+                console.log("Recaptcha Solved (بە سەرکەوتوویی)");
+                const btn = document.getElementById(buttonId);
+                if(btn) {
+                    btn.disabled = false;
+                    // چونکە نادیارە، خۆمان دوگمەکە دادەگرینەوە بۆ بەکارهێنەر
+                    btn.click(); 
                 }
-            });
-            
-            // ڕەندەرکردن
-            window.recaptchaVerifier.render();
-            
-        } catch (e) {
-            console.error("Recaptcha init error:", e);
-        }
+            },
+            'expired-callback': () => {
+                console.log("Recaptcha Expired");
+                const btn = document.getElementById(buttonId);
+                if(btn) btn.disabled = true;
+                if(window.recaptchaVerifier) window.recaptchaVerifier.clear();
+                window.recaptchaVerifier = null;
+            }
+        });
+
+        window.recaptchaVerifier.render().then((widgetId) => {
+            window.recaptchaWidgetId = widgetId;
+            console.log("Recaptcha is ready (Invisible mode)");
+        });
+
+    } catch (e) {
+        console.error("هەڵە لە دروستکردنی Recaptcha:", e);
     }
 }
 
@@ -158,8 +173,12 @@ export function setupRecaptcha(buttonId) {
 export async function sendOtpCore(phoneNumber) {
     try {
         if (!window.recaptchaVerifier) {
-            throw new Error("Recaptcha not initialized");
+            // ئەگەر دروست نەکرابوو، هەوڵدەدەین دروستی بکەین (بەڵام باشترە پێشتر کرابێت)
+            console.warn("Recaptcha not ready, trying to init...");
+            // لێرە ناتوانین ID دوگمەکە بزانین، بۆیە تەنها هەڵە دەگەڕێنینەوە
+            throw new Error("Recaptcha not initialized. Reload page."); 
         }
+        
         const appVerifier = window.recaptchaVerifier;
         const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
         window.confirmationResult = confirmationResult;
