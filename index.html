@@ -81,36 +81,13 @@
         </div>
 
         <div id="welcomeModal" class="modal">
-    <div class="modal-content winter-modal" style="text-align: center; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 320px;">
-        
-        <div class="snowflakes" aria-hidden="true">
-            <div class="snowflake">❅</div><div class="snowflake">❆</div><div class="snowflake">❅</div>
-            <div class="snowflake">❆</div><div class="snowflake">❅</div><div class="snowflake">❆</div>
-            <div class="snowflake">❅</div><div class="snowflake">❆</div><div class="snowflake">❅</div>
-            <div class="snowflake">❆</div>
+            <div class="modal-content" style="text-align: center;">
+                <span class="close" aria-label="Close">&times;</span>
+                <i class="fas fa-store" style="font-size: 40px; color: var(--accent-color); margin-bottom: 15px;"></i>
+                <h2 style="margin-bottom: 10px;">بەخێرهاتن بۆ فرۆشگای MATEN</h2>
+                <p style="color: var(--text-light);">هیوادارین ئەزموونێکی کڕینی خۆشت هەبێت!</p>
+            </div>
         </div>
-
-        <span class="close" aria-label="Close" style="z-index: 10; color: #1a365d;">&times;</span>
-        
-        <div class="winter-icon-wrapper">
-            <i class="fas fa-store" style="font-size: 50px; color: #1a365d;"></i>
-            <i class="fas fa-snowflake" style="position: absolute; top: -5px; right: -10px; color: #89CFF0; font-size: 20px; animation: spin 3s linear infinite;"></i>
-        </div>
-        
-        <h2 style="margin: 15px 0 5px 0; color: #1a365d; font-size: 28px; font-weight: 900; z-index: 5; text-shadow: 2px 2px 4px rgba(255,255,255,0.8);">
-            MATEN STORE
-        </h2>
-        
-        <p style="color: #5a7b9c; z-index: 5; margin-bottom: 25px; font-weight: bold;">
-            <i class="fas fa-snowflake" style="color: #89CFF0;"></i> ئۆفەرێن تایبەتێن زڤستانێ <i class="fas fa-snowflake" style="color: #89CFF0;"></i>
-        </p>
-        
-        <button onclick="document.querySelector('.close').click()" style="background: linear-gradient(135deg, #1a365d 0%, #2a4365 100%); color: white; border: none; padding: 12px 40px; border-radius: 50px; font-weight: bold; cursor: pointer; z-index: 5; box-shadow: 0 4px 15px rgba(26, 54, 93, 0.3); transition: transform 0.2s;">
-            دەستپێکرن
-        </button>
-    </div>
-</div>
-
 
         <div id="orderConfirmationModal" class="modal">
             <div class="modal-content" style="text-align: center; padding: 25px;">
@@ -221,6 +198,32 @@
                         <button type="submit">خۆتۆمارکردن</button>
                         <p id="userSignUpError" style="color:var(--danger-color); margin-top:10px; display:none; text-align: center;"></p>
                     </form>
+
+                    <div id="phoneAuthSection" style="display: none; margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
+                        <h4 style="text-align: center; margin-bottom: 10px;">چوونەژوورەوە بە مۆبایل</h4>
+                        
+                        <div id="phoneInputContainer">
+                            <div class="form-group">
+                                <label>ژمارەی مۆبایل (+964...):</label>
+                                <input type="tel" id="phoneNumberInput" placeholder="+9647xxxxxxxxx" style="direction: ltr;">
+                            </div>
+                            <div id="recaptcha-container" style="margin-bottom: 10px;"></div>
+                            <button id="sendOtpBtn" style="background-color: var(--accent-color);">ناردنی کۆد</button>
+                        </div>
+
+                        <div id="otpInputContainer" style="display: none;">
+                            <div class="form-group">
+                                <label>کۆدی ٦ ژمارەیی:</label>
+                                <input type="number" id="otpInput" placeholder="123456" style="letter-spacing: 5px; text-align: center;">
+                            </div>
+                            <button id="verifyOtpBtn" style="background-color: var(--primary-color);">پشتڕاستکردنەوە</button>
+                            <button id="retryPhoneBtn" style="background: none; border: none; color: var(--dark-gray); margin-top: 10px; font-size: 12px; width: 100%;">گۆڕینی ژمارە</button>
+                        </div>
+                    </div>
+
+                    <button id="togglePhoneAuthBtn" style="width: 100%; margin-top: 15px; background-color: white; border: 1px solid var(--medium-gray); color: var(--text-color); padding: 10px; border-radius: 6px;">
+                        <i class="fas fa-mobile-alt"></i> بەکارهێنانی ژمارە مۆبایل
+                    </button>
                 </div>
 
                 <div id="profileView" style="display: none;">

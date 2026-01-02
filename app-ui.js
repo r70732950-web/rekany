@@ -24,7 +24,9 @@ import {
     addToCartCore, updateCartQuantityCore, removeFromCartCore, generateOrderMessageCore, toggleFavoriteCore, isFavorite, saveFavorites,
     saveProfileCore, setLanguageCore, requestNotificationPermissionCore, checkNewAnnouncementsCore, updateLastSeenAnnouncementTimestamp,
     handleInstallPrompt, forceUpdateCore, saveCurrentScrollPositionCore, applyFilterStateCore, navigateToFilterCore, initCore,
-    db, collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection
+    db, collection, doc, getDoc, query, where, orderBy, getDocs, limit, startAfter, productsCollection,
+    // --- زیادکراو بۆ مۆبایل ---
+    setupRecaptcha, sendOtpCore, verifyOtpCore
 } from './app-core.js';
 
 import { updateProductViewUI, renderMainCategoriesUI, renderSubcategoriesUI, renderPageContentUI } from './home.js';
@@ -540,10 +542,18 @@ function updateAdminUIAuth(isAdmin) {
 function updateProfileSheetUI() {
     const authView = document.getElementById('authView');
     const profileView = document.getElementById('profileView');
+    const phoneSection = document.getElementById('phoneAuthSection');
+    const userLoginForm = document.getElementById('userLoginForm');
     
     if (!state.currentUser) {
         authView.style.display = 'block';
         profileView.style.display = 'none';
+        
+        // Reset to default Email view on load
+        if(phoneSection) phoneSection.style.display = 'none';
+        if(userLoginForm) userLoginForm.style.display = 'block';
+        const toggleBtn = document.getElementById('togglePhoneAuthBtn');
+        if(toggleBtn) toggleBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> بەکارهێنانی ژمارە مۆبایل';
 
         document.getElementById('authTabLogin').classList.add('active');
         document.getElementById('authTabLogin').style.color = 'var(--primary-color)';
@@ -553,15 +563,15 @@ function updateProfileSheetUI() {
         document.getElementById('authTabSignUp').style.color = 'var(--dark-gray)';
         document.getElementById('authTabSignUp').style.borderBottomColor = 'transparent';
         
-        document.getElementById('userLoginForm').style.display = 'block';
-        document.getElementById('userSignUpForm').style.display = 'none';
-
     } else {
         authView.style.display = 'none';
         profileView.style.display = 'block';
 
-        document.getElementById('profileDisplayName').textContent = state.currentUser.displayName || "بەکارهێنەر";
-        document.getElementById('profileDisplayEmail').textContent = state.currentUser.email;
+        const displayName = state.currentUser.displayName || state.currentUser.phoneNumber || "بەکارهێنەر";
+        document.getElementById('profileDisplayName').textContent = displayName;
+        
+        const emailOrPhone = state.currentUser.email || state.currentUser.phoneNumber;
+        document.getElementById('profileDisplayEmail').textContent = emailOrPhone;
 
         document.getElementById('profileName').value = state.userProfile.name || '';
         document.getElementById('profileAddress').value = state.userProfile.address || '';
@@ -650,6 +660,10 @@ function setupUIEventListeners() {
         authTabSignUp.style.borderBottomColor = 'transparent';
         userLoginForm.style.display = 'block';
         userSignUpForm.style.display = 'none';
+        
+        // Hide phone auth if switching tabs
+        document.getElementById('phoneAuthSection').style.display = 'none';
+        document.getElementById('togglePhoneAuthBtn').innerHTML = '<i class="fas fa-mobile-alt"></i> بەکارهێنانی ژمارە مۆبایل';
     };
 
     authTabSignUp.onclick = () => {
@@ -661,6 +675,10 @@ function setupUIEventListeners() {
         authTabLogin.style.borderBottomColor = 'transparent';
         userLoginForm.style.display = 'none';
         userSignUpForm.style.display = 'block';
+        
+        // Hide phone auth if switching tabs
+        document.getElementById('phoneAuthSection').style.display = 'none';
+        document.getElementById('togglePhoneAuthBtn').innerHTML = '<i class="fas fa-mobile-alt"></i> بەکارهێنانی ژمارە مۆبایل';
     };
 
     userLoginForm.onsubmit = async (e) => {
@@ -682,6 +700,90 @@ function setupUIEventListeners() {
             submitBtn.disabled = false;
         }
     };
+
+    // --- Phone Auth Logic (Updated) ---
+    const togglePhoneBtn = document.getElementById('togglePhoneAuthBtn');
+    if (togglePhoneBtn) {
+        togglePhoneBtn.onclick = () => {
+            const section = document.getElementById('phoneAuthSection');
+            const loginForm = document.getElementById('userLoginForm');
+            const signupForm = document.getElementById('userSignUpForm');
+            const authTabs = document.querySelector('.auth-tabs');
+            
+            if (section.style.display === 'none') {
+                section.style.display = 'block';
+                loginForm.style.display = 'none';
+                signupForm.style.display = 'none';
+                authTabs.style.display = 'none'; 
+                togglePhoneBtn.innerHTML = '<i class="fas fa-envelope"></i> بەکارهێنانی ئیمەیڵ';
+                
+                setTimeout(() => setupRecaptcha('sendOtpBtn'), 500);
+            } else {
+                section.style.display = 'none';
+                authTabs.style.display = 'flex';
+                document.getElementById('authTabLogin').click(); 
+                togglePhoneBtn.innerHTML = '<i class="fas fa-mobile-alt"></i> بەکارهێنانی ژمارە مۆبایل';
+            }
+        };
+    }
+
+    const sendOtpBtn = document.getElementById('sendOtpBtn');
+    if (sendOtpBtn) {
+        sendOtpBtn.onclick = async () => {
+            const phone = document.getElementById('phoneNumberInput').value;
+            if (!phone || phone.length < 10) { showNotification('تکایە ژمارەکە بە تەواوی بنووسە', 'error'); return; }
+            
+            sendOtpBtn.disabled = true;
+            sendOtpBtn.textContent = '...ناردن';
+            
+            const result = await sendOtpCore(phone);
+            
+            if (result.success) {
+                showNotification(result.message, 'success');
+                document.getElementById('phoneInputContainer').style.display = 'none';
+                document.getElementById('otpInputContainer').style.display = 'block';
+            } else {
+                showNotification(result.message, 'error');
+                sendOtpBtn.disabled = false;
+                sendOtpBtn.textContent = 'ناردنی کۆد';
+                setupRecaptcha('sendOtpBtn'); 
+            }
+        };
+    }
+
+    const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+    if (verifyOtpBtn) {
+        verifyOtpBtn.onclick = async () => {
+            const code = document.getElementById('otpInput').value;
+            if (code.length < 6) { showNotification('کۆدەکە هەڵەیە', 'error'); return; }
+            
+            verifyOtpBtn.disabled = true;
+            verifyOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            const result = await verifyOtpCore(code);
+            
+            if (result.success) {
+                showNotification(result.message, 'success');
+                closeCurrentPopup();
+            } else {
+                showNotification(result.message, 'error');
+                verifyOtpBtn.disabled = false;
+                verifyOtpBtn.textContent = 'پشتڕاستکردنەوە';
+            }
+        };
+    }
+
+    const retryPhoneBtn = document.getElementById('retryPhoneBtn');
+    if (retryPhoneBtn) {
+        retryPhoneBtn.onclick = () => {
+            document.getElementById('phoneInputContainer').style.display = 'block';
+            document.getElementById('otpInputContainer').style.display = 'none';
+            document.getElementById('sendOtpBtn').disabled = false;
+            document.getElementById('sendOtpBtn').textContent = 'ناردنی کۆد';
+            setupRecaptcha('sendOtpBtn');
+        };
+    }
+    // ----------------------------------
 
     const forgotPasswordLink = document.getElementById('forgotPasswordLink');
     if (forgotPasswordLink) {
@@ -735,7 +837,7 @@ function setupUIEventListeners() {
         showNotification(result.message, result.success ? 'success' : 'error');
     };
 
-    // --- Delete Account Button Logic (Updated for Custom Modal) ---
+    // --- Delete Account Button Logic ---
     const deleteAccountBtn = document.getElementById('deleteAccountBtn');
     const confirmDeleteBtn = document.getElementById('confirmDeleteAccountBtn');
     const cancelDeleteBtn = document.getElementById('cancelDeleteAccountBtn');
@@ -758,7 +860,7 @@ function setupUIEventListeners() {
             const originalContent = confirmDeleteBtn.innerHTML;
             confirmDeleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-            const result = await handleDeleteAccount(true); // Pass true to skip native confirmation
+            const result = await handleDeleteAccount(true); 
 
             if (result.success) {
                 showNotification(result.message, 'success');
@@ -950,7 +1052,6 @@ function setupUIEventListeners() {
 
     setupGpsButtonUI();
 
-    // --- [NOVELTY] Image Protection (Prevent Save/Menu) ---
     document.addEventListener('contextmenu', (event) => {
         if (event.target.tagName === 'IMG') {
             event.preventDefault();

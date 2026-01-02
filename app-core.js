@@ -10,6 +10,9 @@ import {
     deleteUser, 
     translations, 
     CART_KEY, FAVORITES_KEY, PRODUCTS_PER_PAGE,
+    // --- زیادکراو بۆ مۆبایل ---
+    RecaptchaVerifier, 
+    signInWithPhoneNumber 
 } from './app-setup.js';
 
 import { 
@@ -112,7 +115,69 @@ export function isFavorite(productId) {
     return state.favorites.includes(productId);
 }
 
-// --- Auth Functions ---
+// --- Auth Functions (Email & Phone) ---
+
+// ١. ئامادەکردنی ReCaptcha بۆ مۆبایل
+export function setupRecaptcha(buttonId) {
+    if (!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            'size': 'normal',
+            'callback': (response) => {
+                // ReCaptcha solved
+                const btn = document.getElementById(buttonId);
+                if(btn) btn.disabled = false;
+            },
+            'expired-callback': () => {
+                // Response expired
+                const btn = document.getElementById(buttonId);
+                if(btn) btn.disabled = true;
+            }
+        });
+        window.recaptchaVerifier.render();
+    }
+}
+
+// ٢. ناردنی SMS
+export async function sendOtpCore(phoneNumber) {
+    try {
+        const appVerifier = window.recaptchaVerifier;
+        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+        window.confirmationResult = confirmationResult;
+        return { success: true, message: "کۆدەکە نێردرا" };
+    } catch (error) {
+        console.error("SMS Error:", error);
+        if(window.recaptchaVerifier) window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = null; 
+        return { success: false, message: "هەڵە لە ناردنی نامە: " + error.message };
+    }
+}
+
+// ٣. پشکنینی کۆدەکە
+export async function verifyOtpCore(code) {
+    try {
+        const result = await window.confirmationResult.confirm(code);
+        const user = result.user;
+        
+        // دروستکردنی پرۆفایل ئەگەر نەبێت
+        const userProfileRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(userProfileRef);
+        
+        if (!docSnap.exists()) {
+            await setDoc(userProfileRef, {
+                email: "", 
+                displayName: "بەکارهێنەری مۆبایل",
+                createdAt: Date.now(),
+                phone: user.phoneNumber,
+                name: "", address: ""
+            });
+        }
+        
+        return { success: true, message: "بەخێربێیت!" };
+    } catch (error) {
+        console.error("OTP Error:", error);
+        return { success: false, message: "کۆدەکە هەڵەیە" };
+    }
+}
 
 async function handleLogin(email, password) {
     try {
@@ -318,14 +383,12 @@ export async function fetchCategoryLayout(categoryId) {
 }
 
 async function fetchProducts(searchTerm = '', isNewSearch = false) {
-    // 1. Check for Home Page (Only stop if it is a FRESH load, allow scrolling)
     const shouldShowHomeSections = !searchTerm && state.currentCategory === 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
     
     if (shouldShowHomeSections && isNewSearch) {
         return { isHome: true, layout: null, products: [], allLoaded: true };
     }
 
-    // 2. Check for Category Layout (Only stop if it is a FRESH load, allow scrolling)
     const shouldShowCategoryLayout = !searchTerm && state.currentCategory !== 'all' && state.currentSubcategory === 'all' && state.currentSubSubcategory === 'all';
     
     if (shouldShowCategoryLayout && isNewSearch) {
@@ -380,7 +443,6 @@ async function fetchProducts(searchTerm = '', isNewSearch = false) {
 
         let finalQuery = query(productsQuery, ...conditions, ...orderByClauses);
 
-        // Pagination Logic
         if (state.lastVisibleProductDoc && !isNewSearch) {
             finalQuery = query(finalQuery, startAfter(state.lastVisibleProductDoc));
         }
@@ -643,7 +705,7 @@ export async function addToCartCore(productId, selectedVariationInfo = null) {
             id: cartId, 
             productId: product.id, 
             name: cartItemName,
-            marketCode: product.marketCode || '', // Ensure market code is saved
+            marketCode: product.marketCode || '', 
             price: cartItemPrice, 
             shippingCost: calculatedShippingCost,
             image: cartItemImage, 
@@ -678,13 +740,10 @@ export function removeFromCartCore(cartId) {
     return false; 
 }
 
-// === [UPDATED: Order Message Generator with 3+ Item Rule] ===
 export function generateOrderMessageCore() {
     if (state.cart.length === 0) return "";
 
     let message = t('order_greeting') + "\n\n";
-    
-    // 1. Group items by Market Code
     const itemsByMarket = {};
     
     state.cart.forEach(item => {
@@ -697,7 +756,6 @@ export function generateOrderMessageCore() {
         }
         itemsByMarket[mCode].items.push(item);
         
-        // Check for max shipping in this market group
         const itemShipping = item.shippingCost || 0;
         if (itemShipping > itemsByMarket[mCode].maxShipping) {
             itemsByMarket[mCode].maxShipping = itemShipping;
@@ -706,7 +764,6 @@ export function generateOrderMessageCore() {
 
     let grandTotal = 0;
 
-    // 2. Build Message Market by Market
     for (const [marketName, data] of Object.entries(itemsByMarket)) {
         message += `🏪 *مارکێت: ${marketName}*\n`;
         message += `------------------------\n`;
@@ -714,13 +771,11 @@ export function generateOrderMessageCore() {
         let marketItemsTotal = 0;
         let marketShippingFee = 0;
         const itemCount = data.items.length;
-        let isMaxShippingCharged = false; // Flag for the 3+ items rule
+        let isMaxShippingCharged = false; 
 
-        // Calculate Shipping Fee based on Rule
         if (itemCount >= 3) {
-            marketShippingFee = data.maxShipping; // Pay only max
+            marketShippingFee = data.maxShipping; 
         } else {
-            // Pay sum of all
             marketShippingFee = data.items.reduce((sum, i) => sum + (i.shippingCost || 0), 0);
         }
 
@@ -732,12 +787,10 @@ export function generateOrderMessageCore() {
                 ? item.name 
                 : ((item.name && item.name[state.currentLanguage]) || (item.name && item.name.ku_sorani) || 'کاڵای بێ ناو');
 
-            // --- LOGIC: Text Display for WhatsApp ---
             let shippingStr = "";
             const itemCost = item.shippingCost || 0;
 
             if (itemCount >= 3) {
-                // If 3+, only the max payer shows the cost
                 if (itemCost === data.maxShipping && !isMaxShippingCharged && itemCost > 0) {
                     shippingStr = `(گەیاندن: ${itemCost.toLocaleString()})`;
                     isMaxShippingCharged = true;
@@ -745,7 +798,6 @@ export function generateOrderMessageCore() {
                     shippingStr = `(گەیاندن: بێ بەرامبەر - ئۆفەری ٣ دانە)`;
                 }
             } else {
-                // If < 3, everyone shows their cost
                 if (itemCost > 0) {
                     shippingStr = `(گەیاندن: ${itemCost.toLocaleString()})`;
                 } else {
@@ -762,7 +814,6 @@ export function generateOrderMessageCore() {
         grandTotal += marketTotal;
 
         message += `------------------------\n`;
-        // message += `🚚 کۆی گەیاندنی مارکێت: ${marketShippingFee.toLocaleString()}\n`; 
         message += `💰 کۆی گشتی مارکێت: ${marketTotal.toLocaleString()} د.ع\n\n`;
     }
     
@@ -981,12 +1032,12 @@ async function loadUserProfile(uid) {
             }
         } else {
             setDoc(userProfileRef, {
-                email: state.currentUser.email,
-                displayName: state.currentUser.displayName,
+                email: state.currentUser.email || "",
+                displayName: state.currentUser.displayName || "User",
                 createdAt: Date.now(),
-                name: "", address: "", phone: ""
+                name: "", address: "", phone: state.currentUser.phoneNumber || ""
             }).catch(e => console.error("Error creating profile:", e));
-            state.userProfile = { name: "", address: "", phone: "" };
+            state.userProfile = { name: "", address: "", phone: state.currentUser.phoneNumber || "" };
         }
         document.dispatchEvent(new CustomEvent('profileLoaded'));
     });
@@ -1086,7 +1137,6 @@ export async function initCore() {
 }
 
 export {
-    // state exported from definition above
     handleLogin, 
     handleUserLogin, handleUserSignUp, handleUserLogout, handlePasswordReset,
     fetchCategories, fetchSubcategories, fetchSubSubcategories, fetchProductById, fetchProducts, fetchPolicies, fetchAnnouncements, fetchRelatedProducts, fetchContactMethods, 
