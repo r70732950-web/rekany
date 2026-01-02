@@ -731,12 +731,25 @@ function setupUIEventListeners() {
     if (sendOtpBtn) {
         sendOtpBtn.onclick = async () => {
             const phone = document.getElementById('phoneNumberInput').value;
-            if (!phone || phone.length < 10) { showNotification('تکایە ژمارەکە بە تەواوی بنووسە', 'error'); return; }
+            // لابردنی بۆشاییەکان
+            const cleanPhone = phone.replace(/\s/g, ''); 
+
+            if (!cleanPhone || cleanPhone.length < 10) { 
+                showNotification('تکایە ژمارەکە بە تەواوی بنووسە', 'error'); 
+                return; 
+            }
             
+            // دڵنیابوونەوە لەوەی ReCaptcha ئامادەیە
+            if (!window.recaptchaVerifier) {
+                setupRecaptcha('sendOtpBtn');
+                showNotification('تکایە سەرەتا "من ڕۆبۆت نیم" پڕبکەرەوە', 'error');
+                return;
+            }
+
             sendOtpBtn.disabled = true;
             sendOtpBtn.textContent = '...ناردن';
             
-            const result = await sendOtpCore(phone);
+            const result = await sendOtpCore(cleanPhone);
             
             if (result.success) {
                 showNotification(result.message, 'success');
@@ -746,7 +759,11 @@ function setupUIEventListeners() {
                 showNotification(result.message, 'error');
                 sendOtpBtn.disabled = false;
                 sendOtpBtn.textContent = 'ناردنی کۆد';
-                setupRecaptcha('sendOtpBtn'); 
+                
+                // ئەگەر هەڵە هەبوو، پێویستە Recaptcha ڕیسێت بکرێت
+                if (window.recaptchaVerifier && window.recaptchaWidgetId !== undefined) {
+                    try { window.recaptchaVerifier.reset(window.recaptchaWidgetId); } catch(e){}
+                }
             }
         };
     }

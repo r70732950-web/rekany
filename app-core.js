@@ -10,7 +10,7 @@ import {
     deleteUser, 
     translations, 
     CART_KEY, FAVORITES_KEY, PRODUCTS_PER_PAGE,
-    // --- زیادکراو بۆ مۆبایل ---
+    // --- بۆ مۆبایل ---
     RecaptchaVerifier, 
     signInWithPhoneNumber 
 } from './app-setup.js';
@@ -117,36 +117,58 @@ export function isFavorite(productId) {
 
 // --- Auth Functions (Email & Phone) ---
 
-// ١. ئامادەکردنی ReCaptcha بۆ مۆبایل
+// ١. ئامادەکردنی ReCaptcha (چاککراو)
 export function setupRecaptcha(buttonId) {
     if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            'size': 'normal',
-            'callback': (response) => {
-                // ReCaptcha solved
-                const btn = document.getElementById(buttonId);
-                if(btn) btn.disabled = false;
-            },
-            'expired-callback': () => {
-                // Response expired
-                const btn = document.getElementById(buttonId);
-                if(btn) btn.disabled = true;
-            }
-        });
-        window.recaptchaVerifier.render();
+        // وەرگرتنی توخمەکە نەک تەنها ناوەکەی
+        const container = document.getElementById('recaptcha-container');
+        if (!container) {
+            console.error("Recaptcha container not found!");
+            return;
+        }
+        
+        // پاککردنەوەی کۆن ئەگەر هەبێت
+        container.innerHTML = '';
+
+        try {
+            window.recaptchaVerifier = new RecaptchaVerifier(auth, container, {
+                'size': 'normal',
+                'callback': (response) => {
+                    // ReCaptcha solved
+                    const btn = document.getElementById(buttonId);
+                    if(btn) btn.disabled = false;
+                },
+                'expired-callback': () => {
+                    // Response expired
+                    const btn = document.getElementById(buttonId);
+                    if(btn) btn.disabled = true;
+                }
+            });
+            
+            // ڕەندەرکردن
+            window.recaptchaVerifier.render();
+            
+        } catch (e) {
+            console.error("Recaptcha init error:", e);
+        }
     }
 }
 
 // ٢. ناردنی SMS
 export async function sendOtpCore(phoneNumber) {
     try {
+        if (!window.recaptchaVerifier) {
+            throw new Error("Recaptcha not initialized");
+        }
         const appVerifier = window.recaptchaVerifier;
         const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
         window.confirmationResult = confirmationResult;
         return { success: true, message: "کۆدەکە نێردرا" };
     } catch (error) {
         console.error("SMS Error:", error);
-        if(window.recaptchaVerifier) window.recaptchaVerifier.clear();
+        if(window.recaptchaVerifier) {
+            try { window.recaptchaVerifier.clear(); } catch(e){}
+        }
         window.recaptchaVerifier = null; 
         return { success: false, message: "هەڵە لە ناردنی نامە: " + error.message };
     }
@@ -155,6 +177,9 @@ export async function sendOtpCore(phoneNumber) {
 // ٣. پشکنینی کۆدەکە
 export async function verifyOtpCore(code) {
     try {
+        if (!window.confirmationResult) {
+            throw new Error("No confirmation result found");
+        }
         const result = await window.confirmationResult.confirm(code);
         const user = result.user;
         
