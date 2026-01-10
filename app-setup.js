@@ -9,10 +9,7 @@ import {
     createUserWithEmailAndPassword, 
     updateProfile, 
     sendPasswordResetEmail,
-    deleteUser,
-    // --- زیادکراو بۆ مۆبایل ---
-    RecaptchaVerifier,
-    signInWithPhoneNumber
+    deleteUser 
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
 import { 
     getFirestore, 
@@ -37,7 +34,7 @@ import {
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-storage.js";
 
-// کۆنفیگی فایەربەیس (وەک خۆی)
+
 const firebaseConfig = {
     apiKey: "AIzaSyBxyy9e0FIsavLpWCFRMqgIbUU2IJV8rqE", 
     authDomain: "maten-store.firebaseapp.com",
@@ -55,16 +52,12 @@ export const db = getFirestore(app);
 export const messaging = getMessaging(app);
 export const storage = getStorage(app);
 
-// هەناردەکردنی فەنکشنەکان بۆ بەکارهێنان لە فایلەکانی تر
 export {
     signInWithEmailAndPassword, onAuthStateChanged, signOut,
     createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail,
     deleteUser, 
     serverTimestamp,
-    ref, uploadBytes, getDownloadURL,
-    // --- هەناردەکردنی فەنکشنەکانی مۆبایل ---
-    RecaptchaVerifier,
-    signInWithPhoneNumber
+    ref, uploadBytes, getDownloadURL
 };
 
 // Collections
@@ -79,12 +72,7 @@ export const usersCollection = collection(db, "users");
 export const chatsCollection = collection(db, "chats");
 export const ordersCollection = collection(db, "orders");
 
-// Constants
-export const CART_KEY = "maten_store_cart";
-export const FAVORITES_KEY = "maten_store_favorites";
-export const PRODUCTS_PER_PAGE = 30;
 
-// Translations
 export const translations = {
     ku_sorani: {
         search_placeholder: "گەڕان بە ناوی کاڵا...",
@@ -213,6 +201,8 @@ export const translations = {
         yes_delete: "بەڵێ، بیسڕەوە",
         out_of_stock_badge: "نەماوە 🚫",
         out_of_stock_btn: "لە کۆگا نەماوە",
+
+        // --- NEW ORDER STATUS KEYS ---
         order_status_pending: "چاوەڕێیە",
         order_status_accepted: "وەرگیرا (قبوڵکرا)",
         order_status_shipping: "لای مەندوبە",
@@ -347,6 +337,8 @@ export const translations = {
         yes_delete: "بەلێ، ژێبە",
         out_of_stock_badge: "نەما یە 🚫",
         out_of_stock_btn: "ل کۆگەهێ نەما یە",
+
+        // --- NEW ORDER STATUS KEYS ---
         order_status_pending: "ل هیویا بەرسڤێ",
         order_status_accepted: "هاتە وەرگرتن",
         order_status_shipping: "ل دەف مەندوبی",
@@ -481,6 +473,8 @@ export const translations = {
         yes_delete: "نعم، احذف",
         out_of_stock_badge: "نفذت الكمية 🚫",
         out_of_stock_btn: "نفذت من المخزون",
+
+        // --- NEW ORDER STATUS KEYS ---
         order_status_pending: "قيد الانتظار",
         order_status_accepted: "تم القبول",
         order_status_shipping: "مع المندوب",
@@ -490,11 +484,42 @@ export const translations = {
     }
 };
 
-// UI Elements Exports
-// Note: DOM elements will be query-able only after the DOM loads.
-// Since this is a module, it typically runs deferred.
-// However, direct export of DOM elements that might not exist yet can be risky.
-// But following the existing pattern of the project, we export them.
+export let state = {
+    currentLanguage: localStorage.getItem('language') || 'ku_sorani',
+    deferredPrompt: null,
+    cart: JSON.parse(localStorage.getItem("maten_store_cart")) || [],
+    favorites: JSON.parse(localStorage.getItem("maten_store_favorites")) || [],
+    userProfile: {}, 
+    currentUser: null, 
+    editingProductId: null, 
+    products: [],
+    categories: [], 
+    subcategories: [], 
+    lastVisibleProductDoc: null,
+    isLoadingMoreProducts: false,
+    allProductsLoaded: false,
+    isRenderingHomePage: false,
+    productCache: {},
+    currentCategory: 'all',
+    currentSubcategory: 'all',
+    currentSubSubcategory: 'all',
+    currentSearch: '',
+    currentProductId: null, 
+    currentPageId: 'mainPage', 
+    currentPopupState: null, 
+    pendingFilterNav: null, 
+    sliderIntervals: {}, 
+    contactInfo: {}, 
+    activeChatUserId: null,
+    unreadMessagesCount: 0,
+    currentSplitCategory: null 
+};
+
+export const CART_KEY = "maten_store_cart";
+export const FAVORITES_KEY = "maten_store_favorites";
+export const PRODUCTS_PER_PAGE = 30;
+
+// Elements Exports
 export const loginModal = document.getElementById('loginModal');
 export const addProductBtn = document.getElementById('addProductBtn'); 
 export const productFormModal = document.getElementById('productFormModal');
@@ -586,7 +611,6 @@ export const categoryLayoutEnableToggle = document.getElementById('categoryLayou
 export const categoryLayoutListContainer = document.getElementById('categoryLayoutListContainer');
 export const addCategorySectionBtn = document.getElementById('addCategorySectionBtn');
 
-// Global Tools for Admin
 window.globalAdminTools = {
     db, auth,
     storage, ref, uploadBytes, getDownloadURL,
@@ -598,11 +622,40 @@ window.globalAdminTools = {
     categoryLayoutsCollection, 
     chatsCollection, ordersCollection,
 
-    // Helper to allow admin.js to access state from app-core (via UI context if needed, though admin.js usually imports what it needs)
-    // Note: state is imported in admin.js via window.state if set, or via this tool if passed.
-    // Ideally admin.js should be a module too, but for now we keep the existing pattern.
-    
-    // Placeholder functions - in a module system, admin.js would import state.
-    // Since admin.js is a defer script, it accesses global scope.
-    // We attach some helpers here.
+    setEditingProductId: (id) => { state.editingProductId = id; },
+    getEditingProductId: () => state.editingProductId,
+    getCategories: () => state.categories,
+    getCurrentLanguage: () => state.currentLanguage,
+
+    t: (key, replacements = {}) => { 
+        let translation = (translations[state.currentLanguage] && translations[state.currentLanguage][key]) || (translations['ku_sorani'] && translations['ku_sorani'][key]) || key;
+        for (const placeholder in replacements) {
+            translation = translation.replace(`{${placeholder}}`, replacements[placeholder]);
+        }
+        return translation;
+    },
+    showNotification: (message, type = 'success') => { 
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.classList.add('show'), 10);
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => document.body.removeChild(notification), 300);
+        }, 3000);
+    },
+     clearProductCache: () => { 
+          console.log("Product cache and home page cleared due to admin action.");
+          state.productCache = {};
+          const homeContainer = document.getElementById('homePageSectionsContainer');
+          if (homeContainer) {
+              homeContainer.innerHTML = '';
+          }
+          const categoryContainer = document.getElementById('categoryLayoutContainer');
+          if (categoryContainer) {
+              categoryContainer.innerHTML = '';
+          }
+          document.dispatchEvent(new Event('clearCacheTriggerRender'));
+     },
 };
