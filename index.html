@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maten TV Pro v3</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div class="app-header">
+        <div class="logo">
+            <i class="fas fa-play-circle"></i> <span>Maten TV</span>
+        </div>
+        
+        <div class="header-search">
+            <input type="text" id="searchInput" placeholder="گەڕان..." onkeyup="handleSearch()">
+            <i class="fas fa-search"></i>
+        </div>
+
+        <div class="header-actions">
+            <button id="favFilterBtn" class="icon-btn" onclick="toggleFavFilterView()">
+                <i class="fas fa-heart"></i>
+            </button>
+            
+            <button id="adminLoginBtn" class="icon-btn"><i class="fas fa-user-cog"></i></button>
+            <button id="logoutBtn" class="icon-btn" style="display:none; color:#fc8181;"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+    </div>
+
+    <div id="mainContainer" style="padding-bottom: 60px;"></div>
+    
+    <div class="add-fab" id="addChannelBtn"><i class="fas fa-plus"></i></div>
+
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h3 style="text-align:center; margin-bottom:20px; color:var(--primary-color);">چوونەژووری ئەدمین</h3>
+            <form id="loginForm">
+                <div class="form-group"><input type="text" id="username" placeholder="ناوی بەکارهێنەر" required></div>
+                <div class="form-group"><input type="password" id="password" placeholder="وشەی نهێنی" required></div>
+                <button type="submit">چوونەژوورەوە</button>
+                <button type="button" class="close-modal-btn close-modal">داخستن</button>
+            </form>
+            <button class="reset-btn" id="factoryResetBtn" onclick="factoryReset()">سڕینەوە (Reset)</button>
+        </div>
+    </div>
+
+    <div id="channelFormModal" class="modal">
+        <div class="modal-content">
+            <h3 id="formTitle" style="text-align:center; margin-bottom:20px; color:var(--primary-color);">زیادکردنی کەناڵ</h3>
+            <form id="channelForm">
+                <div class="form-group"><label>ناوی کەناڵ</label><input type="text" id="channelName" required></div>
+                <div class="form-group"><label>لینک (M3U8)</label><input type="text" id="channelUrl" required dir="ltr"></div>
+                <div class="form-group">
+                    <label>جۆر (Category)</label>
+                    <select id="channelCategory">
+                        <option value="sport">وەرزش</option>
+                        <option value="news">هەواڵ</option>
+                        <option value="movies">فیلم</option>
+                        <option value="kids">منداڵان</option>
+                        <option value="islamic">ئاینی</option>
+                        <option value="kurdistan">کوردستان</option>
+                        <option value="general">گشتی</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>وێنەی کەناڵ</label>
+                    <input type="text" id="channelImageLink" placeholder="لینک (باشترە)" dir="ltr">
+                    <input type="file" id="channelImageFile" accept="image/*" style="margin-top:10px;">
+                </div>
+                <button type="submit">تۆمارکردن</button>
+                <button type="button" class="close-modal-btn close-modal">پاشگەزبوونەوە</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="playerModal" class="modal" style="z-index: 300;">
+        <div id="videoContainer" class="video-modal-content">
+            <div class="player-btn close-video" onclick="closePlayer()"><i class="fas fa-times"></i></div>
+            <div class="player-btn maximize-btn" onclick="toggleFullScreen()"><i class="fas fa-expand"></i></div>
+            <div class="click-layer" onclick="triggerOverlay()"></div>
+            <video id="videoPlayer" autoplay playsinline></video>
+            <div id="relatedChannels" class="related-channels-bar"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
