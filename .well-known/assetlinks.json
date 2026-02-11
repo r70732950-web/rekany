@@ -1,8 +1,0 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "r70732950-web.github.io/rekany/",
-        "sha256_cert_fingerprints": ["D5:E2:CC:62:58:43:89:55:99:19:BA:8D:2B:3B:5D:23:BB:02:C9:10:24:37:0F:EF:16:40:DA:35:D5:0C:3D:89"]
-      }
-    }]
