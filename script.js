@@ -1,25 +1,46 @@
+// --- 1. FIREBASE CONFIGURATION & IMPORTS ---
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+import { 
+    getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBsdBBTuCA0cQL8QtJkSPYy8N_Dmr3K_bI",
+  authDomain: "maten-tv.firebaseapp.com",
+  projectId: "maten-tv",
+  storageBucket: "maten-tv.firebasestorage.app",
+  messagingSenderId: "196479152493",
+  appId: "1:196479152493:web:82860b7f878a47b731ea64",
+  measurementId: "G-0BB5EY6TNW"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const db = getFirestore(app);
+const channelsCollection = collection(db, "channels");
+
+// --- 2. APP VARIABLES ---
 const ADMIN = { user: "maten", pass: "maten411" };
-const DB_KEY = "maten_tv_pro_v2";
-const categoryTitles = { favorites: "❤️ دڵخوازەکان", sport: "⚽ وەرزش", news: "📰 هەواڵ", movies: "🎬 فیلم", kids: "🧸 منداڵان", islamic: "🕌 ئاینی", kurdistan: "☀️ کوردستان", general: "📺 هەمەجۆر" };
+const categoryTitles = { 
+    favorites: "❤️ دڵخوازەکان", 
+    sport: "⚽ وەرزش", 
+    news: "📰 هەواڵ", 
+    movies: "🎬 فیلم", 
+    kids: "🧸 منداڵان", 
+    islamic: "🕌 ئاینی", 
+    kurdistan: "☀️ کوردستان", 
+    general: "📺 هەمەجۆر" 
+};
 
 let channels = [];
-try { channels = JSON.parse(localStorage.getItem(DB_KEY)) || []; } catch(e) { channels = []; }
-
 let isAdmin = false;
 let editingId = null;
 let overlayTimer = null;
-let showOnlyFavorites = false; // New state for header button
+let showOnlyFavorites = false;
 
-// Initial Data Seed
-if (channels.length === 0) {
-    channels = [
-        { id: 1, name: "BeIN Sport", category: "sport", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/BeIN_Sports_Logo_01.svg/1200px-BeIN_Sports_Logo_01.svg.png", isFavorite: false },
-        { id: 3, name: "Spacetoon", category: "kids", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", image: "https://upload.wikimedia.org/wikipedia/ar/d/d4/Spacetoon_logo.png", isFavorite: true },
-        { id: 5, name: "Kurdistan 24", category: "kurdistan", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", image: "https://upload.wikimedia.org/wikipedia/commons/e/ec/Kurdistan24_Logo.png", isFavorite: false }
-    ];
-    saveData();
-}
-
+// DOM Elements
 const mainContainer = document.getElementById('mainContainer');
 const loginModal = document.getElementById('loginModal');
 const formModal = document.getElementById('channelFormModal');
@@ -29,46 +50,50 @@ const videoContainer = document.getElementById('videoContainer');
 const relatedBar = document.getElementById('relatedChannels');
 const favFilterBtn = document.getElementById('favFilterBtn');
 
-function saveData() { 
-    try { localStorage.setItem(DB_KEY, JSON.stringify(channels)); } catch (e) { alert("میمۆری پڕبووە!"); }
-}
+// --- 3. REAL-TIME DATA LISTENER (ئەم بەشە جێگەی LocalStorage دەگرێتەوە) ---
+// This listens to Firebase. Whenever you change DB, this runs automatically.
+onSnapshot(channelsCollection, (snapshot) => {
+    channels = [];
+    snapshot.docs.forEach(doc => {
+        channels.push({ ...doc.data(), id: doc.id }); // Use Firebase ID
+    });
+    console.log("Data Updated from Firebase!", channels);
+    renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
+});
 
-// Toggle Favorites Mode from Header
-function toggleFavFilterView() {
+// --- 4. APP FUNCTIONS ---
+
+// Toggle Favorites Filter
+window.toggleFavFilterView = () => {
     showOnlyFavorites = !showOnlyFavorites;
-    if(showOnlyFavorites) {
-        favFilterBtn.classList.add('active-filter');
-    } else {
-        favFilterBtn.classList.remove('active-filter');
-    }
+    favFilterBtn.classList.toggle('active-filter', showOnlyFavorites);
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
-}
+};
 
-function toggleFavorite(id, event) {
+// Toggle Favorite Status (Updates Firebase)
+window.toggleFavorite = async (id, event) => {
     if(event) event.stopPropagation();
-    const index = channels.findIndex(c => c.id === id);
-    if (index !== -1) {
-        channels[index].isFavorite = !channels[index].isFavorite;
-        saveData();
-        renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
+    const channelRef = doc(db, "channels", id);
+    const channel = channels.find(c => c.id === id);
+    if(channel) {
+        await updateDoc(channelRef, { isFavorite: !channel.isFavorite });
     }
-}
+};
 
-function handleSearch() {
+window.handleSearch = () => {
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
-}
+};
 
+// Render Main App
 function renderApp(searchQuery = '') {
     mainContainer.innerHTML = '';
     
     let displayChannels = channels;
 
-    // Apply Search Filter
     if(searchQuery) {
         displayChannels = displayChannels.filter(c => c.name.toLowerCase().includes(searchQuery));
     }
 
-    // Apply Header Favorite Filter
     if(showOnlyFavorites) {
         displayChannels = displayChannels.filter(c => c.isFavorite);
     }
@@ -79,11 +104,8 @@ function renderApp(searchQuery = '') {
     }
 
     let activeCategories = [...new Set(displayChannels.map(c => c.category))];
-    
-    // Sort categories (Favorites at top only if NOT in 'only favorites' mode)
     let categoriesToRender = activeCategories;
 
-    // If we are NOT in exclusive favorite mode, we can show a special "Favorites" section at top
     if(!showOnlyFavorites && !searchQuery) {
         const hasFavs = channels.some(c => c.isFavorite);
         if(hasFavs) categoriesToRender = ['favorites', ...activeCategories];
@@ -99,12 +121,8 @@ function renderApp(searchQuery = '') {
         }
 
         if (catChannels.length === 0) return;
-        
-        // Avoid duplicate logic if needed, but 'favorites' key handles it separately.
 
         const title = categoryTitles[catKey] || catKey.toUpperCase();
-        
-        // Show all if searching OR if filtering by favorites
         const showAllItems = (searchQuery !== '' || showOnlyFavorites);
         const firstFive = (showAllItems || catKey === 'favorites') ? catChannels : catChannels.slice(0, 5);
         const remaining = (showAllItems || catKey === 'favorites') ? [] : catChannels.slice(5);
@@ -133,11 +151,23 @@ function renderApp(searchQuery = '') {
 }
 
 function createCardHTML(ch) {
-    const adminControls = isAdmin ? `<div class="admin-controls"><button class="edit-btn" onclick="event.stopPropagation(); editChannel(${ch.id})"><i class="fas fa-pen"></i></button><button class="delete-btn" onclick="event.stopPropagation(); deleteChannel(${ch.id})"><i class="fas fa-trash"></i></button></div>` : '';
+    // Note: We pass ID as string now because Firebase IDs are strings
+    const adminControls = isAdmin ? `
+        <div class="admin-controls">
+            <button class="edit-btn" onclick="editChannel('${ch.id}')"><i class="fas fa-pen"></i></button>
+            <button class="delete-btn" onclick="deleteChannel('${ch.id}')"><i class="fas fa-trash"></i></button>
+        </div>` : '';
     const favClass = ch.isFavorite ? 'active' : '';
-    return `<div class="product-card" onclick="playChannel(${ch.id})"><div class="fav-btn ${favClass}" onclick="toggleFavorite(${ch.id}, event)"><i class="fas fa-heart"></i></div><img src="${ch.image}" class="product-image" loading="lazy" onerror="this.src='https://placehold.co/200?text=TV'">${adminControls}</div>`;
+    
+    return `
+        <div class="product-card" onclick="playChannel('${ch.id}')">
+            <div class="fav-btn ${favClass}" onclick="toggleFavorite('${ch.id}', event)"><i class="fas fa-heart"></i></div>
+            <img src="${ch.image}" class="product-image" loading="lazy" onerror="this.src='https://placehold.co/200?text=TV'">
+            ${adminControls}
+        </div>`;
 }
 
+// Make functions global for HTML onclick attributes
 window.showAll = (catKey) => {
     const grid = document.getElementById(`grid-${catKey}`);
     const catChannels = channels.filter(c => c.category === catKey);
@@ -150,21 +180,28 @@ window.showAll = (catKey) => {
     });
 };
 
-// Player Functions
+// --- PLAYER LOGIC ---
 window.playChannel = (id) => {
     const channel = channels.find(c => c.id === id);
     if (!channel) return;
+    
     playerModal.style.display = 'block';
     videoPlayer.src = ""; 
+    
     if (Hls.isSupported()) {
         if(window.hls) window.hls.destroy(); 
-        const hls = new Hls(); hls.loadSource(channel.url); hls.attachMedia(videoPlayer);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => videoPlayer.play().catch(e=>console.log("Autoplay blocked")));
+        const hls = new Hls(); 
+        hls.loadSource(channel.url); 
+        hls.attachMedia(videoPlayer);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => videoPlayer.play().catch(e => console.log("Autoplay blocked")));
         window.hls = hls;
     } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-        videoPlayer.src = channel.url; videoPlayer.play();
+        videoPlayer.src = channel.url; 
+        videoPlayer.play();
     }
-    renderRelated(channel); triggerOverlay();
+    
+    renderRelated(channel); 
+    triggerOverlay();
 };
 
 function renderRelated(current) {
@@ -183,42 +220,159 @@ window.triggerOverlay = () => {
     if (overlayTimer) clearTimeout(overlayTimer);
     overlayTimer = setTimeout(() => { videoContainer.classList.remove('ui-visible'); }, 4000);
 };
-window.toggleFullScreen = () => { const elem = videoContainer; if (!document.fullscreenElement) { (elem.requestFullscreen||elem.webkitRequestFullscreen).call(elem); } else { document.exitFullscreen(); } };
-window.closePlayer = () => { if (document.fullscreenElement) document.exitFullscreen(); playerModal.style.display = 'none'; videoPlayer.pause(); if(window.hls) window.hls.destroy(); };
 
-// Admin & UI
+window.toggleFullScreen = () => { 
+    const elem = videoContainer; 
+    if (!document.fullscreenElement) { (elem.requestFullscreen||elem.webkitRequestFullscreen).call(elem); } 
+    else { document.exitFullscreen(); } 
+};
+
+window.closePlayer = () => { 
+    if (document.fullscreenElement) document.exitFullscreen(); 
+    playerModal.style.display = 'none'; 
+    videoPlayer.pause(); 
+    if(window.hls) window.hls.destroy(); 
+};
+
+// --- ADMIN & FIREBASE ACTIONS ---
+
+// Login UI Logic
 document.getElementById('adminLoginBtn').onclick = () => loginModal.style.display = 'block';
+
 document.getElementById('loginForm').onsubmit = (e) => {
     e.preventDefault();
-    if(document.getElementById('username').value === ADMIN.user && document.getElementById('password').value === ADMIN.pass) {
-        isAdmin = true; document.body.classList.add('admin-mode'); toggleAdminUI(true); loginModal.style.display = 'none'; e.target.reset();
-    } else { alert("هەڵەیە!"); }
+    const user = document.getElementById('username').value;
+    const pass = document.getElementById('password').value;
+    
+    if(user === ADMIN.user && pass === ADMIN.pass) {
+        isAdmin = true; 
+        document.body.classList.add('admin-mode'); 
+        toggleAdminUI(true); 
+        loginModal.style.display = 'none'; 
+        e.target.reset();
+    } else { 
+        alert("هەڵەیە!"); 
+    }
 };
-document.getElementById('logoutBtn').onclick = () => { isAdmin = false; document.body.classList.remove('admin-mode'); toggleAdminUI(false); };
+
+document.getElementById('logoutBtn').onclick = () => { 
+    isAdmin = false; 
+    document.body.classList.remove('admin-mode'); 
+    toggleAdminUI(false); 
+};
+
 function toggleAdminUI(show) {
     document.getElementById('adminLoginBtn').style.display = show ? 'none' : 'flex';
     document.getElementById('logoutBtn').style.display = show ? 'flex' : 'none';
     document.getElementById('addChannelBtn').style.display = show ? 'flex' : 'none';
-    document.getElementById('factoryResetBtn').style.display = show ? 'block' : 'none';
+    document.getElementById('factoryResetBtn').style.display = 'none'; // Disabled for Firebase safety
     renderApp(document.getElementById('searchInput').value);
 }
-document.getElementById('addChannelBtn').onclick = () => { editingId = null; document.getElementById('channelForm').reset(); document.getElementById('formTitle').innerText = "زیادکردنی کەناڵ"; formModal.style.display = 'block'; };
-document.getElementById('channelForm').onsubmit = (e) => {
-    e.preventDefault();
-    const save = (img) => {
-        const item = { id: editingId || Date.now(), name: document.getElementById('channelName').value, url: document.getElementById('channelUrl').value, category: document.getElementById('channelCategory').value, image: img || "https://placehold.co/200?text=TV", isFavorite: false };
-        if(editingId) { const idx = channels.findIndex(c=>c.id===editingId); item.image=img||channels[idx].image; item.isFavorite=channels[idx].isFavorite; channels[idx]=item; } else channels.push(item);
-        saveData(); renderApp(); formModal.style.display = 'none';
-    };
-    const f = document.getElementById('channelImageFile').files[0];
-    if(f) { const r = new FileReader(); r.onload=ev=>save(ev.target.result); r.readAsDataURL(f); } 
-    else save(document.getElementById('channelImageLink').value);
-};
-window.deleteChannel = (id) => { if(confirm("دڵنیای؟")) { channels = channels.filter(c => c.id !== id); saveData(); renderApp(); } };
-window.editChannel = (id) => { const ch = channels.find(c => c.id === id); editingId = id; document.getElementById('channelName').value = ch.name; document.getElementById('channelUrl').value = ch.url; document.getElementById('channelCategory').value = ch.category; formModal.style.display = 'block'; };
-window.factoryReset = () => { if(confirm("هەمووی دەسڕیتەوە؟")) { localStorage.removeItem(DB_KEY); location.reload(); } };
-document.querySelectorAll('.close-modal').forEach(b => b.onclick = () => { loginModal.style.display='none'; formModal.style.display='none'; });
-window.onclick = (e) => { if(e.target == loginModal || e.target == formModal) e.target.style.display="none"; };
 
-// Initial Render
-renderApp();
+// Add/Edit Modal
+document.getElementById('addChannelBtn').onclick = () => { 
+    editingId = null; 
+    document.getElementById('channelForm').reset(); 
+    document.getElementById('formTitle').innerText = "زیادکردنی کەناڵ"; 
+    formModal.style.display = 'block'; 
+};
+
+// Submit to Firebase
+document.getElementById('channelForm').onsubmit = async (e) => {
+    e.preventDefault();
+    
+    const name = document.getElementById('channelName').value;
+    const url = document.getElementById('channelUrl').value;
+    const category = document.getElementById('channelCategory').value;
+    let image = document.getElementById('channelImageLink').value;
+
+    const file = document.getElementById('channelImageFile').files[0];
+    
+    // Helper to process upload/save
+    const processSave = async (finalImage) => {
+        const channelData = {
+            name: name,
+            url: url,
+            category: category,
+            image: finalImage || "https://placehold.co/200?text=TV",
+            isFavorite: false 
+        };
+
+        try {
+            if (editingId) {
+                // UPDATE existing in Firebase
+                const docRef = doc(db, "channels", editingId);
+                // Keep old favorite status and image if not changed
+                const oldData = channels.find(c => c.id === editingId);
+                if(!finalImage) channelData.image = oldData.image;
+                channelData.isFavorite = oldData.isFavorite;
+                
+                await updateDoc(docRef, channelData);
+            } else {
+                // ADD new to Firebase
+                await addDoc(channelsCollection, channelData);
+            }
+            formModal.style.display = 'none';
+        } catch (error) {
+            console.error("Error adding document: ", error);
+            alert("کێشەیەک هەیە لە پەیوەستبوون بە Firebase");
+        }
+    };
+
+    if(file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => processSave(ev.target.result); // Base64 (Not recommended for large production but works here)
+        reader.readAsDataURL(file);
+    } else {
+        processSave(image);
+    }
+};
+
+// Delete from Firebase
+window.deleteChannel = async (id) => { 
+    // Important: Prevent event bubbling is handled in HTML onclick, but good to be safe
+    if(confirm("دڵنیای دەسڕێتەوە؟")) { 
+        try {
+            await deleteDoc(doc(db, "channels", id));
+        } catch (e) {
+            console.error(e);
+            alert("نەسڕایەوە!");
+        }
+    } 
+};
+
+// Edit Prep
+window.editChannel = (id) => { 
+    const ch = channels.find(c => c.id === id); 
+    if(!ch) return;
+    
+    editingId = id; 
+    document.getElementById('channelName').value = ch.name; 
+    document.getElementById('channelUrl').value = ch.url; 
+    document.getElementById('channelCategory').value = ch.category; 
+    document.getElementById('channelImageLink').value = ch.image;
+    formModal.style.display = 'block'; 
+};
+
+// Factory Reset (Optional - Clears Firebase collection)
+window.factoryReset = async () => { 
+    if(confirm("ئاگاداربە! هەموو کەناڵەکانی ناو داتابەیس دەسڕێنەوە. دڵنیای؟")) { 
+        const q = await getDocs(channelsCollection);
+        q.forEach(async (d) => {
+            await deleteDoc(doc(db, "channels", d.id));
+        });
+        location.reload(); 
+    } 
+};
+
+// Close Modals
+document.querySelectorAll('.close-modal').forEach(b => b.onclick = () => { 
+    loginModal.style.display='none'; 
+    formModal.style.display='none'; 
+});
+
+window.onclick = (e) => { 
+    if(e.target == loginModal || e.target == formModal) e.target.style.display="none"; 
+};
+
+// Initial Render called automatically by onSnapshot
