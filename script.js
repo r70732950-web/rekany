@@ -1,10 +1,13 @@
-// --- 1. FIREBASE SETUP ---
+// --- 1. FIREBASE SETUP & IMPORTS ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot } 
-from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } 
-from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { 
+    getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, setDoc 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { 
+    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+// زانیارییەکانی فایربەیس
 const firebaseConfig = {
   apiKey: "AIzaSyBsdBBTuCA0cQL8QtJkSPYy8N_Dmr3K_bI",
   authDomain: "maten-tv.firebaseapp.com",
@@ -15,19 +18,19 @@ const firebaseConfig = {
   measurementId: "G-0BB5EY6TNW"
 };
 
-// Initialize Firebase
+// دەستپێکردنی فایربەیس
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app); // دەستپێکردنی سیستەمی چوونەژوور
+const auth = getAuth(app);
 
-// Collections
+// کۆلێکشنەکان
 const channelsCollection = collection(db, "channels");
 const categoriesCollection = collection(db, "categories");
 
 // --- 2. GLOBAL VARIABLES ---
 let channels = [];
 let categories = [];
-let isAdmin = false; // ئەمە لەڕێگەی Auth دەگۆڕدرێت
+let isAdmin = false;
 let editingId = null;
 let overlayTimer = null;
 let showOnlyFavorites = false;
@@ -35,61 +38,67 @@ let showOnlyFavorites = false;
 // DOM Elements
 const mainContainer = document.getElementById('mainContainer');
 const loginModal = document.getElementById('loginModal');
-const formModal = document.getElementById('channelFormModal');
+const channelModal = document.getElementById('channelFormModal');
+const categoryModal = document.getElementById('categoryModal');
 const playerModal = document.getElementById('playerModal');
 const videoPlayer = document.getElementById('videoPlayer');
 const videoContainer = document.getElementById('videoContainer');
 const relatedBar = document.getElementById('relatedChannels');
 const favFilterBtn = document.getElementById('favFilterBtn');
-const categorySelect = document.getElementById('channelCategory');
+const categorySelect = document.getElementById('channelCategory'); // Dropdown
 
-// --- 3. AUTH LISTENER (چاودێری چوونەژوور) ---
-// ئەم بەشە زۆر گرنگە: هەر کاتێک ئەدمین بچێتە ژوورەوە یان بێتە دەرەوە، ئەمە ئیش دەکات
+// --- 3. AUTHENTICATION LISTENER (چاودێری ئەدمین) ---
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        // ئەدمین لەژوورەوەیە
-        console.log("Admin is logged in:", user.email);
+        console.log("Admin Logged In:", user.email);
         isAdmin = true;
         document.body.classList.add('admin-mode');
         toggleAdminUI(true);
     } else {
-        // کەس لەژوورەوە نییە
-        console.log("No user logged in");
+        console.log("User Logged Out");
         isAdmin = false;
         document.body.classList.remove('admin-mode');
         toggleAdminUI(false);
     }
-    // دووبارە ڕیفرێشی شاشەکە دەکەینەوە بۆ ئەوەی دوگمەکانی سڕینەوە دەربکەون/وڵبن
+    // ڕیفرێشکردنی شاشەکە بۆ ئەوەی دوگمەکانی سڕینەوە دەربکەون
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
 });
 
-// --- 4. DATA LISTENERS ---
+// --- 4. DATA LISTENERS (Real-time) ---
 
-// A. Categories Listener
+// A. هێنانی بەشەکان (Categories)
 onSnapshot(categoriesCollection, (snapshot) => {
     categories = [];
     snapshot.docs.forEach(doc => {
         categories.push({ id: doc.id, ...doc.data() });
     });
+    // ڕیزکردن بەپێی ژمارە (Order)
     categories.sort((a, b) => a.order - b.order);
+    
+    // نوێکردنەوەی لیستەی ناو فۆڕمی زیادکردن
     updateCategoryDropdown();
+    
+    // نوێکردنەوەی شاشە
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
 });
 
-// B. Channels Listener
+// B. هێنانی کەناڵەکان (Channels)
 onSnapshot(channelsCollection, (snapshot) => {
     channels = [];
     snapshot.docs.forEach(doc => {
         channels.push({ ...doc.data(), id: doc.id });
     });
+    // ڕیزکردن بەپێی ئەلفوبێ
     channels.sort((a, b) => (a.name > b.name) ? 1 : -1);
+    
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
 });
 
 // --- 5. UI FUNCTIONS ---
 
+// نوێکردنەوەی لیستی بەشەکان لە فۆڕمی زیادکردن
 function updateCategoryDropdown() {
-    categorySelect.innerHTML = "";
+    categorySelect.innerHTML = `<option value="" disabled selected>...هەڵبژێرە</option>`;
     categories.forEach(cat => {
         const option = document.createElement("option");
         option.value = cat.id;
@@ -98,6 +107,7 @@ function updateCategoryDropdown() {
     });
 }
 
+// فلتەری دڵخوازەکان
 window.toggleFavFilterView = () => {
     showOnlyFavorites = !showOnlyFavorites;
     if(showOnlyFavorites) {
@@ -110,6 +120,7 @@ window.toggleFavFilterView = () => {
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
 };
 
+// گۆڕینی دڵخواز (Firebase Update)
 window.toggleFavorite = async (id, event) => {
     if(event) event.stopPropagation();
     const channelRef = doc(db, "channels", id);
@@ -123,6 +134,7 @@ window.handleSearch = () => {
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
 };
 
+// --- MAIN RENDER FUNCTION ---
 function renderApp(searchQuery = '') {
     mainContainer.innerHTML = '';
     
@@ -141,25 +153,32 @@ function renderApp(searchQuery = '') {
         return;
     }
 
+    // دیاریکردنی ئەو بەشانەی کە دەبێت نیشان بدرێن
     let sectionsToRender = [];
+    
+    // ١. بەشی دڵخوازەکان (ئەگەر هەبوو)
     const hasFavs = channels.some(c => c.isFavorite);
     if (!showOnlyFavorites && !searchQuery && hasFavs) {
         sectionsToRender.push({ id: 'favorites', title: '❤️ دڵخوازەکان' });
     }
 
+    // ٢. بەشەکانی فایربەیس
     categories.forEach(cat => {
         const hasChannel = displayChannels.some(ch => ch.category === cat.id);
+        // ئەگەر کەناڵی تێدابوو یان بەکارهێنەر ئەدمین بوو (بۆ ئەوەی بەشە بەتاڵەکان ببینێت)
         if(hasChannel || isAdmin) { 
             sectionsToRender.push(cat);
         }
     });
 
+    // ئەگەر تەنها فلتەری دڵخواز بوو، بەش دروست ناکەین، تەنها یەک پارچە
     if (showOnlyFavorites) {
          const section = createSectionHTML('favorites', '❤️ هەموو دڵخوازەکان', displayChannels);
          mainContainer.appendChild(section);
          return;
     }
 
+    // دروستکردنی بەشەکان
     sectionsToRender.forEach(cat => {
         let catChannels;
         if(cat.id === 'favorites') {
@@ -168,7 +187,8 @@ function renderApp(searchQuery = '') {
             catChannels = displayChannels.filter(c => c.category === cat.id);
         }
 
-        if(catChannels.length === 0) return;
+        // ئەگەر بەتاڵ بوو و ئەدمین نەبوو، دەریان مەخە
+        if(catChannels.length === 0 && !isAdmin) return;
 
         const section = createSectionHTML(cat.id, cat.title, catChannels);
         mainContainer.appendChild(section);
@@ -178,6 +198,15 @@ function renderApp(searchQuery = '') {
 function createSectionHTML(catId, catTitle, catChannels) {
     const section = document.createElement('div');
     section.className = 'category-section';
+
+    // ئەگەر بەشەکە بەتاڵ بوو (تەنها بۆ ئەدمین دەردەکەوێت)
+    if (catChannels.length === 0) {
+        section.innerHTML = `
+            <div class="section-header" style="border-bottom:none;">
+                <div class="section-title" style="opacity:0.6;">${catTitle} (بەتاڵ)</div>
+            </div>`;
+        return section;
+    }
 
     const firstFive = catChannels.slice(0, 5);
     const remaining = catChannels.slice(5);
@@ -202,7 +231,6 @@ function createSectionHTML(catId, catTitle, catChannels) {
 }
 
 function createCardHTML(ch) {
-    // تێبینی: دوگمەکانی ئەدمین تەنها کاتێک دەردەکەون کە isAdmin ڕاست بێت
     const adminControls = isAdmin ? `
         <div class="admin-controls">
             <button class="edit-btn" onclick="event.stopPropagation(); editChannel('${ch.id}')"><i class="fas fa-pen"></i></button>
@@ -217,6 +245,7 @@ function createCardHTML(ch) {
             ${adminControls}</div>`;
 }
 
+// پیشاندانی هەموو کەناڵەکانی بەشێک
 window.showAll = (catId) => {
     const grid = document.getElementById(`grid-${catId}`);
     let catChannels = [];
@@ -234,7 +263,7 @@ window.showAll = (catId) => {
     });
 };
 
-// --- PLAYER LOGIC ---
+// --- 6. VIDEO PLAYER ---
 window.playChannel = (id) => {
     const channel = channels.find(c => c.id === id);
     if (!channel) return;
@@ -269,37 +298,32 @@ window.triggerOverlay = () => { videoContainer.classList.add('ui-visible'); clea
 window.toggleFullScreen = () => { const elem = videoContainer; (!document.fullscreenElement) ? (elem.requestFullscreen||elem.webkitRequestFullscreen).call(elem) : document.exitFullscreen(); };
 window.closePlayer = () => { if (document.fullscreenElement) document.exitFullscreen(); playerModal.style.display = 'none'; videoPlayer.pause(); if(window.hls) window.hls.destroy(); };
 
-// --- 6. ADMIN AUTHENTICATION (New Way) ---
+// --- 7. ADMIN FUNCTIONS ---
 
-// کردنەوەی مۆداڵی چوونەژوور
+// Login UI
 document.getElementById('adminLoginBtn').onclick = () => loginModal.style.display = 'block';
 
-// جێبەجێکردنی چوونەژوور بە Firebase Auth
+// Login Submit (Firebase Auth)
 document.getElementById('loginForm').onsubmit = (e) => {
     e.preventDefault();
-    const email = document.getElementById('username').value; // لێرە ئیمەیڵ دەنووسرێت
+    const email = document.getElementById('username').value;
     const pass = document.getElementById('password').value;
     
     signInWithEmailAndPassword(auth, email, pass)
-        .then((userCredential) => {
-            // سەرکەوتوو بوو
-            console.log("Logged in!");
+        .then(() => {
             loginModal.style.display = 'none';
             e.target.reset();
         })
         .catch((error) => {
             console.error(error);
-            alert("هەڵە هەیە! دڵنیابەرەوە لە ئیمەیڵ و پاسۆرد.");
+            alert("هەڵە هەیە! ئیمەیڵ یان پاسۆرد هەڵەیە.");
         });
 };
 
-// جێبەجێکردنی دەرچوون (Logout)
+// Logout
 document.getElementById('logoutBtn').onclick = () => { 
     signOut(auth).then(() => {
-        console.log("Logged out");
         alert("دەرچوویت.");
-    }).catch((error) => {
-        console.error(error);
     });
 };
 
@@ -307,16 +331,22 @@ function toggleAdminUI(show) {
     document.getElementById('adminLoginBtn').style.display = show ? 'none' : 'flex';
     document.getElementById('logoutBtn').style.display = show ? 'flex' : 'none';
     document.getElementById('addChannelBtn').style.display = show ? 'flex' : 'none';
+    document.getElementById('addCategoryBtn').style.display = show ? 'flex' : 'none';
     renderApp(document.getElementById('searchInput').value);
 }
 
-// --- FORM & SAVING ---
+// --- 8. CHANNEL & CATEGORY MANAGEMENT ---
 
+// A. Channels
 document.getElementById('addChannelBtn').onclick = () => { 
+    if(categories.length === 0) {
+        alert("سەرەتا دەبێت بەش (Category) زیاد بکەیت!");
+        return;
+    }
     editingId = null; 
     document.getElementById('channelForm').reset(); 
     document.getElementById('formTitle').innerText = "زیادکردنی کەناڵ"; 
-    formModal.style.display = 'block'; 
+    channelModal.style.display = 'block'; 
 };
 
 document.getElementById('channelForm').onsubmit = async (e) => {
@@ -326,6 +356,11 @@ document.getElementById('channelForm').onsubmit = async (e) => {
     const category = document.getElementById('channelCategory').value;
     const imgLink = document.getElementById('channelImageLink').value;
     const finalImage = imgLink.trim() !== "" ? imgLink : "https://placehold.co/200?text=TV";
+
+    if(!category) {
+        alert("تکایە بەشێک (Category) هەڵبژێرە");
+        return;
+    }
 
     const data = { name, url, category, image: finalImage, isFavorite: false };
 
@@ -337,11 +372,11 @@ document.getElementById('channelForm').onsubmit = async (e) => {
         } else {
             await addDoc(channelsCollection, data);
         }
-        formModal.style.display = 'none';
+        channelModal.style.display = 'none';
     } catch(err) { console.error(err); alert("Error"); }
 };
 
-window.deleteChannel = async (id) => { if(confirm("Delete?")) await deleteDoc(doc(db, "channels", id)); };
+window.deleteChannel = async (id) => { if(confirm("دڵنیای دەسڕێتەوە؟")) await deleteDoc(doc(db, "channels", id)); };
 window.editChannel = (id) => { 
     const ch = channels.find(c => c.id === id); 
     if(!ch) return;
@@ -350,8 +385,49 @@ window.editChannel = (id) => {
     document.getElementById('channelUrl').value = ch.url; 
     document.getElementById('channelCategory').value = ch.category; 
     document.getElementById('channelImageLink').value = ch.image;
-    formModal.style.display = 'block'; 
+    channelModal.style.display = 'block'; 
 };
 
-document.querySelectorAll('.close-modal').forEach(b => b.onclick = () => { loginModal.style.display='none'; formModal.style.display='none'; });
-window.onclick = (e) => { if(e.target == loginModal || e.target == formModal) e.target.style.display="none"; };
+// B. Categories (NEW)
+document.getElementById('addCategoryBtn').onclick = () => {
+    document.getElementById('categoryForm').reset();
+    categoryModal.style.display = 'block';
+};
+
+document.getElementById('categoryForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const title = document.getElementById('catTitle').value;
+    // ID دەبێت ئینگلیزی بێت و بچووک بێت
+    const id = document.getElementById('catId').value.toLowerCase().trim(); 
+    const order = parseInt(document.getElementById('catOrder').value);
+
+    if(!id.match(/^[a-z0-9]+$/)) {
+        alert("کۆدی بەش تەنها دەبێت پیت و ژمارەی ئینگلیزی بێت.");
+        return;
+    }
+
+    try {
+        await setDoc(doc(db, "categories", id), {
+            title: title,
+            order: order
+        });
+        alert("بەشەکە زیادکرا!");
+        categoryModal.style.display = 'none';
+    } catch (error) {
+        console.error("Error:", error);
+        alert("کێشەیەک هەیە لە زیادکردنی بەش.");
+    }
+};
+
+// Close Modals
+document.querySelectorAll('.close-modal').forEach(b => b.onclick = () => { 
+    loginModal.style.display='none'; 
+    channelModal.style.display='none'; 
+    categoryModal.style.display='none';
+});
+
+window.onclick = (e) => { 
+    if(e.target == loginModal || e.target == channelModal || e.target == categoryModal) {
+        e.target.style.display="none"; 
+    }
+};
