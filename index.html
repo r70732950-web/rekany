@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Maten TV Pro - Admin Panel</title>
+    <title>Maten TV Pro</title>
     
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
@@ -20,7 +20,7 @@
         </div>
         
         <div class="header-search">
-            <input type="text" id="searchInput" placeholder="گەڕان..." onkeyup="handleSearch()">
+            <input type="text" id="searchInput" placeholder="گەڕان بۆ کەناڵ..." onkeyup="handleSearch()">
             <i class="fas fa-search"></i>
         </div>
 
@@ -39,9 +39,25 @@
         </div>
     </div>
 
-    <div id="mainContainer" style="padding-bottom: 80px;">
-        <div style="text-align:center; padding-top:50px; color:gray;">
-            <i class="fas fa-spinner fa-spin"></i> چاوەڕێبە...
+    <div id="mainContainer">
+        <div id="skeleton-loader">
+            <div class="category-section">
+                <div class="skeleton skeleton-text" style="width: 120px; margin-bottom: 15px;"></div>
+                <div class="products-container">
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                </div>
+            </div>
+            <div class="category-section" style="margin-top: 20px;">
+                <div class="skeleton skeleton-text" style="width: 150px; margin-bottom: 15px;"></div>
+                <div class="products-container">
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -49,15 +65,17 @@
         <i class="fas fa-plus"></i>
     </div>
 
+    <div id="toast-box"></div>
+
     <div id="loginModal" class="modal">
         <div class="modal-content">
             <h3 style="text-align:center; margin-bottom:20px; color:var(--primary-color);">چوونەژووری ئەدمین</h3>
             <form id="loginForm">
                 <div class="form-group">
-                    <input type="email" id="username" placeholder="ئیمەیڵ (admin@example.com)" required autocomplete="email">
+                    <input type="email" id="username" placeholder="ئیمەیڵ (admin@example.com)" required autocomplete="email" dir="ltr">
                 </div>
                 <div class="form-group">
-                    <input type="password" id="password" placeholder="وشەی نهێنی" required>
+                    <input type="password" id="password" placeholder="وشەی نهێنی" required dir="ltr">
                 </div>
                 <button type="submit">چوونەژوورەوە</button>
                 <button type="button" class="close-modal-btn close-modal">داخستن</button>
@@ -75,7 +93,7 @@
                 </div>
                 <div class="form-group">
                     <label>کۆدی بەش (ID - ئینگلیزی)</label>
-                    <input type="text" id="catId" placeholder="نموونە: sport, news" required dir="ltr">
+                    <input type="text" id="catId" placeholder="sport, news" required dir="ltr">
                     <small style="color:gray; font-size:11px;">تێبینی: بە ئینگلیزی بنووسە و بۆشایی (Space) بەکارمەهێنە.</small>
                 </div>
                 <div class="form-group">
@@ -120,16 +138,25 @@
         </div>
     </div>
 
-    <div id="playerModal" class="modal" style="z-index: 300;">
+    <div id="playerModal" class="modal" style="z-index: 2500;">
         <div id="videoContainer" class="video-modal-content">
+            
             <div class="player-btn close-video" onclick="closePlayer()">
                 <i class="fas fa-times"></i>
             </div>
+            
             <div class="player-btn maximize-btn" onclick="toggleFullScreen()">
                 <i class="fas fa-expand"></i>
             </div>
+
+            <div class="player-btn pip-toggle-btn" onclick="togglePipMode()" style="left: 80px;">
+                <i class="fas fa-compress-arrows-alt"></i>
+            </div>
+
             <div class="click-layer" onclick="triggerOverlay()"></div>
+            
             <video id="videoPlayer" autoplay playsinline></video>
+            
             <div id="relatedChannels" class="related-channels-bar"></div>
         </div>
     </div>
