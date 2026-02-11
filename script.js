@@ -1,7 +1,9 @@
 // --- 1. FIREBASE SETUP ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, getDoc } 
+import { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot } 
 from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } 
+from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBsdBBTuCA0cQL8QtJkSPYy8N_Dmr3K_bI",
@@ -13,19 +15,19 @@ const firebaseConfig = {
   measurementId: "G-0BB5EY6TNW"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app); // دەستپێکردنی سیستەمی چوونەژوور
 
 // Collections
 const channelsCollection = collection(db, "channels");
 const categoriesCollection = collection(db, "categories");
-const adminConfigDoc = doc(db, "config", "admin_auth");
 
 // --- 2. GLOBAL VARIABLES ---
 let channels = [];
-let categories = []; // ئێستا بەشەکان داینامیکن
-let adminCreds = { user: "", pass: "" }; // ئەدمین لە فایربەیسەوە دێت
-let isAdmin = false;
+let categories = [];
+let isAdmin = false; // ئەمە لەڕێگەی Auth دەگۆڕدرێت
 let editingId = null;
 let overlayTimer = null;
 let showOnlyFavorites = false;
@@ -39,54 +41,59 @@ const videoPlayer = document.getElementById('videoPlayer');
 const videoContainer = document.getElementById('videoContainer');
 const relatedBar = document.getElementById('relatedChannels');
 const favFilterBtn = document.getElementById('favFilterBtn');
-const categorySelect = document.getElementById('channelCategory'); // بۆ پڕکردنەوەی لیستەکە
+const categorySelect = document.getElementById('channelCategory');
 
-// --- 3. DATA LISTENERS (Real-time) ---
-
-// A. هێنانی زانیاری ئەدمین (Admin Auth)
-onSnapshot(adminConfigDoc, (doc) => {
-    if (doc.exists()) {
-        adminCreds = doc.data();
-        console.log("Admin credentials loaded securely.");
+// --- 3. AUTH LISTENER (چاودێری چوونەژوور) ---
+// ئەم بەشە زۆر گرنگە: هەر کاتێک ئەدمین بچێتە ژوورەوە یان بێتە دەرەوە، ئەمە ئیش دەکات
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        // ئەدمین لەژوورەوەیە
+        console.log("Admin is logged in:", user.email);
+        isAdmin = true;
+        document.body.classList.add('admin-mode');
+        toggleAdminUI(true);
+    } else {
+        // کەس لەژوورەوە نییە
+        console.log("No user logged in");
+        isAdmin = false;
+        document.body.classList.remove('admin-mode');
+        toggleAdminUI(false);
     }
+    // دووبارە ڕیفرێشی شاشەکە دەکەینەوە بۆ ئەوەی دوگمەکانی سڕینەوە دەربکەون/وڵبن
+    renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
 });
 
-// B. هێنانی بەشەکان (Categories)
+// --- 4. DATA LISTENERS ---
+
+// A. Categories Listener
 onSnapshot(categoriesCollection, (snapshot) => {
     categories = [];
     snapshot.docs.forEach(doc => {
         categories.push({ id: doc.id, ...doc.data() });
     });
-    // ڕیزکردن بەپێی order (1, 2, 3...)
     categories.sort((a, b) => a.order - b.order);
-    
-    // نوێکردنەوەی لیستەی ناو فۆڕمەکە (Dropdown)
     updateCategoryDropdown();
-    
-    // نوێکردنەوەی بەرنامەکە
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
 });
 
-// C. هێنانی کەناڵەکان (Channels)
+// B. Channels Listener
 onSnapshot(channelsCollection, (snapshot) => {
     channels = [];
     snapshot.docs.forEach(doc => {
         channels.push({ ...doc.data(), id: doc.id });
     });
-    // تازەترین لەپێشتر بێت
     channels.sort((a, b) => (a.name > b.name) ? 1 : -1);
-    
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
 });
 
-// --- 4. UI FUNCTIONS ---
+// --- 5. UI FUNCTIONS ---
 
 function updateCategoryDropdown() {
     categorySelect.innerHTML = "";
     categories.forEach(cat => {
         const option = document.createElement("option");
-        option.value = cat.id; // نموونە: sport
-        option.text = cat.title; // نموونە: ⚽ وەرزش
+        option.value = cat.id;
+        option.text = cat.title;
         categorySelect.appendChild(option);
     });
 }
@@ -116,7 +123,6 @@ window.handleSearch = () => {
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
 };
 
-// Main Render Function
 function renderApp(searchQuery = '') {
     mainContainer.innerHTML = '';
     
@@ -135,35 +141,25 @@ function renderApp(searchQuery = '') {
         return;
     }
 
-    // ئامادەکردنی بەشەکان بۆ پیشاندان
-    // سەرەتا دڵخوازەکان (ئەگەر هەبوو)، ئینجا بەشەکانی تری فایربەیس
     let sectionsToRender = [];
-    
-    // زیادکردنی بەشی دڵخوازەکان بە دەستی (چونکە لە فایربەیس نییە وەک بەش)
     const hasFavs = channels.some(c => c.isFavorite);
     if (!showOnlyFavorites && !searchQuery && hasFavs) {
         sectionsToRender.push({ id: 'favorites', title: '❤️ دڵخوازەکان' });
     }
 
-    // زیادکردنی بەشەکانی فایربەیس
-    // تەنها ئەو بەشانە پیشان دەدەین کە کەناڵیان تێدایە (یان هەمووی ئەگەر بتەوێت)
     categories.forEach(cat => {
-        // پشکنین: ئایا ئەم بەشە کەناڵی تێدایە لە ئەپەکە؟
         const hasChannel = displayChannels.some(ch => ch.category === cat.id);
-        if(hasChannel || isAdmin) { // ئەدمین دەتوانێت بەشی بەتاڵیش ببینێت
+        if(hasChannel || isAdmin) { 
             sectionsToRender.push(cat);
         }
     });
 
-    // ئەگەر تەنها دڵخواز دیاری کرابوو، تەنها داتا نیشان دەدەین بەبێ بەش
     if (showOnlyFavorites) {
-        // لێرە تەنها یەک بەش دروست دەکەین
          const section = createSectionHTML('favorites', '❤️ هەموو دڵخوازەکان', displayChannels);
          mainContainer.appendChild(section);
          return;
     }
 
-    // Render Loop
     sectionsToRender.forEach(cat => {
         let catChannels;
         if(cat.id === 'favorites') {
@@ -206,6 +202,7 @@ function createSectionHTML(catId, catTitle, catChannels) {
 }
 
 function createCardHTML(ch) {
+    // تێبینی: دوگمەکانی ئەدمین تەنها کاتێک دەردەکەون کە isAdmin ڕاست بێت
     const adminControls = isAdmin ? `
         <div class="admin-controls">
             <button class="edit-btn" onclick="event.stopPropagation(); editChannel('${ch.id}')"><i class="fas fa-pen"></i></button>
@@ -222,14 +219,12 @@ function createCardHTML(ch) {
 
 window.showAll = (catId) => {
     const grid = document.getElementById(`grid-${catId}`);
-    // لێرە پێویستە بزانین کام گروپە، بۆیە دوبارە فلتەر دەکەینەوە
     let catChannels = [];
     if(catId === 'favorites') {
         catChannels = channels.filter(c => c.isFavorite);
     } else {
         catChannels = channels.filter(c => c.category === catId);
     }
-    
     const remaining = catChannels.slice(5);
     event.target.style.display = 'none';
     remaining.forEach(ch => {
@@ -239,7 +234,7 @@ window.showAll = (catId) => {
     });
 };
 
-// --- 5. PLAYER LOGIC ---
+// --- PLAYER LOGIC ---
 window.playChannel = (id) => {
     const channel = channels.find(c => c.id === id);
     if (!channel) return;
@@ -274,34 +269,48 @@ window.triggerOverlay = () => { videoContainer.classList.add('ui-visible'); clea
 window.toggleFullScreen = () => { const elem = videoContainer; (!document.fullscreenElement) ? (elem.requestFullscreen||elem.webkitRequestFullscreen).call(elem) : document.exitFullscreen(); };
 window.closePlayer = () => { if (document.fullscreenElement) document.exitFullscreen(); playerModal.style.display = 'none'; videoPlayer.pause(); if(window.hls) window.hls.destroy(); };
 
-// --- 6. ADMIN & FORM LOGIC ---
+// --- 6. ADMIN AUTHENTICATION (New Way) ---
 
-// Login Check using Firebase Data
+// کردنەوەی مۆداڵی چوونەژوور
 document.getElementById('adminLoginBtn').onclick = () => loginModal.style.display = 'block';
+
+// جێبەجێکردنی چوونەژوور بە Firebase Auth
 document.getElementById('loginForm').onsubmit = (e) => {
     e.preventDefault();
-    const u = document.getElementById('username').value;
-    const p = document.getElementById('password').value;
+    const email = document.getElementById('username').value; // لێرە ئیمەیڵ دەنووسرێت
+    const pass = document.getElementById('password').value;
     
-    // بەراوردکردن لەگەڵ داتای فایربەیس
-    if(adminCreds.user && u === adminCreds.user && p === adminCreds.pass) {
-        isAdmin = true; 
-        document.body.classList.add('admin-mode'); 
-        toggleAdminUI(true); 
-        loginModal.style.display = 'none'; 
-        e.target.reset();
-    } else { 
-        alert("هەڵەیە!"); 
-    }
+    signInWithEmailAndPassword(auth, email, pass)
+        .then((userCredential) => {
+            // سەرکەوتوو بوو
+            console.log("Logged in!");
+            loginModal.style.display = 'none';
+            e.target.reset();
+        })
+        .catch((error) => {
+            console.error(error);
+            alert("هەڵە هەیە! دڵنیابەرەوە لە ئیمەیڵ و پاسۆرد.");
+        });
 };
 
-document.getElementById('logoutBtn').onclick = () => { isAdmin = false; document.body.classList.remove('admin-mode'); toggleAdminUI(false); };
+// جێبەجێکردنی دەرچوون (Logout)
+document.getElementById('logoutBtn').onclick = () => { 
+    signOut(auth).then(() => {
+        console.log("Logged out");
+        alert("دەرچوویت.");
+    }).catch((error) => {
+        console.error(error);
+    });
+};
+
 function toggleAdminUI(show) {
     document.getElementById('adminLoginBtn').style.display = show ? 'none' : 'flex';
     document.getElementById('logoutBtn').style.display = show ? 'flex' : 'none';
     document.getElementById('addChannelBtn').style.display = show ? 'flex' : 'none';
     renderApp(document.getElementById('searchInput').value);
 }
+
+// --- FORM & SAVING ---
 
 document.getElementById('addChannelBtn').onclick = () => { 
     editingId = null; 
@@ -310,7 +319,6 @@ document.getElementById('addChannelBtn').onclick = () => {
     formModal.style.display = 'block'; 
 };
 
-// Saving Logic (No Changes needed here mostly, just ensuring category is correct)
 document.getElementById('channelForm').onsubmit = async (e) => {
     e.preventDefault();
     const name = document.getElementById('channelName').value;
@@ -340,7 +348,7 @@ window.editChannel = (id) => {
     editingId = id; 
     document.getElementById('channelName').value = ch.name; 
     document.getElementById('channelUrl').value = ch.url; 
-    document.getElementById('channelCategory').value = ch.category; // Auto selects correct option because we populated options earlier
+    document.getElementById('channelCategory').value = ch.category; 
     document.getElementById('channelImageLink').value = ch.image;
     formModal.style.display = 'block'; 
 };
