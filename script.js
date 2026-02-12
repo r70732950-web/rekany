@@ -1,7 +1,8 @@
 // --- 1. FIREBASE SETUP & IMPORTS ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { 
-    getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, setDoc 
+    getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, setDoc,
+    query, where, getDocs 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { 
     getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged 
@@ -24,6 +25,7 @@ const auth = getAuth(app);
 
 const channelsCollection = collection(db, "channels");
 const categoriesCollection = collection(db, "categories");
+const reportsCollection = collection(db, "reports"); 
 
 // --- 2. GLOBAL VARIABLES ---
 let channels = [];
@@ -57,6 +59,9 @@ const homeBtn = document.getElementById('homeBtn');
 const categorySelect = document.getElementById('channelCategory');
 const scoreModal = document.getElementById('scoreModal'); 
 const scoreFrame = document.getElementById('scoreFrame'); 
+const errorScreen = document.getElementById('errorScreen'); 
+const reportsModal = document.getElementById('reportsModal'); 
+const reportsList = document.getElementById('reportsList'); 
 
 // --- 3. TOAST NOTIFICATION SYSTEM ---
 window.showToast = (msg, type = 'success') => {
@@ -115,17 +120,16 @@ onSnapshot(channelsCollection, (snapshot) => {
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
 });
 
-// --- 7. RENDER LOGIC (UPDATED FOR LOCAL FAVORITES) ---
+// --- 7. RENDER LOGIC ---
 function renderApp(searchQuery = '') {
-    // If no data and not admin, show nothing
     if (channels.length === 0 && categories.length === 0 && !isAdmin) return;
     
     mainContainer.innerHTML = ''; 
 
-    // 1. Get Local Favorites
+    // Get Local Favorites
     const localFavs = getLocalFavorites();
 
-    // 2. Map channels to include 'isFavorite' based on LocalStorage
+    // Map channels
     let displayChannels = channels.map(channel => {
         return {
             ...channel,
@@ -133,14 +137,13 @@ function renderApp(searchQuery = '') {
         };
     });
 
-    // 3. Filter by Search
+    // Filter by Search
     if(searchQuery) {
         displayChannels = displayChannels.filter(c => c.name.toLowerCase().includes(searchQuery));
     }
 
     // --- FAVORITES MODE ---
     if(showOnlyFavorites) {
-        // Filter list to only show favorites
         displayChannels = displayChannels.filter(c => c.isFavorite);
         
         if(displayChannels.length === 0) {
@@ -148,10 +151,9 @@ function renderApp(searchQuery = '') {
              return;
         }
 
-        // Show ALL favorites in one section
         const section = createSectionHTML('favorites', '❤️ دڵخوازەکان', displayChannels);
         mainContainer.appendChild(section);
-        return; // Stop here!
+        return; 
     }
 
     // --- HOME MODE ---
@@ -160,11 +162,10 @@ function renderApp(searchQuery = '') {
         return;
     }
 
-    // Render Categories (Normal View)
+    // Render Categories
     categories.forEach(cat => {
         let catChannels = displayChannels.filter(c => c.category === cat.id);
         
-        // Skip empty categories unless admin
         if(catChannels.length === 0 && !isAdmin) return;
         
         mainContainer.appendChild(createSectionHTML(cat.id, cat.title, catChannels));
@@ -204,31 +205,157 @@ function createCardHTML(ch) {
             ${adminControls}</div>`;
 }
 
-// --- 8. PLAYER, PiP & DRAGGING LOGIC ---
+// --- 8. PLAYER, PiP & ERROR HANDLING ---
 
 window.playChannel = (id) => {
     const channel = channels.find(c => c.id === id);
     if (!channel) return;
     
-    playerModal.style.display = 'block';
+    // Reset Error Screen
+    errorScreen.style.display = 'none';
     
+    playerModal.style.display = 'block';
     if(isPipMode) togglePipMode(); 
 
-    videoPlayer.src = ""; // Clear previous
+    videoPlayer.src = ""; 
+
+    // --- HLS Logic with FASTER Error Handling ---
     if (Hls.isSupported()) {
         if(window.hls) window.hls.destroy(); 
-        const hls = new Hls(); 
+        
+        // ڕێکخستنی خێرا بۆ دۆزینەوەی هەڵە
+        const hlsConfig = {
+            manifestLoadingTimeOut: 5000, 
+            manifestLoadingMaxRetry: 1,   
+            levelLoadingMaxRetry: 1,
+            fragLoadingMaxRetry: 1
+        };
+
+        const hls = new Hls(hlsConfig); 
         hls.loadSource(channel.url); 
         hls.attachMedia(videoPlayer);
+        
         hls.on(Hls.Events.MANIFEST_PARSED, () => videoPlayer.play().catch(e=>console.log("Autoplay blocked")));
+        
+        // Error Listener
+        hls.on(Hls.Events.ERROR, function (event, data) {
+            if (data.fatal) {
+                switch (data.type) {
+                    case Hls.ErrorTypes.NETWORK_ERROR:
+                        console.log("fatal network error encountered");
+                        // لێرەدا چیتر هەوڵ ناداتەوە -> ڕاستەوخۆ هەڵە پیشان دەدات
+                        handleStreamError(channel);
+                        break;
+                    case Hls.ErrorTypes.MEDIA_ERROR:
+                        console.log("fatal media error");
+                        hls.recoverMediaError();
+                        handleStreamError(channel);
+                        break;
+                    default:
+                        hls.destroy();
+                        handleStreamError(channel);
+                        break;
+                }
+            }
+        });
+
         window.hls = hls;
     } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-        videoPlayer.src = channel.url; videoPlayer.play();
+        // For Safari
+        videoPlayer.src = channel.url; 
+        videoPlayer.play();
+        
+        videoPlayer.onerror = () => {
+            handleStreamError(channel);
+        };
     }
     renderRelated(channel); 
     triggerOverlay();
 };
 
+// --- ERROR HANDLING (NO AUTO SWITCH) ---
+function handleStreamError(channel) {
+    // 1. Pause Player
+    videoPlayer.pause();
+    
+    // 2. Show UI Black Screen
+    errorScreen.style.display = 'flex';
+    
+    // 3. Report to Firebase (Silently)
+    reportBrokenChannel(channel);
+
+    // * TIEBINI: لێرەدا کۆدی autoSwitchTimer لابرا *
+    // ئێستا تەنها شاشەکە ڕەش دەبێت و دەوەستێت.
+}
+
+async function reportBrokenChannel(channel) {
+    try {
+        await addDoc(reportsCollection, {
+            channelId: channel.id,
+            channelName: channel.name,
+            channelUrl: channel.url,
+            reportedAt: new Date().toISOString(),
+            status: 'pending'
+        });
+        console.log("Report sent for: " + channel.name);
+    } catch (e) {
+        console.error("Error sending report", e);
+    }
+}
+
+// --- REPORT ADMIN FUNCTIONS ---
+window.openReports = async () => {
+    reportsModal.style.display = 'block';
+    reportsList.innerHTML = '<p style="text-align:center; padding:20px;">جارێ... </p>';
+
+    const q = query(reportsCollection, where("status", "==", "pending"));
+    const snapshot = await getDocs(q);
+    
+    reportsList.innerHTML = '';
+    
+    if (snapshot.empty) {
+        reportsList.innerHTML = '<p style="text-align:center; color:green; padding:20px;">هیچ کێشەیەک نییە! 🎉</p>';
+        return;
+    }
+
+    const seenIds = new Set();
+    const uniqueReports = [];
+
+    snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (!seenIds.has(data.channelId)) {
+            seenIds.add(data.channelId);
+            uniqueReports.push({ id: doc.id, ...data });
+        } else {
+             deleteDoc(doc.ref);
+        }
+    });
+
+    uniqueReports.forEach(rep => {
+        const div = document.createElement('div');
+        div.className = 'report-item';
+        div.innerHTML = `
+            <div class="report-info">
+                <h4>${rep.channelName}</h4>
+                <span>${new Date(rep.reportedAt).toLocaleTimeString()}</span>
+            </div>
+            <div class="report-actions">
+                <button class="fix-btn" onclick="fixReport('${rep.channelId}', '${rep.id}')">
+                    <i class="fas fa-tools"></i> چاککردن
+                </button>
+            </div>
+        `;
+        reportsList.appendChild(div);
+    });
+};
+
+window.fixReport = async (channelId, reportId) => {
+    editChannel(channelId);
+    reportsModal.style.display = 'none';
+    await deleteDoc(doc(db, "reports", reportId));
+};
+
+// --- PLAYER UI LOGIC ---
 window.togglePipMode = () => {
     isPipMode = !isPipMode;
     
@@ -261,7 +388,7 @@ window.toggleFullScreen = () => {
 
 window.closePlayer = () => { 
     if (document.fullscreenElement) document.exitFullscreen(); 
-    
+
     if(isPipMode) {
         isPipMode = false;
         videoContainer.classList.remove('pip-mode');
@@ -380,6 +507,7 @@ function toggleAdminUI(show) {
     document.getElementById('logoutBtn').style.display = show ? 'flex' : 'none';
     document.getElementById('addChannelBtn').style.display = show ? 'flex' : 'none';
     document.getElementById('addCategoryBtn').style.display = show ? 'flex' : 'none';
+    document.getElementById('reportsBtn').style.display = show ? 'flex' : 'none'; 
 }
 
 function updateCategoryDropdown() {
@@ -395,7 +523,6 @@ document.getElementById('addChannelBtn').onclick = () => {
     editingId = null; document.getElementById('channelForm').reset(); document.getElementById('formTitle').innerText = "زیادکردنی کەناڵ"; channelModal.style.display = 'block'; 
 };
 
-// UPDATED: Submit form logic - Removed 'isFavorite' from Firestore
 document.getElementById('channelForm').onsubmit = async (e) => {
     e.preventDefault();
     const name = document.getElementById('channelName').value;
@@ -406,7 +533,6 @@ document.getElementById('channelForm').onsubmit = async (e) => {
     
     if(!category) { showToast("تکایە بەشێک هەڵبژێرە", "error"); return; }
     
-    // Note: We do NOT send 'isFavorite' to Firestore anymore
     const data = { name, url, category, image: finalImage };
     
     try {
@@ -437,7 +563,7 @@ document.getElementById('categoryForm').onsubmit = async (e) => {
     try { await setDoc(doc(db, "categories", id), { title, order }); showToast("بەشەکە زیادکرا", "success"); categoryModal.style.display = 'none'; } catch (error) { showToast("کێشەیەک هەیە", "error"); }
 };
 
-// UPDATED: Favorites Logic (LocalStorage only)
+// --- 11. FAVORITES & NAV ---
 window.toggleFavorite = (id, event) => { 
     if(event) event.stopPropagation(); 
     
@@ -454,13 +580,10 @@ window.toggleFavorite = (id, event) => {
     
     setLocalFavorites(favs);
     
-    // Refresh UI to update heart icon colors
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
 };
 
 window.handleSearch = () => { renderApp(document.getElementById('searchInput').value.toLowerCase().trim()); };
-
-// --- 11. NAVIGATION FUNCTIONS ---
 
 window.goToHome = () => {
     showOnlyFavorites = false;
@@ -491,11 +614,14 @@ window.onclick = (e) => {
     if(e.target == channelModal) channelModal.style.display="none"; 
     if(e.target == categoryModal) categoryModal.style.display="none"; 
     if(e.target == scoreModal) window.closeScoreModal(); 
+    if(e.target == reportsModal) reportsModal.style.display="none"; 
 };
+
 document.querySelectorAll('.close-modal').forEach(b => b.onclick = () => { 
     loginModal.style.display='none'; 
     channelModal.style.display='none'; 
     categoryModal.style.display='none'; 
+    reportsModal.style.display='none';
 });
 
 // Helpers to render related when opening player

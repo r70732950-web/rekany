@@ -78,7 +78,7 @@ video::-webkit-media-controls-enclosure { display: none !important; }
 .header-search i { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.8); font-size: 14px; pointer-events: none; }
 
 /* =========================================
-   4. BOTTOM NAVIGATION (UPDATED)
+   4. BOTTOM NAVIGATION
    ========================================= */
 .bottom-nav {
     position: fixed;
@@ -86,7 +86,6 @@ video::-webkit-media-controls-enclosure { display: none !important; }
     left: 0;
     width: 100%;
     height: var(--nav-height);
-    /* هەمان ڕەنگی سەرەوە */
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
     display: flex;
     justify-content: space-around;
@@ -104,7 +103,6 @@ video::-webkit-media-controls-enclosure { display: none !important; }
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    /* ڕەنگی سپی نیمچە شەفاف (Inactive) */
     color: rgba(255, 255, 255, 0.6);
     font-size: 10px;
     font-weight: bold;
@@ -125,29 +123,23 @@ video::-webkit-media-controls-enclosure { display: none !important; }
 .nav-item:hover { color: #ffffff; }
 
 /* --- ACTIVE STATES --- */
-
-/* کاتێک لە پەڕەی سەرەکیت (Home Active) */
 .nav-item.active-nav {
     color: #ffffff;
     opacity: 1;
 }
-.nav-item.active-nav i {
-    transform: scale(1.1);
-}
+.nav-item.active-nav i { transform: scale(1.1); }
 
-/* کاتێک دڵخواز دیاری کراوە (Favorites Active) */
 .nav-item.active-filter { 
-    color: var(--gold-color); /* ڕەنگی زێڕی */
+    color: var(--gold-color);
     text-shadow: 0 0 10px rgba(246, 173, 85, 0.4);
 }
 .nav-item.active-filter i { transform: scale(1.1); }
-
 
 /* =========================================
    5. TOAST & SKELETON
    ========================================= */
 #toast-box {
-    position: fixed; bottom: 100px; /* بەرزمان کردەوە لەسەر هێڵی خوارەوە */
+    position: fixed; bottom: 100px;
     left: 50%; transform: translateX(-50%);
     display: flex; flex-direction: column; gap: 10px; z-index: 3000;
     width: 90%; max-width: 350px; pointer-events: none;
@@ -174,7 +166,7 @@ video::-webkit-media-controls-enclosure { display: none !important; }
 .skeleton-text { height: 20px; width: 60%; margin: 10px auto; }
 
 /* =========================================
-   6. CARDS & MODALS
+   6. CARDS & SECTIONS
    ========================================= */
 .category-section {
     background: var(--card-bg); margin: 15px 10px; padding: 15px; 
@@ -210,6 +202,9 @@ body.admin-mode .admin-controls { opacity: 1; }
 .edit-btn, .delete-btn { width: 30px; height: 30px; border-radius: 50%; border: none; color: white; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
 .edit-btn { background-color: #3182ce; } .delete-btn { background-color: #e53e3e; }
 
+/* =========================================
+   7. MODALS (GENERAL)
+   ========================================= */
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; backdrop-filter: blur(5px); }
 .modal-content { background: white; margin: 15% auto; padding: 25px; border-radius: 24px; width: 90%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: slideInUp 0.3s; }
 @keyframes slideInUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -219,7 +214,7 @@ button[type="submit"] { width: 100%; padding: 14px; background: var(--primary-co
 .close-modal-btn { width: 100%; padding: 14px; background: #edf2f7; color: #4a5568; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
 
 /* =========================================
-   7. LIVE SCORE STYLES
+   8. SPECIFIC MODALS (SCORE & REPORTS)
    ========================================= */
 .score-content {
     width: 95%; height: 90%; margin: 5% auto; max-width: 1000px;
@@ -240,8 +235,25 @@ button[type="submit"] { width: 100%; padding: 14px; background: var(--primary-co
 .close-score-btn:active { background: rgba(255,255,255,0.3); }
 #scoreFrame { width: 100%; height: 100%; background: #fff; border: none; flex: 1; }
 
+/* --- REPORTS SYSTEM (NEW) --- */
+.reports-container {
+    max-height: 400px; overflow-y: auto; padding: 15px;
+}
+.report-item {
+    background: #fff5f5; border: 1px solid #feb2b2;
+    padding: 12px; border-radius: 8px; margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.report-info h4 { margin: 0; font-size: 14px; color: #c53030; }
+.report-info span { font-size: 11px; color: #718096; }
+.report-actions { display: flex; gap: 8px; }
+.fix-btn {
+    background: #48bb78; color: white; border: none; padding: 6px 12px;
+    border-radius: 6px; cursor: pointer; font-size: 12px;
+}
+
 /* =========================================
-   8. VIDEO PLAYER & PIP
+   9. VIDEO PLAYER & PIP
    ========================================= */
 #playerModal.pip-active {
     background: transparent !important; backdrop-filter: none !important;
@@ -258,7 +270,7 @@ button[type="submit"] { width: 100%; padding: 14px; background: var(--primary-co
 .video-modal-content.is-dragging { transition: none !important; }
 
 .video-modal-content.pip-mode {
-    position: fixed; bottom: 85px; /* بەرزکراوەتەوە لەسەر هێڵی خوارەوە */
+    position: fixed; bottom: 85px;
     left: 20px; width: 280px; height: 160px; 
     border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
     z-index: 9999; border: 2px solid rgba(255,255,255,0.1);
@@ -297,18 +309,32 @@ video { width: 100%; height: 100%; object-fit: contain; }
 .related-card.active { border-color: var(--accent-color); }
 .related-card img { width: 100%; height: 100%; object-fit: contain; }
 
+/* --- ERROR OVERLAY (NEW) --- */
+.error-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: black; color: white;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 205; text-align: center;
+}
+.error-overlay i { font-size: 50px; color: #fc8181; margin-bottom: 20px; }
+.error-overlay p { font-size: 18px; margin-bottom: 20px; color: #cbd5e0; }
+.error-overlay button {
+    width: auto; padding: 10px 30px; background: #fc8181; border: none; color: white; border-radius: 20px; cursor: pointer;
+}
+
 /* =========================================
-   9. FLOATING ACTION BUTTON
+   10. FLOATING ACTION BUTTON
    ========================================= */
 .add-fab { 
     position: fixed; 
-    bottom: 85px; /* لەسەر هێڵی خوارەوە جێگیرکراوە */
+    bottom: 85px; 
     right: 25px; 
     width: 56px; height: 56px; 
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); 
     color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; 
     z-index: 150; font-size: 24px; box-shadow: 0 4px 15px rgba(26, 54, 93, 0.4); 
     transition: transform 0.2s;
-    border: 2px solid white; /* چوارچێوەی سپی بۆ ئەوەی جوانتر لەگەڵ باکگراوندەکە جیاببێتەوە */
+    border: 2px solid white; 
 }
 .add-fab:active { transform: scale(0.9); }

@@ -54,6 +54,11 @@
             <span>دڵخواز</span>
         </button>
         
+        <button id="reportsBtn" class="nav-item" style="display:none; color: #fc8181;" onclick="openReports()">
+            <i class="fas fa-bug"></i>
+            <span>ڕاپۆرت</span>
+        </button>
+
         <button id="addCategoryBtn" class="nav-item" style="display:none;" title="زیادکردنی بەش">
             <i class="fas fa-folder-plus"></i>
             <span>بەش +</span>
@@ -101,6 +106,19 @@
                 </button>
             </div>
             <iframe id="scoreFrame" src="" frameborder="0" allowfullscreen></iframe>
+        </div>
+    </div>
+    
+    <div id="reportsModal" class="modal">
+        <div class="modal-content">
+            <div class="score-header" style="border-radius: 12px 12px 0 0; background: #c53030;">
+                <h3>⚠️ کەناڵە لەکارکەوتووەکان</h3>
+                <button class="close-score-btn close-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="reportsList" class="reports-container">
+                </div>
         </div>
     </div>
 
@@ -177,6 +195,12 @@
             <div class="click-layer" onclick="triggerOverlay()"></div>
             
             <video id="videoPlayer" autoplay playsinline></video>
+            
+            <div id="errorScreen" class="error-overlay" style="display: none;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>پەخشی ئەم کەناڵە وەستاوە</p>
+                <button onclick="closePlayer()">داخستن</button>
+            </div>
             
             <div id="relatedChannels" class="related-channels-bar"></div>
         </div>
