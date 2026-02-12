@@ -25,6 +25,10 @@
         </div>
 
         <div class="header-actions">
+            <button class="icon-btn" onclick="openScores()" title="ئەنجامی یارییەکان">
+                <i class="fas fa-futbol"></i>
+            </button>
+
             <button id="favFilterBtn" class="icon-btn" onclick="toggleFavFilterView()" title="تەنها دڵخوازەکان">
                 <i class="fas fa-heart"></i>
             </button>
@@ -161,7 +165,42 @@
         </div>
     </div>
 
+    <div id="scoreModal" class="modal" style="z-index: 3000;">
+        <div class="modal-content" style="width: 95%; height: 90%; max-width: none; padding: 0; overflow: hidden; background: #fff; border-radius: 12px;">
+            
+            <div style="padding: 12px; background: var(--primary-color); display: flex; justify-content: space-between; align-items: center; color: white;">
+                <span style="font-weight: bold;">ئەنجامی یارییەکان (365Scores)</span>
+                <button onclick="closeScores()" style="background: transparent; border: none; color: white; font-size: 20px; cursor: pointer; width: 30px; height: 30px;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <iframe id="scoreFrame" src="" 
+                style="width: 100%; height: calc(100% - 55px); border: none;"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups">
+            </iframe>
+        </div>
+    </div>
+
     <script type="module" src="script.js"></script>
+
+    <script>
+        const scoreModal = document.getElementById('scoreModal');
+        const scoreFrame = document.getElementById('scoreFrame');
+        const scoreUrl = "https://www.365scores.com/ar"; // دەتوانیت لێرە لینکەکە بگۆڕیت (live-score یان kooora)
+
+        window.openScores = () => {
+            // تەنها کاتێک لینکەکە دەکەینەوە کە دوگمەکە داگیرا (بۆ ئەوەی ئینتەرنێت نەخوات لە سەرەتاوە)
+            if(scoreFrame.src === "" || scoreFrame.src === "about:blank") {
+                scoreFrame.src = scoreUrl; 
+            }
+            scoreModal.style.display = "block";
+        };
+
+        window.closeScores = () => {
+            scoreModal.style.display = "none";
+        };
+    </script>
 
 </body>
 </html>

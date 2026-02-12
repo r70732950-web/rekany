@@ -1,4 +1,6 @@
-// --- 1. FIREBASE SETUP & IMPORTS ---
+// =========================================
+// 1. FIREBASE SETUP & IMPORTS
+// =========================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { 
     getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, setDoc 
@@ -17,14 +19,18 @@ const firebaseConfig = {
   measurementId: "G-0BB5EY6TNW"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
+// Collection References
 const channelsCollection = collection(db, "channels");
 const categoriesCollection = collection(db, "categories");
 
-// --- 2. GLOBAL VARIABLES ---
+// =========================================
+// 2. GLOBAL VARIABLES
+// =========================================
 let channels = [];
 let categories = [];
 let isAdmin = false;
@@ -32,29 +38,24 @@ let editingId = null;
 let overlayTimer = null;
 let showOnlyFavorites = false;
 let isPipMode = false;
-
-// گۆڕاوەکان بۆ جوڵاندنی PiP
-let isDragging = false;
-let currentX;
-let currentY;
-let initialX;
-let initialY;
-let xOffset = 0;
-let yOffset = 0;
+let hls = null; // HLS Player instance
 
 // DOM Elements
 const mainContainer = document.getElementById('mainContainer');
+const skeletonLoader = document.getElementById('skeleton-loader');
 const loginModal = document.getElementById('loginModal');
 const channelModal = document.getElementById('channelFormModal');
 const categoryModal = document.getElementById('categoryModal');
 const playerModal = document.getElementById('playerModal');
 const videoPlayer = document.getElementById('videoPlayer');
-const videoContainer = document.getElementById('videoContainer'); // This is the draggable item
+const videoContainer = document.getElementById('videoContainer'); 
 const relatedBar = document.getElementById('relatedChannels');
 const favFilterBtn = document.getElementById('favFilterBtn');
 const categorySelect = document.getElementById('channelCategory');
 
-// --- 3. TOAST NOTIFICATION SYSTEM ---
+// =========================================
+// 3. TOAST NOTIFICATION SYSTEM
+// =========================================
 window.showToast = (msg, type = 'success') => {
     const box = document.getElementById('toast-box');
     const toast = document.createElement('div');
@@ -67,10 +68,17 @@ window.showToast = (msg, type = 'success') => {
     toast.innerHTML = `<i class="fas ${iconClass}"></i> <span>${msg}</span>`;
     
     box.appendChild(toast);
-    setTimeout(() => { toast.remove(); }, 3000);
+    
+    // لادانی ئاگادارکردنەوەکە دوای 3 چرکە
+    setTimeout(() => { 
+        toast.style.animation = 'fadeOut 0.5s forwards';
+        setTimeout(() => toast.remove(), 500);
+    }, 3000);
 };
 
-// --- 4. AUTHENTICATION LISTENER ---
+// =========================================
+// 4. AUTHENTICATION LISTENER
+// =========================================
 onAuthStateChanged(auth, (user) => {
     if (user) {
         isAdmin = true;
@@ -82,56 +90,103 @@ onAuthStateChanged(auth, (user) => {
         document.body.classList.remove('admin-mode');
         toggleAdminUI(false);
     }
+    // دووبارە ڕێندەرکردنەوە بۆ دەرکەوتنی دوگمەکانی ئەدمین
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
 });
 
-// --- 5. DATA LISTENERS ---
+// =========================================
+// 5. DATA FETCHING (REAL-TIME)
+// =========================================
+
+// Fetch Categories
 onSnapshot(categoriesCollection, (snapshot) => {
     categories = [];
-    snapshot.docs.forEach(doc => { categories.push({ id: doc.id, ...doc.data() }); });
+    snapshot.docs.forEach(doc => { 
+        categories.push({ id: doc.id, ...doc.data() }); 
+    });
+    // ڕیزکردن بەپێی Order
     categories.sort((a, b) => a.order - b.order);
     updateCategoryDropdown();
-    renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
+    checkDataLoaded();
 });
 
+// Fetch Channels
 onSnapshot(channelsCollection, (snapshot) => {
     channels = [];
-    snapshot.docs.forEach(doc => { channels.push({ ...doc.data(), id: doc.id }); });
+    snapshot.docs.forEach(doc => { 
+        channels.push({ ...doc.data(), id: doc.id }); 
+    });
+    // ڕیزکردن بەپێی ئەلفوبێ
     channels.sort((a, b) => (a.name > b.name) ? 1 : -1);
-    renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
+    checkDataLoaded();
 });
 
-// --- 6. RENDER LOGIC ---
-function renderApp(searchQuery = '') {
-    if (channels.length === 0 && categories.length === 0 && !isAdmin) return;
-    mainContainer.innerHTML = ''; 
-    let displayChannels = channels;
-    if(searchQuery) displayChannels = displayChannels.filter(c => c.name.toLowerCase().includes(searchQuery));
-    if(showOnlyFavorites) displayChannels = displayChannels.filter(c => c.isFavorite);
+function checkDataLoaded() {
+    // کاتێک داتا گەیشت، سکێڵتۆنەکە لاببە و ئەپەکە پیشان بدە
+    if (categories.length > 0 || channels.length > 0) {
+        skeletonLoader.style.display = 'none';
+        renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
+    }
+}
 
-    if(displayChannels.length === 0) {
-        mainContainer.innerHTML = `<div style="text-align:center; padding:50px 20px; color:#a0aec0;"><p>هیچ کەناڵێک نەدۆزرایەوە</p></div>`;
+// =========================================
+// 6. RENDER LOGIC (UI GENERATION)
+// =========================================
+function renderApp(searchQuery = '') {
+    // پاککردنەوەی کۆنتەینەر جگە لە سکێڵتۆن (ئەگەر هێشتا مابێت)
+    const currentSkeleton = document.getElementById('skeleton-loader');
+    mainContainer.innerHTML = ''; 
+    if(currentSkeleton) mainContainer.appendChild(currentSkeleton);
+
+    if (channels.length === 0 && categories.length === 0 && !isAdmin) return;
+
+    let displayChannels = channels;
+    
+    // فیلتەری گەڕان
+    if(searchQuery) {
+        displayChannels = displayChannels.filter(c => c.name.toLowerCase().includes(searchQuery));
+    }
+    
+    // فیلتەری دڵخوازەکان
+    if(showOnlyFavorites) {
+        displayChannels = displayChannels.filter(c => c.isFavorite);
+    }
+
+    // ئەگەر هیچ نەدۆزرایەوە
+    if(displayChannels.length === 0 && channels.length > 0) {
+        const msg = document.createElement('div');
+        msg.style.textAlign = 'center'; msg.style.padding = '50px'; msg.style.color = '#a0aec0';
+        msg.innerHTML = `<p>هیچ کەناڵێک نەدۆزرایەوە</p>`;
+        mainContainer.appendChild(msg);
         return;
     }
 
+    // دروستکردنی لیستەکە
     let sectionsToRender = [];
+    
+    // بەشی دڵخوازەکان (ئەگەر فیلتەر نەکرا بێت)
     const hasFavs = channels.some(c => c.isFavorite);
-    if (!showOnlyFavorites && !searchQuery && hasFavs) sectionsToRender.push({ id: 'favorites', title: '❤️ دڵخوازەکان' });
+    if (!showOnlyFavorites && !searchQuery && hasFavs) {
+        sectionsToRender.push({ id: 'favorites', title: '❤️ دڵخوازەکان' });
+    }
 
+    // بەشە ئاساییەکان
     categories.forEach(cat => {
         const hasChannel = displayChannels.some(ch => ch.category === cat.id);
         if(hasChannel || isAdmin) sectionsToRender.push(cat);
     });
 
-    if (showOnlyFavorites) {
-         const section = createSectionHTML('favorites', '❤️ هەموو دڵخوازەکان', displayChannels);
-         mainContainer.appendChild(section);
-         return;
-    }
-
+    // ڕێندەرکردنی بەشەکان
     sectionsToRender.forEach(cat => {
-        let catChannels = (cat.id === 'favorites') ? channels.filter(c => c.isFavorite) : displayChannels.filter(c => c.category === cat.id);
+        let catChannels;
+        if (cat.id === 'favorites') {
+            catChannels = channels.filter(c => c.isFavorite);
+        } else {
+            catChannels = displayChannels.filter(c => c.category === cat.id);
+        }
+
         if(catChannels.length === 0 && !isAdmin) return;
+        
         mainContainer.appendChild(createSectionHTML(cat.id, cat.title, catChannels));
     });
 }
@@ -139,14 +194,26 @@ function renderApp(searchQuery = '') {
 function createSectionHTML(catId, catTitle, catChannels) {
     const section = document.createElement('div');
     section.className = 'category-section';
+    
+    // ئەگەر بەشەکە بەتاڵ بوو (بۆ ئەدمین دیار بێت)
     if (catChannels.length === 0) {
-        section.innerHTML = `<div class="section-header" style="border-bottom:none;"><div class="section-title" style="opacity:0.6;">${catTitle} (بەتاڵ)</div></div>`;
+        section.innerHTML = `<div class="section-header" style="border-bottom:none; opacity:0.5;">
+            <div class="section-title">${catTitle} (بەتاڵ)</div>
+        </div>`;
         return section;
     }
+
     let gridHTML = `<div class="products-container" id="grid-${catId}">`;
     catChannels.forEach(ch => gridHTML += createCardHTML(ch));
     gridHTML += `</div>`;
-    section.innerHTML = `<div class="section-header"><div class="section-title">${catTitle}</div><div class="count-badge">${catChannels.length}</div></div>${gridHTML}`;
+    
+    section.innerHTML = `
+        <div class="section-header">
+            <div class="section-title">${catTitle}</div>
+            <div class="count-badge">${catChannels.length}</div>
+        </div>
+        ${gridHTML}
+    `;
     return section;
 }
 
@@ -156,39 +223,97 @@ function createCardHTML(ch) {
             <button class="edit-btn" onclick="event.stopPropagation(); editChannel('${ch.id}')"><i class="fas fa-pen"></i></button>
             <button class="delete-btn" onclick="event.stopPropagation(); deleteChannel('${ch.id}')"><i class="fas fa-trash"></i></button>
         </div>` : '';
+    
     const favClass = ch.isFavorite ? 'active' : '';
     const img = ch.image || "https://placehold.co/200?text=TV";
-    return `<div class="product-card" onclick="playChannel('${ch.id}')">
-            <div class="fav-btn ${favClass}" onclick="toggleFavorite('${ch.id}', event)"><i class="fas fa-heart"></i></div>
+    
+    return `
+        <div class="product-card" onclick="playChannel('${ch.id}')">
+            <div class="live-badge"></div>
+            <div class="fav-btn ${favClass}" onclick="toggleFavorite('${ch.id}', event)">
+                <i class="fas fa-heart"></i>
+            </div>
             <img src="${img}" class="product-image" loading="lazy" onerror="this.src='https://placehold.co/200?text=Error'">
-            ${adminControls}</div>`;
+            ${adminControls}
+        </div>`;
 }
 
-// --- 7. PLAYER, PiP & DRAGGING LOGIC ---
-
+// =========================================
+// 7. PLAYER LOGIC & HLS
+// =========================================
 window.playChannel = (id) => {
     const channel = channels.find(c => c.id === id);
     if (!channel) return;
     
     playerModal.style.display = 'block';
     
-    // ئەگەر لە PiP بووین، با بگەڕێتەوە دۆخی ئاسایی بۆ ساتێک
-    if(isPipMode) togglePipMode(); 
-
-    videoPlayer.src = ""; 
-    if (Hls.isSupported()) {
-        if(window.hls) window.hls.destroy(); 
-        const hls = new Hls(); 
-        hls.loadSource(channel.url); 
-        hls.attachMedia(videoPlayer);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => videoPlayer.play().catch(e=>console.log("Autoplay blocked")));
-        window.hls = hls;
-    } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-        videoPlayer.src = channel.url; videoPlayer.play();
+    // ئەگەر لە PiP بووین، با بگەڕێتەوە دۆخی ئاسایی
+    if(isPipMode) {
+        videoContainer.classList.remove('pip-mode');
+        playerModal.classList.remove('pip-active');
+        isPipMode = false;
+        resetDragPosition();
     }
+
+    // ئامادەکردنی لیستی پەیوەندیدار
     renderRelated(channel); 
     triggerOverlay();
+
+    // HLS Logic
+    if (Hls.isSupported()) {
+        if(hls) hls.destroy(); 
+        hls = new Hls(); 
+        hls.loadSource(channel.url); 
+        hls.attachMedia(videoPlayer);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            videoPlayer.play().catch(e => console.log("Autoplay blocked:", e));
+        });
+        hls.on(Hls.Events.ERROR, function (event, data) {
+            if (data.fatal) {
+                switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                    hls.startLoad();
+                    break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                    hls.recoverMediaError();
+                    break;
+                default:
+                    hls.destroy();
+                    break;
+                }
+            }
+        });
+    } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+        // بۆ Safari
+        videoPlayer.src = channel.url; 
+        videoPlayer.play();
+    }
 };
+
+window.closePlayer = () => { 
+    if (document.fullscreenElement) document.exitFullscreen(); 
+    
+    isPipMode = false;
+    videoContainer.classList.remove('pip-mode');
+    playerModal.classList.remove('pip-active');
+    resetDragPosition();
+
+    playerModal.style.display = 'none'; 
+    videoPlayer.pause(); 
+    videoPlayer.src = "";
+    if(hls) hls.destroy(); 
+};
+
+// =========================================
+// 8. PiP MODE & DRAGGING (PRO FEATURES)
+// =========================================
+let isDragging = false;
+let currentX;
+let currentY;
+let initialX;
+let initialY;
+let xOffset = 0;
+let yOffset = 0;
 
 window.togglePipMode = () => {
     isPipMode = !isPipMode;
@@ -196,71 +321,22 @@ window.togglePipMode = () => {
     if (isPipMode) {
         playerModal.classList.add('pip-active');
         videoContainer.classList.add('pip-mode');
-        // دەستپێکردنی گوێگرتن بۆ جووڵە (Drag)
-        addDragListeners();
+        showToast("دۆخی بچووککراوە (PiP) کارایە", "info");
     } else {
         playerModal.classList.remove('pip-active');
         videoContainer.classList.remove('pip-mode');
-        
-        // گەڕاندنەوەی شوێنی ڤیدیۆکە بۆ ناوەڕاست
         resetDragPosition();
-        removeDragListeners();
     }
 };
 
-window.triggerOverlay = () => { 
-    videoContainer.classList.add('ui-visible'); 
-    clearTimeout(overlayTimer); 
-    overlayTimer = setTimeout(() => { videoContainer.classList.remove('ui-visible'); }, 4000); 
-};
+// Dragging Logic
+videoContainer.addEventListener("touchstart", dragStart, {passive: false});
+videoContainer.addEventListener("touchend", dragEnd, {passive: false});
+videoContainer.addEventListener("touchmove", drag, {passive: false});
 
-window.toggleFullScreen = () => { 
-    if(isPipMode) {
-        togglePipMode(); 
-        return;
-    }
-    const elem = videoContainer; 
-    (!document.fullscreenElement) ? (elem.requestFullscreen||elem.webkitRequestFullscreen).call(elem) : document.exitFullscreen(); 
-};
-
-window.closePlayer = () => { 
-    if (document.fullscreenElement) document.exitFullscreen(); 
-    
-    if(isPipMode) {
-        isPipMode = false;
-        videoContainer.classList.remove('pip-mode');
-        playerModal.classList.remove('pip-active');
-        resetDragPosition(); // پاککردنەوەی شوێنەکە
-    }
-
-    playerModal.style.display = 'none'; 
-    videoPlayer.pause(); 
-    if(window.hls) window.hls.destroy(); 
-};
-
-// --- DRAGGING FUNCTIONS (New) ---
-
-function addDragListeners() {
-    // بۆ مۆبایل (Touch)
-    videoContainer.addEventListener("touchstart", dragStart, {passive: false});
-    videoContainer.addEventListener("touchend", dragEnd, {passive: false});
-    videoContainer.addEventListener("touchmove", drag, {passive: false});
-
-    // بۆ کۆمپیوتەر (Mouse)
-    videoContainer.addEventListener("mousedown", dragStart);
-    videoContainer.addEventListener("mouseup", dragEnd);
-    videoContainer.addEventListener("mousemove", drag);
-}
-
-function removeDragListeners() {
-    videoContainer.removeEventListener("touchstart", dragStart);
-    videoContainer.removeEventListener("touchend", dragEnd);
-    videoContainer.removeEventListener("touchmove", drag);
-    
-    videoContainer.removeEventListener("mousedown", dragStart);
-    videoContainer.removeEventListener("mouseup", dragEnd);
-    videoContainer.removeEventListener("mousemove", drag);
-}
+videoContainer.addEventListener("mousedown", dragStart);
+videoContainer.addEventListener("mouseup", dragEnd);
+videoContainer.addEventListener("mousemove", drag);
 
 function dragStart(e) {
     if (!isPipMode) return;
@@ -273,7 +349,7 @@ function dragStart(e) {
         initialY = e.clientY - yOffset;
     }
 
-    // دڵنیابوونەوە کە دوگمەمان دانەگرتووە (Close, Expand)
+    // ڕێگری لە Drag ئەگەر دوگمەکان داگیرێن
     if (e.target.closest('.player-btn') || e.target.closest('.related-channels-bar')) {
         isDragging = false;
         return;
@@ -290,7 +366,7 @@ function dragEnd(e) {
 
 function drag(e) {
     if (isDragging) {
-        e.preventDefault(); // ڕاگرتنی Scroll
+        e.preventDefault(); 
         
         if (e.type === "touchmove") {
             currentX = e.touches[0].clientX - initialX;
@@ -314,11 +390,32 @@ function setTranslate(xPos, yPos, el) {
 function resetDragPosition() {
     xOffset = 0;
     yOffset = 0;
-    videoContainer.style.transform = "none";
+    videoContainer.style.transform = "translate3d(0, 0, 0)";
 }
 
-// --- 8. ADMIN & FORM FUNCTIONS ---
+// =========================================
+// 9. UI HELPERS & ADMIN ACTIONS
+// =========================================
+window.triggerOverlay = () => { 
+    videoContainer.classList.add('ui-visible'); 
+    clearTimeout(overlayTimer); 
+    overlayTimer = setTimeout(() => { videoContainer.classList.remove('ui-visible'); }, 3500); 
+};
+
+window.toggleFullScreen = () => { 
+    if(isPipMode) {
+        togglePipMode(); 
+        return;
+    }
+    const elem = videoContainer; 
+    (!document.fullscreenElement) ? 
+        (elem.requestFullscreen||elem.webkitRequestFullscreen).call(elem) : 
+        document.exitFullscreen(); 
+};
+
+// Admin Auth
 document.getElementById('adminLoginBtn').onclick = () => loginModal.style.display = 'block';
+
 document.getElementById('loginForm').onsubmit = (e) => {
     e.preventDefault();
     const email = document.getElementById('username').value;
@@ -327,7 +424,10 @@ document.getElementById('loginForm').onsubmit = (e) => {
         loginModal.style.display = 'none'; e.target.reset();
     }).catch(() => { showToast("هەڵە هەیە! ئیمەیڵ یان پاسۆرد هەڵەیە.", "error"); });
 };
-document.getElementById('logoutBtn').onclick = () => { signOut(auth).then(() => { showToast("بە سەرکەوتوویی دەرچوویت", "info"); }); };
+
+document.getElementById('logoutBtn').onclick = () => { 
+    signOut(auth).then(() => { showToast("بە سەرکەوتوویی دەرچوویت", "info"); }); 
+};
 
 function toggleAdminUI(show) {
     document.getElementById('adminLoginBtn').style.display = show ? 'none' : 'flex';
@@ -336,18 +436,15 @@ function toggleAdminUI(show) {
     document.getElementById('addCategoryBtn').style.display = show ? 'flex' : 'none';
 }
 
-function updateCategoryDropdown() {
-    categorySelect.innerHTML = `<option value="" disabled selected>...هەڵبژێرە</option>`;
-    categories.forEach(cat => {
-        const option = document.createElement("option");
-        option.value = cat.id; option.text = cat.title; categorySelect.appendChild(option);
-    });
-}
-
+// Add/Edit Channel
 document.getElementById('addChannelBtn').onclick = () => { 
     if(categories.length === 0) { showToast("سەرەتا دەبێت بەش زیاد بکەیت!", "error"); return; }
-    editingId = null; document.getElementById('channelForm').reset(); document.getElementById('formTitle').innerText = "زیادکردنی کەناڵ"; channelModal.style.display = 'block'; 
+    editingId = null; 
+    document.getElementById('channelForm').reset(); 
+    document.getElementById('formTitle').innerText = "زیادکردنی کەناڵ"; 
+    channelModal.style.display = 'block'; 
 };
+
 document.getElementById('channelForm').onsubmit = async (e) => {
     e.preventDefault();
     const name = document.getElementById('channelName').value;
@@ -355,42 +452,123 @@ document.getElementById('channelForm').onsubmit = async (e) => {
     const category = document.getElementById('channelCategory').value;
     const imgLink = document.getElementById('channelImageLink').value;
     const finalImage = imgLink.trim() !== "" ? imgLink : "https://placehold.co/200?text=TV";
+
     if(!category) { showToast("تکایە بەشێک هەڵبژێرە", "error"); return; }
-    const data = { name, url, category, image: finalImage, isFavorite: false };
+    
+    const data = { name, url, category, image: finalImage };
+    
     try {
         if(editingId) {
-            const old = channels.find(c=>c.id===editingId); data.isFavorite = old.isFavorite;
-            await updateDoc(doc(db, "channels", editingId), data); showToast("کەناڵەکە نوێکرایەوە", "success");
-        } else { await addDoc(channelsCollection, data); showToast("کەناڵی نوێ زیادکرا", "success"); }
+            // پاراستنی دۆخی دڵخواز (Favorite) لەکاتی ئەپدەیت
+            const old = channels.find(c=>c.id===editingId); 
+            data.isFavorite = old ? old.isFavorite : false;
+            
+            await updateDoc(doc(db, "channels", editingId), data); 
+            showToast("کەناڵەکە نوێکرایەوە", "success");
+        } else { 
+            data.isFavorite = false;
+            await addDoc(channelsCollection, data); 
+            showToast("کەناڵی نوێ زیادکرا", "success"); 
+        }
         channelModal.style.display = 'none';
     } catch(err) { console.error(err); showToast("کێشەیەک ڕوویدا", "error"); }
 };
-window.deleteChannel = async (id) => { if(confirm("دڵنیای دەسڕێتەوە؟")) { await deleteDoc(doc(db, "channels", id)); showToast("کەناڵەکە سڕایەوە", "info"); } };
+
+window.deleteChannel = async (id) => { 
+    if(confirm("دڵنیای دەسڕێتەوە؟")) { 
+        await deleteDoc(doc(db, "channels", id)); 
+        showToast("کەناڵەکە سڕایەوە", "info"); 
+    } 
+};
+
 window.editChannel = (id) => { 
     const ch = channels.find(c => c.id === id); if(!ch) return;
-    editingId = id; document.getElementById('channelName').value = ch.name; document.getElementById('channelUrl').value = ch.url; document.getElementById('channelCategory').value = ch.category; document.getElementById('channelImageLink').value = ch.image; channelModal.style.display = 'block'; 
+    editingId = id; 
+    document.getElementById('channelName').value = ch.name; 
+    document.getElementById('channelUrl').value = ch.url; 
+    document.getElementById('channelCategory').value = ch.category; 
+    document.getElementById('channelImageLink').value = ch.image; 
+    document.getElementById('formTitle').innerText = "دەستکاری کەناڵ";
+    channelModal.style.display = 'block'; 
 };
-document.getElementById('addCategoryBtn').onclick = () => { document.getElementById('categoryForm').reset(); categoryModal.style.display = 'block'; };
+
+// Categories
+document.getElementById('addCategoryBtn').onclick = () => { 
+    document.getElementById('categoryForm').reset(); 
+    categoryModal.style.display = 'block'; 
+};
+
 document.getElementById('categoryForm').onsubmit = async (e) => {
     e.preventDefault();
-    const title = document.getElementById('catTitle').value; const id = document.getElementById('catId').value.toLowerCase().trim(); const order = parseInt(document.getElementById('catOrder').value);
+    const title = document.getElementById('catTitle').value; 
+    const id = document.getElementById('catId').value.toLowerCase().trim(); 
+    const order = parseInt(document.getElementById('catOrder').value);
+    
     if(!id.match(/^[a-z0-9]+$/)) { showToast("کۆدی بەش تەنها دەبێت پیت و ژمارەی ئینگلیزی بێت", "error"); return; }
-    try { await setDoc(doc(db, "categories", id), { title, order }); showToast("بەشەکە زیادکرا", "success"); categoryModal.style.display = 'none'; } catch (error) { showToast("کێشەیەک هەیە", "error"); }
+    
+    try { 
+        await setDoc(doc(db, "categories", id), { title, order }); 
+        showToast("بەشەکە زیادکرا", "success"); 
+        categoryModal.style.display = 'none'; 
+    } catch (error) { showToast("کێشەیەک هەیە", "error"); }
 };
-window.toggleFavorite = async (id, event) => { if(event) event.stopPropagation(); const channelRef = doc(db, "channels", id); const channel = channels.find(c => c.id === id); if(channel) { await updateDoc(channelRef, { isFavorite: !channel.isFavorite }); } };
-window.handleSearch = () => { renderApp(document.getElementById('searchInput').value.toLowerCase().trim()); };
-window.toggleFavFilterView = () => { showOnlyFavorites = !showOnlyFavorites; if(showOnlyFavorites) { favFilterBtn.classList.add('active-filter'); showToast("پیشاندانی تەنها دڵخوازەکان", "info"); } else { favFilterBtn.classList.remove('active-filter'); showToast("پیشاندانی هەموو کەناڵەکان", "info"); } renderApp(document.getElementById('searchInput').value.toLowerCase().trim()); };
-window.onclick = (e) => { if(e.target == loginModal) loginModal.style.display="none"; if(e.target == channelModal) channelModal.style.display="none"; if(e.target == categoryModal) categoryModal.style.display="none"; };
-document.querySelectorAll('.close-modal').forEach(b => b.onclick = () => { loginModal.style.display='none'; channelModal.style.display='none'; categoryModal.style.display='none'; });
 
-// Helpers to render related when opening player
+function updateCategoryDropdown() {
+    categorySelect.innerHTML = `<option value="" disabled selected>...هەڵبژێرە</option>`;
+    categories.forEach(cat => {
+        const option = document.createElement("option");
+        option.value = cat.id; option.text = cat.title; 
+        categorySelect.appendChild(option);
+    });
+}
+
+// Favorites & Search
+window.toggleFavorite = async (id, event) => { 
+    if(event) event.stopPropagation(); 
+    const channel = channels.find(c => c.id === id); 
+    if(channel) { 
+        await updateDoc(doc(db, "channels", id), { isFavorite: !channel.isFavorite }); 
+        if(!channel.isFavorite) showToast("خرایە لیستی دڵخواز", "success");
+    } 
+};
+
+window.handleSearch = () => { 
+    renderApp(document.getElementById('searchInput').value.toLowerCase().trim()); 
+};
+
+window.toggleFavFilterView = () => { 
+    showOnlyFavorites = !showOnlyFavorites; 
+    if(showOnlyFavorites) { 
+        favFilterBtn.classList.add('active-filter'); 
+        showToast("پیشاندانی تەنها دڵخوازەکان", "info"); 
+    } else { 
+        favFilterBtn.classList.remove('active-filter'); 
+        showToast("پیشاندانی هەموو کەناڵەکان", "info"); 
+    } 
+    renderApp(document.getElementById('searchInput').value.toLowerCase().trim()); 
+};
+
+// Modal Handling
+window.onclick = (e) => { 
+    if(e.target == loginModal) loginModal.style.display="none"; 
+    if(e.target == channelModal) channelModal.style.display="none"; 
+    if(e.target == categoryModal) categoryModal.style.display="none"; 
+};
+document.querySelectorAll('.close-modal').forEach(b => b.onclick = () => { 
+    loginModal.style.display='none'; 
+    channelModal.style.display='none'; 
+    categoryModal.style.display='none'; 
+});
+
 function renderRelated(current) {
     relatedBar.innerHTML = '';
-    channels.filter(c => c.category === current.category).forEach(ch => {
+    const sameCat = channels.filter(c => c.category === current.category);
+    
+    sameCat.forEach(ch => {
         const div = document.createElement('div');
         div.className = `related-card ${ch.id === current.id ? 'active' : ''}`;
         div.onclick = (e) => { e.stopPropagation(); playChannel(ch.id); };
-        div.innerHTML = `<img src="${ch.image}">`;
+        div.innerHTML = `<img src="${ch.image || 'https://placehold.co/100?text=TV'}">`;
         relatedBar.appendChild(div);
     });
 }

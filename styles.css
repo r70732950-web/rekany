@@ -1,5 +1,5 @@
 /* =========================================
-   1. FONTS & VARIABLES
+   1. FONTS & VARIABLES & ANIMATIONS
    ========================================= */
 @font-face {
     font-family: 'NRT';
@@ -8,39 +8,47 @@
 }
 
 :root {
-    --primary-color: #1a365d;
-    --secondary-color: #2a4365;
-    --accent-color: #e53e3e;
-    --bg-color: #f7fafc;
-    --text-color: #2d3748;
+    --primary-color: #1a365d;    /* شینی تۆخ */
+    --secondary-color: #2a4365;  /* شینی کاڵتر */
+    --accent-color: #e53e3e;     /* سووری ئاگادارکردنەوە */
+    --bg-color: #f7fafc;         /* ڕەنگی پاشبنەما */
+    --text-color: #2d3748;       /* ڕەنگی نووسین */
     --card-bg: #ffffff;
     --card-radius: 16px;
     --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
-    --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+    --shadow-md: 0 8px 16px rgba(0,0,0,0.1);
 }
 
 /* =========================================
-   2. GLOBAL RESET
+   2. GLOBAL RESET & SCROLLBAR
    ========================================= */
 * { 
     margin: 0; padding: 0; box-sizing: border-box; 
     font-family: 'NRT', sans-serif; 
     -webkit-tap-highlight-color: transparent; 
+    user-select: none; /* ڕێگری لە کۆپیکردنی نووسین (App Feel) */
 }
 
 body { 
     background-color: var(--bg-color); 
     color: var(--text-color); 
     direction: rtl; 
-    padding-bottom: 80px; 
+    padding-bottom: 90px; /* بۆ ئەوەی دوگمەی خوارەوە دانەپۆشرێت */
     overflow-x: hidden;
 }
 
+/* ستایلی سکڕۆڵ (باریک و جوان) */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
+
+/* شاردنەوەی کۆنترۆڵی ڤیدیۆی ئەسڵی */
 video::-webkit-media-controls { display: none !important; }
 video::-webkit-media-controls-enclosure { display: none !important; }
 
 /* =========================================
-   3. HEADER STYLES
+   3. HEADER STYLES (Glassmorphism)
    ========================================= */
 .app-header {
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
@@ -48,41 +56,48 @@ video::-webkit-media-controls-enclosure { display: none !important; }
     padding: 10px 15px; 
     display: flex; align-items: center; gap: 15px;
     position: sticky; top: 0; z-index: 1000; 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     height: 65px;
+    backdrop-filter: blur(10px); /* ئیفێکتی شووشەیی */
 }
 
 .logo { 
     font-size: 18px; font-weight: bold; white-space: nowrap;
     display: flex; align-items: center; gap: 8px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
-.logo i { color: #f6ad55; font-size: 22px; }
+.logo i { color: #f6ad55; font-size: 24px; filter: drop-shadow(0 0 5px rgba(246, 173, 85, 0.5)); }
 .logo span { display: none; } 
 @media (min-width: 380px) { .logo span { display: inline; } }
 
 .header-search { flex: 1; position: relative; max-width: 400px; }
 .header-search input {
     width: 100%; padding: 10px 40px 10px 15px; border-radius: 25px;
-    border: none; background: rgba(255,255,255,0.15); 
+    border: 1px solid rgba(255,255,255,0.1); 
+    background: rgba(255,255,255,0.15); /* پاشبنەمای شەفاف */
     color: white; font-size: 14px; outline: none;
-    transition: all 0.3s ease; backdrop-filter: blur(5px);
+    transition: all 0.3s ease; 
 }
 .header-search input::placeholder { color: rgba(255,255,255,0.7); }
-.header-search input:focus { background: rgba(255,255,255,0.25); box-shadow: 0 0 0 2px rgba(255,255,255,0.2); }
-.header-search i { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.8); font-size: 14px; pointer-events: none; }
+.header-search input:focus { 
+    background: rgba(255,255,255,0.25); 
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.1); 
+    border-color: rgba(255,255,255,0.3);
+}
+.header-search i { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.8); pointer-events: none; }
 
-.header-actions { display: flex; align-items: center; gap: 8px; }
+.header-actions { display: flex; align-items: center; gap: 6px; }
 .icon-btn {
     background: transparent; border: none; color: white; 
     width: 38px; height: 38px; border-radius: 50%; 
     display: flex; align-items: center; justify-content: center;
-    font-size: 18px; cursor: pointer; transition: background 0.2s;
+    font-size: 18px; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.icon-btn:active { background: rgba(255,255,255,0.2); transform: scale(0.95); }
-.icon-btn.active-filter { color: var(--accent-color); background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+.icon-btn:active { background: rgba(255,255,255,0.2); transform: scale(0.9); }
+.icon-btn.active-filter { color: var(--accent-color); background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateY(-2px); }
 
 /* =========================================
-   4. TOAST & SKELETON
+   4. TOAST & SKELETON LOADING
    ========================================= */
 #toast-box {
     position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
@@ -90,11 +105,13 @@ video::-webkit-media-controls-enclosure { display: none !important; }
     width: 90%; max-width: 350px; pointer-events: none;
 }
 .toast {
-    background: white; color: #333; padding: 14px 18px;
-    border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    background: rgba(255,255,255,0.95); color: #333; padding: 14px 18px;
+    border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);
     display: flex; align-items: center; gap: 12px;
     font-size: 14px; font-weight: bold; border-right: 5px solid; 
-    animation: slideUp 0.4s, fadeOut 0.5s ease 2.5s forwards; pointer-events: auto;
+    backdrop-filter: blur(5px);
+    animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), fadeOut 0.5s ease 2.5s forwards; 
+    pointer-events: auto;
 }
 .toast.success { border-color: #48bb78; } .toast.success i { color: #48bb78; }
 .toast.error { border-color: #f56565; } .toast.error i { color: #f56565; }
@@ -111,11 +128,12 @@ video::-webkit-media-controls-enclosure { display: none !important; }
 .skeleton-text { height: 20px; width: 60%; margin: 10px auto; }
 
 /* =========================================
-   5. CARDS & MODALS
+   5. CARDS & GRID SYSTEM
    ========================================= */
 .category-section {
     background: var(--card-bg); margin: 15px 10px; padding: 15px; 
     border-radius: var(--card-radius); box-shadow: var(--shadow-sm);
+    transition: transform 0.2s;
 }
 .section-header { 
     display: flex; justify-content: space-between; align-items: center;
@@ -123,40 +141,99 @@ video::-webkit-media-controls-enclosure { display: none !important; }
 }
 .section-title { font-size: 18px; font-weight: 700; color: var(--primary-color); }
 .count-badge { background: #ebf8ff; color: #2b6cb0; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+
 .products-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 12px; }
+
 .product-card {
     position: relative; background: #fff; border-radius: 14px; 
-    overflow: hidden; aspect-ratio: 1/1; box-shadow: var(--shadow-sm); border: 1px solid #edf2f7;
-    cursor: pointer; transition: transform 0.2s;
+    overflow: hidden; aspect-ratio: 1/1; 
+    box-shadow: var(--shadow-sm); border: 1px solid #edf2f7;
+    cursor: pointer; transition: all 0.2s ease;
 }
 .product-card:active { transform: scale(0.96); }
+.product-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+
 .product-image { width: 100%; height: 100%; object-fit: contain; padding: 8px; background: white; }
+
+/* دوگمەی دڵخواز */
 .fav-btn {
-    position: absolute; top: 6px; left: 6px; width: 28px; height: 28px;
-    background: rgba(255,255,255,0.9); border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 10; color: #cbd5e0; transition: all 0.2s;
+    position: absolute; top: 6px; left: 6px; width: 30px; height: 30px;
+    background: rgba(255,255,255,0.95); border-radius: 50%; 
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1); z-index: 10; 
+    color: #cbd5e0; transition: all 0.2s;
 }
 .fav-btn.active { color: var(--accent-color); transform: scale(1.1); }
+.fav-btn:active { transform: scale(0.9); }
+
+/* نیشانەی Live (جوانکاری) */
+.live-badge {
+    position: absolute; top: 10px; right: 10px;
+    width: 8px; height: 8px; background: #e53e3e; border-radius: 50%;
+    box-shadow: 0 0 0 2px white, 0 0 8px rgba(229, 62, 62, 0.6);
+    z-index: 5;
+    animation: blink 2s infinite;
+}
+@keyframes blink { 50% { opacity: 0.5; } }
+
+/* کۆنترۆڵی ئەدمین */
 .admin-controls {
-    position: absolute; bottom: 0; left: 0; width: 100%; padding: 6px; 
-    background: rgba(0,0,0,0.7); backdrop-filter: blur(2px);
-    display: flex; justify-content: center; gap: 10px; opacity: 0; transition: opacity 0.2s;
+    position: absolute; bottom: 0; left: 0; width: 100%; padding: 8px; 
+    background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
+    display: flex; justify-content: center; gap: 15px; 
+    opacity: 0; transition: opacity 0.2s;
 }
 .product-card:hover .admin-controls { opacity: 1; }
-body.admin-mode .admin-controls { opacity: 1; }
-.edit-btn, .delete-btn { width: 30px; height: 30px; border-radius: 50%; border: none; color: white; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
-.edit-btn { background-color: #3182ce; } .delete-btn { background-color: #e53e3e; }
-
-.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; backdrop-filter: blur(5px); }
-.modal-content { background: white; margin: 15% auto; padding: 25px; border-radius: 24px; width: 90%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: slideInUp 0.3s; }
-@keyframes slideInUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-.form-group { margin-bottom: 16px; }
-.form-group input, .form-group select { width: 100%; padding: 14px; border: 2px solid #edf2f7; border-radius: 12px; font-size: 15px; background: #f8fafc; outline: none; }
-button[type="submit"] { width: 100%; padding: 14px; background: var(--primary-color); color: white; border: none; border-radius: 12px; font-weight: bold; margin-bottom: 10px; cursor: pointer; }
-.close-modal-btn { width: 100%; padding: 14px; background: #edf2f7; color: #4a5568; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
+body.admin-mode .admin-controls { opacity: 1; } /* ئەگەر ئەدمین بوو هەمیشە دیار بێت */
+.edit-btn, .delete-btn { width: 32px; height: 32px; border-radius: 50%; border: none; color: white; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
+.edit-btn { background-color: #3182ce; } .edit-btn:active { transform: scale(0.9); }
+.delete-btn { background-color: #e53e3e; } .delete-btn:active { transform: scale(0.9); }
 
 /* =========================================
-   6. VIDEO PLAYER & PIP (OPTIMIZED SPEED)
+   6. MODALS & FORMS
+   ========================================= */
+.modal { 
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.6); z-index: 2000; 
+    backdrop-filter: blur(6px); /* تاریککردنی پشتەوە */
+    animation: fadeIn 0.2s;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-content { 
+    background: white; margin: 10% auto; padding: 25px; 
+    border-radius: 20px; width: 90%; max-width: 400px; 
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4); 
+    animation: popUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+    max-height: 90vh; overflow-y: auto;
+}
+@keyframes popUp { from { transform: scale(0.9) translateY(20px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: bold; color: #4a5568; font-size: 14px; }
+.form-group input, .form-group select { 
+    width: 100%; padding: 12px 14px; 
+    border: 2px solid #e2e8f0; border-radius: 12px; 
+    font-size: 15px; background: #f8fafc; outline: none;
+    transition: border-color 0.2s;
+}
+.form-group input:focus, .form-group select:focus { border-color: var(--primary-color); background: white; }
+
+button[type="submit"] { 
+    width: 100%; padding: 14px; 
+    background: var(--primary-color); color: white; 
+    border: none; border-radius: 12px; font-weight: bold; margin-bottom: 10px; 
+    cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+    transition: transform 0.1s;
+}
+button[type="submit"]:active { transform: scale(0.98); }
+.close-modal-btn { 
+    width: 100%; padding: 14px; background: #edf2f7; color: #4a5568; 
+    border: none; border-radius: 12px; font-weight: bold; cursor: pointer; 
+}
+
+/* =========================================
+   7. VIDEO PLAYER & PiP (PRO Features)
    ========================================= */
 #playerModal.pip-active {
     background: transparent !important; 
@@ -169,23 +246,23 @@ button[type="submit"] { width: 100%; padding: 14px; background: var(--primary-co
     background: black; width: 100%; height: 100%; margin: 0; 
     display: flex; align-items: center; justify-content: center; 
     position: relative; overflow: hidden; pointer-events: auto;
-    
-    /* گۆڕانکاری گرنگ: خێرایی کرایە 0.2s */
-    transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1); 
-}
-
-/* ئەم کڵاسە زیادکرا بۆ وەستانی جوڵە کاتێک ڕایدەکێشیت */
-.video-modal-content.is-dragging {
-    transition: none !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* جوڵەی نەرم */
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
 }
 
 .video-modal-content.pip-mode {
-    position: fixed; bottom: 80px; left: 20px; 
-    width: 280px; height: 160px; 
-    border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-    z-index: 9999; border: 2px solid rgba(255,255,255,0.1);
+    position: fixed; bottom: 85px; left: 20px; 
+    width: 200px; height: 112px; /* 16:9 Aspect Ratio */
+    border-radius: 16px; 
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1); /* Glass Border */
+    z-index: 9999; 
     pointer-events: auto !important;
     touch-action: none; cursor: move;
+}
+
+/* زیادکردنی قەبارەی PiP لەسەر شاشەی گەورەتر */
+@media (min-width: 400px) {
+    .video-modal-content.pip-mode { width: 260px; height: 146px; }
 }
 
 .pip-mode .related-channels-bar, .pip-mode .maximize-btn { display: none !important; }
@@ -194,35 +271,69 @@ button[type="submit"] { width: 100%; padding: 14px; background: var(--primary-co
 video { width: 100%; height: 100%; object-fit: contain; }
 .click-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 201; }
 
+/* دوگمەکانی ناو پلەیەر */
 .player-btn {
-    position: absolute; top: 25px; color: white; background: rgba(0, 0, 0, 0.6); 
-    width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-    cursor: pointer; z-index: 220; font-size: 18px; opacity: 0; transition: all 0.2s;
-    border: 2px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px); box-shadow: 0 4px 8px rgba(0,0,0,0.4); 
+    position: absolute; top: 25px; color: white; 
+    background: rgba(255, 255, 255, 0.15); 
+    width: 45px; height: 45px; border-radius: 50%; 
+    display: flex; align-items: center; justify-content: center; 
+    cursor: pointer; z-index: 220; font-size: 18px; 
+    opacity: 0; transition: all 0.2s;
+    backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
-.player-btn:active { background: var(--accent-color); transform: scale(0.95); }
-.close-video { right: 25px; background: rgba(229, 62, 62, 0.85); }
+.player-btn:active { background: white; color: black; transform: scale(0.9); }
+.close-video { right: 25px; background: rgba(229, 62, 62, 0.85); border: none; }
 .maximize-btn { left: 25px; } .pip-toggle-btn { left: 80px; }
 .video-modal-content.ui-visible .player-btn { opacity: 1; top: 25px; }
 
+/* لیستی کەناڵە پەیوەندیدارەکان */
 .related-channels-bar {
-    position: absolute; bottom: 0; left: 0; width: 100%; height: 110px;
+    position: absolute; bottom: 0; left: 0; width: 100%; height: 120px;
     display: flex; align-items: center; gap: 12px; overflow-x: auto; 
-    padding: 10px 20px 30px 20px; z-index: 210; opacity: 0; transform: translateY(100%); transition: all 0.3s;
-    background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+    padding: 10px 20px 30px 20px; z-index: 210; 
+    opacity: 0; transform: translateY(100%); transition: all 0.3s;
+    background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.6), transparent);
 }
 .video-modal-content.ui-visible .related-channels-bar { opacity: 1; transform: translateY(0); }
 .related-card {
-    min-width: 70px; height: 70px; border-radius: 14px; background: rgba(255,255,255,0.1); 
-    border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; 
-    overflow: hidden; padding: 4px;
+    min-width: 75px; height: 75px; border-radius: 14px; 
+    background: rgba(255,255,255,0.1); 
+    border: 2px solid transparent; 
+    display: flex; align-items: center; justify-content: center; cursor: pointer; 
+    overflow: hidden; padding: 4px; transition: 0.2s;
 }
-.related-card.active { border-color: var(--accent-color); }
+.related-card:active { transform: scale(0.95); }
+.related-card.active { border-color: var(--accent-color); background: rgba(255,255,255,0.2); }
 .related-card img { width: 100%; height: 100%; object-fit: contain; }
 
+/* =========================================
+   8. FLOATING ACTION BUTTON (ADD)
+   ========================================= */
 .add-fab { 
-    position: fixed; bottom: 25px; right: 25px; width: 56px; height: 56px; 
+    position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px; 
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); 
-    color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; 
-    z-index: 150; font-size: 24px; box-shadow: 0 4px 15px rgba(26, 54, 93, 0.4); transition: transform 0.2s;
+    color: white; border-radius: 50%; 
+    display: none; align-items: center; justify-content: center; 
+    z-index: 150; font-size: 24px; 
+    box-shadow: 0 4px 15px rgba(26, 54, 93, 0.4); 
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.add-fab:active { transform: scale(0.9) rotate(90deg); }
+
+/* =========================================
+   9. SCORE MODAL (NEW)
+   ========================================= */
+#scoreModal .modal-content {
+    background: #f0f2f5;
+    animation: slideUpLarge 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+}
+@keyframes slideUpLarge {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+#scoreFrame {
+    border-radius: 0 0 12px 12px;
+    background: white;
 }
