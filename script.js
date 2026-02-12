@@ -313,10 +313,10 @@ function resetDragPosition() {
     videoContainer.style.transform = "none";
 }
 
-// --- 8. LIVE SCORE FUNCTIONS (MODERN DESIGN) ---
+// --- 8. LIVE SCORE FUNCTIONS (MODERN & CLEAN) ---
 
-// ئەم لینکەم گۆڕی بۆ AiScore کە دیزاینەکەی زۆر مۆدێرن و جوانە
-const SCORE_URL = "https://m.aiscore.com"; 
+// گۆڕینی لینک بۆ FotMob کە پاکترین دیزاینی هەیە
+const SCORE_URL = "https://www.fotmob.com"; 
 
 window.openScoreModal = () => {
     scoreFrame.src = SCORE_URL;
@@ -394,12 +394,12 @@ window.toggleFavorite = async (id, event) => { if(event) event.stopPropagation()
 window.handleSearch = () => { renderApp(document.getElementById('searchInput').value.toLowerCase().trim()); };
 window.toggleFavFilterView = () => { showOnlyFavorites = !showOnlyFavorites; if(showOnlyFavorites) { favFilterBtn.classList.add('active-filter'); showToast("پیشاندانی تەنها دڵخوازەکان", "info"); } else { favFilterBtn.classList.remove('active-filter'); showToast("پیشاندانی هەموو کەناڵەکان", "info"); } renderApp(document.getElementById('searchInput').value.toLowerCase().trim()); };
 
-// Updated Window OnClick to include Score Modal
+// Updated Window OnClick
 window.onclick = (e) => { 
     if(e.target == loginModal) loginModal.style.display="none"; 
     if(e.target == channelModal) channelModal.style.display="none"; 
     if(e.target == categoryModal) categoryModal.style.display="none"; 
-    if(e.target == scoreModal) window.closeScoreModal(); // NEW
+    if(e.target == scoreModal) window.closeScoreModal(); 
 };
 document.querySelectorAll('.close-modal').forEach(b => b.onclick = () => { 
     loginModal.style.display='none'; 
