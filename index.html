@@ -23,24 +23,6 @@
             <input type="text" id="searchInput" placeholder="گەڕان بۆ کەناڵ..." onkeyup="handleSearch()">
             <i class="fas fa-search"></i>
         </div>
-
-        <div class="header-actions">
-            <button id="scoreBtn" class="icon-btn" onclick="openScoreModal()" title="ئەنجامی یارییەکان">
-                <i class="fas fa-futbol"></i>
-            </button>
-
-            <button id="favFilterBtn" class="icon-btn" onclick="toggleFavFilterView()" title="تەنها دڵخوازەکان">
-                <i class="fas fa-heart"></i>
-            </button>
-            
-            <button id="addCategoryBtn" class="icon-btn" style="display:none;" title="زیادکردنی بەش">
-                <i class="fas fa-folder-plus"></i>
-            </button>
-            
-            <button id="adminLoginBtn" class="icon-btn" title="چوونەژوور"><i class="fas fa-user-cog"></i></button>
-            
-            <button id="logoutBtn" class="icon-btn" style="display:none; color:#fc8181;" title="دەرچوون"><i class="fas fa-sign-out-alt"></i></button>
-        </div>
     </div>
 
     <div id="mainContainer">
@@ -51,20 +33,43 @@
                     <div class="skeleton skeleton-card"></div>
                     <div class="skeleton skeleton-card"></div>
                     <div class="skeleton skeleton-card"></div>
-                    <div class="skeleton skeleton-card"></div>
-                </div>
-            </div>
-            <div class="category-section" style="margin-top: 20px;">
-                <div class="skeleton skeleton-text" style="width: 150px; margin-bottom: 15px;"></div>
-                <div class="products-container">
-                    <div class="skeleton skeleton-card"></div>
-                    <div class="skeleton skeleton-card"></div>
-                    <div class="skeleton skeleton-card"></div>
                 </div>
             </div>
         </div>
     </div>
     
+    <nav class="bottom-nav">
+        <button id="homeBtn" class="nav-item active-nav" onclick="goToHome()">
+            <i class="fas fa-home"></i>
+            <span>سەرەتا</span>
+        </button>
+
+        <button class="nav-item" onclick="openScoreModal()">
+            <i class="fas fa-futbol"></i>
+            <span>یاری</span>
+        </button>
+
+        <button id="favFilterBtn" class="nav-item" onclick="toggleFavFilterView()">
+            <i class="fas fa-heart"></i>
+            <span>دڵخواز</span>
+        </button>
+        
+        <button id="addCategoryBtn" class="nav-item" style="display:none;" title="زیادکردنی بەش">
+            <i class="fas fa-folder-plus"></i>
+            <span>بەش +</span>
+        </button>
+
+        <button id="adminLoginBtn" class="nav-item">
+            <i class="fas fa-user-cog"></i>
+            <span>ئەدمین</span>
+        </button>
+        
+        <button id="logoutBtn" class="nav-item" style="display:none; color:#fc8181;">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>دەرچوون</span>
+        </button>
+    </nav>
+
     <div class="add-fab" id="addChannelBtn">
         <i class="fas fa-plus"></i>
     </div>

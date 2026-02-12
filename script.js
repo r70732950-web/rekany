@@ -53,6 +53,7 @@ const videoPlayer = document.getElementById('videoPlayer');
 const videoContainer = document.getElementById('videoContainer'); 
 const relatedBar = document.getElementById('relatedChannels');
 const favFilterBtn = document.getElementById('favFilterBtn');
+const homeBtn = document.getElementById('homeBtn'); // New Home Button
 const categorySelect = document.getElementById('channelCategory');
 const scoreModal = document.getElementById('scoreModal'); 
 const scoreFrame = document.getElementById('scoreFrame'); 
@@ -106,35 +107,44 @@ onSnapshot(channelsCollection, (snapshot) => {
 
 // --- 6. RENDER LOGIC ---
 function renderApp(searchQuery = '') {
+    // If no data and not admin, show nothing
     if (channels.length === 0 && categories.length === 0 && !isAdmin) return;
+    
     mainContainer.innerHTML = ''; 
     let displayChannels = channels;
-    if(searchQuery) displayChannels = displayChannels.filter(c => c.name.toLowerCase().includes(searchQuery));
-    if(showOnlyFavorites) displayChannels = displayChannels.filter(c => c.isFavorite);
 
+    // Filter by search
+    if(searchQuery) displayChannels = displayChannels.filter(c => c.name.toLowerCase().includes(searchQuery));
+
+    // --- FAVORITES MODE ---
+    if(showOnlyFavorites) {
+        // Filter list to only show favorites
+        displayChannels = displayChannels.filter(c => c.isFavorite);
+        
+        if(displayChannels.length === 0) {
+             mainContainer.innerHTML = `<div style="text-align:center; padding:50px 20px; color:#a0aec0;"><p>هیچ کەناڵێکی دڵخواز نییە</p></div>`;
+             return;
+        }
+
+        // Show ALL favorites in one section
+        const section = createSectionHTML('favorites', '❤️ دڵخوازەکان', displayChannels);
+        mainContainer.appendChild(section);
+        return; // Stop here! Do not render normal categories.
+    }
+
+    // --- HOME MODE ---
     if(displayChannels.length === 0) {
         mainContainer.innerHTML = `<div style="text-align:center; padding:50px 20px; color:#a0aec0;"><p>هیچ کەناڵێک نەدۆزرایەوە</p></div>`;
         return;
     }
 
-    let sectionsToRender = [];
-    const hasFavs = channels.some(c => c.isFavorite);
-    if (!showOnlyFavorites && !searchQuery && hasFavs) sectionsToRender.push({ id: 'favorites', title: '❤️ دڵخوازەکان' });
-
+    // Render Categories (Normal View)
     categories.forEach(cat => {
-        const hasChannel = displayChannels.some(ch => ch.category === cat.id);
-        if(hasChannel || isAdmin) sectionsToRender.push(cat);
-    });
-
-    if (showOnlyFavorites) {
-         const section = createSectionHTML('favorites', '❤️ هەموو دڵخوازەکان', displayChannels);
-         mainContainer.appendChild(section);
-         return;
-    }
-
-    sectionsToRender.forEach(cat => {
-        let catChannels = (cat.id === 'favorites') ? channels.filter(c => c.isFavorite) : displayChannels.filter(c => c.category === cat.id);
+        let catChannels = displayChannels.filter(c => c.category === cat.id);
+        
+        // Skip empty categories unless admin
         if(catChannels.length === 0 && !isAdmin) return;
+        
         mainContainer.appendChild(createSectionHTML(cat.id, cat.title, catChannels));
     });
 }
@@ -142,13 +152,16 @@ function renderApp(searchQuery = '') {
 function createSectionHTML(catId, catTitle, catChannels) {
     const section = document.createElement('div');
     section.className = 'category-section';
+    
     if (catChannels.length === 0) {
         section.innerHTML = `<div class="section-header" style="border-bottom:none;"><div class="section-title" style="opacity:0.6;">${catTitle} (بەتاڵ)</div></div>`;
         return section;
     }
+    
     let gridHTML = `<div class="products-container" id="grid-${catId}">`;
     catChannels.forEach(ch => gridHTML += createCardHTML(ch));
     gridHTML += `</div>`;
+    
     section.innerHTML = `<div class="section-header"><div class="section-title">${catTitle}</div><div class="count-badge">${catChannels.length}</div></div>${gridHTML}`;
     return section;
 }
@@ -159,8 +172,10 @@ function createCardHTML(ch) {
             <button class="edit-btn" onclick="event.stopPropagation(); editChannel('${ch.id}')"><i class="fas fa-pen"></i></button>
             <button class="delete-btn" onclick="event.stopPropagation(); deleteChannel('${ch.id}')"><i class="fas fa-trash"></i></button>
         </div>` : '';
+    
     const favClass = ch.isFavorite ? 'active' : '';
     const img = ch.image || "https://placehold.co/200?text=TV";
+    
     return `<div class="product-card" onclick="playChannel('${ch.id}')">
             <div class="fav-btn ${favClass}" onclick="toggleFavorite('${ch.id}', event)"><i class="fas fa-heart"></i></div>
             <img src="${img}" class="product-image" loading="lazy" onerror="this.src='https://placehold.co/200?text=Error'">
@@ -177,7 +192,7 @@ window.playChannel = (id) => {
     
     if(isPipMode) togglePipMode(); 
 
-    videoPlayer.src = ""; 
+    videoPlayer.src = ""; // Clear previous
     if (Hls.isSupported()) {
         if(window.hls) window.hls.destroy(); 
         const hls = new Hls(); 
@@ -238,7 +253,6 @@ window.closePlayer = () => {
 };
 
 // --- DRAGGING FUNCTIONS ---
-
 function addDragListeners() {
     videoContainer.addEventListener("touchstart", dragStart, {passive: false});
     videoContainer.addEventListener("touchend", dragEnd, {passive: false});
@@ -313,9 +327,8 @@ function resetDragPosition() {
     videoContainer.style.transform = "none";
 }
 
-// --- 8. LIVE SCORE FUNCTIONS (MODERN & CLEAN) ---
-
-// گۆڕینی لینک بۆ FotMob کە پاکترین دیزاینی هەیە
+// --- 8. LIVE SCORE FUNCTIONS ---
+// FotMob Link
 const SCORE_URL = "https://www.fotmob.com"; 
 
 window.openScoreModal = () => {
@@ -328,7 +341,6 @@ window.closeScoreModal = () => {
     scoreModal.style.display = 'none';
     scoreFrame.src = ""; // Clear src to stop data usage
 };
-
 
 // --- 9. ADMIN & FORM FUNCTIONS ---
 document.getElementById('adminLoginBtn').onclick = () => loginModal.style.display = 'block';
@@ -343,6 +355,7 @@ document.getElementById('loginForm').onsubmit = (e) => {
 document.getElementById('logoutBtn').onclick = () => { signOut(auth).then(() => { showToast("بە سەرکەوتوویی دەرچوویت", "info"); }); };
 
 function toggleAdminUI(show) {
+    // Hide login button if logged in, show if logged out
     document.getElementById('adminLoginBtn').style.display = show ? 'none' : 'flex';
     document.getElementById('logoutBtn').style.display = show ? 'flex' : 'none';
     document.getElementById('addChannelBtn').style.display = show ? 'flex' : 'none';
@@ -361,6 +374,7 @@ document.getElementById('addChannelBtn').onclick = () => {
     if(categories.length === 0) { showToast("سەرەتا دەبێت بەش زیاد بکەیت!", "error"); return; }
     editingId = null; document.getElementById('channelForm').reset(); document.getElementById('formTitle').innerText = "زیادکردنی کەناڵ"; channelModal.style.display = 'block'; 
 };
+
 document.getElementById('channelForm').onsubmit = async (e) => {
     e.preventDefault();
     const name = document.getElementById('channelName').value;
@@ -378,21 +392,66 @@ document.getElementById('channelForm').onsubmit = async (e) => {
         channelModal.style.display = 'none';
     } catch(err) { console.error(err); showToast("کێشەیەک ڕوویدا", "error"); }
 };
+
 window.deleteChannel = async (id) => { if(confirm("دڵنیای دەسڕێتەوە؟")) { await deleteDoc(doc(db, "channels", id)); showToast("کەناڵەکە سڕایەوە", "info"); } };
+
 window.editChannel = (id) => { 
     const ch = channels.find(c => c.id === id); if(!ch) return;
     editingId = id; document.getElementById('channelName').value = ch.name; document.getElementById('channelUrl').value = ch.url; document.getElementById('channelCategory').value = ch.category; document.getElementById('channelImageLink').value = ch.image; channelModal.style.display = 'block'; 
 };
+
 document.getElementById('addCategoryBtn').onclick = () => { document.getElementById('categoryForm').reset(); categoryModal.style.display = 'block'; };
+
 document.getElementById('categoryForm').onsubmit = async (e) => {
     e.preventDefault();
     const title = document.getElementById('catTitle').value; const id = document.getElementById('catId').value.toLowerCase().trim(); const order = parseInt(document.getElementById('catOrder').value);
     if(!id.match(/^[a-z0-9]+$/)) { showToast("کۆدی بەش تەنها دەبێت پیت و ژمارەی ئینگلیزی بێت", "error"); return; }
     try { await setDoc(doc(db, "categories", id), { title, order }); showToast("بەشەکە زیادکرا", "success"); categoryModal.style.display = 'none'; } catch (error) { showToast("کێشەیەک هەیە", "error"); }
 };
-window.toggleFavorite = async (id, event) => { if(event) event.stopPropagation(); const channelRef = doc(db, "channels", id); const channel = channels.find(c => c.id === id); if(channel) { await updateDoc(channelRef, { isFavorite: !channel.isFavorite }); } };
+
+window.toggleFavorite = async (id, event) => { 
+    if(event) event.stopPropagation(); 
+    const channelRef = doc(db, "channels", id); 
+    const channel = channels.find(c => c.id === id); 
+    if(channel) { 
+        await updateDoc(channelRef, { isFavorite: !channel.isFavorite }); 
+        showToast(channel.isFavorite ? "لابرا لە دڵخوازەکان" : "زیادکرا بۆ دڵخوازەکان", "info");
+    } 
+};
+
 window.handleSearch = () => { renderApp(document.getElementById('searchInput').value.toLowerCase().trim()); };
-window.toggleFavFilterView = () => { showOnlyFavorites = !showOnlyFavorites; if(showOnlyFavorites) { favFilterBtn.classList.add('active-filter'); showToast("پیشاندانی تەنها دڵخوازەکان", "info"); } else { favFilterBtn.classList.remove('active-filter'); showToast("پیشاندانی هەموو کەناڵەکان", "info"); } renderApp(document.getElementById('searchInput').value.toLowerCase().trim()); };
+
+// --- 10. NAVIGATION FUNCTIONS (NEW) ---
+
+// Go to Home (Reset View)
+window.goToHome = () => {
+    showOnlyFavorites = false;
+    
+    // Update UI Classes
+    favFilterBtn.classList.remove('active-filter');
+    homeBtn.classList.add('active-nav');
+    
+    showToast("پەڕەی سەرەکی", "info");
+    renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
+};
+
+// Toggle Favorite Filter View (Bottom Bar Button)
+window.toggleFavFilterView = () => { 
+    showOnlyFavorites = !showOnlyFavorites; 
+    
+    if(showOnlyFavorites) { 
+        // Go to Favorites
+        favFilterBtn.classList.add('active-filter'); 
+        homeBtn.classList.remove('active-nav');
+        showToast("تەنها دڵخوازەکان", "info"); 
+    } else { 
+        // Go Back to Home (effectively)
+        favFilterBtn.classList.remove('active-filter'); 
+        homeBtn.classList.add('active-nav');
+        showToast("هەموو کەناڵەکان", "info"); 
+    } 
+    renderApp(document.getElementById('searchInput').value.toLowerCase().trim()); 
+};
 
 // Updated Window OnClick
 window.onclick = (e) => { 
