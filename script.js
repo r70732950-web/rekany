@@ -36,6 +36,9 @@ let overlayTimer = null;
 let showOnlyFavorites = false;
 let isPipMode = false;
 
+// بۆ ڕێگریکردن لە تێکەڵبوونی هەڵەکان کاتی گۆڕینی کەناڵ
+let currentPlayingId = null; 
+
 // Variables for PiP Dragging
 let isDragging = false;
 let currentX;
@@ -60,6 +63,7 @@ const categorySelect = document.getElementById('channelCategory');
 const scoreModal = document.getElementById('scoreModal'); 
 const scoreFrame = document.getElementById('scoreFrame'); 
 const errorScreen = document.getElementById('errorScreen'); 
+const loaderScreen = document.getElementById('videoLoader'); // (نوێ)
 const reportsModal = document.getElementById('reportsModal'); 
 const reportsList = document.getElementById('reportsList'); 
 
@@ -205,49 +209,54 @@ function createCardHTML(ch) {
             ${adminControls}</div>`;
 }
 
-// --- 8. PLAYER, PiP & ERROR HANDLING ---
+// --- 8. PLAYER, PiP & ERROR HANDLING (UPDATED) ---
 
 window.playChannel = (id) => {
     const channel = channels.find(c => c.id === id);
     if (!channel) return;
     
-    // Reset Error Screen
+    // ئایدی کەناڵی ئێستا دیاری دەکەین
+    currentPlayingId = id;
+    
+    // 1. شاردنەوەی شاشەی هەڵە (زۆر گرنگ بۆ گۆڕینی کەناڵ)
     errorScreen.style.display = 'none';
+
+    // 2. پیشاندانی بازنەی چاوەڕوانی (Loading Spinner)
+    loaderScreen.style.display = 'flex';
     
     playerModal.style.display = 'block';
     if(isPipMode) togglePipMode(); 
 
     videoPlayer.src = ""; 
 
-    // --- HLS Logic with FASTER Error Handling ---
     if (Hls.isSupported()) {
         if(window.hls) window.hls.destroy(); 
         
-        // ڕێکخستنی خێرا بۆ دۆزینەوەی هەڵە
-        const hlsConfig = {
+        // ڕێکخستنی خێرا بۆ HLS
+        const hls = new Hls({
             manifestLoadingTimeOut: 5000, 
             manifestLoadingMaxRetry: 1,   
             levelLoadingMaxRetry: 1,
             fragLoadingMaxRetry: 1
-        };
+        });
 
-        const hls = new Hls(hlsConfig); 
         hls.loadSource(channel.url); 
         hls.attachMedia(videoPlayer);
         
-        hls.on(Hls.Events.MANIFEST_PARSED, () => videoPlayer.play().catch(e=>console.log("Autoplay blocked")));
+        // کاتێک پەخشەکە ئامادەیە
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+             // تێبینی: لێرە بازنەکە لانابەین، چاوەڕێی 'playing' دەکەین
+             videoPlayer.play().catch(e=>console.log("Autoplay blocked"));
+        });
         
-        // Error Listener
+        // گوێگرتن لە هەڵەکان
         hls.on(Hls.Events.ERROR, function (event, data) {
             if (data.fatal) {
                 switch (data.type) {
                     case Hls.ErrorTypes.NETWORK_ERROR:
-                        console.log("fatal network error encountered");
-                        // لێرەدا چیتر هەوڵ ناداتەوە -> ڕاستەوخۆ هەڵە پیشان دەدات
                         handleStreamError(channel);
                         break;
                     case Hls.ErrorTypes.MEDIA_ERROR:
-                        console.log("fatal media error");
                         hls.recoverMediaError();
                         handleStreamError(channel);
                         break;
@@ -258,34 +267,45 @@ window.playChannel = (id) => {
                 }
             }
         });
-
         window.hls = hls;
     } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
         // For Safari
         videoPlayer.src = channel.url; 
         videoPlayer.play();
-        
-        videoPlayer.onerror = () => {
-            handleStreamError(channel);
-        };
+        videoPlayer.onerror = () => { handleStreamError(channel); };
     }
     renderRelated(channel); 
     triggerOverlay();
 };
 
-// --- ERROR HANDLING (NO AUTO SWITCH) ---
+// --- Video Events to Control Spinner ---
+
+// کاتێک ڤیدیۆکە بەڕاستی دەست دەکات بە جوڵە، بازنەکە لادەبەین
+videoPlayer.onplaying = () => {
+    loaderScreen.style.display = 'none';
+};
+
+// کاتێک چاوەڕێ دەکات (Buffering)، دیسان بازنەکە دەردەکەوێت
+videoPlayer.onwaiting = () => {
+    loaderScreen.style.display = 'flex';
+};
+
+
+// --- Error Handling ---
 function handleStreamError(channel) {
-    // 1. Pause Player
+    // ئەگەر بەکارهێنەر چۆتە کەناڵێکی تر، ئەم هەڵەیە پشتگوێ بخە
+    if (currentPlayingId !== channel.id) return;
+
     videoPlayer.pause();
     
-    // 2. Show UI Black Screen
+    // لادانی بازنەکە، چونکە ئیتر هەڵە ڕوویداوە
+    loaderScreen.style.display = 'none';
+    
+    // پیشاندانی شاشەی هەڵە
     errorScreen.style.display = 'flex';
     
-    // 3. Report to Firebase (Silently)
+    // ناردنی ڕاپۆرت
     reportBrokenChannel(channel);
-
-    // * TIEBINI: لێرەدا کۆدی autoSwitchTimer لابرا *
-    // ئێستا تەنها شاشەکە ڕەش دەبێت و دەوەستێت.
 }
 
 async function reportBrokenChannel(channel) {
@@ -327,7 +347,7 @@ window.openReports = async () => {
             seenIds.add(data.channelId);
             uniqueReports.push({ id: doc.id, ...data });
         } else {
-             deleteDoc(doc.ref);
+             deleteDoc(doc.ref); // Clean duplicates
         }
     });
 

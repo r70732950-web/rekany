@@ -194,12 +194,16 @@
 
             <div class="click-layer" onclick="triggerOverlay()"></div>
             
+            <div id="videoLoader" class="loader-overlay" style="display: none;" onclick="triggerOverlay()">
+                <div class="spinner"></div>
+            </div>
+
             <video id="videoPlayer" autoplay playsinline></video>
             
-            <div id="errorScreen" class="error-overlay" style="display: none;">
+            <div id="errorScreen" class="error-overlay" style="display: none;" onclick="triggerOverlay()">
                 <i class="fas fa-exclamation-triangle"></i>
                 <p>پەخشی ئەم کەناڵە وەستاوە</p>
-                <button onclick="closePlayer()">داخستن</button>
+                <button onclick="event.stopPropagation(); closePlayer()">داخستن</button>
             </div>
             
             <div id="relatedChannels" class="related-channels-bar"></div>
