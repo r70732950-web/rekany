@@ -53,7 +53,7 @@ const videoPlayer = document.getElementById('videoPlayer');
 const videoContainer = document.getElementById('videoContainer'); 
 const relatedBar = document.getElementById('relatedChannels');
 const favFilterBtn = document.getElementById('favFilterBtn');
-const homeBtn = document.getElementById('homeBtn'); // New Home Button
+const homeBtn = document.getElementById('homeBtn');
 const categorySelect = document.getElementById('channelCategory');
 const scoreModal = document.getElementById('scoreModal'); 
 const scoreFrame = document.getElementById('scoreFrame'); 
@@ -74,7 +74,17 @@ window.showToast = (msg, type = 'success') => {
     setTimeout(() => { toast.remove(); }, 3000);
 };
 
-// --- 4. AUTHENTICATION LISTENER ---
+// --- 4. FAVORITES SYSTEM (LOCAL STORAGE) ---
+function getLocalFavorites() {
+    const stored = localStorage.getItem('maten_tv_favs');
+    return stored ? JSON.parse(stored) : [];
+}
+
+function setLocalFavorites(favArray) {
+    localStorage.setItem('maten_tv_favs', JSON.stringify(favArray));
+}
+
+// --- 5. AUTHENTICATION LISTENER ---
 onAuthStateChanged(auth, (user) => {
     if (user) {
         isAdmin = true;
@@ -89,7 +99,7 @@ onAuthStateChanged(auth, (user) => {
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
 });
 
-// --- 5. DATA LISTENERS ---
+// --- 6. DATA LISTENERS ---
 onSnapshot(categoriesCollection, (snapshot) => {
     categories = [];
     snapshot.docs.forEach(doc => { categories.push({ id: doc.id, ...doc.data() }); });
@@ -105,16 +115,28 @@ onSnapshot(channelsCollection, (snapshot) => {
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
 });
 
-// --- 6. RENDER LOGIC ---
+// --- 7. RENDER LOGIC (UPDATED FOR LOCAL FAVORITES) ---
 function renderApp(searchQuery = '') {
     // If no data and not admin, show nothing
     if (channels.length === 0 && categories.length === 0 && !isAdmin) return;
     
     mainContainer.innerHTML = ''; 
-    let displayChannels = channels;
 
-    // Filter by search
-    if(searchQuery) displayChannels = displayChannels.filter(c => c.name.toLowerCase().includes(searchQuery));
+    // 1. Get Local Favorites
+    const localFavs = getLocalFavorites();
+
+    // 2. Map channels to include 'isFavorite' based on LocalStorage
+    let displayChannels = channels.map(channel => {
+        return {
+            ...channel,
+            isFavorite: localFavs.includes(channel.id)
+        };
+    });
+
+    // 3. Filter by Search
+    if(searchQuery) {
+        displayChannels = displayChannels.filter(c => c.name.toLowerCase().includes(searchQuery));
+    }
 
     // --- FAVORITES MODE ---
     if(showOnlyFavorites) {
@@ -129,7 +151,7 @@ function renderApp(searchQuery = '') {
         // Show ALL favorites in one section
         const section = createSectionHTML('favorites', '❤️ دڵخوازەکان', displayChannels);
         mainContainer.appendChild(section);
-        return; // Stop here! Do not render normal categories.
+        return; // Stop here!
     }
 
     // --- HOME MODE ---
@@ -182,7 +204,7 @@ function createCardHTML(ch) {
             ${adminControls}</div>`;
 }
 
-// --- 7. PLAYER, PiP & DRAGGING LOGIC ---
+// --- 8. PLAYER, PiP & DRAGGING LOGIC ---
 
 window.playChannel = (id) => {
     const channel = channels.find(c => c.id === id);
@@ -327,8 +349,7 @@ function resetDragPosition() {
     videoContainer.style.transform = "none";
 }
 
-// --- 8. LIVE SCORE FUNCTIONS ---
-// FotMob Link
+// --- 9. LIVE SCORE FUNCTIONS ---
 const SCORE_URL = "https://www.fotmob.com"; 
 
 window.openScoreModal = () => {
@@ -339,10 +360,10 @@ window.openScoreModal = () => {
 
 window.closeScoreModal = () => {
     scoreModal.style.display = 'none';
-    scoreFrame.src = ""; // Clear src to stop data usage
+    scoreFrame.src = ""; 
 };
 
-// --- 9. ADMIN & FORM FUNCTIONS ---
+// --- 10. ADMIN & FORM FUNCTIONS ---
 document.getElementById('adminLoginBtn').onclick = () => loginModal.style.display = 'block';
 document.getElementById('loginForm').onsubmit = (e) => {
     e.preventDefault();
@@ -355,7 +376,6 @@ document.getElementById('loginForm').onsubmit = (e) => {
 document.getElementById('logoutBtn').onclick = () => { signOut(auth).then(() => { showToast("بە سەرکەوتوویی دەرچوویت", "info"); }); };
 
 function toggleAdminUI(show) {
-    // Hide login button if logged in, show if logged out
     document.getElementById('adminLoginBtn').style.display = show ? 'none' : 'flex';
     document.getElementById('logoutBtn').style.display = show ? 'flex' : 'none';
     document.getElementById('addChannelBtn').style.display = show ? 'flex' : 'none';
@@ -375,6 +395,7 @@ document.getElementById('addChannelBtn').onclick = () => {
     editingId = null; document.getElementById('channelForm').reset(); document.getElementById('formTitle').innerText = "زیادکردنی کەناڵ"; channelModal.style.display = 'block'; 
 };
 
+// UPDATED: Submit form logic - Removed 'isFavorite' from Firestore
 document.getElementById('channelForm').onsubmit = async (e) => {
     e.preventDefault();
     const name = document.getElementById('channelName').value;
@@ -382,13 +403,20 @@ document.getElementById('channelForm').onsubmit = async (e) => {
     const category = document.getElementById('channelCategory').value;
     const imgLink = document.getElementById('channelImageLink').value;
     const finalImage = imgLink.trim() !== "" ? imgLink : "https://placehold.co/200?text=TV";
+    
     if(!category) { showToast("تکایە بەشێک هەڵبژێرە", "error"); return; }
-    const data = { name, url, category, image: finalImage, isFavorite: false };
+    
+    // Note: We do NOT send 'isFavorite' to Firestore anymore
+    const data = { name, url, category, image: finalImage };
+    
     try {
         if(editingId) {
-            const old = channels.find(c=>c.id===editingId); data.isFavorite = old.isFavorite;
-            await updateDoc(doc(db, "channels", editingId), data); showToast("کەناڵەکە نوێکرایەوە", "success");
-        } else { await addDoc(channelsCollection, data); showToast("کەناڵی نوێ زیادکرا", "success"); }
+            await updateDoc(doc(db, "channels", editingId), data); 
+            showToast("کەناڵەکە نوێکرایەوە", "success");
+        } else { 
+            await addDoc(channelsCollection, data); 
+            showToast("کەناڵی نوێ زیادکرا", "success"); 
+        }
         channelModal.style.display = 'none';
     } catch(err) { console.error(err); showToast("کێشەیەک ڕوویدا", "error"); }
 };
@@ -409,43 +437,47 @@ document.getElementById('categoryForm').onsubmit = async (e) => {
     try { await setDoc(doc(db, "categories", id), { title, order }); showToast("بەشەکە زیادکرا", "success"); categoryModal.style.display = 'none'; } catch (error) { showToast("کێشەیەک هەیە", "error"); }
 };
 
-window.toggleFavorite = async (id, event) => { 
+// UPDATED: Favorites Logic (LocalStorage only)
+window.toggleFavorite = (id, event) => { 
     if(event) event.stopPropagation(); 
-    const channelRef = doc(db, "channels", id); 
-    const channel = channels.find(c => c.id === id); 
-    if(channel) { 
-        await updateDoc(channelRef, { isFavorite: !channel.isFavorite }); 
-        showToast(channel.isFavorite ? "لابرا لە دڵخوازەکان" : "زیادکرا بۆ دڵخوازەکان", "info");
-    } 
+    
+    let favs = getLocalFavorites();
+    const index = favs.indexOf(id);
+
+    if (index === -1) {
+        favs.push(id);
+        showToast("زیادکرا بۆ دڵخوازەکان", "success");
+    } else {
+        favs.splice(index, 1);
+        showToast("لابرا لە دڵخوازەکان", "info");
+    }
+    
+    setLocalFavorites(favs);
+    
+    // Refresh UI to update heart icon colors
+    renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
 };
 
 window.handleSearch = () => { renderApp(document.getElementById('searchInput').value.toLowerCase().trim()); };
 
-// --- 10. NAVIGATION FUNCTIONS (NEW) ---
+// --- 11. NAVIGATION FUNCTIONS ---
 
-// Go to Home (Reset View)
 window.goToHome = () => {
     showOnlyFavorites = false;
-    
-    // Update UI Classes
     favFilterBtn.classList.remove('active-filter');
     homeBtn.classList.add('active-nav');
-    
     showToast("پەڕەی سەرەکی", "info");
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
 };
 
-// Toggle Favorite Filter View (Bottom Bar Button)
 window.toggleFavFilterView = () => { 
     showOnlyFavorites = !showOnlyFavorites; 
     
     if(showOnlyFavorites) { 
-        // Go to Favorites
         favFilterBtn.classList.add('active-filter'); 
         homeBtn.classList.remove('active-nav');
         showToast("تەنها دڵخوازەکان", "info"); 
     } else { 
-        // Go Back to Home (effectively)
         favFilterBtn.classList.remove('active-filter'); 
         homeBtn.classList.add('active-nav');
         showToast("هەموو کەناڵەکان", "info"); 
