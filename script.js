@@ -26,27 +26,30 @@ const auth = getAuth(app);
 const channelsCollection = collection(db, "channels");
 const categoriesCollection = collection(db, "categories");
 const reportsCollection = collection(db, "reports"); 
+const codesCollection = collection(db, "codes");
 
 // --- 2. GLOBAL VARIABLES ---
 let channels = [];
 let categories = [];
 let isAdmin = false;
+let userSubscription = null;
 let editingId = null;
 let overlayTimer = null;
 let showOnlyFavorites = false;
 let isPipMode = false;
-
-// بۆ ڕێگریکردن لە تێکەڵبوونی هەڵەکان کاتی گۆڕینی کەناڵ
 let currentPlayingId = null; 
+
+// --- DEVICE ID SETUP ---
+// دروستکردنی ئایدی بۆ ناسینەوەی مۆبایلەکە (بۆ ئەوەی کۆدەکە تەنها لە یەک مۆبایل ئیش بکات)
+let deviceId = localStorage.getItem('maten_device_id');
+if (!deviceId) {
+    deviceId = 'device_' + Math.random().toString(36).substr(2, 9) + Date.now();
+    localStorage.setItem('maten_device_id', deviceId);
+}
 
 // Variables for PiP Dragging
 let isDragging = false;
-let currentX;
-let currentY;
-let initialX;
-let initialY;
-let xOffset = 0;
-let yOffset = 0;
+let currentX; let currentY; let initialX; let initialY; let xOffset = 0; let yOffset = 0;
 
 // DOM Elements
 const mainContainer = document.getElementById('mainContainer');
@@ -63,7 +66,7 @@ const categorySelect = document.getElementById('channelCategory');
 const scoreModal = document.getElementById('scoreModal'); 
 const scoreFrame = document.getElementById('scoreFrame'); 
 const errorScreen = document.getElementById('errorScreen'); 
-const loaderScreen = document.getElementById('videoLoader'); // (نوێ)
+const loaderScreen = document.getElementById('videoLoader');
 const reportsModal = document.getElementById('reportsModal'); 
 const reportsList = document.getElementById('reportsList'); 
 
@@ -83,17 +86,43 @@ window.showToast = (msg, type = 'success') => {
     setTimeout(() => { toast.remove(); }, 3000);
 };
 
-// --- 4. FAVORITES SYSTEM (LOCAL STORAGE) ---
+// --- 4. FAVORITES SYSTEM ---
 function getLocalFavorites() {
     const stored = localStorage.getItem('maten_tv_favs');
     return stored ? JSON.parse(stored) : [];
 }
-
 function setLocalFavorites(favArray) {
     localStorage.setItem('maten_tv_favs', JSON.stringify(favArray));
 }
 
-// --- 5. AUTHENTICATION LISTENER ---
+// --- 5. AUTHENTICATION & SUBSCRIPTION LOGIC ---
+
+// پشکنینی کۆدی بەکارهێنەر لە سێرڤەر
+async function checkLocalSubscription() {
+    const savedCode = localStorage.getItem('maten_pro_code');
+    if (savedCode) {
+        const q = query(codesCollection, where("code", "==", savedCode));
+        try {
+            const snapshot = await getDocs(q);
+            if (!snapshot.empty) {
+                const data = snapshot.docs[0].data();
+                const now = new Date();
+                
+                // مەرجەکان: ئامێرەکە هەمان ئامێر بێت + کاتی مابێت
+                if (data.usedBy === deviceId && new Date(data.expiryDate) > now) {
+                    userSubscription = data;
+                    console.log("Pro Active");
+                } else {
+                    localStorage.removeItem('maten_pro_code');
+                    userSubscription = null;
+                }
+            }
+        } catch (e) { console.error("Error checking sub", e); }
+    }
+    renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
+}
+checkLocalSubscription();
+
 onAuthStateChanged(auth, (user) => {
     if (user) {
         isAdmin = true;
@@ -125,15 +154,12 @@ onSnapshot(channelsCollection, (snapshot) => {
 });
 
 // --- 7. RENDER LOGIC ---
-function renderApp(searchQuery = '') {
+window.renderApp = (searchQuery = '') => {
     if (channels.length === 0 && categories.length === 0 && !isAdmin) return;
     
     mainContainer.innerHTML = ''; 
-
-    // Get Local Favorites
     const localFavs = getLocalFavorites();
 
-    // Map channels
     let displayChannels = channels.map(channel => {
         return {
             ...channel,
@@ -141,40 +167,32 @@ function renderApp(searchQuery = '') {
         };
     });
 
-    // Filter by Search
     if(searchQuery) {
         displayChannels = displayChannels.filter(c => c.name.toLowerCase().includes(searchQuery));
     }
 
-    // --- FAVORITES MODE ---
     if(showOnlyFavorites) {
         displayChannels = displayChannels.filter(c => c.isFavorite);
-        
         if(displayChannels.length === 0) {
              mainContainer.innerHTML = `<div style="text-align:center; padding:50px 20px; color:#a0aec0;"><p>هیچ کەناڵێکی دڵخواز نییە</p></div>`;
              return;
         }
-
         const section = createSectionHTML('favorites', '❤️ دڵخوازەکان', displayChannels);
         mainContainer.appendChild(section);
         return; 
     }
 
-    // --- HOME MODE ---
     if(displayChannels.length === 0) {
         mainContainer.innerHTML = `<div style="text-align:center; padding:50px 20px; color:#a0aec0;"><p>هیچ کەناڵێک نەدۆزرایەوە</p></div>`;
         return;
     }
 
-    // Render Categories
     categories.forEach(cat => {
         let catChannels = displayChannels.filter(c => c.category === cat.id);
-        
         if(catChannels.length === 0 && !isAdmin) return;
-        
         mainContainer.appendChild(createSectionHTML(cat.id, cat.title, catChannels));
     });
-}
+};
 
 function createSectionHTML(catId, catTitle, catChannels) {
     const section = document.createElement('div');
@@ -194,6 +212,9 @@ function createSectionHTML(catId, catTitle, catChannels) {
 }
 
 function createCardHTML(ch) {
+    // پشکنینی قوفڵ (تەنها بۆ کەناڵی Pro)
+    const isLocked = (ch.isPro === true && !isAdmin && !userSubscription);
+
     const adminControls = isAdmin ? `
         <div class="admin-controls">
             <button class="edit-btn" onclick="event.stopPropagation(); editChannel('${ch.id}')"><i class="fas fa-pen"></i></button>
@@ -203,27 +224,40 @@ function createCardHTML(ch) {
     const favClass = ch.isFavorite ? 'active' : '';
     const img = ch.image || "https://placehold.co/200?text=TV";
     
-    return `<div class="product-card" onclick="playChannel('${ch.id}')">
+    // ئەگەر قوفڵ بوو -> LoginModal. ئەگەر نا -> Play
+    const clickAction = isLocked ? "showToast('ئەم کەناڵە بۆ بەشداربووانە', 'error'); openLoginModal();" : `playChannel('${ch.id}')`;
+
+    const lockOverlay = isLocked ? `
+        <div style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; z-index:20; backdrop-filter:blur(2px);">
+            <i class="fas fa-lock" style="font-size:28px; margin-bottom:8px; color:#f6ad55;"></i>
+            <span style="font-size:12px; font-weight:bold;">VIP</span>
+        </div>
+    ` : '';
+
+    const proBadge = ch.isPro ? `<span style="position:absolute; top:8px; right:8px; background:linear-gradient(45deg, #f6ad55, #ed8936); color:white; font-size:10px; padding:3px 8px; border-radius:6px; font-weight:bold; z-index:15; box-shadow:0 2px 4px rgba(0,0,0,0.2);">PRO</span>` : '';
+
+    return `<div class="product-card" onclick="${clickAction}">
+            ${lockOverlay}
+            ${proBadge}
             <div class="fav-btn ${favClass}" onclick="toggleFavorite('${ch.id}', event)"><i class="fas fa-heart"></i></div>
             <img src="${img}" class="product-image" loading="lazy" onerror="this.src='https://placehold.co/200?text=Error'">
             ${adminControls}</div>`;
 }
 
-// --- 8. PLAYER, PiP & ERROR HANDLING (UPDATED) ---
-
+// --- 8. PLAYER LOGIC ---
 window.playChannel = (id) => {
     const channel = channels.find(c => c.id === id);
     if (!channel) return;
     
-    // ئایدی کەناڵی ئێستا دیاری دەکەین
-    currentPlayingId = id;
-    
-    // 1. شاردنەوەی شاشەی هەڵە (زۆر گرنگ بۆ گۆڕینی کەناڵ)
-    errorScreen.style.display = 'none';
+    if (channel.isPro && !isAdmin && !userSubscription) {
+        showToast("تکایە کۆد داخڵ بکە", "error");
+        openLoginModal();
+        return;
+    }
 
-    // 2. پیشاندانی بازنەی چاوەڕوانی (Loading Spinner)
+    currentPlayingId = id;
+    errorScreen.style.display = 'none';
     loaderScreen.style.display = 'flex';
-    
     playerModal.style.display = 'block';
     if(isPipMode) togglePipMode(); 
 
@@ -231,45 +265,21 @@ window.playChannel = (id) => {
 
     if (Hls.isSupported()) {
         if(window.hls) window.hls.destroy(); 
-        
-        // ڕێکخستنی خێرا بۆ HLS
-        const hls = new Hls({
-            manifestLoadingTimeOut: 5000, 
-            manifestLoadingMaxRetry: 1,   
-            levelLoadingMaxRetry: 1,
-            fragLoadingMaxRetry: 1
-        });
-
+        const hls = new Hls({ manifestLoadingTimeOut: 5000 });
         hls.loadSource(channel.url); 
         hls.attachMedia(videoPlayer);
-        
-        // کاتێک پەخشەکە ئامادەیە
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-             // تێبینی: لێرە بازنەکە لانابەین، چاوەڕێی 'playing' دەکەین
-             videoPlayer.play().catch(e=>console.log("Autoplay blocked"));
-        });
-        
-        // گوێگرتن لە هەڵەکان
+        hls.on(Hls.Events.MANIFEST_PARSED, () => { videoPlayer.play().catch(e=>console.log("Autoplay blocked")); });
         hls.on(Hls.Events.ERROR, function (event, data) {
             if (data.fatal) {
                 switch (data.type) {
-                    case Hls.ErrorTypes.NETWORK_ERROR:
-                        handleStreamError(channel);
-                        break;
-                    case Hls.ErrorTypes.MEDIA_ERROR:
-                        hls.recoverMediaError();
-                        handleStreamError(channel);
-                        break;
-                    default:
-                        hls.destroy();
-                        handleStreamError(channel);
-                        break;
+                    case Hls.ErrorTypes.NETWORK_ERROR: handleStreamError(channel); break;
+                    case Hls.ErrorTypes.MEDIA_ERROR: hls.recoverMediaError(); handleStreamError(channel); break;
+                    default: hls.destroy(); handleStreamError(channel); break;
                 }
             }
         });
         window.hls = hls;
     } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-        // For Safari
         videoPlayer.src = channel.url; 
         videoPlayer.play();
         videoPlayer.onerror = () => { handleStreamError(channel); };
@@ -278,269 +288,210 @@ window.playChannel = (id) => {
     triggerOverlay();
 };
 
-// --- Video Events to Control Spinner ---
+videoPlayer.onplaying = () => { loaderScreen.style.display = 'none'; };
+videoPlayer.onwaiting = () => { loaderScreen.style.display = 'flex'; };
 
-// کاتێک ڤیدیۆکە بەڕاستی دەست دەکات بە جوڵە، بازنەکە لادەبەین
-videoPlayer.onplaying = () => {
-    loaderScreen.style.display = 'none';
-};
-
-// کاتێک چاوەڕێ دەکات (Buffering)، دیسان بازنەکە دەردەکەوێت
-videoPlayer.onwaiting = () => {
-    loaderScreen.style.display = 'flex';
-};
-
-
-// --- Error Handling ---
 function handleStreamError(channel) {
-    // ئەگەر بەکارهێنەر چۆتە کەناڵێکی تر، ئەم هەڵەیە پشتگوێ بخە
     if (currentPlayingId !== channel.id) return;
-
     videoPlayer.pause();
-    
-    // لادانی بازنەکە، چونکە ئیتر هەڵە ڕوویداوە
     loaderScreen.style.display = 'none';
-    
-    // پیشاندانی شاشەی هەڵە
     errorScreen.style.display = 'flex';
-    
-    // ناردنی ڕاپۆرت
     reportBrokenChannel(channel);
 }
 
-async function reportBrokenChannel(channel) {
-    try {
-        await addDoc(reportsCollection, {
-            channelId: channel.id,
-            channelName: channel.name,
-            channelUrl: channel.url,
-            reportedAt: new Date().toISOString(),
-            status: 'pending'
-        });
-        console.log("Report sent for: " + channel.name);
-    } catch (e) {
-        console.error("Error sending report", e);
-    }
-}
+// --- 9. STEALTH LOGIN & USER STATUS ---
 
-// --- REPORT ADMIN FUNCTIONS ---
-window.openReports = async () => {
-    reportsModal.style.display = 'block';
-    reportsList.innerHTML = '<p style="text-align:center; padding:20px;">جارێ... </p>';
-
-    const q = query(reportsCollection, where("status", "==", "pending"));
-    const snapshot = await getDocs(q);
-    
-    reportsList.innerHTML = '';
-    
-    if (snapshot.empty) {
-        reportsList.innerHTML = '<p style="text-align:center; color:green; padding:20px;">هیچ کێشەیەک نییە! 🎉</p>';
-        return;
-    }
-
-    const seenIds = new Set();
-    const uniqueReports = [];
-
-    snapshot.docs.forEach(doc => {
-        const data = doc.data();
-        if (!seenIds.has(data.channelId)) {
-            seenIds.add(data.channelId);
-            uniqueReports.push({ id: doc.id, ...data });
-        } else {
-             deleteDoc(doc.ref); // Clean duplicates
-        }
-    });
-
-    uniqueReports.forEach(rep => {
-        const div = document.createElement('div');
-        div.className = 'report-item';
-        div.innerHTML = `
-            <div class="report-info">
-                <h4>${rep.channelName}</h4>
-                <span>${new Date(rep.reportedAt).toLocaleTimeString()}</span>
-            </div>
-            <div class="report-actions">
-                <button class="fix-btn" onclick="fixReport('${rep.channelId}', '${rep.id}')">
-                    <i class="fas fa-tools"></i> چاککردن
-                </button>
-            </div>
-        `;
-        reportsList.appendChild(div);
-    });
-};
-
-window.fixReport = async (channelId, reportId) => {
-    editChannel(channelId);
-    reportsModal.style.display = 'none';
-    await deleteDoc(doc(db, "reports", reportId));
-};
-
-// --- PLAYER UI LOGIC ---
-window.togglePipMode = () => {
-    isPipMode = !isPipMode;
-    
-    if (isPipMode) {
-        playerModal.classList.add('pip-active');
-        videoContainer.classList.add('pip-mode');
-        addDragListeners();
-    } else {
-        playerModal.classList.remove('pip-active');
-        videoContainer.classList.remove('pip-mode');
-        resetDragPosition();
-        removeDragListeners();
-    }
-};
-
-window.triggerOverlay = () => { 
-    videoContainer.classList.add('ui-visible'); 
-    clearTimeout(overlayTimer); 
-    overlayTimer = setTimeout(() => { videoContainer.classList.remove('ui-visible'); }, 4000); 
-};
-
-window.toggleFullScreen = () => { 
-    if(isPipMode) {
-        togglePipMode(); 
-        return;
-    }
-    const elem = videoContainer; 
-    (!document.fullscreenElement) ? (elem.requestFullscreen||elem.webkitRequestFullscreen).call(elem) : document.exitFullscreen(); 
-};
-
-window.closePlayer = () => { 
-    if (document.fullscreenElement) document.exitFullscreen(); 
-
-    if(isPipMode) {
-        isPipMode = false;
-        videoContainer.classList.remove('pip-mode');
-        playerModal.classList.remove('pip-active');
-        resetDragPosition(); 
-    }
-
-    playerModal.style.display = 'none'; 
-    videoPlayer.pause(); 
-    if(window.hls) window.hls.destroy(); 
-};
-
-// --- DRAGGING FUNCTIONS ---
-function addDragListeners() {
-    videoContainer.addEventListener("touchstart", dragStart, {passive: false});
-    videoContainer.addEventListener("touchend", dragEnd, {passive: false});
-    videoContainer.addEventListener("touchmove", drag, {passive: false});
-
-    videoContainer.addEventListener("mousedown", dragStart);
-    videoContainer.addEventListener("mouseup", dragEnd);
-    videoContainer.addEventListener("mousemove", drag);
-}
-
-function removeDragListeners() {
-    videoContainer.removeEventListener("touchstart", dragStart);
-    videoContainer.removeEventListener("touchend", dragEnd);
-    videoContainer.removeEventListener("touchmove", drag);
-    
-    videoContainer.removeEventListener("mousedown", dragStart);
-    videoContainer.removeEventListener("mouseup", dragEnd);
-    videoContainer.removeEventListener("mousemove", drag);
-}
-
-function dragStart(e) {
-    if (!isPipMode) return;
-    
-    if (e.type === "touchstart") {
-        initialX = e.touches[0].clientX - xOffset;
-        initialY = e.touches[0].clientY - yOffset;
-    } else {
-        initialX = e.clientX - xOffset;
-        initialY = e.clientY - yOffset;
-    }
-
-    if (e.target.closest('.player-btn') || e.target.closest('.related-channels-bar')) {
-        isDragging = false;
-        return;
-    }
-
-    isDragging = true;
-}
-
-function dragEnd(e) {
-    initialX = currentX;
-    initialY = currentY;
-    isDragging = false;
-}
-
-function drag(e) {
-    if (isDragging) {
-        e.preventDefault(); 
+window.openLoginModal = () => {
+    // حاڵەتی یەکەم: بەکارهێنەر کۆدی هەیە و کارایە (Pro Active)
+    // نابێت فۆڕمی کۆد ببینێت، دەبێت زانیاری بەسەرچوون ببینێت
+    if (userSubscription && !isAdmin) {
+        document.getElementById('loginFormSection').style.display = 'none';
+        document.getElementById('userStatusSection').style.display = 'block';
         
-        if (e.type === "touchmove") {
-            currentX = e.touches[0].clientX - initialX;
-            currentY = e.touches[0].clientY - initialY;
+        // حسابکردنی کات
+        const expDate = new Date(userSubscription.expiryDate);
+        document.getElementById('expiryDateDisplay').innerText = expDate.toLocaleDateString('en-GB'); // Day/Month/Year
+        
+        const today = new Date();
+        const diffTime = expDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        
+        if (diffDays > 0) {
+            document.getElementById('daysLeftDisplay').innerText = `( ${diffDays} ڕۆژی ماوە )`;
         } else {
-            currentX = e.clientX - initialX;
-            currentY = e.clientY - initialY;
+            document.getElementById('daysLeftDisplay').innerText = "( ماوەکەی بەسەرچووە )";
         }
 
-        xOffset = currentX;
-        yOffset = currentY;
-
-        setTranslate(currentX, currentY, videoContainer);
+    } else {
+        // حاڵەتی دووەم: کۆدی نییە یان ئەدمینە -> فۆڕمەکە پیشان بدە
+        document.getElementById('userStatusSection').style.display = 'none';
+        document.getElementById('loginFormSection').style.display = 'block';
+        
+        // ڕێکخستنەوەی فۆڕمی Stealth بۆ دۆخی سەرەتایی
+        document.getElementById('passwordGroup').style.display = 'none';
+        document.getElementById('loginInput').value = '';
+        document.getElementById('password').value = '';
+        document.getElementById('submitLoginBtn').innerText = "ناردن";
+        document.getElementById('inputLabel').innerText = "کۆدی کاراکردن";
     }
-}
-
-function setTranslate(xPos, yPos, el) {
-    el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
-}
-
-function resetDragPosition() {
-    xOffset = 0;
-    yOffset = 0;
-    videoContainer.style.transform = "none";
-}
-
-// --- 9. LIVE SCORE FUNCTIONS ---
-const SCORE_URL = "https://www.fotmob.com"; 
-
-window.openScoreModal = () => {
-    scoreFrame.src = SCORE_URL;
-    scoreModal.style.display = 'block';
-    showToast("پەڕەی ئەنجامەکان کرایەوە", "info");
+    
+    loginModal.style.display = 'block'; 
 };
 
-window.closeScoreModal = () => {
-    scoreModal.style.display = 'none';
-    scoreFrame.src = ""; 
+window.logoutUser = () => {
+    if(confirm("دڵنیای دەتەوێت کۆدەکە لاببەیت؟ کەناڵەکان دادەخرێنەوە.")) {
+        localStorage.removeItem('maten_pro_code');
+        userSubscription = null;
+        showToast("کۆدەکە لابرا و دەرچوویت", "info");
+        loginModal.style.display = 'none';
+        renderApp(); // نوێکردنەوەی شاشە (قوفڵکردنەوە)
+    }
 };
 
-// --- 10. ADMIN & FORM FUNCTIONS ---
-document.getElementById('adminLoginBtn').onclick = () => loginModal.style.display = 'block';
-document.getElementById('loginForm').onsubmit = (e) => {
+// فۆڕمی زیرەک (Stealth Logic)
+document.getElementById('loginForm').onsubmit = async (e) => {
     e.preventDefault();
-    const email = document.getElementById('username').value;
-    const pass = document.getElementById('password').value;
-    signInWithEmailAndPassword(auth, email, pass).then(() => {
-        loginModal.style.display = 'none'; e.target.reset();
-    }).catch(() => { showToast("هەڵە هەیە! ئیمەیڵ یان پاسۆرد هەڵەیە.", "error"); });
-};
-document.getElementById('logoutBtn').onclick = () => { signOut(auth).then(() => { showToast("بە سەرکەوتوویی دەرچوویت", "info"); }); };
+    
+    const inputField = document.getElementById('loginInput');
+    const passGroup = document.getElementById('passwordGroup');
+    const passwordField = document.getElementById('password');
+    const submitBtn = document.getElementById('submitLoginBtn');
+    
+    const inputVal = inputField.value.trim();
+    const passVal = passwordField.value;
 
+    // 1. حاڵەتی ناسینەوەی ئەدمین: ئەگەر ئیمەیڵ نووسرا و پاسۆرد دیار نییە
+    if (inputVal.includes('@') && passGroup.style.display === 'none') {
+        passGroup.style.display = 'block'; // پاسۆرد پیشان بدە
+        passwordField.focus(); 
+        submitBtn.innerText = "چوونەژوورەوە"; // دوگمە بگۆڕە
+        document.getElementById('inputLabel').innerText = "ئیمەیڵی ئەدمین";
+        return; // لێرە ڕادەوەستین، چاوەڕێی پاسۆردین
+    }
+
+    // 2. حاڵەتی چوونەژوورەوەی ئەدمین (دوای نووسینی پاسۆرد)
+    if (passGroup.style.display === 'block') {
+        signInWithEmailAndPassword(auth, inputVal, passVal)
+            .then(() => {
+                loginModal.style.display = 'none';
+                e.target.reset();
+                showToast("بەخێربێیت ئەدمین", "success");
+            })
+            .catch(() => { showToast("هەڵە: زانیارییەکان هەڵەن", "error"); });
+    } 
+    // 3. حاڵەتی بەکارهێنەری ئاسایی (کۆد)
+    else {
+        await activateProCode(inputVal);
+    }
+};
+
+async function activateProCode(code) {
+    if (code.length < 5) { showToast("کۆدەکە زۆر کورتە", "error"); return; }
+
+    const q = query(codesCollection, where("code", "==", code));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+        showToast("ئەم کۆدە هەڵەیە!", "error");
+        return;
+    }
+
+    const codeDoc = snapshot.docs[0];
+    const data = codeDoc.data();
+    const now = new Date();
+
+    // Device Check
+    if (data.usedBy && data.usedBy !== deviceId) {
+        showToast("ئەم کۆدە لەسەر مۆبایلێکی تر بەکارهاتووە!", "error");
+        return;
+    }
+
+    // Expiry Check
+    if (data.expiryDate && new Date(data.expiryDate) < now) {
+        showToast("وادەی ئەم کۆدە بەسەرچووە!", "error");
+        return;
+    }
+
+    // Activate New Code
+    if (!data.usedBy) {
+        let newExpiry = new Date();
+        if (data.duration === '1month') {
+            newExpiry.setMonth(newExpiry.getMonth() + 1);
+        } else if (data.duration === '1year') {
+            newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+        } else {
+            newExpiry.setMonth(newExpiry.getMonth() + 1);
+        }
+
+        try {
+            await updateDoc(doc(db, "codes", codeDoc.id), {
+                usedBy: deviceId,
+                activatedAt: now.toISOString(),
+                expiryDate: newExpiry.toISOString()
+            });
+            data.expiryDate = newExpiry.toISOString();
+            data.duration = data.duration;
+        } catch(err) {
+            console.error(err);
+            showToast("کێشە لە پەیوەستبوون", "error");
+            return;
+        }
+    }
+
+    localStorage.setItem('maten_pro_code', code);
+    userSubscription = data;
+    showToast(`پیرۆزە! بەشداریت کرد (${data.duration === '1year' ? 'ساڵانە' : 'مانگانە'})`, "success");
+    loginModal.style.display = 'none';
+    document.getElementById('loginForm').reset();
+    renderApp(); 
+}
+
+document.getElementById('adminLoginBtn').onclick = () => openLoginModal();
+document.getElementById('logoutBtn').onclick = () => { signOut(auth).then(() => { showToast("دەرچوویت", "info"); }); };
+
+// UI Control
 function toggleAdminUI(show) {
+    // ئەگەر ئەدمین بوو، دوگمەی 'هەژمار' دەشارینەوە، 'دەرچوون' پیشان دەدەین
     document.getElementById('adminLoginBtn').style.display = show ? 'none' : 'flex';
     document.getElementById('logoutBtn').style.display = show ? 'flex' : 'none';
     document.getElementById('addChannelBtn').style.display = show ? 'flex' : 'none';
     document.getElementById('addCategoryBtn').style.display = show ? 'flex' : 'none';
     document.getElementById('reportsBtn').style.display = show ? 'flex' : 'none'; 
+    document.getElementById('generateCodeBtn').style.display = show ? 'flex' : 'none';
 }
 
-function updateCategoryDropdown() {
-    categorySelect.innerHTML = `<option value="" disabled selected>...هەڵبژێرە</option>`;
-    categories.forEach(cat => {
-        const option = document.createElement("option");
-        option.value = cat.id; option.text = cat.title; categorySelect.appendChild(option);
-    });
+// --- 10. GENERATE CODE (ADMIN ONLY) ---
+document.getElementById('generateCodeBtn').onclick = () => {
+    const type = prompt("جۆری کۆدەکە چی بێت؟\n1 - بۆ یەک مانگ\n2 - بۆ یەک ساڵ");
+    if (type === '1') createCode('1month');
+    else if (type === '2') createCode('1year');
+};
+
+async function createCode(duration) {
+    const randomCode = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+    try {
+        await addDoc(codesCollection, {
+            code: randomCode,
+            duration: duration,
+            createdAt: new Date().toISOString(),
+            usedBy: null,
+            expiryDate: null 
+        });
+        navigator.clipboard.writeText(randomCode);
+        alert(`کۆد دروستکرا و کۆپی کرا:\nCode: ${randomCode}\nDuration: ${duration}`);
+    } catch (e) {
+        console.error(e);
+        showToast("کێشە هەیە", "error");
+    }
 }
 
+// --- 11. FORM HANDLING ---
 document.getElementById('addChannelBtn').onclick = () => { 
     if(categories.length === 0) { showToast("سەرەتا دەبێت بەش زیاد بکەیت!", "error"); return; }
-    editingId = null; document.getElementById('channelForm').reset(); document.getElementById('formTitle').innerText = "زیادکردنی کەناڵ"; channelModal.style.display = 'block'; 
+    editingId = null; 
+    document.getElementById('channelForm').reset(); 
+    document.getElementById('formTitle').innerText = "زیادکردنی کەناڵ"; 
+    channelModal.style.display = 'block'; 
 };
 
 document.getElementById('channelForm').onsubmit = async (e) => {
@@ -550,10 +501,11 @@ document.getElementById('channelForm').onsubmit = async (e) => {
     const category = document.getElementById('channelCategory').value;
     const imgLink = document.getElementById('channelImageLink').value;
     const finalImage = imgLink.trim() !== "" ? imgLink : "https://placehold.co/200?text=TV";
+    const isPro = document.getElementById('isProChannel').checked; // وەرگرتنی Pro
     
     if(!category) { showToast("تکایە بەشێک هەڵبژێرە", "error"); return; }
     
-    const data = { name, url, category, image: finalImage };
+    const data = { name, url, category, image: finalImage, isPro: isPro };
     
     try {
         if(editingId) {
@@ -567,39 +519,27 @@ document.getElementById('channelForm').onsubmit = async (e) => {
     } catch(err) { console.error(err); showToast("کێشەیەک ڕوویدا", "error"); }
 };
 
-window.deleteChannel = async (id) => { if(confirm("دڵنیای دەسڕێتەوە؟")) { await deleteDoc(doc(db, "channels", id)); showToast("کەناڵەکە سڕایەوە", "info"); } };
-
 window.editChannel = (id) => { 
     const ch = channels.find(c => c.id === id); if(!ch) return;
-    editingId = id; document.getElementById('channelName').value = ch.name; document.getElementById('channelUrl').value = ch.url; document.getElementById('channelCategory').value = ch.category; document.getElementById('channelImageLink').value = ch.image; channelModal.style.display = 'block'; 
+    editingId = id; 
+    document.getElementById('channelName').value = ch.name; 
+    document.getElementById('channelUrl').value = ch.url; 
+    document.getElementById('channelCategory').value = ch.category; 
+    document.getElementById('channelImageLink').value = ch.image;
+    document.getElementById('isProChannel').checked = ch.isPro || false; // Checkbox update
+    channelModal.style.display = 'block'; 
 };
 
-document.getElementById('addCategoryBtn').onclick = () => { document.getElementById('categoryForm').reset(); categoryModal.style.display = 'block'; };
+window.deleteChannel = async (id) => { if(confirm("دڵنیای دەسڕێتەوە؟")) { await deleteDoc(doc(db, "channels", id)); showToast("کەناڵەکە سڕایەوە", "info"); } };
 
-document.getElementById('categoryForm').onsubmit = async (e) => {
-    e.preventDefault();
-    const title = document.getElementById('catTitle').value; const id = document.getElementById('catId').value.toLowerCase().trim(); const order = parseInt(document.getElementById('catOrder').value);
-    if(!id.match(/^[a-z0-9]+$/)) { showToast("کۆدی بەش تەنها دەبێت پیت و ژمارەی ئینگلیزی بێت", "error"); return; }
-    try { await setDoc(doc(db, "categories", id), { title, order }); showToast("بەشەکە زیادکرا", "success"); categoryModal.style.display = 'none'; } catch (error) { showToast("کێشەیەک هەیە", "error"); }
-};
-
-// --- 11. FAVORITES & NAV ---
+// --- 12. UTILS & UI ---
 window.toggleFavorite = (id, event) => { 
     if(event) event.stopPropagation(); 
-    
     let favs = getLocalFavorites();
     const index = favs.indexOf(id);
-
-    if (index === -1) {
-        favs.push(id);
-        showToast("زیادکرا بۆ دڵخوازەکان", "success");
-    } else {
-        favs.splice(index, 1);
-        showToast("لابرا لە دڵخوازەکان", "info");
-    }
-    
+    if (index === -1) { favs.push(id); showToast("زیادکرا بۆ دڵخوازەکان", "success"); } 
+    else { favs.splice(index, 1); showToast("لابرا لە دڵخوازەکان", "info"); }
     setLocalFavorites(favs);
-    
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
 };
 
@@ -609,49 +549,66 @@ window.goToHome = () => {
     showOnlyFavorites = false;
     favFilterBtn.classList.remove('active-filter');
     homeBtn.classList.add('active-nav');
-    showToast("پەڕەی سەرەکی", "info");
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
 };
 
 window.toggleFavFilterView = () => { 
     showOnlyFavorites = !showOnlyFavorites; 
-    
     if(showOnlyFavorites) { 
-        favFilterBtn.classList.add('active-filter'); 
-        homeBtn.classList.remove('active-nav');
-        showToast("تەنها دڵخوازەکان", "info"); 
+        favFilterBtn.classList.add('active-filter'); homeBtn.classList.remove('active-nav'); showToast("تەنها دڵخوازەکان", "info"); 
     } else { 
-        favFilterBtn.classList.remove('active-filter'); 
-        homeBtn.classList.add('active-nav');
-        showToast("هەموو کەناڵەکان", "info"); 
+        favFilterBtn.classList.remove('active-filter'); homeBtn.classList.add('active-nav'); showToast("هەموو کەناڵەکان", "info"); 
     } 
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim()); 
 };
 
-// Updated Window OnClick
-window.onclick = (e) => { 
-    if(e.target == loginModal) loginModal.style.display="none"; 
-    if(e.target == channelModal) channelModal.style.display="none"; 
-    if(e.target == categoryModal) categoryModal.style.display="none"; 
-    if(e.target == scoreModal) window.closeScoreModal(); 
-    if(e.target == reportsModal) reportsModal.style.display="none"; 
+async function reportBrokenChannel(channel) {
+    try { await addDoc(reportsCollection, { channelId: channel.id, channelName: channel.name, channelUrl: channel.url, reportedAt: new Date().toISOString(), status: 'pending' }); } catch (e) {}
+}
+window.openReports = async () => { 
+    reportsModal.style.display = 'block';
+    reportsList.innerHTML = '<p style="text-align:center;">جارێ... </p>';
+    const q = query(reportsCollection, where("status", "==", "pending"));
+    const snapshot = await getDocs(q);
+    reportsList.innerHTML = '';
+    if (snapshot.empty) { reportsList.innerHTML = '<p style="text-align:center; color:green;">پاکە!</p>'; return; }
+    snapshot.docs.forEach(doc => {
+        const d = doc.data();
+        reportsList.innerHTML += `<div class="report-item"><div class="report-info"><h4>${d.channelName}</h4><span>${new Date(d.reportedAt).toLocaleTimeString()}</span></div><div class="report-actions"><button class="fix-btn" onclick="fixReport('${d.channelId}', '${doc.id}')">چاککردن</button></div></div>`;
+    });
+};
+window.fixReport = async (cId, rId) => { editChannel(cId); reportsModal.style.display='none'; await deleteDoc(doc(db,"reports",rId)); };
+
+document.getElementById('addCategoryBtn').onclick = () => { document.getElementById('categoryForm').reset(); categoryModal.style.display = 'block'; };
+document.getElementById('categoryForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const title = document.getElementById('catTitle').value; const id = document.getElementById('catId').value.toLowerCase().trim(); const order = parseInt(document.getElementById('catOrder').value);
+    if(!id.match(/^[a-z0-9]+$/)) { showToast("کۆدی بەش تەنها ئینگلیزی بێت", "error"); return; }
+    try { await setDoc(doc(db, "categories", id), { title, order }); showToast("بەشەکە زیادکرا", "success"); categoryModal.style.display = 'none'; } catch (error) { showToast("کێشە هەیە", "error"); }
 };
 
-document.querySelectorAll('.close-modal').forEach(b => b.onclick = () => { 
-    loginModal.style.display='none'; 
-    channelModal.style.display='none'; 
-    categoryModal.style.display='none'; 
-    reportsModal.style.display='none';
-});
+window.openScoreModal = () => { scoreFrame.src = "https://www.fotmob.com"; scoreModal.style.display = 'block'; };
+window.closeScoreModal = () => { scoreModal.style.display = 'none'; scoreFrame.src = ""; };
+window.onclick = (e) => { if(e.target == loginModal) loginModal.style.display="none"; if(e.target == channelModal) channelModal.style.display="none"; if(e.target == categoryModal) categoryModal.style.display="none"; if(e.target == scoreModal) window.closeScoreModal(); if(e.target == reportsModal) reportsModal.style.display="none"; };
+document.querySelectorAll('.close-modal').forEach(b => b.onclick = () => { loginModal.style.display='none'; channelModal.style.display='none'; categoryModal.style.display='none'; reportsModal.style.display='none'; });
 
-// Helpers to render related when opening player
-function renderRelated(current) {
-    relatedBar.innerHTML = '';
-    channels.filter(c => c.category === current.category).forEach(ch => {
-        const div = document.createElement('div');
-        div.className = `related-card ${ch.id === current.id ? 'active' : ''}`;
-        div.onclick = (e) => { e.stopPropagation(); playChannel(ch.id); };
-        div.innerHTML = `<img src="${ch.image}">`;
-        relatedBar.appendChild(div);
+function updateCategoryDropdown() {
+    categorySelect.innerHTML = `<option value="" disabled selected>...هەڵبژێرە</option>`;
+    categories.forEach(cat => {
+        const option = document.createElement("option"); option.value = cat.id; option.text = cat.title; categorySelect.appendChild(option);
     });
 }
+
+window.togglePipMode = () => { isPipMode = !isPipMode; if(isPipMode){ playerModal.classList.add('pip-active'); videoContainer.classList.add('pip-mode'); addDragListeners(); } else { playerModal.classList.remove('pip-active'); videoContainer.classList.remove('pip-mode'); resetDragPosition(); removeDragListeners(); } };
+window.triggerOverlay = () => { videoContainer.classList.add('ui-visible'); clearTimeout(overlayTimer); overlayTimer = setTimeout(() => { videoContainer.classList.remove('ui-visible'); }, 4000); };
+window.toggleFullScreen = () => { if(isPipMode){togglePipMode(); return;} const elem = videoContainer; (!document.fullscreenElement) ? (elem.requestFullscreen||elem.webkitRequestFullscreen).call(elem) : document.exitFullscreen(); };
+window.closePlayer = () => { if(document.fullscreenElement) document.exitFullscreen(); if(isPipMode){ isPipMode=false; videoContainer.classList.remove('pip-mode'); playerModal.classList.remove('pip-active'); resetDragPosition(); } playerModal.style.display = 'none'; videoPlayer.pause(); if(window.hls) window.hls.destroy(); };
+
+function addDragListeners() { videoContainer.addEventListener("touchstart", dragStart, {passive:false}); videoContainer.addEventListener("touchend", dragEnd, {passive:false}); videoContainer.addEventListener("touchmove", drag, {passive:false}); videoContainer.addEventListener("mousedown", dragStart); videoContainer.addEventListener("mouseup", dragEnd); videoContainer.addEventListener("mousemove", drag); }
+function removeDragListeners() { videoContainer.removeEventListener("touchstart", dragStart); videoContainer.removeEventListener("touchend", dragEnd); videoContainer.removeEventListener("touchmove", drag); videoContainer.removeEventListener("mousedown", dragStart); videoContainer.removeEventListener("mouseup", dragEnd); videoContainer.removeEventListener("mousemove", drag); }
+function dragStart(e) { if (!isPipMode) return; if (e.type === "touchstart") { initialX = e.touches[0].clientX - xOffset; initialY = e.touches[0].clientY - yOffset; } else { initialX = e.clientX - xOffset; initialY = e.clientY - yOffset; } if (e.target.closest('.player-btn') || e.target.closest('.related-channels-bar')) { isDragging = false; return; } isDragging = true; }
+function dragEnd(e) { initialX = currentX; initialY = currentY; isDragging = false; }
+function drag(e) { if (isDragging) { e.preventDefault(); if (e.type === "touchmove") { currentX = e.touches[0].clientX - initialX; currentY = e.touches[0].clientY - initialY; } else { currentX = e.clientX - initialX; currentY = e.clientY - initialY; } xOffset = currentX; yOffset = currentY; setTranslate(currentX, currentY, videoContainer); } }
+function setTranslate(xPos, yPos, el) { el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`; }
+function resetDragPosition() { xOffset = 0; yOffset = 0; videoContainer.style.transform = "none"; }
+function renderRelated(current) { relatedBar.innerHTML = ''; channels.filter(c => c.category === current.category).forEach(ch => { const div = document.createElement('div'); div.className = `related-card ${ch.id === current.id ? 'active' : ''}`; div.onclick = (e) => { e.stopPropagation(); playChannel(ch.id); }; div.innerHTML = `<img src="${ch.image}">`; relatedBar.appendChild(div); }); }

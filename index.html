@@ -64,9 +64,14 @@
             <span>بەش +</span>
         </button>
 
+        <button id="generateCodeBtn" class="nav-item" style="display:none; color: #48bb78;">
+            <i class="fas fa-key"></i>
+            <span>کۆد +</span>
+        </button>
+
         <button id="adminLoginBtn" class="nav-item">
-            <i class="fas fa-user-cog"></i>
-            <span>ئەدمین</span>
+            <i class="fas fa-user-circle"></i>
+            <span>هەژمار</span>
         </button>
         
         <button id="logoutBtn" class="nav-item" style="display:none; color:#fc8181;">
@@ -83,17 +88,41 @@
 
     <div id="loginModal" class="modal">
         <div class="modal-content">
-            <h3 style="text-align:center; margin-bottom:20px; color:var(--primary-color);">چوونەژووری ئەدمین</h3>
-            <form id="loginForm">
-                <div class="form-group">
-                    <input type="email" id="username" placeholder="ئیمەیڵ (admin@example.com)" required autocomplete="email" dir="ltr">
+            
+            <div id="loginFormSection">
+                <h3 style="text-align:center; margin-bottom:20px; color:var(--primary-color);">کاراکردنی بەشداری (Pro)</h3>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label id="inputLabel">کۆدی کاراکردن</label>
+                        <input type="text" id="loginInput" placeholder="کۆدەکەت لێرە بنووسە..." required autocomplete="off" dir="ltr">
+                    </div>
+                    
+                    <div class="form-group" id="passwordGroup" style="display: none; animation: slideInUp 0.3s;">
+                        <label>وشەی نهێنی</label>
+                        <input type="password" id="password" placeholder="پاسۆرد بنووسە..." dir="ltr">
+                    </div>
+
+                    <button type="submit" id="submitLoginBtn">ناردن</button>
+                    <button type="button" class="close-modal-btn close-modal">داخستن</button>
+                </form>
+            </div>
+
+            <div id="userStatusSection" style="display: none; text-align: center;">
+                <i class="fas fa-check-circle" style="font-size: 60px; color: #48bb78; margin-bottom: 20px;"></i>
+                <h3 style="color:var(--primary-color); margin-bottom:10px;">بەشداری کارایە (Pro)</h3>
+                
+                <div style="background:#f7fafc; padding:15px; border-radius:12px; margin: 20px 0; border:1px solid #edf2f7;">
+                    <p style="color:#718096; font-size:14px; margin-bottom:5px;">وادەی بەسەرچوون:</p>
+                    <h2 id="expiryDateDisplay" style="color:#2d3748; direction:ltr; font-family:sans-serif;"></h2>
+                    <p id="daysLeftDisplay" style="color:#f6ad55; font-size:14px; font-weight:bold; margin-top:5px;"></p>
                 </div>
-                <div class="form-group">
-                    <input type="password" id="password" placeholder="وشەی نهێنی" required dir="ltr">
-                </div>
-                <button type="submit">چوونەژوورەوە</button>
+
+                <button onclick="logoutUser()" style="background-color: #fc8181; margin-bottom: 10px;">
+                    <i class="fas fa-sign-out-alt"></i> دەرچوون (لابردنی کۆد)
+                </button>
                 <button type="button" class="close-modal-btn close-modal">داخستن</button>
-            </form>
+            </div>
+
         </div>
     </div>
 
@@ -117,8 +146,7 @@
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div id="reportsList" class="reports-container">
-                </div>
+            <div id="reportsList" class="reports-container"></div>
         </div>
     </div>
 
@@ -169,6 +197,11 @@
                 <div class="form-group">
                     <label>وێنەی کەناڵ (URL Link)</label>
                     <input type="text" id="channelImageLink" required dir="ltr" placeholder="لینک وێنەکە لێرە دابنێ">
+                </div>
+
+                <div class="form-group" style="display:flex; align-items:center; gap:10px; background:#f7fafc; padding:10px; border-radius:8px;">
+                    <input type="checkbox" id="isProChannel" style="width:20px; height:20px;">
+                    <label for="isProChannel" style="cursor:pointer; user-select:none; font-weight:bold; color:var(--primary-color);">ئەم کەناڵە Proـیە (بە پارەیە)؟</label>
                 </div>
 
                 <button type="submit" style="background-color: #48bb78;">تۆمارکردن</button>
