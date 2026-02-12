@@ -40,7 +40,6 @@ let isPipMode = false;
 let currentPlayingId = null; 
 
 // --- DEVICE ID SETUP ---
-// دروستکردنی ئایدی بۆ ناسینەوەی مۆبایلەکە (بۆ ئەوەی کۆدەکە تەنها لە یەک مۆبایل ئیش بکات)
 let deviceId = localStorage.getItem('maten_device_id');
 if (!deviceId) {
     deviceId = 'device_' + Math.random().toString(36).substr(2, 9) + Date.now();
@@ -97,7 +96,6 @@ function setLocalFavorites(favArray) {
 
 // --- 5. AUTHENTICATION & SUBSCRIPTION LOGIC ---
 
-// پشکنینی کۆدی بەکارهێنەر لە سێرڤەر
 async function checkLocalSubscription() {
     const savedCode = localStorage.getItem('maten_pro_code');
     if (savedCode) {
@@ -108,11 +106,12 @@ async function checkLocalSubscription() {
                 const data = snapshot.docs[0].data();
                 const now = new Date();
                 
-                // مەرجەکان: ئامێرەکە هەمان ئامێر بێت + کاتی مابێت
+                // مەرجەکان: دەبێت usedBy یەکسان بێت بەم مۆبایلە
                 if (data.usedBy === deviceId && new Date(data.expiryDate) > now) {
                     userSubscription = data;
                     console.log("Pro Active");
                 } else {
+                    // ئەگەر لە شوێنێکی تر داخڵ بووبێت، لێرە دەریدەکات
                     localStorage.removeItem('maten_pro_code');
                     userSubscription = null;
                 }
@@ -212,7 +211,6 @@ function createSectionHTML(catId, catTitle, catChannels) {
 }
 
 function createCardHTML(ch) {
-    // پشکنینی قوفڵ (تەنها بۆ کەناڵی Pro)
     const isLocked = (ch.isPro === true && !isAdmin && !userSubscription);
 
     const adminControls = isAdmin ? `
@@ -223,8 +221,6 @@ function createCardHTML(ch) {
     
     const favClass = ch.isFavorite ? 'active' : '';
     const img = ch.image || "https://placehold.co/200?text=TV";
-    
-    // ئەگەر قوفڵ بوو -> LoginModal. ئەگەر نا -> Play
     const clickAction = isLocked ? "showToast('ئەم کەناڵە بۆ بەشداربووانە', 'error'); openLoginModal();" : `playChannel('${ch.id}')`;
 
     const lockOverlay = isLocked ? `
@@ -299,18 +295,15 @@ function handleStreamError(channel) {
     reportBrokenChannel(channel);
 }
 
-// --- 9. STEALTH LOGIN & USER STATUS ---
+// --- 9. STEALTH LOGIN & USER STATUS & LOGOUT (UPDATED) ---
 
 window.openLoginModal = () => {
-    // حاڵەتی یەکەم: بەکارهێنەر کۆدی هەیە و کارایە (Pro Active)
-    // نابێت فۆڕمی کۆد ببینێت، دەبێت زانیاری بەسەرچوون ببینێت
     if (userSubscription && !isAdmin) {
         document.getElementById('loginFormSection').style.display = 'none';
         document.getElementById('userStatusSection').style.display = 'block';
         
-        // حسابکردنی کات
         const expDate = new Date(userSubscription.expiryDate);
-        document.getElementById('expiryDateDisplay').innerText = expDate.toLocaleDateString('en-GB'); // Day/Month/Year
+        document.getElementById('expiryDateDisplay').innerText = expDate.toLocaleDateString('en-GB'); 
         
         const today = new Date();
         const diffTime = expDate - today;
@@ -323,11 +316,9 @@ window.openLoginModal = () => {
         }
 
     } else {
-        // حاڵەتی دووەم: کۆدی نییە یان ئەدمینە -> فۆڕمەکە پیشان بدە
         document.getElementById('userStatusSection').style.display = 'none';
         document.getElementById('loginFormSection').style.display = 'block';
         
-        // ڕێکخستنەوەی فۆڕمی Stealth بۆ دۆخی سەرەتایی
         document.getElementById('passwordGroup').style.display = 'none';
         document.getElementById('loginInput').value = '';
         document.getElementById('password').value = '';
@@ -338,17 +329,40 @@ window.openLoginModal = () => {
     loginModal.style.display = 'block'; 
 };
 
-window.logoutUser = () => {
-    if(confirm("دڵنیای دەتەوێت کۆدەکە لاببەیت؟ کەناڵەکان دادەخرێنەوە.")) {
-        localStorage.removeItem('maten_pro_code');
-        userSubscription = null;
-        showToast("کۆدەکە لابرا و دەرچوویت", "info");
-        loginModal.style.display = 'none';
-        renderApp(); // نوێکردنەوەی شاشە (قوفڵکردنەوە)
+// --- گرنگ: فەنکشنی دەرچوون کە کۆدەکە لە سێرڤەر ئازاد دەکات ---
+window.logoutUser = async () => {
+    if(!confirm("دڵنیای دەتەوێت کۆدەکە لاببەیت؟ دەتوانیت لە مۆبایلێکی تر بەکاری بهێنیتەوە.")) return;
+
+    // 1. کۆدەکە لە لۆکاڵ وەردەگرین
+    const savedCode = localStorage.getItem('maten_pro_code');
+
+    if (savedCode) {
+        showToast("تکایە چاوەڕێبە...", "info");
+        try {
+            // 2. دۆزینەوەی دۆکیومێنتی کۆدەکە لە فایەربەیس
+            const q = query(codesCollection, where("code", "==", savedCode));
+            const snapshot = await getDocs(q);
+
+            if (!snapshot.empty) {
+                // 3. سڕینەوەی usedBy لە سێرڤەر (کردنەوەی کۆدەکە)
+                const docRef = snapshot.docs[0].ref;
+                await updateDoc(docRef, { usedBy: null });
+                console.log("Device unlocked from server");
+            }
+        } catch (error) {
+            console.error("Error logging out from server", error);
+            showToast("کێشەی ئینتەرنێت هەیە، بەڵام دەرچوویت", "error");
+        }
     }
+
+    // 4. سڕینەوە لە مۆبایلەکە
+    localStorage.removeItem('maten_pro_code');
+    userSubscription = null;
+    showToast("بە سەرکەوتوویی دەرچوویت", "success");
+    loginModal.style.display = 'none';
+    renderApp();
 };
 
-// فۆڕمی زیرەک (Stealth Logic)
 document.getElementById('loginForm').onsubmit = async (e) => {
     e.preventDefault();
     
@@ -360,16 +374,14 @@ document.getElementById('loginForm').onsubmit = async (e) => {
     const inputVal = inputField.value.trim();
     const passVal = passwordField.value;
 
-    // 1. حاڵەتی ناسینەوەی ئەدمین: ئەگەر ئیمەیڵ نووسرا و پاسۆرد دیار نییە
     if (inputVal.includes('@') && passGroup.style.display === 'none') {
-        passGroup.style.display = 'block'; // پاسۆرد پیشان بدە
+        passGroup.style.display = 'block'; 
         passwordField.focus(); 
-        submitBtn.innerText = "چوونەژوورەوە"; // دوگمە بگۆڕە
+        submitBtn.innerText = "چوونەژوورەوە"; 
         document.getElementById('inputLabel').innerText = "ئیمەیڵی ئەدمین";
-        return; // لێرە ڕادەوەستین، چاوەڕێی پاسۆردین
+        return; 
     }
 
-    // 2. حاڵەتی چوونەژوورەوەی ئەدمین (دوای نووسینی پاسۆرد)
     if (passGroup.style.display === 'block') {
         signInWithEmailAndPassword(auth, inputVal, passVal)
             .then(() => {
@@ -378,15 +390,15 @@ document.getElementById('loginForm').onsubmit = async (e) => {
                 showToast("بەخێربێیت ئەدمین", "success");
             })
             .catch(() => { showToast("هەڵە: زانیارییەکان هەڵەن", "error"); });
-    } 
-    // 3. حاڵەتی بەکارهێنەری ئاسایی (کۆد)
-    else {
+    } else {
         await activateProCode(inputVal);
     }
 };
 
 async function activateProCode(code) {
     if (code.length < 5) { showToast("کۆدەکە زۆر کورتە", "error"); return; }
+    
+    showToast("تکایە چاوەڕێبە...", "info");
 
     const q = query(codesCollection, where("code", "==", code));
     const snapshot = await getDocs(q);
@@ -400,37 +412,41 @@ async function activateProCode(code) {
     const data = codeDoc.data();
     const now = new Date();
 
-    // Device Check
+    // --- گرنگ: پشکنینی ئامێر ---
+    // ئەگەر usedBy پڕ بێت و یەکسان نەبێت بەم مۆبایلە -> هەڵە بدە
     if (data.usedBy && data.usedBy !== deviceId) {
-        showToast("ئەم کۆدە لەسەر مۆبایلێکی تر بەکارهاتووە!", "error");
+        showToast("ئەم کۆدە لەسەر مۆبایلێکی تر ئیش دەکات! دەبێت سەرەتا لەوێ دەربچیت.", "error");
         return;
     }
 
-    // Expiry Check
     if (data.expiryDate && new Date(data.expiryDate) < now) {
         showToast("وادەی ئەم کۆدە بەسەرچووە!", "error");
         return;
     }
 
-    // Activate New Code
+    // --- کاراکردن بۆ یەکەمجار یان گواستنەوە ---
+    // ئەگەر usedBy بەتاڵ بێت (نوێ یان Logout کراوە)، ئایدی ئەم مۆبایلە دەنێرین
     if (!data.usedBy) {
-        let newExpiry = new Date();
-        if (data.duration === '1month') {
-            newExpiry.setMonth(newExpiry.getMonth() + 1);
-        } else if (data.duration === '1year') {
-            newExpiry.setFullYear(newExpiry.getFullYear() + 1);
-        } else {
-            newExpiry.setMonth(newExpiry.getMonth() + 1);
+        let newExpiry = data.expiryDate ? new Date(data.expiryDate) : new Date(); // ئەگەر پێشتر کاتی هەبوو، هەمان کات بەکاربێنە
+        
+        // ئەگەر یەکەمجارە (واتە expiryDate نییە)، کاتەکەی بۆ دابنێ
+        if (!data.expiryDate) {
+            if (data.duration === '1month') {
+                newExpiry.setMonth(newExpiry.getMonth() + 1);
+            } else if (data.duration === '1year') {
+                newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+            } else {
+                newExpiry.setMonth(newExpiry.getMonth() + 1);
+            }
         }
 
         try {
             await updateDoc(doc(db, "codes", codeDoc.id), {
-                usedBy: deviceId,
-                activatedAt: now.toISOString(),
+                usedBy: deviceId, // قوفڵکردن لەسەر ئەم مۆبایلە
+                activatedAt: data.activatedAt || now.toISOString(),
                 expiryDate: newExpiry.toISOString()
             });
             data.expiryDate = newExpiry.toISOString();
-            data.duration = data.duration;
         } catch(err) {
             console.error(err);
             showToast("کێشە لە پەیوەستبوون", "error");
@@ -440,7 +456,7 @@ async function activateProCode(code) {
 
     localStorage.setItem('maten_pro_code', code);
     userSubscription = data;
-    showToast(`پیرۆزە! بەشداریت کرد (${data.duration === '1year' ? 'ساڵانە' : 'مانگانە'})`, "success");
+    showToast(`پیرۆزە! بەشداریت کرد`, "success");
     loginModal.style.display = 'none';
     document.getElementById('loginForm').reset();
     renderApp(); 
@@ -451,7 +467,6 @@ document.getElementById('logoutBtn').onclick = () => { signOut(auth).then(() => 
 
 // UI Control
 function toggleAdminUI(show) {
-    // ئەگەر ئەدمین بوو، دوگمەی 'هەژمار' دەشارینەوە، 'دەرچوون' پیشان دەدەین
     document.getElementById('adminLoginBtn').style.display = show ? 'none' : 'flex';
     document.getElementById('logoutBtn').style.display = show ? 'flex' : 'none';
     document.getElementById('addChannelBtn').style.display = show ? 'flex' : 'none';
@@ -460,7 +475,7 @@ function toggleAdminUI(show) {
     document.getElementById('generateCodeBtn').style.display = show ? 'flex' : 'none';
 }
 
-// --- 10. GENERATE CODE (ADMIN ONLY) ---
+// --- 10. GENERATE CODE ---
 document.getElementById('generateCodeBtn').onclick = () => {
     const type = prompt("جۆری کۆدەکە چی بێت؟\n1 - بۆ یەک مانگ\n2 - بۆ یەک ساڵ");
     if (type === '1') createCode('1month');
@@ -474,7 +489,7 @@ async function createCode(duration) {
             code: randomCode,
             duration: duration,
             createdAt: new Date().toISOString(),
-            usedBy: null,
+            usedBy: null, // سەرەتا ئازادە
             expiryDate: null 
         });
         navigator.clipboard.writeText(randomCode);
@@ -501,7 +516,7 @@ document.getElementById('channelForm').onsubmit = async (e) => {
     const category = document.getElementById('channelCategory').value;
     const imgLink = document.getElementById('channelImageLink').value;
     const finalImage = imgLink.trim() !== "" ? imgLink : "https://placehold.co/200?text=TV";
-    const isPro = document.getElementById('isProChannel').checked; // وەرگرتنی Pro
+    const isPro = document.getElementById('isProChannel').checked; 
     
     if(!category) { showToast("تکایە بەشێک هەڵبژێرە", "error"); return; }
     
@@ -526,7 +541,7 @@ window.editChannel = (id) => {
     document.getElementById('channelUrl').value = ch.url; 
     document.getElementById('channelCategory').value = ch.category; 
     document.getElementById('channelImageLink').value = ch.image;
-    document.getElementById('isProChannel').checked = ch.isPro || false; // Checkbox update
+    document.getElementById('isProChannel').checked = ch.isPro || false; 
     channelModal.style.display = 'block'; 
 };
 
