@@ -10,9 +10,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <link rel="stylesheet" href="styles.css">
-
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1a365d">
 </head>
 <body>
 
@@ -28,7 +25,7 @@
         </div>
 
         <div class="header-actions">
-            <button class="icon-btn" onclick="openScores()" title="ئەنجامی یارییەکان">
+            <button id="scoreBtn" class="icon-btn" onclick="openScoreModal()" title="ئەنجامی یارییەکان">
                 <i class="fas fa-futbol"></i>
             </button>
 
@@ -87,6 +84,18 @@
                 <button type="submit">چوونەژوورەوە</button>
                 <button type="button" class="close-modal-btn close-modal">داخستن</button>
             </form>
+        </div>
+    </div>
+
+    <div id="scoreModal" class="modal" style="z-index: 2600;">
+        <div class="modal-content score-content">
+            <div class="score-header">
+                <h3>🔴 ئەنجامی یارییەکان (زیندوو)</h3>
+                <button class="close-score-btn" onclick="closeScoreModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <iframe id="scoreFrame" src="" frameborder="0" allowfullscreen></iframe>
         </div>
     </div>
 
@@ -168,43 +177,7 @@
         </div>
     </div>
 
-    <div id="scoreModal" class="modal" style="z-index: 3000;">
-        <div class="modal-content" style="width: 95%; height: 90%; max-width: none; padding: 0; overflow: hidden; background: #fff; border-radius: 12px;">
-            
-            <div style="padding: 12px; background: var(--primary-color); display: flex; justify-content: space-between; align-items: center; color: white;">
-                <span style="font-weight: bold;">ئەنجامی یارییەکان</span>
-                <button onclick="closeScores()" style="background: transparent; border: none; color: white; font-size: 20px; cursor: pointer; width: 30px; height: 30px;">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-
-            <iframe id="scoreFrame" src="" 
-                style="width: 100%; height: calc(100% - 55px); border: none;"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups">
-            </iframe>
-        </div>
-    </div>
-
     <script type="module" src="script.js"></script>
-
-    <script>
-        const scoreModal = document.getElementById('scoreModal');
-        const scoreFrame = document.getElementById('scoreFrame');
-        
-        // ئەم لینکە نوێیە و کار دەکات:
-        const scoreUrl = "https://m.azscore.com"; 
-
-        window.openScores = () => {
-            if(scoreFrame.src === "" || scoreFrame.src === "about:blank") {
-                scoreFrame.src = scoreUrl; 
-            }
-            scoreModal.style.display = "block";
-        };
-
-        window.closeScores = () => {
-            scoreModal.style.display = "none";
-        };
-    </script>
 
 </body>
 </html>
