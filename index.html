@@ -10,6 +10,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <link rel="stylesheet" href="styles.css">
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a365d">
 </head>
 <body>
 
@@ -169,7 +172,7 @@
         <div class="modal-content" style="width: 95%; height: 90%; max-width: none; padding: 0; overflow: hidden; background: #fff; border-radius: 12px;">
             
             <div style="padding: 12px; background: var(--primary-color); display: flex; justify-content: space-between; align-items: center; color: white;">
-                <span style="font-weight: bold;">ئەنجامی یارییەکان (365Scores)</span>
+                <span style="font-weight: bold;">ئەنجامی یارییەکان</span>
                 <button onclick="closeScores()" style="background: transparent; border: none; color: white; font-size: 20px; cursor: pointer; width: 30px; height: 30px;">
                     <i class="fas fa-times"></i>
                 </button>
@@ -187,10 +190,11 @@
     <script>
         const scoreModal = document.getElementById('scoreModal');
         const scoreFrame = document.getElementById('scoreFrame');
-        const scoreUrl = "https://www.365scores.com/ar"; // دەتوانیت لێرە لینکەکە بگۆڕیت (live-score یان kooora)
+        
+        // ئەم لینکە نوێیە و کار دەکات:
+        const scoreUrl = "https://m.azscore.com"; 
 
         window.openScores = () => {
-            // تەنها کاتێک لینکەکە دەکەینەوە کە دوگمەکە داگیرا (بۆ ئەوەی ئینتەرنێت نەخوات لە سەرەتاوە)
             if(scoreFrame.src === "" || scoreFrame.src === "about:blank") {
                 scoreFrame.src = scoreUrl; 
             }
