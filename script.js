@@ -54,8 +54,8 @@ const videoContainer = document.getElementById('videoContainer');
 const relatedBar = document.getElementById('relatedChannels');
 const favFilterBtn = document.getElementById('favFilterBtn');
 const categorySelect = document.getElementById('channelCategory');
-const scoreModal = document.getElementById('scoreModal'); // NEW
-const scoreFrame = document.getElementById('scoreFrame'); // NEW
+const scoreModal = document.getElementById('scoreModal'); 
+const scoreFrame = document.getElementById('scoreFrame'); 
 
 // --- 3. TOAST NOTIFICATION SYSTEM ---
 window.showToast = (msg, type = 'success') => {
@@ -313,10 +313,10 @@ function resetDragPosition() {
     videoContainer.style.transform = "none";
 }
 
-// --- 8. LIVE SCORE FUNCTIONS (NEW) ---
+// --- 8. LIVE SCORE FUNCTIONS (MODERN DESIGN) ---
 
-// Best free mobile-friendly score widget
-const SCORE_URL = "https://m.azscore.com"; 
+// ئەم لینکەم گۆڕی بۆ AiScore کە دیزاینەکەی زۆر مۆدێرن و جوانە
+const SCORE_URL = "https://m.aiscore.com"; 
 
 window.openScoreModal = () => {
     scoreFrame.src = SCORE_URL;
