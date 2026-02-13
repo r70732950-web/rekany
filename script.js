@@ -95,7 +95,6 @@ function setLocalFavorites(favArray) {
 }
 
 // --- 5. AUTHENTICATION & SUBSCRIPTION LOGIC ---
-
 async function checkLocalSubscription() {
     const savedCode = localStorage.getItem('maten_pro_code');
     if (savedCode) {
@@ -146,7 +145,18 @@ onSnapshot(categoriesCollection, (snapshot) => {
 onSnapshot(channelsCollection, (snapshot) => {
     channels = [];
     snapshot.docs.forEach(doc => { channels.push({ ...doc.data(), id: doc.id }); });
-    channels.sort((a, b) => (a.name > b.name) ? 1 : -1);
+    
+    // Sort Logic
+    channels.sort((a, b) => {
+        let orderA = (a.order !== undefined && a.order !== null && a.order !== "") ? parseInt(a.order) : 9999;
+        let orderB = (b.order !== undefined && b.order !== null && b.order !== "") ? parseInt(b.order) : 9999;
+        
+        if (orderA === orderB) {
+            return (a.name > b.name) ? 1 : -1;
+        }
+        return orderA - orderB;
+    });
+
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
 });
 
@@ -191,24 +201,107 @@ window.renderApp = (searchQuery = '') => {
     });
 };
 
+// --- UPDATED: createSectionHTML (New Button Location) ---
 function createSectionHTML(catId, catTitle, catChannels) {
     const section = document.createElement('div');
     section.className = 'category-section';
+    section.id = `section-container-${catId}`; // ID added for hiding other sections
     
     if (catChannels.length === 0) {
         section.innerHTML = `<div class="section-header" style="border-bottom:none;"><div class="section-title" style="opacity:0.6;">${catTitle} (بەتاڵ)</div></div>`;
         return section;
     }
     
+    const limit = 9; 
+    const hasMore = catChannels.length > limit;
+    
+    // Create button HTML for the header (Left Side)
+    let headerBtn = '';
+    if (hasMore) {
+        headerBtn = `
+            <button class="header-more-btn" onclick="toggleCategoryFocus('${catId}', this)" data-state="collapsed">
+                زیاتر ببینە <i class="fas fa-angle-left"></i>
+            </button>
+        `;
+    }
+
     let gridHTML = `<div class="products-container" id="grid-${catId}">`;
-    catChannels.forEach(ch => gridHTML += createCardHTML(ch));
+    
+    catChannels.forEach((ch, index) => {
+        const isExtra = index >= limit;
+        const extraClass = isExtra ? 'extra-channel' : '';
+        const extraStyle = isExtra ? 'style="display:none;"' : '';
+        gridHTML += createCardHTML(ch, extraClass, extraStyle);
+    });
+    
     gridHTML += `</div>`;
     
-    section.innerHTML = `<div class="section-header"><div class="section-title">${catTitle}</div><div class="count-badge">${catChannels.length}</div></div>${gridHTML}`;
+    // Render: Header (Title + Button) then Grid
+    section.innerHTML = `
+        <div class="section-header">
+            <div class="section-title">${catTitle}</div>
+            ${headerBtn}
+        </div>
+        ${gridHTML}
+    `;
+    
     return section;
 }
 
-function createCardHTML(ch) {
+// --- NEW FUNCTION: toggleCategoryFocus (Hides other sections) ---
+window.toggleCategoryFocus = (catId, btn) => {
+    const currentSection = document.getElementById(`section-container-${catId}`);
+    const currentGrid = document.getElementById(`grid-${catId}`);
+    const extraItems = currentGrid.querySelectorAll('.extra-channel');
+    const allSections = document.querySelectorAll('.category-section');
+    const currentState = btn.getAttribute('data-state');
+
+    if (currentState === 'collapsed') {
+        // --- ENTER FOCUS MODE ---
+        
+        // 1. Hide all OTHER sections
+        allSections.forEach(sec => {
+            if (sec.id !== `section-container-${catId}`) {
+                sec.style.display = 'none';
+            }
+        });
+
+        // 2. Show hidden channels in THIS section
+        extraItems.forEach(item => {
+            item.style.display = 'block';
+            item.style.animation = "fadeIn 0.5s";
+        });
+
+        // 3. Update Button Style & Text
+        btn.innerHTML = `گەڕانەوە <i class="fas fa-times"></i>`;
+        btn.classList.add('active-focus-btn'); // Add red style class
+        btn.setAttribute('data-state', 'expanded');
+        
+        // 4. Scroll to top for better view
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    } else {
+        // --- EXIT FOCUS MODE ---
+
+        // 1. Show ALL sections again
+        allSections.forEach(sec => {
+            sec.style.display = 'block';
+        });
+
+        // 2. Hide extra channels again
+        extraItems.forEach(item => {
+            item.style.display = 'none';
+        });
+
+        // 3. Restore Button Style
+        btn.innerHTML = `زیاتر ببینە <i class="fas fa-angle-left"></i>`;
+        btn.classList.remove('active-focus-btn');
+        btn.setAttribute('data-state', 'collapsed');
+    }
+};
+
+// --- Helper for creating cards ---
+function createCardHTML(ch, extraClass = '', extraStyle = '') {
     const isLocked = (ch.isPro === true && !isAdmin && !userSubscription);
 
     const adminControls = isAdmin ? `
@@ -230,7 +323,7 @@ function createCardHTML(ch) {
 
     const proBadge = ch.isPro ? `<span style="position:absolute; top:8px; right:8px; background:linear-gradient(45deg, #f6ad55, #ed8936); color:white; font-size:10px; padding:3px 8px; border-radius:6px; font-weight:bold; z-index:15; box-shadow:0 2px 4px rgba(0,0,0,0.2);">PRO</span>` : '';
 
-    return `<div class="product-card" onclick="${clickAction}">
+    return `<div class="product-card ${extraClass}" ${extraStyle} onclick="${clickAction}">
             ${lockOverlay}
             ${proBadge}
             <div class="fav-btn ${favClass}" onclick="toggleFavorite('${ch.id}', event)"><i class="fas fa-heart"></i></div>
@@ -238,7 +331,7 @@ function createCardHTML(ch) {
             ${adminControls}</div>`;
 }
 
-// --- 8. PLAYER LOGIC (SPEED OPTIMIZED) ---
+// --- 8. PLAYER LOGIC ---
 window.playChannel = (id) => {
     const channel = channels.find(c => c.id === id);
     if (!channel) return;
@@ -260,22 +353,14 @@ window.playChannel = (id) => {
     if (Hls.isSupported()) {
         if(window.hls) window.hls.destroy(); 
         
-        // --- Speed Optimization Config (نوێکراوە بۆ خێرایی) ---
         const hlsConfig = {
-            enableWorker: true, // بەکارهێنانی پرۆسێسەری زیادە
-            lowLatencyMode: true, // دۆخی کەمترین دواکەوتن
-            backBufferLength: 90, // پاراستنی 90 چرکە بۆ گەڕانەوە
-            
-            // ئەمە وا دەکات هەرکە لینکەکە هات دەست پێ بکات
+            enableWorker: true,
+            lowLatencyMode: true,
+            backBufferLength: 90,
             startFragPrefetch: true, 
-            
-            // ڕێکخستنی Live Stream بۆ خێرایی
-            liveSyncDurationCount: 3, // تەنها 3 پارچە لە دواوە بێت
+            liveSyncDurationCount: 3,
             liveMaxLatencyDurationCount: 10,
-            
-            // کەمکردنەوەی بافەر بۆ ئەوەی خێرا دەست پێ بکات
             maxBufferLength: 30, 
-            
             manifestLoadingTimeOut: 10000,
             manifestLoadingMaxRetry: 2,
         };
@@ -285,7 +370,6 @@ window.playChannel = (id) => {
         hls.attachMedia(videoPlayer);
         
         hls.on(Hls.Events.MANIFEST_PARSED, () => { 
-            // هەوڵدان بۆ لێدان (Play) بە خێراترین کات
             var playPromise = videoPlayer.play();
             if (playPromise !== undefined) {
                 playPromise.catch(e => console.log("Autoplay blocked/waiting"));
@@ -303,7 +387,6 @@ window.playChannel = (id) => {
         });
         window.hls = hls;
     } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-        // For Safari
         videoPlayer.src = channel.url; 
         videoPlayer.play();
         videoPlayer.onerror = () => { handleStreamError(channel); };
@@ -324,7 +407,6 @@ function handleStreamError(channel) {
 }
 
 // --- 9. STEALTH LOGIN & USER STATUS & LOGOUT ---
-
 window.openLoginModal = () => {
     if (userSubscription && !isAdmin) {
         document.getElementById('loginFormSection').style.display = 'none';
@@ -388,12 +470,10 @@ window.logoutUser = async () => {
 
 document.getElementById('loginForm').onsubmit = async (e) => {
     e.preventDefault();
-    
     const inputField = document.getElementById('loginInput');
     const passGroup = document.getElementById('passwordGroup');
     const passwordField = document.getElementById('password');
     const submitBtn = document.getElementById('submitLoginBtn');
-    
     const inputVal = inputField.value.trim();
     const passVal = passwordField.value;
 
@@ -420,7 +500,6 @@ document.getElementById('loginForm').onsubmit = async (e) => {
 
 async function activateProCode(code) {
     if (code.length < 5) { showToast("کۆدەکە زۆر کورتە", "error"); return; }
-    
     showToast("تکایە چاوەڕێبە...", "info");
 
     const q = query(codesCollection, where("code", "==", code));
@@ -447,7 +526,6 @@ async function activateProCode(code) {
 
     if (!data.usedBy) {
         let newExpiry = data.expiryDate ? new Date(data.expiryDate) : new Date(); 
-        
         if (!data.expiryDate) {
             if (data.duration === '1month') {
                 newExpiry.setMonth(newExpiry.getMonth() + 1);
@@ -457,7 +535,6 @@ async function activateProCode(code) {
                 newExpiry.setMonth(newExpiry.getMonth() + 1);
             }
         }
-
         try {
             await updateDoc(doc(db, "codes", codeDoc.id), {
                 usedBy: deviceId, 
@@ -471,7 +548,6 @@ async function activateProCode(code) {
             return;
         }
     }
-
     localStorage.setItem('maten_pro_code', code);
     userSubscription = data;
     showToast(`پیرۆزە! بەشداریت کرد`, "success");
@@ -534,10 +610,12 @@ document.getElementById('channelForm').onsubmit = async (e) => {
     const imgLink = document.getElementById('channelImageLink').value;
     const finalImage = imgLink.trim() !== "" ? imgLink : "https://placehold.co/200?text=TV";
     const isPro = document.getElementById('isProChannel').checked; 
+    const orderInput = document.getElementById('channelOrder').value;
+    const order = orderInput ? parseInt(orderInput) : 9999;
     
     if(!category) { showToast("تکایە بەشێک هەڵبژێرە", "error"); return; }
     
-    const data = { name, url, category, image: finalImage, isPro: isPro };
+    const data = { name, url, category, image: finalImage, isPro: isPro, order: order };
     
     try {
         if(editingId) {
@@ -559,6 +637,7 @@ window.editChannel = (id) => {
     document.getElementById('channelCategory').value = ch.category; 
     document.getElementById('channelImageLink').value = ch.image;
     document.getElementById('isProChannel').checked = ch.isPro || false; 
+    document.getElementById('channelOrder').value = ch.order !== undefined && ch.order !== 9999 ? ch.order : '';
     channelModal.style.display = 'block'; 
 };
 

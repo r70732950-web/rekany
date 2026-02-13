@@ -171,14 +171,53 @@ video::-webkit-media-controls-enclosure { display: none !important; }
 .category-section {
     background: var(--card-bg); margin: 15px 10px; padding: 15px; 
     border-radius: var(--card-radius); box-shadow: var(--shadow-sm);
+    transition: opacity 0.3s ease;
 }
+
 .section-header { 
-    display: flex; justify-content: space-between; align-items: center;
+    display: flex; 
+    justify-content: space-between; /* This puts title Right and button Left in RTL */
+    align-items: center;
     margin-bottom: 15px; padding-bottom: 8px; border-bottom: 1px dashed #e2e8f0;
 }
+
 .section-title { font-size: 18px; font-weight: 700; color: var(--primary-color); }
-.count-badge { background: #ebf8ff; color: #2b6cb0; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+
+/* --- NEW BUTTON STYLES (HEADER LEFT) --- */
+.header-more-btn {
+    background: rgba(49, 130, 206, 0.1);
+    color: var(--primary-color);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s ease;
+}
+
+.header-more-btn i { font-size: 14px; }
+
+.header-more-btn:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+/* Red Style for "Back" button */
+.header-more-btn.active-focus-btn {
+    background: #e53e3e;
+    color: white;
+}
+.header-more-btn.active-focus-btn:hover {
+    background: #c53030;
+}
+
+/* Grid Layout */
 .products-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 12px; }
+
 .product-card {
     position: relative; background: #fff; border-radius: 14px; 
     overflow: hidden; aspect-ratio: 1/1; box-shadow: var(--shadow-sm); border: 1px solid #edf2f7;
@@ -192,6 +231,7 @@ video::-webkit-media-controls-enclosure { display: none !important; }
     box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 10; color: #cbd5e0; transition: all 0.2s;
 }
 .fav-btn.active { color: var(--accent-color); transform: scale(1.1); }
+
 .admin-controls {
     position: absolute; bottom: 0; left: 0; width: 100%; padding: 6px; 
     background: rgba(0,0,0,0.7); backdrop-filter: blur(2px);
@@ -201,6 +241,12 @@ video::-webkit-media-controls-enclosure { display: none !important; }
 body.admin-mode .admin-controls { opacity: 1; }
 .edit-btn, .delete-btn { width: 30px; height: 30px; border-radius: 50%; border: none; color: white; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
 .edit-btn { background-color: #3182ce; } .delete-btn { background-color: #e53e3e; }
+
+/* Animation for revealing channels */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
 /* =========================================
    7. MODALS (GENERAL)
@@ -311,19 +357,19 @@ video { width: 100%; height: 100%; object-fit: contain; }
 .related-card.active { border-color: var(--accent-color); }
 .related-card img { width: 100%; height: 100%; object-fit: contain; }
 
-/* --- VIDEO LOADER (NEW) --- */
+/* --- VIDEO LOADER --- */
 .loader-overlay {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: black; /* باکگراوندی ڕەش تا ئەوەی تر دەشارێتەوە */
+    background: black; 
     display: flex; align-items: center; justify-content: center;
-    z-index: 202; /* بەرزتر لە ڤیدیۆ (0) و کلیک (201) بەڵام نزمتر لە دوگمەکان (220) */
+    z-index: 202; 
 }
 
 .spinner {
     width: 50px; height: 50px;
     border: 5px solid rgba(255, 255, 255, 0.3);
     border-radius: 50%;
-    border-top-color: var(--gold-color); /* ڕەنگی زێڕی */
+    border-top-color: var(--gold-color);
     animation: spin 1s ease-in-out infinite;
 }
 
@@ -337,7 +383,7 @@ video { width: 100%; height: 100%; object-fit: contain; }
     background: black; color: white;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    z-index: 205; /* بەرزتر لە لۆدەر (202) */
+    z-index: 205; 
     text-align: center;
 }
 .error-overlay i { font-size: 50px; color: #fc8181; margin-bottom: 20px; }
