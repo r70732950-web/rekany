@@ -106,12 +106,10 @@ async function checkLocalSubscription() {
                 const data = snapshot.docs[0].data();
                 const now = new Date();
                 
-                // مەرجەکان: دەبێت usedBy یەکسان بێت بەم مۆبایلە
                 if (data.usedBy === deviceId && new Date(data.expiryDate) > now) {
                     userSubscription = data;
                     console.log("Pro Active");
                 } else {
-                    // ئەگەر لە شوێنێکی تر داخڵ بووبێت، لێرە دەریدەکات
                     localStorage.removeItem('maten_pro_code');
                     userSubscription = null;
                 }
@@ -240,7 +238,7 @@ function createCardHTML(ch) {
             ${adminControls}</div>`;
 }
 
-// --- 8. PLAYER LOGIC ---
+// --- 8. PLAYER LOGIC (SPEED OPTIMIZED) ---
 window.playChannel = (id) => {
     const channel = channels.find(c => c.id === id);
     if (!channel) return;
@@ -261,10 +259,39 @@ window.playChannel = (id) => {
 
     if (Hls.isSupported()) {
         if(window.hls) window.hls.destroy(); 
-        const hls = new Hls({ manifestLoadingTimeOut: 5000 });
+        
+        // --- Speed Optimization Config (نوێکراوە بۆ خێرایی) ---
+        const hlsConfig = {
+            enableWorker: true, // بەکارهێنانی پرۆسێسەری زیادە
+            lowLatencyMode: true, // دۆخی کەمترین دواکەوتن
+            backBufferLength: 90, // پاراستنی 90 چرکە بۆ گەڕانەوە
+            
+            // ئەمە وا دەکات هەرکە لینکەکە هات دەست پێ بکات
+            startFragPrefetch: true, 
+            
+            // ڕێکخستنی Live Stream بۆ خێرایی
+            liveSyncDurationCount: 3, // تەنها 3 پارچە لە دواوە بێت
+            liveMaxLatencyDurationCount: 10,
+            
+            // کەمکردنەوەی بافەر بۆ ئەوەی خێرا دەست پێ بکات
+            maxBufferLength: 30, 
+            
+            manifestLoadingTimeOut: 10000,
+            manifestLoadingMaxRetry: 2,
+        };
+
+        const hls = new Hls(hlsConfig);
         hls.loadSource(channel.url); 
         hls.attachMedia(videoPlayer);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => { videoPlayer.play().catch(e=>console.log("Autoplay blocked")); });
+        
+        hls.on(Hls.Events.MANIFEST_PARSED, () => { 
+            // هەوڵدان بۆ لێدان (Play) بە خێراترین کات
+            var playPromise = videoPlayer.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(e => console.log("Autoplay blocked/waiting"));
+            }
+        });
+        
         hls.on(Hls.Events.ERROR, function (event, data) {
             if (data.fatal) {
                 switch (data.type) {
@@ -276,6 +303,7 @@ window.playChannel = (id) => {
         });
         window.hls = hls;
     } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+        // For Safari
         videoPlayer.src = channel.url; 
         videoPlayer.play();
         videoPlayer.onerror = () => { handleStreamError(channel); };
@@ -295,7 +323,7 @@ function handleStreamError(channel) {
     reportBrokenChannel(channel);
 }
 
-// --- 9. STEALTH LOGIN & USER STATUS & LOGOUT (UPDATED) ---
+// --- 9. STEALTH LOGIN & USER STATUS & LOGOUT ---
 
 window.openLoginModal = () => {
     if (userSubscription && !isAdmin) {
@@ -329,22 +357,18 @@ window.openLoginModal = () => {
     loginModal.style.display = 'block'; 
 };
 
-// --- گرنگ: فەنکشنی دەرچوون کە کۆدەکە لە سێرڤەر ئازاد دەکات ---
 window.logoutUser = async () => {
     if(!confirm("دڵنیای دەتەوێت کۆدەکە لاببەیت؟ دەتوانیت لە مۆبایلێکی تر بەکاری بهێنیتەوە.")) return;
 
-    // 1. کۆدەکە لە لۆکاڵ وەردەگرین
     const savedCode = localStorage.getItem('maten_pro_code');
 
     if (savedCode) {
         showToast("تکایە چاوەڕێبە...", "info");
         try {
-            // 2. دۆزینەوەی دۆکیومێنتی کۆدەکە لە فایەربەیس
             const q = query(codesCollection, where("code", "==", savedCode));
             const snapshot = await getDocs(q);
 
             if (!snapshot.empty) {
-                // 3. سڕینەوەی usedBy لە سێرڤەر (کردنەوەی کۆدەکە)
                 const docRef = snapshot.docs[0].ref;
                 await updateDoc(docRef, { usedBy: null });
                 console.log("Device unlocked from server");
@@ -355,7 +379,6 @@ window.logoutUser = async () => {
         }
     }
 
-    // 4. سڕینەوە لە مۆبایلەکە
     localStorage.removeItem('maten_pro_code');
     userSubscription = null;
     showToast("بە سەرکەوتوویی دەرچوویت", "success");
@@ -412,8 +435,6 @@ async function activateProCode(code) {
     const data = codeDoc.data();
     const now = new Date();
 
-    // --- گرنگ: پشکنینی ئامێر ---
-    // ئەگەر usedBy پڕ بێت و یەکسان نەبێت بەم مۆبایلە -> هەڵە بدە
     if (data.usedBy && data.usedBy !== deviceId) {
         showToast("ئەم کۆدە لەسەر مۆبایلێکی تر ئیش دەکات! دەبێت سەرەتا لەوێ دەربچیت.", "error");
         return;
@@ -424,12 +445,9 @@ async function activateProCode(code) {
         return;
     }
 
-    // --- کاراکردن بۆ یەکەمجار یان گواستنەوە ---
-    // ئەگەر usedBy بەتاڵ بێت (نوێ یان Logout کراوە)، ئایدی ئەم مۆبایلە دەنێرین
     if (!data.usedBy) {
-        let newExpiry = data.expiryDate ? new Date(data.expiryDate) : new Date(); // ئەگەر پێشتر کاتی هەبوو، هەمان کات بەکاربێنە
+        let newExpiry = data.expiryDate ? new Date(data.expiryDate) : new Date(); 
         
-        // ئەگەر یەکەمجارە (واتە expiryDate نییە)، کاتەکەی بۆ دابنێ
         if (!data.expiryDate) {
             if (data.duration === '1month') {
                 newExpiry.setMonth(newExpiry.getMonth() + 1);
@@ -442,7 +460,7 @@ async function activateProCode(code) {
 
         try {
             await updateDoc(doc(db, "codes", codeDoc.id), {
-                usedBy: deviceId, // قوفڵکردن لەسەر ئەم مۆبایلە
+                usedBy: deviceId, 
                 activatedAt: data.activatedAt || now.toISOString(),
                 expiryDate: newExpiry.toISOString()
             });
@@ -465,7 +483,6 @@ async function activateProCode(code) {
 document.getElementById('adminLoginBtn').onclick = () => openLoginModal();
 document.getElementById('logoutBtn').onclick = () => { signOut(auth).then(() => { showToast("دەرچوویت", "info"); }); };
 
-// UI Control
 function toggleAdminUI(show) {
     document.getElementById('adminLoginBtn').style.display = show ? 'none' : 'flex';
     document.getElementById('logoutBtn').style.display = show ? 'flex' : 'none';
@@ -489,7 +506,7 @@ async function createCode(duration) {
             code: randomCode,
             duration: duration,
             createdAt: new Date().toISOString(),
-            usedBy: null, // سەرەتا ئازادە
+            usedBy: null, 
             expiryDate: null 
         });
         navigator.clipboard.writeText(randomCode);
