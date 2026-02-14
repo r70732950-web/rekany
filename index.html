@@ -38,7 +38,52 @@
         </div>
     </div>
     
+    <div id="tvInterface" class="tv-interface" style="display:none;">
+        
+        <div id="tvLoader" class="tv-loader" style="display: none;">
+            <div class="spinner"></div>
+        </div>
+
+        <div id="tvSidebar" class="tv-sidebar">
+            <div class="tv-category-header">
+                <button onclick="toggleTvMode()" style="color:#fc8181; font-size:24px;" title="دەرچوون"><i class="fas fa-power-off"></i></button>
+                
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <button onclick="changeTvCategory(-1)"><i class="fas fa-chevron-right"></i></button>
+                    <span id="tvCurrentCatTitle">هەمووی</span>
+                    <button onclick="changeTvCategory(1)"><i class="fas fa-chevron-left"></i></button>
+                </div>
+            </div>
+
+            <div id="tvChannelList" class="tv-channel-list">
+                </div>
+        </div>
+
+        <div class="tv-player-area">
+            <video id="tvVideoPlayer" playsinline></video>
+            
+            <button id="tvMaximizeBtn" onclick="toggleTvList(false)" class="tv-maximize-btn">
+                <i class="fas fa-expand"></i>
+            </button>
+            
+            <div id="tvInfoBar" class="tv-info-bar">
+                <div class="tv-ch-num" id="tvBarNum">00</div>
+                <div class="tv-ch-details">
+                    <h2 id="tvBarTitle">...</h2>
+                    <span id="tvBarCat">...</span>
+                </div>
+            </div>
+
+            <div id="tvInputDisplay" class="tv-input-display"></div>
+        </div>
+    </div>
     <nav class="bottom-nav">
+        
+        <button class="nav-item" onclick="toggleTvMode()" style="color: #fc8181;">
+            <i class="fas fa-tv"></i>
+            <span>TV Mode</span>
+        </button>
+
         <button id="homeBtn" class="nav-item active-nav" onclick="goToHome()">
             <i class="fas fa-home"></i>
             <span>سەرەتا</span>

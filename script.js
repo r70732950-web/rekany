@@ -39,6 +39,17 @@ let showOnlyFavorites = false;
 let isPipMode = false;
 let currentPlayingId = null; 
 
+// --- TV MODE VARIABLES (NEW) ---
+let isTvMode = false;
+let isTvListOpen = true; // سەرەتا لیست کراوەیە
+let tvCurrentCategoryIndex = -1; // -1 means "All"
+let tvCurrentChannelIndex = 0;
+let tvFilteredChannels = [];
+let tvHls = null;
+let tvNumberInput = ""; // بۆ هەڵگرتنی ژمارەکان
+let tvInputTimer = null;
+let tvBarTimer = null;
+
 // --- DEVICE ID SETUP ---
 let deviceId = localStorage.getItem('maten_device_id');
 if (!deviceId) {
@@ -140,29 +151,28 @@ onSnapshot(categoriesCollection, (snapshot) => {
     categories.sort((a, b) => a.order - b.order);
     updateCategoryDropdown();
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
+    if(isTvMode) renderTvChannels(); 
 });
 
 onSnapshot(channelsCollection, (snapshot) => {
     channels = [];
     snapshot.docs.forEach(doc => { channels.push({ ...doc.data(), id: doc.id }); });
     
-    // Sort Logic
     channels.sort((a, b) => {
         let orderA = (a.order !== undefined && a.order !== null && a.order !== "") ? parseInt(a.order) : 9999;
         let orderB = (b.order !== undefined && b.order !== null && b.order !== "") ? parseInt(b.order) : 9999;
-        
-        if (orderA === orderB) {
-            return (a.name > b.name) ? 1 : -1;
-        }
+        if (orderA === orderB) return (a.name > b.name) ? 1 : -1;
         return orderA - orderB;
     });
 
     renderApp(document.getElementById('searchInput').value.toLowerCase().trim());
+    if(isTvMode) renderTvChannels(); 
 });
 
-// --- 7. RENDER LOGIC ---
+// --- 7. RENDER LOGIC (MOBILE/DESKTOP) ---
 window.renderApp = (searchQuery = '') => {
     if (channels.length === 0 && categories.length === 0 && !isAdmin) return;
+    if (isTvMode) return; 
     
     mainContainer.innerHTML = ''; 
     const localFavs = getLocalFavorites();
@@ -281,7 +291,6 @@ window.toggleCategoryFocus = (catId, btn) => {
 
 function createCardHTML(ch, extraClass = '', extraStyle = '') {
     const isLocked = (ch.isPro === true && !isAdmin && !userSubscription);
-
     const adminControls = isAdmin ? `
         <div class="admin-controls">
             <button class="edit-btn" onclick="event.stopPropagation(); editChannel('${ch.id}')"><i class="fas fa-pen"></i></button>
@@ -298,7 +307,6 @@ function createCardHTML(ch, extraClass = '', extraStyle = '') {
             <span style="font-size:12px; font-weight:bold;">VIP</span>
         </div>
     ` : '';
-
     const proBadge = ch.isPro ? `<span style="position:absolute; top:8px; right:8px; background:linear-gradient(45deg, #f6ad55, #ed8936); color:white; font-size:10px; padding:3px 8px; border-radius:6px; font-weight:bold; z-index:15; box-shadow:0 2px 4px rgba(0,0,0,0.2);">PRO</span>` : '';
 
     return `<div class="product-card ${extraClass}" ${extraStyle} onclick="${clickAction}">
@@ -309,7 +317,7 @@ function createCardHTML(ch, extraClass = '', extraStyle = '') {
             ${adminControls}</div>`;
 }
 
-// --- 8. PLAYER LOGIC ---
+// --- 8. MOBILE PLAYER LOGIC ---
 window.playChannel = (id) => {
     const channel = channels.find(c => c.id === id);
     if (!channel) return;
@@ -330,37 +338,13 @@ window.playChannel = (id) => {
 
     if (Hls.isSupported()) {
         if(window.hls) window.hls.destroy(); 
-        
-        const hlsConfig = {
-            enableWorker: true,
-            lowLatencyMode: true,
-            backBufferLength: 90,
-            startFragPrefetch: true, 
-            liveSyncDurationCount: 3,
-            liveMaxLatencyDurationCount: 10,
-            maxBufferLength: 30, 
-            manifestLoadingTimeOut: 10000,
-            manifestLoadingMaxRetry: 2,
-        };
-
-        const hls = new Hls(hlsConfig);
+        const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
         hls.loadSource(channel.url); 
         hls.attachMedia(videoPlayer);
-        
-        hls.on(Hls.Events.MANIFEST_PARSED, () => { 
-            var playPromise = videoPlayer.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(e => console.log("Autoplay blocked/waiting"));
-            }
-        });
-        
+        hls.on(Hls.Events.MANIFEST_PARSED, () => videoPlayer.play().catch(e=>console.log(e)));
         hls.on(Hls.Events.ERROR, function (event, data) {
             if (data.fatal) {
-                switch (data.type) {
-                    case Hls.ErrorTypes.NETWORK_ERROR: handleStreamError(channel); break;
-                    case Hls.ErrorTypes.MEDIA_ERROR: hls.recoverMediaError(); handleStreamError(channel); break;
-                    default: hls.destroy(); handleStreamError(channel); break;
-                }
+                hls.destroy(); handleStreamError(channel);
             }
         });
         window.hls = hls;
@@ -394,8 +378,7 @@ window.openLoginModal = () => {
         document.getElementById('expiryDateDisplay').innerText = expDate.toLocaleDateString('en-GB'); 
         
         const today = new Date();
-        const diffTime = expDate - today;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24)); 
         
         if (diffDays > 0) {
             document.getElementById('daysLeftDisplay').innerText = `( ${diffDays} ڕۆژی ماوە )`;
@@ -406,39 +389,28 @@ window.openLoginModal = () => {
     } else {
         document.getElementById('userStatusSection').style.display = 'none';
         document.getElementById('loginFormSection').style.display = 'block';
-        
         document.getElementById('passwordGroup').style.display = 'none';
         document.getElementById('loginInput').value = '';
         document.getElementById('password').value = '';
         document.getElementById('submitLoginBtn').innerText = "ناردن";
         document.getElementById('inputLabel').innerText = "کۆدی کاراکردن";
     }
-    
     loginModal.style.display = 'block'; 
 };
 
 window.logoutUser = async () => {
-    if(!confirm("دڵنیای دەتەوێت کۆدەکە لاببەیت؟ دەتوانیت لە مۆبایلێکی تر بەکاری بهێنیتەوە.")) return;
-
+    if(!confirm("دڵنیای دەتەوێت کۆدەکە لاببەیت؟")) return;
     const savedCode = localStorage.getItem('maten_pro_code');
-
     if (savedCode) {
-        showToast("تکایە چاوەڕێبە...", "info");
         try {
             const q = query(codesCollection, where("code", "==", savedCode));
             const snapshot = await getDocs(q);
-
             if (!snapshot.empty) {
                 const docRef = snapshot.docs[0].ref;
                 await updateDoc(docRef, { usedBy: null });
-                console.log("Device unlocked from server");
             }
-        } catch (error) {
-            console.error("Error logging out from server", error);
-            showToast("کێشەی ئینتەرنێت هەیە، بەڵام دەرچوویت", "error");
-        }
+        } catch (error) { console.error(error); }
     }
-
     localStorage.removeItem('maten_pro_code');
     userSubscription = null;
     showToast("بە سەرکەوتوویی دەرچوویت", "success");
@@ -483,35 +455,21 @@ async function activateProCode(code) {
     const q = query(codesCollection, where("code", "==", code));
     const snapshot = await getDocs(q);
 
-    if (snapshot.empty) {
-        showToast("ئەم کۆدە هەڵەیە!", "error");
-        return;
-    }
+    if (snapshot.empty) { showToast("ئەم کۆدە هەڵەیە!", "error"); return; }
 
     const codeDoc = snapshot.docs[0];
     const data = codeDoc.data();
     const now = new Date();
 
-    if (data.usedBy && data.usedBy !== deviceId) {
-        showToast("ئەم کۆدە لەسەر مۆبایلێکی تر ئیش دەکات! دەبێت سەرەتا لەوێ دەربچیت.", "error");
-        return;
-    }
-
-    if (data.expiryDate && new Date(data.expiryDate) < now) {
-        showToast("وادەی ئەم کۆدە بەسەرچووە!", "error");
-        return;
-    }
+    if (data.usedBy && data.usedBy !== deviceId) { showToast("ئەم کۆدە بەکارهاتووە!", "error"); return; }
+    if (data.expiryDate && new Date(data.expiryDate) < now) { showToast("وادەی ئەم کۆدە بەسەرچووە!", "error"); return; }
 
     if (!data.usedBy) {
         let newExpiry = data.expiryDate ? new Date(data.expiryDate) : new Date(); 
         if (!data.expiryDate) {
-            if (data.duration === '1month') {
-                newExpiry.setMonth(newExpiry.getMonth() + 1);
-            } else if (data.duration === '1year') {
-                newExpiry.setFullYear(newExpiry.getFullYear() + 1);
-            } else {
-                newExpiry.setMonth(newExpiry.getMonth() + 1);
-            }
+            if (data.duration === '1month') newExpiry.setMonth(newExpiry.getMonth() + 1);
+            else if (data.duration === '1year') newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+            else newExpiry.setMonth(newExpiry.getMonth() + 1);
         }
         try {
             await updateDoc(doc(db, "codes", codeDoc.id), {
@@ -520,11 +478,7 @@ async function activateProCode(code) {
                 expiryDate: newExpiry.toISOString()
             });
             data.expiryDate = newExpiry.toISOString();
-        } catch(err) {
-            console.error(err);
-            showToast("کێشە لە پەیوەستبوون", "error");
-            return;
-        }
+        } catch(err) { showToast("کێشە لە پەیوەستبوون", "error"); return; }
     }
     localStorage.setItem('maten_pro_code', code);
     userSubscription = data;
@@ -557,21 +511,14 @@ async function createCode(duration) {
     const randomCode = Math.floor(1000000000 + Math.random() * 9000000000).toString();
     try {
         await addDoc(codesCollection, {
-            code: randomCode,
-            duration: duration,
-            createdAt: new Date().toISOString(),
-            usedBy: null, 
-            expiryDate: null 
+            code: randomCode, duration: duration, createdAt: new Date().toISOString(), usedBy: null, expiryDate: null 
         });
         navigator.clipboard.writeText(randomCode);
         alert(`کۆد دروستکرا و کۆپی کرا:\nCode: ${randomCode}\nDuration: ${duration}`);
-    } catch (e) {
-        console.error(e);
-        showToast("کێشە هەیە", "error");
-    }
+    } catch (e) { console.error(e); showToast("کێشە هەیە", "error"); }
 }
 
-// --- 11. FORM HANDLING (Smart Auto-Reorder Logic) ---
+// --- 11. FORM HANDLING (CRUD) ---
 document.getElementById('addChannelBtn').onclick = () => { 
     if(categories.length === 0) { showToast("سەرەتا دەبێت بەش زیاد بکەیت!", "error"); return; }
     editingId = null; 
@@ -592,76 +539,19 @@ document.getElementById('channelForm').onsubmit = async (e) => {
     let newOrder = orderInput ? parseInt(orderInput) : 9999;
     
     if(!category) { showToast("تکایە بەشێک هەڵبژێرە", "error"); return; }
-    
     showToast("تکایە چاوەڕێبە...", "info");
 
     try {
         const batch = writeBatch(db); 
-
-        // 1. Editing an existing channel
         if (editingId) {
-            const oldChannel = channels.find(c => c.id === editingId);
-            const oldOrder = oldChannel && oldChannel.order !== undefined ? parseInt(oldChannel.order) : 9999;
-            const oldCategory = oldChannel ? oldChannel.category : category;
-
-            // If only the order changed
-            if (newOrder !== oldOrder && newOrder !== 9999) {
-                // Moving UP (e.g., 13 -> 1): Shift intermediate items DOWN (+1)
-                if (newOrder < oldOrder) {
-                    const shiftingChannels = channels.filter(c => 
-                        c.category === category && 
-                        c.id !== editingId && 
-                        c.order >= newOrder && 
-                        c.order < oldOrder
-                    );
-                    shiftingChannels.forEach(ch => {
-                        const ref = doc(db, "channels", ch.id);
-                        batch.update(ref, { order: parseInt(ch.order) + 1 });
-                    });
-                } 
-                // Moving DOWN (e.g., 1 -> 13): Shift intermediate items UP (-1)
-                else if (newOrder > oldOrder) {
-                    const shiftingChannels = channels.filter(c => 
-                        c.category === category && 
-                        c.id !== editingId && 
-                        c.order > oldOrder && 
-                        c.order <= newOrder
-                    );
-                    shiftingChannels.forEach(ch => {
-                        const ref = doc(db, "channels", ch.id);
-                        batch.update(ref, { order: parseInt(ch.order) - 1 });
-                    });
-                }
-            }
-        } 
-        // 2. Adding a New Channel
-        else {
-            if (newOrder !== 9999) {
-                // Shift everything at or below this position DOWN (+1)
-                const shiftingChannels = channels.filter(c => 
-                    c.category === category && 
-                    c.order >= newOrder
-                );
-                shiftingChannels.forEach(ch => {
-                    const ref = doc(db, "channels", ch.id);
-                    batch.update(ref, { order: parseInt(ch.order) + 1 });
-                });
-            }
-        }
-
-        const data = { name, url, category, image: finalImage, isPro: isPro, order: newOrder };
-
-        if(editingId) {
             const docRef = doc(db, "channels", editingId);
-            batch.update(docRef, data);
+            batch.update(docRef, { name, url, category, image: finalImage, isPro: isPro, order: newOrder });
             await batch.commit(); 
             showToast("کەناڵەکە نوێکرایەوە", "success");
         } else { 
-            await batch.commit(); // Fix orders first
-            await addDoc(channelsCollection, data); // Then add new
+            await addDoc(channelsCollection, { name, url, category, image: finalImage, isPro: isPro, order: newOrder });
             showToast("کەناڵی نوێ زیادکرا", "success"); 
         }
-        
         channelModal.style.display = 'none';
     } catch(err) { console.error(err); showToast("کێشەیەک ڕوویدا", "error"); }
 };
@@ -750,44 +640,24 @@ function updateCategoryDropdown() {
 window.togglePipMode = () => { isPipMode = !isPipMode; if(isPipMode){ playerModal.classList.add('pip-active'); videoContainer.classList.add('pip-mode'); addDragListeners(); } else { playerModal.classList.remove('pip-active'); videoContainer.classList.remove('pip-mode'); resetDragPosition(); removeDragListeners(); } };
 window.triggerOverlay = () => { videoContainer.classList.add('ui-visible'); clearTimeout(overlayTimer); overlayTimer = setTimeout(() => { videoContainer.classList.remove('ui-visible'); }, 4000); };
 
-// --- 13. FULLSCREEN & ROTATION LOGIC (UPDATED) ---
+// --- 13. FULLSCREEN & ROTATION LOGIC ---
 window.toggleFullScreen = async () => { 
     if(isPipMode){ togglePipMode(); return; } 
     const elem = videoContainer; 
-
     if (!document.fullscreenElement) {
-        // Request Fullscreen
-        try {
-            await (elem.requestFullscreen || elem.webkitRequestFullscreen).call(elem);
-            // Lock Landscape
-            if (screen.orientation && screen.orientation.lock) {
-                await screen.orientation.lock('landscape').catch(e => console.log('Rotation lock not supported/allowed'));
-            }
+        try { await (elem.requestFullscreen || elem.webkitRequestFullscreen).call(elem);
+            if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape').catch(e => console.log('Rotation lock not supported'));
         } catch (err) { console.log(err); }
     } else {
-        // Exit Fullscreen
         if (document.exitFullscreen) document.exitFullscreen();
-        // Unlock Rotation
-        if (screen.orientation && screen.orientation.unlock) {
-            screen.orientation.unlock();
-        }
+        if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
     } 
 };
 
 window.closePlayer = () => { 
-    if(document.fullscreenElement) {
-        document.exitFullscreen();
-        if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
-    }
-    if(isPipMode){ 
-        isPipMode=false; 
-        videoContainer.classList.remove('pip-mode'); 
-        playerModal.classList.remove('pip-active'); 
-        resetDragPosition(); 
-    } 
-    playerModal.style.display = 'none'; 
-    videoPlayer.pause(); 
-    if(window.hls) window.hls.destroy(); 
+    if(document.fullscreenElement) { document.exitFullscreen(); if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); }
+    if(isPipMode){ isPipMode=false; videoContainer.classList.remove('pip-mode'); playerModal.classList.remove('pip-active'); resetDragPosition(); } 
+    playerModal.style.display = 'none'; videoPlayer.pause(); if(window.hls) window.hls.destroy(); 
 };
 
 function addDragListeners() { videoContainer.addEventListener("touchstart", dragStart, {passive:false}); videoContainer.addEventListener("touchend", dragEnd, {passive:false}); videoContainer.addEventListener("touchmove", drag, {passive:false}); videoContainer.addEventListener("mousedown", dragStart); videoContainer.addEventListener("mouseup", dragEnd); videoContainer.addEventListener("mousemove", drag); }
@@ -798,11 +668,9 @@ function drag(e) { if (isDragging) { e.preventDefault(); if (e.type === "touchmo
 function setTranslate(xPos, yPos, el) { el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`; }
 function resetDragPosition() { xOffset = 0; yOffset = 0; videoContainer.style.transform = "none"; }
 
-// --- 14. RELATED CHANNELS (Auto-Scroll Updated) ---
 function renderRelated(current) { 
     relatedBar.innerHTML = ''; 
     const relatedList = channels.filter(c => c.category === current.category);
-    
     relatedList.forEach(ch => { 
         const div = document.createElement('div'); 
         const isActive = ch.id === current.id;
@@ -810,12 +678,266 @@ function renderRelated(current) {
         div.onclick = (e) => { e.stopPropagation(); playChannel(ch.id); }; 
         div.innerHTML = `<img src="${ch.image}">`; 
         relatedBar.appendChild(div); 
-        
-        // Auto Scroll Logic
-        if (isActive) {
-            setTimeout(() => {
-                div.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-            }, 300);
-        }
+        if (isActive) setTimeout(() => { div.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); }, 300);
     }); 
 }
+
+// =========================================
+// 14. TV MODE LOGIC (UPDATED & REFACTORED)
+// =========================================
+
+// 1. Toggle TV Mode
+window.toggleTvMode = () => {
+    const tvUI = document.getElementById('tvInterface');
+    const mainUI = document.getElementById('mainContainer');
+    const appHeader = document.querySelector('.app-header');
+    const bottomNav = document.querySelector('.bottom-nav');
+    const fab = document.getElementById('addChannelBtn');
+
+    isTvMode = !isTvMode;
+
+    if (isTvMode) {
+        tvUI.style.display = 'flex';
+        mainUI.style.display = 'none';
+        appHeader.style.display = 'none';
+        bottomNav.style.display = 'none';
+        if(fab) fab.style.display = 'none';
+        document.body.style.overflow = 'hidden';
+        
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(e => console.log(e));
+        }
+
+        renderTvChannels();
+        toggleTvList(true); // Open list initially
+        document.addEventListener('keydown', handleTvRemote);
+    } else {
+        tvUI.style.display = 'none';
+        mainUI.style.display = 'block';
+        appHeader.style.display = 'flex';
+        bottomNav.style.display = 'flex';
+        if(fab && isAdmin) fab.style.display = 'flex';
+        document.body.style.overflow = 'auto';
+        
+        if (document.exitFullscreen) document.exitFullscreen();
+        
+        const v = document.getElementById('tvVideoPlayer');
+        v.pause(); v.src = "";
+        if(tvHls) tvHls.destroy();
+
+        document.removeEventListener('keydown', handleTvRemote);
+    }
+};
+
+// 2. Toggle List Visibility (Used by new Maximize Btn)
+window.toggleTvList = (show) => {
+    isTvListOpen = show;
+    const sidebar = document.getElementById('tvSidebar');
+    if (show) {
+        sidebar.classList.add('visible');
+        highlightTvChannel(tvCurrentChannelIndex);
+    } else {
+        sidebar.classList.remove('visible');
+    }
+}
+
+// 3. Remote Control Logic
+function handleTvRemote(e) {
+    if (!isTvMode) return;
+    if([37, 38, 39, 40, 13].indexOf(e.keyCode) > -1) e.preventDefault();
+
+    // Number Keys (0-9)
+    if (e.key >= '0' && e.key <= '9') {
+        handleNumberInput(e.key);
+        return;
+    }
+
+    switch(e.key) {
+        case 'ArrowUp': 
+            if (isTvListOpen) {
+                if (tvCurrentChannelIndex > 0) {
+                    tvCurrentChannelIndex--;
+                    highlightTvChannel(tvCurrentChannelIndex);
+                }
+            } else {
+                changeChannelRelative(-1); // Zap Up
+            }
+            break;
+
+        case 'ArrowDown': 
+            if (isTvListOpen) {
+                if (tvCurrentChannelIndex < tvFilteredChannels.length - 1) {
+                    tvCurrentChannelIndex++;
+                    highlightTvChannel(tvCurrentChannelIndex);
+                }
+            } else {
+                changeChannelRelative(1); // Zap Down
+            }
+            break;
+
+        case 'ArrowRight': 
+            if (isTvListOpen) changeTvCategory(1);
+            break;
+            
+        case 'ArrowLeft': 
+            if (isTvListOpen) changeTvCategory(-1);
+            break;
+
+        case 'Enter': 
+            if (isTvListOpen) {
+                playTvChannel(tvCurrentChannelIndex);
+                toggleTvList(false);
+            } else {
+                toggleTvList(true); // Open list if closed
+            }
+            break;
+
+        case 'Backspace':
+        case 'Escape':
+        case 'Back': 
+            if (!isTvListOpen) {
+                toggleTvList(true);
+            } else {
+                toggleTvMode(); // Exit
+            }
+            break;
+    }
+}
+
+function handleNumberInput(num) {
+    clearTimeout(tvInputTimer);
+    tvNumberInput += num;
+    
+    const display = document.getElementById('tvInputDisplay');
+    display.innerText = tvNumberInput;
+    display.style.display = 'block';
+
+    tvInputTimer = setTimeout(() => {
+        display.style.display = 'none';
+        const channelNum = parseInt(tvNumberInput);
+        if (channelNum > 0 && channelNum <= tvFilteredChannels.length) {
+            tvCurrentChannelIndex = channelNum - 1;
+            playTvChannel(tvCurrentChannelIndex);
+            if(isTvListOpen) toggleTvList(false);
+        } else {
+            showToast("کەناڵ نەدۆزرایەوە", "error");
+        }
+        tvNumberInput = "";
+    }, 1500);
+}
+
+function changeChannelRelative(step) {
+    let newIndex = tvCurrentChannelIndex + step;
+    if (newIndex < 0) newIndex = tvFilteredChannels.length - 1;
+    if (newIndex >= tvFilteredChannels.length) newIndex = 0;
+    
+    tvCurrentChannelIndex = newIndex;
+    playTvChannel(tvCurrentChannelIndex);
+}
+
+// 4. Play TV Channel
+function playTvChannel(index) {
+    const channel = tvFilteredChannels[index];
+    if (!channel) return;
+
+    if (channel.isPro && !isAdmin && !userSubscription) {
+        showToast("ئەم کەناڵە VIPـیە", "error");
+        return;
+    }
+
+    const loader = document.getElementById('tvLoader');
+    loader.style.display = 'flex'; 
+
+    const video = document.getElementById('tvVideoPlayer');
+    
+    video.onwaiting = () => { loader.style.display = 'flex'; };
+    video.onplaying = () => { loader.style.display = 'none'; };
+
+    showTvInfoBar(channel, index + 1);
+
+    if (Hls.isSupported()) {
+        if (tvHls) tvHls.destroy();
+        tvHls = new Hls();
+        tvHls.loadSource(channel.url);
+        tvHls.attachMedia(video);
+        tvHls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(e=>console.log(e)));
+        tvHls.on(Hls.Events.ERROR, () => { loader.style.display = 'none'; });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = channel.url;
+        video.play().catch(e=>console.log(e));
+    }
+}
+
+function showTvInfoBar(channel, num) {
+    const bar = document.getElementById('tvInfoBar');
+    document.getElementById('tvBarTitle').innerText = channel.name;
+    document.getElementById('tvBarNum').innerText = num < 10 ? '0'+num : num;
+    const catName = categories.find(c => c.id === channel.category)?.title || "گشتی";
+    document.getElementById('tvBarCat').innerText = catName;
+
+    bar.classList.add('show');
+    clearTimeout(tvBarTimer);
+    tvBarTimer = setTimeout(() => { bar.classList.remove('show'); }, 4000);
+}
+
+// 5. Render TV List (Single Click: Play, Double Click: Fullscreen)
+function renderTvChannels() {
+    const listContainer = document.getElementById('tvChannelList');
+    listContainer.innerHTML = '';
+
+    if (tvCurrentCategoryIndex === -1) {
+        tvFilteredChannels = channels;
+        document.getElementById('tvCurrentCatTitle').innerText = "هەموو کەناڵەکان";
+    } else {
+        const catId = categories[tvCurrentCategoryIndex].id;
+        tvFilteredChannels = channels.filter(c => c.category === catId);
+        document.getElementById('tvCurrentCatTitle').innerText = categories[tvCurrentCategoryIndex].title;
+    }
+
+    tvFilteredChannels.forEach((ch, index) => {
+        const item = document.createElement('div');
+        item.className = 'tv-channel-item';
+        item.id = `tv-ch-${index}`;
+        item.innerHTML = `
+            <span class="num">${index + 1}</span>
+            <span class="name">${ch.name}</span>
+            ${ch.isPro ? '<i class="fas fa-lock" style="color:gold;"></i>' : ''}
+        `;
+        
+        // Single Click: Play Only (Keep list open)
+        item.onclick = () => {
+            tvCurrentChannelIndex = index;
+            playTvChannel(index);
+            highlightTvChannel(index);
+        };
+
+        // Double Click: Play + Fullscreen (Close list)
+        item.ondblclick = () => {
+            tvCurrentChannelIndex = index;
+            playTvChannel(index);
+            toggleTvList(false);
+        };
+
+        listContainer.appendChild(item);
+    });
+    
+    if(tvCurrentChannelIndex >= tvFilteredChannels.length) tvCurrentChannelIndex = 0;
+    highlightTvChannel(tvCurrentChannelIndex);
+}
+
+function highlightTvChannel(index) {
+    document.querySelectorAll('.tv-channel-item').forEach(el => el.classList.remove('focused'));
+    const target = document.getElementById(`tv-ch-${index}`);
+    if (target) {
+        target.classList.add('focused');
+        target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+}
+
+window.changeTvCategory = (direction) => {
+    if (categories.length === 0) return;
+    tvCurrentCategoryIndex += direction;
+    if (tvCurrentCategoryIndex < -1) tvCurrentCategoryIndex = categories.length - 1;
+    if (tvCurrentCategoryIndex >= categories.length) tvCurrentCategoryIndex = -1;
+    renderTvChannels();
+};
