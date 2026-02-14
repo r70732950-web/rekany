@@ -776,18 +776,20 @@ function handleTvRemote(e) {
         case 'Enter':
         case 'Ok': // Remote OK button
             if (isTvListOpen) {
-                // If list is OPEN -> Play Channel & Close List
-                playTvChannel(tvCurrentChannelIndex);
-                toggleTvList(false);
-            } else {
-                // If list is CLOSED -> Toggle Play/Pause
-                if (video.paused) {
-                    video.play();
-                    showToast("▶ Play", "info");
+                // If list is OPEN:
+                // Check if we are selecting the ALREADY playing channel
+                const selectedChannel = tvFilteredChannels[tvCurrentChannelIndex];
+                
+                if (currentPlayingId === selectedChannel.id) {
+                     // If already playing, pressing Enter again closes the list
+                    toggleTvList(false);
                 } else {
-                    video.pause();
-                    showToast("⏸ Pause", "info");
+                    // If it's a new channel, just Play it (keep list open)
+                    playTvChannel(tvCurrentChannelIndex);
                 }
+            } else {
+                // If list is CLOSED -> Open it (don't pause)
+                toggleTvList(true);
             }
             break;
 
@@ -878,6 +880,9 @@ function playTvChannel(index) {
         showToast("ئەم کەناڵە VIPـیە", "error");
         return;
     }
+
+    // Set the current playing ID so we can check it in handleTvRemote
+    currentPlayingId = channel.id;
 
     const loader = document.getElementById('tvLoader');
     loader.style.display = 'flex'; 
