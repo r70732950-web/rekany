@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { 
     getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, setDoc,
-    query, where, getDocs, writeBatch, orderBy
+    query, where, getDocs, writeBatch 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { 
     getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged 
@@ -204,7 +204,7 @@ window.renderApp = (searchQuery = '') => {
 function createSectionHTML(catId, catTitle, catChannels) {
     const section = document.createElement('div');
     section.className = 'category-section';
-    section.id = `section-container-${catId}`;
+    section.id = `section-container-${catId}`; 
     
     if (catChannels.length === 0) {
         section.innerHTML = `<div class="section-header" style="border-bottom:none;"><div class="section-title" style="opacity:0.6;">${catTitle} (بەتاڵ)</div></div>`;
@@ -258,26 +258,21 @@ window.toggleCategoryFocus = (catId, btn) => {
                 sec.style.display = 'none';
             }
         });
-
         extraItems.forEach(item => {
             item.style.display = 'block';
             item.style.animation = "fadeIn 0.5s";
         });
-
         btn.innerHTML = `گەڕانەوە <i class="fas fa-times"></i>`;
         btn.classList.add('active-focus-btn');
         btn.setAttribute('data-state', 'expanded');
         window.scrollTo({ top: 0, behavior: 'smooth' });
-
     } else {
         allSections.forEach(sec => {
             sec.style.display = 'block';
         });
-
         extraItems.forEach(item => {
             item.style.display = 'none';
         });
-
         btn.innerHTML = `زیاتر ببینە <i class="fas fa-angle-left"></i>`;
         btn.classList.remove('active-focus-btn');
         btn.setAttribute('data-state', 'collapsed');
@@ -374,7 +369,6 @@ window.playChannel = (id) => {
         videoPlayer.play();
         videoPlayer.onerror = () => { handleStreamError(channel); };
     }
-    
     renderRelated(channel); 
     triggerOverlay();
 };
@@ -577,7 +571,7 @@ async function createCode(duration) {
     }
 }
 
-// --- 11. FORM HANDLING (UPDATED FOR AUTO INCREMENT) ---
+// --- 11. FORM HANDLING (Auto-Increment Updated) ---
 document.getElementById('addChannelBtn').onclick = () => { 
     if(categories.length === 0) { showToast("سەرەتا دەبێت بەش زیاد بکەیت!", "error"); return; }
     editingId = null; 
@@ -595,50 +589,49 @@ document.getElementById('channelForm').onsubmit = async (e) => {
     const finalImage = imgLink.trim() !== "" ? imgLink : "https://placehold.co/200?text=TV";
     const isPro = document.getElementById('isProChannel').checked; 
     const orderInput = document.getElementById('channelOrder').value;
-    let order = orderInput ? parseInt(orderInput) : 9999;
+    let newOrder = orderInput ? parseInt(orderInput) : 9999;
     
     if(!category) { showToast("تکایە بەشێک هەڵبژێرە", "error"); return; }
     
     showToast("تکایە چاوەڕێبە...", "info");
 
     try {
-        // --- Auto Increment Logic ---
-        if (orderInput && order !== 9999) {
-            const q = query(
-                channelsCollection, 
-                where("category", "==", category),
-                where("order", ">=", order)
-            );
-            const snapshot = await getDocs(q);
+        const batch = writeBatch(db); // Create a batch for atomic updates
+
+        // Check for order conflict if an order is specified
+        if (newOrder !== 9999) {
+            // Find existing channels with order >= newOrder
+            const conflictingChannels = channels.filter(c => c.order >= newOrder && c.id !== editingId);
             
-            if (!snapshot.empty) {
-                const batch = writeBatch(db);
-                snapshot.docs.forEach(doc => {
-                    if (editingId && doc.id === editingId) return;
-                    const currentData = doc.data();
-                    const newOrderVal = (currentData.order || 0) + 1;
-                    batch.update(doc.ref, { order: newOrderVal });
-                });
-                await batch.commit();
-                console.log("ڕیزبەندی نوێکرایەوە");
-            }
+            // Sort them ascending
+            conflictingChannels.sort((a, b) => a.order - b.order);
+
+            // Shift channels down
+            let tempOrder = newOrder;
+            conflictingChannels.forEach(ch => {
+                if (ch.order === tempOrder) {
+                    const chRef = doc(db, "channels", ch.id);
+                    batch.update(chRef, { order: tempOrder + 1 });
+                    tempOrder++;
+                }
+            });
         }
 
-        const data = { name, url, category, image: finalImage, isPro: isPro, order: order };
+        const data = { name, url, category, image: finalImage, isPro: isPro, order: newOrder };
 
         if(editingId) {
-            await updateDoc(doc(db, "channels", editingId), data); 
+            const docRef = doc(db, "channels", editingId);
+            batch.update(docRef, data);
+            await batch.commit(); // Execute batch
             showToast("کەناڵەکە نوێکرایەوە", "success");
         } else { 
+            await batch.commit(); // Execute batch for reordering first
             await addDoc(channelsCollection, data); 
             showToast("کەناڵی نوێ زیادکرا", "success"); 
         }
-        channelModal.style.display = 'none';
         
-    } catch(err) { 
-        console.error(err); 
-        showToast("کێشەیەک ڕوویدا", "error"); 
-    }
+        channelModal.style.display = 'none';
+    } catch(err) { console.error(err); showToast("کێشەیەک ڕوویدا", "error"); }
 };
 
 window.editChannel = (id) => { 
@@ -725,36 +718,45 @@ function updateCategoryDropdown() {
 window.togglePipMode = () => { isPipMode = !isPipMode; if(isPipMode){ playerModal.classList.add('pip-active'); videoContainer.classList.add('pip-mode'); addDragListeners(); } else { playerModal.classList.remove('pip-active'); videoContainer.classList.remove('pip-mode'); resetDragPosition(); removeDragListeners(); } };
 window.triggerOverlay = () => { videoContainer.classList.add('ui-visible'); clearTimeout(overlayTimer); overlayTimer = setTimeout(() => { videoContainer.classList.remove('ui-visible'); }, 4000); };
 
-// --- FULLSCREEN & ORIENTATION FIX ---
-window.toggleFullScreen = async () => {
-    if (isPipMode) { togglePipMode(); return; }
-    
-    const elem = videoContainer;
+// --- 13. FULLSCREEN & ROTATION LOGIC (UPDATED) ---
+window.toggleFullScreen = async () => { 
+    if(isPipMode){ togglePipMode(); return; } 
+    const elem = videoContainer; 
 
     if (!document.fullscreenElement) {
-        // کردنەوەی فول سکرین
+        // Request Fullscreen
         try {
-            if (elem.requestFullscreen) await elem.requestFullscreen();
-            else if (elem.webkitRequestFullscreen) await elem.webkitRequestFullscreen();
-            
-            // هەوڵدان بۆ قفڵکردنی شاشە لەسەر لای پەنا (Landscape)
+            await (elem.requestFullscreen || elem.webkitRequestFullscreen).call(elem);
+            // Lock Landscape
             if (screen.orientation && screen.orientation.lock) {
-                await screen.orientation.lock('landscape').catch(e => console.log(e));
+                await screen.orientation.lock('landscape').catch(e => console.log('Rotation lock not supported/allowed'));
             }
         } catch (err) { console.log(err); }
     } else {
-        // داخستنی فول سکرین
-        if (document.exitFullscreen) await document.exitFullscreen();
-        else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
-
-        // گەڕانەوە بۆ شێوەی ئاسایی (Portrait)
+        // Exit Fullscreen
+        if (document.exitFullscreen) document.exitFullscreen();
+        // Unlock Rotation
         if (screen.orientation && screen.orientation.unlock) {
             screen.orientation.unlock();
         }
-    }
+    } 
 };
 
-window.closePlayer = () => { if(document.fullscreenElement) document.exitFullscreen(); if(isPipMode){ isPipMode=false; videoContainer.classList.remove('pip-mode'); playerModal.classList.remove('pip-active'); resetDragPosition(); } playerModal.style.display = 'none'; videoPlayer.pause(); if(window.hls) window.hls.destroy(); };
+window.closePlayer = () => { 
+    if(document.fullscreenElement) {
+        document.exitFullscreen();
+        if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+    }
+    if(isPipMode){ 
+        isPipMode=false; 
+        videoContainer.classList.remove('pip-mode'); 
+        playerModal.classList.remove('pip-active'); 
+        resetDragPosition(); 
+    } 
+    playerModal.style.display = 'none'; 
+    videoPlayer.pause(); 
+    if(window.hls) window.hls.destroy(); 
+};
 
 function addDragListeners() { videoContainer.addEventListener("touchstart", dragStart, {passive:false}); videoContainer.addEventListener("touchend", dragEnd, {passive:false}); videoContainer.addEventListener("touchmove", drag, {passive:false}); videoContainer.addEventListener("mousedown", dragStart); videoContainer.addEventListener("mouseup", dragEnd); videoContainer.addEventListener("mousemove", drag); }
 function removeDragListeners() { videoContainer.removeEventListener("touchstart", dragStart); videoContainer.removeEventListener("touchend", dragEnd); videoContainer.removeEventListener("touchmove", drag); videoContainer.removeEventListener("mousedown", dragStart); videoContainer.removeEventListener("mouseup", dragEnd); videoContainer.removeEventListener("mousemove", drag); }
@@ -764,36 +766,24 @@ function drag(e) { if (isDragging) { e.preventDefault(); if (e.type === "touchmo
 function setTranslate(xPos, yPos, el) { el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`; }
 function resetDragPosition() { xOffset = 0; yOffset = 0; videoContainer.style.transform = "none"; }
 
-// --- RENDER RELATED (AUTO SCROLL FIX) ---
-function renderRelated(current) {
-    relatedBar.innerHTML = '';
-    const relatedChannels = channels.filter(c => c.category === current.category);
-
-    relatedChannels.forEach(ch => {
-        const div = document.createElement('div');
-        div.id = `rel-${ch.id}`;
-        div.className = `related-card ${ch.id === current.id ? 'active' : ''}`;
+// --- 14. RELATED CHANNELS (Auto-Scroll Updated) ---
+function renderRelated(current) { 
+    relatedBar.innerHTML = ''; 
+    const relatedList = channels.filter(c => c.category === current.category);
+    
+    relatedList.forEach(ch => { 
+        const div = document.createElement('div'); 
+        const isActive = ch.id === current.id;
+        div.className = `related-card ${isActive ? 'active' : ''}`; 
+        div.onclick = (e) => { e.stopPropagation(); playChannel(ch.id); }; 
+        div.innerHTML = `<img src="${ch.image}">`; 
+        relatedBar.appendChild(div); 
         
-        div.onclick = (e) => {
-            e.stopPropagation();
-            playChannel(ch.id);
-        };
-        
-        const imgUrl = ch.image && ch.image.trim() !== "" ? ch.image : "https://placehold.co/200?text=TV";
-        div.innerHTML = `<img src="${imgUrl}" loading="lazy" onerror="this.src='https://placehold.co/200?text=Error'">`;
-        
-        relatedBar.appendChild(div);
-    });
-
-    // Auto Scroll Logic
-    setTimeout(() => {
-        const activeCard = document.getElementById(`rel-${current.id}`);
-        if (activeCard) {
-            activeCard.scrollIntoView({
-                behavior: 'smooth',
-                block: 'nearest',
-                inline: 'center'
-            });
+        // Auto Scroll Logic
+        if (isActive) {
+            setTimeout(() => {
+                div.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }, 300);
         }
-    }, 100);
+    }); 
 }
