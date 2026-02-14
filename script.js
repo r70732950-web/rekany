@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { 
     getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot, setDoc,
-    query, where, getDocs 
+    query, where, getDocs, writeBatch, orderBy
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { 
     getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged 
@@ -201,11 +201,10 @@ window.renderApp = (searchQuery = '') => {
     });
 };
 
-// --- UPDATED: createSectionHTML (New Button Location) ---
 function createSectionHTML(catId, catTitle, catChannels) {
     const section = document.createElement('div');
     section.className = 'category-section';
-    section.id = `section-container-${catId}`; // ID added for hiding other sections
+    section.id = `section-container-${catId}`;
     
     if (catChannels.length === 0) {
         section.innerHTML = `<div class="section-header" style="border-bottom:none;"><div class="section-title" style="opacity:0.6;">${catTitle} (بەتاڵ)</div></div>`;
@@ -215,7 +214,6 @@ function createSectionHTML(catId, catTitle, catChannels) {
     const limit = 9; 
     const hasMore = catChannels.length > limit;
     
-    // Create button HTML for the header (Left Side)
     let headerBtn = '';
     if (hasMore) {
         headerBtn = `
@@ -236,7 +234,6 @@ function createSectionHTML(catId, catTitle, catChannels) {
     
     gridHTML += `</div>`;
     
-    // Render: Header (Title + Button) then Grid
     section.innerHTML = `
         <div class="section-header">
             <div class="section-title">${catTitle}</div>
@@ -248,7 +245,6 @@ function createSectionHTML(catId, catTitle, catChannels) {
     return section;
 }
 
-// --- NEW FUNCTION: toggleCategoryFocus (Hides other sections) ---
 window.toggleCategoryFocus = (catId, btn) => {
     const currentSection = document.getElementById(`section-container-${catId}`);
     const currentGrid = document.getElementById(`grid-${catId}`);
@@ -257,50 +253,37 @@ window.toggleCategoryFocus = (catId, btn) => {
     const currentState = btn.getAttribute('data-state');
 
     if (currentState === 'collapsed') {
-        // --- ENTER FOCUS MODE ---
-        
-        // 1. Hide all OTHER sections
         allSections.forEach(sec => {
             if (sec.id !== `section-container-${catId}`) {
                 sec.style.display = 'none';
             }
         });
 
-        // 2. Show hidden channels in THIS section
         extraItems.forEach(item => {
             item.style.display = 'block';
             item.style.animation = "fadeIn 0.5s";
         });
 
-        // 3. Update Button Style & Text
         btn.innerHTML = `گەڕانەوە <i class="fas fa-times"></i>`;
-        btn.classList.add('active-focus-btn'); // Add red style class
+        btn.classList.add('active-focus-btn');
         btn.setAttribute('data-state', 'expanded');
-        
-        // 4. Scroll to top for better view
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
     } else {
-        // --- EXIT FOCUS MODE ---
-
-        // 1. Show ALL sections again
         allSections.forEach(sec => {
             sec.style.display = 'block';
         });
 
-        // 2. Hide extra channels again
         extraItems.forEach(item => {
             item.style.display = 'none';
         });
 
-        // 3. Restore Button Style
         btn.innerHTML = `زیاتر ببینە <i class="fas fa-angle-left"></i>`;
         btn.classList.remove('active-focus-btn');
         btn.setAttribute('data-state', 'collapsed');
     }
 };
 
-// --- Helper for creating cards ---
 function createCardHTML(ch, extraClass = '', extraStyle = '') {
     const isLocked = (ch.isPro === true && !isAdmin && !userSubscription);
 
@@ -391,6 +374,7 @@ window.playChannel = (id) => {
         videoPlayer.play();
         videoPlayer.onerror = () => { handleStreamError(channel); };
     }
+    
     renderRelated(channel); 
     triggerOverlay();
 };
@@ -593,7 +577,7 @@ async function createCode(duration) {
     }
 }
 
-// --- 11. FORM HANDLING ---
+// --- 11. FORM HANDLING (UPDATED FOR AUTO INCREMENT) ---
 document.getElementById('addChannelBtn').onclick = () => { 
     if(categories.length === 0) { showToast("سەرەتا دەبێت بەش زیاد بکەیت!", "error"); return; }
     editingId = null; 
@@ -611,13 +595,37 @@ document.getElementById('channelForm').onsubmit = async (e) => {
     const finalImage = imgLink.trim() !== "" ? imgLink : "https://placehold.co/200?text=TV";
     const isPro = document.getElementById('isProChannel').checked; 
     const orderInput = document.getElementById('channelOrder').value;
-    const order = orderInput ? parseInt(orderInput) : 9999;
+    let order = orderInput ? parseInt(orderInput) : 9999;
     
     if(!category) { showToast("تکایە بەشێک هەڵبژێرە", "error"); return; }
     
-    const data = { name, url, category, image: finalImage, isPro: isPro, order: order };
-    
+    showToast("تکایە چاوەڕێبە...", "info");
+
     try {
+        // --- Auto Increment Logic ---
+        if (orderInput && order !== 9999) {
+            const q = query(
+                channelsCollection, 
+                where("category", "==", category),
+                where("order", ">=", order)
+            );
+            const snapshot = await getDocs(q);
+            
+            if (!snapshot.empty) {
+                const batch = writeBatch(db);
+                snapshot.docs.forEach(doc => {
+                    if (editingId && doc.id === editingId) return;
+                    const currentData = doc.data();
+                    const newOrderVal = (currentData.order || 0) + 1;
+                    batch.update(doc.ref, { order: newOrderVal });
+                });
+                await batch.commit();
+                console.log("ڕیزبەندی نوێکرایەوە");
+            }
+        }
+
+        const data = { name, url, category, image: finalImage, isPro: isPro, order: order };
+
         if(editingId) {
             await updateDoc(doc(db, "channels", editingId), data); 
             showToast("کەناڵەکە نوێکرایەوە", "success");
@@ -626,7 +634,11 @@ document.getElementById('channelForm').onsubmit = async (e) => {
             showToast("کەناڵی نوێ زیادکرا", "success"); 
         }
         channelModal.style.display = 'none';
-    } catch(err) { console.error(err); showToast("کێشەیەک ڕوویدا", "error"); }
+        
+    } catch(err) { 
+        console.error(err); 
+        showToast("کێشەیەک ڕوویدا", "error"); 
+    }
 };
 
 window.editChannel = (id) => { 
@@ -712,7 +724,36 @@ function updateCategoryDropdown() {
 
 window.togglePipMode = () => { isPipMode = !isPipMode; if(isPipMode){ playerModal.classList.add('pip-active'); videoContainer.classList.add('pip-mode'); addDragListeners(); } else { playerModal.classList.remove('pip-active'); videoContainer.classList.remove('pip-mode'); resetDragPosition(); removeDragListeners(); } };
 window.triggerOverlay = () => { videoContainer.classList.add('ui-visible'); clearTimeout(overlayTimer); overlayTimer = setTimeout(() => { videoContainer.classList.remove('ui-visible'); }, 4000); };
-window.toggleFullScreen = () => { if(isPipMode){togglePipMode(); return;} const elem = videoContainer; (!document.fullscreenElement) ? (elem.requestFullscreen||elem.webkitRequestFullscreen).call(elem) : document.exitFullscreen(); };
+
+// --- FULLSCREEN & ORIENTATION FIX ---
+window.toggleFullScreen = async () => {
+    if (isPipMode) { togglePipMode(); return; }
+    
+    const elem = videoContainer;
+
+    if (!document.fullscreenElement) {
+        // کردنەوەی فول سکرین
+        try {
+            if (elem.requestFullscreen) await elem.requestFullscreen();
+            else if (elem.webkitRequestFullscreen) await elem.webkitRequestFullscreen();
+            
+            // هەوڵدان بۆ قفڵکردنی شاشە لەسەر لای پەنا (Landscape)
+            if (screen.orientation && screen.orientation.lock) {
+                await screen.orientation.lock('landscape').catch(e => console.log(e));
+            }
+        } catch (err) { console.log(err); }
+    } else {
+        // داخستنی فول سکرین
+        if (document.exitFullscreen) await document.exitFullscreen();
+        else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
+
+        // گەڕانەوە بۆ شێوەی ئاسایی (Portrait)
+        if (screen.orientation && screen.orientation.unlock) {
+            screen.orientation.unlock();
+        }
+    }
+};
+
 window.closePlayer = () => { if(document.fullscreenElement) document.exitFullscreen(); if(isPipMode){ isPipMode=false; videoContainer.classList.remove('pip-mode'); playerModal.classList.remove('pip-active'); resetDragPosition(); } playerModal.style.display = 'none'; videoPlayer.pause(); if(window.hls) window.hls.destroy(); };
 
 function addDragListeners() { videoContainer.addEventListener("touchstart", dragStart, {passive:false}); videoContainer.addEventListener("touchend", dragEnd, {passive:false}); videoContainer.addEventListener("touchmove", drag, {passive:false}); videoContainer.addEventListener("mousedown", dragStart); videoContainer.addEventListener("mouseup", dragEnd); videoContainer.addEventListener("mousemove", drag); }
@@ -722,4 +763,37 @@ function dragEnd(e) { initialX = currentX; initialY = currentY; isDragging = fal
 function drag(e) { if (isDragging) { e.preventDefault(); if (e.type === "touchmove") { currentX = e.touches[0].clientX - initialX; currentY = e.touches[0].clientY - initialY; } else { currentX = e.clientX - initialX; currentY = e.clientY - initialY; } xOffset = currentX; yOffset = currentY; setTranslate(currentX, currentY, videoContainer); } }
 function setTranslate(xPos, yPos, el) { el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`; }
 function resetDragPosition() { xOffset = 0; yOffset = 0; videoContainer.style.transform = "none"; }
-function renderRelated(current) { relatedBar.innerHTML = ''; channels.filter(c => c.category === current.category).forEach(ch => { const div = document.createElement('div'); div.className = `related-card ${ch.id === current.id ? 'active' : ''}`; div.onclick = (e) => { e.stopPropagation(); playChannel(ch.id); }; div.innerHTML = `<img src="${ch.image}">`; relatedBar.appendChild(div); }); }
+
+// --- RENDER RELATED (AUTO SCROLL FIX) ---
+function renderRelated(current) {
+    relatedBar.innerHTML = '';
+    const relatedChannels = channels.filter(c => c.category === current.category);
+
+    relatedChannels.forEach(ch => {
+        const div = document.createElement('div');
+        div.id = `rel-${ch.id}`;
+        div.className = `related-card ${ch.id === current.id ? 'active' : ''}`;
+        
+        div.onclick = (e) => {
+            e.stopPropagation();
+            playChannel(ch.id);
+        };
+        
+        const imgUrl = ch.image && ch.image.trim() !== "" ? ch.image : "https://placehold.co/200?text=TV";
+        div.innerHTML = `<img src="${imgUrl}" loading="lazy" onerror="this.src='https://placehold.co/200?text=Error'">`;
+        
+        relatedBar.appendChild(div);
+    });
+
+    // Auto Scroll Logic
+    setTimeout(() => {
+        const activeCard = document.getElementById(`rel-${current.id}`);
+        if (activeCard) {
+            activeCard.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center'
+            });
+        }
+    }, 100);
+}
