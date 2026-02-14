@@ -39,16 +39,20 @@ let showOnlyFavorites = false;
 let isPipMode = false;
 let currentPlayingId = null; 
 
-// --- TV MODE VARIABLES (NEW) ---
+// --- TV MODE VARIABLES ---
 let isTvMode = false;
-let isTvListOpen = true; // سەرەتا لیست کراوەیە
+let isTvListOpen = true; 
 let tvCurrentCategoryIndex = -1; // -1 means "All"
 let tvCurrentChannelIndex = 0;
 let tvFilteredChannels = [];
 let tvHls = null;
-let tvNumberInput = ""; // بۆ هەڵگرتنی ژمارەکان
+let tvNumberInput = ""; 
 let tvInputTimer = null;
 let tvBarTimer = null;
+
+// --- TOUCH VARIABLES ---
+let touchStartX = 0;
+let touchStartY = 0;
 
 // --- DEVICE ID SETUP ---
 let deviceId = localStorage.getItem('maten_device_id');
@@ -318,7 +322,10 @@ function createCardHTML(ch, extraClass = '', extraStyle = '') {
 }
 
 // --- 8. MOBILE PLAYER LOGIC ---
+const originalPlayChannel = window.playChannel;
 window.playChannel = (id) => {
+    window.history.pushState({ page: 'player' }, '', '#player');
+    
     const channel = channels.find(c => c.id === id);
     if (!channel) return;
     
@@ -683,11 +690,15 @@ function renderRelated(current) {
 }
 
 // =========================================
-// 14. TV MODE LOGIC (UPDATED & REFACTORED)
+// 14. TV MODE LOGIC (REMOTE + MOUSE FRIENDLY)
 // =========================================
 
 // 1. Toggle TV Mode
 window.toggleTvMode = () => {
+    if (!isTvMode) {
+        window.history.pushState({ page: 'tv' }, '', '#tv');
+    }
+
     const tvUI = document.getElementById('tvInterface');
     const mainUI = document.getElementById('mainContainer');
     const appHeader = document.querySelector('.app-header');
@@ -704,13 +715,15 @@ window.toggleTvMode = () => {
         if(fab) fab.style.display = 'none';
         document.body.style.overflow = 'hidden';
         
+        // Try Fullscreen
         if (document.documentElement.requestFullscreen) {
             document.documentElement.requestFullscreen().catch(e => console.log(e));
         }
 
         renderTvChannels();
-        toggleTvList(true); // Open list initially
+        toggleTvList(true); 
         document.addEventListener('keydown', handleTvRemote);
+        addSwipeListeners(); 
     } else {
         tvUI.style.display = 'none';
         mainUI.style.display = 'block';
@@ -726,10 +739,11 @@ window.toggleTvMode = () => {
         if(tvHls) tvHls.destroy();
 
         document.removeEventListener('keydown', handleTvRemote);
+        removeSwipeListeners(); 
     }
 };
 
-// 2. Toggle List Visibility (Used by new Maximize Btn)
+// 2. Toggle List Visibility
 window.toggleTvList = (show) => {
     isTvListOpen = show;
     const sidebar = document.getElementById('tvSidebar');
@@ -744,15 +758,39 @@ window.toggleTvList = (show) => {
 // 3. Remote Control Logic
 function handleTvRemote(e) {
     if (!isTvMode) return;
-    if([37, 38, 39, 40, 13].indexOf(e.keyCode) > -1) e.preventDefault();
+    
+    // Prevent default scrolling for remote keys
+    if([37, 38, 39, 40, 13, 10009, 461].indexOf(e.keyCode) > -1) {
+        e.preventDefault(); 
+    }
 
-    // Number Keys (0-9)
+    // Number Inputs
     if (e.key >= '0' && e.key <= '9') {
         handleNumberInput(e.key);
         return;
     }
 
+    const video = document.getElementById('tvVideoPlayer');
+
     switch(e.key) {
+        case 'Enter':
+        case 'Ok': // Remote OK button
+            if (isTvListOpen) {
+                // If list is OPEN -> Play Channel & Close List
+                playTvChannel(tvCurrentChannelIndex);
+                toggleTvList(false);
+            } else {
+                // If list is CLOSED -> Toggle Play/Pause
+                if (video.paused) {
+                    video.play();
+                    showToast("▶ Play", "info");
+                } else {
+                    video.pause();
+                    showToast("⏸ Pause", "info");
+                }
+            }
+            break;
+
         case 'ArrowUp': 
             if (isTvListOpen) {
                 if (tvCurrentChannelIndex > 0) {
@@ -783,22 +821,18 @@ function handleTvRemote(e) {
             if (isTvListOpen) changeTvCategory(-1);
             break;
 
-        case 'Enter': 
-            if (isTvListOpen) {
-                playTvChannel(tvCurrentChannelIndex);
-                toggleTvList(false);
-            } else {
-                toggleTvList(true); // Open list if closed
-            }
-            break;
-
         case 'Backspace':
         case 'Escape':
         case 'Back': 
+        case 'BrowserBack':
             if (!isTvListOpen) {
+                // If list is closed -> Open it
                 toggleTvList(true);
             } else {
-                toggleTvMode(); // Exit
+                // If list is open -> Exit TV Mode?
+                if(confirm("دەتەوێت لە TV Mode دەربچیت؟")) {
+                     toggleTvMode(); 
+                }
             }
             break;
     }
@@ -880,7 +914,7 @@ function showTvInfoBar(channel, num) {
     tvBarTimer = setTimeout(() => { bar.classList.remove('show'); }, 4000);
 }
 
-// 5. Render TV List (Single Click: Play, Double Click: Fullscreen)
+// 5. Render TV List (Mouse Hover = Focus, Click = Play)
 function renderTvChannels() {
     const listContainer = document.getElementById('tvChannelList');
     listContainer.innerHTML = '';
@@ -904,14 +938,22 @@ function renderTvChannels() {
             ${ch.isPro ? '<i class="fas fa-lock" style="color:gold;"></i>' : ''}
         `;
         
-        // Single Click: Play Only (Keep list open)
+        // 1. Mouse Click / Air Mouse OK: Play
         item.onclick = () => {
             tvCurrentChannelIndex = index;
             playTvChannel(index);
             highlightTvChannel(index);
         };
 
-        // Double Click: Play + Fullscreen (Close list)
+        // 2. Mouse Hover: Update Focus ONLY (No Play)
+        item.onmouseenter = () => {
+            tvCurrentChannelIndex = index;
+            // Manual visual update to avoid scrolling issues
+            document.querySelectorAll('.tv-channel-item').forEach(el => el.classList.remove('focused'));
+            item.classList.add('focused');
+        };
+
+        // 3. Double Click: Fullscreen
         item.ondblclick = () => {
             tvCurrentChannelIndex = index;
             playTvChannel(index);
@@ -922,6 +964,8 @@ function renderTvChannels() {
     });
     
     if(tvCurrentChannelIndex >= tvFilteredChannels.length) tvCurrentChannelIndex = 0;
+    
+    // Initial highlight
     highlightTvChannel(tvCurrentChannelIndex);
 }
 
@@ -940,4 +984,106 @@ window.changeTvCategory = (direction) => {
     if (tvCurrentCategoryIndex < -1) tvCurrentCategoryIndex = categories.length - 1;
     if (tvCurrentCategoryIndex >= categories.length) tvCurrentCategoryIndex = -1;
     renderTvChannels();
+};
+
+// =========================================
+// 15. MOBILE TOUCH & SWIPE HANDLERS
+// =========================================
+
+function addSwipeListeners() {
+    const zone = document.getElementById('tvInterface');
+    zone.addEventListener('touchstart', handleTouchStart, {passive: true});
+    zone.addEventListener('touchend', handleTouchEnd, {passive: true});
+}
+
+function removeSwipeListeners() {
+    const zone = document.getElementById('tvInterface');
+    zone.removeEventListener('touchstart', handleTouchStart);
+    zone.removeEventListener('touchend', handleTouchEnd);
+}
+
+function handleTouchStart(evt) {
+    touchStartX = evt.changedTouches[0].screenX;
+    touchStartY = evt.changedTouches[0].screenY;
+}
+
+function handleTouchEnd(evt) {
+    let touchEndX = evt.changedTouches[0].screenX;
+    let touchEndY = evt.changedTouches[0].screenY;
+    handleSwipeGesture(touchStartX, touchStartY, touchEndX, touchEndY);
+}
+
+function handleSwipeGesture(startX, startY, endX, endY) {
+    let xDiff = endX - startX;
+    let yDiff = endY - startY;
+
+    // Horizontal Swipe (Open/Close List)
+    if (Math.abs(xDiff) > Math.abs(yDiff)) {
+        if (Math.abs(xDiff) > 50) { // Threshold
+            if (xDiff > 0) {
+                // Right Swipe -> Close List
+                toggleTvList(false);
+            } else {
+                // Left Swipe -> Open List
+                toggleTvList(true);
+            }
+        }
+    } 
+    // Vertical Swipe (Change Channel)
+    else {
+        if (!isTvListOpen && Math.abs(yDiff) > 50) {
+            if (yDiff > 0) {
+                // Swipe Down -> Prev Channel
+                changeChannelRelative(-1);
+            } else {
+                // Swipe Up -> Next Channel
+                changeChannelRelative(1);
+            }
+        }
+    }
+}
+
+// =========================================
+// 16. HISTORY & BACK BUTTON HANDLING
+// =========================================
+
+// Initialize state
+window.history.pushState({ page: 'home' }, '', '');
+
+window.onpopstate = function(event) {
+    // 1. If TV Mode is open
+    if (isTvMode) {
+        // Close TV mode manually
+        const tvUI = document.getElementById('tvInterface');
+        const mainUI = document.getElementById('mainContainer');
+        const appHeader = document.querySelector('.app-header');
+        const bottomNav = document.querySelector('.bottom-nav');
+        
+        isTvMode = false;
+        tvUI.style.display = 'none';
+        mainUI.style.display = 'block';
+        appHeader.style.display = 'flex';
+        bottomNav.style.display = 'flex';
+        document.body.style.overflow = 'auto';
+        
+        if (document.exitFullscreen) document.exitFullscreen();
+        
+        const v = document.getElementById('tvVideoPlayer');
+        v.pause(); v.src = "";
+        if(tvHls) tvHls.destroy();
+
+        document.removeEventListener('keydown', handleTvRemote);
+        removeSwipeListeners();
+        
+        // Push 'home' state back so next back press works correctly
+        window.history.pushState({ page: 'home' }, '', '');
+        return;
+    }
+
+    // 2. If Regular Player is open
+    if (document.getElementById('playerModal').style.display === 'block') {
+        closePlayer();
+        window.history.pushState({ page: 'home' }, '', '');
+        return;
+    }
 };
