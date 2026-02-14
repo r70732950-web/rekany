@@ -571,7 +571,7 @@ async function createCode(duration) {
     }
 }
 
-// --- 11. FORM HANDLING (Auto-Increment Updated) ---
+// --- 11. FORM HANDLING (Smart Auto-Reorder Logic) ---
 document.getElementById('addChannelBtn').onclick = () => { 
     if(categories.length === 0) { showToast("سەرەتا دەبێت بەش زیاد بکەیت!", "error"); return; }
     editingId = null; 
@@ -596,25 +596,57 @@ document.getElementById('channelForm').onsubmit = async (e) => {
     showToast("تکایە چاوەڕێبە...", "info");
 
     try {
-        const batch = writeBatch(db); // Create a batch for atomic updates
+        const batch = writeBatch(db); 
 
-        // Check for order conflict if an order is specified
-        if (newOrder !== 9999) {
-            // Find existing channels with order >= newOrder
-            const conflictingChannels = channels.filter(c => c.order >= newOrder && c.id !== editingId);
-            
-            // Sort them ascending
-            conflictingChannels.sort((a, b) => a.order - b.order);
+        // 1. Editing an existing channel
+        if (editingId) {
+            const oldChannel = channels.find(c => c.id === editingId);
+            const oldOrder = oldChannel && oldChannel.order !== undefined ? parseInt(oldChannel.order) : 9999;
+            const oldCategory = oldChannel ? oldChannel.category : category;
 
-            // Shift channels down
-            let tempOrder = newOrder;
-            conflictingChannels.forEach(ch => {
-                if (ch.order === tempOrder) {
-                    const chRef = doc(db, "channels", ch.id);
-                    batch.update(chRef, { order: tempOrder + 1 });
-                    tempOrder++;
+            // If only the order changed
+            if (newOrder !== oldOrder && newOrder !== 9999) {
+                // Moving UP (e.g., 13 -> 1): Shift intermediate items DOWN (+1)
+                if (newOrder < oldOrder) {
+                    const shiftingChannels = channels.filter(c => 
+                        c.category === category && 
+                        c.id !== editingId && 
+                        c.order >= newOrder && 
+                        c.order < oldOrder
+                    );
+                    shiftingChannels.forEach(ch => {
+                        const ref = doc(db, "channels", ch.id);
+                        batch.update(ref, { order: parseInt(ch.order) + 1 });
+                    });
+                } 
+                // Moving DOWN (e.g., 1 -> 13): Shift intermediate items UP (-1)
+                else if (newOrder > oldOrder) {
+                    const shiftingChannels = channels.filter(c => 
+                        c.category === category && 
+                        c.id !== editingId && 
+                        c.order > oldOrder && 
+                        c.order <= newOrder
+                    );
+                    shiftingChannels.forEach(ch => {
+                        const ref = doc(db, "channels", ch.id);
+                        batch.update(ref, { order: parseInt(ch.order) - 1 });
+                    });
                 }
-            });
+            }
+        } 
+        // 2. Adding a New Channel
+        else {
+            if (newOrder !== 9999) {
+                // Shift everything at or below this position DOWN (+1)
+                const shiftingChannels = channels.filter(c => 
+                    c.category === category && 
+                    c.order >= newOrder
+                );
+                shiftingChannels.forEach(ch => {
+                    const ref = doc(db, "channels", ch.id);
+                    batch.update(ref, { order: parseInt(ch.order) + 1 });
+                });
+            }
         }
 
         const data = { name, url, category, image: finalImage, isPro: isPro, order: newOrder };
@@ -622,11 +654,11 @@ document.getElementById('channelForm').onsubmit = async (e) => {
         if(editingId) {
             const docRef = doc(db, "channels", editingId);
             batch.update(docRef, data);
-            await batch.commit(); // Execute batch
+            await batch.commit(); 
             showToast("کەناڵەکە نوێکرایەوە", "success");
         } else { 
-            await batch.commit(); // Execute batch for reordering first
-            await addDoc(channelsCollection, data); 
+            await batch.commit(); // Fix orders first
+            await addDoc(channelsCollection, data); // Then add new
             showToast("کەناڵی نوێ زیادکرا", "success"); 
         }
         
