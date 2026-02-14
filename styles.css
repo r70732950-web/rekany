@@ -17,8 +17,7 @@
     --card-bg: #ffffff;
     --card-radius: 16px;
     --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
-    --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
-    --nav-height: 65px; /* بەرزی هێڵی خوارەوە */
+    --nav-height: 65px;
 }
 
 /* =========================================
@@ -36,6 +35,7 @@ body {
     direction: rtl; 
     padding-bottom: calc(var(--nav-height) + 20px); 
     overflow-x: hidden;
+    user-select: none; /* ڕێگری لە دیاریکردنی دەق */
 }
 
 /* Hide Default Video Controls */
@@ -71,7 +71,7 @@ video::-webkit-media-controls-enclosure { display: none !important; }
     width: 100%; padding: 8px 40px 8px 15px; border-radius: 25px;
     border: none; background: rgba(255,255,255,0.15); 
     color: white; font-size: 14px; outline: none;
-    transition: all 0.3s ease; backdrop-filter: blur(5px);
+    transition: all 0.3s ease; 
 }
 .header-search input::placeholder { color: rgba(255,255,255,0.7); }
 .header-search input:focus { background: rgba(255,255,255,0.25); box-shadow: 0 0 0 2px rgba(255,255,255,0.2); }
@@ -82,54 +82,34 @@ video::-webkit-media-controls-enclosure { display: none !important; }
    ========================================= */
 .bottom-nav {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: var(--nav-height);
+    bottom: 0; left: 0; width: 100%; height: var(--nav-height);
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
+    display: flex; justify-content: space-around; align-items: center;
     box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
     z-index: 900; 
     padding-bottom: env(safe-area-inset-bottom);
-    border-top: none;
 }
 
 .nav-item {
-    background: none;
-    border: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    background: none; border: none;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
     color: rgba(255, 255, 255, 0.6);
-    font-size: 10px;
-    font-weight: bold;
-    gap: 4px;
-    width: 100%;
-    height: 100%;
-    cursor: pointer;
+    font-size: 10px; font-weight: bold; gap: 4px;
+    width: 100%; height: 100%; cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .nav-item i { font-size: 20px; margin-bottom: 2px; transition: transform 0.2s; }
 .nav-item:active { transform: scale(0.95); }
-.nav-item:hover { color: #ffffff; }
 .nav-item.active-nav { color: #ffffff; opacity: 1; }
 .nav-item.active-nav i { transform: scale(1.1); }
-.nav-item.active-filter { 
-    color: var(--gold-color);
-    text-shadow: 0 0 10px rgba(246, 173, 85, 0.4);
-}
-.nav-item.active-filter i { transform: scale(1.1); }
+.nav-item.active-filter { color: var(--gold-color); text-shadow: 0 0 10px rgba(246, 173, 85, 0.4); }
 
 /* =========================================
    5. TOAST & SKELETON
    ========================================= */
 #toast-box {
-    position: fixed; bottom: 100px;
-    left: 50%; transform: translateX(-50%);
+    position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
     display: flex; flex-direction: column; gap: 10px; z-index: 3000;
     width: 90%; max-width: 350px; pointer-events: none;
 }
@@ -156,7 +136,7 @@ video::-webkit-media-controls-enclosure { display: none !important; }
 .skeleton-text { height: 20px; width: 60%; margin: 10px auto; }
 
 /* =========================================
-   6. CARDS & SECTIONS (MOBILE GRID)
+   6. CARDS & SECTIONS
    ========================================= */
 .category-section {
     background: var(--card-bg); margin: 15px 10px; padding: 15px; 
@@ -176,7 +156,6 @@ video::-webkit-media-controls-enclosure { display: none !important; }
     cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.3s ease;
 }
 .header-more-btn:hover { background: var(--primary-color); color: white; }
-.header-more-btn.active-focus-btn { background: #e53e3e; color: white; }
 
 .products-container { 
     display: grid; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 8px; 
@@ -199,8 +178,7 @@ video::-webkit-media-controls-enclosure { display: none !important; }
 
 .admin-controls {
     position: absolute; bottom: 0; left: 0; width: 100%; padding: 6px; 
-    background: rgba(0,0,0,0.7); backdrop-filter: blur(2px);
-    display: flex; justify-content: center; gap: 10px; opacity: 0; transition: opacity 0.2s;
+    background: rgba(0,0,0,0.7); display: flex; justify-content: center; gap: 10px; opacity: 0; transition: opacity 0.2s;
 }
 .product-card:hover .admin-controls, body.admin-mode .admin-controls { opacity: 1; }
 .edit-btn, .delete-btn { width: 30px; height: 30px; border-radius: 50%; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
@@ -209,8 +187,8 @@ video::-webkit-media-controls-enclosure { display: none !important; }
 /* =========================================
    7. MODALS
    ========================================= */
-.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; backdrop-filter: blur(5px); }
-.modal-content { background: white; margin: 15% auto; padding: 25px; border-radius: 24px; width: 90%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: slideInUp 0.3s; }
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; }
+.modal-content { background: white; margin: 15% auto; padding: 25px; border-radius: 24px; width: 90%; max-width: 400px; animation: slideInUp 0.3s; }
 @keyframes slideInUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
 .form-group { margin-bottom: 16px; }
@@ -230,9 +208,9 @@ button[type="submit"] { width: 100%; padding: 14px; background: var(--primary-co
 .fix-btn { background: #48bb78; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
 
 /* =========================================
-   8. MOBILE VIDEO PLAYER
+   8. MOBILE VIDEO PLAYER & PIP
    ========================================= */
-#playerModal.pip-active { background: transparent !important; backdrop-filter: none !important; pointer-events: none !important; width: 0 !important; height: 0 !important; }
+#playerModal.pip-active { background: transparent !important; pointer-events: none !important; width: 0 !important; height: 0 !important; }
 
 .video-modal-content { 
     background: black; width: 100%; height: 100%; margin: 0; 
@@ -255,7 +233,7 @@ video { width: 100%; height: 100%; object-fit: contain; }
     position: absolute; top: 25px; color: white; background: rgba(0, 0, 0, 0.6); 
     width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; 
     cursor: pointer; z-index: 220; font-size: 18px; opacity: 0; transition: all 0.2s;
-    border: 2px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
 }
 .video-modal-content.ui-visible .player-btn { opacity: 1; }
 .close-video { right: 25px; background: rgba(229, 62, 62, 0.85); }
@@ -298,7 +276,7 @@ video { width: 100%; height: 100%; object-fit: contain; }
 }
 
 /* =========================================
-   9. TV INTERFACE STYLES (UPDATED & FIXED)
+   9. TV INTERFACE STYLES (OPTIMIZED FOR TV)
    ========================================= */
 
 /* Main TV Container */
@@ -308,50 +286,47 @@ video { width: 100%; height: 100%; object-fit: contain; }
     direction: rtl; overflow: hidden;
 }
 
-/* TV Sidebar (Hidden by default, slides in) */
+/* TV Sidebar - NO BLUR FOR PERFORMANCE */
 .tv-sidebar {
-    position: absolute; right: 0; top: 0; height: 100%; width: 300px;
-    background: rgba(20, 20, 30, 0.95); 
+    position: absolute; right: 0; top: 0; height: 100%; width: 320px;
+    background: #111; /* ڕەنگی تاریکی تەواو بۆ سووکی */
     z-index: 5010;
-    transform: translateX(100%); /* Start Hidden */
+    transform: translateX(100%); 
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border-left: 1px solid rgba(255,255,255,0.1);
+    border-left: 2px solid #333;
     display: flex; flex-direction: column;
-    box-shadow: -10px 0 30px rgba(0,0,0,0.8);
 }
 
-.tv-sidebar.visible {
-    transform: translateX(0); /* Slide In */
-}
+.tv-sidebar.visible { transform: translateX(0); }
 
 /* Sidebar Header */
 .tv-category-header {
-    height: 70px; background: linear-gradient(90deg, var(--primary-color), #2d3748);
+    height: 80px; background: #0a0a0a;
     color: white; display: flex; align-items: center; justify-content: space-between;
-    padding: 0 15px; font-size: 16px; font-weight: bold;
+    padding: 0 20px; font-size: 18px; font-weight: bold;
     border-bottom: 3px solid var(--gold-color);
 }
-.tv-category-header button { background: transparent; border: none; color: white; font-size: 20px; cursor: pointer; }
+.tv-category-header button { background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; }
 
 /* Channel List */
-.tv-channel-list { flex: 1; overflow-y: auto; padding: 10px; scroll-behavior: smooth; }
+.tv-channel-list { flex: 1; overflow-y: auto; padding: 15px; scroll-behavior: smooth; }
 
 .tv-channel-item {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 15px; margin-bottom: 8px;
-    background: rgba(255,255,255,0.05); border-radius: 8px;
-    color: #e2e8f0; cursor: pointer; transition: all 0.2s;
-    border: 2px solid transparent;
+    padding: 16px 20px; margin-bottom: 12px;
+    background: #222; border-radius: 10px;
+    color: #e2e8f0; cursor: pointer; transition: none; /* No transition for faster remote response */
+    border: 3px solid transparent; /* Prepare for focus border */
 }
-.tv-channel-item span.num { background: rgba(0,0,0,0.3); color: #cbd5e0; padding: 2px 8px; border-radius: 4px; font-size: 14px; font-weight: bold; margin-left: 10px; font-family: monospace; }
-.tv-channel-item span.name { flex: 1; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tv-channel-item span.num { background: #333; color: #cbd5e0; padding: 2px 10px; border-radius: 6px; font-size: 16px; font-weight: bold; margin-left: 15px; }
+.tv-channel-item span.name { flex: 1; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Focus State */
+/* Focus State - HIGH CONTRAST FOR TV */
 .tv-channel-item.focused {
     background: var(--primary-color);
     border-color: var(--gold-color);
-    transform: scale(1.03); color: white;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    transform: scale(1.05); color: white;
+    box-shadow: 0 0 20px rgba(246, 173, 85, 0.4);
 }
 .tv-channel-item.focused span.num { background: var(--gold-color); color: #1a202c; }
 
@@ -361,72 +336,55 @@ video { width: 100%; height: 100%; object-fit: contain; }
 
 /* TV Maximize Button */
 .tv-maximize-btn {
-    position: absolute;
-    top: 20px;
-    left: 20px; 
-    background: rgba(0, 0, 0, 0.6);
-    color: white;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: absolute; top: 30px; left: 30px; 
+    background: rgba(0, 0, 0, 0.7); color: white;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    width: 60px; height: 60px; border-radius: 50%;
+    cursor: pointer; font-size: 24px;
+    display: flex; align-items: center; justify-content: center;
     z-index: 5020;
-    transition: all 0.3s ease;
+}
+.tv-maximize-btn:hover, .tv-maximize-btn:focus {
+    background: var(--gold-color); color: black; border-color: white;
 }
 
-.tv-maximize-btn:hover {
-    background: var(--gold-color);
-    color: black;
-    transform: scale(1.1);
-}
-
-/* Hide maximize button when list is already hidden (full screen) */
-.tv-sidebar:not(.visible) ~ .tv-player-area .tv-maximize-btn {
-    display: none;
-}
-
-/* Info Bar (Bottom Overlay) */
+/* Info Bar */
 .tv-info-bar {
-    position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
-    width: 70%; min-width: 300px; padding: 20px 30px;
-    background: linear-gradient(to right, rgba(0,0,0,0.9), rgba(26, 54, 93, 0.9));
+    position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%);
+    width: 70%; min-width: 300px; padding: 25px 40px;
+    background: rgba(10, 10, 10, 0.95);
     border-radius: 50px; color: white;
-    display: flex; align-items: center; gap: 25px;
-    opacity: 0; transition: opacity 0.4s ease, transform 0.4s ease;
-    pointer-events: none; border: 1px solid rgba(255,255,255,0.1);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: flex; align-items: center; gap: 30px;
+    opacity: 0; transition: opacity 0.4s ease;
+    border: 2px solid #333;
+    z-index: 5015;
 }
-.tv-info-bar.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.tv-info-bar.show { opacity: 1; }
+.tv-ch-num { font-size: 48px; font-weight: 800; color: var(--gold-color); }
+.tv-ch-details h2 { margin: 0; font-size: 32px; font-weight: bold; }
+.tv-ch-details span { color: #cbd5e0; font-size: 20px; }
 
-.tv-ch-num {
-    font-size: 42px; font-weight: 800; color: var(--gold-color);
-    font-family: 'Arial', sans-serif; letter-spacing: -2px;
-    text-shadow: 0 2px 10px rgba(246, 173, 85, 0.3);
-}
-
-.tv-ch-details { flex: 1; display: flex; flex-direction: column; gap: 5px; }
-.tv-ch-details h2 { margin: 0; font-size: 26px; font-weight: bold; }
-.tv-ch-details span { color: #cbd5e0; font-size: 16px; opacity: 0.8; }
-
-/* Number Input Display (Top Right) */
+/* Number Input */
 .tv-input-display {
-    position: absolute; top: 40px; right: 40px;
-    font-size: 60px; color: var(--gold-color); font-weight: bold;
-    font-family: 'Arial', sans-serif;
+    position: absolute; top: 50px; right: 50px;
+    font-size: 80px; color: var(--gold-color); font-weight: bold;
     text-shadow: 4px 4px 0px #000;
     display: none; z-index: 5020;
-    animation: pulse 0.2s ease;
 }
-@keyframes pulse { from { transform: scale(0.8); } to { transform: scale(1); } }
 
-/* TV Specific Loader */
 .tv-loader {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     background: #000; display: flex; align-items: center; justify-content: center;
     z-index: 5005;
+}
+
+/* =========================================
+   10. MOBILE RESPONSIVENESS (TV)
+   ========================================= */
+@media (max-width: 768px) {
+    .tv-sidebar { width: 80%; max-width: 300px; }
+    .tv-maximize-btn { top: auto; bottom: 30px; left: 20px; width: 55px; height: 55px; background: rgba(229, 62, 62, 0.9); }
+    .tv-info-bar { width: 90%; bottom: 100px; padding: 15px 20px; border-radius: 20px; }
+    .tv-ch-num { font-size: 32px; }
+    .tv-ch-details h2 { font-size: 20px; }
 }
