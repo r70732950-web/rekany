@@ -166,7 +166,7 @@ video::-webkit-media-controls-enclosure { display: none !important; }
 .skeleton-text { height: 20px; width: 60%; margin: 10px auto; }
 
 /* =========================================
-   6. CARDS & SECTIONS
+   6. CARDS & SECTIONS (Fixed for 3 columns)
    ========================================= */
 .category-section {
     background: var(--card-bg); margin: 15px 10px; padding: 15px; 
@@ -176,14 +176,13 @@ video::-webkit-media-controls-enclosure { display: none !important; }
 
 .section-header { 
     display: flex; 
-    justify-content: space-between; /* This puts title Right and button Left in RTL */
+    justify-content: space-between; 
     align-items: center;
     margin-bottom: 15px; padding-bottom: 8px; border-bottom: 1px dashed #e2e8f0;
 }
 
 .section-title { font-size: 18px; font-weight: 700; color: var(--primary-color); }
 
-/* --- NEW BUTTON STYLES (HEADER LEFT) --- */
 .header-more-btn {
     background: rgba(49, 130, 206, 0.1);
     color: var(--primary-color);
@@ -206,7 +205,6 @@ video::-webkit-media-controls-enclosure { display: none !important; }
     color: white;
 }
 
-/* Red Style for "Back" button */
 .header-more-btn.active-focus-btn {
     background: #e53e3e;
     color: white;
@@ -215,8 +213,13 @@ video::-webkit-media-controls-enclosure { display: none !important; }
     background: #c53030;
 }
 
-/* Grid Layout */
-.products-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 12px; }
+/* --- FIX FOR 3 COLUMNS --- */
+.products-container { 
+    display: grid; 
+    /* Changed to 85px to fit 3 items on small screens */
+    grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); 
+    gap: 8px; 
+}
 
 .product-card {
     position: relative; background: #fff; border-radius: 14px; 
@@ -242,7 +245,6 @@ body.admin-mode .admin-controls { opacity: 1; }
 .edit-btn, .delete-btn { width: 30px; height: 30px; border-radius: 50%; border: none; color: white; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
 .edit-btn { background-color: #3182ce; } .delete-btn { background-color: #e53e3e; }
 
-/* Animation for revealing channels */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
