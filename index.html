@@ -62,6 +62,12 @@
         <div class="tv-player-area">
             <video id="tvVideoPlayer" playsinline></video>
             
+            <div id="tvErrorScreen" class="error-overlay" style="display: none; z-index: 5006;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 50px; color: #fc8181; margin-bottom: 20px;"></i>
+                <p style="font-size: 20px;">پەخشی ئەم کەناڵە وەستاوە</p>
+                <p style="font-size: 14px; color: gray;">هەوڵی چاککردنی دەدەین...</p>
+            </div>
+            
             <button id="tvMaximizeBtn" onclick="toggleTvList(false)" class="tv-maximize-btn">
                 <i class="fas fa-expand"></i>
             </button>
@@ -77,6 +83,7 @@
             <div id="tvInputDisplay" class="tv-input-display"></div>
         </div>
     </div>
+
     <nav class="bottom-nav">
         
         <button class="nav-item" onclick="toggleTvMode()" style="color: #fc8181;">
@@ -285,9 +292,9 @@
             <video id="videoPlayer" autoplay playsinline></video>
             
             <div id="errorScreen" class="error-overlay" style="display: none;" onclick="triggerOverlay()">
-                <i class="fas fa-exclamation-triangle"></i>
+                <i class="fas fa-exclamation-triangle" style="font-size: 50px; margin-bottom: 20px;"></i>
                 <p>پەخشی ئەم کەناڵە وەستاوە</p>
-                <button onclick="event.stopPropagation(); closePlayer()">داخستن</button>
+                <button onclick="event.stopPropagation(); closePlayer()" style="margin-top: 20px; background: #fc8181; color: white;">داخستن</button>
             </div>
             
             <div id="relatedChannels" class="related-channels-bar"></div>
